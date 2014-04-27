@@ -107,8 +107,8 @@ my role Supply {
         SupplyOperations.schedule_on(self, $scheduler);
     }
     method start(&startee)     { SupplyOperations.start(self, &startee) }
-    method unchanged($time, :$scheduler = $*SCHEDULER) {
-        SupplyOperations.unchanged(self, $time, :$scheduler)
+    method stable($time, :$scheduler = $*SCHEDULER) {
+        SupplyOperations.stable(self, $time, :$scheduler)
     }
     method migrate()           { SupplyOperations.migrate(self) }
     method merge(*@s)          { SupplyOperations.merge(self, @s) }

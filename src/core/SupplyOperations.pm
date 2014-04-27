@@ -418,8 +418,8 @@ my class SupplyOperations is repr('Uninstantiable') {
         })
     }
 
-    method unchanged(Supply $s, $time, :$scheduler = $*SCHEDULER) {
-        my class UnchangedSupply does Supply does PrivatePublishing {
+    method stable(Supply $s, $time, :$scheduler = $*SCHEDULER) {
+        my class StableSupply does Supply does PrivatePublishing {
             has $!source;
             has $!time;
             has $!scheduler;
@@ -455,7 +455,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        UnchangedSupply.new(:source($s), :$time, :$scheduler);
+        StableSupply.new(:source($s), :$time, :$scheduler);
     }
 
     method migrate(Supply $s) {

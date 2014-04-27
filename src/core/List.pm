@@ -1,5 +1,6 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my role Supply { ... }
 
 my sub combinations($n, $k) {
     my @result;
@@ -103,6 +104,8 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
         nqp::p6parcel($rpa, Any);
     }
+
+    method Supply(List:D:) { Supply.for(self) }
 
     multi method at_pos(List:D: $pos is copy) is rw {
         $pos = $pos.Int;

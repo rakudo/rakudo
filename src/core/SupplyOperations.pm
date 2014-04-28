@@ -197,6 +197,9 @@ my class SupplyOperations is repr('Uninstantiable') {
     }
 
     method stable(Supply $source, $time, :$scheduler = $*SCHEDULER) {
+
+        return $source if !$time;  # nothing to do
+
         my class StableSupply does Supply does PrivatePublishing {
             has $!source;
             has $!time;
@@ -237,6 +240,9 @@ my class SupplyOperations is repr('Uninstantiable') {
     }
 
     method delay(Supply $source, $time, :$scheduler = $*SCHEDULER) {
+
+        return $source if !$time;  # nothing to do
+
         my class DelaySupply does Supply does PrivatePublishing {
             has $!source;
             has $!time;

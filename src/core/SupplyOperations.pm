@@ -147,7 +147,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         MapSupply.new(:$source, :&mapper)
     }
 
-    method schedule-on(Supply $source, Scheduler $scheduler) {
+    method schedule_on(Supply $source, Scheduler $scheduler) {
         my class ScheduleSupply does Supply does PrivatePublishing {
             has $!source;
             has $!scheduler;

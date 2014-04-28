@@ -3,7 +3,6 @@
 # be declared outside of Supply.
 
 my class SupplyOperations is repr('Uninstantiable') {
-    my @secret;
 
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.
@@ -103,12 +102,6 @@ my class SupplyOperations is repr('Uninstantiable') {
         FlatSupply.new(:source($s))
     }
 
-    method do($s, &side_effect) {
-        on -> $res {
-            $s => sub (\val) { side_effect(val); $res.more(val) }
-        }
-    }
-
     method grep(Supply $s, &filter) {
         my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
@@ -132,137 +125,6 @@ my class SupplyOperations is repr('Uninstantiable') {
         GrepSupply.new(:source($s), :&filter)
     }
 
-    method uniq(Supply $s, :&as, :&with, :$expires) {
-        on -> $res {
-            $s => do {
-                if $expires {
-                    if &with and &with !=== &[===] {
-                        my @seen;  # really Mu, but doesn't work in settings
-                        my Mu $target;
-                        &as
-                          ?? -> \val {
-                              my $now := now;
-                              $target = &as(val);
-                              my $index =
-                                @seen.first-index({&with($target,$_[0])});
-                              if $index.defined {
-                                  if $now > @seen[$index][1] {  # expired
-                                      @seen[$index][1] = $now+$expires;
-                                      $res.more(val);
-                                  }
-                              }
-                              else {
-                                  @seen.push: [$target, $now+$expires];
-                                  $res.more(val);
-                              }
-                          }
-                          !! -> \val {
-                              my $now := now;
-                              my $index =
-                                @seen.first-index({&with(val,$_[0])});
-                              if $index.defined {
-                                  if $now > @seen[$index][1] {  # expired
-                                      @seen[$index][1] = $now+$expires;
-                                      $res.more(val);
-                                  }
-                              }
-                              else {
-                                  @seen.push: [val, $now+$expires];
-                                  $res.more(val);
-                              }
-                          };
-                    }
-                    else {
-                        my $seen := nqp::hash();
-                        my str $target;
-                        &as
-                          ?? -> \val {
-                              my $now := now;
-                              $target = nqp::unbox_s(&as(val).WHICH);
-                              if !nqp::existskey($seen,$target) ||
-                                $now > nqp::atkey($seen,$target) { #expired
-                                  $res.more(val);
-                                  nqp::bindkey($seen,$target,$now+$expires);
-                              }
-                          }
-                          !! -> \val {
-                              my $now := now;
-                              $target = nqp::unbox_s(val.WHICH);
-                              if !nqp::existskey($seen,$target) ||
-                                $now > nqp::atkey($seen,$target) { #expired
-                                  $res.more(val);
-                                  nqp::bindkey($seen,$target,$now+$expires);
-                              }
-                          };
-                    }
-                }
-                else { # !$!expires
-                    if &with and &with !=== &[===] {
-                        my @seen;  # really Mu, but doesn't work in settings
-                        my Mu $target;
-                        &as
-                          ?? -> \val {
-                              $target = &as(val);
-                              if @seen.first({ &with($target,$_) } ) =:= Nil {
-                                  @seen.push($target);
-                                  $res.more(val);
-                              }
-                          }
-                          !! -> \val {
-                              if @seen.first({ &with(val,$_) } ) =:= Nil {
-                                  @seen.push(val);
-                                  $res.more(val);
-                              }
-                          };
-                    }
-                    else {
-                        my $seen := nqp::hash();
-                        my str $target;
-                        &as
-                          ?? -> \val {
-                              $target = nqp::unbox_s(&as(val).WHICH);
-                              unless nqp::existskey($seen, $target) {
-                                  nqp::bindkey($seen, $target, 1);
-                                  $res.more(val);
-                              }
-                          }
-                          !! -> \val {
-                              $target = nqp::unbox_s(val.WHICH);
-                              unless nqp::existskey($seen, $target) {
-                                  nqp::bindkey($seen, $target, 1);
-                                  $res.more(val);
-                              }
-                          };
-                    }
-                }
-            }
-        }
-    }
-
-    method squish(Supply $s, :&as, :&with is copy) {
-        &with //= &[===];
-        on -> $res {
-            $s => do {
-                my Mu $last = @secret;
-                my Mu $target;
-                &as
-                  ?? -> \val {
-                      $target = &as(val);
-                      unless &with($target,$last) {
-                          $last = $target;
-                          $res.more(val);
-                      }
-                  }
-                  !! -> \val {
-                      unless &with(val,$last) {
-                          $last = val;
-                          $res.more(val);
-                      }
-                  };
-            }
-        }
-    }
-    
     method map(Supply $s, &mapper) {
         my class MapSupply does Supply does PrivatePublishing {
             has $!source;
@@ -283,90 +145,6 @@ my class SupplyOperations is repr('Uninstantiable') {
             }
         }
         MapSupply.new(:source($s), :&mapper)
-    }
-
-    method rotor(Supply $s, $elems is copy, $overlap is copy ) {
-
-        $elems   //= 2;
-        $overlap //= 1;
-        return $s if $elems == 1 and $overlap == 0;  # nothing to do
-
-        on -> $res {
-            $s => do {
-                my @batched;
-                sub flush {
-                    $res.more( [@batched] );
-                    @batched.splice( 0, +@batched - $overlap );
-                }
-
-                {
-                    more => -> \val {
-                        @batched.push: val;
-                        flush if @batched.elems == $elems;
-                    },
-                    done => {
-                        flush if @batched;
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method batch(Supply $s, :$elems, :$seconds ) {
-
-        return $s if (!$elems or $elems == 1) and !$seconds;  # nothing to do
-
-        on -> $res {
-            $s => do {
-                my @batched;
-                my $last_time;
-                sub flush {
-                    $res.more([@batched]);
-                    @batched = ();
-                }
-
-                {
-                    more => do {
-                        if $seconds {
-                            $last_time = time div $seconds;
-
-                            $elems # and $seconds
-                              ??  -> \val {
-                                  my $this_time = time div $seconds;
-                                  if $this_time != $last_time {
-                                      flush if @batched;
-                                      $last_time = $this_time;
-                                      @batched.push: val;
-                                  }
-                                  else {
-                                      @batched.push: val;
-                                      flush if @batched.elems == $elems;
-                                  }
-                              }
-                              !! -> \val {
-                                  my $this_time = time div $seconds;
-                                  if $this_time != $last_time {
-                                      flush if @batched;
-                                      $last_time = $this_time;
-                                  }
-                                  @batched.push: val;
-                              }
-                        }
-                        else { # just $elems
-                            -> \val {
-                                @batched.push: val;
-                                flush if @batched.elems == $elems;
-                            }
-                        }
-                    },
-                    done => {
-                        flush if @batched;
-                        $res.done;
-                    }
-                }
-            }
-        }
     }
 
     method schedule_on(Supply $s, Scheduler $scheduler) {
@@ -515,38 +293,5 @@ my class SupplyOperations is repr('Uninstantiable') {
             }
         }
         MigrateSupply.new(:source($s))
-    }
-
-    method merge(*@s) {
-
-        @s.shift unless @s[0].DEFINITE;  # lose if used as class method
-        return Supply unless +@s;        # nothing to be done
-        return @s[0]  if +@s == 1;       # nothing to be done
-
-        my $dones = 0;
-        on -> $res {
-            @s => {
-                more => -> \val { $res.more(val) },
-                done => { $res.done() if ++$dones == +@s }
-            },
-        }
-    }
-    
-    method zip(*@s, :&with is copy) {
-
-        @s.shift unless @s[0].DEFINITE;  # lose if used as class method
-        return Supply unless +@s;        # nothing to be done
-        return @s[0]  if +@s == 1;       # nothing to be done
-
-        my &infix:<op> = &with // &[,]; # hack for [[&with]] parse failure
-        my @values = ( [] xx +@s );
-        on -> $res {
-            @s => -> $val, $index {
-                @values[$index].push($val);
-                if all(@values) {
-                    $res.more( [op] @values>>.shift );
-                }
-            }
-        }
     }
 }

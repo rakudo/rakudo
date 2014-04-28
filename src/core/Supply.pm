@@ -119,8 +119,8 @@ my role Supply {
     method flat()              { SupplyOperations.flat(self) }
     method grep(&filter)       { SupplyOperations.grep(self, &filter) }
     method map(&mapper)        { SupplyOperations.map(self, &mapper) }
-    method schedule_on(Scheduler $scheduler) {
-        SupplyOperations.schedule_on(self, $scheduler);
+    method schedule-on(Scheduler $scheduler) {
+        SupplyOperations.schedule-on(self, $scheduler);
     }
     method start(&startee)     { SupplyOperations.start(self, &startee) }
     method stable($time, :$scheduler = $*SCHEDULER) {

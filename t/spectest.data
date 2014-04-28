@@ -598,6 +598,7 @@ S17-supply/merge.t       # conc
 S17-supply/on.t          # conc
 S17-supply/rotor.t       # conc
 S17-supply/squish.t      # conc
+S17-supply/stable.t      # conc
 S17-supply/uniq.t        # conc
 S17-supply/zip.t         # conc
 S19-command-line/dash-e.t # icu
@@ -682,6 +683,7 @@ S32-list/combinations.t
 S32-list/end.t
 S32-list/first.t
 S32-list/grep.t
+S32-list/grep-index.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t

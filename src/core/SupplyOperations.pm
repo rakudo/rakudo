@@ -81,92 +81,92 @@ my class SupplyOperations is repr('Uninstantiable') {
         IntervalSupply.new(:$interval, :$delay, :$scheduler)
     }
     
-    method flat(Supply $s) {
+    method flat(Supply $source) {
         my class FlatSupply does Supply does PrivatePublishing {
             has $!source;
             
             submethod BUILD(:$!source) { }
             
-            method live { $s.live }
+            method live { $source.live }
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
                       self!more(val.flat)
                   },
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) });
-                $sub
+                $tap
             }
         }
-        FlatSupply.new(:source($s))
+        FlatSupply.new(:$source)
     }
 
-    method grep(Supply $s, &filter) {
+    method grep(Supply $source, &filter) {
         my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
             has &!filter;
             
             submethod BUILD(:$!source, :&!filter) { }
             
-            method live { $s.live }
+            method live { $source.live }
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
                       if (&!filter(val)) { self!more(val) }
                   },
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) }
                 );
-                $sub
+                $tap
             }
         }
-        GrepSupply.new(:source($s), :&filter)
+        GrepSupply.new(:$source, :&filter)
     }
 
-    method map(Supply $s, &mapper) {
+    method map(Supply $source, &mapper) {
         my class MapSupply does Supply does PrivatePublishing {
             has $!source;
             has &!mapper;
             
             submethod BUILD(:$!source, :&!mapper) { }
             
-            method live { $s.live }
+            method live { $source.live }
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
                       self!more(&!mapper(val))
                   },
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) });
-                $sub
+                $tap
             }
         }
-        MapSupply.new(:source($s), :&mapper)
+        MapSupply.new(:$source, :&mapper)
     }
 
-    method schedule_on(Supply $s, Scheduler $scheduler) {
+    method schedule_on(Supply $source, Scheduler $scheduler) {
         my class ScheduleSupply does Supply does PrivatePublishing {
             has $!source;
             has $!scheduler;
             
             submethod BUILD(:$!source, :$!scheduler) { }
             
-            method live { $s.live }
+            method live { $source.live }
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
                       $!scheduler.cue: { self!more(val) }
                   },
                   done => { $!scheduler.cue: { self!done(); } },
                   quit => -> $ex { $!scheduler.cue: { self!quit($ex) } });
-                $sub
+                $tap
             }
         }
-        ScheduleSupply.new(:source($s), :$scheduler)
+        ScheduleSupply.new(:$source, :$scheduler)
     }
     
     method start(Supply $s, &startee) {
@@ -196,7 +196,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         })
     }
 
-    method stable(Supply $s, $time, :$scheduler = $*SCHEDULER) {
+    method stable(Supply $source, $time, :$scheduler = $*SCHEDULER) {
         my class StableSupply does Supply does PrivatePublishing {
             has $!source;
             has $!time;
@@ -208,10 +208,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $!lock = Lock.new;
             }
             
-            method live { $s.live }
+            method live { $source.live }
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap(
                     -> \val {
                         $!lock.protect({
@@ -230,13 +230,13 @@ my class SupplyOperations is repr('Uninstantiable') {
                     },
                     done => { self!done(); },
                     quit => -> $ex { self!quit($ex) });
-                $sub
+                $tap
             }
         }
-        StableSupply.new(:source($s), :$time, :$scheduler);
+        StableSupply.new(:$source, :$time, :$scheduler);
     }
 
-    method delay(Supply $s, $time, :$scheduler = $*SCHEDULER) {
+    method delay(Supply $source, $time, :$scheduler = $*SCHEDULER) {
         my class DelaySupply does Supply does PrivatePublishing {
             has $!source;
             has $!time;
@@ -244,10 +244,10 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             submethod BUILD(:$!source, :$!time, :$!scheduler) { }
             
-            method live { $s.live }
+            method live { $source.live }
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap(
                     -> \val {
                         $!scheduler.cue( { self!more(val) }, :in($time) );
@@ -258,13 +258,13 @@ my class SupplyOperations is repr('Uninstantiable') {
                     quit => -> $ex {
                         $!scheduler.cue( { self!quit($ex) }, :in($time) );
                     } );
-                $sub
+                $tap
             }
         }
-        DelaySupply.new(:source($s), :$time, :$scheduler);
+        DelaySupply.new(:$source, :$time, :$scheduler);
     }
 
-    method migrate(Supply $s) {
+    method migrate(Supply $source) {
         my class MigrateSupply does Supply does PrivatePublishing {
             has $!source;
             has $!current;
@@ -274,10 +274,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $!lock = Lock.new;
             }
             
-            method live { $s.live }
+            method live { $source.live }
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap(
                     -> \inner_supply {
                         $!lock.protect({
@@ -289,9 +289,9 @@ my class SupplyOperations is repr('Uninstantiable') {
                     },
                     done => { self!done(); },
                     quit => -> $ex { self!quit($ex) });
-                $sub
+                $tap
             }
         }
-        MigrateSupply.new(:source($s))
+        MigrateSupply.new(:$source)
     }
 }

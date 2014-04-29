@@ -682,6 +682,8 @@ S32-list/create.t
 S32-list/combinations.t
 S32-list/end.t
 S32-list/first.t
+S32-list/first-index.t
+S32-list/first-rindex.t
 S32-list/grep.t
 S32-list/grep-index.t
 S32-list/join.t

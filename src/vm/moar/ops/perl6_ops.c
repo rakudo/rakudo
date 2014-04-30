@@ -214,11 +214,11 @@ static void p6parcel(MVMThreadContext *tc) {
     MVMObject *fill   = GET_REG(tc, 4).o;
     MVM_ASSIGN_REF(tc, &(parcel->header), ((Rakudo_Parcel *)parcel)->storage, vmarr);
 
-    if (fill) {
+    if (!MVM_is_null(tc, fill)) {
         MVMint64 elems = MVM_repr_elems(tc, vmarr);
         MVMint64 i;
         for (i = 0; i < elems; i++)
-            if (!MVM_repr_at_pos_o(tc, vmarr, i))
+            if (MVM_is_null(tc, MVM_repr_at_pos_o(tc, vmarr, i)))
                 MVM_repr_bind_pos_o(tc, vmarr, i, fill);
     }
 
@@ -248,7 +248,7 @@ static void p6list(MVMThreadContext *tc) {
      if (MVM_6model_istype_cache_only(tc, list, List)) {
         MVMROOT(tc, list, {
             MVMObject *items = GET_REG(tc, 2).o;
-            if (items) {
+            if (!MVM_is_null(tc, items)) {
                 MVMObject *iter = make_listiter(tc, items, list);
                 MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->nextiter, iter);
             }
@@ -312,7 +312,7 @@ static MVMuint8 s_p6scalarfromdesc[] = {
 static void p6scalarfromdesc(MVMThreadContext *tc) {
     MVMObject *new_scalar = MVM_repr_alloc_init(tc, Scalar);
     MVMObject *descriptor = GET_REG(tc, 2).o;
-    if (!descriptor) {
+    if (MVM_is_null(tc, descriptor)) {
         descriptor = default_cont_desc;
     }
     MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
@@ -329,7 +329,7 @@ static void p6recont_ro(MVMThreadContext *tc) {
     MVMObject *check = GET_REG(tc, 2).o;
     if (STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
         MVMObject *desc = ((Rakudo_Scalar *)check)->descriptor;
-        if (desc && ((Rakudo_ContainerDescriptor *)desc)->rw) {
+        if (!MVM_is_null(tc, desc) && ((Rakudo_ContainerDescriptor *)desc)->rw) {
             /* We have an rw container; re-containerize it. */
             MVMROOT(tc, check, {
                 MVMObject *result = MVM_repr_alloc_init(tc, Scalar);
@@ -387,7 +387,7 @@ static MVMuint8 s_p6decontrv[] = {
 };
 static void p6decontrv(MVMThreadContext *tc) {
     MVMObject *retval = GET_REG(tc, 2).o;
-    if (!retval) {
+    if (MVM_is_null(tc, retval)) {
        retval = Mu;
     }
     else if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
@@ -420,7 +420,7 @@ static void p6routinereturn(MVMThreadContext *tc) {
     }
     else {
         MVMObject *thrower = get_thrower(tc, str_cfr);
-        if (thrower) {
+        if (!MVM_is_null(tc, thrower)) {
             thrower = MVM_frame_find_invokee(tc, thrower, NULL);
             MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
             STABLE(thrower)->invoke(tc, thrower, &no_arg_callsite, tc->cur_frame->args);
@@ -486,7 +486,7 @@ static void p6getouterctx(MVMThreadContext *tc) {
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
     MVMObject *ctx         = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-    if (!outer)
+    if (MVM_is_null(tc, outer))
         MVM_exception_throw_adhoc(tc, "Specified code ref has no outer");
     ((MVMContext *)ctx)->body.context = MVM_frame_inc_ref(tc, outer);
     GET_REG(tc, 0).o = ctx;
@@ -505,16 +505,18 @@ static void p6captureouters(MVMThreadContext *tc) {
     if (REPR(tgt)->ID != MVM_REPR_ID_MVMCode)
         MVM_exception_throw_adhoc(tc, "p6captureouters second arg must be MVMCode");
     new_outer = ((MVMCode *)tgt)->body.outer;
-    if (!new_outer)
+    if (MVM_is_null(tc, new_outer))
         return;
     for (i = 0; i < elems; i++) {
         MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
         if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
-            if (outer->outer)
-                MVM_frame_dec_ref(tc, outer->outer);
-            outer->outer = MVM_frame_inc_ref(tc, new_outer);
+            if (outer) {
+                if (outer->outer)
+                    MVM_frame_dec_ref(tc, outer->outer);
+                outer->outer = MVM_frame_inc_ref(tc, new_outer);
+            }
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");

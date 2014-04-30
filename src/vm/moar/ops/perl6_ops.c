@@ -486,7 +486,7 @@ static void p6getouterctx(MVMThreadContext *tc) {
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
     MVMObject *ctx         = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-    if (MVM_is_null(tc, outer))
+    if (!outer)
         MVM_exception_throw_adhoc(tc, "Specified code ref has no outer");
     ((MVMContext *)ctx)->body.context = MVM_frame_inc_ref(tc, outer);
     GET_REG(tc, 0).o = ctx;
@@ -505,18 +505,16 @@ static void p6captureouters(MVMThreadContext *tc) {
     if (REPR(tgt)->ID != MVM_REPR_ID_MVMCode)
         MVM_exception_throw_adhoc(tc, "p6captureouters second arg must be MVMCode");
     new_outer = ((MVMCode *)tgt)->body.outer;
-    if (MVM_is_null(tc, new_outer))
+    if (!new_outer)
         return;
     for (i = 0; i < elems; i++) {
         MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
         if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
-            if (outer) {
-                if (outer->outer)
-                    MVM_frame_dec_ref(tc, outer->outer);
-                outer->outer = MVM_frame_inc_ref(tc, new_outer);
-            }
+            if (outer->outer)
+                MVM_frame_dec_ref(tc, outer->outer);
+            outer->outer = MVM_frame_inc_ref(tc, new_outer);
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");

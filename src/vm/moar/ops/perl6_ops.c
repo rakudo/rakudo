@@ -91,13 +91,13 @@ MVMObject * get_mu() { return Mu; }
 /* Looks up an exception thrower. */
 static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
     MVMObject *ex_hash = MVM_hll_sym_get(tc, str_perl6, str_p6ex);
-    return ex_hash ? MVM_repr_at_key_o(tc, ex_hash, type) : NULL;
+    return MVM_is_null(tc, ex_hash) ? ex_hash : MVM_repr_at_key_o(tc, ex_hash, type);
 }
 
 /* Reports an assignment type check failure. */
 void Rakudo_assign_typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
     MVMObject *thrower = get_thrower(tc, str_xatcf);
-    if (thrower) {
+    if (!MVM_is_null(tc, thrower)) {
         Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
         Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
         thrower = MVM_frame_find_invokee(tc, thrower, NULL);
@@ -282,7 +282,7 @@ static void p6listitems(MVMThreadContext *tc) {
      MVMObject *list = GET_REG(tc, 2).o;
      if (MVM_6model_istype_cache_only(tc, list, List)) {
         MVMObject *items = ((Rakudo_List *)REAL_BODY(tc, list))->items;
-        if (!items || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
+        if (MVM_is_null(tc, items) || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
             MVMROOT(tc, list, {
                 items = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
                 MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->items, items);
@@ -393,7 +393,7 @@ static void p6decontrv(MVMThreadContext *tc) {
     else if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
         Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
             ((Rakudo_Scalar *)retval)->descriptor;
-        if (cd && cd->rw) {
+        if (!MVM_is_null(tc, cd) && cd->rw) {
             MVMROOT(tc, retval, {
                 MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
                 MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
@@ -412,7 +412,7 @@ static MVMuint8 s_p6routinereturn[] = {
 static void p6routinereturn(MVMThreadContext *tc) {
     MVMObject *ret = MVM_frame_find_lexical_by_name_rel_caller(tc, str_return,
         tc->cur_frame)->o;
-    if (ret && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
+    if (!MVM_is_null(tc, ret) && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
         MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
         tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
         STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
@@ -605,7 +605,7 @@ static void p6finddispatcher(MVMThreadContext *tc) {
         MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
-            if (maybe_dispatcher) {
+            if (!MVM_is_null(tc, maybe_dispatcher)) {
                 MVMObject *dispatcher = maybe_dispatcher;
                 if (!IS_CONCRETE(dispatcher)) {
                     /* Need to vivify it, by calling vivify_for method. Prepare
@@ -653,7 +653,7 @@ static void p6finddispatcher(MVMThreadContext *tc) {
 
     {
         MVMObject *thrower = get_thrower(tc, str_xnodisp);
-        if (thrower) {
+        if (!MVM_is_null(tc, thrower)) {
             thrower = MVM_frame_find_invokee(tc, thrower, NULL);
             *(tc->interp_cur_op) += 4; /* Get right return address. */
             MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_str_callsite);
@@ -709,7 +709,7 @@ static void p6shiftpush(MVMThreadContext *tc) {
     if (count > elems)
         count = elems;
 
-    if (a != NULL && total > 0) {
+    if (!MVM_is_null(tc, a) && total > 0) {
         MVMint64 getPos = 0;
         MVMint64 setPos = MVM_repr_elems(tc, a);
         REPR(a)->pos_funcs.set_elems(tc, STABLE(a), a, OBJECT_BODY(a), setPos + count);
@@ -754,7 +754,7 @@ static void p6arrfindtypes(MVMThreadContext *tc) {
 
     for (index = start; index < last; index++) {
         MVMObject *val = MVM_repr_at_pos_o(tc, arr, index);
-        if (val && !STABLE(val)->container_spec) {
+        if (!MVM_is_null(tc, val) && !STABLE(val)->container_spec) {
             MVMint64 found = 0;
             for (type_index = 0; type_index < ntypes; type_index++) {
                 MVMObject *type = MVM_repr_at_pos_o(tc, types, type_index);
@@ -807,7 +807,7 @@ static MVMuint8 s_p6staticouter[] = {
 };
 static void p6staticouter(MVMThreadContext *tc) {
     MVMObject *code = GET_REG(tc, 2).o;
-    if (code && IS_CONCRETE(code) && REPR(code)->ID == MVM_REPR_ID_MVMCode) {
+    if (!MVM_is_null(tc, code) && IS_CONCRETE(code) && REPR(code)->ID == MVM_REPR_ID_MVMCode) {
         MVMStaticFrame *sf = ((MVMCode *)code)->body.sf;
         GET_REG(tc, 0).o = sf->body.outer
             ? (MVMObject *)sf->body.outer->body.static_code

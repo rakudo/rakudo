@@ -438,7 +438,7 @@ static void p6capturelex(MVMThreadContext *tc) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMInvocationSpec *is = STABLE(p6_code_obj)->invocation_spec;
     MVMObject *vm_code_obj;
-    if (is && is->invocation_handler)
+    if (is && !MVM_is_null(tc, is->invocation_handler))
         return;
     vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {

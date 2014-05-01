@@ -16,7 +16,6 @@ my class Tap {
 }
 
 my role Supply {
-
     has @!tappers;
     has $!tappers_lock = Lock.new;
 
@@ -133,7 +132,7 @@ my role Supply {
     method migrate()           { SupplyOperations.migrate(self) }
 
     method act(&actor) {
-        self.do(&actor).tap(|%_)
+        self.do(&actor).tap(|%_) # need "do" for serializing callbacks
     }
 
     method do(Supply $self: &side_effect) {

@@ -4,17 +4,18 @@
 # to SupplyOperations.
 
 my class SupplyOperations { ... }
+
+my class Tap {
+    has &.more;
+    has &.done;
+    has &.quit;
+    has &.closing;
+    has $.supply;
+
+    method close { $!supply.close(self) }
+}
+
 my role Supply {
-    my class Tap {
-        has &.more;
-        has &.done;
-        has &.quit;
-        has &.closing;
-        has $.supply;
-        method close() {
-            $!supply.close(self)
-        }
-    }
 
     has @!tappers;
     has $!tappers_lock = Lock.new;

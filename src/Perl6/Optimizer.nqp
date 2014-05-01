@@ -1367,9 +1367,10 @@ class Perl6::Optimizer {
         my $decls := $block.shift;
         my $stmts := $block.shift;
 
-        # Turn block into an "optimized out" stub (deserialization
-        # or fixup will still want it to be there).
-        $block.blocktype('declaration');
+        # Turn block into an "optimized out" stub (deserialization or fixup
+        # will still want it to be there). Marked as "raw" to avoid any kind
+        # of lexical capture/closure happening.
+        $block.blocktype('raw');
         $block[0] := QAST::Op.new( :op('die_s'),
             QAST::SVal.new( :value('INTERNAL ERROR: Execution of block eliminated by optimizer') ) );
         $outer[0].push($block);

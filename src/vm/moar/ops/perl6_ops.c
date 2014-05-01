@@ -393,7 +393,7 @@ static void p6decontrv(MVMThreadContext *tc) {
     else if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
         Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
             ((Rakudo_Scalar *)retval)->descriptor;
-        if (!MVM_is_null(tc, cd) && cd->rw) {
+        if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
             MVMROOT(tc, retval, {
                 MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
                 MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,

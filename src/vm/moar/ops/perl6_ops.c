@@ -598,7 +598,6 @@ void store_dispatcher(MVMThreadContext *tc, void *sr_data) {
     free(srd);
 }
 static void p6finddispatcher(MVMThreadContext *tc) {
-    MVMString *usage = GET_REG(tc, 2).s;
     MVMFrame  *ctx = tc->cur_frame;
     while (ctx) {
         /* Do we have a dispatcher here? */
@@ -653,6 +652,7 @@ static void p6finddispatcher(MVMThreadContext *tc) {
 
     {
         MVMObject *thrower = get_thrower(tc, str_xnodisp);
+        MVMString *usage   = GET_REG(tc, 2).s;
         if (!MVM_is_null(tc, thrower)) {
             thrower = MVM_frame_find_invokee(tc, thrower, NULL);
             *(tc->interp_cur_op) += 4; /* Get right return address. */
@@ -674,13 +674,13 @@ static MVMuint8 s_p6argsfordispatcher[] = {
     MVM_operand_obj | MVM_operand_read_reg
 };
 static void p6argsfordispatcher(MVMThreadContext *tc) {
-    MVMObject *disp = GET_REG(tc, 2).o;
     MVMFrame  *ctx = tc->cur_frame;
     while (ctx) {
         /* Do we have the dispatcher we're looking for? */
         MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
+            MVMObject *disp             = GET_REG(tc, 2).o;
             if (maybe_dispatcher == disp) {
                 GET_REG(tc, 0).o = MVM_args_use_capture(tc, ctx);
                 return;

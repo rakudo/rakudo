@@ -585,6 +585,7 @@ S17-lowlevel/lock.t      # conc
 S17-lowlevel/thread.t    # conc
 S17-promise/basic.t      # conc
 S17-scheduler/basic.t    # conc
+S17-supply/act.t         # conc
 S17-supply/basic.t       # conc
 S17-supply/batch.t       # conc
 S17-supply/Channel.t     # conc

@@ -103,6 +103,31 @@ my role Supply {
         $p
     }
 
+    method wait() {
+        my $l = Lock.new;
+        my $p = Promise.new;
+        my $v = $p.vow;
+        my $t = self.tap( -> \val {},
+          done => {
+              $l.protect( {
+                  if $p.status == Planned {
+                      $v.keep(True);
+                      $t.close()
+                  }
+              } );
+          },
+          quit => -> \ex {
+              $l.protect( {
+                  if $p.status == Planned {
+                      $v.break(ex);
+                      $t.close()
+                  }
+              } );
+          },
+        );
+        $p.result
+    }
+
     method list() {
         # Use a Channel to handle any asynchrony.
         my $c = self.Channel;

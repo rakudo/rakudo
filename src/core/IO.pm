@@ -370,6 +370,10 @@ my class IO::Handle does IO::FileTestable {
     }
 }
 
+#?if moar
+my class IO::Notification { ... }
+#?endif
+
 my class IO::Path is Cool does IO::FileTestable {
     method SPEC { IO::Spec.MODULE };
     has Str $.path;
@@ -448,6 +452,12 @@ my class IO::Path is Cool does IO::FileTestable {
     method open(IO::Path:D: *%opts) {
         open($!path, |%opts);
     }
+
+#?if moar
+    method watch(IO::Path:D:) {
+        IO::Notification.watch_path($!path);
+    }
+#?endif
 
     method is-absolute {
         $.SPEC.is-absolute($!path);

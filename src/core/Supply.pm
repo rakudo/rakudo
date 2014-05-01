@@ -19,7 +19,7 @@ my role Supply {
     has @!tappers;
     has $!tappers_lock = Lock.new;
 
-    method tap(&more = -> $ { }, :&done, :&quit = {.die}, :&closing) {
+    method tap(&more = -> $ { }, :&done, :&quit = {die $_}, :&closing) {
         my $sub = Tap.new(:&more, :&done, :&quit, :&closing, :supply(self));
         $!tappers_lock.protect({
             @!tappers.push($sub);

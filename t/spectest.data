@@ -587,6 +587,7 @@ S17-promise/basic.t      # conc
 S17-scheduler/basic.t    # conc
 S17-supply/basic.t       # conc
 S17-supply/batch.t       # conc
+S17-supply/Channel.t     # conc
 S17-supply/delay.t       # conc
 S17-supply/do.t          # conc
 S17-supply/flat.t        # conc
@@ -596,6 +597,7 @@ S17-supply/list.t        # conc
 S17-supply/map.t         # conc
 S17-supply/merge.t       # conc
 S17-supply/on.t          # conc
+S17-supply/Promise.t     # conc
 S17-supply/rotor.t       # conc
 S17-supply/squish.t      # conc
 S17-supply/stable.t      # conc

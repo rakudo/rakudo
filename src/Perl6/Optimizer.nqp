@@ -488,11 +488,13 @@ my class BlockVarOptimizer {
         if nqp::existskey(%!decls, '$/') {
             if !nqp::existskey(%!usages_flat, '$/') && !nqp::existskey(%!usages_inner, '$/') {
                 %kill<$/> := 1;
+                nqp::deletekey(%!decls, '$/');
             }
         }
         if nqp::existskey(%!decls, '$!') {
             if !nqp::existskey(%!usages_flat, '$!') && !nqp::existskey(%!usages_inner, '$!') {
                 %kill<$!> := 1;
+                nqp::deletekey(%!decls, '$!');
             }
         }
         if nqp::existskey(%!decls, '$_') {
@@ -501,6 +503,7 @@ my class BlockVarOptimizer {
                 if !nqp::existskey(%!usages_flat, '$_') && !nqp::existskey(%!usages_inner, '$_') {
                     if !@!getlexouter_binds {
                         %kill<$_> := 1;
+                        nqp::deletekey(%!decls, '$_');
                     }
                     elsif nqp::elems(@!getlexouter_binds) == 1 {
                         my $glob := @!getlexouter_binds[0];
@@ -508,6 +511,7 @@ my class BlockVarOptimizer {
                             $glob.op('null');
                             $glob.shift(); $glob.shift();
                             %kill<$_> := 1;
+                            nqp::deletekey(%!decls, '$_');
                         }
                     }
                 }
@@ -826,7 +830,8 @@ class Perl6::Optimizer {
             if +@sigsyms == 0 {
                 if $!level >= 3 {
                     my $outer := $!symbols.top_block;
-                    $result := self.inline_immediate_block($block, $outer);
+                    $result := self.inline_immediate_block($block, $outer,
+                        nqp::existskey($vars_info.get_decls(), '$_'));
                 }
             }
         }
@@ -1354,7 +1359,7 @@ class Perl6::Optimizer {
     }
     
     # Inlines an immediate block.
-    method inline_immediate_block($block, $outer) {
+    method inline_immediate_block($block, $outer, $preserve_topic) {
         # Sanity check.
         return $block if +@($block) != 2;
 
@@ -1391,21 +1396,27 @@ class Perl6::Optimizer {
             }
         }
 
-        # Hand back the statements, but be sure to preserve $_ around them.
-        my $pres_topic_name := QAST::Node.unique('pres_topic_');
-        $outer[0].push(QAST::Var.new( :scope('local'), :name($pres_topic_name), :decl('var') ));
-        return QAST::Stmts.new(
-            :resultchild(1),
-            QAST::Op.new( :op('bind'),
-                QAST::Var.new( :name($pres_topic_name), :scope('local') ),
-                QAST::Var.new( :name('$_'), :scope('lexical') )
-            ),
-            $stmts,
-            QAST::Op.new( :op('bind'),
-                QAST::Var.new( :name('$_'), :scope('lexical') ),
-                QAST::Var.new( :name($pres_topic_name), :scope('local') )
-            )
-        );
+        # Hand back the statements, but be sure to preserve $_ around them if
+        # the block uses it.
+        if $preserve_topic {
+            my $pres_topic_name := QAST::Node.unique('pres_topic_');
+            $outer[0].push(QAST::Var.new( :scope('local'), :name($pres_topic_name), :decl('var') ));
+            return QAST::Stmts.new(
+                :resultchild(1),
+                QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :name($pres_topic_name), :scope('local') ),
+                    QAST::Var.new( :name('$_'), :scope('lexical') )
+                ),
+                $stmts,
+                QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :name('$_'), :scope('lexical') ),
+                    QAST::Var.new( :name($pres_topic_name), :scope('local') )
+                )
+            );
+        }
+        else {
+            return $stmts;
+        }
     }
     
     # Inlines a call to a sub.

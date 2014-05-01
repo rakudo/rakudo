@@ -106,12 +106,11 @@ my role Supply {
     method wait() {
         my $l = Lock.new;
         my $p = Promise.new;
-        my $v = $p.vow;
         my $t = self.tap( -> \val {},
           done => {
               $l.protect( {
                   if $p.status == Planned {
-                      $v.keep(True);
+                      $p.keep(True);
                       $t.close()
                   }
               } );
@@ -119,7 +118,7 @@ my role Supply {
           quit => -> \ex {
               $l.protect( {
                   if $p.status == Planned {
-                      $v.break(ex);
+                      $p.break(ex);
                       $t.close()
                   }
               } );

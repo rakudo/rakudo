@@ -926,6 +926,22 @@ class Perl6::Optimizer {
             }
         }
 
+        # Some ops have first boolean arg, and we may be able to get rid of
+        # a p6bool if there's already an integer result behind it.
+        elsif $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
+            my $update := $op;
+            my $target := $op[0];
+            while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && +@($target) == 1 {
+                $update := $target;
+                $target := $target[0];
+            }
+            if nqp::istype($target, QAST::Op) && $target.op eq 'p6bool' {
+                if nqp::objprimspec($target[0].returns) == nqp::objprimspec(int) {
+                    $update[0] := $target[0];
+                }
+            }
+        }
+
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' && $op.name ne '' {

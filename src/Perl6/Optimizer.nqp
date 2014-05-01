@@ -29,6 +29,10 @@ my class Symbols {
     has $!Mu;
     has $!Any;
     has $!PseudoStash;
+    has $!Routine;
+
+    # Top routine, for faking it when optimizing post-inline.
+    has $!fake_top_routine;
 
     # Constructs a new instance of the symbols handling class.
     method new($compunit) {
@@ -48,6 +52,7 @@ my class Symbols {
         $!Mu          := self.find_lexical('Mu');
         $!Any         := self.find_lexical('Any');
         $!PseudoStash := self.find_lexical('PseudoStash');
+        $!Routine     := self.find_lexical('Routine');
         nqp::pop(@!block_stack);
     }
 
@@ -61,7 +66,24 @@ my class Symbols {
     method top_block() {
         @!block_stack[+@!block_stack - 1]
     }
-
+    method top_routine() {
+        return $!fake_top_routine if $!fake_top_routine;
+        my int $i := nqp::elems(@!block_stack);
+        while $i-- {
+            my $co := @!block_stack[$i]<code_object>;
+            if nqp::istype($co, $!Routine) {
+                return $co;
+            }
+        }
+        NQPMu
+    }
+    method faking_top_routine($fake, $run) {
+        $!fake_top_routine := $fake;
+        my $result := $run();
+        $!fake_top_routine := NQPMu;
+        $result;
+    }
+    
     # Accessors for interesting symbols/scopes.
     method GLOBALish()   { $!GLOBALish }
     method UNIT()        { $!UNIT }
@@ -816,6 +838,18 @@ class Perl6::Optimizer {
         $result
     }
 
+    # Gets the last statement if the thing passed as a QAST::Stmts or a
+    # QAST::Stmt. Works recursively. Otherwise returns what was passed.
+    sub get_last_stmt($op) {
+        if nqp::istype($op, QAST::Stmt) || nqp::istype($op, QAST::Stmts) {
+            my int $resultchild := $op.resultchild // +@($op) - 1;
+            $resultchild >= 0 ?? get_last_stmt($op[$resultchild]) !! $op
+        }
+        else {
+            $op
+        }
+    }
+
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
@@ -862,9 +896,39 @@ class Perl6::Optimizer {
             }
         }
 
+        # May be able to eliminate some decontrv operations.
+        if $optype eq 'p6decontrv' {
+            # Natives don't need it.
+            my $value := $op[1];
+            return $value if nqp::objprimspec($value.returns);
+
+            # Boolifications don't need it, nor do _I ops.
+            my $last_stmt := get_last_stmt($value);
+            if nqp::istype($last_stmt, QAST::Op) {
+                my str $op := $last_stmt.op;
+                if $op eq 'p6bool' || nqp::substr($op, nqp::chars($op) - 1, 1) eq 'I' {
+                    return $value;
+                }
+            }
+        }
+
+        # Also some return type checks.
+        elsif $optype eq 'p6typecheckrv' {
+            try {
+                my $rettype        := $!symbols.top_routine.returns;
+                my int $rettype_ps := nqp::objprimspec($rettype);
+                if $rettype =:= $!symbols.Mu {
+                    return $op[0];
+                }
+                elsif $rettype_ps && $rettype_ps == nqp::objprimspec($op[0].returns) {
+                    return $op[0];
+                }
+            }
+        }
+
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
-        if $optype eq 'call' && $op.name ne '' {
+        elsif $optype eq 'call' && $op.name ne '' {
             # See if we can find the thing we're going to call.
             my $obj;
             my int $found := 0;
@@ -1252,11 +1316,12 @@ class Perl6::Optimizer {
                 elsif nqp::istype($visit, QAST::Block) {
                     $node[$i] := self.visit_block($visit);
                 }
-                elsif nqp::istype($visit, QAST::Stmts) {
-                    self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
-                }
-                elsif nqp::istype($visit, QAST::Stmt) {
-                    self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
+                elsif nqp::istype($visit, QAST::Stmt) || nqp::istype($visit, QAST::Stmts) {
+                    my int $resultchild := $visit.resultchild // +@($visit) - 1;
+                    if $resultchild >= 0 {
+                        self.visit_children($visit, :$resultchild);
+                        $visit.returns($visit[$resultchild].returns);
+                    }
                 }
                 elsif nqp::istype($visit, QAST::Regex) {
                     self.poison_var_lowering();
@@ -1362,6 +1427,11 @@ class Perl6::Optimizer {
             $inlined.named($name);
         }
         $inlined.node($call.node);
+
+        # Do an optimzation pass over the inlined code.
+        $!symbols.faking_top_routine($code_obj,
+            { self.visit_children($inlined) });
+
         
         $inlined
     }

@@ -1334,17 +1334,26 @@ class Perl6::Optimizer {
             return $call;
         }
         
-        # Bind the arguments to temporaries.
+        # Bind the arguments to temporaries, if they are used more than once.
         my $inlined := QAST::Stmts.new();
         my @subs;
+        my @usages;
+        $code_obj.inline_info.count_inline_placeholder_usages(@usages);
+        my int $idx := 0;
         for $call.list {
-            my $temp_name := QAST::Node.unique('_inline_arg_');
-            my $temp_type := $_.returns;
-            $inlined.push(QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type), :decl('var') ),
-                $_));
-            nqp::push(@subs, QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type) ));
+            if @usages[$idx] == 1 {
+                nqp::push(@subs, $_);
+            }
+            else {
+                my $temp_name := QAST::Node.unique('_inline_arg_');
+                my $temp_type := $_.returns;
+                $inlined.push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type), :decl('var') ),
+                    $_));
+                nqp::push(@subs, QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type) ));
+            }
+            $idx++;
         }
         
         # Now do the inlining.

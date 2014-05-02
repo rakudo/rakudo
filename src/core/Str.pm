@@ -649,7 +649,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method subst($matcher, $replacement,
+    multi method subst($matcher, $replacement = "",
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');

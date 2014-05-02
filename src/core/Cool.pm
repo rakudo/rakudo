@@ -199,7 +199,7 @@ my class Cool { # declared in BOOTSTRAP
         $/ := nqp::getlexdyn('$/');
         {*}
     }
-    multi method subst($matcher, $replacement, *%adverbs) {
+    multi method subst($matcher, $replacement = "", *%adverbs) {
         $/ := nqp::getlexdyn('$/');
         self.Stringy.subst($matcher, $replacement, |%adverbs);
     }

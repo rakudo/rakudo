@@ -2,6 +2,12 @@
 # the Supply role into classes they create along the way, so they must
 # be declared outside of Supply.
 
+my class X::Supply::Migrate::Needs is Exception {
+    method message() {
+        ".migrate needs Supplies to be more'd"
+    }
+}
+
 my class SupplyOperations is repr('Uninstantiable') {
 
     # Private versions of the methods to relay events to subscribers, used in
@@ -286,6 +292,8 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap(
                     -> \inner_supply {
+                        X::Supply::Migrate::Needs.new.throw
+                          unless inner_supply ~~ Supply;
                         $!lock.protect({
                             $!current.close() if $!current;
                             $!current = inner_supply.tap(-> \val {

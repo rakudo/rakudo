@@ -64,6 +64,27 @@ my class IO::Socket::Async {
         $s
     }
 
+    method bytes_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
+        my $s = Supply.new;
+        nqp::asyncreadbytes(
+            $!VMIO,
+            $scheduler.queue,
+            -> Mu \seq, Mu \data, Mu \err {
+                if err {
+                    $s.quit(err);
+                }
+                elsif seq < 0 {
+                    $s.done();
+                }
+                else {
+                    $s.more(data);
+                }
+            },
+            nqp::decont($buf),
+            SocketCancellation);
+        $s
+    }
+
     method close(IO::Socket::Async:D:) {
         nqp::closefh($!VMIO);
     }

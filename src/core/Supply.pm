@@ -28,12 +28,14 @@ my role Supply {
     }
 
     method close(Tap $t) {
+        my $found;
         $!tappers_lock.protect({
-            @!tappers .= grep(* !=== $t);
+            @!tappers .= grep( { $_ === $t ?? !($found = True) !! True } );
         });
         if $t.closing -> &closing {
             closing();
         }
+        $found // False;
     }
 
     method tappers() {

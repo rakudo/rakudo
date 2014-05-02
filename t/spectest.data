@@ -604,6 +604,7 @@ S17-supply/squish.t      # conc
 S17-supply/stable.t      # conc
 S17-supply/uniq.t        # conc
 S17-supply/wait.t        # conc
+S17-supply/watch_path.t  # conc
 S17-supply/zip.t         # conc
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t

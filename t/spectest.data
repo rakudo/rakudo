@@ -597,6 +597,7 @@ S17-supply/grep.t        # conc
 S17-supply/list.t        # conc
 S17-supply/map.t         # conc
 S17-supply/merge.t       # conc
+S17-supply/migrate.t     # conc
 S17-supply/on.t          # conc
 S17-supply/Promise.t     # conc
 S17-supply/rotor.t       # conc

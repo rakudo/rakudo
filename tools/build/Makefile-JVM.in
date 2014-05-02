@@ -12,7 +12,7 @@ PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
 NQP_JARS = @nqp_jars@
 
-J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx800m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1000m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
@@ -167,6 +167,7 @@ J_CORE_SOURCES = \
   src/vm/jvm/core/IOAsyncFile.pm \
   src/core/asyncops.pm \
   src/core/IO/Socket.pm \
+  src/core/IO/Socket/Async.pm \
   src/core/IO/Socket/INET.pm \
   src/core/OS.pm \
   src/core/core_epilogue.pm \

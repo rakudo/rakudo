@@ -89,7 +89,9 @@ my class Any { # declared in BOOTSTRAP
     method lol()  {
         MapIter.new(self.list, { .item }, Mu).list
     }
-    method map($block) is rw {
+    proto method map (|) { * }
+    multi method map(Whatever) is rw { self }
+    multi method map($block) is rw {
         MapIter.new(self, $block, Bool::True).list
     }
     method flatmap($block) is rw { flatmap($block, self) }
@@ -348,6 +350,7 @@ proto map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13
 #multi map(&code, @values) { @values.map(&code) }
 multi map(&code, *@values) { @values.map(&code) }
+multi map(Whatever, \a)    { a }
 multi map(&code, Whatever) { (1..Inf).map(&code) }
 
 proto grep(|) {*}

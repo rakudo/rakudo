@@ -391,7 +391,7 @@ my role Supply {
                     more => $number == 1
                       ?? -> \val { @seen[0] = val }
                       !! -> \val {
-                          @seen.splice(0,1) if +@seen == $number;
+                          @seen.shift if +@seen == $number;
                           @seen.push: val;
                       },
                     done => {

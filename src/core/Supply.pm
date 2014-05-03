@@ -383,7 +383,7 @@ my role Supply {
         }
     }
 
-    method last(Supply:D $self: $number = 1) {
+    method last(Supply:D $self: Int $number = 1) {  # should be Natural
         on -> $res {
             $self => do {
                 my @seen;

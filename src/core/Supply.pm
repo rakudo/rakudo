@@ -403,6 +403,21 @@ my role Supply {
         }
     }
 
+    method grab(Supply:D $self: &when_done) {
+        on -> $res {
+            $self => do {
+                my @seen;
+                {
+                    more => -> \val { @seen.push: val },
+                    done => {
+                        $res.more($_) for when_done(@seen);
+                        $res.done;
+                    }
+                }
+            }
+        }
+    }
+
     method merge(*@s) {
 
         @s.unshift(self) if self.DEFINITE;  # add if instance method

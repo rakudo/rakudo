@@ -96,7 +96,15 @@ MAIN: {
             $default_backend ||= 'parrot';
         }
         unless (%backends) {
-            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n";
+            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n\n"
+              . "Example to build for all backends (which will take a while):\n"
+              . "\tperl Configure.pl --backends=moar,parrot,jvm --gen-moar --gen-parrot\n\n"
+              . "Example to build for MoarVM only:\n"
+              . "\tperl Configure.pl --gen-moar\n\n"
+              . "Example to build for Parrot only:\n"
+              . "\tperl Configure.pl --gen-parrot\n\n"
+              . "Example to build for JVM only:\n"
+              . "\tperl Configure.pl --backends=jvm --gen-nqp\n\n";
         }
     }
 
@@ -147,16 +155,17 @@ MAIN: {
     my %impls = gen_nqp($nqp_want, prefix => $prefix, backends => join(',', sort keys %backends), %options);
 
     my @errors;
+    my %errors;
     if ($backends{parrot}) {
         my %nqp_config;
         if ($impls{parrot}{ok}) {
             %nqp_config = %{ $impls{parrot}{config} };
         }
         elsif ($impls{parrot}{config}) {
-            push @errors, "The nqp-p is too old";
+            push @errors, "The nqp-p binary is too old";
         }
         else {
-            push @errors, "Cannot obtain configuration from NQP on parrot";
+            push @errors, "Unable to read configuration from NQP on Parrot";
         }
 
         my $nqp_have = $nqp_config{'nqp::version'} || '';
@@ -174,27 +183,21 @@ MAIN: {
             if @errors;
         }
 
-        if (@errors && !defined $options{'gen-nqp'}) {
-            push @errors,
-            "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
-            "try re-running Configure.pl with the '--gen-nqp' or '--gen-parrot'",
-            "options.  Or, use '--prefix=' to explicitly",
-            "specify the path where the NQP and Parrot executable can be found that are use to build $lang.";
+        $errors{parrot}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
+
+        unless (@errors) {
+            print "Using $impls{parrot}{bin} (version $nqp_config{'nqp::version'} / Parrot $nqp_config{'parrot::VERSION'}).\n";
+
+            if ($^O eq 'MSWin32' or $^O eq 'cygwin') {
+                $config{'dll'} = '$(PARROT_BIN_DIR)/$(PARROT_LIB_SHARED)';
+                $config{'dllcopy'} = '$(PARROT_LIB_SHARED)';
+                $config{'make_dllcopy'} =
+                    '$(PARROT_DLL_COPY): $(PARROT_DLL)'."\n\t".'$(CP) $(PARROT_DLL) .';
+            }
+
+            my $make = fill_template_text('@make@', %config, %nqp_config);
+            fill_template_file('tools/build/Makefile-Parrot.in', $MAKEFILE, %config, %nqp_config);
         }
-
-        sorry(@errors) if @errors;
-
-        print "Using $impls{parrot}{bin} (version $nqp_config{'nqp::version'} / Parrot $nqp_config{'parrot::VERSION'}).\n";
-
-        if ($^O eq 'MSWin32' or $^O eq 'cygwin') {
-            $config{'dll'} = '$(PARROT_BIN_DIR)/$(PARROT_LIB_SHARED)';
-            $config{'dllcopy'} = '$(PARROT_LIB_SHARED)';
-            $config{'make_dllcopy'} =
-                '$(PARROT_DLL_COPY): $(PARROT_DLL)'."\n\t".'$(CP) $(PARROT_DLL) .';
-        }
-
-        my $make = fill_template_text('@make@', %config, %nqp_config);
-        fill_template_file('tools/build/Makefile-Parrot.in', $MAKEFILE, %config, %nqp_config);
     }
     if ($backends{jvm}) {
         $config{j_nqp} = $impls{jvm}{bin};
@@ -215,22 +218,24 @@ MAIN: {
             push @errors, "jvm::runtime.jars value not available from $bin --show-config.";
         }
 
-        sorry(@errors) if @errors;
-        
-        my $java_version = `java -version 2>&1`;
-        $java_version    = $java_version =~ /(?<v>[\d\._]+).+\n(?<n>\S+)/
-                         ? "$+{'n'} $+{'v'}"
-                         : 'no java version info available';
+        $errors{jvm}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
-        print "Using $bin (version $nqp_config{'nqp::version'} / $java_version).\n";
+        unless (@errors) {
+            my $java_version = `java -version 2>&1`;
+            $java_version    = $java_version =~ /(?<v>[\d\._]+).+\n(?<n>\S+)/
+                             ? "$+{'n'} $+{'v'}"
+                             : 'no java version info available';
 
-        $config{'nqp_prefix'}    = $nqp_config{'jvm::runtime.prefix'};
-        $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
-        $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
-        $config{'j_runner'}      = $^O eq 'MSWin32' ? 'perl6-j.bat' : 'perl6-j';
+            print "Using $bin (version $nqp_config{'nqp::version'} / $java_version).\n";
+
+            $config{'nqp_prefix'}    = $nqp_config{'jvm::runtime.prefix'};
+            $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
+            $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
+            $config{'j_runner'}      = $^O eq 'MSWin32' ? 'perl6-j.bat' : 'perl6-j';
 
 
-        fill_template_file('tools/build/Makefile-JVM.in', $MAKEFILE, %config);
+            fill_template_file('tools/build/Makefile-JVM.in', $MAKEFILE, %config);
+        }
     }
     if ($backends{moar}) {
         $config{m_nqp} = $impls{moar}{bin};
@@ -242,20 +247,46 @@ MAIN: {
         else {
             push @errors, "Unable to read configuration from NQP on MoarVM";
         }
-        sorry(@errors) if @errors;
 
-        print "Using $config{m_nqp} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
+        $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
-        $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
-        
-        # Add moar library to link command
-        # TODO: Get this from Moar somehow
-        $config{'moarimplib'} = $^O eq 'MSWin32' ? "$prefix/bin/moar.dll.lib"
-                              : $^O eq 'darwin'  ? "$prefix/lib/libmoar.dylib"
-                              : '';
+        unless (@errors) {
+            print "Using $config{m_nqp} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
 
-        fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
+            $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
+            
+            # Add moar library to link command
+            # TODO: Get this from Moar somehow
+            $config{'moarimplib'} = $^O eq 'MSWin32' ? "$prefix/bin/moar.dll.lib"
+                                  : $^O eq 'darwin'  ? "$prefix/lib/libmoar.dylib"
+                                  : '';
+
+            fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
+        }
     }
+
+    if ($errors{parrot}{'no gen-nqp'} || $errors{jvm}{'no gen-nqp'} || $errors{moar}{'no gen-nqp'}) {
+        my @options_to_pass;
+        push @options_to_pass, "--gen-parrot" if $backends{parrot};
+        push @options_to_pass, "--gen-moar"   if $backends{moar};
+        push @options_to_pass, "--gen-nqp"    unless @options_to_pass;
+        my $options_to_pass  = join ' ', @options_to_pass;
+        my $want_executables = $backends{parrot} && $backends{moar}
+                             ? ', Parrot and MoarVM'
+                             : $backends{parrot}
+                             ? ' and Parrot'
+                             : $backends{moar}
+                             ? ' and MoarVM'
+                             : '';
+        my $s1               = @options_to_pass > 1 ? 's' : '';
+        my $s2               = $want_executables    ? 's' : '';
+        push @errors,
+        "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
+        "try re-running Configure.pl with the '$options_to_pass' option$s1.",
+        "Or, use '--prefix=' to explicitly specify the path where the NQP$want_executables",
+        "executable$s2 can be found that are use to build $lang.";
+    }
+    sorry(@errors) if @errors;
 
     my $l = uc substr($default_backend, 0, 1);
     print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS_WITH_FUDGE) --verbosity=1 \$\@\n];

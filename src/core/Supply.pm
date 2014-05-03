@@ -383,6 +383,26 @@ my role Supply {
         }
     }
 
+    method last(Supply:D $self: $number = 1) {
+        on -> $res {
+            $self => do {
+                my @seen;
+                {
+                    more => $number == 1
+                      ?? -> \val { @seen[0] = val }
+                      !! -> \val {
+                          @seen.splice(0,1) if +@seen == $number;
+                          @seen.push: val;
+                      },
+                    done => {
+                        $res.more($_) for @seen;
+                        $res.done;
+                    }
+                }
+            }
+        }
+    }
+
     method merge(*@s) {
 
         @s.unshift(self) if self.DEFINITE;  # add if instance method

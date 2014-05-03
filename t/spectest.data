@@ -594,6 +594,7 @@ S17-supply/do.t          # conc
 S17-supply/flat.t        # conc
 S17-supply/for.t         # conc
 S17-supply/grep.t        # conc
+S17-supply/last.t        # conc
 S17-supply/list.t        # conc
 S17-supply/map.t         # conc
 S17-supply/merge.t       # conc

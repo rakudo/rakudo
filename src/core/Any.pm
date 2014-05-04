@@ -57,6 +57,7 @@ my class Any { # declared in BOOTSTRAP
     method end()   { self.list.end }
     method uniq(|c) { self.list.uniq(|c) }
     method squish(|c) { self.list.squish(|c) }
+    method rotor(|c) { self.list.rotor(|c) }
     method pick($n = 1) { self.list.pick($n) }
     method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }

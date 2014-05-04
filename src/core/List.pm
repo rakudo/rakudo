@@ -492,6 +492,22 @@ my class List does Positional { # declared in BOOTSTRAP
         }, @.list;
     }
 
+    proto method rotor(|) {*}
+    multi method rotor(1, 0) { @.list }
+    multi method rotor($elems = 2, $overlap = 1) {
+        X::OutOfRange.new(
+            what => 'Overlap argument to List.rotor',
+            got  => $overlap,
+            range => (0 .. $elems - 1),
+        ).fail unless 0 <= $overlap < $elems;
+
+        my $finished = 0;
+        gather while $finished + $overlap < self {
+            take item self[^$elems X+ $finished];
+            $finished += $elems - $overlap
+        }
+    }
+
     multi method gist(List:D:) { join ' ', map { $_.gist }, @(self) }
     multi method perl(List:D \SELF:) {
         self.gimme(*);

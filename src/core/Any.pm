@@ -143,7 +143,7 @@ my class Any { # declared in BOOTSTRAP
         self.map: { $index++; return $index if $_ ~~ $test };
         Nil;
     }
-    method first-rindex(Mu $test) {
+    method last-index(Mu $test) {
         my $index = self.elems;
         self.reverse.map: { $index--; return $index if $_ ~~ $test };
         Nil;
@@ -369,9 +369,9 @@ proto first-index(|) {*}
 multi first-index(Mu $test, @values) { @values.first-index($test) }
 multi first-index(Mu $test, *@values) { @values.first-index($test) }
 
-proto first-rindex(|) {*}
-multi first-rindex(Mu $test, @values) { @values.first-rindex($test) }
-multi first-rindex(Mu $test, *@values) { @values.first-rindex($test) }
+proto last-index(|) {*}
+multi last-index(Mu $test, @values) { @values.last-index($test) }
+multi last-index(Mu $test, *@values) { @values.last-index($test) }
 
 proto join(|) { * }
 multi join($sep = '', *@values) { @values.join($sep) }

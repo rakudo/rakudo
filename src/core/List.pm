@@ -500,10 +500,15 @@ my class List does Positional { # declared in BOOTSTRAP
             got  => $overlap,
             range => (0 .. $elems - 1),
         ).fail unless 0 <= $overlap < $elems;
+        X::OutOfRange.new(
+            what => 'Elements argument to List.rotor',
+            got  => $elems,
+            range => (0 .. *),
+        ).fail unless 0 <= $elems;
 
         my $finished = 0;
-        gather while $finished + $overlap < self {
-            take item self[^$elems X+ $finished];
+        gather while $finished + $overlap < self.gimme($finished + $elems) {
+            take item self[$finished ..^ $finished + $elems];
             $finished += $elems - $overlap
         }
     }

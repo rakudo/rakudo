@@ -1,6 +1,13 @@
 New in 2014.05
 + asynchronous timers on MoarVM backend
-+ added Supply.(uniq|squish|flat|batch|rotor)
++ added or updated many Supply methods:
+  act, batch, delay, Channel, flat, grab, last, live, merge, migrate, Promise,
+  reverse, rotor, sort, squish, stable, start, uniq, wait, zip
++ added IO::Notification.watch_path / IO::Path::watch which return a Supply
+  of file system changes
++ added signal() which returns a Supply of Signals (such as SIG_HUP)
++ added .Supply coercer
++ added first-index, last-index, grep-index subs/methods
 + add list functionality to 'on', as with new S17 spec
 
 New in 2014.04

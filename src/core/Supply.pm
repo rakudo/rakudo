@@ -418,6 +418,9 @@ my role Supply {
         }
     }
 
+    method reverse(Supply:D:)                 { self.grab( {.reverse} ) }
+    method sort(Supply:D: &by = &infix:<cmp>) { self.grab( {.sort(&by)} ) }
+
     method merge(*@s) {
 
         @s.unshift(self) if self.DEFINITE;  # add if instance method

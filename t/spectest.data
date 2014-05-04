@@ -602,8 +602,10 @@ S17-supply/merge.t       # conc
 S17-supply/migrate.t     # conc
 S17-supply/on.t          # conc
 S17-supply/Promise.t     # conc
+S17-supply/reverse.t     # conc
 S17-supply/rotor.t       # conc
 S17-supply/schedule_on.t # conc
+S17-supply/sort.t        # conc
 S17-supply/squish.t      # conc
 S17-supply/stable.t      # conc
 S17-supply/start.t       # conc

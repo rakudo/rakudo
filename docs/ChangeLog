@@ -3,12 +3,15 @@ New in 2014.05
 + added or updated many Supply methods:
   act, batch, delay, Channel, flat, grab, last, live, merge, migrate, Promise,
   reverse, rotor, sort, squish, stable, start, uniq, wait, zip
++ add list functionality to 'on', as with new S17 spec
++ added .Supply coercer
 + added IO::Notification.watch_path / IO::Path::watch which return a Supply
   of file system changes
 + added signal() which returns a Supply of Signals (such as SIG_HUP)
-+ added .Supply coercer
++ added IO::Socket::Async.connect, returns a Promise with a IO::Socket::Async
++ added IO::Socket::Async.send, returns a Promise with success / failure
++ added IO::Socket::Async.chars_supply, returns a Supply with chunks
 + added first-index, last-index, grep-index subs/methods
-+ add list functionality to 'on', as with new S17 spec
 
 New in 2014.04
 

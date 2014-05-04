@@ -825,8 +825,15 @@ integration/advent2012-day09.t
 integration/advent2012-day10.t
 integration/advent2012-day12.t
 integration/advent2012-day13.t
+integration/advent2012-day14.t
+integration/advent2012-day15.t
 integration/advent2012-day16.t
 integration/advent2012-day19.t
+integration/advent2012-day20.t
+integration/advent2012-day21.t #stress
+integration/advent2012-day22.t
+integration/advent2012-day23.t
+integration/advent2012-day24.t
 integration/advent2013-day02.t
 integration/advent2013-day04.t
 integration/advent2013-day06.t

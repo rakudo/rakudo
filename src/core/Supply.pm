@@ -383,6 +383,41 @@ my role Supply {
         }
     }
 
+    method elems(Supply:D $self: $seconds? ) {
+
+        on -> $res {
+            $self => do {
+                my $elems = 0;
+                my $last_time;
+                my $last_elems;
+
+                {
+                    more => do {
+                        if $seconds {
+                            $last_time  = time div $seconds;
+                            $last_elems = $elems;
+                            -> \val {
+                                  $last_elems = ++$elems;
+                                  my $this_time = time div $seconds;
+                                  if $this_time != $last_time {
+                                      $res.more($elems);
+                                      $last_time = $this_time;
+                                  }
+                            }
+                        }
+                        else {
+                            -> \val { $res.more(++$elems) }
+                        }
+                    },
+                    done => {
+                        $res.more($elems) if $seconds and $elems != $last_elems;
+                        $res.done;
+                    }
+                }
+            }
+        }
+    }
+
     method last(Supply:D $self: Int $number = 1) {  # should be Natural
         on -> $res {
             $self => do {

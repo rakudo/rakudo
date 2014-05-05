@@ -908,18 +908,20 @@ class Perl6::Optimizer {
             my $value := $op[1];
             return $value if nqp::objprimspec($value.returns);
 
-# Can't do it on parrot currently, because we'd get:
-#   Type check failed for return value; expected 'Bool' but got 'Sub'
-# or
-#   maximum recursion depth exceeded (about infix:<-> / nqp::sub_I)
-#            # Boolifications don't need it, nor do _I ops.
-#            my $last_stmt := get_last_stmt($value);
-#            if nqp::istype($last_stmt, QAST::Op) {
-#                my str $op := $last_stmt.op;
-#                if $op eq 'p6bool' || nqp::substr($op, nqp::chars($op) - 1, 1) eq 'I' {
-#                    return $value;
-#                }
-#            }
+            # Can't do it on parrot currently, because we'd get:
+            #   Type check failed for return value; expected 'Bool' but got 'Sub'
+            # or
+            #   maximum recursion depth exceeded (about infix:<-> / nqp::sub_I)
+            if nqp::getcomp('perl6').backend.name ne 'parrot' {
+                # Boolifications don't need it, nor do _I ops.
+                my $last_stmt := get_last_stmt($value);
+                if nqp::istype($last_stmt, QAST::Op) {
+                    my str $op := $last_stmt.op;
+                    if $op eq 'p6bool' || nqp::substr($op, nqp::chars($op) - 1, 1) eq 'I' {
+                        return $value;
+                    }
+                }
+            }
         }
 
         # Also some return type checks.

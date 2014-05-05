@@ -684,9 +684,8 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     if !%a {                     # :delete:exists(0|1):kv(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
-                            !$kv | $wasthere
-                              ?? ($_, !( $wasthere ?^ $exists ))
-                              !! ()
+                            ($_, !( $wasthere ?^ $exists )) 
+                              if !$kv | $wasthere;
                         } ).eager.Parcel
                     }
                     else {
@@ -698,9 +697,8 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     if !%a {                     # :delete:exists(0|1):p(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
-                            !$p | $wasthere
-                              ?? RWPAIR($_,!($wasthere ?^ $exists))
-                              !! ()
+                            RWPAIR($_,!($wasthere ?^ $exists))
+                              if !$p | $wasthere;
                         } ).eager.Parcel
                     }
                     else {
@@ -716,7 +714,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:kv(0|1)
                     $kv
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? ( $_, $de(SELF,$_) ) !! ()
+                             ( $_, $de(SELF,$_) ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              ( $_, $de(SELF,$_) )
@@ -731,7 +729,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:p(0|1)
                     $p
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? RWPAIR($_, $de(SELF,$_)) !! ()
+                             RWPAIR($_, $de(SELF,$_)) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              RWPAIR($_, $de(SELF,$_))
@@ -746,7 +744,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:k(0|1)
                     $k
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? ( $de(SELF,$_); $_ ) !! ()
+                             ( $de(SELF,$_); $_ ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              $de(SELF,$_); $_
@@ -761,7 +759,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:v(0|1)
                     $v
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? $de(SELF,$_) !! ()
+                             $de(SELF,$_) if $ex(SELF,$_);
                      } ).eager.Parcel
                       !! $more.list.map( {
                              $de(SELF,$_)
@@ -785,7 +783,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :!delete?:exists(0|1):kv(0|1)
                     $kv
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? ( $_, $exists ) !! ()
+                             ( $_, $exists ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              ( $_, !( $ex(SELF,$_) ?^ $exists ) )
@@ -800,7 +798,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :!delete?:exists(0|1):p(0|1)
                     $p
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? RWPAIR( $_, $exists ) !! ()
+                             RWPAIR( $_, $exists ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              RWPAIR( $_, !( $ex(SELF,$_) ?^ $exists ) )
@@ -819,7 +817,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:kv(0|1)
                 $kv
                   ?? $more.list.map( {
-                         $ex(SELF,$_) ?? ($_, $at(SELF,$_)) !! ()
+                         ($_, $at(SELF,$_)) if $ex(SELF,$_);
                      } ).eager.Parcel
                   !! $more.list.map( {
                          ($_, $at(SELF,$_))
@@ -834,7 +832,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:p(0|1)
                 $p
                   ?? $more.list.map( {
-                         $ex(SELF,$_) ?? RWPAIR($_, $at(SELF,$_)) !! ()
+                         RWPAIR($_, $at(SELF,$_)) if $ex(SELF,$_);
                      } ).eager.Parcel
                   !! $more.list.map( {
                          RWPAIR( $_, $at(SELF,$_) )
@@ -848,7 +846,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             my $k := %a.delete_key('k');
             if !%a {                         # :!delete?:k(0|1)
                 $k
-                  ?? $more.list.map( { $ex(SELF,$_) ?? $_ !! () } ).eager.Parcel
+                  ?? $more.list.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
                   !! $more.list.eager.Parcel;
             }
             else {
@@ -860,7 +858,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:v(0|1)
                 $v
                   ??  $more.list.map( {
-                          $ex(SELF,$_) ?? $at(SELF,$_) !! ()
+                          $at(SELF,$_) if $ex(SELF,$_);
                       } ).eager.Parcel
                   !!  $more.list.map( {
                           $at(SELF,$_)

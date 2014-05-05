@@ -476,6 +476,34 @@ my role Supply {
         }
     }
 
+    method minmax(Supply:D $self: &by = &infix:<cmp>) {
+        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
+        on -> $res {
+            $self => do {
+                my $min;
+                my $max;
+                {
+                    more => -> \val {
+                        if val.defined {
+                            if !$min.defined {
+                                $res.more( Range.new($min = val, $max = val) );
+                            }
+                            elsif cmp(val,$min) < 0 {
+                                $res.more( Range.new( $min = val, $max ) );
+                            }
+                            elsif cmp(val,$max) > 0 {
+                                $res.more( Range.new( $min, $max = val ) );
+                            }
+                        }
+                    },
+                    done => {
+                        $res.done;
+                    }
+                }
+            }
+        }
+    }
+
     method grab(Supply:D $self: &when_done) {
         on -> $res {
             $self => do {

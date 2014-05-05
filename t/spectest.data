@@ -603,6 +603,7 @@ S17-supply/max.t         # conc
 S17-supply/merge.t       # conc
 S17-supply/migrate.t     # conc
 S17-supply/min.t         # conc
+S17-supply/minmax.t      # conc
 S17-supply/on.t          # conc
 S17-supply/Promise.t     # conc
 S17-supply/reverse.t     # conc

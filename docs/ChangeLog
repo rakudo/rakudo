@@ -1,8 +1,8 @@
 New in 2014.05
 + asynchronous timers on MoarVM backend
 + added or updated many Supply methods:
-  act, batch, Channel, delay, elems, flat, grab, last, live, max, min, merge,
-  migrate, Promise, reverse, rotor, sort, squish, stable, start, uniq,
+  act, batch, Channel, delay, elems, flat, grab, last, live, max, min, minmax,
+  merge, migrate, Promise, reverse, rotor, sort, squish, stable, start, uniq,
   wait, zip
 + add list functionality to 'on', as with new S17 spec
 + added .Supply coercer

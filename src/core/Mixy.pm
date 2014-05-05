@@ -38,23 +38,23 @@ my role Mixy does Baggy  {
     }
 
     method roll ($count = 1) {
-        my $total  = [+] self.values.grep: * > 0;
-        my $rolls  = $count ~~ Num ?? $total min $count !! $count;
+        my $total = [+] self.values.grep: * > 0;
+        my $rolls = $count ~~ Num
+          ?? $total min $count !! $count ~~ Whatever ?? $Inf !! $count;
 #        my @pairs := %!elems.values;
         my @pairs := self.pairs;
 
-        map {
+        sub roll-one ($ignore?){
             my $rand = $total.rand;
             my $seen = 0;
             my $roll;
             for @pairs -> $pair {
-                next if ( $seen += $pair.value ) <= $rand;
-
-                $roll = $pair.key;
-                last;
+                return $pair.key if ( $seen += $pair.value ) > $rand;
             }
-            $roll;
-        }, 1 .. $rolls;
+        }
+        return roll-one if $rolls == 1;
+
+        map &roll-one, 1 .. $rolls;
     }
 }
 

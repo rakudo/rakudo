@@ -449,9 +449,7 @@ my role Supply {
                             $res.more( $min = val );
                         }
                     },
-                    done => {
-                        $res.done;
-                    }
+                    done => { $res.done }
                 }
             }
         }
@@ -468,9 +466,7 @@ my role Supply {
                             $res.more( $max = val );
                         }
                     },
-                    done => {
-                        $res.done;
-                    }
+                    done => { $res.done }
                 }
             }
         }
@@ -496,9 +492,24 @@ my role Supply {
                             }
                         }
                     },
-                    done => {
-                        $res.done;
-                    }
+                    done => { $res.done }
+                }
+            }
+        }
+    }
+
+    method reduce(Supply:D $self: &with) {
+        on -> $res {
+            $self => do {
+                my $notfirst;
+                my $reduced;
+                {
+                    more => -> \val {
+                        $reduced = $notfirst ?? with($reduced,val) !! val;
+                        $res.more($reduced);
+                        once $notfirst = True;
+                    },
+                    done => { $res.done }
                 }
             }
         }

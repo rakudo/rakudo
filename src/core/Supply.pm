@@ -584,12 +584,14 @@ my class X::Supply::On::NoMore is Exception {
 sub on(&setup) {
     my class OnSupply does Supply {
         has &!setup;
+        has Bool $!live = False;
         
         submethod BUILD(:&!setup) { }
 
         method !add_source(
           $source, $lock, $index, :&more, :&done is copy, :&quit is copy
         ) {
+            $!live ||= True if $source.live;
             &more // X::Supply::On::NoMore.new.throw;
             &done //= { self.done };
             &quit //= -> $ex { self.quit($ex) };
@@ -627,7 +629,7 @@ sub on(&setup) {
             $source.tap( &tap_more, done => &tap_done, quit => &tap_quit );
         }
         
-        method live { False }
+        method live { $!live }
         method tap(|c) {
             my @to_close;
             my $sub = self.Supply::tap( |c, closing => {.close for @to_close});

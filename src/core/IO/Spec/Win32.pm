@@ -1,7 +1,7 @@
 my class IO::Spec::Win32 is IO::Spec::Unix {
 
     # Some regexes we use for path splitting
-    my $slash	    = regex {  <[\/ \\]> }
+    my $slash       = regex {  <[\/ \\]> }
     my $notslash    = regex { <-[\/ \\]> }
     my $driveletter = regex { <[A..Z a..z]> ':' }
     my $UNCpath     = regex { [<$slash> ** 2] <$notslash>+  <$slash>  [<$notslash>+ | $] }
@@ -200,7 +200,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $volume ~~ s/<?after '\\\\' .*> '\\' $ //;
             $volume || '.';
         }
-	else {
+        else {
             $volume ~ $path;
         }
     }

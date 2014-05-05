@@ -545,8 +545,8 @@ my class IO::Path is Cool does IO::FileTestable {
         my int $elems = nqp::elems($RSA);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-			nqp::atpos_s($RSA, $i),
-			pir::find_encoding__Is('utf8')));
+              nqp::atpos_s($RSA, $i),
+              pir::find_encoding__Is('utf8')));
             if $file ~~ $test {
                 take self.child($file);
             }

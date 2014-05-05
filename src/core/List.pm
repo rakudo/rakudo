@@ -10,25 +10,25 @@ my sub combinations($n, $k) {
 
     @stack.push(0);
     gather while @stack {
-	my $index = @stack - 1;
-	my $value = @stack.pop;
+        my $index = @stack - 1;
+        my $value = @stack.pop;
 
-	while $value < $n {
-	    @result[$index++] = $value++;
-	    @stack.push($value);
-	    if $index == $k {
-		take [@result];
-		$value = $n;  # fake a last
-	    }
-	}
+        while $value < $n {
+            @result[$index++] = $value++;
+            @stack.push($value);
+            if $index == $k {
+                take [@result];
+                $value = $n;  # fake a last
+            }
+        }
     }
 }
 
 my sub permutations(Int $n) {
     $n == 1 ?? ( [0,] ) !!
     gather for ^$n -> $i {
-	my @i = grep none($i), ^$n;
-	take [$i, @i[@$_]] for permutations($n - 1);
+        my @i = grep none($i), ^$n;
+        take [$i, @i[@$_]] for permutations($n - 1);
     }
 }
 
@@ -564,9 +564,9 @@ my class List does Positional { # declared in BOOTSTRAP
         fail('can only reduce with arity 2')
             unless &with.arity <= 2 <= &with.count;
         return unless self.DEFINITE;
-	my \vals = self.values;
+        my \vals = self.values;
         my Mu $val = vals.shift;
-	$val = with($val, $_) for vals;
+        $val = with($val, $_) for vals;
         $val;
     }
 

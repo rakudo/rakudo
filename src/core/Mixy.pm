@@ -30,11 +30,11 @@ my role Mixy does Baggy  {
     }
 
     method grab ($count = 1) {
-        fail ".grab is not supported on a {.self.^name}";
+        fail ".grab is not supported on a {self.^name}";
     }
 
     method pick ($count = 1) {
-        fail ".pick is not supported on a {.self.^name}";
+        fail ".pick is not supported on a {self.^name}";
     }
 
     method roll ($count = 1) {

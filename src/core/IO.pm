@@ -400,7 +400,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     multi method new(Str:D $path) {
-        self.new(:path( IO::Spec.canonpath($path) ))
+        self.new(:$path)
     }
 
     method path(IO::Path:D:) {
@@ -741,7 +741,7 @@ multi sub cwd() {
 proto sub chdir(|) { * }
 multi sub chdir(IO::Path:D $path) { chdir $path.Str }
 multi sub chdir($path as Str) {
-    my $newpath = IO::Path.new($path);
+    my $newpath = IO::Path.new(IO::Spec.canonpath($path));
     if $newpath.is-relative {
         my $tmp = $*CWD;
         for IO::Spec.splitdir($newpath) -> $segment {

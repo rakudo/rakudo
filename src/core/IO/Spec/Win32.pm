@@ -44,13 +44,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
    }
 
     method is-absolute ($path) {
-        # As of right now, this returns 2 if the path is absolute with a
-        # volume, 1 if it's absolute with no volume, 0 otherwise.
-        given $path {
-            when /^ [<$driveletter> <$slash> | <$UNCpath>]/ { 2 }
-            when /^ <$slash> /                              { 1 }
-            default                     { 0 }
-        }   #/
+        so $path ~~ /^ [ <$driveletter> <$slash> | <$slash> | <$UNCpath> ]/
     }
 
     method split ($path as Str is copy) { 

@@ -168,7 +168,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         'perl6-j';
 #?endif
 #?if moar
-        $VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m';
+        nqp::execname()
+        ?? nqp::execname().path.basename
+        !! $VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m';
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
 
@@ -180,7 +182,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         $VM<properties><perl6.prefix> ~ '/bin/perl6-j';
 #?endif
 #?if moar
-        $VM<config><prefix> ~ '/bin/' ~ ($VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m');
+        nqp::execname()
+        or ($VM<config><prefix> ~ '/bin/' ~ ($VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE', $EXECUTABLE.path.absolute);
 

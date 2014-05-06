@@ -400,7 +400,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     multi method new(Str:D $path) {
-        self.new(:$path)
+        self.new(:path( IO::Spec.canonpath($path) ))
     }
 
     method path(IO::Path:D:) {

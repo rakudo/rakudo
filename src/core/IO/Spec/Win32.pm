@@ -119,7 +119,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method rel2abs ($path is copy, $base? is copy) {
 
-        my $is_abs = self.is-absolute($path);
+        my $is_abs = ($path ~~ /^ [<$driveletter> <$slash> | <$UNCpath>]/ && 2)
+                  || ($path ~~ /^ <$slash> / && 1)
+                  || 0;
 
         # Check for volume (should probably document the '2' thing...)
         return self.canonpath( $path ) if $is_abs == 2;

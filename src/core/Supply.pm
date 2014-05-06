@@ -16,15 +16,22 @@ my class Tap {
 }
 
 my role Supply {
-    has @!tappers;
     has $!tappers_lock = Lock.new;
+    has @!tappers;
+    has $!been_tapped;
+    has @!paused;
 
     method tap(Supply:D: &more = -> $ { }, :&done,:&quit={die $_},:&closing) {
-        my $sub = Tap.new(:&more, :&done, :&quit, :&closing, :supply(self));
+        my $tap = Tap.new(:&more, :&done, :&quit, :&closing, :supply(self));
         $!tappers_lock.protect({
-            @!tappers.push($sub);
+            @!tappers.push($tap);
+            if @!paused -> \todo {
+                $tap.more($_) for todo;
+                @!paused = ();
+            }
+            $!been_tapped = True;
         });
-        $sub
+        $tap
     }
 
     method close(Supply:D: Tap $t) {
@@ -46,8 +53,11 @@ my role Supply {
     }
 
     method more(Supply:D: \msg) {
-        for self.tappers -> $t {
-            $t.more().(msg)
+        if self.tappers -> \tappers {
+            .more().(msg) for tappers;
+        }
+        elsif !$!been_tapped {
+            $!tappers_lock.protect({ @!paused.push: msg });
         }
         Nil;
     }

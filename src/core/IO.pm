@@ -67,7 +67,7 @@ my role IO::FileTestable does IO {
     }
 
     method z() {
-        self.e && self.s == 0;
+        self.f && self.s == 0;
     }
 
     method modified() {

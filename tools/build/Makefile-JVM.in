@@ -322,8 +322,8 @@ j-localtest_loud: j-all spectest_checkout t/localtest.data
 	@$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
-# make sometests TESTFILES=t/foo/bar
-sometests: j-all
+# make j-sometests TESTFILES=t/foo/bar
+j-sometests: j-all
 	@$(J_HARNESS_WITH_FUDGE) $(TESTFILES)
 
 j-install: j-all tools/build/create-jvm-runner.pl

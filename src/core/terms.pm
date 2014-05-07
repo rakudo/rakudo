@@ -160,32 +160,20 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $PID = nqp::p6box_i(nqp::getpid());
     nqp::bindkey(nqp::who(PROCESS), '$PID', $PID);
 
-    my $EXECUTABLE_NAME = 
-#?if parrot
-        nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
-#?endif
-#?if jvm
-        'perl6-j';
-#?endif
-#?if moar
-        nqp::execname()
-        ?? nqp::execname().path.basename
-        !! $VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m';
-#?endif
-    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
-
     my $EXECUTABLE =
 #?if parrot
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
 #?endif
 #?if jvm
-        $VM<properties><perl6.prefix> ~ '/bin/perl6-j';
+        $VM<properties><perl6.execname> or $VM<properties><perl6.prefix> ~ '/bin/perl6-j';
 #?endif
 #?if moar
         nqp::execname()
         or ($VM<config><prefix> ~ '/bin/' ~ ($VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
 #?endif
-    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE', $EXECUTABLE.path.absolute);
+    $EXECUTABLE := $EXECUTABLE.path.absolute;
+    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE',      $EXECUTABLE);
+    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE.basename);
 
     my Mu $comp := nqp::getcomp('perl6');
 

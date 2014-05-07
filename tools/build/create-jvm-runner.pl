@@ -55,7 +55,8 @@ my $bootclasspath = join($cpsep,
 my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
 my $jopts = '-Xms100m -Xbootclasspath/a:' . $bootclasspath 
           . ' -cp ' . $classpath
-          . ' -Dperl6.prefix=' . $prefix;
+          . ' -Dperl6.prefix=' . $prefix
+          . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
 
 if ($debugger) {
     install "perl6-debug-j", "java $jopts perl6-debug";

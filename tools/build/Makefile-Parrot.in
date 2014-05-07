@@ -260,7 +260,7 @@ P_CLEANUPS = \
   lib/lib.pir \
   lib/Pod/To/Text.pir \
   p-rakudo_test_run.tar.gz \
-  $(DYNEXT_DIR)/*$(LOAD_EXT) \
+  $(DYNEXT_DYNOPS) \
   src/gen/p-CORE.setting \
   src/gen/*.pir \
   src/gen/*.pbc \

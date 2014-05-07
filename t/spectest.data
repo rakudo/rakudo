@@ -589,6 +589,7 @@ S17-supply/act.t         # conc
 S17-supply/basic.t       # conc
 S17-supply/batch.t       # conc
 S17-supply/Channel.t     # conc
+S17-supply/classify.t    # conc
 S17-supply/delay.t       # conc
 S17-supply/do.t          # conc
 S17-supply/elems.t       # conc
@@ -822,6 +823,7 @@ integration/advent2009-day20.t
 integration/advent2009-day21.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
+integration/advent2010-day03.t
 integration/advent2010-day04.t
 integration/advent2012-day02.t
 integration/advent2012-day03.t

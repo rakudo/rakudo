@@ -26,7 +26,7 @@ my role Supply {
         $!tappers_lock.protect({
             @!tappers.push($tap);
             if @!paused -> \todo {
-                $tap.more($_) for todo;
+                $tap.more().($_) for todo;
                 @!paused = ();
             }
             $!been_tapped = True;

@@ -2874,7 +2874,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token value:sym<version> { <version> }
 
     proto token number { <...> }
-    token number:sym<complex>  { <im=.numish>'\\'?'i' }
     token number:sym<numish>   { <numish> }
 
     token numish {

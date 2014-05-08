@@ -178,6 +178,17 @@ my role Supply {
         SupplyOperations.classify(self, { @mapper[$^a] });
     }
 
+    proto method categorize (|) { * }
+    multi method categorize(Supply:D: &mapper )  {
+        SupplyOperations.classify(self, &mapper, :multi);
+    }
+    multi method categorize(Supply:D: %mapper )  {
+        SupplyOperations.classify(self, { %mapper{$^a} }, :multi);
+    }
+    multi method categorize(Supply:D: @mapper )  {
+        SupplyOperations.classify(self, { @mapper[$^a] }, :multi);
+    }
+
     method act(Supply:D: &actor) {
         self.do(&actor).tap(|%_) # need "do" for serializing callbacks
     }

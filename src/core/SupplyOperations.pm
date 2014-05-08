@@ -309,28 +309,35 @@ my class SupplyOperations is repr('Uninstantiable') {
         MigrateSupply.new(:$source)
     }
 
-    method classify(Supply $source, &mapper ) {
+    method classify(Supply $source, &mapper, :$multi ) {
         my class ClassifySupply does Supply does PrivatePublishing {
             has $!source;
             has %!mapping;
             
             submethod BUILD(:$!source) { }
+            submethod find_supply ($key) {
+                %!mapping{ $key.WHICH } //= do {
+                    my $s = Supply.new;
+                    self!more($key => $s);
+                    $s;
+                };
+            }
             
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
-                $source_tap = $!source.tap(
-                    -> \val {
-                       my $key := mapper(val);
-                       ( %!mapping{ $key.WHICH } //= do {
-                            my $s = Supply.new;
-                            self!more($key => $s);
-                            $s;
-                       } ).more(val);
-                    },
-                    done => { self!done(); },
-                    quit => -> $ex { self!quit($ex) });
+                $source_tap = $!source.tap( $multi
+                  ?? -> \val {
+                      for @(mapper(val)) -> $key {
+                          self.find_supply($key).more(val);
+                      }
+                  }
+                  !! -> \val {
+                      self.find_supply( mapper(val) ).more(val);
+                  },
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) });
                 $tap
             }
         }

@@ -593,15 +593,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method permutations() {
-#?if moar
-        map { [self[@$_]] }, permutations self.elems;
-#?endif
-#?if jvm
-        gather take [self[@$_]] for permutations self.elems;
-#?endif
-#?if parrot
-        gather take [self[@$_]] for permutations self.elems;
-#?endif
+        # need block on Moar because of RT#121830
+        gather { take [self[@$_]] for permutations self.elems }
     }
 }
 

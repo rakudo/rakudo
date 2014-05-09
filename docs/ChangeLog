@@ -13,6 +13,7 @@ New in 2014.05
 + added IO::Socket::Async.send, returns a Promise with success / failure
 + added IO::Socket::Async.chars_supply, returns a Supply with chunks
 + added first-index, last-index, grep-index subs/methods
++ Pair.key was erroneously implemented "is rw"
 
 New in 2014.04
 

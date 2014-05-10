@@ -6,6 +6,7 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
         die "Found invalid signals: {@invalid}";
     }
     @signals.unshift: $signal;
+    @signals .= uniq;
 
     state %sigmap =
         SIGINT,   nqp::const::SIG_INT,

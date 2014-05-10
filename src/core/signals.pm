@@ -13,11 +13,24 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
         SIGHUP,   nqp::const::SIG_HUP,
         SIGWINCH, nqp::const::SIG_WINCH;
 
+    state @known_signals;
+    once {
+        my @names = "",qx/kill -l/.words;
+        @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
+
+        for Signal.^enum_value_list -> $signal {
+            my $name = $signal.key.substr(3);
+            if @names.first-index( * eq $name ) -> $index {
+                @known_signals[$index] = $signal;
+            }
+        }
+    }
+
     my class SignalCancellation is repr('AsyncTask') { }
     Supply.merge( @signals.map(-> $sig {
         my $s = Supply.new;
         nqp::signal($scheduler.queue,
-            -> $signum { $s.more($signum) },
+            -> $signum { $s.more(@known_signals[$signum] // $signum) },
             nqp::unbox_i(%sigmap{$sig}),
             SignalCancellation);
         $s

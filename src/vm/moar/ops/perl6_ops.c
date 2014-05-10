@@ -41,6 +41,7 @@ static MVMObject *Num                 = NULL;
 static MVMObject *Str                 = NULL;
 static MVMObject *Scalar              = NULL;
 static MVMObject *Parcel              = NULL;
+static MVMObject *Iterable            = NULL;
 static MVMObject *List                = NULL;
 static MVMObject *ListIter            = NULL;
 static MVMObject *True                = NULL;
@@ -138,6 +139,7 @@ static void p6settypes(MVMThreadContext *tc) {
         get_type(tc, conf, "Str", Str);
         get_type(tc, conf, "Scalar", Scalar);
         get_type(tc, conf, "Parcel", Parcel);
+        get_type(tc, conf, "Iterable", Iterable);
         get_type(tc, conf, "List", List);
         get_type(tc, conf, "ListIter", ListIter);
         get_type(tc, conf, "True", True);
@@ -394,12 +396,19 @@ static void p6decontrv(MVMThreadContext *tc) {
         Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
             ((Rakudo_Scalar *)retval)->descriptor;
         if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
-            MVMROOT(tc, retval, {
-                MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
-                MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
-                    ((Rakudo_Scalar *)retval)->value);
-                retval = cont;
-            });
+            MVMObject *value = ((Rakudo_Scalar *)retval)->value;
+            if (MVM_6model_istype_cache_only(tc, value, Iterable)
+                || MVM_6model_istype_cache_only(tc, value, Parcel)) {
+                MVMROOT(tc, value, {
+                    MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
+                    MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
+                        value);
+                    retval = cont;
+                });
+            }
+            else {
+                retval = value;
+            }
         }
     }
     GET_REG(tc, 0).o = retval;

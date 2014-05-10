@@ -6047,7 +6047,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif %info<named_slurpy> {
                 $var.slurpy(1);
                 $var.named(1);
-                $var.push(QAST::Op.new(
+                my $slurpy_setup := QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name($name), :scope('local') ),
                     QAST::Op.new(
@@ -6059,7 +6059,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::WVal.new( :value($*W.find_symbol(['EnumMap'])) ),
                         QAST::SVal.new( :value('$!storage') ),
                         QAST::Var.new( :name($name), :scope('local') )
-                    )));
+                    ));
+                if nqp::existskey(%info, 'variable_name') && %info<variable_name> eq '%_' {
+                    $slurpy_setup<autoslurpy> := 1;
+                }
+                $var.push($slurpy_setup);
                 $saw_slurpy := 1;
             }
 

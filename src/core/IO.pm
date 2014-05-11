@@ -563,7 +563,7 @@ my class IO::Path is Cool does IO::FileTestable {
 #?if !parrot
             loop {
                 my Str $elem := nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) || !$elem {
+                if nqp::isnull_s($elem) || !$elem.chars {
                     nqp::closedir($dirh);
                     last;
                 } else {

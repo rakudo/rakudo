@@ -589,7 +589,11 @@ S17-promise/basic.t      # conc
 S17-promise/in.t         # conc
 S17-promise/start.t      # conc
 S17-promise/then.t       # conc
+S17-scheduler/at.t       # conc
 S17-scheduler/basic.t    # conc
+S17-scheduler/every.t    # conc
+S17-scheduler/in.t       # conc
+S17-scheduler/times.t    # conc
 S17-supply/act.t         # conc
 S17-supply/basic.t       # conc
 S17-supply/batch.t       # conc

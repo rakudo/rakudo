@@ -22,10 +22,22 @@ sub gist(|) {
     nqp::p6parcel(nqp::p6argvmarray(), Mu).gist
 }
 
-sub prompt($msg) {
-    print $msg;
-    $*OUT.flush();
-    $*IN.get;
+sub prompt($msg = '> ') {
+    if $*IN ~~ IO::Handle
+       && $*OUT ~~ IO::Handle
+       && nqp::getattr(nqp::decont($*IN), IO::Handle, '$!PIO') =:= nqp::getstdin()
+       && nqp::getattr(nqp::decont($*OUT), IO::Handle, '$!PIO') =:= nqp::getstdout()
+    {
+        my $line = nqp::readlineintfh(nqp::getstdin(), nqp::unbox_s(~($msg // '')));
+        if nqp::eoffh(nqp::getstdin()) {
+            return Str;
+        }
+        return nqp::p6box_s($line);
+    } else {
+        print $msg;
+        $*OUT.flush();
+        return $*IN.get;
+    }
 }
 
 my role IO::FileTestable does IO {

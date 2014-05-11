@@ -108,27 +108,27 @@ my class SupplyOperations is repr('Uninstantiable') {
         FlatSupply.new(:$source)
     }
 
-    method grep(Supply $source, &filter) {
+    method grep(Supply $source, Mu $test) {
         my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
-            has &!filter;
+            has Mu $!test;
             
-            submethod BUILD(:$!source, :&!filter) { }
+            submethod BUILD(:$!source, :$!test) { }
             
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
-                $source_tap = $!source.tap( -> \val {
-                      if (&!filter(val)) { self!more(val) }
-                  },
+                $source_tap = $!source.tap( $!test ~~ Callable
+                  ?? -> \val { self!more(val) if $!test(val) }
+                  !! -> \val { self!more(val) if val ~~ $!test },
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) }
                 );
                 $tap
             }
         }
-        GrepSupply.new(:$source, :&filter)
+        GrepSupply.new(:$source, :$test)
     }
 
     method map(Supply $source, &mapper) {

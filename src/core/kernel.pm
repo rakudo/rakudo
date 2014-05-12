@@ -4,6 +4,7 @@ class Kernel {
     has $!release;
     has $!hardware;
     has $!arch;
+    has $!bits;
 
     method gist { $.name ~ (" ($!ver)" if $.ver ne "unknown") }
     method Str  { $.name }
@@ -71,6 +72,10 @@ class Kernel {
                 }
             }
         }
+    }
+
+    method bits {
+        $!bits //= $.ver ~~ m/_64|w/ ?? 64 !! 32;  # naive approach
     }
 }
 

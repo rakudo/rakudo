@@ -1,8 +1,10 @@
 class Distro {
-    has $.OS;
-    has Bool $.is-win;
+    has $.name;
+    has $.is-win;
 
-    submethod BUILD (:$!OS) {}
+    submethod BUILD (:$!name) {
+        $!is-win = $!name eq 'MSWin32'; # probably needs more work
+    }
 
 #?if moar
     has @!signals;  # Signal
@@ -23,5 +25,9 @@ class Distro {
 #?endif
 }
 
-PROCESS::<$DISTRO> = Distro.new( :$*OS );
-$*OS = Deprecation.obsolete(:name('$*OS'),:value($*OS),:instead('$*DISTRO.OS'));
+PROCESS::<$DISTRO> = Distro.new( :name($*OS) );
+$*OS = Deprecation.obsolete(
+  :name('$*OS'),
+  :value($*OS),
+  :instead('$*DISTRO.name'),
+);

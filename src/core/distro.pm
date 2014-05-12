@@ -1,13 +1,13 @@
 class Distro {
     has $.name;
-    has $.version;
+    has $.ver;
     has $.is-win;
 
-    submethod BUILD (:$!name, :$!version) {
-        $!version = "unknown" if $!name eq $!version;
+    submethod BUILD (:$!name, :$!ver) {
+        $!ver = "unknown" if $!name eq $!ver;
         $!is-win  = so $!name eq any <MSWin32 mingw msys cygwin>;
     }
-    method gist { $!name ~ (" ($!version)" if $!version ne "unknown") }
+    method gist { $!name ~ (" ($!ver)" if $!ver ne "unknown") }
     method Str  { $!name }
 
 #?if moar
@@ -29,8 +29,8 @@ class Distro {
 #?endif
 }
 
-PROCESS::<$DISTRO> = Distro.new( :name($*OS), :version($*OSVER) );
+PROCESS::<$DISTRO> = Distro.new( :name($*OS), :ver($*OSVER) );
 $*OS = Deprecation.obsolete(
   :name('$*OS'), :value($*OS), :instead('$*DISTRO.name') );
 $*OSVER = Deprecation.obsolete(
-  :name('$*OSVER'), :value($*OSVER), :instead('$*DISTRO.version') );
+  :name('$*OSVER'), :value($*OSVER), :instead('$*DISTRO.ver') );

@@ -1,12 +1,12 @@
 class VM {
     has $.name;
-    has $.version;
+    has $.ver;
     has $.config;
 
     submethod BUILD (:$!name, :$!config) {
-        $!version = $!config<version> // "unknown";
+        $!ver = $!config<version> // "unknown";
     }
-    method gist { $!name ~ (" ($!version)" if $!version ne "unknown") }
+    method gist { $!name ~ (" ($!ver)" if $!ver ne "unknown") }
     method Str  { $!name }
 
 }

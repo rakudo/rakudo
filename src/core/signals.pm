@@ -14,7 +14,7 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
         SIGHUP,   nqp::const::SIG_HUP,
         SIGWINCH, nqp::const::SIG_WINCH;
 
-    state @known_signals := $*DISTRO.signals;
+    state @known_signals := $*KERNEL.signals;
 
     my class SignalCancellation is repr('AsyncTask') { }
     Supply.merge( @signals.map(-> $sig {

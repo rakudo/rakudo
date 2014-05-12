@@ -3,7 +3,7 @@ class Distro {
     has $.is-win;
 
     submethod BUILD (:$!name) {
-        $!is-win = $!name eq 'MSWin32'; # probably needs more work
+        $!is-win = so $!name eq any <MSWin32 mingw msys cygwin>;
     }
 
 #?if moar

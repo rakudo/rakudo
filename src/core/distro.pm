@@ -7,6 +7,8 @@ class Distro {
         $!version = "unknown" if $!name eq $!version;
         $!is-win  = so $!name eq any <MSWin32 mingw msys cygwin>;
     }
+    method gist { $!name ~ (" ($!version)" if $!version ne "unknown") }
+    method Str  { $!name }
 
 #?if moar
     has @!signals;  # Signal

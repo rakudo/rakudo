@@ -51,7 +51,7 @@ class Deprecation {
     }
 
     # system variable deprecations
-    $*OS = Obsolete.new(:name('$*OS'),:value($*OS),:instead('$*DISTRO.OS'));
+    method obsolete (|c) { Obsolete.new(|c) }
 }
 
 sub DEPRECATED ($alternative, :$up = 1, :$what ) {

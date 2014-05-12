@@ -80,7 +80,7 @@ class Kernel {
     }
 
     method bits {
-        $!bits //= $.ver ~~ m/_64|w/ ?? 64 !! 32;  # naive approach
+        $!bits //= $.hardware ~~ m/_64|w/ ?? 64 !! 32;  # naive approach
     }
 }
 

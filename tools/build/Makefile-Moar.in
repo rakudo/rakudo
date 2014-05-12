@@ -169,6 +169,7 @@ M_CORE_SOURCES = \
   src/core/signals.pm \
   src/core/distro.pm \
   src/core/vm.pm \
+  src/core/kernel.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
   src/core/IO/Socket/Async.pm \

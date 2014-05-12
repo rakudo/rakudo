@@ -239,6 +239,7 @@ P_CORE_SOURCES = \
   src/core/Deprecations.pm \
   src/core/distro.pm \
   src/core/vm.pm \
+  src/core/kernel.pm \
   src/core/OS.pm \
   src/core/core_epilogue.pm \
 

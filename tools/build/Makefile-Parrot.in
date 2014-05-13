@@ -237,9 +237,10 @@ P_CORE_SOURCES = \
   src/core/precedence.pm \
   src/core/terms.pm \
   src/core/Deprecations.pm \
-  src/core/distro.pm \
-  src/core/vm.pm \
-  src/core/kernel.pm \
+  src/core/Application.pm \
+  src/core/Distro.pm \
+  src/core/VM.pm \
+  src/core/Kernel.pm \
   src/core/OS.pm \
   src/core/core_epilogue.pm \
 

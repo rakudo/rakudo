@@ -1,14 +1,10 @@
-class VM {
-    has $.name;
-    has $.ver;
+class VM does Application {
     has $.config;
 
     submethod BUILD (:$!name, :$!config) {
-        $!ver = $!config<version> // "unknown";
+        $!auth    = "unknown";
+        $!version = Version.new($!config<version> // "unknown");
     }
-    method gist { $!name ~ (" ($!ver)" if $!ver ne "unknown") }
-    method Str  { $!name }
-
 }
 
 multi postcircumfix:<{ }> (VM $d, "name" )   {

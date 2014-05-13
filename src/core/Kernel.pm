@@ -3,16 +3,12 @@
 # If you find errors for your hardware or OS distribution, please report them
 # with the values that you expected and how to get them in your situation.
 
-class Kernel {
-    has $!name;
-    has $!ver;
-    has $!release;
+class Kernel does Application {
     has $!hardware;
     has $!arch;
     has $!bits;
 
-    method gist { $.name ~ (" ($!ver)" if $.ver ne "unknown") }
-    method Str  { $.name }
+    submethod BUILD (:$!auth = "unknown") {}
 
     method name {
         $!name //= do {
@@ -27,24 +23,11 @@ class Kernel {
         }
     }
 
-    method ver {
-        $!ver //= do {
+    method version {
+        $!version //= do {
             given $*DISTRO.name.lc {
                 when any <linux darwin> { # needs adapting
                     qx/uname -v/.chomp;
-                }
-                default {
-                    "unknown";
-                }
-            }
-        }
-    }
-
-    method release {
-        $!release //= do {
-            given $*DISTRO.name.lc {
-                when any <linux darwin> { # needs adapting
-                    qx/uname -r/.chomp;
                 }
                 default {
                     "unknown";

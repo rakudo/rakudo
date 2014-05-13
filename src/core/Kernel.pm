@@ -24,7 +24,7 @@ class Kernel does Application {
     }
 
     method version {
-        $!version //= do {
+        $!version //= Version.new( do {
             given $*DISTRO.name.lc {
                 when any <linux darwin> { # needs adapting
                     qx/uname -v/.chomp;
@@ -33,7 +33,7 @@ class Kernel does Application {
                     "unknown";
                 }
             }
-        }
+        } );
     }
 
     method hardware {

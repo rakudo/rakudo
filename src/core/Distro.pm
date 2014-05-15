@@ -3,7 +3,7 @@
 # If you find errors for your hardware or OS distribution, please report them
 # with the values that you expected and how to get them in your situation.
 
-class Distro does Application{
+class Distro does Systemic{
     has Bool $.is-win;
     has Str $.release;
 

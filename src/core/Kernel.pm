@@ -3,7 +3,7 @@
 # If you find errors for your hardware or OS distribution, please report them
 # with the values that you expected and how to get them in your situation.
 
-class Kernel does Application {
+class Kernel does Systemic {
     has $!hardware;
     has $!arch;
     has $!bits;

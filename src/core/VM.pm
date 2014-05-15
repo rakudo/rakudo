@@ -1,4 +1,4 @@
-class VM does Application {
+class VM does Systemic {
     has $.config;
 
     submethod BUILD (:$!name, :$!config) {

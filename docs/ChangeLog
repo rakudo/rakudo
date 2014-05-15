@@ -14,6 +14,10 @@ New in 2014.05
 + added IO::Socket::Async.chars_supply, returns a Supply with chunks
 + added first-index, last-index, grep-index subs/methods
 + Pair.key was erroneously implemented "is rw"
++ added "subtest code, desc" to Test.pm (inspired by P5's Test::More)
++ BagHash<foo>-- on non-existing key no longer fails (as per S02 spec change)
++ deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>
++ added $*KERNEL, $*DISTRO, $*VM as full blown objects
 
 New in 2014.04
 

@@ -149,13 +149,13 @@ sub skip_rest($reason = '<unknown>') is export {
 sub subtest(&subtests, $desc = '') is export {
     _push_vars();
     _init_vars();
-    $indents ~= "   ";
+    $indents ~= "    ";
     subtests();
     done() if !$done_testing_has_been_run;
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
-    $indents = $indents.chop.chop.chop;
+    $indents = $indents.chop(4);
     proclaim($status,$desc);
 }
 

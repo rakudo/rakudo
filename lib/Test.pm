@@ -152,7 +152,8 @@ sub subtest(&subtests, $desc = '') is export {
     $indents ~= "   ";
     subtests();
     done() if !$done_testing_has_been_run;
-    my $status = $num_of_tests_failed == 0;
+    my $status =
+      $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
     $indents = $indents.chop.chop.chop;
     proclaim($status,$desc);

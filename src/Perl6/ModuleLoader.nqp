@@ -59,40 +59,42 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         @search_paths
     }
     
-    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file?) {
-        # See if we need to load it from elsewhere.
-        if nqp::existskey(%opts, 'from') {
-            if nqp::existskey(%language_module_loaders, %opts<from>) {
-                # We expect that custom module loaders will accept a Stash, only
-                # NQP expects a hash and therefor needs special handling.
-                if +@GLOBALish && %opts<from> eq 'NQP' {
-                    my $target := nqp::knowhow().new_type(:name('GLOBALish'));
-                    nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
+    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
+        unless %chosen {
+            # See if we need to load it from elsewhere.
+            if nqp::existskey(%opts, 'from') {
+                if nqp::existskey(%language_module_loaders, %opts<from>) {
+                    # We expect that custom module loaders will accept a Stash, only
+                    # NQP expects a hash and therefor needs special handling.
+                    if +@GLOBALish && %opts<from> eq 'NQP' {
+                        my $target := nqp::knowhow().new_type(:name('GLOBALish'));
+                        nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
+                        return %language_module_loaders{%opts<from>}.load_module($module_name,
+                            %opts, $target, :$line, :$file);
+                    }
                     return %language_module_loaders{%opts<from>}.load_module($module_name,
-                        %opts, $target, :$line, :$file);
+                        %opts, |@GLOBALish, :$line, :$file);
                 }
-                return %language_module_loaders{%opts<from>}.load_module($module_name,
-                    %opts, |@GLOBALish, :$line, :$file);
+                else {
+                    nqp::die("Do not know how to load code from " ~ %opts<from>);
+                }
             }
-            else {
-                nqp::die("Do not know how to load code from " ~ %opts<from>);
+            
+            # Locate all the things that we potentially could load. Choose
+            # the first one for now (XXX need to filter by version and auth).
+            my @prefixes   := self.search_path();
+            my @candidates := self.locate_candidates($module_name, @prefixes, :$file);
+            if +@candidates == 0 {
+                if nqp::defined($file) {
+                    nqp::die("Could not find file '$file' for module $module_name");
+                }
+                else {
+                    nqp::die("Could not find $module_name in any of: " ~
+                        join(', ', @prefixes));
+                }
             }
+            %chosen := @candidates[0];
         }
-        
-        # Locate all the things that we potentially could load. Choose
-        # the first one for now (XXX need to filter by version and auth).
-        my @prefixes   := self.search_path();
-        my @candidates := self.locate_candidates($module_name, @prefixes, :$file);
-        if +@candidates == 0 {
-            if nqp::defined($file) {
-                nqp::die("Could not find file '$file' for module $module_name");
-            }
-            else {
-                nqp::die("Could not find $module_name in any of: " ~
-                    join(', ', @prefixes));
-            }
-        }
-        my %chosen := @candidates[0];
         
         my @MODULES := nqp::clone(@*MODULES // []);
         for @MODULES -> $m {
@@ -100,7 +102,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 nqp::die("Circular module loading detected involving module '$module_name'");
             }
         }
-
+        unless nqp::ishash(%chosen) {
+            %chosen := %chosen.FLATTENABLE_HASH();
+        }
+        for %chosen {
+            say($_.key ~ ' => ' ~ $_.value) if $DEBUG;
+        }
         # If we didn't already do so, load the module and capture
         # its mainline. Otherwise, we already loaded it so go on
         # with what we already have.

@@ -242,6 +242,10 @@ P_CORE_SOURCES = \
   src/core/VM.pm \
   src/core/Kernel.pm \
   src/core/OS.pm \
+  src/core/JSON/Pretty.pm \
+  src/core/CompUnitRepo.pm \
+  src/core/CompUnitRepo/Local/File.pm \
+  src/core/CompUnitRepo/Local/Installation.pm \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_PBC = perl6-debug.pbc

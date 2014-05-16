@@ -240,39 +240,23 @@ my class IO::Handle does IO::FileTestable {
 
     method read(IO::Handle:D: Cool:D $bytes as Int) {
         my $buf := buf8.new();
-#?if parrot
-        # Relies on nqp::encode passing the binary encoding straight on down
-        # to Parrot.
-        my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
-        nqp::encode($parrot_buffer.get_string('binary'), 'binary', $buf);
-#?endif
-#?if !parrot
         nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
-#?endif
         $buf;
     }
+
     # second arguemnt should probably be an enum
     # valid values for $whence:
     #   0 -- seek from beginning of file
     #   1 -- seek relative to current position
     #   2 -- seek from the end of the file
     method seek(IO::Handle:D: Int:D $offset, Int:D $whence) {
-#?if moar
         nqp::seekfh($!PIO, $offset, $whence);
-#?endif
-#?if !moar
-        $!PIO.seek(nqp::unbox_i($whence), nqp::unbox_i($offset));
-#?endif
         True;
     }
+
     method tell(IO::Handle:D:) returns Int {
         nqp::p6box_i(
-#?if parrot
-            $!PIO.tell
-#?endif
-#?if !parrot
             nqp::tellfh($!PIO)
-#?endif
         );
     }
 

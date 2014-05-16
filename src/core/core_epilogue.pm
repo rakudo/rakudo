@@ -18,7 +18,7 @@ BEGIN {
 my $prefix = nqp::atkey(nqp::backendconfig(), 'runtime.prefix');
 #?endif
 #?if !jvm
-my $prefix = $*VM<config><prefix>;
+my $prefix = $*VM.config<prefix>;
 #?endif
 if "$prefix/share/libraries.cfg".IO.e {
     my @lines = slurp("$prefix/share/libraries.cfg").lines;

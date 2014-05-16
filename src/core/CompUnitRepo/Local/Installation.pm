@@ -122,7 +122,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         }
         
         # Initialize "provides" section.
-        for %($d.provides).kv -> $k, $v is rw {
+        for %($d.provides).v -> $v is rw {
             $v = {};
         }
         
@@ -146,7 +146,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
                     for '', < -p -j -m > -> $be {
                         "$path/bin/$withoutext$be".IO.spurt:
                             $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
-                        if $*OS eq 'MSWin32' {
+                        if $*DISTRO.is-win {
                             "$path/bin/$withoutext$be.bat".IO.spurt:
                                 $windows_wrapper.subst('#perl#', "perl6$be");
                         }

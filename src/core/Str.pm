@@ -537,7 +537,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method perl(Str:D:) {
         my $result = '"';
 #?if parrot
-        my $icu = $*VM<config><has_icu>;
+        my $icu = $*VM.config<has_icu>;
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
             $result ~= %esc{$ch} 

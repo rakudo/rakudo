@@ -1,5 +1,6 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my role Supply { ... }
 
 my sub combinations($n, $k) {
     my @result;
@@ -9,25 +10,25 @@ my sub combinations($n, $k) {
 
     @stack.push(0);
     gather while @stack {
-	my $index = @stack - 1;
-	my $value = @stack.pop;
+        my $index = @stack - 1;
+        my $value = @stack.pop;
 
-	while $value < $n {
-	    @result[$index++] = $value++;
-	    @stack.push($value);
-	    if $index == $k {
-		take [@result];
-		$value = $n;  # fake a last
-	    }
-	}
+        while $value < $n {
+            @result[$index++] = $value++;
+            @stack.push($value);
+            if $index == $k {
+                take [@result];
+                $value = $n;  # fake a last
+            }
+        }
     }
 }
 
 my sub permutations(Int $n) {
     $n == 1 ?? ( [0,] ) !!
     gather for ^$n -> $i {
-	my @i = grep none($i), ^$n;
-	take [$i, @i[@$_]] for permutations($n - 1);
+        my @i = grep none($i), ^$n;
+        take [$i, @i[@$_]] for permutations($n - 1);
     }
 }
 
@@ -103,6 +104,8 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
         nqp::p6parcel($rpa, Any);
     }
+
+    method Supply(List:D:) { Supply.for(self) }
 
     multi method at_pos(List:D: $pos is copy) is rw {
         $pos = $pos.Int;
@@ -489,6 +492,27 @@ my class List does Positional { # declared in BOOTSTRAP
         }, @.list;
     }
 
+    proto method rotor(|) {*}
+    multi method rotor(1, 0) { @.list }
+    multi method rotor($elems = 2, $overlap = 1) {
+        X::OutOfRange.new(
+            what => 'Overlap argument to List.rotor',
+            got  => $overlap,
+            range => (0 .. $elems - 1),
+        ).fail unless 0 <= $overlap < $elems;
+        X::OutOfRange.new(
+            what => 'Elements argument to List.rotor',
+            got  => $elems,
+            range => (0 .. *),
+        ).fail unless 0 <= $elems;
+
+        my $finished = 0;
+        gather while $finished + $overlap < self.gimme($finished + $elems) {
+            take item self[$finished ..^ $finished + $elems];
+            $finished += $elems - $overlap
+        }
+    }
+
     multi method gist(List:D:) { join ' ', map { $_.gist }, @(self) }
     multi method perl(List:D \SELF:) {
         self.gimme(*);
@@ -540,9 +564,9 @@ my class List does Positional { # declared in BOOTSTRAP
         fail('can only reduce with arity 2')
             unless &with.arity <= 2 <= &with.count;
         return unless self.DEFINITE;
-	my \vals = self.values;
+        my \vals = self.values;
         my Mu $val = vals.shift;
-	$val = with($val, $_) for vals;
+        $val = with($val, $_) for vals;
         $val;
     }
 
@@ -569,7 +593,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method permutations() {
-        gather take [self[@$_]] for permutations self.elems;
+        # need block on Moar because of RT#121830
+        gather { take [self[@$_]] for permutations self.elems }
     }
 }
 
@@ -600,9 +625,11 @@ proto sub shift(@) {*}
 multi sub shift(@a) { @a.shift }
 
 proto sub unshift(|) {*}
+multi sub unshift(\a, \elem) { a.unshift: elem }
 multi sub unshift(\a, *@elems) { a.unshift: @elems }
 
 proto sub push(|) {*}
+multi sub push(\a, \elem) { a.push: elem }
 multi sub push(\a, *@elems) { a.push: @elems }
 
 sub reverse(*@a)            { @a.reverse }

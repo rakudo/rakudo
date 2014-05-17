@@ -1,3 +1,41 @@
+New in 2014.05
++ asynchronous timers on MoarVM backend
++ added or updated many Supply methods:
+  act, batch, categorize, Channel, classify, delay, elems, flat, grab, last,
+  live, max, min, minmax, merge, migrate, Promise, reduce, reverse, rotor,
+  sort, squish, stable, start, uniq, wait, zip
++ add list functionality to 'on', as with new S17 spec
++ added .Supply coercer
++ added IO::Notification.watch_path / IO::Path::watch which return a Supply
+  of file system changes
++ added signal() which returns a Supply of Signals (such as SIG_HUP)
++ added IO::Socket::Async.connect, returns a Promise with a IO::Socket::Async
++ added IO::Socket::Async.send, returns a Promise with success / failure
++ added IO::Socket::Async.chars_supply, returns a Supply with chunks
++ added first-index, last-index, grep-index subs/methods
++ Pair.key was erroneously implemented "is rw"
++ added "subtest code, desc" to Test.pm (inspired by P5's Test::More)
++ Test::Tap::tap_ok and Test::Util::throws_like are now 1 test (using subtest)
++ BagHash<foo>-- on non-existing key no longer fails (as per S02 spec change)
++ deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>
++ added $*KERNEL, $*DISTRO, $*VM as full blown objects
+
+New in 2014.04
+
++ significant performance enhancement for MoarVM, spectest running 20%+ faster
++ S17 (concurrency) now in MoarVM (except timing related features)
++ winner { more @channels { ... } } now works
++ fixed pb with Parcelness of single element array slices with adverbs
++ implemented univals(), .unival and .univals (on MoarVM)
++ make .pick/.roll behave sanely on Enums
++ fixed Str.samespace and ss//
++ added .minpairs/.maxpairs on (Set|Bag|Mix)Hash
++ added Bag.kxxv
++ Capture.WHICH implemented so that identical Captures have the same .WHICH
++ Naive implementation of "is cached" trait on Routines
++ Hash.perl now randomizes key order, while Hash.gist sorts
++ NativeCall passes all its tests on all backends
+
 New in 2014.03
 
 + Fix suggestions for unknown routines when specified with '&'

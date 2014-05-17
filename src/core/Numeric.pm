@@ -27,6 +27,8 @@ my role Numeric {
 
     method succ() { self + 1 }
     method pred() { self - 1 }
+
+    method sleep() { sleep self }
 }
 
 multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {
@@ -179,49 +181,49 @@ multi sub round($a)                 { $a.Numeric.round }
 multi sub round(Numeric $a)         { $a.round }
 multi sub round(Numeric $a, $scale) { $a.round($scale) }
 
-proto infix:<+>($a?, $b?) is pure   { * }
+proto infix:<+>($?, $?) is pure   { * }
 multi infix:<+>($x = 0)      { $x.Numeric }
 multi infix:<+>(\a, \b)    { a.Numeric + b.Numeric }
 
-proto infix:<->($a?, $b?) is pure   { * }
+proto infix:<->($?, $?) is pure   { * }
 multi infix:<->($x = 0)      { $x.Numeric }
 multi infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 
-proto infix:<*>($a?, $b?) is pure   { * }
+proto infix:<*>($?, $?) is pure   { * }
 multi infix:<*>($x = 1)      { $x.Numeric }
 multi infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 
-proto infix:</>($a?, $b?) { * }
+proto infix:</>($?, $?) { * }
 multi infix:</>()            { fail "No zero-arg meaning for infix:</>" }
 multi infix:</>($x)          { $x.Numeric }
 multi infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 
-proto infix:<div>($a?, $b?) is pure  { * }
+proto infix:<div>($?, $?) is pure  { * }
 # rest of infix:<div> is in Int.pm
 
-proto infix:<%>($a?, $b?) is pure   { * }
+proto infix:<%>($?, $?) is pure   { * }
 multi infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
 multi infix:<%>($x)          { $x }
 multi infix:<%>(\a, \b)    { a.Real % b.Real }
 
-proto infix:<%%>($a?, $b?) is pure  { * }
+proto infix:<%%>($?, $?) is pure  { * }
 multi infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
-multi infix:<%%>($x)         { Bool::True }
+multi infix:<%%>($)         { Bool::True }
 multi infix:<%%>(\a, \b)   {
     fail X::Numeric::DivideByZero.new(using => 'infix:<%%>') unless b;
     a.Real % b.Real == 0;
 }
 
-proto infix:<lcm>($a?, $b?) is pure  { * }
+proto infix:<lcm>($?, $?) is pure  { * }
 multi infix:<lcm>(Int $x = 1) { $x }
 multi infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
-proto infix:<gcd>($a?, $b?) is pure { * }
+proto infix:<gcd>($?, $?) is pure { * }
 multi infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
 multi infix:<gcd>(Int $x)    { $x }
 multi infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
-proto infix:<**>($a?, $b?) is pure  { * }
+proto infix:<**>($?, $?) is pure  { * }
 multi infix:<**>($x = 1)     { $x.Numeric }
 multi infix:<**>(\a, \b)   { a.Numeric ** b.Numeric }
 
@@ -230,28 +232,28 @@ multi infix:<**>(\a, \b)   { a.Numeric ** b.Numeric }
 proto infix:«<=>»($, $?) is pure       { * }
 multi infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
 
-proto infix:<==>($a?, $b?) is pure  { * }
-multi infix:<==>($x?)        { Bool::True }
+proto infix:<==>($?, $?) is pure  { * }
+multi infix:<==>($?)        { Bool::True }
 multi infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
-proto infix:<!=>(Mu $a?, Mu $b?) is pure  { * }
-multi infix:<!=>($x?)        { Bool::True }
+proto infix:<!=>(Mu $?, Mu $?) is pure  { * }
+multi infix:<!=>($?)        { Bool::True }
 multi infix:<!=>(Mu \a, Mu \b)   { not a == b }
 
-proto infix:«<»($a?, $b?) is pure   { * }
-multi infix:«<»($x?)         { Bool::True }
+proto infix:«<»($?, $?) is pure   { * }
+multi infix:«<»($?)         { Bool::True }
 multi infix:«<»(\a, \b)    { a.Real < b.Real }
 
-proto infix:«<=»($a?, $b?) is pure  { * }
-multi infix:«<=»($x?)        { Bool::True }
+proto infix:«<=»($?, $?) is pure  { * }
+multi infix:«<=»($?)        { Bool::True }
 multi infix:«<=»(\a, \b)   { a.Real <= b.Real }
 
-proto infix:«>»($a?, $b?) is pure   { * }
-multi infix:«>»($x?)         { Bool::True }
+proto infix:«>»($?, $?) is pure   { * }
+multi infix:«>»($?)         { Bool::True }
 multi infix:«>»(\a, \b)    { a.Real > b.Real }
 
-proto infix:«>=»($a?, $b?) is pure  { * }
-multi infix:«>=»($x?)        { Bool::True }
+proto infix:«>=»($?, $?) is pure  { * }
+multi infix:«>=»($?)        { Bool::True }
 multi infix:«>=»(\a, \b)   { a.Real >= b.Real }
 
 ## bitwise operators

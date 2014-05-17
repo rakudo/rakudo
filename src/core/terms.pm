@@ -100,6 +100,12 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
          ~ '/languages/perl6';
 
     my %CUSTOM_LIB;
+    try {
+        my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
+        my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+        %CUSTOM_LIB<home> = "$home/.perl6/$ver";
+        @INC.push(%CUSTOM_LIB<home> ~ '/lib');
+    }
     %CUSTOM_LIB<perl>   = $prefix;
     %CUSTOM_LIB<vendor> = $prefix ~ '/vendor';
     %CUSTOM_LIB<site>   = $prefix ~ '/site';
@@ -107,12 +113,6 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     @INC.push(%CUSTOM_LIB<vendor> ~ '/lib');
     @INC.push(%CUSTOM_LIB<perl>   ~ '/lib');
 
-    try {
-        my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
-        my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-        %CUSTOM_LIB<home> = "$home/.perl6/$ver";
-        @INC.push(%CUSTOM_LIB<home> ~ '/lib');
-    }
     nqp::bindkey(nqp::who(PROCESS), '%CUSTOM_LIB', %CUSTOM_LIB);
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
@@ -160,17 +160,21 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $PID = nqp::p6box_i(nqp::getpid());
     nqp::bindkey(nqp::who(PROCESS), '$PID', $PID);
 
-    my $EXECUTABLE_NAME = 
+    my $EXECUTABLE =
 #?if parrot
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
 #?endif
 #?if jvm
-        'perl6-j';
+        $VM<properties><perl6.execname> or $VM<properties><perl6.prefix> ~ '/bin/perl6-j';
 #?endif
 #?if moar
-        $VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m';
+        nqp::execname()
+        or ($VM<config><prefix> ~ '/bin/' ~ ($VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
 #?endif
-    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
+    $EXECUTABLE := $EXECUTABLE.path.absolute;
+    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE',      $EXECUTABLE);
+    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE.basename);
+
     my Mu $comp := nqp::getcomp('perl6');
 
     my $PROGRAM_NAME = $comp.user-progname();

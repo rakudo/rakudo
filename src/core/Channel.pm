@@ -8,7 +8,8 @@ my class X::Channel::ReceiveOnClosed is Exception {
 }
 my class Channel {
     # The queue of events moving through the channel.
-    has Mu $!queue;
+    my class Queue is repr('ConcBlockingQueue') { }
+    has $!queue;
     
     # Promise that is triggered when all values are received, or an error is
     # received and the channel is thus closed.
@@ -24,22 +25,19 @@ my class Channel {
     my class CHANNEL_CLOSE { }
     my class CHANNEL_FAIL  { has $.error }
     
-    my Mu $interop;
     submethod BUILD() {
-        $interop := nqp::jvmbootinterop() unless nqp::isconcrete($interop);
-        my \LinkedBlockingQueue := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
-        $!queue := LinkedBlockingQueue.'constructor/new/()V'();
+        $!queue := nqp::create(Queue);
         $!closed_promise = Promise.new;
         $!closed_promise_vow = $!closed_promise.vow;
     }
     
     method send(Channel:D: \item) {
         X::Channel::SendOnClosed.new.throw if $!closed;
-        $!queue.add($interop.sixmodelToJavaObject(nqp::decont(item)))
+        nqp::push($!queue, nqp::decont(item));
     }
     
     method receive(Channel:D:) {
-        my \msg := $interop.javaObjectToSixmodel($!queue.take());
+        my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
             $!closed_promise_vow.keep(Nil);
             X::Channel::ReceiveOnClosed.new.throw
@@ -52,11 +50,10 @@ my class Channel {
     }
     
     method poll(Channel:D:) {
-        my \fetched := $!queue.'method/poll/()Ljava/lang/Object;'();
-        if nqp::jvmisnull(fetched) {
+        my \msg := nqp::queuepoll($!queue);
+        if nqp::isnull(msg) {
             Nil
         } else {
-            my \msg := $interop.javaObjectToSixmodel(fetched);
             if nqp::istype(msg, CHANNEL_CLOSE) {
                 $!closed_promise_vow.keep(Nil);
                 Nil
@@ -72,11 +69,10 @@ my class Channel {
     }
     
     method !peek(Channel:D:) {
-        my \fetched := $!queue.'method/peek/()Ljava/lang/Object;'();
-        if nqp::jvmisnull(fetched) {
+        my \msg := nqp::atpos($!queue, 0);
+        if nqp::isnull(msg) {
             Nil
         } else {
-            my \msg := $interop.javaObjectToSixmodel(fetched);
             if nqp::istype(msg, CHANNEL_CLOSE) {
                 $!closed_promise_vow.keep(Nil);
                 Nil
@@ -102,13 +98,15 @@ my class Channel {
 
     method close() {
         $!closed = 1;
-        $!queue.add($interop.sixmodelToJavaObject(CHANNEL_CLOSE))
+        nqp::push($!queue, CHANNEL_CLOSE);
+        Nil
     }
     
     method fail($error is copy) {
         $!closed = 1;
         $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
-        $!queue.add($interop.sixmodelToJavaObject(CHANNEL_FAIL.new(:$error)))
+        nqp::push($!queue, CHANNEL_FAIL.new(:$error));
+        Nil
     }
     
     method closed() {

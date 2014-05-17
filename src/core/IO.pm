@@ -67,7 +67,7 @@ my role IO::FileTestable does IO {
     }
 
     method z() {
-        self.e && self.s == 0;
+        self.f && self.s == 0;
     }
 
     method modified() {
@@ -93,9 +93,10 @@ my class IO::Handle does IO::FileTestable {
     has $.path;
 
     proto method open(|) { * }
-    multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
+    multi method open($path? is copy, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
+        $r = $w = True if $rw;
         my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
 #?if parrot
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
@@ -179,9 +180,16 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method lines($limit = $Inf) {
-        my $count = 0;
-        gather while ++$count <= $limit && (my $line = self.get).defined {
-            take $line;
+        if $limit == $Inf {
+            gather while nqp::p6definite(my $line = self.get) {
+                take $line;
+            }
+        }
+        else {
+            my $count = 0;
+            gather while ++$count <= $limit && nqp::p6definite(my $line = self.get) {
+                take $line;
+            }
         }
     }
 
@@ -204,7 +212,12 @@ my class IO::Handle does IO::FileTestable {
     #   1 -- seek relative to current position
     #   2 -- seek from the end of the file
     method seek(IO::Handle:D: Int:D $offset, Int:D $whence) {
+#?if moar
+        nqp::seekfh($!PIO, $offset, $whence);
+#?endif
+#?if !moar
         $!PIO.seek(nqp::unbox_i($whence), nqp::unbox_i($offset));
+#?endif
         True;
     }
     method tell(IO::Handle:D:) returns Int {
@@ -357,6 +370,10 @@ my class IO::Handle does IO::FileTestable {
     }
 }
 
+#?if moar
+my class IO::Notification { ... }
+#?endif
+
 my class IO::Path is Cool does IO::FileTestable {
     method SPEC { IO::Spec.MODULE };
     has Str $.path;
@@ -435,6 +452,12 @@ my class IO::Path is Cool does IO::FileTestable {
     method open(IO::Path:D: *%opts) {
         open($!path, |%opts);
     }
+
+#?if moar
+    method watch(IO::Path:D:) {
+        IO::Notification.watch_path($!path);
+    }
+#?endif
 
     method is-absolute {
         $.SPEC.is-absolute($!path);
@@ -522,8 +545,8 @@ my class IO::Path is Cool does IO::FileTestable {
         my int $elems = nqp::elems($RSA);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-			nqp::atpos_s($RSA, $i),
-			pir::find_encoding__Is('utf8')));
+              nqp::atpos_s($RSA, $i),
+              pir::find_encoding__Is('utf8')));
             if $file ~~ $test {
                 take self.child($file);
             }
@@ -540,7 +563,7 @@ my class IO::Path is Cool does IO::FileTestable {
 #?if !parrot
             loop {
                 my Str $elem := nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) || !$elem {
+                if nqp::isnull_s($elem) || !$elem.chars {
                     nqp::closedir($dirh);
                     last;
                 } else {
@@ -605,8 +628,8 @@ sub rmdir($path as Str) {
 }
 
 proto sub open(|) { * }
-multi sub open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
-    IO::Handle.new.open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp, :$encoding);
+multi sub open($path, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
+    IO::Handle.new.open($path, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp, :$encoding);
 }
 
 proto sub lines(|) { * }
@@ -718,7 +741,7 @@ multi sub cwd() {
 proto sub chdir(|) { * }
 multi sub chdir(IO::Path:D $path) { chdir $path.Str }
 multi sub chdir($path as Str) {
-    my $newpath = IO::Path.new($path);
+    my $newpath = IO::Path.new(IO::Spec.canonpath($path));
     if $newpath.is-relative {
         my $tmp = $*CWD;
         for IO::Spec.splitdir($newpath) -> $segment {

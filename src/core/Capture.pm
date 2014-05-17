@@ -11,6 +11,22 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
         1;
     }
+    submethod WHICH {
+        my $WHICH = self.^name;
+        if self.defined {
+            if $!list {
+                $WHICH ~= '|';
+                $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
+                  for $!list;
+            }
+            if $!hash {
+                $WHICH ~= '|';
+                $WHICH ~= ( $_ ~ '(' ~ $!hash{$_}.WHICH ~ ')' )
+                  for $!hash.keys.sort;
+            }
+        }
+        $WHICH;
+    }
 
     method at_key(Capture:D: $key is copy) {
         $key = $key.Str;
@@ -47,23 +63,7 @@ my class Capture { # declared in BOOTSTRAP
     method elems(Capture:D:) {
         nqp::p6box_i(nqp::elems($!list))
     }
-    
-    multi method gist(Capture:D:) {
-        my Mu $gist := nqp::list();
-        if $!list {
-            my Mu $iter := nqp::iterator($!list);
-            nqp::push($gist, nqp::unbox_s(nqp::shift($iter).gist)) while $iter;
-        }
-        if $!hash {
-            my Mu $iter := nqp::iterator($!hash);
-            while $iter {
-                my $kv := nqp::shift($iter);
-                nqp::push($gist, nqp::unbox_s((nqp::p6box_s($kv) => $kv.value).gist));
-            }
-        }
-        nqp::p6box_s(nqp::join(' ', $gist))
-    }
-    
+
     multi method Str(Capture:D:) {
         my Mu $str := nqp::list_s();
         if $!list {
@@ -79,7 +79,25 @@ my class Capture { # declared in BOOTSTRAP
         }
         nqp::p6box_s(nqp::join(' ', $str))
     }
-    
+    multi method gist(Capture:D:) {
+        my @list := self.list;
+        my %hash := self.hash;
+        ':('
+          ~ (@list.map( {.gist} ).join: ', ' if +@list)
+          ~ (', ' if +@list and +%hash)
+          ~ (%hash.keys.sort.map( { $_.gist ~ ' => ' ~ %hash{$_}.gist } ).join: ', ' if +%hash)
+          ~ ')';
+    }
+    multi method perl(Capture:D:) {
+        my @list := self.list;
+        my %hash := self.hash;
+        self.^name
+          ~ '.new('
+          ~ ( 'list => (' ~ @list.map( {.perl} ).join(', ') ~ ',)' if +@list)
+          ~ (', ' if +@list and +%hash)
+          ~ ( 'hash => {' ~ %hash.keys.pick(*).map( { $_.perl ~ ' => ' ~ %hash{$_}.perl } ).join(', ') ~ '}' if +%hash)
+          ~ ')';
+    }
     multi method Bool(Capture:D:) {
         $!list || $!hash ?? True !! False
     }
@@ -106,11 +124,6 @@ my class Capture { # declared in BOOTSTRAP
     }
     method kv(Capture:D:) {
         (self.list.kv, self.hash.kv).flat
-    }
-
-    multi method perl(Capture:D:) {
-        join '', self.^name, '.new( list => ', self.list.perl,
-                                 ', hash => ', self.hash.perl, ')';
     }
 }
 

@@ -6,6 +6,7 @@ import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
 import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
 
+@SuppressWarnings("unused")
 public final class Binder {
     /* Possible results of binding. */
     public static final int BIND_RESULT_OK       = 0;

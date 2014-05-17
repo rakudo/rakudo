@@ -150,7 +150,7 @@ multi sub warn(*@msg) is hidden_from_backtrace {
 proto sub eval($, *%) {*}  # is DEPRECATED doesn't work in settings
 multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
     DEPRECATED("'EVAL'");
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::CALLER::), PseudoStash, '$!ctx');
+    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'eval_' ~ (state $no)++;
     my $compiler := nqp::getcomp($lang);
     X::Eval::NoSuchLang.new(:$lang).throw
@@ -161,7 +161,7 @@ multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
 }
 proto sub EVAL($, *%) {*}
 multi sub EVAL(Str $code, :$lang = 'perl6', PseudoStash :$context) {
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::CALLER::), PseudoStash, '$!ctx');
+    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'eval_' ~ (state $no)++;
     my $compiler := nqp::getcomp($lang);
     X::Eval::NoSuchLang.new(:$lang).throw

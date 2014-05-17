@@ -2,7 +2,7 @@ my class Set does Setty {
     has Int $!total;
     has $!WHICH;
 
-    method total { $!total //= %!elems.elems }
+    method total (--> Int) { $!total //= %!elems.elems }
     submethod WHICH {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
         $!WHICH

@@ -10,37 +10,53 @@ my class Hash { # declared in BOOTSTRAP
         %h;
     }
 
-    multi method at_key(Hash:D: $key as Str is copy) is rw {
-        my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
-            nqp::getattr(self, EnumMap, '$!storage') !!
-            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
-        $key = $key.Str;
-        if nqp::existskey($storage, nqp::unbox_s($key)) {
-            nqp::atkey($storage, nqp::unbox_s($key));
+    multi method at_key(Hash:D: \key) is rw {
+        my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+        $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+            unless nqp::defined($storage);
+        my str $key = nqp::istype(key, Str) ?? key !! key.Str;
+        if nqp::existskey($storage, $key) {
+            nqp::atkey($storage, $key);
         }
         else {
             nqp::p6bindattrinvres(
                 (my \v := nqp::p6scalarfromdesc($!descriptor)),
                 Scalar,
                 '$!whence',
-                -> { nqp::bindkey($storage, nqp::unbox_s($key), v) }
+                -> { nqp::bindkey($storage, $key, v) }
             );
         }
     }
 
-    method bind_key($key, Mu \bindval) is rw {
-        nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
-            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
-        nqp::bindkey(
-            nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s($key.Str),
-            bindval)
+    multi method assign_key(Hash:D: \key, Mu \assignval) {
+        my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+        $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+            unless nqp::defined($storage);
+        my str $key = nqp::istype(key, Str) ?? key !! key.Str;
+        nqp::existskey($storage, $key)
+            ?? (nqp::atkey($storage, $key) = assignval)
+            !! nqp::bindkey($storage, $key,
+                nqp::p6scalarfromdesc($!descriptor) = assignval)
+    }
+
+    method bind_key(Hash:D: \key, Mu \bindval) is rw {
+        my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+        $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+            unless nqp::defined($storage);
+        my str $key = nqp::istype(key, Str) ?? key !! key.Str;
+        nqp::bindkey($storage, $key, bindval)
     }
 
     multi method perl(Hash:D \SELF:) {
         nqp::iscont(SELF)
-          ?? '{' ~ self.pairs.map({.perl}).join(', ') ~ '}'
-          !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
+          ?? '{' ~ self.pairs.pick(*).map({.perl}).join(', ') ~ '}'
+          !! '(' ~ self.pairs.pick(*).map({.perl}).join(', ') ~ ').hash'
+    }
+
+    multi method gist(Hash:D \SELF:) {
+        nqp::iscont(SELF)
+          ?? '{' ~ self.pairs.sort.map({.perl}).join(', ') ~ '}'
+          !! '(' ~ self.pairs.sort.map({.perl}).join(', ') ~ ').hash'
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {
@@ -241,6 +257,19 @@ my class Hash { # declared in BOOTSTRAP
               nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
             nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
         }
+        multi method assign_key(::?CLASS:D: \key, TValue \assignval) {
+            my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+            $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+                unless nqp::defined($storage);
+            my str $key = nqp::istype(key, Str) ?? key !! key.Str;
+            if nqp::existskey($storage, $key) {
+                nqp::atkey($storage, $key) = assignval;
+            }
+            else {
+                nqp::bindkey($storage, $key,
+                    nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
+            }
+        }
         method bind_key($key, TValue \bindval) is rw {
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                 nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
@@ -253,7 +282,7 @@ my class Hash { # declared in BOOTSTRAP
             'Hash['
               ~ TValue.perl
               ~ '].new('
-              ~ self.pairs.map({.perl}).join(', ')
+              ~ self.pairs.pick(*).map({.perl}).join(', ')
               ~ ')';
         }
     }
@@ -302,6 +331,22 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key_which),
                 $v = $x);
+        }
+        method assign_key(::?CLASS:D: TKey \key, TValue \assignval) {
+            my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+            $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+                unless nqp::defined($storage);
+            my str $key_which = nqp::unbox_s(key.WHICH);
+            if nqp::existskey($storage, $key_which) {
+                nqp::atkey($storage, $key_which) = assignval;
+            }
+            else {
+                nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+                    nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
+                nqp::bindkey(nqp::getattr(self, $?CLASS, '$!keys'), $key_which, key);
+                nqp::bindkey($storage, $key_which,
+                    nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
+            }
         }
         method bind_key(TKey \key, TValue \bindval) is rw {
             my $key_which = key.WHICH;
@@ -353,7 +398,7 @@ my class Hash { # declared in BOOTSTRAP
               ~ ','
               ~ TKey.perl
               ~ '].new('
-              ~ self.pairs.map({.perl}).join(', ')
+              ~ self.pairs.pick(*).map({.perl}).join(', ')
               ~ ')';
         }
         multi method delete_key($key) {

@@ -62,6 +62,7 @@ S02-names/bare-sigil.t
 S02-names/caller.t
 S02-names/identifier.t
 S02-names/indirect.t
+S02-names/is_cached.t
 S02-names/is_default.t
 S02-names/is_dynamic.t
 S02-names/name.t
@@ -146,6 +147,7 @@ S03-metaops/zip.t
 S03-operators/adverbial-modifiers.t
 S03-operators/also.t
 S03-operators/andthen.t
+S03-operators/orelse.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
@@ -577,13 +579,57 @@ S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
-S17-concurrency/channel.t    # jvm
-S17-concurrency/lock.t       # jvm 
-S17-concurrency/promise.t    # jvm
-S17-concurrency/scheduler.t  # jvm
-S17-concurrency/supply.t     # jvm
-S17-concurrency/thread.t     # jvm
-S17-concurrency/winner.t     # jvm
+S17-channel/basic.t      # conc
+S17-channel/winner.t     # conc
+S17-lowlevel/lock.t      # conc
+S17-lowlevel/thread.t    # conc
+S17-promise/allof.t      # conc
+S17-promise/anyof.t      # conc
+S17-promise/basic.t      # conc
+S17-promise/in.t         # conc
+S17-promise/start.t      # conc
+S17-promise/then.t       # conc
+S17-scheduler/at.t       # conc
+S17-scheduler/basic.t    # conc
+S17-scheduler/every.t    # conc
+S17-scheduler/in.t       # conc
+S17-scheduler/times.t    # conc
+S17-supply/act.t         # conc
+S17-supply/basic.t       # conc
+S17-supply/batch.t       # conc
+S17-supply/categorize.t  # conc
+S17-supply/Channel.t     # conc
+S17-supply/classify.t    # conc
+S17-supply/delay.t       # conc
+S17-supply/do.t          # conc
+S17-supply/elems.t       # conc
+S17-supply/flat.t        # conc
+S17-supply/for.t         # conc
+S17-supply/grab.t        # conc
+S17-supply/grep.t        # conc
+S17-supply/interval.t    # conc
+S17-supply/last.t        # conc
+S17-supply/list.t        # conc
+S17-supply/map.t         # conc
+S17-supply/max.t         # conc
+S17-supply/merge.t       # conc
+S17-supply/migrate.t     # conc
+S17-supply/min.t         # conc
+S17-supply/minmax.t      # conc
+S17-supply/on.t          # conc
+S17-supply/Promise.t     # conc
+S17-supply/reduce.t      # conc
+S17-supply/reverse.t     # conc
+S17-supply/rotor.t       # conc
+S17-supply/schedule_on.t # conc
+S17-supply/sort.t        # conc
+S17-supply/squish.t      # conc
+S17-supply/stable.t      # conc
+S17-supply/start.t       # conc
+S17-supply/uniq.t        # conc
+S17-supply/wait.t        # conc
+S17-supply/watch_path.t  # conc
+S17-supply/zip.t         # conc
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 S24-testing/0-compile.t
@@ -665,8 +711,11 @@ S32-list/create.t
 S32-list/combinations.t
 S32-list/end.t
 S32-list/first.t
+S32-list/first-index.t
 S32-list/grep.t
+S32-list/grep-index.t
 S32-list/join.t
+S32-list/last-index.t
 S32-list/map_function_return_values.t
 S32-list/map.t
 S32-list/minmax.t
@@ -781,12 +830,45 @@ integration/advent2009-day17.t # stress
 integration/advent2009-day18.t
 integration/advent2009-day19.t
 integration/advent2009-day20.t
+integration/advent2009-day21.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
+integration/advent2010-day03.t
 integration/advent2010-day04.t
+integration/advent2010-day06.t
+integration/advent2010-day07.t
+integration/advent2010-day08.t
+integration/advent2010-day10.t
+integration/advent2012-day02.t
+integration/advent2012-day03.t
+integration/advent2012-day04.t #stress
+integration/advent2012-day06.t
+integration/advent2012-day09.t
+integration/advent2012-day10.t
+integration/advent2012-day12.t
+integration/advent2012-day13.t
+integration/advent2012-day14.t
+integration/advent2012-day15.t
+integration/advent2012-day16.t
+integration/advent2012-day19.t
+integration/advent2012-day20.t
+integration/advent2012-day21.t #stress
+integration/advent2012-day22.t
+integration/advent2012-day23.t
+integration/advent2012-day24.t
 integration/advent2013-day02.t
 integration/advent2013-day04.t
 integration/advent2013-day06.t
+integration/advent2013-day07.t
+integration/advent2013-day08.t
+integration/advent2013-day09.t
+integration/advent2013-day10.t
+integration/advent2013-day12.t
+integration/advent2013-day14.t
+integration/advent2013-day15.t
+integration/advent2013-day18.t
+integration/advent2013-day19.t # conc
+integration/advent2013-day20.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t  # icu
 integration/lazy-bentley-generator.t

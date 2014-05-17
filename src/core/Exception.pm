@@ -48,6 +48,7 @@ my class Exception {
         }
     }
 
+    method die(Exception:D:) { self.throw }
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
@@ -66,6 +67,7 @@ my class X::AdHoc is Exception {
 }
 
 my class X::Method::NotFound is Exception {
+    has $.invocant;
     has $.method;
     has $.typename;
     has Bool $.private = False;
@@ -1184,7 +1186,15 @@ my class X::TypeCheck is Exception {
 }
 
 my class X::TypeCheck::Binding is X::TypeCheck {
+    has $.symbol;
     method operation { 'binding' }
+    method message() {
+        if $.symbol {
+            "Type check failed in $.operation $.symbol; expected '{$.expected.^name}' but got '{$.got.^name}'";
+        } else {
+            "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
+        }
+    }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
@@ -1210,7 +1220,7 @@ my class X::TypeCheck::Argument is X::TypeCheck {
             ($.protoguilt ?? "Calling proto of '" !! "Calling '") ~
             $.objname ~ "' " ~
             (+@.arguments == 0
-              ?? "requires arguments\n"
+              ?? "requires arguments (if you meant to operate on \$_, please use .$.objname or use an explicit invocant or argument)\n"
               !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n") 
             ~ $.signature 
     }
@@ -1422,13 +1432,13 @@ my class X::Caller::NotDynamic is Exception {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
-            X::TypeCheck::Binding.new(:$got, :$expected).throw;
+    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden_from_backtrace {
+            X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub ($symbol, $got, $expected) is hidden_from_backtrace {
+    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
-    %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) is hidden_from_backtrace {
+    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
     %c_ex<X::Assignment::RO> := sub () is hidden_from_backtrace {

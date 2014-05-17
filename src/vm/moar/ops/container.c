@@ -82,7 +82,8 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
         MVMint64 mode = STABLE(rcd->of)->mode_flags & MVM_TYPE_CHECK_CACHE_FLAG_MASK;
         if (rcd->of != get_mu() && !MVM_6model_istype_cache_only(tc, obj, rcd->of)) {
             /* Failed. If the cache is definitive, we certainly have an error. */
-            if ((mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD) == 0 &&
+            if (STABLE(obj)->type_check_cache &&
+                (mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD) == 0 &&
                 (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) == 0) {
                  Rakudo_assign_typecheck_failed(tc, cont, obj);
                  return;
@@ -113,33 +114,33 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
                     return;
                 }
             }
-        }
 
-        /* If the flag to call .accepts_type on the target value is set, do so. */
-        if (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) {
-            MVMObject *HOW = STABLE(rcd->of)->HOW;
-            MVMObject *meth = MVM_6model_find_method_cache_only(tc, HOW,
-                tc->instance->str_consts.accepts_type);
-            if (meth) {
-                /* Set up the call, using the result register as the target. */
-                MVMObject *code = MVM_frame_find_invokee(tc, meth, NULL);
-                type_check_data *tcd = malloc(sizeof(type_check_data));
-                tcd->cont    = cont;
-                tcd->obj     = obj;
-                tcd->res.i64 = 0;
-                MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
-                tc->cur_frame->special_return           = type_check_ret;
-                tc->cur_frame->special_return_data      = tcd;
-                tc->cur_frame->mark_special_return_data = mark_sr_data;
-                tc->cur_frame->args[0].o = HOW;
-                tc->cur_frame->args[1].o = rcd->of;
-                tc->cur_frame->args[2].o = obj;
-                STABLE(code)->invoke(tc, code, &tc_callsite, tc->cur_frame->args);
-                return;
-            }
-            else {
-                MVM_exception_throw_adhoc(tc,
-                    "Expected 'accepts_type' method, but none found in meta-object");
+            /* If the flag to call .accepts_type on the target value is set, do so. */
+            if (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) {
+                MVMObject *HOW = STABLE(rcd->of)->HOW;
+                MVMObject *meth = MVM_6model_find_method_cache_only(tc, HOW,
+                    tc->instance->str_consts.accepts_type);
+                if (meth) {
+                    /* Set up the call, using the result register as the target. */
+                    MVMObject *code = MVM_frame_find_invokee(tc, meth, NULL);
+                    type_check_data *tcd = malloc(sizeof(type_check_data));
+                    tcd->cont    = cont;
+                    tcd->obj     = obj;
+                    tcd->res.i64 = 0;
+                    MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
+                    tc->cur_frame->special_return           = type_check_ret;
+                    tc->cur_frame->special_return_data      = tcd;
+                    tc->cur_frame->mark_special_return_data = mark_sr_data;
+                    tc->cur_frame->args[0].o = HOW;
+                    tc->cur_frame->args[1].o = rcd->of;
+                    tc->cur_frame->args[2].o = obj;
+                    STABLE(code)->invoke(tc, code, &tc_callsite, tc->cur_frame->args);
+                    return;
+                }
+                else {
+                    MVM_exception_throw_adhoc(tc,
+                        "Expected 'accepts_type' method, but none found in meta-object");
+                }
             }
         }
     }

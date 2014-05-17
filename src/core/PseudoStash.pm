@@ -31,7 +31,7 @@ my class PseudoStash is EnumMap {
         'CORE' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
-                $ctx := nqp::ctxouter($ctx);
+                $ctx := nqp::ctxouterskipthunks($ctx);
             }
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
@@ -42,7 +42,7 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'CALLER' => sub ($cur) {
-            my Mu $ctx := nqp::ctxcaller(
+            my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
@@ -53,7 +53,7 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'OUTER' => sub ($cur) {
-            my Mu $ctx := nqp::ctxouter(
+            my Mu $ctx := nqp::ctxouterskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
@@ -73,7 +73,7 @@ my class PseudoStash is EnumMap {
         'UNIT' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
-                $ctx := nqp::ctxouter($ctx);
+                $ctx := nqp::ctxouterskipthunks($ctx);
             }
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage',nqp::ctxlexpad($ctx));
@@ -88,7 +88,7 @@ my class PseudoStash is EnumMap {
             # internals reasons).
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
-                $ctx := nqp::ctxouter($ctx);
+                $ctx := nqp::ctxouterskipthunks($ctx);
             }
             $ctx := nqp::ctxouter(nqp::ctxouter($ctx));
             my $stash := nqp::create(PseudoStash);

@@ -237,6 +237,10 @@ P_CORE_SOURCES = \
   src/core/precedence.pm \
   src/core/terms.pm \
   src/core/Deprecations.pm \
+  src/core/Systemic.pm \
+  src/core/Distro.pm \
+  src/core/VM.pm \
+  src/core/Kernel.pm \
   src/core/OS.pm \
   src/core/JSON/Pretty.pm \
   src/core/CompUnitRepo.pm \
@@ -264,7 +268,7 @@ P_CLEANUPS = \
   lib/lib.pir \
   lib/Pod/To/Text.pir \
   p-rakudo_test_run.tar.gz \
-  $(DYNEXT_DIR)/*$(LOAD_EXT) \
+  $(DYNEXT_DYNOPS) \
   src/gen/p-CORE.setting \
   src/gen/*.pir \
   src/gen/*.pbc \
@@ -362,7 +366,12 @@ $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/p
 	    $(P_BUILD_DIR)/ModuleLoader.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
-$(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.nqp
+$(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/vm/parrot/Perl6/Ops.nqp
+	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_OPS) --encoding=utf8 \
+	    src/vm/parrot/Perl6/Ops.nqp
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_OPS_PBC) $(PERL6_OPS)
+
+$(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) $(PERL6_OPS_PBC) src/Perl6/World.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
 	    src/Perl6/World.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_W_PBC) $(PERL6_W)
@@ -371,11 +380,6 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.nqp $
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
-
-$(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/vm/parrot/Perl6/Ops.nqp
-	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_OPS) --encoding=utf8 \
-	    src/vm/parrot/Perl6/Ops.nqp
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_OPS_PBC) $(PERL6_OPS)
 
 $(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_PBC) $(PERL6_OPS_PBC)
 	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \

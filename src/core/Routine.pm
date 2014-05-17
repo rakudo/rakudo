@@ -57,12 +57,12 @@ my class Routine { # declared in BOOTSTRAP
     }
     
     multi method perl(Routine:D:) {
-        my $perl = self.^name.lc();
+        my $perl = ( self.^name ~~ m/^\w+/ ).lc;
         if self.name() -> $n {
             $perl ~= " $n";
         }
-        $perl ~= self.signature().perl.substr(1);
-        $perl ~= ' { ... }';
+        $perl ~= ' ' ~ self.signature().perl.substr(1); # lose colon prefix
+        $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
         $perl
     }
     
@@ -127,6 +127,18 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     method package() { $!package }
+}
+
+multi sub trait_mod:<is>(Routine $r, :$cached!) {
+    my %cache;
+    nqp::bindattr_i($r, Routine, '$!onlystar', 0 )
+      if $r.onlystar; # disable optimization
+    $r.wrap(-> |c {
+        my $key := c.gist;
+        %cache{$key}:exists
+          ?? %cache{$key}
+          !! (%cache{$key} = callsame);
+    });
 }
 
 # vim: ft=perl6 expandtab sw=4

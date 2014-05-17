@@ -253,8 +253,8 @@ static PMC* sub_find_pad(PARROT_INTERP, ARGIN(STRING *lex_name), ARGIN(PMC *ctx)
 }
 
 static PMC *defaultContainerDescriptor = NULL;
-
 static INTVAL initialized_ops = 0;
+PARROT_DYNEXT_EXPORT PMC* Parrot_lib_perl6_ops_init(PARROT_INTERP);
 
 PARROT_DYNEXT_EXPORT PMC*
 Parrot_lib_perl6_ops_init(PARROT_INTERP) {

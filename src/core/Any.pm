@@ -57,6 +57,7 @@ my class Any { # declared in BOOTSTRAP
     method end()   { self.list.end }
     method uniq(|c) { self.list.uniq(|c) }
     method squish(|c) { self.list.squish(|c) }
+    method rotor(|c) { self.list.rotor(|c) }
     method pick($n = 1) { self.list.pick($n) }
     method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }
@@ -89,7 +90,9 @@ my class Any { # declared in BOOTSTRAP
     method lol()  {
         MapIter.new(self.list, { .item }, Mu).list
     }
-    method map($block) is rw {
+    proto method map (|) { * }
+    multi method map(Whatever) is rw { self }
+    multi method map($block) is rw {
         MapIter.new(self, $block, Bool::True).list
     }
     method flatmap($block) is rw { flatmap($block, self) }
@@ -115,22 +118,36 @@ my class Any { # declared in BOOTSTRAP
     # auto-vivifying
     proto method push(|) { * }
     multi method push(Any:U \SELF: *@values) {
-        &infix:<=>(SELF, Array.new);
+        SELF = Array.new;
         SELF.push(@values);
     }
 
     proto method unshift(|) { * }
     multi method unshift(Any:U \SELF: *@values) {
-        &infix:<=>(SELF, Array.new);
+        SELF = Array.new;
         SELF.unshift(@values);
     }
 
     method grep(Mu $test) is rw {
         self.map({ $_ if $_ ~~ $test });
     }
+    method grep-index(Mu $test) {
+        my $index = -1;
+        self.map: { $index++; +$index if $_ ~~ $test };
+    }
     method first(Mu $test) is rw {
-        my @results := self.grep($test);
-        @results ?? @results[0] !! Nil;
+        self.map({ return $_ if $_ ~~ $test });
+        Nil;
+    }
+    method first-index(Mu $test) {
+        my $index = -1;
+        self.map: { $index++; return $index if $_ ~~ $test };
+        Nil;
+    }
+    method last-index(Mu $test) {
+        my $index = self.elems;
+        self.reverse.map: { $index--; return $index if $_ ~~ $test };
+        Nil;
     }
 
     method join($separator = '') {
@@ -217,9 +234,13 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method at_pos(Any:U \SELF: $pos) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || &infix:<=>(SELF, Array.new);
+            -> { SELF.defined || (SELF = Array.new);
                  SELF.bind_pos($pos, $v) });
         $v
+    }
+    proto method assign_pos(|) { * }
+    multi method assign_pos(\SELF: \pos, Mu \assignee) {
+        SELF.at_pos(pos) = assignee;
     }
     
     method all() { all(self.list) }
@@ -234,7 +255,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method at_key(Any:U \SELF: $key) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || &infix:<=>(SELF, Hash.new);
+            -> { SELF.defined || (SELF = Hash.new);
                  SELF.bind_key($key, $v) });
         $v
     }
@@ -243,9 +264,13 @@ my class Any { # declared in BOOTSTRAP
         fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
     }
     multi method bind_key(Any:U \SELF: $key, $BIND ) is rw {
-        &infix:<=>(SELF, Hash.new);
+        SELF = Hash.new;
         SELF.bind_key($key, $BIND);
         $BIND
+    }
+    proto method assign_key(|) { * }
+    multi method assign_key(\SELF: \key, Mu \assignee) {
+        SELF.at_key(key) = assignee;
     }
 
     method FLATTENABLE_LIST() { 
@@ -263,18 +288,20 @@ my class Any { # declared in BOOTSTRAP
 
     method KeySet() { DEPRECATED("'SetHash'"); self.SetHash }
     method KeyBag() { DEPRECATED("'BagHash'"); self.BagHash }
+
+    method Supply() { self.list.Supply }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
 proto infix:<===>($?, $?) is pure { * }
-multi infix:<===>($a?)    { Bool::True }
+multi infix:<===>($?)    { Bool::True }
 multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
 proto infix:<before>($, $?)  is pure { * }
-multi infix:<before>($x?)      { Bool::True }
+multi infix:<before>($?)      { Bool::True }
 multi infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
 proto infix:<after>($, $?) is pure { * }
@@ -321,22 +348,41 @@ multi infix:<minmax>(*@args) { @args.minmax }
 sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto map(|) {*}
+# fails integration/99problems-21-to-30, test 12/13
+#multi map(&code, @values) { @values.map(&code) }
 multi map(&code, *@values) { @values.map(&code) }
+multi map(Whatever, \a)    { a }
 multi map(&code, Whatever) { (1..Inf).map(&code) }
 
 proto grep(|) {*}
+multi grep(Mu $test, @values) { @values.grep($test) }
 multi grep(Mu $test, *@values) { @values.grep($test) }
 
+proto grep-index(|) {*}
+multi grep-index(Mu $test, @values) { @values.grep-index($test) }
+multi grep-index(Mu $test, *@values) { @values.grep-index($test) }
+
 proto first(|) {*}
+multi first(Mu $test, @values) { @values.first($test) }
 multi first(Mu $test, *@values) { @values.first($test) }
+
+proto first-index(|) {*}
+multi first-index(Mu $test, @values) { @values.first-index($test) }
+multi first-index(Mu $test, *@values) { @values.first-index($test) }
+
+proto last-index(|) {*}
+multi last-index(Mu $test, @values) { @values.last-index($test) }
+multi last-index(Mu $test, *@values) { @values.last-index($test) }
 
 proto join(|) { * }
 multi join($sep = '', *@values) { @values.join($sep) }
 
 proto pick(|) { * }
+multi pick($n, @values) { @values.pick($n) }
 multi pick($n, *@values) { @values.pick($n) }
 
 proto roll(|) { * }
+multi roll($n, @values) { @values.roll($n) }
 multi roll($n, *@values) { @values.roll($n) }
 
 proto keys(|) { * }
@@ -377,9 +423,9 @@ multi squish(*@values, |c) { @values.squish(|c) }
 
 proto sub sort(|) {*}
 multi sub sort(*@values)      {
-    @values.at_pos(0).^does(Callable)
-        ?? do { my $cmp := @values.shift; @values.sort($cmp) }
-        !!  @values.sort;
+    nqp::istype(@values.at_pos(0), Callable)
+        ?? (my $cmp := @values.shift; @values.sort($cmp) )
+        !! @values.sort;
 }
 
 proto sub item(|) is pure { * }
@@ -638,9 +684,8 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     if !%a {                     # :delete:exists(0|1):kv(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
-                            !$kv | $wasthere
-                              ?? ($_, !( $wasthere ?^ $exists ))
-                              !! ()
+                            ($_, !( $wasthere ?^ $exists )) 
+                              if !$kv | $wasthere;
                         } ).eager.Parcel
                     }
                     else {
@@ -652,9 +697,8 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     if !%a {                     # :delete:exists(0|1):p(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
-                            !$p | $wasthere
-                              ?? RWPAIR($_,!($wasthere ?^ $exists))
-                              !! ()
+                            RWPAIR($_,!($wasthere ?^ $exists))
+                              if !$p | $wasthere;
                         } ).eager.Parcel
                     }
                     else {
@@ -670,7 +714,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:kv(0|1)
                     $kv
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? ( $_, $de(SELF,$_) ) !! ()
+                             ( $_, $de(SELF,$_) ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              ( $_, $de(SELF,$_) )
@@ -685,7 +729,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:p(0|1)
                     $p
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? RWPAIR($_, $de(SELF,$_)) !! ()
+                             RWPAIR($_, $de(SELF,$_)) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              RWPAIR($_, $de(SELF,$_))
@@ -700,7 +744,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:k(0|1)
                     $k
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? ( $de(SELF,$_); $_ ) !! ()
+                             ( $de(SELF,$_); $_ ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              $de(SELF,$_); $_
@@ -715,7 +759,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:v(0|1)
                     $v
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? $de(SELF,$_) !! ()
+                             $de(SELF,$_) if $ex(SELF,$_);
                      } ).eager.Parcel
                       !! $more.list.map( {
                              $de(SELF,$_)
@@ -739,7 +783,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :!delete?:exists(0|1):kv(0|1)
                     $kv
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? ( $_, $exists ) !! ()
+                             ( $_, $exists ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              ( $_, !( $ex(SELF,$_) ?^ $exists ) )
@@ -754,7 +798,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :!delete?:exists(0|1):p(0|1)
                     $p
                       ?? $more.list.map( {
-                             $ex(SELF,$_) ?? RWPAIR( $_, $exists ) !! ()
+                             RWPAIR( $_, $exists ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              RWPAIR( $_, !( $ex(SELF,$_) ?^ $exists ) )
@@ -773,7 +817,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:kv(0|1)
                 $kv
                   ?? $more.list.map( {
-                         $ex(SELF,$_) ?? ($_, $at(SELF,$_)) !! ()
+                         ($_, $at(SELF,$_)) if $ex(SELF,$_);
                      } ).eager.Parcel
                   !! $more.list.map( {
                          ($_, $at(SELF,$_))
@@ -788,7 +832,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:p(0|1)
                 $p
                   ?? $more.list.map( {
-                         $ex(SELF,$_) ?? RWPAIR($_, $at(SELF,$_)) !! ()
+                         RWPAIR($_, $at(SELF,$_)) if $ex(SELF,$_);
                      } ).eager.Parcel
                   !! $more.list.map( {
                          RWPAIR( $_, $at(SELF,$_) )
@@ -802,7 +846,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             my $k := %a.delete_key('k');
             if !%a {                         # :!delete?:k(0|1)
                 $k
-                  ?? $more.list.map( { $ex(SELF,$_) ?? $_ !! () } ).eager.Parcel
+                  ?? $more.list.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
                   !! $more.list.eager.Parcel;
             }
             else {
@@ -814,7 +858,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:v(0|1)
                 $v
                   ??  $more.list.map( {
-                          $ex(SELF,$_) ?? $at(SELF,$_) !! ()
+                          $at(SELF,$_) if $ex(SELF,$_);
                       } ).eager.Parcel
                   !!  $more.list.map( {
                           $at(SELF,$_)

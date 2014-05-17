@@ -237,9 +237,14 @@ my class Binder {
                 unless $nom_type =:= Mu || nqp::istype($oval, $nom_type) {
                     # Type check failed; produce error if needed.
                     if nqp::defined($error) {
-                        $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
-                            "'; expected " ~ $nom_type.HOW.name($nom_type) ~
-                            " but got " ~ $oval.HOW.name($oval);
+                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding') {
+                            $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
+                                "'; expected " ~ $nom_type.HOW.name($nom_type) ~
+                                " but got " ~ $oval.HOW.name($oval);
+                        } else {
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval.WHAT, $nom_type.WHAT, $varname) };
+                        }
                     }
 
                     # Report junction failure mode if it's a junction.
@@ -2370,6 +2375,7 @@ BEGIN {
             $dcself
         }));
     Routine.HOW.compose_repr(Routine);
+    Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);
 
     # class Sub is Routine {
@@ -2909,7 +2915,12 @@ nqp::sethllconfig('perl6', nqp::hash(
                         |%named_args);
             }
             else {
-                nqp::die(@error[0]);
+                if nqp::isinvokable(@error[0]) {
+                    @error[0]();
+                }
+                else {
+                    nqp::die(@error[0]);
+                }
             }
         }
         else {

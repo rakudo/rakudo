@@ -47,8 +47,8 @@ my class Mu { # declared in BOOTSTRAP
     }
     
     proto method new(|) { * }
-    multi method new(*%attrinit) {
-        self.bless(|%attrinit);
+    multi method new(*%) {
+        nqp::invokewithcapture(nqp::findmethod(self, 'bless'), nqp::usecapture())
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
@@ -59,7 +59,7 @@ my class Mu { # declared in BOOTSTRAP
     }
     
     method bless(*@autovivs, *%attrinit) {
-        if @autovivs && nqp::istype(@autovivs[0], Whatever) {
+        if @autovivs && nqp::istype(@autovivs.at_pos(0), Whatever) {
             DEPRECATED( "a call to bless without initial * parameter" );
             @autovivs.shift;
         }
@@ -569,9 +569,10 @@ my class Mu { # declared in BOOTSTRAP
         $meth ??
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
-                    method   => '!' ~ $name,
-                    typename => $type.HOW.name($type),
-                    :private,
+              invocant => SELF,
+              method   => '!' ~ $name,
+              typename => $type.HOW.name($type),
+              :private,
             ).throw;
     }
     
@@ -594,8 +595,9 @@ my class Mu { # declared in BOOTSTRAP
         my @result := SELF.dispatch:<.*>($name, |c);
         if @result.elems == 0 {
             X::Method::NotFound.new(
-                    method   => $name,
-                    typename => SELF.HOW.name(SELF),
+              invocant => SELF,
+              method   => $name,
+              typename => SELF.HOW.name(SELF),
             ).throw;
         }
         @result
@@ -701,26 +703,26 @@ multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
 
-proto sub infix:<=:=>(Mu $a?, Mu $b?) { * }
-multi sub infix:<=:=>($a?)      { Bool::True }
+proto sub infix:<=:=>(Mu $?, Mu $?) { * }
+multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) { 
     nqp::p6bool(nqp::eqaddr(a, b));
 }
 
 proto sub infix:<eqv>(Any $?, Any $?) { * }
-multi sub infix:<eqv>($a?)            { Bool::True }
+multi sub infix:<eqv>($?)            { Bool::True }
 multi sub infix:<eqv>(Any $a, Any $b) {
     $a.WHICH eq $b.WHICH
 }
 
 multi sub infix:<eqv>(@a, @b) {
-    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
+    unless @a.WHAT === @b.WHAT && (my int $n = @a.elems) == @b.elems {
         return Bool::False
     }
-    for ^@a -> $i {
-        unless @a[$i] eqv @b[$i] {
-            return Bool::False;
-        }
+    my int $i = 0;
+    while $i < $n {
+        return Bool::False unless @a.at_pos($i) eqv @b.at_pos($i);
+        $i = $i + 1;
     }
     Bool::True
 }

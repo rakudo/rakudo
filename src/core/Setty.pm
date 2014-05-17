@@ -8,6 +8,8 @@ my role Setty does QuantHash {
     method kv { %!elems.values X, True }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { %!elems.elems }
+    method minpairs(--> List) { self.pairs }
+    method maxpairs(--> List) { self.pairs }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
         DEPRECATED("the :exists adverb");
         self.exists_key($k);

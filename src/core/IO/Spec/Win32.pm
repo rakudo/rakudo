@@ -1,7 +1,7 @@
 my class IO::Spec::Win32 is IO::Spec::Unix {
 
     # Some regexes we use for path splitting
-    my $slash	    = regex {  <[\/ \\]> }
+    my $slash       = regex {  <[\/ \\]> }
     my $notslash    = regex { <-[\/ \\]> }
     my $driveletter = regex { <[A..Z a..z]> ':' }
     my $UNCpath     = regex { [<$slash> ** 2] <$notslash>+  <$slash>  [<$notslash>+ | $] }
@@ -36,7 +36,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method path {
-       my @path = split(';', %*ENV<PATH>);
+       my @path = split(';', %*ENV<PATH> // %*ENV<Path> // '');
        @path».=subst(:global, q/"/, '');
        @path = grep *.chars, @path;
        unshift @path, ".";
@@ -44,13 +44,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
    }
 
     method is-absolute ($path) {
-        # As of right now, this returns 2 if the path is absolute with a
-        # volume, 1 if it's absolute with no volume, 0 otherwise.
-        given $path {
-            when /^ [<$driveletter> <$slash> | <$UNCpath>]/ { 2 }
-            when /^ <$slash> /                              { 1 }
-            default                     { 0 }
-        }   #/
+        so $path ~~ /^ [ <$driveletter> <$slash> | <$slash> | <$UNCpath> ]/
     }
 
     method split ($path as Str is copy) { 
@@ -125,7 +119,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method rel2abs ($path is copy, $base? is copy) {
 
-        my $is_abs = self.is-absolute($path);
+        my $is_abs = ($path ~~ /^ [<$driveletter> <$slash> | <$UNCpath>]/ && 2)
+                  || ($path ~~ /^ <$slash> / && 1)
+                  || 0;
 
         # Check for volume (should probably document the '2' thing...)
         return self.canonpath( $path ) if $is_abs == 2;
@@ -200,7 +196,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $volume ~~ s/<?after '\\\\' .*> '\\' $ //;
             $volume || '.';
         }
-	else {
+        else {
             $volume ~ $path;
         }
     }

@@ -10,7 +10,8 @@
 #include <sys/time.h>
 #endif
 
-#define GET_REG(tc, idx) (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
+#define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
+#define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
 /* Dummy zero and one-arg callsite. */
 static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0 };
@@ -40,6 +41,7 @@ static MVMObject *Num                 = NULL;
 static MVMObject *Str                 = NULL;
 static MVMObject *Scalar              = NULL;
 static MVMObject *Parcel              = NULL;
+static MVMObject *Iterable            = NULL;
 static MVMObject *List                = NULL;
 static MVMObject *ListIter            = NULL;
 static MVMObject *True                = NULL;
@@ -58,6 +60,7 @@ static MVMString *str_perl6      = NULL;
 static MVMString *str_p6ex       = NULL;
 static MVMString *str_xnodisp    = NULL;
 static MVMString *str_xatcf      = NULL;
+static MVMString *str_cfr        = NULL;
 
 /* Parcel, as laid out as a P6opaque. */
 typedef struct {
@@ -76,10 +79,10 @@ typedef struct {
 
 /* List, as laid out as a P6opaque. */
 typedef struct {
-    MVMP6opaque  p6o;
-    MVMObject   *items;
-    MVMObject   *flattens;
-    MVMObject   *nextiter;
+    MVMP6opaqueBody  p6o;
+    MVMObject       *items;
+    MVMObject       *flattens;
+    MVMObject       *nextiter;
 } Rakudo_List;
 
 /* Expose Nil and Mu for containers. */
@@ -89,13 +92,13 @@ MVMObject * get_mu() { return Mu; }
 /* Looks up an exception thrower. */
 static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
     MVMObject *ex_hash = MVM_hll_sym_get(tc, str_perl6, str_p6ex);
-    return ex_hash ? MVM_repr_at_key_o(tc, ex_hash, type) : NULL;
+    return MVM_is_null(tc, ex_hash) ? ex_hash : MVM_repr_at_key_o(tc, ex_hash, type);
 }
 
 /* Reports an assignment type check failure. */
 void Rakudo_assign_typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
     MVMObject *thrower = get_thrower(tc, str_xatcf);
-    if (thrower) {
+    if (!MVM_is_null(tc, thrower)) {
         Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
         Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
         thrower = MVM_frame_find_invokee(tc, thrower, NULL);
@@ -136,6 +139,7 @@ static void p6settypes(MVMThreadContext *tc) {
         get_type(tc, conf, "Str", Str);
         get_type(tc, conf, "Scalar", Scalar);
         get_type(tc, conf, "Parcel", Parcel);
+        get_type(tc, conf, "Iterable", Iterable);
         get_type(tc, conf, "List", List);
         get_type(tc, conf, "ListIter", ListIter);
         get_type(tc, conf, "True", True);
@@ -174,6 +178,8 @@ static void p6settypes(MVMThreadContext *tc) {
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xnodisp);
     str_xatcf = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::TypeCheck::Assignment");
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xatcf);
+    str_cfr = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::ControlFlow::Return");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_cfr);
 }
 
 /* Boxing to Perl 6 types. */
@@ -210,11 +216,11 @@ static void p6parcel(MVMThreadContext *tc) {
     MVMObject *fill   = GET_REG(tc, 4).o;
     MVM_ASSIGN_REF(tc, &(parcel->header), ((Rakudo_Parcel *)parcel)->storage, vmarr);
 
-    if (fill) {
+    if (!MVM_is_null(tc, fill)) {
         MVMint64 elems = MVM_repr_elems(tc, vmarr);
         MVMint64 i;
         for (i = 0; i < elems; i++)
-            if (!MVM_repr_at_pos_o(tc, vmarr, i))
+            if (MVM_is_null(tc, MVM_repr_at_pos_o(tc, vmarr, i)))
                 MVM_repr_bind_pos_o(tc, vmarr, i, fill);
     }
 
@@ -244,11 +250,11 @@ static void p6list(MVMThreadContext *tc) {
      if (MVM_6model_istype_cache_only(tc, list, List)) {
         MVMROOT(tc, list, {
             MVMObject *items = GET_REG(tc, 2).o;
-            if (items) {
+            if (!MVM_is_null(tc, items)) {
                 MVMObject *iter = make_listiter(tc, items, list);
-                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->nextiter, iter);
+                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->nextiter, iter);
             }
-            MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
+            MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->flattens, GET_REG(tc, 6).o);
         });
         GET_REG(tc, 0).o = list;
     }
@@ -277,11 +283,11 @@ static MVMuint8 s_p6listitems[] = {
 static void p6listitems(MVMThreadContext *tc) {
      MVMObject *list = GET_REG(tc, 2).o;
      if (MVM_6model_istype_cache_only(tc, list, List)) {
-        MVMObject *items = ((Rakudo_List *)list)->items;
-        if (!items || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
+        MVMObject *items = ((Rakudo_List *)REAL_BODY(tc, list))->items;
+        if (MVM_is_null(tc, items) || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
             MVMROOT(tc, list, {
                 items = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
-                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->items, items);
+                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->items, items);
             });
         }
         GET_REG(tc, 0).o = items;
@@ -308,7 +314,7 @@ static MVMuint8 s_p6scalarfromdesc[] = {
 static void p6scalarfromdesc(MVMThreadContext *tc) {
     MVMObject *new_scalar = MVM_repr_alloc_init(tc, Scalar);
     MVMObject *descriptor = GET_REG(tc, 2).o;
-    if (!descriptor) {
+    if (MVM_is_null(tc, descriptor)) {
         descriptor = default_cont_desc;
     }
     MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
@@ -325,7 +331,7 @@ static void p6recont_ro(MVMThreadContext *tc) {
     MVMObject *check = GET_REG(tc, 2).o;
     if (STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
         MVMObject *desc = ((Rakudo_Scalar *)check)->descriptor;
-        if (desc && ((Rakudo_ContainerDescriptor *)desc)->rw) {
+        if (!MVM_is_null(tc, desc) && ((Rakudo_ContainerDescriptor *)desc)->rw) {
             /* We have an rw container; re-containerize it. */
             MVMROOT(tc, check, {
                 MVMObject *result = MVM_repr_alloc_init(tc, Scalar);
@@ -383,19 +389,26 @@ static MVMuint8 s_p6decontrv[] = {
 };
 static void p6decontrv(MVMThreadContext *tc) {
     MVMObject *retval = GET_REG(tc, 2).o;
-    if (!retval) {
+    if (MVM_is_null(tc, retval)) {
        retval = Mu;
     }
     else if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
         Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
             ((Rakudo_Scalar *)retval)->descriptor;
-        if (cd && cd->rw) {
-            MVMROOT(tc, retval, {
-                MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
-                MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
-                    ((Rakudo_Scalar *)retval)->value);
-                retval = cont;
-            });
+        if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
+            MVMObject *value = ((Rakudo_Scalar *)retval)->value;
+            if (MVM_6model_istype_cache_only(tc, value, Iterable)
+                || MVM_6model_istype_cache_only(tc, value, Parcel)) {
+                MVMROOT(tc, value, {
+                    MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
+                    MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
+                        value);
+                    retval = cont;
+                });
+            }
+            else {
+                retval = value;
+            }
         }
     }
     GET_REG(tc, 0).o = retval;
@@ -408,14 +421,21 @@ static MVMuint8 s_p6routinereturn[] = {
 static void p6routinereturn(MVMThreadContext *tc) {
     MVMObject *ret = MVM_frame_find_lexical_by_name_rel_caller(tc, str_return,
         tc->cur_frame)->o;
-    if (ret && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
+    if (!MVM_is_null(tc, ret) && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
         MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
         tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
         STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
         *(tc->interp_cur_op) -= 4; /* Oh my, what a hack... */
     }
     else {
-        MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
+        MVMObject *thrower = get_thrower(tc, str_cfr);
+        if (!MVM_is_null(tc, thrower)) {
+            thrower = MVM_frame_find_invokee(tc, thrower, NULL);
+            MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
+            STABLE(thrower)->invoke(tc, thrower, &no_arg_callsite, tc->cur_frame->args);
+        } else {
+            MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
+        }
     }
 }
 
@@ -427,7 +447,7 @@ static void p6capturelex(MVMThreadContext *tc) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMInvocationSpec *is = STABLE(p6_code_obj)->invocation_spec;
     MVMObject *vm_code_obj;
-    if (is && is->invocation_handler)
+    if (is && !MVM_is_null(tc, is->invocation_handler))
         return;
     vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
@@ -482,12 +502,20 @@ static void p6getouterctx(MVMThreadContext *tc) {
 }
 
 static MVMuint8 s_p6captureouters[] = {
+    MVM_operand_obj | MVM_operand_read_reg,
     MVM_operand_obj | MVM_operand_read_reg
 };
 static void p6captureouters(MVMThreadContext *tc) {
     MVMObject *todo  = GET_REG(tc, 0).o;
+    MVMObject *tgt   = GET_REG(tc, 2).o;
     MVMint64   elems = MVM_repr_elems(tc, todo);
     MVMint64   i;
+    MVMFrame  *new_outer;
+    if (REPR(tgt)->ID != MVM_REPR_ID_MVMCode)
+        MVM_exception_throw_adhoc(tc, "p6captureouters second arg must be MVMCode");
+    new_outer = ((MVMCode *)tgt)->body.outer;
+    if (!new_outer)
+        return;
     for (i = 0; i < elems; i++) {
         MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
@@ -495,7 +523,7 @@ static void p6captureouters(MVMThreadContext *tc) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
             if (outer->outer)
                 MVM_frame_dec_ref(tc, outer->outer);
-            outer->outer = MVM_frame_inc_ref(tc, tc->cur_frame);
+            outer->outer = MVM_frame_inc_ref(tc, new_outer);
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
@@ -579,14 +607,13 @@ void store_dispatcher(MVMThreadContext *tc, void *sr_data) {
     free(srd);
 }
 static void p6finddispatcher(MVMThreadContext *tc) {
-    MVMString *usage = GET_REG(tc, 2).s;
     MVMFrame  *ctx = tc->cur_frame;
     while (ctx) {
         /* Do we have a dispatcher here? */
         MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
-            if (maybe_dispatcher) {
+            if (!MVM_is_null(tc, maybe_dispatcher)) {
                 MVMObject *dispatcher = maybe_dispatcher;
                 if (!IS_CONCRETE(dispatcher)) {
                     /* Need to vivify it, by calling vivify_for method. Prepare
@@ -634,7 +661,8 @@ static void p6finddispatcher(MVMThreadContext *tc) {
 
     {
         MVMObject *thrower = get_thrower(tc, str_xnodisp);
-        if (thrower) {
+        MVMString *usage   = GET_REG(tc, 2).s;
+        if (!MVM_is_null(tc, thrower)) {
             thrower = MVM_frame_find_invokee(tc, thrower, NULL);
             *(tc->interp_cur_op) += 4; /* Get right return address. */
             MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_str_callsite);
@@ -655,13 +683,13 @@ static MVMuint8 s_p6argsfordispatcher[] = {
     MVM_operand_obj | MVM_operand_read_reg
 };
 static void p6argsfordispatcher(MVMThreadContext *tc) {
-    MVMObject *disp = GET_REG(tc, 2).o;
     MVMFrame  *ctx = tc->cur_frame;
     while (ctx) {
         /* Do we have the dispatcher we're looking for? */
         MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
+            MVMObject *disp             = GET_REG(tc, 2).o;
             if (maybe_dispatcher == disp) {
                 GET_REG(tc, 0).o = MVM_args_use_capture(tc, ctx);
                 return;
@@ -690,7 +718,7 @@ static void p6shiftpush(MVMThreadContext *tc) {
     if (count > elems)
         count = elems;
 
-    if (a != NULL && total > 0) {
+    if (!MVM_is_null(tc, a) && total > 0) {
         MVMint64 getPos = 0;
         MVMint64 setPos = MVM_repr_elems(tc, a);
         REPR(a)->pos_funcs.set_elems(tc, STABLE(a), a, OBJECT_BODY(a), setPos + count);
@@ -735,7 +763,7 @@ static void p6arrfindtypes(MVMThreadContext *tc) {
 
     for (index = start; index < last; index++) {
         MVMObject *val = MVM_repr_at_pos_o(tc, arr, index);
-        if (val && !STABLE(val)->container_spec) {
+        if (!MVM_is_null(tc, val) && !STABLE(val)->container_spec) {
             MVMint64 found = 0;
             for (type_index = 0; type_index < ntypes; type_index++) {
                 MVMObject *type = MVM_repr_at_pos_o(tc, types, type_index);
@@ -788,7 +816,7 @@ static MVMuint8 s_p6staticouter[] = {
 };
 static void p6staticouter(MVMThreadContext *tc) {
     MVMObject *code = GET_REG(tc, 2).o;
-    if (code && IS_CONCRETE(code) && REPR(code)->ID == MVM_REPR_ID_MVMCode) {
+    if (!MVM_is_null(tc, code) && IS_CONCRETE(code) && REPR(code)->ID == MVM_REPR_ID_MVMCode) {
         MVMStaticFrame *sf = ((MVMCode *)code)->body.sf;
         GET_REG(tc, 0).o = sf->body.outer
             ? (MVMObject *)sf->body.outer->body.static_code
@@ -852,7 +880,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx);
-    MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);
+    MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 2, s_p6captureouters);
     MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit);
     MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag);
     MVM_ext_register_extop(tc, "p6takefirstflag", p6takefirstflag, 1, s_p6takefirstflag);

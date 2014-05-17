@@ -251,7 +251,7 @@ multi sub pack(Str $template, *@items) {
         given $directive {
             when 'A' {
                 my $ascii = shift @items // '';
-                my $data = $ascii.Str.encode;
+                my $data = $ascii.ords;
                 if $amount eq '*' {
                     $amount = +$data;
                 }

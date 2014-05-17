@@ -36,6 +36,12 @@ Note that this step is necessary for running Rakudo from outside the build
 directory. But don't worry, it installs locally by default, so you don't need
 any administrator privileges for carrying out this step.
 
+### Configuring Rakudo to run on MoarVM
+
+To automatically download and build a fresh MoarMV and NQP, run:
+
+    perl Configure.pl --gen-moar --gen-nqp --backends=moar
+
 ### Configuring Rakudo to run on Parrot
 
 To automatically download and build a fresh Parrot and NQP, run:
@@ -55,12 +61,6 @@ If you get an out of memory error building rakudo on the JVM, you may
 need to modify your NQP runner to limit memory use. e.g. edit the
 nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
 `install/bin` directory) to include `-Xms500m -Xmx2g` as options passed to java.
-
-### Configuring Rakudo to run on MoarVM
-
-To automatically download and build a fresh MoarMV and NQP, run:
-
-    perl Configure.pl --gen-moar --gen-nqp --backends=moar
 
 ### Multiple backends at the same time
 

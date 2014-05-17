@@ -153,7 +153,7 @@ my class IO::Spec::Unix {
         if !self.is-absolute( $base ) {
             $base = self.rel2abs( $base, $*CWD ) unless $base eq $*CWD;
         }
-        self.catdir( $base, $path );
+        self.catdir( self.canonpath($base), $path );
     }
 }
 

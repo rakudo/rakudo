@@ -24,10 +24,14 @@ my role Enumeration {
     }
     
     method pick(*@pos, *%named) {
-        self.^enum_value_list.pick(|@pos, |%named)
+        self.defined
+          ?? self xx +?( @pos[0] // 1 )
+          !! self.^enum_value_list.pick(|@pos, |%named);
     }
     method roll(*@pos, *%named) {
-        self.^enum_value_list.roll(|@pos, |%named)
+        self.defined
+          ?? self xx ( @pos[0] // 1 )
+          !! self.^enum_value_list.roll(|@pos, |%named);
     }
 
     method Int(::?CLASS:D:) {

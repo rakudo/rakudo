@@ -2,17 +2,14 @@ my class Bag does Baggy {
     has Int $!total;
     has $!WHICH;
 
-    method total {
-        $!total //= [+] %!elems.values.map( { .value } );
-    }
-    submethod WHICH { $!WHICH }
-    submethod BUILD (:%elems)  {
-        my @keys := %elems.keys.sort;
-        $!WHICH  := self.^name
+    method total (--> Int) { $!total //= [+] self.values }
+
+    submethod WHICH {
+        $!WHICH //= self.^name
           ~ '|'
-          ~ @keys.map( { $_ ~ '(' ~ %elems{$_}.value ~ ')' } );
-        nqp::bindattr(self, Bag, '%!elems', %elems);
+          ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
+    submethod BUILD (:%!elems)  { }
 
     method at_key($k --> Int) {
         my $key := $k.WHICH;

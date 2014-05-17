@@ -44,7 +44,12 @@ my class Backtrace is List {
 
     multi method new() {
         try { die() };
+#?if parrot
         self.new($!, 3);
+#?endif
+#?if !parrot
+        self.new($!, 2);
+#?endif
     }
 
     # note that parrot backtraces are RPAs, marshalled to us as Parcel

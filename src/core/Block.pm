@@ -34,6 +34,13 @@ my class Block { # declared in BOOTSTRAP
         }
         ()
     }
+
+    multi method perl(Block:D:) {
+        my $perl = '-> ';
+        $perl ~= self.signature().perl.substr(1); # lose colon prefix
+        $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
+        $perl
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

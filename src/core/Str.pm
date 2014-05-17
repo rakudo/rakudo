@@ -77,9 +77,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::substr($sself, 0, $chars - $to_remove))
     }
 
-    method chop(Str:D:) {
+    method chop(Str:D: $chars = 1) {
         my str $sself = nqp::unbox_s(self);
-        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - 1))
+        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
     }
 
     method substr(Str:D: $start, $length? is copy) {
@@ -90,13 +90,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 !! $start.Int
             );
         my int $ichars = nqp::chars($sself);
-        X::OutOfRange.new(
-            what    => 'Start argument to substr',
-            got     => $start,
-            range   => (0..*),
-            comment => "use *{$istart} if you want to index relative to the end"
-        ).fail
-            if $istart < 0;
+        if $istart < 0 {
+            if nqp::istype($start, Callable) || -$istart > $ichars {
+                X::OutOfRange.new(
+                    what    => 'Start argument to substr',
+                    got     => $istart,
+                    range   => (0..$ichars),
+                ).fail
+            }
+            else {
+                X::OutOfRange.new(
+                    what    => 'Start argument to substr',
+                    got     => $start,
+                    range   => (0..*),
+                    comment => "use *{$istart} if you want to index relative to the end"
+                ).fail
+            }
+        }
         X::OutOfRange.new(
             what => 'Start of substr',
             got  => $istart,
@@ -526,13 +536,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
         my $result = '"';
-        my $icu = $*VM<config><has_icu>;
+#?if parrot
+        my $icu = $*VM.config<has_icu>;
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
             $result ~= %esc{$ch} 
                        //  (   ((!$icu && $ch.ord >= 256)
                                || nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0))
+#?endif
+#?if !parrot
+        for ^self.chars -> $i {
+            my $ch = self.substr($i, 1);
+            $result ~= %esc{$ch} 
+                       //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
+                                                  nqp::unbox_s($ch), 0)
+#?endif
                            ?? $ch
                            !! $ch.ord.fmt('\x[%x]')
                            );
@@ -668,13 +687,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method lines(Str:D: $limit = $Inf) {
         my $prev_pos = -1;
-        my $l = 0;
-        gather {
-            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
-                take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
-                $prev_pos = $current_pos;
+        if $limit == $Inf {
+            gather {
+                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) {
+                    take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
+                    $prev_pos = $current_pos;
+                }
+                take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
             }
-            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars && $l <= $limit;
+        }
+        else {
+            my $l = 0;
+            gather {
+                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
+                    take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
+                    $prev_pos = $current_pos;
+                }
+                take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars && $l <= $limit;
+            }
         }
     }
 
@@ -708,43 +738,48 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Cool $delimiter, $limit = *, :$all) {
-        my $match-string = $delimiter.Str;
-        return if self eq '' && $delimiter eq '';
+        my $delim-str        = $delimiter.Str;
+        my str $self-string  = self;
+        my str $match-string = $delim-str;
+        return unless nqp::chars($self-string) || nqp::chars($match-string);
 
-        my $l = $limit ~~ Whatever ?? $Inf !! $limit;
+        my int $l = nqp::istype($limit, Whatever) || $limit == $Inf
+            ?? nqp::chars($self-string) + 1
+            !! $limit.Int;
         return ().list     if $l <= 0;
         return (self).list if $l == 1;
 
-        my $c = 0;
-        my $done = 0;
-        if $match-string eq "" {
-            my $chars = self.chars;
+        my int $c = 0;
+        my int $done = 0;
+        if nqp::chars($match-string) {
+            my int $width = nqp::chars($match-string);
             map {
                 last if $done;
 
-                if --$chars and --$l {
-                    self.substr($c++, 1);
+                my int $m = nqp::index($self-string, $match-string, $c);
+                if $m >= 0 and ($l = $l - 1) {
+                    my \value = nqp::p6box_s(nqp::substr($self-string, $c, $m - $c));
+                    $c = $m + $width;
+                    $all ?? (value, $match-string) !! value;
                 }
                 else {
                     $done = 1;
-                    self.substr($c);
+                    nqp::p6box_s(nqp::substr($self-string, $c));
                 }
             }, 1 .. $l;
-        }
-        else {
-            my $width = $match-string.chars;
+        } else {
+            my int $chars = nqp::chars($self-string);
             map {
                 last if $done;
 
-                my $m = self.index($match-string, $c);
-                if $m.defined and --$l {
-                    my $value = self.substr($c, $m - $c);
-                    $c = $m + $width;
-                    $all ?? ($value,$match-string) !! $value;
+                if ($chars = $chars - 1) and ($l = $l - 1) {
+                    my \value = nqp::p6box_s(nqp::substr($self-string, $c, 1));
+                    $c = $c + 1;
+                    value
                 }
                 else {
                     $done = 1;
-                    self.substr($c);
+                    nqp::p6box_s(nqp::substr($self-string, $c));
                 }
             }, 1 .. $l;
         }
@@ -764,8 +799,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method samespace(Str:D: Str:D $pat) {
-        my @self-chunks  = self.split(rx/\s+/, :all);
-        my @pat-chunks  := $pat.split(rx/\s+/, :all);
+        my @self-chunks  = self.split(rx/\s+/, :all).flat;
+        my @pat-chunks  := $pat.split(rx/\s+/, :all).flat;
         loop (my $i = 1; $i < @pat-chunks && $i < @self-chunks; $i += 2) {
             @self-chunks[$i] = @pat-chunks[$i];
         }
@@ -1022,6 +1057,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method path(Str:D:) returns IO::Path:D {
         IO::Path.new(self)
     }
+
+    method unival(Str:D:)  { unival(self.ord) };
+    method univals(Str:D:) { univals(self) };
 }
 
 
@@ -1043,10 +1081,10 @@ multi infix:<x>(str $s, int $repetition) returns str {
 }
 
 multi infix:<cmp>(Str:D \a, Str:D \b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b))))
+    ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi infix:<cmp>(str $a, str $b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s($a, $b)))
+    ORDER(nqp::cmp_s($a, $b))
 }
 
 multi infix:<===>(Str:D \a, Str:D \b) returns Bool:D {
@@ -1057,10 +1095,10 @@ multi infix:<===>(str $a, str $b) returns Bool:D {
 }
 
 multi infix:<leg>(Str:D \a, Str:D \b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b))))
+    ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi infix:<leg>(str $a, str $b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s($a, $b)))
+    ORDER(nqp::cmp_s($a, $b))
 }
 
 multi infix:<eq>(Str:D \a, Str:D \b) returns Bool:D {
@@ -1198,6 +1236,7 @@ multi uniname(|)  { die 'uniname NYI on parrot backend' }
 multi uniprop(|)  { die 'uniprop NYI on parrot backend' }
 multi unibool(|)  { die 'unibool NYI on parrot backend' }
 multi unival(|)   { die 'unival NYI on parrot backend' }
+multi univals(|)  { die 'univals NYI on parrot backend' }
 multi unimatch(|) { die 'unimatch NYI on parrot backend' }
 #?endif
 #?if jvm
@@ -1205,6 +1244,7 @@ multi uniname(|)  { die 'uniname NYI on jvm backend' }
 multi uniprop(|)  { die 'uniprop NYI on jvm backend' }
 multi unibool(|)  { die 'unibool NYI on jvm backend' }
 multi unival(|)   { die 'unival NYI on jvm backend' }
+multi univals(|)  { die 'univals NYI on jvm backend' }
 multi unimatch(|) { die 'unimatch NYI on jvm backend' }
 #?endif
 #?if moar
@@ -1262,6 +1302,9 @@ multi unival(Int $code) {
     my $de = nqp::getuniprop_str($code, $deprop);
     !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
 }
+
+proto univals(|) {*}
+multi univals(Str $str) { $str.ords.map: { unival($_) } }
 
 proto unimatch(|) {*}
 multi unimatch(Str $str, |c) { unimatch($str.ord, |c) }

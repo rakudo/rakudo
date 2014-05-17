@@ -1,9 +1,14 @@
 my class Mix does Mixy {
     has Real $!total;
+    has $!WHICH;
 
-    method total { 
-        $!total //= [+] %!elems.values.map( { .value } ); 
-    }   
+    submethod WHICH {
+        $!WHICH //= self.^name
+          ~ '|'
+          ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
+    }
+
+    method total (--> Real) { $!total //= [+] self.values }   
     method at_key($k --> Real) {
         my $key := $k.WHICH;
         %!elems.exists_key($key)

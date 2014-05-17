@@ -12,7 +12,7 @@ PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
 NQP_JARS = @nqp_jars@
 
-J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1000m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
@@ -152,19 +152,26 @@ J_CORE_SOURCES = \
   src/core/precedence.pm \
   src/core/terms.pm \
   src/core/Deprecations.pm \
-  src/vm/jvm/core/Thread.pm \
-  src/vm/jvm/core/Lock.pm \
-  src/vm/jvm/core/Scheduler.pm \
-  src/vm/jvm/core/ThreadPoolScheduler.pm \
-  src/vm/jvm/core/CurrentThreadScheduler.pm \
-  src/vm/jvm/core/Promise.pm \
-  src/vm/jvm/core/Channel.pm \
-  src/vm/jvm/core/Supply.pm \
-  src/vm/jvm/core/SupplyOperations.pm \
+  src/core/Systemic.pm \
+  src/core/Distro.pm \
+  src/core/VM.pm \
+  src/core/Kernel.pm \
+  src/core/Thread.pm \
+  src/core/Lock.pm \
+  src/core/Semaphore.pm \
+  src/core/Cancellation.pm \
+  src/core/Scheduler.pm \
+  src/core/ThreadPoolScheduler.pm \
+  src/core/CurrentThreadScheduler.pm \
+  src/core/Promise.pm \
+  src/core/Channel.pm \
+  src/core/Supply.pm \
+  src/core/SupplyOperations.pm \
   src/vm/jvm/core/KeyReducer.pm \
   src/vm/jvm/core/IOAsyncFile.pm \
-  src/vm/jvm/core/asyncops.pm \
+  src/core/asyncops.pm \
   src/core/IO/Socket.pm \
+  src/core/IO/Socket/Async.pm \
   src/core/IO/Socket/INET.pm \
   src/core/OS.pm \
   src/core/JSON/Pretty.pm \
@@ -211,17 +218,17 @@ $(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp 
 	$(J_NQP) --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
 	    $(J_BUILD_DIR)/ModuleLoader.nqp
 
-$(PERL6_W_JAR): $(PERL6_ML_JAR) src/Perl6/World.nqp
+$(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp
+	$(J_NQP) --target=jar --output=$(PERL6_OPS_JAR) --encoding=utf8 \
+	    src/vm/jvm/Perl6/Ops.nqp
+
+$(PERL6_W_JAR): $(PERL6_ML_JAR) $(PERL6_OPS_JAR) src/Perl6/World.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 
 $(PERL6_P_JAR): src/Perl6/Pod.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_P_JAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
-
-$(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp
-	$(J_NQP) --target=jar --output=$(PERL6_OPS_JAR) --encoding=utf8 \
-	    src/vm/jvm/Perl6/Ops.nqp
 
 $(PERL6_A_JAR): src/Perl6/Actions.nqp $(PERL6_P_JAR) $(PERL6_OPS_JAR)
 	$(J_NQP) --target=jar --output=$(PERL6_A_JAR) --encoding=utf8 \
@@ -290,7 +297,7 @@ j-test    : j-coretest
 j-fulltest: j-coretest j-stresstest
 
 j-coretest: j-all
-	$(J_HARNESS) t/00-parrot t/01-sanity
+	$(J_HARNESS) t/01-sanity
 
 # Run the spectests that we know work.
 j-spectest: j-testable t/spectest.data

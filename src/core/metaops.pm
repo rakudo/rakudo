@@ -352,9 +352,16 @@ multi sub duckmap(\op, Associative \h) {
 
 multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) {
     my %k;
-    for a.keys { %k{$_} = 1 if !$dwim-left || b.exists_key($_) }
-    for b.keys { %k{$_} = 1 if !$dwim-right }
-    my @keys = %k.keys;
+    if !$dwim-left {
+        %k{$_} = 1 for a.keys;
+    }
+    else {
+        %k{$_} = 1 if b.exists_key($_) for a.keys;
+    }
+    if !$dwim-right {
+        %k{$_} = 1 for b.keys;
+    }
+    my @keys := %k.keys;
     hash @keys Z hyper(op, a{@keys}, b{@keys}, :$dwim-left, :$dwim-right)
 }
 

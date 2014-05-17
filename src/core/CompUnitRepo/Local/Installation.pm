@@ -122,7 +122,8 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         }
         
         # Initialize "provides" section.
-        for %($d.provides).v -> $v is rw {
+        for %($d.provides).kv -> $k, $v is rw {
+            # when we do not use .kv, we error out when trying to store into Pairs :o(
             $v = {};
         }
         

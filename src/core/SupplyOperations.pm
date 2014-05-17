@@ -120,7 +120,9 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( $!test ~~ Callable
-                  ?? -> \val { self!more(val) if $!test(val) }
+                  ?? $!test ~~ Regex
+                     ?? -> \val { self!more(val) if val.match($!test) }
+                     !! -> \val { self!more(val) if $!test(val) }
                   !! -> \val { self!more(val) if val ~~ $!test },
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) }

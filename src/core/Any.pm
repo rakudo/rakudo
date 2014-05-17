@@ -129,7 +129,10 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method grep(|) { * }
-    multi method grep(Callable &test) is rw {
+    multi method grep(Regex $test) is rw {
+        self.map({ $_ if .match($test) });
+    }
+    multi method grep(&test) is rw {
         self.map({ $_ if test($_) });
     }
     multi method grep(Mu $test) is rw {
@@ -137,7 +140,11 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method grep-index(|) { * }
-    multi method grep-index(Callable &test) {
+    multi method grep-index(Regex $test) {
+        my $index = -1;
+        self.map: { $index++; +$index if .match($test) };
+    }
+    multi method grep-index(&test) {
         my $index = -1;
         self.map: { $index++; +$index if test($_) };
     }
@@ -147,7 +154,11 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method first(|) { * }
-    multi method first(Callable &test) is rw {
+    multi method first(Regex $test) is rw {
+        self.map({ return $_ if .match($test) });
+        Nil;
+    }
+    multi method first(&test) is rw {
         self.map({ return $_ if test($_) });
         Nil;
     }
@@ -157,7 +168,12 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method first-index(|) { * }
-    multi method first-index(Callable &test) {
+    multi method first-index(Regex $test) {
+        my $index = -1;
+        self.map: { $index++; return $index if .match($test) };
+        Nil;
+    }
+    multi method first-index(&test) {
         my $index = -1;
         self.map: { $index++; return $index if test($_) };
         Nil;
@@ -169,7 +185,12 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method last-index(|) { * }
-    multi method last-index(Callable &test) {
+    multi method last-index(Regex $test) {
+        my $index = self.elems;
+        self.reverse.map: { $index--; return $index if .match($test) };
+        Nil;
+    }
+    multi method last-index(&test) {
         my $index = self.elems;
         self.reverse.map: { $index--; return $index if test($_) };
         Nil;

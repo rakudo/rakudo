@@ -640,7 +640,7 @@ sub sleep-timer (Real $seconds = Inf --> Duration) {
     else {
         my $time1 = now;
         nqp::sleep($seconds.Num);
-        Duration.new( ( $seconds - now - $time1 ) max 0 );
+        Duration.new( ( $seconds - (now - $time1) ) max 0 );
     }
 }
 

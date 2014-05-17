@@ -105,8 +105,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         unless nqp::ishash(%chosen) {
             %chosen := %chosen.FLATTENABLE_HASH();
         }
-        for %chosen {
-            say($_.key ~ ' => ' ~ $_.value) if $DEBUG;
+        if $DEBUG {
+            for %chosen {
+                say($_.key ~ ' => ' ~ $_.value);
+            }
         }
         # If we didn't already do so, load the module and capture
         # its mainline. Otherwise, we already loaded it so go on

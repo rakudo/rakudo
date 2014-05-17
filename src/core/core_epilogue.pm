@@ -18,7 +18,7 @@ BEGIN {
 my $prefix = nqp::atkey(nqp::backendconfig(), 'runtime.prefix');
 #?endif
 #?if !jvm
-my $prefix = $*VM<config><prefix>;
+my $prefix = $*VM.config<prefix>;
 #?endif
 if "$prefix/share/libraries.cfg".IO.e {
     my @lines = slurp("$prefix/share/libraries.cfg").lines;
@@ -30,7 +30,7 @@ if "$prefix/share/libraries.cfg".IO.e {
             my $name = %options<name> // '';
             my $prio = %options<prio> // 0;
             %repos{~$<class>}{$name}{$prio} //= [];
-            my $env_sep = $*OS eq 'MSWin32' ?? ';' !! ':';
+            my $env_sep = $*DISTRO.is-win ?? ';' !! ':';
             my @path = $<path>.split($env_sep);
             for @path {
                 %repos{~$<class>}{$name}{$prio}.push(.IO.path.is-relative ?? "$prefix/share/$_" !! .Str);

@@ -35,16 +35,10 @@ class CompUnitRepo {
         my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];
         my %chosen;
         if $candi {
-            %chosen<pm>   := $candi<provides>{$module_name}<pm><file>;
-#?if parrot
-            %chosen<load> := $candi<provides>{$module_name}<pir><file>;
-#?endif
-#?if jvm
-            %chosen<load> := $candi<provides>{$module_name}<jar><file>;
-#?endif
-#?if moar
-            %chosen<load> := $candi<provides>{$module_name}<moarvm><file>;
-#?endif
+            %chosen<pm>   :=
+              $candi<provides>{$module_name}<pm><file>;
+            %chosen<load> :=
+              $candi<provides>{$module_name}{$*VM.precomp-ext}<file>;
             %chosen<key>  := %chosen<pm> // %chosen<load>;
         }
         $p6ml.load_module($module_name, %opts, |@GLOBALish, :$line, :$file, :%chosen);

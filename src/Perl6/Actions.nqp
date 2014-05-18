@@ -1207,7 +1207,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<use>($/) {
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
-        if $<version> {
+        if $<statementlist> {
+            $past := $<statementlist>.ast;
+        }
+        elsif $<version> {
             # TODO: replace this by code that doesn't always die with
             # a useless error message
 #            my $i := -1;

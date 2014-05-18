@@ -923,6 +923,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block
+        :my $*MAIN := 'MAIN';
 
         # performance improvement stuff
         :my $*FAKE_INFIX_FOUND := 0;
@@ -994,6 +995,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     %*LANG{$_.key} := $_.value;
                 }
             }
+            if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
+                $*MAIN := $*UNIT_OUTER.symbol('$*MAIN')<value>;
+            }
             
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
@@ -1016,7 +1020,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         <.finishpad>
         <.bom>?
-        <statementlist(1)>
+        <statementlist=.LANG($*MAIN, 'statementlist', 1)>
 
         <.install_doc_phaser>
         
@@ -1354,10 +1358,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := 'use';
         :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
+        :my $OLD_MAIN := ~$*MAIN;
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
-        | <version>
+        | <version> [ <?{ ~$<version><vnum>[0] eq '5' }> {
+                        my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
+                        do_import($/, $module, 'Perl5');
+                        $/.CURSOR.import_EXPORTHOW($module);
+                    } ]?
+                    [ <?{ ~$<version><vnum>[0] eq '6' }> {
+                        $*MAIN := 'MAIN';
+                    } ]?
         | <module_name>
             {
                 $longname := $<module_name><longname>;
@@ -1408,6 +1420,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             ]
         ]
+        [ <?{ $*MAIN ne $OLD_MAIN }> <statementlist=.LANG($*MAIN, 'statementlist', 1)> || <?> ]
         <.ws>
     }
     

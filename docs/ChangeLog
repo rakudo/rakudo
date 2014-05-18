@@ -19,6 +19,8 @@ New in 2014.05
 + BagHash<foo>-- on non-existing key no longer fails (as per S02 spec change)
 + deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>
 + added $*KERNEL, $*DISTRO, $*VM as full blown objects
++ optimized grep,grep-index,first,first-index,last-index with seperate
+  candidates for Regex and Callable.
 
 New in 2014.04
 

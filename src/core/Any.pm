@@ -129,24 +129,24 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method grep(|) { * }
-    multi method grep(Regex $test) is rw {
+    multi method grep(Regex:D $test) is rw {
         self.map({ $_ if .match($test) });
     }
-    multi method grep(&test) is rw {
-        self.map({ $_ if test($_) });
+    multi method grep(Callable:D $test) is rw {
+        self.map({ $_ if $test($_) });
     }
     multi method grep(Mu $test) is rw {
         self.map({ $_ if $_ ~~ $test });
     }
 
     proto method grep-index(|) { * }
-    multi method grep-index(Regex $test) {
+    multi method grep-index(Regex:D $test) {
         my $index = -1;
         self.map: { $index++; +$index if .match($test) };
     }
-    multi method grep-index(&test) {
+    multi method grep-index(Callable:D $test) {
         my $index = -1;
-        self.map: { $index++; +$index if test($_) };
+        self.map: { $index++; +$index if $test($_) };
     }
     multi method grep-index(Mu $test) {
         my $index = -1;
@@ -154,12 +154,12 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method first(|) { * }
-    multi method first(Regex $test) is rw {
+    multi method first(Regex:D $test) is rw {
         self.map({ return $_ if .match($test) });
         Nil;
     }
-    multi method first(&test) is rw {
-        self.map({ return $_ if test($_) });
+    multi method first(Callable:D $test) is rw {
+        self.map({ return $_ if $test($_) });
         Nil;
     }
     multi method first(Mu $test) is rw {
@@ -168,14 +168,14 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method first-index(|) { * }
-    multi method first-index(Regex $test) {
+    multi method first-index(Regex:D $test) {
         my $index = -1;
         self.map: { $index++; return $index if .match($test) };
         Nil;
     }
-    multi method first-index(&test) {
+    multi method first-index(Callable:D $test) {
         my $index = -1;
-        self.map: { $index++; return $index if test($_) };
+        self.map: { $index++; return $index if $test($_) };
         Nil;
     }
     multi method first-index(Mu $test) {
@@ -185,14 +185,14 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method last-index(|) { * }
-    multi method last-index(Regex $test) {
+    multi method last-index(Regex:D $test) {
         my $index = self.elems;
         self.reverse.map: { $index--; return $index if .match($test) };
         Nil;
     }
-    multi method last-index(&test) {
+    multi method last-index(Callable:D $test) {
         my $index = self.elems;
-        self.reverse.map: { $index--; return $index if test($_) };
+        self.reverse.map: { $index--; return $index if $test($_) };
         Nil;
     }
     multi method last-index(Mu $test) {

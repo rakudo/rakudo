@@ -3247,7 +3247,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
-            $name && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+            $name && $*SCOPE ne 'my' && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         methodize_block($/, $code, $past, %sig_info, $inv_type);
 
         # Need to put self into a register for the regex engine.

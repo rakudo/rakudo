@@ -10,7 +10,7 @@ role Systemic {
       :$!auth    = "unknown",
       :$!version = Version.new("unknown"),
     ) {}
-    method gist { $!name ~ (" ($!version)" if $!version ne "vunknown") }
+    method gist { $!name ~ (" ($!version)" if $!version.gist ne "vunknown") }
     method Str  { $!name }
 }
 
@@ -29,6 +29,6 @@ role Universal {
       :$!auth    = "unknown",
       :$!version = Version.new("unknown"),
     ) {}
-    method gist { $!name ~ (" ($!version)" if $!version ne "vunknown") }
+    method gist { $!name ~ (" ($!version)" if $!version.gist ne "vunknown") }
     method Str  { $!name }
 }

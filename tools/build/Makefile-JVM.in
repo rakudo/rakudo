@@ -154,8 +154,10 @@ J_CORE_SOURCES = \
   src/core/Deprecations.pm \
   src/core/Systemic.pm \
   src/core/Distro.pm \
-  src/core/VM.pm \
   src/core/Kernel.pm \
+  src/core/VM.pm \
+  src/core/Compiler.pm \
+  src/core/Perl.pm \
   src/core/Thread.pm \
   src/core/Lock.pm \
   src/core/Semaphore.pm \

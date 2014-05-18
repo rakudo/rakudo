@@ -31,7 +31,7 @@ my class HashIter is Iterator {
             my $it        := $!hashiter;
             
             my Mu $pairish;
-            if $mode == 0 {
+            if $mode == 0 {   # :pairs
                 if nqp::defined($!keystore) {
                     while $it {
                         $pairish := nqp::shift($it);
@@ -49,7 +49,7 @@ my class HashIter is Iterator {
                     }
                 }
             }
-            elsif $mode == 1 {
+            elsif $mode == 1 {  # :kv
                 if nqp::defined($!keystore) {
                     while $it {
                         $pairish := nqp::shift($it);
@@ -65,7 +65,7 @@ my class HashIter is Iterator {
                     }
                 }
             }
-            elsif $mode == 2 {
+            elsif $mode == 2 {  # :k
                 if nqp::defined($!keystore) {
                     while $it {
                         $pairish := nqp::shift($it);
@@ -79,13 +79,13 @@ my class HashIter is Iterator {
                     }
                 }
             }
-            elsif $mode == 3 {
+            elsif $mode == 3 {  # :v
                 while $it {
                     $pairish := nqp::shift($it);
                     nqp::push($rpa, nqp::hllize(nqp::iterval($pairish)).item);
                 }
             }
-            elsif $mode == 4 {
+            elsif $mode == 4 {  # :invert
                 if nqp::defined($!keystore) {
                     while $it {
                         $pairish := nqp::shift($it);
@@ -104,7 +104,7 @@ my class HashIter is Iterator {
                 }
             }
             else {
-                die "Unknown hash iteration mode";
+                die "Unknown hash iteration mode: $mode";
             }
 
             if $it {

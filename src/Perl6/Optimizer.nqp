@@ -404,6 +404,10 @@ my class BlockVarOptimizer {
     # Usages of getlexouter.
     has @!getlexouter_binds;
 
+    # Setup and bind (hopefully one each) of %_.
+    has @!autoslurpy_setups;
+    has @!autoslurpy_binds;
+
     # If lowering is, for some reason, poisoned.
     has $!poisoned;
 
@@ -429,6 +433,14 @@ my class BlockVarOptimizer {
 
     method register_getlexouter_bind($node) {
         nqp::push(@!getlexouter_binds, $node);
+    }
+
+    method register_autoslurpy_setup($node) {
+        nqp::push(@!autoslurpy_setups, $node);
+    }
+
+    method register_autoslurpy_bind($node) {
+        nqp::push(@!autoslurpy_binds, $node);
     }
 
     method poison_lowering() { $!poisoned := 1; }
@@ -530,6 +542,20 @@ my class BlockVarOptimizer {
                     @setups[$i] := $NULL;
                 }
                 $i++;
+            }
+        }
+    }
+
+    method delete_unused_autoslurpy() {
+        if !$!poisoned && nqp::existskey(%!decls, '%_') && nqp::elems(@!autoslurpy_setups) == 1
+                && nqp::elems(@!autoslurpy_binds) == 1 {
+            if !nqp::existskey(%!usages_inner, '%_') && nqp::elems(%!usages_flat<%_>) == 1 {
+                my $to_null := @!autoslurpy_setups[0];
+                nqp::shift($to_null) while @($to_null);
+                $to_null.op('null');
+                $to_null := @!autoslurpy_binds[0];
+                nqp::shift($to_null) while @($to_null);
+                $to_null.op('null');
             }
         }
     }
@@ -809,6 +835,7 @@ class Perl6::Optimizer {
         # We might be able to delete some of the magical variables when they
         # are trivially unused.
         $vars_info.delete_unused_magicals($block);
+        $vars_info.delete_unused_autoslurpy();
 
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
@@ -888,8 +915,16 @@ class Perl6::Optimizer {
         }
 
         # Some ops are significant for variable analysis/lowering.
-        if $optype eq 'bind' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
-            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_bind($op);
+        if $optype eq 'bind' {
+            if nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
+                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_bind($op);
+            }
+            elsif nqp::istype($op[0], QAST::Var) && $op[0].name eq '%_' {
+                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_bind($op);
+            }
+            elsif $op<autoslurpy> {
+                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_setup($op);
+            }
         }
         elsif $optype eq 'p6bindsig' {
             self.poison_var_lowering();

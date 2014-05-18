@@ -80,8 +80,9 @@ my class Parcel does Positional { # declared in BOOTSTRAP
             }
             $perl ~ ')'
         }
+        # because $() is *NOT* a Parcel but short for "$( $/.made // Str($/) )"
         elsif nqp::iscont(SELF) {
-            $perl ~ ' )' # beause $() is about Matches...
+            $perl ~ ' )'
         }
         else {
             $perl ~ ')'

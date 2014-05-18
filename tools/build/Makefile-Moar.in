@@ -167,6 +167,12 @@ M_CORE_SOURCES = \
   src/core/SupplyOperations.pm \
   src/core/asyncops.pm \
   src/core/signals.pm \
+  src/core/Systemic.pm \
+  src/core/Distro.pm \
+  src/core/Kernel.pm \
+  src/core/VM.pm \
+  src/core/Compiler.pm \
+  src/core/Perl.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
   src/core/IO/Socket/Async.pm \

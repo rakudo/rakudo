@@ -77,9 +77,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::substr($sself, 0, $chars - $to_remove))
     }
 
-    method chop(Str:D:) {
+    method chop(Str:D: $chars = 1) {
         my str $sself = nqp::unbox_s(self);
-        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - 1))
+        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
     }
 
     method substr(Str:D: $start, $length? is copy) {
@@ -537,7 +537,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method perl(Str:D:) {
         my $result = '"';
 #?if parrot
-        my $icu = $*VM<config><has_icu>;
+        my $icu = $*VM.config<has_icu>;
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
             $result ~= %esc{$ch} 

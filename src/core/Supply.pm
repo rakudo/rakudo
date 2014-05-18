@@ -153,7 +153,7 @@ my role Supply {
     method for(Supply:U: |c)             { SupplyOperations.for(|c) }
     method interval(Supply:U: |c)        { SupplyOperations.interval(|c) }
     method flat(Supply:D: )              { SupplyOperations.flat(self) }
-    method grep(Supply:D: &filter)       { SupplyOperations.grep(self, &filter) }
+    method grep(Supply:D: Mu $test)      { SupplyOperations.grep(self, $test) }
     method map(Supply:D: &mapper)        { SupplyOperations.map(self, &mapper) }
     method schedule_on(Supply:D: Scheduler $scheduler) {
         SupplyOperations.schedule_on(self, $scheduler);
@@ -176,6 +176,17 @@ my role Supply {
     }
     multi method classify(Supply:D: @mapper )  {
         SupplyOperations.classify(self, { @mapper[$^a] });
+    }
+
+    proto method categorize (|) { * }
+    multi method categorize(Supply:D: &mapper )  {
+        SupplyOperations.classify(self, &mapper, :multi);
+    }
+    multi method categorize(Supply:D: %mapper )  {
+        SupplyOperations.classify(self, { %mapper{$^a} }, :multi);
+    }
+    multi method categorize(Supply:D: @mapper )  {
+        SupplyOperations.classify(self, { @mapper[$^a] }, :multi);
     }
 
     method act(Supply:D: &actor) {

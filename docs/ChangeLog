@@ -1,9 +1,9 @@
 New in 2014.05
 + asynchronous timers on MoarVM backend
 + added or updated many Supply methods:
-  act, batch, Channel, delay, elems, flat, grab, last, live, max, min, minmax,
-  merge, migrate, Promise, reduce, reverse, rotor, sort, squish, stable, start,
-  uniq, wait, zip
+  act, batch, categorize, Channel, classify, delay, elems, flat, grab, last,
+  live, max, min, minmax, merge, migrate, Promise, reduce, reverse, rotor,
+  sort, squish, stable, start, uniq, wait, zip
 + add list functionality to 'on', as with new S17 spec
 + added .Supply coercer
 + added IO::Notification.watch_path / IO::Path::watch which return a Supply
@@ -13,6 +13,15 @@ New in 2014.05
 + added IO::Socket::Async.send, returns a Promise with success / failure
 + added IO::Socket::Async.chars_supply, returns a Supply with chunks
 + added first-index, last-index, grep-index subs/methods
++ Pair.key was erroneously implemented "is rw"
++ added "subtest code, desc" to Test.pm (inspired by P5's Test::More)
++ Test::Tap::tap_ok and Test::Util::throws_like are now 1 test (using subtest)
++ BagHash<foo>-- on non-existing key no longer fails (as per S02 spec change)
++ deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>, $*PERL<name>
+  $*PERL<compiler>...
++ added $*KERNEL, $*DISTRO, $*VM, $*PERL as full blown objects
++ optimized grep,grep-index,first,first-index,last-index with seperate
+  candidates for Regex and Callable.
 
 New in 2014.04
 

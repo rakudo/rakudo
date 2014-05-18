@@ -4,15 +4,21 @@ module Test;
 ## This is a temporary Test.pm to get us started until we get pugs's Test.pm
 ## working. It's shamelessly stolen & adapted from MiniPerl6 in the pugs repo.
 
-# variables to keep track of our tests
-my $num_of_tests_run    = 0;
-my $num_of_tests_failed = 0;
-my $todo_upto_test_num  = 0;
-my $todo_reason         = '';
-my $num_of_tests_planned;
-my $no_plan = 1;
-my $die_on_fail;
+# settable from outside
 my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;
+
+# global state
+my @vars;
+my $indents = "";
+
+# variables to keep track of our tests
+my $num_of_tests_run;
+my $num_of_tests_failed;
+my $todo_upto_test_num;
+my $todo_reason;
+my $num_of_tests_planned;
+my $no_plan;
+my $die_on_fail;
 my $time_before;
 my $time_after;
 
@@ -21,6 +27,8 @@ my $time_after;
 ## plans and don't call done_testing.
 my $done_testing_has_been_run = 0;
 
+# make sure we have initializations
+_init_vars();
 
 ## test functions
 
@@ -39,6 +47,7 @@ multi sub plan($number_of_tests) is export {
         $num_of_tests_planned = $number_of_tests;
         $no_plan = 0;
 
+        print $indents;
         say '1..' ~ $number_of_tests;
     }
     # Get two successive timestamps to say how long it takes to read the
@@ -48,8 +57,10 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::p6box_n(nqp::time_n).
     $time_before = nqp::p6box_n(nqp::time_n);
     $time_after  = nqp::p6box_n(nqp::time_n);
-    say '# between two timestamps ' ~
-        ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
+    print $indents
+      ~ '# between two timestamps '
+      ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
+      ~ "\n"
         if $perl6_test_times;
     # Take one more reading to serve as the begin time of the first test
     $time_before = nqp::p6box_n(nqp::time_n);
@@ -135,8 +146,22 @@ sub skip_rest($reason = '<unknown>') is export {
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 
+sub subtest(&subtests, $desc = '') is export {
+    _push_vars();
+    _init_vars();
+    $indents ~= "    ";
+    subtests();
+    done() if !$done_testing_has_been_run;
+    my $status =
+      $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
+    _pop_vars;
+    $indents = $indents.chop(4);
+    proclaim($status,$desc);
+}
+
 sub diag(Mu $message) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
+    print $indents;
     say $message.Str.subst(rx/^^/, '# ', :g);
     $time_before = nqp::p6box_n(nqp::time_n);
 }
@@ -246,6 +271,7 @@ sub proclaim($cond, $desc) {
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
 
+    print $indents;
     unless $cond {
         print "not ";
         unless  $num_of_tests_run <= $todo_upto_test_num {
@@ -257,7 +283,10 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
-    print "# t=" ~ ceiling(($time_after-$time_before)*1_000_000) ~ "\n"
+    print $indents
+      ~ "# t="
+      ~ ceiling(($time_after-$time_before)*1_000_000)
+      ~ "\n"
         if $perl6_test_times;
 
     if !$cond && $die_on_fail && !$todo_reason {
@@ -277,6 +306,7 @@ sub done() is export {
 
     if $no_plan {
         $num_of_tests_planned = $num_of_tests_run;
+        print $indents;
         say "1..$num_of_tests_planned";
     }
 
@@ -286,6 +316,49 @@ sub done() is export {
     if ($num_of_tests_failed) {
         diag("Looks like you failed $num_of_tests_failed tests of $num_of_tests_run");
     }
+}
+
+sub _init_vars {
+    $num_of_tests_run     = 0;
+    $num_of_tests_failed  = 0;
+    $todo_upto_test_num   = 0;
+    $todo_reason          = '';
+    $num_of_tests_planned = Any;
+    $no_plan              = 1;
+    $die_on_fail          = Any;
+    $time_before          = Any;
+    $time_after           = Any;
+    $done_testing_has_been_run = 0;
+}
+
+sub _push_vars {
+    @vars.push: [
+      $num_of_tests_run,
+      $num_of_tests_failed,
+      $todo_upto_test_num,
+      $todo_reason,
+      $num_of_tests_planned,
+      $no_plan,
+      $die_on_fail,
+      $time_before,
+      $time_after,
+      $done_testing_has_been_run,
+    ];
+}
+
+sub _pop_vars {
+    (
+      $num_of_tests_run,
+      $num_of_tests_failed,
+      $todo_upto_test_num,
+      $todo_reason,
+      $num_of_tests_planned,
+      $no_plan,
+      $die_on_fail,
+      $time_before,
+      $time_after,
+      $done_testing_has_been_run,
+    ) = @(@vars.pop);
 }
 
 END {

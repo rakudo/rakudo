@@ -57,20 +57,6 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
-# XXX Various issues with this stuff on JVM
-    my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
-    my $PERL = {
-        name => 'rakudo',
-        compiler => {
-            name => 'rakudo',
-            ver => nqp::p6box_s(nqp::atkey($compiler, 'version')),
-            release-number => nqp::p6box_s(nqp::atkey($compiler, 'release-number')),
-            build-date => nqp::p6box_s(nqp::atkey($compiler, 'build-date')),
-            codename => nqp::p6box_s(nqp::atkey($compiler, 'codename')),
-        }
-    };
-    nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
-
     my @INC;
 #?if jvm
     my $pathsep := $VM<properties><path.separator>;
@@ -99,6 +85,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?endif
          ~ '/languages/perl6';
 
+# XXX Various issues with this stuff on JVM
+    my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
     my %CUSTOM_LIB;
     try {
         my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
@@ -172,8 +160,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         or ($VM<config><prefix> ~ '/bin/' ~ ($VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
 #?endif
     $EXECUTABLE := $EXECUTABLE.path.absolute;
-    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE',      $EXECUTABLE);
-    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE.basename);
+    PROCESS.WHO<$EXECUTABLE>      = $EXECUTABLE;
+    PROCESS.WHO<$EXECUTABLE_NAME> = $EXECUTABLE.basename;
 
     my Mu $comp := nqp::getcomp('perl6');
 

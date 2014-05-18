@@ -6,7 +6,7 @@ my class BagHash does Baggy {
               my $key   := $k.WHICH;
               %!elems.exists_key($key) ?? %!elems{$key}.value !! 0;
           },
-          STORE => -> $, $value {
+          STORE => -> $, $value is copy {
               if $value > 0 {
                   (%!elems{$k.WHICH} //= ($k => 0)).value = $value;
               }
@@ -14,7 +14,7 @@ my class BagHash does Baggy {
                   self.delete_key($k);
               }
               else {
-                  fail "Cannot put negative value $value for $k in {self.^name}";
+                  $value = 0;
               }
               $value;
           }

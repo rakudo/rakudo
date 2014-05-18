@@ -583,11 +583,21 @@ S17-channel/basic.t      # conc
 S17-channel/winner.t     # conc
 S17-lowlevel/lock.t      # conc
 S17-lowlevel/thread.t    # conc
+S17-promise/allof.t      # conc
+S17-promise/anyof.t      # conc
 S17-promise/basic.t      # conc
+S17-promise/in.t         # conc
+S17-promise/start.t      # conc
+S17-promise/then.t       # conc
+S17-scheduler/at.t       # conc
 S17-scheduler/basic.t    # conc
+S17-scheduler/every.t    # conc
+S17-scheduler/in.t       # conc
+S17-scheduler/times.t    # conc
 S17-supply/act.t         # conc
 S17-supply/basic.t       # conc
 S17-supply/batch.t       # conc
+S17-supply/categorize.t  # conc
 S17-supply/Channel.t     # conc
 S17-supply/classify.t    # conc
 S17-supply/delay.t       # conc
@@ -825,6 +835,10 @@ integration/advent2009-day22.t
 integration/advent2009-day23.t
 integration/advent2010-day03.t
 integration/advent2010-day04.t
+integration/advent2010-day06.t
+integration/advent2010-day07.t
+integration/advent2010-day08.t
+integration/advent2010-day10.t
 integration/advent2012-day02.t
 integration/advent2012-day03.t
 integration/advent2012-day04.t #stress

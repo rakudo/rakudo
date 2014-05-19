@@ -40,10 +40,10 @@ my role Dateish {
         my int $day = $daycount.Int + 678881;
         my int $t = (4 * ($day + 36525)) div 146097 - 1;
         my int $year = 100 * $t;
-        $day = $day - (36524 * $t + ($t +> 2));
+        $day = $day - (36524 * $t + ($t div 4));
         $t = (4 * ($day + 366)) div 1461 - 1;
         $year = $year + $t;
-        $day = $day - (365 * $t + ($t +> 2));
+        $day = $day - (365 * $t + ($t div 4));
         my int $month = (5 * $day + 2) div 153;
         $day = $day - ((2 + $month * 153) div 5 - 1);
         if ($month > 9) {

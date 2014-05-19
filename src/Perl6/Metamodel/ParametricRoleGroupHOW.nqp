@@ -73,7 +73,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                 $error);
         }
         
-        # Having picked the appropraite one, specialize it.
+        # Having picked the appropriate one, specialize it.
         my $prole := @result[0];
         my $type_env := @result[1];
         $prole.HOW.specialize_with($prole, $type_env, @pos_args)

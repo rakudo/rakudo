@@ -22,6 +22,7 @@ New in 2014.05
 + added $*KERNEL, $*DISTRO, $*VM, $*PERL as full blown objects
 + optimized grep,grep-index,first,first-index,last-index with seperate
   candidates for Regex and Callable.
++ "use v5" is no longer a noop, but actually tries to load the "v5" module
 
 New in 2014.04
 

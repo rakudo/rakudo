@@ -17,6 +17,7 @@ New in 2014.05
 + added "subtest code, desc" to Test.pm (inspired by P5's Test::More)
 + Test::Tap::tap_ok and Test::Util::throws_like are now 1 test (using subtest)
 + BagHash<foo>-- on non-existing key no longer fails (as per S02 spec change)
++ (Set|Bag|Mix)(|Hash) now have a .fmt method
 + deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>, $*PERL<name>
   $*PERL<compiler>...
 + added $*KERNEL, $*DISTRO, $*VM, $*PERL as full blown objects

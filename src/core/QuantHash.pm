@@ -41,6 +41,15 @@ my role QuantHash does Associative {
         }
         @found;
     }
+
+    method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {
+        if nqp::p6box_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy) )) == 1 {
+            self.keys.fmt($format, $sep);
+        }
+        else {
+            self.pairs.fmt($format, $sep);
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

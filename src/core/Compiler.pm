@@ -1,7 +1,7 @@
 class Compiler does Systemic {
-    has Str $!release;
-    has DateTime $!build-date;
-    has Str $!codename;
+    has Str $.release;
+    has DateTime $.build-date;
+    has Str $.codename;
 
     submethod BUILD (
       :$!name      = 'rakudo',
@@ -35,7 +35,7 @@ multi postcircumfix:<{ }> (Compiler $d, "ver" )   {
     $d.version
 }
 multi postcircumfix:<{ }> (Compiler $d, "release-number" )   {
-    DEPRECATED('$*PERL.compiler.release', :what('$*PERL<compiler><release-number') );
+    DEPRECATED('$*PERL.compiler.release', :what('$*PERL<compiler><release-number>') );
     $d.release
 }
 multi postcircumfix:<{ }> (Compiler $d, "build-date" )   {

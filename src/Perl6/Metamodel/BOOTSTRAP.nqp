@@ -2929,6 +2929,12 @@ nqp::sethllconfig('perl6', nqp::hash(
     },
     'method_not_found_error', -> $obj, str $name {
         my $type := $obj.HOW.name($obj);
+        if $name eq 'STORE' {
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Assignment::RO') {
+                nqp::atkey(%ex, 'X::Assignment::RO')($type);
+            }
+        }
         nqp::die("Method '$name' not found for invocant of class '$type'");
     }
 #?endif

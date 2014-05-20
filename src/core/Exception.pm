@@ -1235,8 +1235,9 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 }
 
 my class X::Assignment::RO is Exception {
+    has $.typename = "value";
     method message {
-        "Cannot modify an immutable value";
+        "Cannot modify an immutable {$.typename}";
     }
 }
 
@@ -1441,8 +1442,8 @@ my class X::Caller::NotDynamic is Exception {
     %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
-    %c_ex<X::Assignment::RO> := sub () is hidden_from_backtrace {
-            X::Assignment::RO.new.throw;
+    %c_ex<X::Assignment::RO> := sub ($typename) is hidden_from_backtrace {
+            X::Assignment::RO.new(:$typename).throw;
         };
     %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {
             X::ControlFlow::Return.new().throw;

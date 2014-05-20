@@ -36,4 +36,5 @@ you request a commit bit. There is at least one officer of the Perl
 Foundation on #perl6 who can verify the reception of your signed CLA and
 several people that can then add you to the Rakudo project.
 
-
+Typically a commit bit is granted after a new contributor has submitted
+a few good patches.

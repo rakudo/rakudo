@@ -22,6 +22,9 @@ New in 2014.05
 + deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>, $*PERL<name>
   $*PERL<compiler>...
 + added $*KERNEL, $*DISTRO, $*VM, $*PERL as full blown objects
++ .delta (by recent spec change) in Date/DateTime now instead spelled
+  .later and .earlier
++ TimeUnit enum removed; string named and positional arguments used instead
 + optimized grep,grep-index,first,first-index,last-index with seperate
   candidates for Regex and Callable.
 + "use v5" is no longer a noop, but actually tries to load the "v5" module

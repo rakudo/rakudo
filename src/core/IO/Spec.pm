@@ -15,7 +15,7 @@ my class IO::Spec {
         # 'VMS'     => 'VMS'
 );
 
-    #  this is really just a way of getting $*OS when it's not in scope yet
+    #  really just a way of getting $*DISTRO.name when it's not in scope yet
     my $submodule;
 #?if parrot
     $submodule = %module{ nqp::atkey(nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH), 'osname') };
@@ -28,9 +28,9 @@ my class IO::Spec {
 #?endif
     my $SPEC := IO::Spec.WHO{ $submodule // 'Unix' };
 
-    method FSTYPE ($OS = $*OS)   { %module{$OS} // 'Unix' }
+    method FSTYPE ($OS = $*DISTRO.name)   { %module{$OS} // 'Unix' }
 
-    #| Dispatches methods to the appropriate class for the current $*OS
+    #| Dispatches methods to the appropriate class for the current $*DISTRO.name
     #| Well, it should, if handles worked here.  Still useful, though.
     method MODULE 
        # handles
@@ -42,7 +42,7 @@ my class IO::Spec {
 
     #| Returns a copy of the module for the given OS string
     #| e.g. IO::Spec.os('Win32') returns IO::Spec::Win32
-    method os (Str $OS = $*OS) {
+    method os (Str $OS = $*DISTRO.name) {
         IO::Spec.WHO{%module{$OS} // 'Unix'};
     }
 

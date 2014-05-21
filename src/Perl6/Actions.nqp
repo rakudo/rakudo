@@ -1139,6 +1139,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
+        if $*LABEL {
+            $past.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
+        }
         $past := QAST::Want.new(
             QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
             'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
@@ -1163,6 +1166,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     
     sub tweak_loop($loop) {
+        if $*LABEL {
+            $loop.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
+        }
         # Handle phasers.
         my $code := $loop[1]<code_object>;
         my $block_type := $*W.find_symbol(['Block']);

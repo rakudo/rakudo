@@ -92,8 +92,8 @@ my class Any { # declared in BOOTSTRAP
     }
     proto method map (|) { * }
     multi method map(Whatever) is rw { self }
-    multi method map($block) is rw {
-        MapIter.new(self, $block, Bool::True).list
+    multi method map($block, :$label) is rw {
+        MapIter.new(self, $block, Bool::True, :$label).list
     }
     method flatmap($block) is rw { flatmap($block, self) }
     method duckmap($block) is rw { duckmap($block, self) }

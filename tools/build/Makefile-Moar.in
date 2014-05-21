@@ -107,6 +107,7 @@ M_CORE_SOURCES = \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Stash.pm \
+  src/core/Label.pm \
   src/core/PseudoStash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \

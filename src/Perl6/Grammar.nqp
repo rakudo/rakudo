@@ -1106,11 +1106,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token label {
-        :my $label;
         <identifier> ':' <?[\s]> <.ws>
+        {
+            $*LABEL       := ~$<identifier>;
+            my $total     := nqp::chars(self.orig());
+            my $from      := self.MATCH.from();
+            my $to        := self.MATCH.to() + nqp::chars($*LABEL);
+            my $line      := HLL::Compiler.lineof(self.orig(), self.from());
+            my $prematch  := nqp::substr(self.orig(), $from > 20 ?? $from - 20 !! 0, $from);
+            my $postmatch := nqp::substr(self.orig(), $to, $total > $to + 20 ?? $to + 20 !! $total);
+            my $label     := $*W.find_symbol(['Label']).new( :name($*LABEL), :$line, :$prematch, :$postmatch );
+            $*W.add_object($label);
+            $*W.install_lexical_symbol($*W.cur_lexpad(), $*LABEL, $label);
+        }
     }
 
-    token statement {
+    token statement($*LABEL = '') {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
         :my $*ACTIONS := %*LANG<MAIN-actions>;
@@ -1118,7 +1129,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
-        | <label> <statement>
+        | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
         | <EXPR> :dba('statement end')
             [

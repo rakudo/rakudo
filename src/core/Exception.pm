@@ -1442,7 +1442,7 @@ my class X::Caller::NotDynamic is Exception {
     %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
-    %c_ex<X::Assignment::RO> := sub ($typename) is hidden_from_backtrace {
+    %c_ex<X::Assignment::RO> := sub ($typename = "value") is hidden_from_backtrace {
             X::Assignment::RO.new(:$typename).throw;
         };
     %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {

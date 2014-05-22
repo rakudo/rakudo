@@ -29,6 +29,8 @@ New in 2014.05
   candidates for Regex and Callable.
 + "use v5" is no longer a noop, but actually tries to load the "v5" module
   (soon available as part of Rakudo*)
++ implemented labeled loops and throwing of labels as payload
++ added various optimizations, like optimizing out %_ when unused
 
 New in 2014.04
 

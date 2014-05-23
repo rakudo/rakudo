@@ -493,7 +493,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     proto method rotor(|) {*}
-    multi method rotor(1, 0) { @.list }
+    multi method rotor(1, 0) { self }
     multi method rotor($elems = 2, $overlap = 1) {
         X::OutOfRange.new(
             what => 'Overlap argument to List.rotor',

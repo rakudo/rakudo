@@ -1,3 +1,6 @@
+New in 2014.06
++ .IO.{d|s|z} are now about 40% faster
+
 New in 2014.05
 + asynchronous timers on MoarVM backend
 + added or updated many Supply methods:

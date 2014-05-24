@@ -30,24 +30,25 @@ sub prompt($msg) {
 
 my role IO::FileTestable does IO {
     method d() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
-                                        nqp::const::STAT_ISDIR))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISDIR))
     }
 
     method e() {
-        nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+        nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
                               nqp::const::STAT_EXISTS))
     }
 
     method f() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
                               nqp::const::STAT_ISREG))
     }
 
     method s() {
-        self.e
-          && nqp::p6box_i( nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                 nqp::const::STAT_FILESIZE) );
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
     }
 
     method l() {
@@ -67,7 +68,10 @@ my role IO::FileTestable does IO {
     }
 
     method z() {
-        self.f && self.s == 0;
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG)) &&
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
     }
 
     method modified() {

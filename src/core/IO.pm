@@ -552,6 +552,9 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?endif
+#?if jvm
+        my $cwd_chars = $*CWD.chars;
+#?endif
 #?if !parrot
         my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
@@ -570,7 +573,7 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if jvm
                     # jvm's nextfiledir gives us absolute paths back, moar does not.
-                    $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
+                    $elem := $elem.substr($cwd_chars + 1) if self.is-relative;
 #?endif
 #?if moar
                     next unless $elem ~~ $test;

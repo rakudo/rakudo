@@ -69,8 +69,8 @@ my role IO::FileTestable does IO {
 
     method z() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG)) &&
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG)) &&
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
     }
 

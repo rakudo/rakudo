@@ -48,7 +48,7 @@ my role IO::FileTestable does IO {
     method s() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
+        nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
     }
 
     method l() {
@@ -71,7 +71,7 @@ my role IO::FileTestable does IO {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG)) &&
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
+        nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
     }
 
     method modified() {

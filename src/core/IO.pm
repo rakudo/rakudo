@@ -400,11 +400,11 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     multi method new(:$basename!, :$directory = '.', :$volume = '') {
-        self.new: path=>$.SPEC.join($volume, $directory, $basename);
+        self.bless: path=>$.SPEC.join($volume, $directory, $basename);
     }
 
     multi method new(Str:D $path) {
-        self.new(:$path)
+        self.bless(:$path)
     }
 
     method path(IO::Path:D:) {

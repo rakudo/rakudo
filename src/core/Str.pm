@@ -560,7 +560,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method comb(Str:D:) {
-        (^self.chars).map({self.substr($_, 1) });
+        my str $self = self;
+        (^self.chars).map({ nqp::p6box_s(nqp::substr($self, $_, 1)) });
     }
     multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
         my $x;

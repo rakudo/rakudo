@@ -5988,7 +5988,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             return 0 if nqp::existskey(%info, 'sub_signature');
             return 0 if nqp::existskey(%info, 'type_captures'); # XXX Support later
-            return 0 if %info<bind_attr>;                       # XXX Support later
             return 0 if %info<bind_accessor>;                   # XXX Support later
             return 0 if %info<nominal_generic>;                 # XXX Support later
             return 0 if %info<default_from_outer>;
@@ -6193,7 +6192,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Bind to lexical if needed.
-            if nqp::existskey(%info, 'variable_name') {
+            if nqp::existskey(%info, 'variable_name') && !%info<bind_attr> {
                 if nqp::objprimspec($nomtype) || $flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_PARCEL {
                     $var.push(QAST::Op.new(
                         :op('bind'),
@@ -6273,8 +6272,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
 
-            # Finally, apply post-constraints (must come after variable bind,
-            # as constraints can refer to the var).
+            # Apply post-constraints (must come after variable bind, as constraints can
+            # refer to the var).
             if %info<post_constraints> {
                 for %info<post_constraints> {
                     my $wval := QAST::WVal.new( :value($_) );
@@ -6289,6 +6288,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Var.new( :name($name), :scope('local') )
                         ))));
                 }
+            }
+
+            # If it's an attributive parameter, do the bind.
+            if %info<bind_attr> {
+                $var.push(QAST::Op.new(
+                    :op('assign'),
+                    QAST::Var.new(
+                        :name(%info<variable_name>), :scope('attribute'),
+                        QAST::Var.new( :name('self'), :scope('lexical') ),
+                        QAST::WVal.new( :value(%info<attr_package>) )
+                    ),
+                    QAST::Var.new( :name($name), :scope('local') )
+                ));
             }
 
             # Add the generated var.

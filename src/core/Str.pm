@@ -573,7 +573,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method match($pat, 
                   :continue(:$c), :pos(:$p),
                   :global(:$g), :overlap(:$ov), :exhaustive(:$ex), 
-                  :st(:nd(:rd(:th(:$nth)))), :$x) {
+                  # :st(:nd(:rd(:th($nth)))) is cute, but slow
+                  :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }

@@ -587,7 +587,7 @@ my class IO::Path is Cool does IO::FileTestable {
                     if nqp::substr($elem, 0, 2) eq "./" | ".\\" {
                         $elem = nqp::substr($elem, 2);
                     }
-                    take $elem.path if $test.ACCEPTS($elem);
+                    take IO::Path.new($elem) if $test.ACCEPTS($elem);
                 }
             }
         }

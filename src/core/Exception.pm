@@ -288,6 +288,22 @@ my class X::IO::Copy does X::IO is Exception {
     }
 }
 
+my class X::IO::DoesNotExist does X::IO is Exception {
+    has $.path;
+    has $.trying;
+    method message() {
+        "Failed to find '$.path' while trying to do '.$.trying'"
+    }
+}
+
+my class X::IO::NotAFile does X::IO is Exception {
+    has $.path;
+    has $.trying;
+    method message() {
+        "'$.path' is not a regular file while trying to do '.$.trying'"
+    }
+}
+
 my class X::IO::Symlink does X::IO is Exception {
     has $.target;
     has $.name;

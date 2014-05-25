@@ -48,7 +48,7 @@ my role IO::FileTestable does IO {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISDIR))
-          !! Bool;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<d>)
     }
 
     method e() {
@@ -60,42 +60,44 @@ my role IO::FileTestable does IO {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
-          !! Bool;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<f>)
     }
 
     method s() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
-          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
-          !! Int;
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
+            ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
+            !! fail X::IO::NotAFile.new(:path(self.Str),:trying<s>)
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<s>)
     }
 
     method l() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6bool(nqp::fileislink($unboxed))
-          !! Bool;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<l>)
     }
 
     method r() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6bool(nqp::filereadable($unboxed))
-          !! Bool;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<r>)
     }
 
     method w() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6bool(nqp::filewritable($unboxed))
-          !! Bool;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<w>)
     }
 
     method x() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6bool(nqp::fileexecutable($unboxed))
-          !! Bool;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<x>)
     }
 
     method z() {
@@ -103,29 +105,29 @@ my role IO::FileTestable does IO {
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
             ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
-            !! Bool
-          !! Bool;
+            !! fail X::IO::NotAFile.new(:path(self.Str),:trying<z>)
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<z>)
     }
 
     method modified() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_MODIFYTIME))
-          !! Int;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<modified>)
     }
 
     method accessed() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_ACCESSTIME))
-          !! Int;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<accessed>)
     }
 
     method changed() { 
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
         nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
           ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_CHANGETIME))
-          !! Int;
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<changed>)
     }
 }
 

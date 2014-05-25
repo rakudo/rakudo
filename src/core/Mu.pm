@@ -623,7 +623,9 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {
-        hyper( -> \obj { obj."$name"(|c) }, SELF )
+        c
+            ?? hyper( -> \obj { obj."$name"(|c) }, SELF )
+            !! hyper( -> \obj { obj."$name"() }, SELF )
     }
     
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,

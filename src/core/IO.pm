@@ -568,24 +568,24 @@ my class IO::Path is Cool does IO::FileTestable {
             take $_.path if $_ ~~ $test for ".", "..";
 #?endif
 #?if !parrot
+            my $SPEC = $.SPEC;
             loop {
-                my Str $elem := nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) || !$elem.chars {
+                my str $elem = nqp::nextfiledir($dirh);
+                if nqp::isnull_s($elem) || nqp::chars($elem) == 0 {
                     nqp::closedir($dirh);
                     last;
                 } else {
 #?endif
 #?if jvm
                     # jvm's nextfiledir gives us absolute paths back, moar does not.
-                    $elem := $elem.substr($cwd_chars + 1) if self.is-relative;
+                    $elem = nqp::substr($elem, $cwd_chars + 1) if self.is-relative;
 #?endif
 #?if moar
-                    next unless $elem ~~ $test;
-                    $elem := $.SPEC.catfile($!path, $elem) if self ne '.';
+                    $elem = $SPEC.catfile($!path, $elem) if $!path ne '.';
 #?endif
 #?if !parrot
-                    if $elem.substr(0, 2) eq any("./", ".\\") {
-                        $elem := $elem.substr(2);
+                    if nqp::substr($elem, 0, 2) eq "./" | ".\\" {
+                        $elem = nqp::substr($elem, 2);
                     }
                     take $elem.path if $elem ~~ $test;
                 }

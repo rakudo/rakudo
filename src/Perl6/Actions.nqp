@@ -6033,8 +6033,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif nqp::existskey(%info, 'named_names') {
                 my @names := %info<named_names>;
-                return 0 if nqp::elems(@names) != 1;
-                $var.named(@names[0]);
+                if nqp::elems(@names) == 1 {
+                    $var.named(@names[0]);
+                }
+                elsif nqp::elems(@names) == 2 {
+                    $var.named(@names);
+                }
+                else {
+                    return 0;
+                }
             }
             elsif %info<pos_slurpy> || %info<pos_lol> {
                 $var.slurpy(1);
@@ -6293,14 +6300,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's an attributive parameter, do the bind.
             if %info<bind_attr> {
                 $var.push(QAST::Op.new(
-                    :op('assign'),
+                    :op('p6store'),
                     QAST::Var.new(
                         :name(%info<variable_name>), :scope('attribute'),
                         QAST::Var.new( :name('self'), :scope('lexical') ),
                         QAST::WVal.new( :value(%info<attr_package>) )
                     ),
-                    QAST::Var.new( :name($name), :scope('local') )
-                ));
+                    QAST::Op.new(
+                        :op('decont'),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    )));
             }
 
             # Add the generated var.

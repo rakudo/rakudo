@@ -534,7 +534,7 @@ my class IO::Path is Cool does IO::FileTestable {
         }
     }
 
-    method contents(IO::Path:D: Mu :$test = none('.', '..')) {
+    method contents(IO::Path:D: Mu :$test = { $_ ne '.' && $_ ne '..' }) {
 
         CATCH {
             default {
@@ -587,7 +587,7 @@ my class IO::Path is Cool does IO::FileTestable {
                     if nqp::substr($elem, 0, 2) eq "./" | ".\\" {
                         $elem = nqp::substr($elem, 2);
                     }
-                    take $elem.path if $elem ~~ $test;
+                    take $elem.path if $test.ACCEPTS($elem);
                 }
             }
         }

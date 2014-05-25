@@ -563,18 +563,15 @@ my class IO::Path is Cool does IO::FileTestable {
         my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {
-#?endif
-#?if jvm
             take $_.path if $_ ~~ $test for ".", "..";
-#?endif
-#?if !parrot
             my $SPEC = $.SPEC;
             loop {
                 my str $elem = nqp::nextfiledir($dirh);
                 if nqp::isnull_s($elem) || nqp::chars($elem) == 0 {
                     nqp::closedir($dirh);
                     last;
-                } else {
+                }
+                elsif $elem ne '.' | '..' {
 #?endif
 #?if jvm
                     # jvm's nextfiledir gives us absolute paths back, moar does not.

@@ -46,8 +46,9 @@ sub prompt($msg) {
 my role IO::FileTestable does IO {
     method d() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISDIR))
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISDIR))
+          !! Bool;
     }
 
     method e() {
@@ -56,52 +57,75 @@ my role IO::FileTestable does IO {
     }
 
     method f() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                              nqp::const::STAT_ISREG))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
+          !! Bool;
     }
 
     method s() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
-        nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
+          !! Int;
     }
 
     method l() {
-        nqp::p6bool(nqp::fileislink(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::fileislink($unboxed))
+          !! Bool;
     }
 
     method r() {
-        nqp::p6bool(nqp::filereadable(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::filereadable($unboxed))
+          !! Bool;
     }
 
     method w() {
-        nqp::p6bool(nqp::filewritable(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::filewritable($unboxed))
+          !! Bool;
     }
 
     method x() {
-        nqp::p6bool(nqp::fileexecutable(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::fileexecutable($unboxed))
+          !! Bool;
     }
 
     method z() {
         my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS)) &&
-        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG)) &&
-        nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
+            ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
+            !! Bool
+          !! Bool;
     }
 
     method modified() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                nqp::const::STAT_MODIFYTIME));
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_MODIFYTIME))
+          !! Int;
     }
 
     method accessed() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                nqp::const::STAT_ACCESSTIME));
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_ACCESSTIME))
+          !! Int;
     }
 
     method changed() { 
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                nqp::const::STAT_CHANGETIME));
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_CHANGETIME))
+          !! Int;
     }
 }
 

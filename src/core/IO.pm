@@ -2,20 +2,35 @@ my role IO { }
 
 sub print(|) {
     my $args := nqp::p6argvmarray();
-    $*OUT.print(nqp::shift($args)) while $args;
+    my $out := $*OUT;
+    $out.print(nqp::shift($args)) while $args;
     Bool::True
 }
 
-sub say(|) {
+proto sub say(|) { * }
+multi sub say(\x) {
+    my $out := $*OUT;
+    $out.print(x.gist);
+    $out.print("\n");
+}
+multi sub say(|) {
     my $args := nqp::p6argvmarray();
-    $*OUT.print(nqp::shift($args).gist) while $args;
-    $*OUT.print("\n");
+    my $out := $*OUT;
+    $out.print(nqp::shift($args).gist) while $args;
+    $out.print("\n");
 }
 
-sub note(|) {
+proto sub note(|) { * }
+multi sub note(\x) {
+    my $err := $*ERR;
+    $err.print(x.gist);
+    $err.print("\n");
+}
+multi sub note(|) {
     my $args := nqp::p6argvmarray();
-    $*ERR.print(nqp::shift($args).gist) while $args;
-    $*ERR.print("\n");
+    my $err := $*ERR;
+    $err.print(nqp::shift($args).gist) while $args;
+    $err.print("\n");
 }
 
 sub gist(|) {

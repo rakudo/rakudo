@@ -236,7 +236,6 @@ P_CORE_SOURCES = \
   src/core/operators.pm \
   src/core/metaops.pm \
   src/core/precedence.pm \
-  src/core/terms.pm \
   src/core/Deprecations.pm \
   src/core/Systemic.pm \
   src/core/VM.pm \

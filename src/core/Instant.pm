@@ -113,6 +113,7 @@ multi sub infix:<->(Instant:D $a, Real:D $b) {
     Instant.new: $a.x - $b;
 }
 
+sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 sub term:<now>() {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.

@@ -194,3 +194,5 @@ my class Promise {
 # Schedules a piece of asynchronous work using the current scheduler, and
 # returns a Promise that represents it.
 sub start(&code) { Promise.start(&code) }
+
+# vim: ft=perl6 expandtab sw=4

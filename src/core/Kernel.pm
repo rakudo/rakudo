@@ -86,3 +86,5 @@ class Kernel does Systemic {
 }
 
 nqp::bindkey(nqp::who(PROCESS), '$KERNEL', Kernel.new);
+
+# vim: ft=perl6 expandtab sw=4

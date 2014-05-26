@@ -32,3 +32,5 @@ role Universal {
     method gist { $!name ~ (" ($!version)" if $!version.gist ne "vunknown") }
     method Str  { $!name }
 }
+
+# vim: ft=perl6 expandtab sw=4

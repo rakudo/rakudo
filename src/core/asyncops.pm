@@ -126,3 +126,5 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     # must do action outside above loop to make any "last" in block find the right loop
     $action();
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -46,3 +46,5 @@ multi postcircumfix:<{ }> (Compiler $d, "codename" )   {
     DEPRECATED('$*PERL.compiler.codename', :what('$*PERL<compiler><codename>') );
     $d.build-date
 }
+
+# vim: ft=perl6 expandtab sw=4

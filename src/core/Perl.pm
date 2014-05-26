@@ -20,3 +20,5 @@ multi postcircumfix:<{ }> (Perl $d, "compiler" )   {
     # allow this silently, as we will catch it on accessing the Compiler object
     $d.compiler
 }
+
+# vim: ft=perl6 expandtab sw=4

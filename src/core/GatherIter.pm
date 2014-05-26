@@ -110,5 +110,4 @@ sub GATHER(\block, Mu :$infinite) {
     GatherIter.new( block, :$infinite ).list;  
 }
 
-
 # vim: ft=perl6 expandtab sw=4

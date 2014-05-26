@@ -58,3 +58,5 @@ class Distro does Systemic{
       :instead('$*DISTRO.version'),
     ) );
 }
+
+# vim: ft=perl6 expandtab sw=4

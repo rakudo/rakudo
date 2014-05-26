@@ -1479,5 +1479,4 @@ my class X::Caller::NotDynamic is Exception {
     0;
 }
 
-
 # vim: ft=perl6 expandtab sw=4

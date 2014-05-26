@@ -5,3 +5,5 @@
     nqp::bindkey(nqp::who(PROCESS), '@ARGS', @ARGS);
     PROCESS::<$ARGFILES> = IO::ArgFiles.new(:args(@ARGS));
 }
+
+# vim: ft=perl6 expandtab sw=4

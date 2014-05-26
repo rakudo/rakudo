@@ -348,3 +348,5 @@ my class SupplyOperations is repr('Uninstantiable') {
         ClassifySupply.new(:$source)
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

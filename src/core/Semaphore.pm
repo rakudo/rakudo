@@ -12,3 +12,5 @@ my class Semaphore is repr('Semaphore') {
         nqp::semrelease(self);
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

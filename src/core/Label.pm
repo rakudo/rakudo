@@ -67,3 +67,5 @@ my class Label {
         nqp::throw($ex);
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -37,3 +37,5 @@
 
     PROCESS::<$TMPDIR> = IO::Spec.tmpdir().path;
 }
+
+# vim: ft=perl6 expandtab sw=4

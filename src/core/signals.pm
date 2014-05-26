@@ -26,3 +26,5 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
         $s
     }) );
 }
+
+# vim: ft=perl6 expandtab sw=4

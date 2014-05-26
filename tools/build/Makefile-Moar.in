@@ -167,6 +167,10 @@ M_CORE_SOURCES = \
   src/core/Supply.pm \
   src/core/SupplyOperations.pm \
   src/core/asyncops.pm \
+  src/core/IO/Socket.pm \
+  src/core/IO/Socket/INET.pm \
+  src/core/IO/Socket/Async.pm \
+  src/core/IO/Notification.pm \
   src/core/signals.pm \
   src/core/Systemic.pm \
   src/core/VM.pm \
@@ -174,11 +178,11 @@ M_CORE_SOURCES = \
   src/core/Kernel.pm \
   src/core/Compiler.pm \
   src/core/Perl.pm \
-  src/core/IO/Socket.pm \
-  src/core/IO/Socket/INET.pm \
-  src/core/IO/Socket/Async.pm \
-  src/core/IO/Notification.pm \
   src/core/OS.pm \
+  src/core/Argfiles.pm \
+  src/core/Env.pm \
+  src/core/Inc.pm \
+  src/core/Process.pm \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm

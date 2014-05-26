@@ -153,12 +153,6 @@ J_CORE_SOURCES = \
   src/core/precedence.pm \
   src/core/terms.pm \
   src/core/Deprecations.pm \
-  src/core/Systemic.pm \
-  src/core/VM.pm \
-  src/core/Distro.pm \
-  src/core/Kernel.pm \
-  src/core/Compiler.pm \
-  src/core/Perl.pm \
   src/core/Thread.pm \
   src/core/Lock.pm \
   src/core/Semaphore.pm \
@@ -176,7 +170,17 @@ J_CORE_SOURCES = \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/Async.pm \
   src/core/IO/Socket/INET.pm \
+  src/core/Systemic.pm \
+  src/core/VM.pm \
+  src/core/Distro.pm \
+  src/core/Kernel.pm \
+  src/core/Compiler.pm \
+  src/core/Perl.pm \
   src/core/OS.pm \
+  src/core/Argfiles.pm \
+  src/core/Env.pm \
+  src/core/Inc.pm \
+  src/core/Process.pm \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_JAR = perl6-debug.jar

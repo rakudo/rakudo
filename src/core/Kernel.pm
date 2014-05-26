@@ -85,4 +85,4 @@ class Kernel does Systemic {
 #?endif
 }
 
-PROCESS::<$KERNEL> = Kernel.new;
+nqp::bindkey(nqp::who(PROCESS), '$KERNEL', Kernel.new);

@@ -28,8 +28,33 @@ class Distro does Systemic{
     }
 }
 
-PROCESS::<$DISTRO> = Distro.new( :name($*OS), :version($*OSVER) );
-$*OS = Deprecation.obsolete(
-  :name('$*OS'), :value($*OS), :instead('$*DISTRO.name') );
-$*OSVER = Deprecation.obsolete(
-  :name('$*OSVER'), :value($*OSVER), :instead('$*DISTRO.version') );
+{
+    my $name =
+#?if jvm
+      $*VM.properties<os.name>;
+#?endif
+#?if !jvm
+      $*VM.config<osname>;
+#?endif
+
+    my $version =
+#?if jvm
+      $*VM.properties<os.version>;
+#?endif
+#?if !jvm
+      $*VM.config<osvers>;
+#?endif
+
+    # set up $*DISTRO and deprecated $*OS and $*OSVER
+    nqp::bindkey(nqp::who(PROCESS), '$DISTRO', Distro.new( :$name, :$version ));
+    nqp::bindkey(nqp::who(PROCESS), '$OS', Deprecation.obsolete(
+      :name('$*OS'),
+      :value($name),
+      :instead('$*DISTRO.name'),
+    ) );
+    nqp::bindkey(nqp::who(PROCESS), '$OSVER', Deprecation.obsolete(
+      :name('$*OSVER'),
+      :value($version),
+      :instead('$*DISTRO.version'),
+    ) );
+}

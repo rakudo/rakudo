@@ -46,17 +46,17 @@ class Distro does Systemic{
 #?endif
 
     # set up $*DISTRO and deprecated $*OS and $*OSVER
-    nqp::bindkey(nqp::who(PROCESS), '$DISTRO', Distro.new( :$name, :$version ));
-    nqp::bindkey(nqp::who(PROCESS), '$OS', Deprecation.obsolete(
+    PROCESS::<$DISTRO> = Distro.new( :$name, :$version );
+    PROCESS::<$OS> = Deprecation.obsolete(
       :name('$*OS'),
       :value($name),
       :instead('$*DISTRO.name'),
-    ) );
-    nqp::bindkey(nqp::who(PROCESS), '$OSVER', Deprecation.obsolete(
+    );
+    PROCESS::<$OSVER> = Deprecation.obsolete(
       :name('$*OSVER'),
       :value($version),
       :instead('$*DISTRO.version'),
-    ) );
+    );
 }
 
 # vim: ft=perl6 expandtab sw=4

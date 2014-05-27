@@ -901,7 +901,27 @@ class Perl6::Optimizer {
             my @lb := get_bound($op[0]);
             my @ub := get_bound($op[1]);
             @lb && @ub ?? [@lb[0], @ub[0]] !! []
-        });
+        },
+        '&infix:<..^>', -> $op {
+            my @lb := get_bound($op[0]);
+            my @ub := get_bound($op[1]);
+            @lb && @ub ?? [@lb[0], @ub[0] - 1] !! []
+        },
+        '&infix:<^..>', -> $op {
+            my @lb := get_bound($op[0]);
+            my @ub := get_bound($op[1]);
+            @lb && @ub ?? [@lb[0] + 1, @ub[0]] !! []
+        },
+        '&infix:<^..^>', -> $op {
+            my @lb := get_bound($op[0]);
+            my @ub := get_bound($op[1]);
+            @lb && @ub ?? [@lb[0] + 1, @ub[0] - 1] !! []
+        },
+        '&prefix:<^>', -> $op {
+            my @ub := get_bound($op[0]);
+            @ub ?? [0, @ub[0] - 1] !! []
+        },
+        );
 
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.

@@ -11,7 +11,7 @@ class Distro does Systemic{
         $!name    = $name.lc;
         $!auth    = "unknown";
         $!version = Version.new($version);
-        $!is-win  = so $!name eq any <MSWin32 mingw msys cygwin>;
+        $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
     }
 
     method release {

@@ -30,3 +30,5 @@ my class Lock is repr('ReentrantMutex') {
         nqp::getlockcondvar(self, ConditionVariable)
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

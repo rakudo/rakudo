@@ -1139,6 +1139,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
+        if $*LABEL {
+            $past.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
+        }
         $past := QAST::Want.new(
             QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
             'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
@@ -1163,6 +1166,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     
     sub tweak_loop($loop) {
+        if $*LABEL {
+            $loop.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
+        }
         # Handle phasers.
         my $code := $loop[1]<code_object>;
         my $block_type := $*W.find_symbol(['Block']);
@@ -1207,7 +1213,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<use>($/) {
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
-        if $<version> {
+        if $<statementlist> {
+            $past := $<statementlist>.ast;
+        }
+        elsif $<version> {
             # TODO: replace this by code that doesn't always die with
             # a useless error message
 #            my $i := -1;
@@ -3244,7 +3253,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
-            $name && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+            $name && $*SCOPE ne 'my' && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         methodize_block($/, $code, $past, %sig_info, $inv_type);
 
         # Need to put self into a register for the regex engine.
@@ -5979,7 +5988,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             return 0 if nqp::existskey(%info, 'sub_signature');
             return 0 if nqp::existskey(%info, 'type_captures'); # XXX Support later
-            return 0 if %info<bind_attr>;                       # XXX Support later
             return 0 if %info<bind_accessor>;                   # XXX Support later
             return 0 if %info<nominal_generic>;                 # XXX Support later
             return 0 if %info<default_from_outer>;
@@ -6025,8 +6033,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif nqp::existskey(%info, 'named_names') {
                 my @names := %info<named_names>;
-                return 0 if nqp::elems(@names) != 1;
-                $var.named(@names[0]);
+                if nqp::elems(@names) == 1 {
+                    $var.named(@names[0]);
+                }
+                elsif nqp::elems(@names) == 2 {
+                    $var.named(@names);
+                }
+                else {
+                    return 0;
+                }
             }
             elsif %info<pos_slurpy> || %info<pos_lol> {
                 $var.slurpy(1);
@@ -6184,7 +6199,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Bind to lexical if needed.
-            if nqp::existskey(%info, 'variable_name') {
+            if nqp::existskey(%info, 'variable_name') && !%info<bind_attr> {
                 if nqp::objprimspec($nomtype) || $flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_PARCEL {
                     $var.push(QAST::Op.new(
                         :op('bind'),
@@ -6264,8 +6279,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
 
-            # Finally, apply post-constraints (must come after variable bind,
-            # as constraints can refer to the var).
+            # Apply post-constraints (must come after variable bind, as constraints can
+            # refer to the var).
             if %info<post_constraints> {
                 for %info<post_constraints> {
                     my $wval := QAST::WVal.new( :value($_) );
@@ -6280,6 +6295,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Var.new( :name($name), :scope('local') )
                         ))));
                 }
+            }
+
+            # If it's an attributive parameter, do the bind.
+            if %info<bind_attr> {
+                $var.push(QAST::Op.new(
+                    :op('p6store'),
+                    QAST::Var.new(
+                        :name(%info<variable_name>), :scope('attribute'),
+                        QAST::Var.new( :name('self'), :scope('lexical') ),
+                        QAST::WVal.new( :value(%info<attr_package>) )
+                    ),
+                    QAST::Op.new(
+                        :op('decont'),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    )));
             }
 
             # Add the generated var.

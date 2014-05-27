@@ -429,3 +429,5 @@ multi trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
         ).throw;
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

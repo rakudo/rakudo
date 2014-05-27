@@ -187,6 +187,7 @@ P_CORE_SOURCES = \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Stash.pm \
+  src/core/Label.pm \
   src/core/PseudoStash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
@@ -235,17 +236,22 @@ P_CORE_SOURCES = \
   src/core/operators.pm \
   src/core/metaops.pm \
   src/core/precedence.pm \
-  src/core/terms.pm \
   src/core/Deprecations.pm \
   src/core/Systemic.pm \
-  src/core/Distro.pm \
   src/core/VM.pm \
+  src/core/Distro.pm \
   src/core/Kernel.pm \
+  src/core/Compiler.pm \
+  src/core/Perl.pm \
   src/core/OS.pm \
   src/core/JSON/Pretty.pm \
   src/core/CompUnitRepo.pm \
   src/core/CompUnitRepo/Local/File.pm \
   src/core/CompUnitRepo/Local/Installation.pm \
+  src/core/Argfiles.pm \
+  src/core/Env.pm \
+  src/core/Inc.pm \
+  src/core/Process.pm \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_PBC = perl6-debug.pbc

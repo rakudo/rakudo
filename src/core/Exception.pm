@@ -288,6 +288,22 @@ my class X::IO::Copy does X::IO is Exception {
     }
 }
 
+my class X::IO::DoesNotExist does X::IO is Exception {
+    has $.path;
+    has $.trying;
+    method message() {
+        "Failed to find '$.path' while trying to do '.$.trying'"
+    }
+}
+
+my class X::IO::NotAFile does X::IO is Exception {
+    has $.path;
+    has $.trying;
+    method message() {
+        "'$.path' is not a regular file while trying to do '.$.trying'"
+    }
+}
+
 my class X::IO::Symlink does X::IO is Exception {
     has $.target;
     has $.name;
@@ -365,11 +381,11 @@ my role X::Comp is Exception {
     has @.highexpect;
     multi method gist(::?CLASS:D: :$sorry = True, :$expect = True) {
         if $.is-compile-time {
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*DISTRO.name ne 'mswin32';
             my ($red, $green, $yellow, $clear) = $color
                 ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
                 !! ("", "", "", "");
-            my $eject = $*OS eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
+            my $eject = $*DISTRO.name eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
             my $r = $sorry ?? self.sorry_heading() !! "";
             $r ~= "$.message\nat $.filename():$.line\n------> ";
             $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
@@ -391,7 +407,7 @@ my role X::Comp is Exception {
         }
     }
     method sorry_heading() {
-        my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
+        my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*DISTRO.name ne 'mswin32';
         my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
         "$red==={$clear}SORRY!$red===$clear Error while compiling $.filename\n"
     }
@@ -412,7 +428,7 @@ my class X::Comp::Group is Exception {
     multi method gist(::?CLASS:D:) {
         my $r = "";
         if $.panic || @.sorrows {
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*DISTRO.name ne 'mswin32';
             my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
             $r ~= "$red==={$clear}SORRY!$red===$clear\n";
             for @.sorrows {
@@ -921,7 +937,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^I' => '$*INPLACE',
       '$^M' => 'a global form such as $*M',
       '$^N' => '$/[*-1]',
-      '$^O' => '$?OS or $*OS',
+      '$^O' => '$?DISTRO.name or $*DISTRO.name',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
       '$^T' => '$*BASETIME',
@@ -1235,8 +1251,9 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 }
 
 my class X::Assignment::RO is Exception {
+    has $.typename = "value";
     method message {
-        "Cannot modify an immutable value";
+        "Cannot modify an immutable {$.typename}";
     }
 }
 
@@ -1441,8 +1458,8 @@ my class X::Caller::NotDynamic is Exception {
     %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
-    %c_ex<X::Assignment::RO> := sub () is hidden_from_backtrace {
-            X::Assignment::RO.new.throw;
+    %c_ex<X::Assignment::RO> := sub ($typename = "value") is hidden_from_backtrace {
+            X::Assignment::RO.new(:$typename).throw;
         };
     %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {
             X::ControlFlow::Return.new().throw;
@@ -1461,6 +1478,5 @@ my class X::Caller::NotDynamic is Exception {
     
     0;
 }
-
 
 # vim: ft=perl6 expandtab sw=4

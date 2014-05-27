@@ -1,0 +1,40 @@
+=head1 How to obtain a commit bit for the Rakudo repository?
+
+Firstly, what's a "commit bit"? If you don't know what it is, you
+probably don't need one :-) But, in any case, a "commit bit" is the
+colloquial way that #perl6 describes how you obtain access to make
+commits directly to the rakudo repository. (i.e., not via a fork and
+pull request, but directly to https://github.com/rakudo/rakudo)
+
+Step one, if you haven't already, is to send a signed copy of the
+Contributor License Agreement (CLA) to the Perl Foundation. The CLA can
+be found at http://www.perlfoundation.org/contributor_license_agreement
+
+Why is a signed CLA necessary for commit access? Historically, it is
+because Rakudo used to be part of the Parrot project and that project
+required a signed CLA. But the reasons that Parrot required a CLA are
+also valid for Rakudo. That is, the CLA helps protect the Perl
+Foundation and the Rakudo project and contributors alike from
+intellectual property issues. The CLA warrants that your contributions
+are yours to give and that they are not encumbered by anyone else's
+intellectual "lien" on those contributions. 
+
+For instance, some employment contracts stipulate that any intellectual
+property that you generate belongs to your employer whether you generate
+it during work or after hours at home or while on vacation. If your
+employment contract has such a stipulation, you must seek permission
+from your employer such that you can contribute to Rakudo without fear
+that your employer will later claim ownership of your contributions. The
+CLA says that you have done the due diligence in these matters and that
+as far as you are aware, your contributions are yours alone to give.
+
+Once you send off your signed CLA, you can then inquire on
+irc://freenode.net/#perl6 about getting commit access to the Rakudo
+repository. The main source code repository for Rakudo is administered
+on GitHub, so it would be a good idea to have a github account before
+you request a commit bit. There is at least one officer of the Perl
+Foundation on #perl6 who can verify the reception of your signed CLA and
+several people that can then add you to the Rakudo project.
+
+Typically a commit bit is granted after a new contributor has submitted
+a few good patches.

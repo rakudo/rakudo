@@ -11,7 +11,7 @@ class Distro does Systemic{
         $!name    = $name.lc;
         $!auth    = "unknown";
         $!version = Version.new($version);
-        $!is-win  = so $!name eq any <MSWin32 mingw msys cygwin>;
+        $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
     }
 
     method release {
@@ -28,8 +28,35 @@ class Distro does Systemic{
     }
 }
 
-PROCESS::<$DISTRO> = Distro.new( :name($*OS), :version($*OSVER) );
-$*OS = Deprecation.obsolete(
-  :name('$*OS'), :value($*OS), :instead('$*DISTRO.name') );
-$*OSVER = Deprecation.obsolete(
-  :name('$*OSVER'), :value($*OSVER), :instead('$*DISTRO.version') );
+{
+    my $name =
+#?if jvm
+      $*VM.properties<os.name>;
+#?endif
+#?if !jvm
+      $*VM.config<osname>;
+#?endif
+
+    my $version =
+#?if jvm
+      $*VM.properties<os.version>;
+#?endif
+#?if !jvm
+      $*VM.config<osvers>;
+#?endif
+
+    # set up $*DISTRO and deprecated $*OS and $*OSVER
+    PROCESS::<$DISTRO> = Distro.new( :$name, :$version );
+    PROCESS::<$OS> = Deprecation.obsolete(
+      :name('$*OS'),
+      :value($name),
+      :instead('$*DISTRO.name'),
+    );
+    PROCESS::<$OSVER> = Deprecation.obsolete(
+      :name('$*OSVER'),
+      :value($version),
+      :instead('$*DISTRO.version'),
+    );
+}
+
+# vim: ft=perl6 expandtab sw=4

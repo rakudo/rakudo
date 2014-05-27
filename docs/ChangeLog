@@ -1,3 +1,6 @@
+New in 2014.06
++ .IO.{d|s|z} are now about 40% faster
+
 New in 2014.05
 + asynchronous timers on MoarVM backend
 + added or updated many Supply methods:
@@ -15,10 +18,22 @@ New in 2014.05
 + added first-index, last-index, grep-index subs/methods
 + Pair.key was erroneously implemented "is rw"
 + added "subtest code, desc" to Test.pm (inspired by P5's Test::More)
-+ Test::Tap::tap_ok and Test::Util::throws_like are now 1 test (using subtest)
++ added "throws_like" to Test.pm (formerly of Test::Util)
++ Test::Tap::tap_ok and throws_like are now 1 test (using subtest)
 + BagHash<foo>-- on non-existing key no longer fails (as per S02 spec change)
-+ deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>
-+ added $*KERNEL, $*DISTRO, $*VM as full blown objects
++ (Set|Bag|Mix)(|Hash) now have a .fmt method
++ deprecate $*OS, $*OSVER, $*VM<name>, $*VM<config>, $*PERL<name>
+  $*PERL<compiler>...
++ added $*KERNEL, $*DISTRO, $*VM, $*PERL as full blown objects
++ .delta (by recent spec change) in Date/DateTime now instead spelled
+  .later and .earlier
++ TimeUnit enum removed; string named and positional arguments used instead
++ optimized grep,grep-index,first,first-index,last-index with seperate
+  candidates for Regex and Callable.
++ "use v5" is no longer a noop, but actually tries to load the "v5" module
+  (soon available as part of Rakudo*)
++ implemented labeled loops and throwing of labels as payload
++ added various optimizations, like optimizing out %_ when unused
 
 New in 2014.04
 

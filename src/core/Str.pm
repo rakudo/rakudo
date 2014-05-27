@@ -560,7 +560,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method comb(Str:D:) {
-        (^self.chars).map({self.substr($_, 1) });
+        my str $self = self;
+        (^self.chars).map({ nqp::p6box_s(nqp::substr($self, $_, 1)) });
     }
     multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
         my $x;
@@ -573,7 +574,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method match($pat, 
                   :continue(:$c), :pos(:$p),
                   :global(:$g), :overlap(:$ov), :exhaustive(:$ex), 
-                  :st(:nd(:rd(:th(:$nth)))), :$x) {
+                  # :st(:nd(:rd(:th($nth)))) is cute, but slow
+                  :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }

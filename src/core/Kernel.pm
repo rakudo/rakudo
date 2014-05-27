@@ -12,7 +12,7 @@ class Kernel does Systemic {
 
     method name {
         $!name //= do {
-            given $*DISTRO.name.lc {
+            given $*DISTRO.name {
                 when any <linux darwin> { # needs adapting
                     qx/uname -s/.chomp;
                 }
@@ -25,7 +25,7 @@ class Kernel does Systemic {
 
     method version {
         $!version //= Version.new( do {
-            given $*DISTRO.name.lc {
+            given $*DISTRO.name {
                 when any <linux darwin> { # needs adapting
                     qx/uname -v/.chomp;
                 }
@@ -38,7 +38,7 @@ class Kernel does Systemic {
 
     method hardware {
         $!hardware //= do {
-            given $*DISTRO.name.lc {
+            given $*DISTRO.name {
                 when any <linux darwin> { # needs adapting
                     qx/uname -m/.chomp;
                 }
@@ -51,7 +51,7 @@ class Kernel does Systemic {
 
     method arch {
         $!arch //= do {
-            given $*DISTRO.name.lc {
+            given $*DISTRO.name {
                 when any <linux darwin> { # needs adapting
                     qx/uname -p/.chomp;
                 }
@@ -86,3 +86,5 @@ class Kernel does Systemic {
 }
 
 PROCESS::<$KERNEL> = Kernel.new;
+
+# vim: ft=perl6 expandtab sw=4

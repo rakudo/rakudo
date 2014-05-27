@@ -2,20 +2,35 @@ my role IO { }
 
 sub print(|) {
     my $args := nqp::p6argvmarray();
-    $*OUT.print(nqp::shift($args)) while $args;
+    my $out := $*OUT;
+    $out.print(nqp::shift($args)) while $args;
     Bool::True
 }
 
-sub say(|) {
+proto sub say(|) { * }
+multi sub say(\x) {
+    my $out := $*OUT;
+    $out.print(x.gist);
+    $out.print("\n");
+}
+multi sub say(|) {
     my $args := nqp::p6argvmarray();
-    $*OUT.print(nqp::shift($args).gist) while $args;
-    $*OUT.print("\n");
+    my $out := $*OUT;
+    $out.print(nqp::shift($args).gist) while $args;
+    $out.print("\n");
 }
 
-sub note(|) {
+proto sub note(|) { * }
+multi sub note(\x) {
+    my $err := $*ERR;
+    $err.print(x.gist);
+    $err.print("\n");
+}
+multi sub note(|) {
     my $args := nqp::p6argvmarray();
-    $*ERR.print(nqp::shift($args).gist) while $args;
-    $*ERR.print("\n");
+    my $err := $*ERR;
+    $err.print(nqp::shift($args).gist) while $args;
+    $err.print("\n");
 }
 
 sub gist(|) {
@@ -30,59 +45,89 @@ sub prompt($msg) {
 
 my role IO::FileTestable does IO {
     method d() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
-                                        nqp::const::STAT_ISDIR))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISDIR))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<d>)
     }
 
     method e() {
-        nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+        nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
                               nqp::const::STAT_EXISTS))
     }
 
     method f() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
-                              nqp::const::STAT_ISREG))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<f>)
     }
 
     method s() {
-        self.e
-          && nqp::p6box_i( nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                 nqp::const::STAT_FILESIZE) );
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
+            ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE))
+            !! fail X::IO::NotAFile.new(:path(self.Str),:trying<s>)
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<s>)
     }
 
     method l() {
-        nqp::p6bool(nqp::fileislink(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::fileislink($unboxed))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<l>)
     }
 
     method r() {
-        nqp::p6bool(nqp::filereadable(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::filereadable($unboxed))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<r>)
     }
 
     method w() {
-        nqp::p6bool(nqp::filewritable(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::filewritable($unboxed))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<w>)
     }
 
     method x() {
-        nqp::p6bool(nqp::fileexecutable(IO::Spec.rel2abs(self.Str)))
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::fileexecutable($unboxed))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<x>)
     }
 
     method z() {
-        self.f && self.s == 0;
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_ISREG))
+            ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_FILESIZE)) == 0
+            !! fail X::IO::NotAFile.new(:path(self.Str),:trying<z>)
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<z>)
     }
 
     method modified() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                nqp::const::STAT_MODIFYTIME));
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_MODIFYTIME))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<modified>)
     }
 
     method accessed() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                nqp::const::STAT_ACCESSTIME));
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_ACCESSTIME))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<accessed>)
     }
 
     method changed() { 
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
-                                nqp::const::STAT_CHANGETIME));
+        my Mu $unboxed := nqp::unbox_s(IO::Spec.rel2abs(self.Str));
+        nqp::p6bool(nqp::stat($unboxed, nqp::const::STAT_EXISTS))
+          ?? nqp::p6box_i(nqp::stat($unboxed, nqp::const::STAT_CHANGETIME))
+          !! fail X::IO::DoesNotExist.new(:path(self.Str),:trying<changed>)
     }
 }
 
@@ -396,11 +441,11 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     multi method new(:$basename!, :$directory = '.', :$volume = '') {
-        self.new: path=>$.SPEC.join($volume, $directory, $basename);
+        self.bless: path=>$.SPEC.join($volume, $directory, $basename);
     }
 
     multi method new(Str:D $path) {
-        self.new(:$path)
+        self.bless(:$path)
     }
 
     method path(IO::Path:D:) {
@@ -530,7 +575,7 @@ my class IO::Path is Cool does IO::FileTestable {
         }
     }
 
-    method contents(IO::Path:D: Mu :$test = none('.', '..')) {
+    method contents(IO::Path:D: Mu :$test = { $_ ne '.' && $_ ne '..' }) {
 
         CATCH {
             default {
@@ -552,35 +597,35 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?endif
+#?if jvm
+        my $cwd_chars = $*CWD.chars;
+#?endif
 #?if !parrot
         my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {
-#?endif
-#?if jvm
             take $_.path if $_ ~~ $test for ".", "..";
-#?endif
-#?if !parrot
+            my $SPEC = $.SPEC;
             loop {
-                my Str $elem := nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) || !$elem.chars {
+                my str $elem = nqp::nextfiledir($dirh);
+                if nqp::isnull_s($elem) || nqp::chars($elem) == 0 {
                     nqp::closedir($dirh);
                     last;
-                } else {
+                }
+                elsif $elem ne '.' | '..' {
 #?endif
 #?if jvm
                     # jvm's nextfiledir gives us absolute paths back, moar does not.
-                    $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
+                    $elem = nqp::substr($elem, $cwd_chars + 1) if self.is-relative;
 #?endif
 #?if moar
-                    next unless $elem ~~ $test;
-                    $elem := $.SPEC.catfile($!path, $elem) if self ne '.';
+                    $elem = $SPEC.catfile($!path, $elem) if $!path ne '.';
 #?endif
 #?if !parrot
-                    if $elem.substr(0, 2) eq any("./", ".\\") {
-                        $elem := $elem.substr(2);
+                    if nqp::substr($elem, 0, 2) eq "./" | ".\\" {
+                        $elem = nqp::substr($elem, 2);
                     }
-                    take $elem.path if $elem ~~ $test;
+                    take IO::Path.new($elem) if $test.ACCEPTS($elem);
                 }
             }
         }

@@ -59,5 +59,4 @@ multi infix:<~&>(\a, \b)       { a.Stringy ~& b.Stringy }
 proto prefix:<~^>($?, $?) is pure { * }
 multi prefix:<~^>(\a)         { ~^ a.Stringy }
 
-
 # vim: ft=perl6 expandtab sw=4

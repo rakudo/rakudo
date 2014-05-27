@@ -126,3 +126,5 @@ my class ThreadPoolScheduler does Scheduler {
 
 # This thread pool scheduler will be the default one.
 $PROCESS::SCHEDULER = ThreadPoolScheduler.new();
+
+# vim: ft=perl6 expandtab sw=4

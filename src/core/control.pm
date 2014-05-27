@@ -1,5 +1,6 @@
 my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
+my class Label { ... }
 
 my &THROW :=
     -> | {
@@ -49,25 +50,37 @@ my &take := -> | {
     $parcel
 };
 
-my &last := -> | { 
-    my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::decont($parcel), 
-          nqp::const::CONTROL_LAST) 
+my &last := -> | {
+    my Mu $args := nqp::p6argvmarray();
+    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
+        nqp::atpos($args, 0).last()
+    }
+    else {
+        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
+        THROW($parcel, nqp::const::CONTROL_LAST)
+    }
 };
 
 my &next := -> | { 
-    my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::decont($parcel), 
-          nqp::const::CONTROL_NEXT) 
+    my Mu $args := nqp::p6argvmarray();
+    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
+        nqp::atpos($args, 0).next()
+    }
+    else {
+        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
+        THROW($parcel, nqp::const::CONTROL_NEXT)
+    }
 };
 
 my &redo := -> | { 
-    my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::decont($parcel), 
-          nqp::const::CONTROL_REDO) 
+    my Mu $args := nqp::p6argvmarray();
+    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
+        nqp::atpos($args, 0).redo()
+    }
+    else {
+        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
+        THROW($parcel, nqp::const::CONTROL_REDO)
+    }
 };
 
 my &succeed := -> | { 

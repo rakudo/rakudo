@@ -95,7 +95,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
             if $kind == $WINNER_KIND_DONE {
                 if $contestant.closed {
                     $action = { INVOKE_KV($todo[3], $todo[0]) };
-                    last; # CHECK;
+                    last CHECK;
                 }
             }
 
@@ -103,22 +103,20 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
 
                 if (my $value := $contestant.poll) !~~ Nil {
                     $action = { INVOKE_KV($todo[3], $todo[0], $value) };
-                    last; # CHECK;
+                    last CHECK;
                 }
 
                 elsif $contestant.closed && $todo[4] {
                     $action = { INVOKE_KV($todo[4], $todo[0]) };
-                    last; # CHECK;
+                    last CHECK;
                 }
             }
         }
 
-        last if $action; # remove if we can last to CHECK:
-
         # we have to wait
         if $until && $nqp::time_n() >= $until {  # we're done waiting
             $action = $wait;
-            last; # CHECK;
+            last CHECK;
         }
 
         # wait a bit
@@ -128,3 +126,5 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     # must do action outside above loop to make any "last" in block find the right loop
     $action();
 }
+
+# vim: ft=perl6 expandtab sw=4

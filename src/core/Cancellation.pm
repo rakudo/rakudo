@@ -19,3 +19,5 @@ my class Cancellation {
         })
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

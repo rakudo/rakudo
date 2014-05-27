@@ -202,6 +202,4 @@ sub MAKE_REGEX($arg, :$i) {
     }
 }
 
-
-
 # vim: ft=perl6 expandtab sw=4

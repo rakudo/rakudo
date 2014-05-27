@@ -731,3 +731,5 @@ sub on(&setup) {
 
     OnSupply.new(:&setup)
 }
+
+# vim: ft=perl6 expandtab sw=4

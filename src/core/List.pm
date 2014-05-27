@@ -218,23 +218,42 @@ my class List does Positional { # declared in BOOTSTRAP
           !! fail 'Element shifted from empty list';
     }
 
+    multi method push(List:D: \value) {
+        if nqp::iscont(value) || !(nqp::istype(value, Iterable) || nqp::istype(value, Parcel)) {
+            $!nextiter.DEFINITE && self.gimme(*);
+            fail 'Cannot .push to an infinite list' if $!nextiter.defined;
+            nqp::p6listitems(self);
+            nqp::istype(value, self.of)
+                ?? nqp::push($!items, my $ = value)
+                !! X::TypeCheck.new(
+                      operation => '.push',
+                      expected  => self.of,
+                      got       => value,
+                    ).throw;
+            self
+        }
+        else {
+            callsame();
+        }
+    }
+    
     multi method push(List:D: *@values) {
         fail 'Cannot .push an infinite list' if @values.infinite;
-        self.gimme(*);
+        $!nextiter.DEFINITE && self.gimme(*);
         fail 'Cannot .push to an infinite list' if $!nextiter.defined;
         nqp::p6listitems(self);
 
         # don't bother with type checks
-        if ( self.of =:= Mu ) {
+        my $of := self.of;
+        if ( $of =:= Mu ) {
             nqp::push( $!items, @values.shift ) while @values.gimme(1);
         }
 
         # we must check types
         else {
-            my $of = self.of;
             while @values.gimme(1) {
                 my $value := @values.shift;
-                if $value ~~ $of {
+                if nqp::istype($value, $of) {
                     nqp::push( $!items, $value );
                 }
 
@@ -252,21 +271,38 @@ my class List does Positional { # declared in BOOTSTRAP
         self;
     }
 
+    multi method unshift(List:D: \value) {
+        if nqp::iscont(value) || !(nqp::istype(value, Iterable) || nqp::istype(value, Parcel)) {
+            nqp::p6listitems(self);
+            nqp::istype(value, self.of)
+                ?? nqp::unshift($!items, my $ = value)
+                !! X::TypeCheck.new(
+                      operation => '.push',
+                      expected  => self.of,
+                      got       => value,
+                    ).throw;
+            self
+        }
+        else {
+            callsame();
+        }
+    }
+    
     multi method unshift(List:D: *@values) {
         fail 'Cannot .unshift an infinite list' if @values.infinite;
         nqp::p6listitems(self);
 
         # don't bother with type checks
-        if ( self.of =:= Mu ) {
+        my $of := self.of;
+        if ( $of =:= Mu ) {
             nqp::unshift($!items, @values.pop) while @values;
         }
 
         # we must check types
         else {
-            my $of = self.of;
             while @values {
                 my $value := @values.pop;
-                if $value ~~ $of {
+                if nqp::istype($value, $of) {
                     nqp::unshift($!items, $value);
                 }
 
@@ -493,7 +529,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     proto method rotor(|) {*}
-    multi method rotor(1, 0) { @.list }
+    multi method rotor(1, 0) { self }
     multi method rotor($elems = 2, $overlap = 1) {
         X::OutOfRange.new(
             what => 'Overlap argument to List.rotor',

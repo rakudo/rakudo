@@ -48,6 +48,4 @@ my &fail := -> *@msg {
     $fail
 }
 
-
-
 # vim: ft=perl6 expandtab sw=4

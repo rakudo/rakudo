@@ -53,3 +53,5 @@ my class Thread {
     nqp::bindattr($init_thread, Thread, '$!name', 'Initial thread');
     PROCESS::<$THREAD> := $init_thread;
 }
+
+# vim: ft=perl6 expandtab sw=4

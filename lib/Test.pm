@@ -253,6 +253,45 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
     return $ok;
 }
 
+sub throws_like($code, $ex_type, *%matcher) is export {
+    subtest {
+        plan 2 + %matcher.keys;
+        my $msg;
+        if $code ~~ Callable {
+            $msg = 'code dies';
+            $code()
+        } else {
+            $msg = "'$code' died";
+            EVAL $code;
+        }
+        ok 0, $msg;
+        skip 'Code did not die, can not check exception', 1 + %matcher.elems;
+        CATCH {
+            default {
+                ok 1, $msg;
+                my $type_ok = $_ ~~ $ex_type;
+                ok $type_ok , "right exception type ({$ex_type.^name})";
+                if $type_ok {
+                    for %matcher.kv -> $k, $v {
+                        my $got = $_."$k"();
+                        my $ok = $got ~~ $v,;
+                        ok $ok, ".$k matches {$v.defined ?? $v !! $v.gist}";
+                        unless $ok {
+                            diag "Got:      $got";
+                            diag "Expected: $v";
+                        }
+                    }
+                } else {
+                    diag "Got:      {$_.WHAT.gist}";
+                    diag "Expected: {$ex_type.gist}";
+                    diag "Exception message: $_.message()";
+                    skip 'wrong exception type', %matcher.elems;
+                }
+            }
+        }
+    }, "did we throws_like {$ex_type.^name}?";
+}
+
 sub _is_deeply(Mu $got, Mu $expected) {
     $got eqv $expected;
 }
@@ -368,5 +407,35 @@ END {
         done;
     }
 }
+
+=begin pod
+
+=head1 NAME
+
+Test - Rakudo Testing Library
+
+=head1 SYNOPSIS
+
+  use Test;
+
+=head1 DESCRIPTION
+
+=head1 FUNCTIONS
+
+=head2 throws_like($code, Mu $expected_type, *%matchers)
+
+If C<$code> is C<Callable>, calls it, otherwise C<EVAL>s it,
+and expects it thrown an exception.
+
+If an exception is thrown, it is compared to C<$expected_type>.
+
+Then for each key in C<%matchers>, a method of that name is called
+on the resulting exception, and its return value smart-matched against
+the value.
+
+Each step is counted as a separate test; if one of the first two fails,
+the rest of the tests are skipped.
+
+=end pod
 
 # vim: ft=perl6

@@ -923,6 +923,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block
+        :my $*MAIN := 'MAIN';
 
         # performance improvement stuff
         :my $*FAKE_INFIX_FOUND := 0;
@@ -994,6 +995,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     %*LANG{$_.key} := $_.value;
                 }
             }
+            if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
+                $*MAIN := $*UNIT_OUTER.symbol('$*MAIN')<value>;
+            }
             
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
@@ -1016,7 +1020,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         <.finishpad>
         <.bom>?
-        <statementlist(1)>
+        <statementlist=.LANG($*MAIN, 'statementlist', 1)>
 
         <.install_doc_phaser>
         
@@ -1102,11 +1106,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token label {
-        :my $label;
         <identifier> ':' <?[\s]> <.ws>
+        {
+            $*LABEL       := ~$<identifier>;
+            my $total     := nqp::chars(self.orig());
+            my $from      := self.MATCH.from();
+            my $to        := self.MATCH.to() + nqp::chars($*LABEL);
+            my $line      := HLL::Compiler.lineof(self.orig(), self.from());
+            my $prematch  := nqp::substr(self.orig(), $from > 20 ?? $from - 20 !! 0, $from);
+            my $postmatch := nqp::substr(self.orig(), $to, $total > $to + 20 ?? $to + 20 !! $total);
+            my $label     := $*W.find_symbol(['Label']).new( :name($*LABEL), :$line, :$prematch, :$postmatch );
+            $*W.add_object($label);
+            $*W.install_lexical_symbol($*W.cur_lexpad(), $*LABEL, $label);
+        }
     }
 
-    token statement {
+    token statement($*LABEL = '') {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
         :my $*ACTIONS := %*LANG<MAIN-actions>;
@@ -1114,7 +1129,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
-        | <label> <statement>
+        | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
         | <EXPR> :dba('statement end')
             [
@@ -1354,10 +1369,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := 'use';
         :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
+        :my $OLD_MAIN := ~$*MAIN;
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
-        | <version>
+        | <version> [ <?{ ~$<version><vnum>[0] eq '5' }> {
+                        my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
+                        do_import($/, $module, 'Perl5');
+                        $/.CURSOR.import_EXPORTHOW($module);
+                    } ]?
+                    [ <?{ ~$<version><vnum>[0] eq '6' }> {
+                        $*MAIN := 'MAIN';
+                    } ]?
         | <module_name>
             {
                 $longname := $<module_name><longname>;
@@ -1408,6 +1431,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             ]
         ]
+        [ <?{ $*MAIN ne $OLD_MAIN }> <statementlist=.LANG($*MAIN, 'statementlist', 1)> || <?> ]
         <.ws>
     }
     

@@ -375,5 +375,4 @@ multi sub hyper(\op, \a, Associative \b, :$dwim-left, :$dwim-right) {
     hash @keys Z hyper(op, a, b{@keys}, :$dwim-left, :$dwim-right);
 }
 
-
 # vim: ft=perl6 expandtab sw=4

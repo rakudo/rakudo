@@ -1,15 +1,7 @@
 my class DateTime { ... }
 my class Date     { ... }
 
-my enum TimeUnit (
-    :second(1), :seconds(2),
-    :minute(3), :minutes(4),
-    :hour(5), :hours(6),
-    :day(7), :days(8),
-    :week(9), :weeks(10),
-    :month(11), :months(12),
-    :year(13), :years(14),
-);
+my @UNITS = <second minute hour day week month year> X~ '', 's';
 
 my role Dateish {
     method is-leap-year($y = $.year) {
@@ -40,10 +32,10 @@ my role Dateish {
         my int $day = $daycount.Int + 678881;
         my int $t = (4 * ($day + 36525)) div 146097 - 1;
         my int $year = 100 * $t;
-        $day = $day - (36524 * $t + ($t +> 2));
+        $day = $day - (36524 * $t + ($t div 4));
         $t = (4 * ($day + 366)) div 1461 - 1;
         $year = $year + $t;
-        $day = $day - (365 * $t + ($t +> 2));
+        $day = $day - (365 * $t + ($t div 4));
         my int $month = (5 * $day + 2) div 153;
         $day = $day - ((2 + $month * 153) div 5 - 1);
         if ($month > 9) {
@@ -114,14 +106,16 @@ my role Dateish {
             1 .. self.days-in-month);
     }
 
-    method truncate-parts(TimeUnit $unit, %parts? is copy) {
+    method truncate-parts(Cool $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
-        if $unit == week | weeks {
+        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+            unless $unit eq any(@UNITS);
+        if $unit eq 'week' | 'weeks' {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
             %parts<year month day> =
                 self.ymd-from-daycount($new-dc);
-        } else { # $unit == month | months | year | years
+        } else { # $unit eq 'month' | 'months' | 'year' | 'years'
             %parts<day> = 1;
             $unit eq 'year' and %parts<month> = 1;
         }
@@ -329,29 +323,37 @@ my class DateTime does Dateish {
         $!timezone.Int / 60 / 60;
     }
 
-    method delta($amount, TimeUnit $unit) {
+    method later(*%unit) {
+        die "More than one time unit supplied"
+            if %unit.keys > 1;
+
+        my ($unit, $amount) = %unit.kv;
+
+        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+            unless $unit eq any(@UNITS);
+
         my ($hour, $minute) = $!hour, $!minute;
         my $date;
 
         given $unit {
-            when second | seconds {
+            when 'second' | 'seconds' {
                 return DateTime.new(self.Instant + $amount);
             }
 
-            when minute | minutes { $minute += $amount; proceed }
+            when 'minute' | 'minutes' { $minute += $amount; proceed }
 
             $hour += floor($minute / 60);
             $minute %= 60;
 
-            when hour | hours { $hour += $amount; proceed }
+            when 'hour' | 'hours' { $hour += $amount; proceed }
 
             my $day-delta += floor($hour / 24);
             $hour %= 24;
 
-            when day | days { $day-delta += $amount; proceed }
-            when week | weeks { $day-delta += 7 * $amount; proceed }
+            when 'day' | 'days' { $day-delta += $amount; proceed }
+            when 'week' | 'weeks' { $day-delta += 7 * $amount; proceed }
 
-            when month | months {
+            when 'month' | 'months' {
                 my ($month, $year) = $!month, $!year;
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
@@ -360,7 +362,7 @@ my class DateTime does Dateish {
                 succeed;
             }
 
-            when year | years {
+            when 'year' | 'years' {
                 my $year = $!year + $amount;
                 $date = Date.new(:$year, :$!month, :$!day);
                 succeed;
@@ -387,17 +389,21 @@ my class DateTime does Dateish {
         self.new(:$date, :$hour, :$minute, :$second);
     }
 
-    method truncated-to(TimeUnit $unit) {
+    method earlier(*%unit) {
+        self.later(| -<< %unit);
+    }
+
+    method truncated-to(Cool $unit) {
         my %parts;
         given $unit {
             %parts<second> = self.whole-second;
-            when second     {}
+            when 'second'   {}
             %parts<second> = 0;
-            when minute     {}
+            when 'minute'   {}
             %parts<minute> = 0;
-            when hour       {}
+            when 'hour'     {}
             %parts<hour> = 0;
-            when day        {}
+            when 'day'      {}
             # Fall through to Dateish.
             %parts = self.truncate-parts($unit, %parts);
         }
@@ -526,22 +532,30 @@ my class Date does Dateish {
         self.new(DateTime.now);
     }
 
-    method truncated-to(TimeUnit $unit) {
+    method truncated-to(Cool $unit) {
         self.clone(|self.truncate-parts($unit));
     }
 
-    method delta($amount, TimeUnit $unit) {
+    method later(*%unit) {
+        die "More than one time unit supplied"
+            if %unit.keys > 1;
+
+        my ($unit, $amount) = %unit.kv;
+
+        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+            unless $unit eq any(@UNITS);
+
         my $date;
 
         given $unit {
             X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-                when second | seconds | minute | minutes | hour | hours;
+                when 'second' | 'seconds' | 'minute' | 'minutes' | 'hour' | 'hours';
 
             my $day-delta;
-            when day | days { $day-delta = $amount; proceed }
-            when week | weeks { $day-delta = 7 * $amount; proceed }
+            when 'day' | 'days' { $day-delta = $amount; proceed }
+            when 'week' | 'weeks' { $day-delta = 7 * $amount; proceed }
 
-            when month | months {
+            when 'month' | 'months' {
                 my ($month, $year) = $!month, $!year;
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
@@ -550,7 +564,7 @@ my class Date does Dateish {
                 succeed;
             }
 
-            when year | years {
+            when 'year' | 'years' {
                 my $year = $!year + $amount;
                 $date = Date.new(:$year, :$!month, :$!day);
                 succeed;
@@ -560,6 +574,10 @@ my class Date does Dateish {
         }
 
         $date;
+    }
+
+    method earlier(*%unit) {
+        self.later(| -<< %unit);
     }
 
     method clone(*%_) {

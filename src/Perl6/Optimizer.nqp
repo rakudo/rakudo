@@ -28,6 +28,7 @@ my class Symbols {
     # Some interesting symbols.
     has $!Mu;
     has $!Any;
+    has $!Block;
     has $!PseudoStash;
     has $!Routine;
 
@@ -51,6 +52,7 @@ my class Symbols {
         nqp::push(@!block_stack, $!UNIT);
         $!Mu          := self.find_lexical('Mu');
         $!Any         := self.find_lexical('Any');
+        $!Block       := self.find_lexical('Block');
         $!PseudoStash := self.find_lexical('PseudoStash');
         $!Routine     := self.find_lexical('Routine');
         nqp::pop(@!block_stack);
@@ -90,6 +92,7 @@ my class Symbols {
     method UNIT()        { $!UNIT }
     method Mu()          { $!Mu }
     method Any()         { $!Any }
+    method Block()       { $!Block }
     method PseudoStash() { $!PseudoStash }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
@@ -882,6 +885,23 @@ class Perl6::Optimizer {
             $op
         }
     }
+    
+    # Range operators we can optimize into loops, and how to do it.
+    sub get_bound($node) {
+        if nqp::istype($node, QAST::Want) && $node[1] eq 'Ii' {
+            my int $value := $node[2].value;
+            if $value > -2147483648 && $value < 2147483647 {
+                return [$value];
+            }
+        }
+        []
+    }
+    my %range_bounds := nqp::hash(
+        '&infix:<..>', -> $op {
+            my @lb := get_bound($op[0]);
+            my @ub := get_bound($op[1]);
+            @lb && @ub ?? [@lb[0], @ub[0]] !! []
+        });
 
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
@@ -1149,7 +1169,7 @@ class Perl6::Optimizer {
         
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
-        elsif $!level >= 2 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
+        elsif $!level >= 2 && $optype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
             if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
                 my str $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
@@ -1171,6 +1191,55 @@ class Perl6::Optimizer {
                         :private(nqp::p6bool(1)), :method($name),
                         :typename($pkg.HOW.name($pkg)));
                 }
+            }
+        }
+        
+        # If it's a for 1..1000000 { } we can simplify it to a while loop.
+        elsif $optype eq 'callmethod' && $op.name eq 'sink' &&
+              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
+              nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
+              nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) {
+            my $callee  := $op[0][1];
+            my $code    := $callee<code_object>;
+            my $count   := $code.count;
+            my $phasers := nqp::getattr($code, $!symbols.Block, '$!phasers');
+            if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
+                my $it_var     := QAST::Node.unique('range_it_');
+                my $callee_var := QAST::Node.unique('range_callee_');
+                $op.shift while $op.list;
+                $op.op('stmts');
+                $op<range_optimized> := 1;
+                $op.push(QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($it_var), :scope('local'), :decl('var'), :returns(int) ),
+                        QAST::IVal.new( :value(@bounds[0]) )
+                    ),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($callee_var), :scope('local'), :decl('var') ),
+                        $callee
+                    ),
+                    QAST::Op.new(
+                        :op('while'),
+                        QAST::Op.new(
+                            :op('isle_i'),
+                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
+                            QAST::IVal.new( :value(@bounds[1]) )
+                        ),
+                        QAST::Op.new(
+                            :op('call'),
+                            QAST::Var.new( :name($callee_var), :scope('local') ),
+                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) )
+                        ),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
+                            QAST::Op.new(
+                                :op('add_i'),
+                                QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
+                                QAST::IVal.new( :value(1) )
+                            )))));
             }
         }
         
@@ -1220,6 +1289,9 @@ class Perl6::Optimizer {
         # child. Otherwise, see all.
         if +@($want) == 3 && $want[1] eq 'v' {
             self.visit_children($want, :first);
+            if $want[0]<range_optimized> {
+                $want[2] := $want[0];
+            }
         }
         else {
             self.visit_children($want, :skip_selectors);

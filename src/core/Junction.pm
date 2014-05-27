@@ -1,19 +1,29 @@
 my class Junction { # declared in BOOTSTRAP
     # class Junction is Mu {
     #     has Mu $!storage;             # elements of Junction
-    #     has Mu $!type;                # type of Junction
+    #     has str $!type;                # type of Junction
 
-    method new(*@values, :$type) {
-        self.bless(:storage(@values.eager), :$type);
+    proto method new(|) { * }
+    multi method new(@values, Str :$type!) {
+        my $junc := nqp::create(Junction);
+        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
+        nqp::bindattr($junc, Junction, '$!type', $type);
+        $junc
+    }
+    multi method new(*@values, Str :$type!) {
+        my $junc := nqp::create(Junction);
+        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
+        nqp::bindattr($junc, Junction, '$!type', $type);
+        $junc
     }
 
     multi method Bool(Junction:D:) {
         ($!storage.map({return True if $_}).gimme(*); return False)
-            if $!type eq 'any';
+            if nqp::iseq_s($!type, 'any');
         ($!storage.map({return False unless $_}).gimme(*); return True) 
-            if $!type eq 'all';
+            if nqp::iseq_s($!type, 'all');
         ($!storage.map({return False if $_}).gimme(*); return True)
-            if $!type eq 'none';
+            if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
         $!storage.map({ $count++ if $_; return False if $count > 1 }).gimme(*);
@@ -26,18 +36,16 @@ my class Junction { # declared in BOOTSTRAP
 
     multi method ACCEPTS(Junction:D: Mu \topic) {
         ($!storage.map({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
-            if $!type eq 'any';
+            if nqp::iseq_s($!type, 'any');
         ($!storage.map({return False unless $_.ACCEPTS(topic)}).gimme(*); return True) 
-            if $!type eq 'all';
+            if nqp::iseq_s($!type, 'all');
         ($!storage.map({return False if $_.ACCEPTS(topic)}).gimme(*); return True)
-            if $!type eq 'none';
+            if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
         $!storage.map({ $count++ if $_.ACCEPTS(topic); return False if $count > 1 }).gimme(*);
         $count == 1;
     }
-
-    submethod BUILD(:$!storage, :$!type) { }
 
     multi method gist(Junction:D:) {
         $!type ~ '(' ~ $!storage.map({$_.gist}).join(', ') ~ ')'
@@ -73,7 +81,9 @@ my class Junction { # declared in BOOTSTRAP
                 nqp::push($res, call(|args));
                 Nil;
             }
-            return Junction.new(nqp::p6parcel($res, Nil), :type($type));
+            my $res_junc := nqp::clone(nqp::decont($arg));
+            nqp::bindattr($res_junc, Junction, '$!storage', nqp::p6parcel($res, Nil));
+            return $res_junc;
         }
 
         # Look for a junctional arg in the positionals.
@@ -86,7 +96,7 @@ my class Junction { # declared in BOOTSTRAP
             my Mu $arg := nqp::atpos($pos_rpa, $i);
             if nqp::istype($arg, Junction) {
                 my Str $type := nqp::getattr(nqp::decont($arg), Junction, '$!type');
-                if ($type eq "one" || $type eq "any") {
+                if nqp::iseq_s($type, 'any') || nqp::iseq_s($type, 'one') {
                     if $first_one_any == -1 {
                         # save it for later, first make sure we don't have all or none junctions later.
                         $first_one_any = $i;
@@ -113,7 +123,9 @@ my class Junction { # declared in BOOTSTRAP
                     nqp::push($res, call(|args));
                     Nil;
                 }
-                return Junction.new(nqp::p6parcel($res, Nil), :type($type));
+                my $res_junc := nqp::clone(nqp::decont($v));
+                nqp::bindattr($res_junc, Junction, '$!storage', nqp::p6parcel($res, Nil));
+                return $res_junc;
             }
         }
         

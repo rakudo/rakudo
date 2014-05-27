@@ -32,3 +32,5 @@ my class Set does Setty {
     method Set { self }
     method SetHash { SetHash.new(self.keys) }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -150,6 +150,4 @@ my sub infix:<,>(|) is pure {
     nqp::p6parcel(nqp::p6argvmarray(), nqp::null());
 }
 
-
-
 # vim: ft=perl6 expandtab sw=4

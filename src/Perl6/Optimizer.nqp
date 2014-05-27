@@ -1198,7 +1198,8 @@ class Perl6::Optimizer {
         elsif $optype eq 'callmethod' && $op.name eq 'sink' &&
               nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
               nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
-              nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) {
+              nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) &&
+              $!symbols.is_from_core($c2.name) {
             my $callee  := $op[0][1];
             my $code    := $callee<code_object>;
             my $count   := $code.count;

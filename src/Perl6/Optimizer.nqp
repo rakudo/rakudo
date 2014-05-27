@@ -31,6 +31,7 @@ my class Symbols {
     has $!Block;
     has $!PseudoStash;
     has $!Routine;
+    has $!Nil;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -55,6 +56,7 @@ my class Symbols {
         $!Block       := self.find_lexical('Block');
         $!PseudoStash := self.find_lexical('PseudoStash');
         $!Routine     := self.find_lexical('Routine');
+        $!Nil         := self.find_lexical('Nil');
         nqp::pop(@!block_stack);
     }
 
@@ -94,6 +96,7 @@ my class Symbols {
     method Any()         { $!Any }
     method Block()       { $!Block }
     method PseudoStash() { $!PseudoStash }
+    method Nil()         { $!Nil }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -1260,7 +1263,8 @@ class Perl6::Optimizer {
                                 :op('add_i'),
                                 QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
                                 QAST::IVal.new( :value(1) )
-                            )))));
+                            ))),
+                            QAST::WVal.new( :value($!symbols.Nil) )));
             }
         }
         

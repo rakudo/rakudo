@@ -840,6 +840,12 @@ integration/advent2010-day06.t
 integration/advent2010-day07.t
 integration/advent2010-day08.t
 integration/advent2010-day10.t
+integration/advent2010-day11.t
+integration/advent2010-day12.t
+integration/advent2010-day14.t
+integration/advent2010-day16.t
+integration/advent2010-day19.t
+integration/advent2010-day21.t
 integration/advent2012-day02.t
 integration/advent2012-day03.t
 integration/advent2012-day04.t #stress
@@ -870,6 +876,9 @@ integration/advent2013-day15.t
 integration/advent2013-day18.t
 integration/advent2013-day19.t # conc
 integration/advent2013-day20.t
+integration/advent2013-day21.t
+integration/advent2013-day22.t
+integration/advent2013-day23.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t  # icu
 integration/lazy-bentley-generator.t

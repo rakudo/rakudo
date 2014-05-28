@@ -13,8 +13,8 @@ class Kernel does Systemic {
     method name {
         $!name //= do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
-                    qx/uname -s/.chomp;
+                when any <linux macosx> { # needs adapting
+                    qx/uname -s/.chomp.lc;
                 }
                 default {
                     "unknown";
@@ -26,7 +26,7 @@ class Kernel does Systemic {
     method version {
         $!version //= Version.new( do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
+                when any <linux macosx> { # needs adapting
                     qx/uname -v/.chomp;
                 }
                 default {
@@ -39,7 +39,7 @@ class Kernel does Systemic {
     method hardware {
         $!hardware //= do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
+                when any <linux macosx> { # needs adapting
                     qx/uname -m/.chomp;
                 }
                 default {
@@ -52,7 +52,7 @@ class Kernel does Systemic {
     method arch {
         $!arch //= do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
+                when any <linux macosx> { # needs adapting
                     qx/uname -p/.chomp;
                 }
                 default {

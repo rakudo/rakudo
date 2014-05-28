@@ -14,60 +14,6 @@ BEGIN {
     Perl6::Metamodel::GrammarHOW.HOW.compose(Perl6::Metamodel::GrammarHOW);
 }
 
-#?if jvm
-my $prefix = nqp::atkey(nqp::backendconfig(), 'runtime.prefix');
-#?endif
-#?if !jvm
-my $prefix = $*VM.config<prefix>;
-#?endif
-if "$prefix/share/libraries.cfg".IO.e {
-    my @lines = slurp("$prefix/share/libraries.cfg").lines;
-    my %repos;
-    for nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I'), @lines -> $repo {
-        next if !$repo || $repo ~~ /^ '#'/;
-        my %options;
-        if $repo ~~ / $<class>=[ <.ident>+ % '::' ] [ ':' $<n>=\w+ <[<([]> $<v>=<[\w-]>+ <[>)\]]> { %options{$<n>} = $<v> } ]* '=' $<path>=.+ / {
-            my $name = %options<name> // '';
-            my $prio = %options<prio> // 0;
-            %repos{~$<class>}{$name}{$prio} //= [];
-            my $env_sep = $*DISTRO.is-win ?? ';' !! ':';
-            my @path = $<path>.split($env_sep);
-            for @path {
-                %repos{~$<class>}{$name}{$prio}.push(.IO.path.is-relative ?? "$prefix/share/$_" !! .Str);
-            }
-        }
-    }
-    my @custom_libs = %*CUSTOM_LIB.values;
-    for %repos.kv -> $classname, $libnames {
-        for $libnames.kv -> $name, $prios {
-            for $prios.kv -> $prio, $args {
-                if $classname eq 'CompUnitRepo::Local::File' {
-                    CompUnitRepo.add_repo( CompUnitRepo::Local::File.new(|@$args), :$name, :$prio );
-                }
-                elsif $classname eq 'CompUnitRepo::Local::Installation' {
-                    CompUnitRepo.add_repo( CompUnitRepo::Local::Installation.new(|@$args), :$name, :$prio );
-                }
-                else {
-                    my $name = 'lib/' ~ $classname.split('::').join('/') ~ '.pm';
-                    for @custom_libs -> $path {
-                        if "$path/$name".IO.e {
-                            require "$path/$name";
-                            CompUnitRepo.add_repo( ::($classname).new(|@$args), :$name, :$prio );
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-else {
-    "$prefix/share/libraries.cfg".IO.spurt:
-        join( "\n", "CompUnitRepo::Local::File:prio<1>=" ~ @*INC.join(':'),
-                    %*CUSTOM_LIB.kv.map( -> $k, $v { "CompUnitRepo::Local::Installation:name<$k>=$v" } ))
-}
-
-nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
-
 {YOU_ARE_HERE}
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,11 +1,10 @@
 class CompUnitRepo {
     my Mu $p6ml := nqp::gethllsym('perl6', 'ModuleLoader');
-    my %repos;
 
     method files($file, :$name, :$auth, :$ver) {
-        for %repos.sort -> $prio {
+        for @*INC -> $group {
             my @candi;
-            for @($prio.value) {
+            for $group.list {
                 @candi := (@candi, .files($file, :$name, :$auth, :$ver)).flat
             }
             @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) };
@@ -14,19 +13,14 @@ class CompUnitRepo {
     }
 
     method candidates($name, :$file, :$auth, :$ver) {
-        for %repos.sort.reverse -> $prio {
+        for @*INC -> $group {
             my @candi;
-            for @($prio.value) {
+            for $group.list {
                 @candi := (@candi, .candidates($name, :$file, :$auth, :$ver)).flat
             }
             @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) };
             return @candi if +@candi
         }
-    }
-
-    method add_repo($repo, :$name, :$prio = 0) {
-        %repos{$prio}.push: $repo;
-        %*CUSTOM_LIB{$name} := $repo if $name
     }
 
     method p6ml { $p6ml }

@@ -261,17 +261,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method write(IO::Handle:D: Blob:D $buf) {
-#?if parrot
-        # This relies on the Parrot 'binary' encoding and that nqp::decode
-        # passes encoding straight down to Parrot.
-        my str $encoding = $!PIO.encoding;
-        $!PIO.encoding('binary');
-        $!PIO.print(nqp::decode(nqp::decont($buf), 'binary'));
-        $!PIO.encoding($encoding) unless $encoding eq 'binary';
-#?endif
-#?if !parrot
         nqp::writefh($!PIO, nqp::decont($buf));
-#?endif
         True;
     }
 

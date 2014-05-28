@@ -5,9 +5,12 @@ class CompUnitRepo::Local::File {
     }
 
     method BUILD(:@location) {
-        @!paths = @location;
+        @!paths = @location>>.map(*.path);
         self
     }
+
+    method Str { @!paths.Str }
+    method gist { "CompUnitRepo::Local::File(" ~ @!paths.Str ~ ')' }
 
     method install($source, $from?) {
         ...

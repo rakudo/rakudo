@@ -46,7 +46,8 @@ class CompUnitRepo::Local::Installation {
         }
     }
 
-    method Str { $!path.absolute.Str }
+    method Str { $!path.Str }
+    method gist { "CompUnitRepo::Local::Installation(" ~ $!path.Str ~ ')' }
 
     method writeable-path {
         %!dists.keys.first( *.IO.w )

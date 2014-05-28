@@ -1,5 +1,7 @@
 New in 2014.06
-+ .IO.{d|s|z} are now about 40% faster
++ .IO.{d|s|z} are now about 40% faster and return Failure if path doesn't exist
++ $*DISTRO now works correctly on OS X (with name "macosx")
++ $*KERNEL now works correctly on OS X (with name "darwin")
 
 New in 2014.05
 + asynchronous timers on MoarVM backend

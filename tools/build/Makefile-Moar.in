@@ -170,6 +170,7 @@ M_CORE_SOURCES = \
   src/core/IO/Socket/INET.pm \
   src/core/IO/Socket/Async.pm \
   src/core/IO/Notification.pm \
+  src/core/Env.pm \
   src/core/signals.pm \
   src/core/Systemic.pm \
   src/core/VM.pm \
@@ -183,7 +184,6 @@ M_CORE_SOURCES = \
   src/core/CompUnitRepo/Local/File.pm \
   src/core/CompUnitRepo/Local/Installation.pm \
   src/core/Argfiles.pm \
-  src/core/Env.pm \
   src/core/Inc.pm \
   src/core/Process.pm \
   src/core/core_epilogue.pm \
@@ -283,7 +283,7 @@ $(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	$(PERL) $(M_GEN_CAT) $(M_CORE_SOURCES) > src/gen/m-CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	$(M_RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
+	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
 $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC)
 	$(M_RUN_PERL6) --target=mbc --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)

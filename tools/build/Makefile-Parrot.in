@@ -237,6 +237,7 @@ P_CORE_SOURCES = \
   src/core/metaops.pm \
   src/core/precedence.pm \
   src/core/Deprecations.pm \
+  src/core/Env.pm \
   src/core/Systemic.pm \
   src/core/VM.pm \
   src/core/Distro.pm \
@@ -249,7 +250,6 @@ P_CORE_SOURCES = \
   src/core/CompUnitRepo/Local/File.pm \
   src/core/CompUnitRepo/Local/Installation.pm \
   src/core/Argfiles.pm \
-  src/core/Env.pm \
   src/core/Inc.pm \
   src/core/Process.pm \
   src/core/core_epilogue.pm \
@@ -422,7 +422,7 @@ $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
 $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(P_CORE_SOURCES)
 	$(PERL) $(P_GEN_CAT) $(P_CORE_SOURCES) > $(P_BUILD_DIR)/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) $(P_BUILD_DIR)/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --ll-exception --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) $(P_BUILD_DIR)/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)
 
 $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)

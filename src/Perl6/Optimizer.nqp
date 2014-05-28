@@ -31,6 +31,7 @@ my class Symbols {
     has $!Block;
     has $!PseudoStash;
     has $!Routine;
+    has $!Nil;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -55,6 +56,7 @@ my class Symbols {
         $!Block       := self.find_lexical('Block');
         $!PseudoStash := self.find_lexical('PseudoStash');
         $!Routine     := self.find_lexical('Routine');
+        $!Nil         := self.find_lexical('Nil');
         nqp::pop(@!block_stack);
     }
 
@@ -94,6 +96,7 @@ my class Symbols {
     method Any()         { $!Any }
     method Block()       { $!Block }
     method PseudoStash() { $!PseudoStash }
+    method Nil()         { $!Nil }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -901,7 +904,27 @@ class Perl6::Optimizer {
             my @lb := get_bound($op[0]);
             my @ub := get_bound($op[1]);
             @lb && @ub ?? [@lb[0], @ub[0]] !! []
-        });
+        },
+        '&infix:<..^>', -> $op {
+            my @lb := get_bound($op[0]);
+            my @ub := get_bound($op[1]);
+            @lb && @ub ?? [@lb[0], @ub[0] - 1] !! []
+        },
+        '&infix:<^..>', -> $op {
+            my @lb := get_bound($op[0]);
+            my @ub := get_bound($op[1]);
+            @lb && @ub ?? [@lb[0] + 1, @ub[0]] !! []
+        },
+        '&infix:<^..^>', -> $op {
+            my @lb := get_bound($op[0]);
+            my @ub := get_bound($op[1]);
+            @lb && @ub ?? [@lb[0] + 1, @ub[0] - 1] !! []
+        },
+        '&prefix:<^>', -> $op {
+            my @ub := get_bound($op[0]);
+            @ub ?? [0, @ub[0] - 1] !! []
+        },
+        );
 
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
@@ -1198,7 +1221,8 @@ class Perl6::Optimizer {
         elsif $optype eq 'callmethod' && $op.name eq 'sink' &&
               nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
               nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
-              nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) {
+              nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) &&
+              $!symbols.is_from_core($c2.name) {
             my $callee  := $op[0][1];
             my $code    := $callee<code_object>;
             my $count   := $code.count;
@@ -1239,7 +1263,8 @@ class Perl6::Optimizer {
                                 :op('add_i'),
                                 QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
                                 QAST::IVal.new( :value(1) )
-                            )))));
+                            ))),
+                            QAST::WVal.new( :value($!symbols.Nil) )));
             }
         }
         

@@ -4,17 +4,18 @@
 # with the values that you expected and how to get them in your situation.
 
 class Kernel does Systemic {
-    has $!hardware;
-    has $!arch;
-    has $!bits;
+    has Str $.release;
+    has Str $!hardware;
+    has Str $!arch;
+    has Int $!bits;
 
     submethod BUILD (:$!auth = "unknown") {}
 
     method name {
         $!name //= do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
-                    qx/uname -s/.chomp;
+                when any <linux macosx> { # needs adapting
+                    qx/uname -s/.chomp.lc;
                 }
                 default {
                     "unknown";
@@ -26,8 +27,14 @@ class Kernel does Systemic {
     method version {
         $!version //= Version.new( do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
+                when 'linux' { # needs adapting
                     qx/uname -v/.chomp;
+                }
+                when 'macosx' {
+                    my $unamev = qx/uname -v/;
+                    $unamev ~~ m/^Darwin \s+ Kernel \s+ Version \s+ (<[\d\.]>+)/
+                      ?? ~$0
+                      !! $unamev.chomp;
                 }
                 default {
                     "unknown";
@@ -36,10 +43,23 @@ class Kernel does Systemic {
         } );
     }
 
+    method release {
+        $!release //= do {
+            given $*DISTRO.name {
+                when any <linux macosx> { # needs adapting
+                    qx/uname -v/.chomp;
+                }
+                default {
+                    "unknown";
+                }
+            }
+        }
+    }
+
     method hardware {
         $!hardware //= do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
+                when any <linux macosx> { # needs adapting
                     qx/uname -m/.chomp;
                 }
                 default {
@@ -52,7 +72,7 @@ class Kernel does Systemic {
     method arch {
         $!arch //= do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
+                when any <linux macosx> { # needs adapting
                     qx/uname -p/.chomp;
                 }
                 default {

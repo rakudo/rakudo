@@ -169,6 +169,7 @@ J_CORE_SOURCES = \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/Async.pm \
   src/core/IO/Socket/INET.pm \
+  src/core/Env.pm \
   src/core/Systemic.pm \
   src/core/VM.pm \
   src/core/Distro.pm \
@@ -181,7 +182,6 @@ J_CORE_SOURCES = \
   src/core/CompUnitRepo/Local/File.pm \
   src/core/CompUnitRepo/Local/Installation.pm \
   src/core/Argfiles.pm \
-  src/core/Env.pm \
   src/core/Inc.pm \
   src/core/Process.pm \
   src/core/core_epilogue.pm \
@@ -271,7 +271,7 @@ $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	$(PERL) $(J_GEN_CAT) $(J_CORE_SOURCES) > $(J_BUILD_DIR)/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	$(J_RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
+	$(J_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
 
 $(J_RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)

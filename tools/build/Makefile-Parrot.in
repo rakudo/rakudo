@@ -237,6 +237,7 @@ P_CORE_SOURCES = \
   src/core/metaops.pm \
   src/core/precedence.pm \
   src/core/Deprecations.pm \
+  src/core/Env.pm \
   src/core/Systemic.pm \
   src/core/VM.pm \
   src/core/Distro.pm \
@@ -245,7 +246,6 @@ P_CORE_SOURCES = \
   src/core/Perl.pm \
   src/core/OS.pm \
   src/core/Argfiles.pm \
-  src/core/Env.pm \
   src/core/Inc.pm \
   src/core/Process.pm \
   src/core/core_epilogue.pm \

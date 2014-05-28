@@ -418,7 +418,7 @@ $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
 $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(P_CORE_SOURCES)
 	$(PERL) $(P_GEN_CAT) $(P_CORE_SOURCES) > $(P_BUILD_DIR)/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) $(P_BUILD_DIR)/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --ll-exception --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) $(P_BUILD_DIR)/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)
 
 $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)

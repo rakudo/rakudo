@@ -724,14 +724,7 @@ multi sub spurt(Cool $filename,
     proto sub cwd(|) { * }
     multi sub cwd() {
         return nqp::p6box_s(
-#?if parrot
-            pir::trans_encoding__Ssi(
-                nqp::cwd(),
-                pir::find_encoding__Is('utf8'))
-#?endif
-#?if !parrot
-            nqp::cwd(),
-#?endif
+            nqp::cwd()
         );
         CATCH {
             default {

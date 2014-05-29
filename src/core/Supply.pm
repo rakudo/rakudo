@@ -638,7 +638,7 @@ sub on(&setup) {
                   CATCH { default { self.quit($_) } }
               };
 
-            my &tap_done = &done.arity == 2
+            my &tap_done = &done.arity == 1
               ?? {
                   $lock.protect({ done($index) });
                   CATCH { default { self.quit($_) } }

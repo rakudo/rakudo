@@ -9,6 +9,8 @@ class Perl does Systemic {
       :$!desc      = "",
       :$!compiler  = Compiler.new,
     ) { }
+
+    method VMnames { <moar jvm parrot> }
 }
 PROCESS::<$PERL> := Perl.new;
 

@@ -7,38 +7,34 @@ class VM does Systemic {
     has $.precomp-target;
 
     submethod BUILD (
-      :$!name,
+      :$name,
       :$!config,
 #?if jvm
       :$!properties,
 #?endif
     ) {
-        $!auth    = "unknown";
+#?if parrot
+        $!name    = $name // 'parrot';
+        $!auth    = "Parrot Foundation";
+        $!version = Version.new($!config<VERSION> // "unknown");
+        $!precomp-ext    = "pir";
+        $!precomp-target = "pir";
+#?endif
+#?if jvm
+        $!name    = $name // 'jvm';
+        $!auth    = $!properties<java.vendor> // "unknown";
+        $!version = Version.new($!properties<java.specification.version> // "unknown");
+        $!precomp-ext    = "jar";
+        $!precomp-target = "jar";
+#?endif
+#?if moar
+        $!name    = $name // 'moar';
+        $!auth    = "The MoarVM Team";
         $!version = Version.new($!config<version> // "unknown");
-        $!precomp-ext =
-#?if parrot
-          "pir"
-#?endif
-#?if jvm
-          "jar"
-#?endif
-#?if moar
-          "moarvm"
+        $!precomp-ext = "moarvm";
+        $!precomp-target = "mbc";
 #?endif
 # add new backends here please
-        ;
-        $!precomp-target =
-#?if parrot
-          "pir"
-#?endif
-#?if jvm
-          "jar"
-#?endif
-#?if moar
-          "mbc"
-#?endif
-# add new backends here please
-        ;
     }
 }
 
@@ -58,17 +54,6 @@ multi postcircumfix:<{ }> (VM $d, "properties" ) {
 #?endif
 
 {
-    my $name = # XXX: should be made dynamical
-#?if parrot
-      'parrot';
-#?endif
-#?if jvm
-      'jvm';
-#?endif
-#?if moar
-      'moar';
-#?endif
-
     my $config :=
 #?if parrot
       nqp::hllize(nqp::atpos(pir::getinterp__P,pir::const::IGLOBALS_CONFIG_HASH));
@@ -109,7 +94,6 @@ multi postcircumfix:<{ }> (VM $d, "properties" ) {
 #?endif
 
     PROCESS::<$VM> = VM.new(
-      :$name,
       :$config,
 #?if jvm
       :$properties,

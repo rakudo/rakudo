@@ -22,7 +22,7 @@ class CompUnitRepo::Local::File {
     method candidates($name, :$file, :$auth, :$ver) {
         my @candi;
         my Mu $c := nqp::gethllsym('perl6', 'ModuleLoader').p6ml.locate_candidates(
-            $name, nqp::p6listitems(nqp::decont([ @!paths, @*INC ])), :$file);
+            $name, nqp::p6listitems(nqp::decont([ @!paths ])), :$file);
         if $c[0] {
             my $candi;
             $candi<ver> = Version.new('0');

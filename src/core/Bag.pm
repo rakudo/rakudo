@@ -1,6 +1,7 @@
 my class Bag does Baggy {
     has Int $!total;
     has $!WHICH;
+    has @!pairs;  # should be Parcel, but .Parcel doesn't do what we need
 
     method total (--> Int) { $!total //= [+] self.values }
 
@@ -16,6 +17,9 @@ my class Bag does Baggy {
         %!elems.exists_key($key)
           ?? %!elems{$key}.value
           !! 0;
+    }
+    method pairs() {
+        @!pairs ||= %!elems.values.map: { (.key => .value) };
     }
 
     method delete ($a --> Int) {  # is DEPRECATED doesn't work in settings

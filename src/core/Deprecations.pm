@@ -80,10 +80,12 @@ sub DEPRECATED ($alternative, :$up = 1, :$what ) {
 } 
 
 END {
-    if my $message = Deprecation.report {
-        note $message;
-        note "Please contact the author to have these calls to deprecated code adapted,";
-        note "so that this message will disappear!";
+    unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
+        if Deprecation.report -> $message {
+            note $message;
+            note "Please contact the author to have these calls to deprecated code adapted,";
+            note "so that this message will disappear!";
+        }
     }
 }
 

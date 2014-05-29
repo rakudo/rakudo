@@ -1,6 +1,7 @@
 my class Set does Setty {
     has Int $!total;
     has $!WHICH;
+    has @!pairs;
 
     method total (--> Int) { $!total //= %!elems.elems }
     submethod WHICH {
@@ -27,6 +28,10 @@ my class Set does Setty {
     }
     method grabpairs ($count = 1) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
+    }
+
+    method pairs() {
+        @!pairs ||= %!elems.values.map: { ($_ => True) };
     }
 
     method Set { self }

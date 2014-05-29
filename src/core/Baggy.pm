@@ -74,7 +74,7 @@ my role Baggy does QuantHash {
     }
 
     method list() { self.keys }
-    method pairs() { %!elems.values }
+    method pairs() { %!elems.values.map: { (.key => .value) } }
 
     method grab ($count = 1) {
         my @grab = ROLLPICKGRAB(self, $count, %!elems.values);

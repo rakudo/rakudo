@@ -1,11 +1,15 @@
 my class Mix does Mixy {
     has Real $!total;
     has $!WHICH;
+    has @!pairs;
 
     submethod WHICH {
         $!WHICH //= self.^name
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
+    }
+    method pairs() {
+        @!pairs ||= %!elems.values.map: { (.key => .value) };
     }
 
     method total (--> Real) { $!total //= [+] self.values }   

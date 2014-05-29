@@ -10,8 +10,7 @@ class CompUnitRepo {
                 my $cur = $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_;
                 @candi := (@candi, $cur.files($file, :$name, :$auth, :$ver)).flat
             }
-            @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) };
-            return @candi if +@candi
+            return @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) } if +@candi
         }
     }
 
@@ -22,8 +21,7 @@ class CompUnitRepo {
                 my $cur = $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_;
                 @candi := (@candi, $cur.candidates($name, :$file, :$auth, :$ver)).flat
             }
-            @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) };
-            return @candi if +@candi
+            return @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) } if +@candi
         }
     }
 

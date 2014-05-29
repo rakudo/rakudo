@@ -1,4 +1,5 @@
 New in 2014.06
++ an initial implementation of S11 (Compilation Units) is now available
 + .IO.{d|s|z} are now about 40% faster and return Failure if path doesn't exist
 + $*DISTRO now works correctly on OS X (with name "macosx")
 + $*KERNEL now works correctly on OS X (with name "darwin")

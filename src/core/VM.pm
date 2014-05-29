@@ -22,7 +22,6 @@ class VM does Systemic {
 #?endif
 #?if jvm
         $!name    = $name // 'jvm';
-        $!name    = $name // 'parrot';
         $!auth    = $!properties<java.vendor> // "unknown";
         $!version = Version.new($!properties<java.specification.version> // "unknown");
         $!precomp-ext    = "jar";

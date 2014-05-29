@@ -1,3 +1,5 @@
+class CompUnitRepo::Local::File { ... }
+
 class CompUnitRepo {
     my Mu $p6ml := nqp::gethllsym('perl6', 'ModuleLoader');
 
@@ -5,7 +7,8 @@ class CompUnitRepo {
         for @*INC -> $group {
             my @candi;
             for $group.list {
-                @candi := (@candi, .files($file, :$name, :$auth, :$ver)).flat
+                my $cur = $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_;
+                @candi := (@candi, $cur.files($file, :$name, :$auth, :$ver)).flat
             }
             @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) };
             return @candi if +@candi
@@ -16,7 +19,8 @@ class CompUnitRepo {
         for @*INC -> $group {
             my @candi;
             for $group.list {
-                @candi := (@candi, .candidates($name, :$file, :$auth, :$ver)).flat
+                my $cur = $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_;
+                @candi := (@candi, $cur.candidates($name, :$file, :$auth, :$ver)).flat
             }
             @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) };
             return @candi if +@candi

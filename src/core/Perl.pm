@@ -10,7 +10,7 @@ class Perl does Systemic {
       :$!compiler  = Compiler.new,
     ) { }
 
-    method backends { <moar jvm parrot> }
+    method VMnames { <moar jvm parrot> }
 }
 PROCESS::<$PERL> := Perl.new;
 

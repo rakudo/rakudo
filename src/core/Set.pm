@@ -31,7 +31,7 @@ my class Set does Setty {
     }
 
     method pairs() {
-        @!pairs ||= %!elems.values.map: { ($_ => True) };
+        @!pairs ||= %!elems.values.map: { Enum.new(:key($_),:value(True)) };
     }
 
     method Set { self }

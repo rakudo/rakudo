@@ -223,7 +223,7 @@ my class List does Positional { # declared in BOOTSTRAP
             $!nextiter.DEFINITE && self.gimme(*);
             fail 'Cannot .push to an infinite list' if $!nextiter.defined;
             nqp::p6listitems(self);
-            value.gimme(1) if nqp::istype(value, List); # fixes #121994
+            value.gimme(*) if nqp::istype(value, List); # fixes #121994
             nqp::istype(value, self.of)
                 ?? nqp::push($!items, my $ = value)
                 !! X::TypeCheck.new(
@@ -275,7 +275,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method unshift(List:D: \value) {
         if nqp::iscont(value) || !(nqp::istype(value, Iterable) || nqp::istype(value, Parcel)) {
             nqp::p6listitems(self);
-            value.gimme(1) if nqp::istype(value, List); # fixes #121994
+            value.gimme(*) if nqp::istype(value, List); # fixes #121994
             nqp::istype(value, self.of)
                 ?? nqp::unshift($!items, my $ = value)
                 !! X::TypeCheck.new(

@@ -19,7 +19,7 @@ my class Bag does Baggy {
           !! 0;
     }
     method pairs() {
-        @!pairs ||= %!elems.values.map: { (.key => .value) };
+        @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 
     method delete ($a --> Int) {  # is DEPRECATED doesn't work in settings

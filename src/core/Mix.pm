@@ -9,7 +9,7 @@ my class Mix does Mixy {
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
     method pairs() {
-        @!pairs ||= %!elems.values.map: { (.key => .value) };
+        @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 
     method total (--> Real) { $!total //= [+] self.values }   

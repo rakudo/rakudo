@@ -5,10 +5,8 @@ class Compiler does Systemic {
 
     submethod BUILD (
       :$!name      = 'rakudo',
-      :$!auth      = 'unknown',
+      :$!auth      = 'The Perl Foundation',
       :$version,
-      :$!signature = Blob,
-      :$!desc      = "",
       :$release,
       :$build-date,
       :$codename,

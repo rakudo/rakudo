@@ -7,10 +7,9 @@ class Distro does Systemic{
     has Bool $.is-win;
     has Str $.release;
 
-    submethod BUILD (:$name, :$version, :$!release) {
+    submethod BUILD (:$name, :$version, :$!release, :$!auth) {
         $!name = $name.lc;    # lowercase
         $!name ~~ s:g/" "//;  # spaceless
-        $!auth    = "unknown";
         $!version = Version.new($version);
         $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
     }
@@ -45,7 +44,8 @@ class Distro does Systemic{
 #?if !jvm
       $*VM.config<osvers>;
 #?endif
-    my Str $release;
+    my Str $release = "unknown";
+    my Str $auth    = "unknown";
 
     # darwin specific info
     if $name eq 'darwin' {
@@ -59,10 +59,11 @@ class Distro does Systemic{
             $version = "unknown";
             $release = "unknown";
         }
+        $auth = 'Apple Computer, Inc.'; # presumably
     }
 
     # set up $*DISTRO and deprecated $*OS and $*OSVER
-    PROCESS::<$DISTRO> = Distro.new( :$name, :$version, :$release );
+    PROCESS::<$DISTRO> = Distro.new( :$name, :$version, :$release, :$auth );
     PROCESS::<$OS> = Deprecation.obsolete(
       :name('$*OS'),
       :value($name),

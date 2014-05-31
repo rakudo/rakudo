@@ -49,7 +49,7 @@ S02-literals/underscores.t
 S02-literals/version.t
 S02-magicals/78258.t
 S02-magicals/args.t
-S02-magicals/config.t
+S02-magicals/DISTRO.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/env.t

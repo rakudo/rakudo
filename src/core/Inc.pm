@@ -57,18 +57,7 @@
     }
 #?endif
 
-    my $prefix :=
-#?if jvm
-        $*VM.properties<perl6.prefix>
-#?endif
-#?if parrot
-        $*VM.config<libdir> ~ $*VM.config<versiondir>
-#?endif
-#?if moar
-        $*VM.config<prefix>
-#?endif
-         ~ '/languages/perl6';
-
+    my $prefix := $*VM.prefix ~ '/languages/perl6';
     if "$prefix/share/libraries.json".IO.e {
         my $config = "$prefix/share/libraries.json".IO.e ?? from-json( slurp "$prefix/share/libraries.json" ) !! [];
 

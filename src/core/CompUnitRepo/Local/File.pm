@@ -27,15 +27,7 @@ class CompUnitRepo::Local::File {
             my $candi;
             $candi<ver> = Version.new('0');
             $candi<provides>{$name}<pm><file> = $c[0]<pm>;
-#?if parrot
-            $candi<provides>{$name}<pir><file> = $c[0]<load>;
-#?endif
-#?if jvm
-            $candi<provides>{$name}<jar><file> = $c[0]<load>;
-#?endif
-#?if moar
-            $candi<provides>{$name}<moarvm><file> = $c[0]<load>;
-#?endif
+            $candi<provides>{$name}{$*VM.precomp-ext}<file> = $c[0]<load>;
             @candi.push: $candi;
         }
         @candi

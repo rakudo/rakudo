@@ -11,6 +11,20 @@ class Perl does Systemic {
     ) { }
 
     method VMnames { <moar jvm parrot> }
+
+    method DISTROnames {
+        (
+#?if parrot
+        <macosx linux freebsd mswin32 mingw msys cygwin solaris haiku openbsd>
+#?endif
+#?if jvm
+        <macosx linux mswin32>
+#?endif
+#?if moar
+        <macosx linux mswin32>
+#?endif
+        )
+    }
 }
 PROCESS::<$PERL> := Perl.new;
 

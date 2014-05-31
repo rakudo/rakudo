@@ -5,34 +5,37 @@ class VM does Systemic {
 #?endif
     has $.precomp-ext;
     has $.precomp-target;
+    has $.prefix;
 
     submethod BUILD (
-      :$name,
       :$!config,
 #?if jvm
       :$!properties,
 #?endif
     ) {
 #?if parrot
-        $!name    = $name // 'parrot';
-        $!auth    = "Parrot Foundation";
-        $!version = Version.new($!config<VERSION> // "unknown");
+        $!name           = 'parrot';
+        $!auth           = "Parrot Foundation";
+        $!version        = Version.new($!config<VERSION> // "unknown");
         $!precomp-ext    = "pir";
         $!precomp-target = "pir";
+        $!prefix         = $!config<libdir> ~ $!config<versiondir>;
 #?endif
 #?if jvm
-        $!name    = $name // 'jvm';
-        $!auth    = $!properties<java.vendor> // "unknown";
-        $!version = Version.new($!properties<java.specification.version> // "unknown");
+        $!name           = 'jvm';
+        $!auth           = $!properties<java.vendor> // "unknown";
+        $!version        = Version.new($!properties<java.specification.version> // "unknown");
         $!precomp-ext    = "jar";
         $!precomp-target = "jar";
+        $!prefix         = $!properties<perl6.prefix>;
 #?endif
 #?if moar
-        $!name    = $name // 'moar';
-        $!auth    = "The MoarVM Team";
-        $!version = Version.new($!config<version> // "unknown");
-        $!precomp-ext = "moarvm";
+        $!name           = 'moar';
+        $!auth           = "The MoarVM Team";
+        $!version        = Version.new($!config<version> // "unknown");
+        $!precomp-ext    = "moarvm";
         $!precomp-target = "mbc";
+        $!prefix         = $!config<prefix>;
 #?endif
 # add new backends here please
     }
@@ -78,7 +81,7 @@ multi postcircumfix:<{ }> (VM $d, "properties" ) {
 #?endif
 
 #?if jvm
-    my $properties = do {
+    my $properties := do {
         my %PROPS;
         my $jenv := nqp::jvmgetproperties();
         my Mu $enviter := nqp::iterator($jenv);

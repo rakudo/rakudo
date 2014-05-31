@@ -3,10 +3,8 @@ class Perl does Systemic {
 
     submethod BUILD (
       :$!name      = 'Perl 6',
-      :$!auth      = "unknown",
+      :$!auth      = "The Perl Foundation",
       :$!version   = Version.new("unknown"),
-      :$!signature = Blob,
-      :$!desc      = "",
       :$!compiler  = Compiler.new,
     ) { }
 

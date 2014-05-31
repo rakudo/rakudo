@@ -2,13 +2,6 @@
     my @INC;
     my %CUSTOM_LIB;
 
-#?if jvm
-    my $pathsep := $*VM.properties<path.separator>;
-#?endif
-#?if !jvm
-    my $pathsep := $*VM.config<osname> eq 'MSWin32' ?? ';' !! ':';
-#?endif
-
     my @all_paths;
     sub make-cur($class, $path) {
         @all_paths.push: $path;
@@ -54,12 +47,13 @@
         }
     }
 
-    add-curs(%*ENV<RAKUDOLIB>, $pathsep) if %*ENV<RAKUDOLIB>;
-    add-curs(%*ENV<PERL6LIB>, $pathsep)  if %*ENV<PERL6LIB>;
+    my $path-sep := $*DISTRO.path-sep;
+    add-curs(%*ENV<RAKUDOLIB>, $path-sep) if %*ENV<RAKUDOLIB>;
+    add-curs(%*ENV<PERL6LIB>, $path-sep)  if %*ENV<PERL6LIB>;
 
 #?if jvm
     for nqp::jvmclasspaths() -> $path {
-        add-curs($path, $pathsep) if nqp::stat($path, nqp::const::STAT_ISDIR);
+        add-curs($path, $path-sep) if nqp::stat($path, nqp::const::STAT_ISDIR);
     }
 #?endif
 

@@ -25,6 +25,8 @@ class Perl does Systemic {
 #?endif
         )
     }
+
+    method KERNELnames { <darwin linux win32> }
 }
 PROCESS::<$PERL> := Perl.new;
 

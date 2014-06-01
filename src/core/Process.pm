@@ -1,6 +1,5 @@
 {
-    my $PID = nqp::p6box_i(nqp::getpid());
-    PROCESS::<$PID> = $PID;
+    PROCESS::<$PID> := nqp::p6box_i(nqp::getpid());
 
     my $EXECUTABLE =
 #?if parrot

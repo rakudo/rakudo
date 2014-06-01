@@ -53,8 +53,11 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
     
-    submethod BUILD(:$!initial_threads = 0, :$!max_threads = 16) {
-        die "Initial thread pool threads must be less than or equal to maximum threads"
+    submethod BUILD(
+        :$!initial_threads = 0,
+        :$!max_threads = %*ENV<RAKUDO_MAX_THREADS> // 16,
+    ) {
+        die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
     }
 

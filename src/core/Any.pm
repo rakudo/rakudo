@@ -213,7 +213,7 @@ my class Any { # declared in BOOTSTRAP
         while $list.gimme(0) {
             $tmp := $list.shift;
             nqp::push_s($rsa,
-              nqp::unbox_s(nqp::istype($tmp, Str) ?? $tmp !! $tmp.Str));
+              nqp::unbox_s(nqp::istype($tmp, Str) && nqp::isconcrete($tmp) ?? $tmp !! $tmp.Str));
         }
         nqp::push_s($rsa, '...') if $list.infinite;
         nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))

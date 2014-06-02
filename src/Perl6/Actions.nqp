@@ -939,11 +939,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %sig_info := $<signature>.ast;
                 @params := %sig_info<parameters>;
                 if $*IMPLICIT {
-                    $block[0].push(QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name('$_'), :scope('lexical') ),
-                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
-                    ));
+                    my int $declares_topic := 0;
+                    for @params {
+                        if $_<variable_name> eq '$_' {
+                            $declares_topic := 1;
+                        }
+                    }
+                    unless $declares_topic {
+                        $block[0].push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name('$_'), :scope('lexical') ),
+                            QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                        ));
+                    }
                 }
             }
             else {

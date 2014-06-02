@@ -48,10 +48,11 @@ my class MapIter is Iterator {
                 $count = 100000 if $count > 100000;
             }
 
-            my int $NEXT = nqp::can($block, 'fire_phasers') 
-                             && +$block.phasers('NEXT');
-            my int $is_sink = $sink ?? 1 !! 0;
-            my Mu $label := $!label;
+            my int $NEXT        = nqp::can($block, 'fire_phasers')
+                                  && +$block.phasers('NEXT');
+            my int $is_sink     = $sink ?? 1 !! 0;
+            my int $did_iterate = 0;
+            my Mu $label       := $!label;
 
 #?if parrot
             Q:PIR {
@@ -110,6 +111,7 @@ my class MapIter is Iterator {
                 $I0 = defined result
                 unless $I0 goto next
                 result.'sink'()
+                store_lex '$did_iterate', 1
                 goto next
               catch:
                 .local pmc exception, type
@@ -177,7 +179,8 @@ my class MapIter is Iterator {
                                 $state = 0)
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                            ($sink ?? $block($arg) !! nqp::push($rpa, $block($arg))),
+                            ($sink ?? ($did_iterate = 1; $block($arg))
+                                   !! nqp::push($rpa, $block($arg))),
                             $state = 1
                         ))
                     ),
@@ -201,7 +204,8 @@ my class MapIter is Iterator {
                                 $state = 0)
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                            ($sink ?? $block($arg) !! nqp::push($rpa, $block($arg))),
+                            ($sink ?? ($did_iterate = 1; $block($arg)) 
+                                   !! nqp::push($rpa, $block($arg))),
                             $state = 1
                         ))
                     ),
@@ -230,7 +234,7 @@ my class MapIter is Iterator {
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
                             ($sink
-                                ?? nqp::p6invokeflat($block, $args)
+                                ?? ($did_iterate = 1; nqp::p6invokeflat($block, $args))
                                 !! nqp::push($rpa, nqp::p6invokeflat($block, $args))),
                             $state = 3
                         )),
@@ -262,7 +266,7 @@ my class MapIter is Iterator {
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
                             ($sink
-                                ?? nqp::p6invokeflat($block, $args)
+                                ?? ($did_iterate = 1; nqp::p6invokeflat($block, $args))
                                 !! nqp::push($rpa, nqp::p6invokeflat($block, $args))),
                             $state = 3
                         )),
@@ -287,7 +291,7 @@ my class MapIter is Iterator {
                 nqp::bindattr($nextiter, MapIter, '$!items', $!items);
                 nqp::push($rpa, $nextiter);
             }
-            elsif nqp::can($block, 'fire_phasers') {
+            elsif ($did_iterate || nqp::elems($rpa) || $rpa) && nqp::can($block, 'fire_phasers') {
                 $block.fire_phasers('LAST');
             }
 

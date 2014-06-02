@@ -3848,7 +3848,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if nqp::substr(~$/, 0, 1) eq '[' {
-                %*PARAM_INFO<sigil> := '@';
+                %*PARAM_INFO<sigil> := '@' unless %*PARAM_INFO<sigil>;
             }
         }
         else {

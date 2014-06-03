@@ -33,7 +33,7 @@
     }
 
     # probably needs some nqp::op, LHF for someone?
-    if try { qx/id/ } -> $id {
+    if !$*DISTRO.is-win && try { qx/id/ } -> $id {
         if $id ~~ m/^
           [ uid "=" $<uid>=(\d+) ]
           [ "(" $<user>=(<-[ ) ]>+) ")" ]

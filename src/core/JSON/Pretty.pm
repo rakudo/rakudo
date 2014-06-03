@@ -39,8 +39,7 @@ my class JSONPrettyActions {
 
     method str_escape($/) {
         if $<xdigit> {
-            # make chr(:16($<xdigit>.join));  # preferred version of next line, but it doesn't work on Niecza yet
-            make chr(eval "0x" ~ $<xdigit>.join);
+            make chr(:16($<xdigit>.join));
         } else {
             my %h = '\\' => "\\",
                     '/'  => "/",

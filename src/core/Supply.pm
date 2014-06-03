@@ -53,12 +53,14 @@ my role Supply {
     }
 
     method more(Supply:D: \msg) {
-        if self.tappers -> \tappers {
-            .more().(msg) for tappers;
-        }
-        elsif !$!been_tapped {
-            $!tappers_lock.protect({ @!paused.push: msg });
-        }
+        $!tappers_lock.protect({
+            if !$!been_tapped {
+                @!paused.push: msg;
+            }
+            else {
+                .more().(msg) for self.tappers;
+            }
+        });
         Nil;
     }
 

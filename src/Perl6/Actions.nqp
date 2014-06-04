@@ -5092,6 +5092,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $source
                 ));
         }
+        elsif $target.isa(QAST::Op) && $target.op eq 'call' && $target.name eq '&DYNAMIC' &&
+            $target[0][1] eq 'Ss' {
+            my $complain := QAST::Op.new(
+                :op('die_s'),
+                QAST::SVal.new( :value('Contextual ' ~ ~$/ ~ ' not found') )
+            );
+            my $contextual := QAST::VarWithFallback.new(
+                :name($target[0][2].value), :scope('contextual'), :fallback($complain) );
+            make QAST::Op.new( :op('bind'), $contextual, $source)
+        }
         # XXX Several more cases to do...
         else {
             $*W.throw($/, ['X', 'Bind']);

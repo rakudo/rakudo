@@ -24,39 +24,54 @@
     PROCESS::<$TMPDIR> = IO::Spec.tmpdir().path;
 
     class IdName {
-        has Int $.id;
-        has Str $.name;
+        has Int $!id;
+        has Str $!name;
+
+        submethod BUILD (:$!id, :$!name) { }
 
         method Numeric { $!id }
         method Str     { $!name }
         method gist    { "$!name ($!id)" }
-    }
+    }    
 
-    # probably needs some nqp::op, LHF for someone?
-    if !$*DISTRO.is-win && try { qx/id/ } -> $id {
-        if $id ~~ m/^
-          [ uid "=" $<uid>=(\d+) ]
-          [ "(" $<user>=(<-[ ) ]>+) ")" ]
-          \s+
-          [ gid "=" $<gid>=(\d+) ]
-          [ "(" $<group>=(<-[ ) ]>+) ")" ]
-        / {
-            PROCESS::<$USER>  := IdName.new( :id(+$<uid>), :name(~$<user>) );
-            PROCESS::<$GROUP> := IdName.new( :id(+$<gid>), :name(~$<group>) );
+    class IdFetch {
+        has Str $!name;
+
+        submethod BUILD (:$!name) { PROCESS::{$!name} := self }
+
+        sub fetch {
+            once if !$*DISTRO.is-win && try { qx/id/ } -> $id {
+                if $id ~~ m/^
+                  [ uid "=" $<uid>=(\d+) ]
+                  [ "(" $<user>=(<-[ ) ]>+) ")" ]
+                  \s+
+                  [ gid "=" $<gid>=(\d+) ]
+                  [ "(" $<group>=(<-[ ) ]>+) ")" ]
+                / {
+                    PROCESS::<$USER> :=
+                      IdName.new( :id(+$<uid>), :name(~$<user>) );
+                    PROCESS::<$GROUP> :=
+                      IdName.new( :id(+$<gid>), :name(~$<group>) );
+                }
+    
+                # alas, no support yet
+                else {
+                    PROCESS::<$USER>  := Nil;
+                    PROCESS::<$GROUP> := Nil;
+                }
+            }
         }
 
-        # alas, no support yet
-        else {
-            PROCESS::<$USER>  := Nil;
-            PROCESS::<$GROUP> := Nil;
+        method Numeric { return Nil unless fetch(); +PROCESS::{$!name} }
+        method Str     { return Nil unless fetch(); ~PROCESS::{$!name} }
+        method gist    {
+            return Nil unless fetch();
+            PROCESS::{$!name} ~ ' (' ~ +PROCESS::{$!name} ~ ')';
         }
     }
 
-    # alas, no support yet
-    else {
-        PROCESS::<$USER>  := Nil;
-        PROCESS::<$GROUP> := Nil;
-    }
+    IdFetch.new( :name<$USER> );
+    IdFetch.new( :name<$GROUP> );
 }
 
 # vim: ft=perl6 expandtab sw=4

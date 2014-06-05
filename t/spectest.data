@@ -708,7 +708,7 @@ S32-io/io-path.t
 S32-io/note.t
 S32-io/other.t
 S32-io/slurp.t
-S32-io/IO-Socket-Async.t # moar
+S32-io/IO-Socket-Async.t # conc
 S32-io/spurt.t
 S32-list/categorize.t
 S32-list/classify.t

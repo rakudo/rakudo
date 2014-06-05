@@ -69,7 +69,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         OnDemandSupply.new(:&producer, :&closing, :$scheduler)
     }
 
-    method for(*@values, :$scheduler = $*SCHEDULER) {
+    method for(*@values, :$scheduler = CurrentThreadScheduler) {
         my class ForSupply does Supply {
             has @!values;
             has $!scheduler;

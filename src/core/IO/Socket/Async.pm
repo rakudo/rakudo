@@ -45,44 +45,52 @@ my class IO::Socket::Async {
     }
 
     method chars_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
-        my $s = Supply.new;
-        nqp::asyncreadchars(
-            $!VMIO,
-            $scheduler.queue,
-            -> Mu \seq, Mu \data, Mu \err {
-                if err {
-                    $s.quit(err);
-                }
-                elsif seq < 0 {
-                    $s.done();
-                }
-                else {
-                    $s.more(data);
-                }
-            },
-            SocketCancellation);
-        $s
+        my $cancellation;
+        Supply.on_demand(-> $s {
+            $cancellation := nqp::asyncreadchars(
+                $!VMIO,
+                $scheduler.queue,
+                -> Mu \seq, Mu \data, Mu \err {
+                    if err {
+                        $s.quit(err);
+                    }
+                    elsif seq < 0 {
+                        $s.done();
+                    }
+                    else {
+                        $s.more(data);
+                    }
+                },
+                SocketCancellation);
+        },
+        closing => {
+            $cancellation && nqp::cancel($cancellation)
+        });
     }
 
     method bytes_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
-        my $s = Supply.new;
-        nqp::asyncreadbytes(
-            $!VMIO,
-            $scheduler.queue,
-            -> Mu \seq, Mu \data, Mu \err {
-                if err {
-                    $s.quit(err);
-                }
-                elsif seq < 0 {
-                    $s.done();
-                }
-                else {
-                    $s.more(data);
-                }
-            },
-            nqp::decont($buf),
-            SocketCancellation);
-        $s
+        my $cancellation;
+        Supply.on_demand(-> $s {
+            $cancellation := nqp::asyncreadbytes(
+                $!VMIO,
+                $scheduler.queue,
+                -> Mu \seq, Mu \data, Mu \err {
+                    if err {
+                        $s.quit(err);
+                    }
+                    elsif seq < 0 {
+                        $s.done();
+                    }
+                    else {
+                        $s.more(data);
+                    }
+                },
+                nqp::decont($buf),
+                SocketCancellation);
+        },
+        closing => {
+            $cancellation && nqp::cancel($cancellation)
+        });
     }
 
     method close(IO::Socket::Async:D:) {
@@ -112,20 +120,24 @@ my class IO::Socket::Async {
 
     method listen(IO::Socket::Async:U: $host as Str, $port as Int,
                   :$scheduler = $*SCHEDULER) {
-        my $s = Supply.new;
-        nqp::asynclisten(
-            $scheduler.queue,
-            -> Mu \socket, Mu \err {
-                if err {
-                    $s.quit(err);
-                }
-                else {
-                    my $client_socket := nqp::create(self);
-                    nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
-                    $s.more($client_socket);
-                }
-            },
-            $host, $port, SocketCancellation);
-        $s
+        my $cancellation;
+        Supply.on_demand(-> $s {
+            $cancellation := nqp::asynclisten(
+                $scheduler.queue,
+                -> Mu \socket, Mu \err {
+                    if err {
+                        $s.quit(err);
+                    }
+                    else {
+                        my $client_socket := nqp::create(self);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                        $s.more($client_socket);
+                    }
+                },
+                $host, $port, SocketCancellation);
+        },
+        closing => {
+            $cancellation && nqp::cancel($cancellation)
+        });
     }
 }

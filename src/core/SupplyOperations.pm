@@ -35,6 +35,40 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
     }
     
+    method on_demand(&producer, :&closing, :$scheduler = CurrentThreadScheduler) {
+        my class OnDemandSupply does Supply {
+            has &!producer;
+            has &!closing;
+            has $!scheduler;
+
+            submethod BUILD(:&!producer!, :&!closing!, :$!scheduler!) {}
+
+            method live { False }
+            method tap(|c) {
+                my $closed = False;
+                my $close_action;
+                my $sub = self.Supply::tap(|c, closing => {
+                    $closed = True;
+                    &!closing && &!closing();
+                });
+                $!scheduler.cue(
+                    {
+                        my $s = Supply.new;
+                        $s.tap(
+                            -> \val { $sub.more().(val) },
+                            done => { if !$closed && $sub.done -> $t { $t() } },
+                            quit => -> $ex { if !$closed && $sub.quit -> $t { $t($ex) } }
+                        );
+                        &!producer($s)
+                    },
+                    :catch(-> $ex { if !$closed && $sub.quit -> $t { $t($ex) } })
+                );
+                $sub
+            }
+        }
+        OnDemandSupply.new(:&producer, :&closing, :$scheduler)
+    }
+
     method for(*@values, :$scheduler = $*SCHEDULER) {
         my class ForSupply does Supply {
             has @!values;

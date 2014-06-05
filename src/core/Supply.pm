@@ -150,6 +150,7 @@ my role Supply {
         }, *;
     }
 
+    method on_demand(Supply:U: |c)       { SupplyOperations.on_demand(|c) }
     method for(Supply:U: |c)             { SupplyOperations.for(|c) }
     method interval(Supply:U: |c)        { SupplyOperations.interval(|c) }
     method flat(Supply:D: )              { SupplyOperations.flat(self) }

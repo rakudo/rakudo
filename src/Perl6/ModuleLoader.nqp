@@ -69,8 +69,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     if +@GLOBALish && %opts<from> eq 'NQP' {
                         my $target := nqp::knowhow().new_type(:name('GLOBALish'));
                         nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
-                        return %language_module_loaders{%opts<from>}.load_module($module_name,
-                            %opts, $target, :$line, :$file);
+                        return %language_module_loaders<NQP>.load_module($module_name,
+                            $target);
                     }
                     return %language_module_loaders{%opts<from>}.load_module($module_name,
                         %opts, |@GLOBALish, :$line, :$file);

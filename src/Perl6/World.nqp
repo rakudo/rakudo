@@ -341,7 +341,13 @@ class Perl6::World is HLL::World {
             for %opts {
                 self.add_object($_.value);
                 $opt_hash.push(QAST::SVal.new( :value($_.key) ));
-                $opt_hash.push(QAST::WVal.new( :value($_.value) ));
+                my $Str := $*W.find_symbol(['Str']);
+                if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
+                    $opt_hash.push(QAST::SVal.new( :value($_.value) ));
+                }
+                else {
+                    $opt_hash.push(QAST::WVal.new( :value($_.value) ));
+                }
             }
             self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
                 self.perl6_module_loader_code(),

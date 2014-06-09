@@ -91,7 +91,6 @@ my grammar JSONPrettyGrammar {
 
 proto to-json($, :$indent = 0, :$first = 0) {*}
 
-my $s = 2;
 multi to-json(Version:D $v, :$indent = 0, :$first = 0) { to-json(~$v, :$indent, :$first) }
 multi to-json(Real:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ~$d }
 multi to-json(Bool:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ($d ?? 'true' !! 'false') }
@@ -104,12 +103,12 @@ multi to-json(Str:D $d, :$indent = 0, :$first = 0) {
 }
 multi to-json(Positional:D $d, :$indent = 0, :$first = 0) {
     return (' ' x $first) ~ "\["
-            ~ ($d ?? $d.map({ "\n" ~ to-json($_, :indent($indent + $s), :first($indent + $s)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
+            ~ ($d ?? $d.map({ "\n" ~ to-json($_, :indent($indent + 2), :first($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
             ~ ']';
 }
 multi to-json(Associative:D $d, :$indent = 0, :$first = 0) {
     return (' ' x $first) ~ "\{"
-            ~ ($d ?? $d.map({ "\n" ~ to-json(.key, :first($indent + $s)) ~ ' : ' ~ to-json(.value, :indent($indent + $s)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
+            ~ ($d ?? $d.map({ "\n" ~ to-json(.key, :first($indent + 2)) ~ ' : ' ~ to-json(.value, :indent($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
             ~ '}';
 }
 

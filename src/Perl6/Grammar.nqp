@@ -1431,10 +1431,38 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             ]
         ]
-        [ <?{ $*MAIN ne $OLD_MAIN }> <statementlist=.LANG($*MAIN, 'statementlist', 1)> || <?> ]
+        [ <?{ $*MAIN ne $OLD_MAIN }> <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)> || <?> ]
         <.ws>
     }
-    
+
+    # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
+    method FOREIGN_LANG($lang, $regex, *@args) {
+        if nqp::istype(%*LANG{$lang}, NQPCursor) {
+            return self.LANG($lang, $regex, @args)
+        }
+        else {
+            my $Str := $*W.find_symbol(['Str']);
+            my $lang_cursor := %*LANG{$lang}.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()));
+            if self.HOW.traced(self) {
+                $lang_cursor.HOW.trace-on($lang_cursor, self.HOW.trace_depth(self));
+            }
+            my $*ACTIONS := %*LANG{$lang ~ '-actions'};
+            my $ret := $lang_cursor."$regex"(|@args);
+
+            # Build up something NQP-levelish we can return.
+            my $new := NQPCursor.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+            my $p6cursor := $*W.find_symbol(['Cursor']);
+            nqp::bindattr_i($new, NQPCursor, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
+            nqp::bindattr_i($new, NQPCursor, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
+            nqp::bindattr($new,   NQPCursor, '$!name',  nqp::getattr($ret,   $p6cursor, '$!name'));
+
+            my $match := nqp::create(NQPMatch);
+            nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
+            nqp::bindattr($new, NQPCursor, '$!match', $match);
+            $new;
+        }
+    }
+
     sub do_import($/, $module, $package_source_name, $arglist?) {
         if nqp::existskey($module, 'EXPORT') {
             my $EXPORT := $*W.stash_hash($module<EXPORT>);

@@ -273,7 +273,7 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	$(J_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
 
-$(J_RUNNER):
+$(J_RUNNER):    tools/build/create-jvm-runner.pl
 	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default: j-all

@@ -18,7 +18,7 @@ class Distro does Systemic{
     method release {
         $!release //= do {
             given $*DISTRO.name {
-                when any <linux darwin> { # needs adapting
+                when any <linux macosx> { # needs adapting
                     qx/uname -r/.chomp;
                 }
                 default {
@@ -42,12 +42,16 @@ class Distro does Systemic{
     my $version  := $config<osvers>;
     my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';
 #?endif
-    my Str $release := "unknown";
-    my Str $auth    := "unknown";
+    my Str $release;
+    my Str $auth := "unknown";
 
     # darwin specific info
     if $name eq 'darwin' {
-        if qx/sw_vers/ ~~ m/ProductName\: \s+ (<[\w\ ]>+) \s+ ProductVersion\: \s+ (<[\d\.]>+) \s+ BuildVersion\: \s+ (<[\w\d]>+)/ {
+        if qx/sw_vers/ ~~ m/^
+          ProductName\: \s+ (<[\w\ ]>+) \s+
+          ProductVersion\: \s+ (<[\d\.]>+) \s+
+          BuildVersion\: \s+ (<[\w\d]>+)
+        / {
             $name    := ~$0;
             $version := ~$1;
             $release := ~$2;

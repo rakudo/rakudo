@@ -64,7 +64,7 @@ if ($debugger) {
 else {
     install "perl6-j", "java $jopts perl6";
     install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";
-    install "perl6-eval-server", "java -Xmx2500m -XX:MaxPermSize=250m $jopts org.perl6.nqp.tools.EvalServer";
+    install "perl6-eval-server", "java -Xmx3000m -XX:MaxPermSize=200m $jopts org.perl6.nqp.tools.EvalServer";
     cp(File::Spec->catfile($nqpprefix,'bin','eval-client.pl'), '.')
         or die "Couldn't copy 'eval-client.pl' from $nqpprefix: $!";
 }

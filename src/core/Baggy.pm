@@ -10,7 +10,7 @@ my role Baggy does QuantHash {
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :exists adverb");
+        DEPRECATED("the :exists adverb with postcircumfix:<{ }>");
         self.exists_key($k);
     }
     method exists_key($k --> Bool) {

@@ -29,11 +29,11 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     
     proto method exists(|) {*}
     multi method exists (EnumMap:U:) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :exists adverb");
+        DEPRECATED("the :exists adverb with postcircumfix:<{ }>");
         self.exists_key;
     }
     multi method exists (EnumMap:D: \key) { # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :exists adverb");
+        DEPRECATED("the :exists adverb with postcircumfix:<{ }>");
         self.exists_key(key);
     }
 

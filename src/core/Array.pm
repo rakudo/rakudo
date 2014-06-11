@@ -88,7 +88,7 @@ class Array { # declared in BOOTSTRAP
     }
     
     method delete (\pos) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :delete adverb");
+        DEPRECATED("the :delete adverb with postcircumfix:<[ ]>");
         self.delete_pos(pos);
     }
     method delete_pos(\pos) {

@@ -19,7 +19,7 @@ my class MixHash does Mixy {
     }
 
     method delete($k) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :delete adverb with postcircumfix:<{ }>");
+        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
         self.delete_key($k);
     }
     method delete_key($k) {

@@ -23,7 +23,7 @@ my class Bag does Baggy {
     }
 
     method delete ($a --> Int) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :delete adverb with postcircumfix:<{ }>");
+        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
         self.delete_key($a);
     }
     method delete_key($a --> Int) is hidden_from_backtrace {

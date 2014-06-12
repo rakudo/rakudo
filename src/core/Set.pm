@@ -17,7 +17,7 @@ my class Set does Setty {
     }
 
     method delete ($a --> Bool) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :delete adverb with postcircumfix:<{ }>");
+        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
         self.delete_key($a);
     }
     method delete_key($k --> Bool) is hidden_from_backtrace {

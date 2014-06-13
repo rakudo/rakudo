@@ -29,9 +29,10 @@
             my $class = $<class> ?? ~$<class> !! 'CompUnitRepo::Local::File';
             my @paths = $<path>.split($sep);
             for @paths -> $path {
-                my $cur = make-cur($class, $path);
-                %CUSTOM_LIB{~%options<name>} = $cur if %options<name>;
-                @INC.push: $cur
+                if make-cur($class, $path) -> $cur {
+                    %CUSTOM_LIB{~%options<name>} = $cur if %options<name>;
+                    @INC.push: $cur
+                }
             }
         }
     }
@@ -67,14 +68,17 @@
                 for $props.list -> $prop {
                     if $prop ~~ Associative {
                         for $prop.value.flat -> $path {
-                            my $cur = make-cur($class, $path);
-                            @cur_group.push: $cur;
-                            %CUSTOM_LIB{$prop.key} = $cur;
+                            if make-cur($class, $path) -> $cur {
+                                @cur_group.push: $cur;
+                                %CUSTOM_LIB{$prop.key} = $cur;
+                            }
                         }
                     }
                     else {
                         for $prop.flat -> $path {
-                            @cur_group.push: make-cur($class, $path)
+                            if make-cur($class, $path) -> $cur {
+                                @cur_group.push: $cur;
+                            }
                         }
                     }
                 }
@@ -90,16 +94,32 @@
         try {
             my $home := %*ENV<HOME> // %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
             my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-            @INC.push(CompUnitRepo::Local::File.new("$home/.perl6/$ver/lib"));
-            @cur_inst.push(%CUSTOM_LIB<home> = CompUnitRepo::Local::Installation.new("$home/.perl6/$ver"));
+            if CompUnitRepo::Local::File.new("$home/.perl6/$ver/lib") -> $cur {
+                @INC.push: $cur;
+            }
+            if CompUnitRepo::Local::Installation.new("$home/.perl6/$ver") -> $cur {
+                @cur_inst.push: %CUSTOM_LIB<home> = $cur;
+            }
         }
-        @INC.push(CompUnitRepo::Local::File.new("$prefix/lib"));
-        @INC.push(CompUnitRepo::Local::File.new("$prefix/vendor/lib"));
-        @INC.push(CompUnitRepo::Local::File.new("$prefix/site/lib"));
-        @cur_inst.push(%CUSTOM_LIB<perl>   = CompUnitRepo::Local::Installation.new($prefix));
-        @cur_inst.push(%CUSTOM_LIB<vendor> = CompUnitRepo::Local::Installation.new("$prefix/vendor"));
-        @cur_inst.push(%CUSTOM_LIB<site>   = CompUnitRepo::Local::Installation.new("$prefix/site"));
-        @INC.push([@cur_inst]);
+        if CompUnitRepo::Local::File.new("$prefix/lib") -> $cur {
+            @INC.push: $cur;
+        }
+        if CompUnitRepo::Local::File.new("$prefix/vendor/lib") -> $cur {
+            @INC.push: $cur;
+        }
+        if CompUnitRepo::Local::File.new("$prefix/site/lib") -> $cur {
+            @INC.push: $cur;
+        }
+        if CompUnitRepo::Local::Installation.new($prefix) -> $cur {
+            @cur_inst.push: %CUSTOM_LIB<perl> = $cur;
+        }
+        if CompUnitRepo::Local::Installation.new("$prefix/vendor") -> $cur {
+            @cur_inst.push: %CUSTOM_LIB<vendor> = $cur;
+        }
+        if CompUnitRepo::Local::Installation.new("$prefix/site") -> $cur {
+            @cur_inst.push: %CUSTOM_LIB<site> = $cur;
+        }
+        @INC.push([@cur_inst]) if @cur_inst;
     }
 
     PROCESS::<@INC>        := @INC;

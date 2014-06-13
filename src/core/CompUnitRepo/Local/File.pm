@@ -6,6 +6,7 @@ class CompUnitRepo::Local::File {
 
     method new( $path is copy ) {
         $path = IO::Spec.rel2abs($path);
+        return Nil unless $path.IO.e;
         %instances{$path} //= self.bless(:$path)
     }
 

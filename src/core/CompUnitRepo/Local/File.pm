@@ -1,6 +1,6 @@
 class CompUnitRepo::Local::File {
-    has $!path;
-    has $.WHICH;
+    has IO::Path $!path;
+    has Str $.WHICH;
 
     my %instances;
 

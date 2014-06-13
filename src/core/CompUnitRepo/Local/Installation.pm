@@ -31,8 +31,8 @@ class CompUnitRepo::Distribution {
 class CompUnitRepo::Local::Installation {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
-    has $.path;
-    has $.WHICH;
+    has IO::Path $.path;
+    has Str $.WHICH;
 
     my %instances;
 

@@ -219,6 +219,7 @@ P_CORE_SOURCES = \
   src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
+  src/core/Lock.pm \
   src/core/QuantHash.pm \
   src/core/Setty.pm \
   src/core/Set.pm \

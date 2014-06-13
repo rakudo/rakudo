@@ -36,7 +36,8 @@ class CompUnitRepo::Local::Installation {
 
     my %instances;
 
-    method new( $path ) {
+    method new( $path is copy ) {
+        $path = IO::Spec.rel2abs($path);
         %instances{$path} //= self.bless(:$path)
     }
 

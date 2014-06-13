@@ -1,16 +1,21 @@
 class CompUnitRepo::Local::File {
     has $!path;
+    has $.WHICH;
+
+    my %instances;
+
     method new( $path ) {
-        self.bless(:$path)
+        %instances{$path} //= self.bless(:$path)
     }
 
     method BUILD(:$path) {
+        $!WHICH = "CompUnitRepo::Local::File" ~ '|' ~ $path;
         $!path = $path.path;
         self
     }
 
     method Str { $!path.Str }
-    method gist { "CompUnitRepo::Local::File(" ~ $!path.Str ~ ')' }
+    method gist { $?CLASS ~ '(' ~ $!path.Str ~ ')' }
 
     method install($source, $from?) {
         ...

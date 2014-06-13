@@ -32,11 +32,16 @@ class CompUnitRepo::Local::Installation {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has $.path;
-    method new($path) {
-        self.bless(:$path)
+    has $.WHICH;
+
+    my %instances;
+
+    method new( $path ) {
+        %instances{$path} //= self.bless(:$path)
     }
 
     method BUILD(:$path) {
+        $!WHICH = "CompUnitRepo::Local::Installation" ~ '|' ~ $path;
         $!path = $path.path unless $!path;
         %!dists{$path} = "$path/MANIFEST".IO.e ?? from-json( slurp "$path/MANIFEST" ) !! {};
         %!dists{$path}<file-count> //= 0;

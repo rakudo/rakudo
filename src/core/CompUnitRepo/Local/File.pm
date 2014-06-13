@@ -9,13 +9,14 @@ class CompUnitRepo::Local::File {
     }
 
     method BUILD(:$path) {
-        $!WHICH = "CompUnitRepo::Local::File" ~ '|' ~ $path;
+        $!WHICH = self.^name ~ '|' ~ $path;
         $!path = $path.path;
         self
     }
 
     method Str { $!path.Str }
-    method gist { $?CLASS ~ '(' ~ $!path.Str ~ ')' }
+    method gist { self.^name ~ '(' ~ $!path.Str ~ ')' }
+    method perl { self.^name ~ ".new('" ~ $!path.Str ~ "')" }
 
     method install($source, $from?) {
         ...

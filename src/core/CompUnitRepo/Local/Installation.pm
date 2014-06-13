@@ -41,7 +41,7 @@ class CompUnitRepo::Local::Installation {
     }
 
     method BUILD(:$path) {
-        $!WHICH = "CompUnitRepo::Local::Installation" ~ '|' ~ $path;
+        $!WHICH = self.^name ~ '|' ~ $path;
         $!path = $path.path unless $!path;
         %!dists{$path} = "$path/MANIFEST".IO.e ?? from-json( slurp "$path/MANIFEST" ) !! {};
         %!dists{$path}<file-count> //= 0;
@@ -50,7 +50,8 @@ class CompUnitRepo::Local::Installation {
     }
 
     method Str { $!path.Str }
-    method gist { "CompUnitRepo::Local::Installation(" ~ $!path.Str ~ ')' }
+    method gist { self.^name ~ '(' ~ $!path.Str ~ ')' }
+    method perl { self.^name ~ ".new('" ~ $!path.Str ~ "')" }
 
     method writeable-path {
         %!dists.keys.first( *.IO.w )

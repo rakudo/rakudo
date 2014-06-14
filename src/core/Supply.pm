@@ -599,7 +599,7 @@ my role Supply {
         }
     }
 
-    method zip_latest(*@s, :&with is copy) {
+    method zip-latest(*@s, :&with is copy) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to do.
         return @s[0] if +@s == 1;           # nothing to do.

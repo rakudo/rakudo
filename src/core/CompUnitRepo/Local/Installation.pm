@@ -63,6 +63,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
 }';
 
     method install(:$dist!, *@files) {
+        $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
         my $repo     = %!dists{$path};
         my $file-id := $repo<file-count>;
@@ -86,7 +87,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         
         # Initialize "provides" section.
         for %($d.provides).kv -> $k, $v is rw {
-            # when we do not use .kv, we error out when trying to store into Pairs :o(
+            # when we do not use .kv, we error out when trying to store into Pairs
             $v = {};
         }
         
@@ -129,7 +130,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         
         # XXX Create path if needed.
         "$path/MANIFEST".IO.spurt: to-json( $repo )
-    }
+    } ) }
 
     method files($file, :$name, :$auth, :$ver) {
         my @candi;

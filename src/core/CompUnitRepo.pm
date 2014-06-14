@@ -8,8 +8,9 @@ class CompUnitRepo {
         for @*INC -> $group {
             my @candi;
             for $group.list {
-                my $cur = $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_;
-                @candi := (@candi, $cur.files($file, :$name, :$auth, :$ver)).flat
+                if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+                    @candi := (@candi, $cur.candidates($name, :$file, :$auth, :$ver)).flat
+                }
             }
             return @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) } if +@candi
         }
@@ -19,8 +20,9 @@ class CompUnitRepo {
         for @*INC -> $group {
             my @candi;
             for $group.list {
-                my $cur = $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_;
-                @candi := (@candi, $cur.candidates($name, :$file, :$auth, :$ver)).flat
+                if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+                    @candi := (@candi, $cur.candidates($name, :$file, :$auth, :$ver)).flat
+                }
             }
             return @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) } if +@candi
         }

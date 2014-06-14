@@ -598,6 +598,37 @@ my role Supply {
             }
         }
     }
+
+    method zip_latest(*@s, :&with is copy) {
+        @s.unshift(self) if self.DEFINITE;  # add if instance method
+        return Supply unless +@s;           # nothing to do.
+        return @s[0] if +@s == 1;           # nothing to do.
+
+        my &infix:<op> = &with // &[,]; # hack, see zip above.
+        my @values;
+
+        my $uninitialised = +@s; # how many supplies have yet to more until we
+                                 # can start more-ing, too?
+
+        my $dones = 0;
+
+        on -> $res {
+            @s => do {
+                {
+                more => -> $val, $index {
+                    if $uninitialised > 0 && not @values[$index]:exists {
+                        --$uninitialised;
+                    }
+                    @values[$index] = $val;
+                    unless $uninitialised {
+                        $res.more( [op] @values );
+                    }
+                },
+                done => { $res.done() if ++$dones == +@s }
+                }
+            }
+        }
+    }
 }
 
 # The on meta-combinator provides a mechanism for implementing thread-safe

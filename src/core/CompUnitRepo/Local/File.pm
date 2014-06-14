@@ -1,7 +1,7 @@
 class CompUnitRepo::Local::File does CompUnitRepo::Locally {
 
-    method install { ... }
-    method files   { ... }
+    method install($source, $from?) { ... }
+    method files($file, :$name, :$auth, :$ver) { ... }
 
     method candidates($name, :$file, :$auth, :$ver) {
         my @candi;

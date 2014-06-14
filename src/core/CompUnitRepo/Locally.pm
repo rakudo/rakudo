@@ -1,4 +1,5 @@
 role CompUnitRepo::Locally {
+    has Lock $!lock;
     has IO::Path $!path;
     has Str $.WHICH;
 
@@ -11,8 +12,9 @@ role CompUnitRepo::Locally {
     }
 
     method BUILD(:$path) {
+        $!lock  = Lock.new;
         $!WHICH = self.^name ~ '|' ~ $path;
-        $!path = $path.path;
+        $!path  = $path.path;
         self
     }
 

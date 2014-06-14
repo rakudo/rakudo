@@ -2,6 +2,7 @@ class CompUnitRepo::Local::File { ... }
 
 class CompUnitRepo {
     my Mu $p6ml := nqp::gethllsym('perl6', 'ModuleLoader');
+    my $lock := Lock.new;
 
     method files($file, :$name, :$auth, :$ver) {
         for @*INC -> $group {
@@ -28,6 +29,7 @@ class CompUnitRepo {
     method p6ml { $p6ml }
 
     method load_module($module_name, %opts, *@GLOBALish is rw, :$line, :$file) {
+        $lock.protect( {
         my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];
         my %chosen;
         if $candi {
@@ -38,7 +40,7 @@ class CompUnitRepo {
             %chosen<key>  := %chosen<pm> // %chosen<load>;
         }
         $p6ml.load_module($module_name, %opts, |@GLOBALish, :$line, :$file, :%chosen);
-    }
+    } ) }
 
     method ctxsave() { $p6ml.ctxsave() }
     method absolute_path($path) { $p6ml.absolute_path($path) }

@@ -1,16 +1,6 @@
-class CompUnitRepo::Local::Installation {
+class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
-    has IO::Path $.path;
-    has Str $.WHICH;
-
-    my %instances;
-
-    method new( $path is copy ) {
-        $path = IO::Spec.rel2abs($path);
-        return Nil unless $path.IO.e;
-        %instances{$path} //= self.bless(:$path)
-    }
 
     method BUILD(:$path) {
         $!WHICH = self.^name ~ '|' ~ $path;
@@ -20,10 +10,6 @@ class CompUnitRepo::Local::Installation {
         %!dists{$path}<dist-count> //= 0;
         %!dists{$path}<dists>      //= [ ];
     }
-
-    method Str { $!path.Str }
-    method gist { self.^name ~ '(' ~ $!path.Str ~ ')' }
-    method perl { self.^name ~ ".new('" ~ $!path.Str ~ "')" }
 
     method writeable-path {
         %!dists.keys.first( *.IO.w )

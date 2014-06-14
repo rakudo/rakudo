@@ -46,7 +46,7 @@ To automatically download and build a fresh MoarMV and NQP, run:
 
 To automatically download and build a fresh Parrot and NQP, run:
 
-    perl Configure.pl --gen-parrot --backends=parrot
+    perl Configure.pl --gen-parrot --gen-nqp --backends=parrot
 
 It is recommended to first install the libicu-dev and libreadline-dev packages.
 

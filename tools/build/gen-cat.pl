@@ -30,7 +30,7 @@ foreach my $file (@files) {
             $in_omit = 0;
         }
         elsif (!$in_omit) {
-            print unless m/^# vim:/;;
+            print unless m/^# \w/;
         }
     }
     close $fh;

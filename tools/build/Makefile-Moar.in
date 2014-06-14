@@ -297,8 +297,9 @@ m-runner-default: $(M_RUNNER)
 	$(CP) $(M_RUNNER) perl6@runner_suffix@
 
 $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
+	$(PERL) $(M_GEN_CAT) src/perl6-debug.nqp src/gen/main-version.nqp > src/gen/m-perl6-debug.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_DEBUG_MOAR) \
-	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/perl6-debug.nqp
+	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-perl6-debug.nqp
 
 $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR)
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "$(M_LIBPATH)" .

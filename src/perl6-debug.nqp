@@ -433,14 +433,6 @@ class Perl6::HookGrammar is Perl6::Grammar {
     }
 }
 
-sub hll-config($config) {
-    $config<name>           := 'rakudo';
-    $config<version>        := '';
-    $config<release-number> := '';
-    $config<codename>       := '';
-    $config<build-date>     := '2012-08-05T16:57:45Z';
-}
-
 class Perl6::Debugger is Perl6::Compiler {
     my $repl_code := 1;
     method eval(*@pos, *%named) {

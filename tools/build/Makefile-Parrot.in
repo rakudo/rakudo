@@ -433,8 +433,9 @@ $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
 	$(PARROT) $(PARROT_ARGS) -o $(R_SETTING_PBC) $(R_SETTING_PIR)
 
 $(PERL6_DEBUG_PBC): $(PERL6_PBC) src/perl6-debug.nqp
+	$(PERL) $(P_GEN_CAT) src/perl6-debug.nqp $(P_BUILD_DIR)/main-version.nqp > $(P_BUILD_DIR)/p-perl6-debug.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=src/gen/perl6-debug.pir \
-	    src/perl6-debug.nqp
+	    $(P_BUILD_DIR)/p-perl6-debug.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_DEBUG_PBC) src/gen/perl6-debug.pir
 
 ##  testing targets

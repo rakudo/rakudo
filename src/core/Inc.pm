@@ -25,7 +25,17 @@
     # Add CompUnitRepos to @*INC and also to %*CUSTOM_LIB if they have a name.
     sub add-curs($line, $sep = ',') {
         my %options;
-        if $line && $line ~~ /^ [ $<class>=[ <.ident>+ % '::' ] [ ':' $<n>=\w+ <[<([]> $<v>=<[\w-]>+ <[>)\]]> { %options{$<n>} = $<v> } ]* '=' ]? $<path>=.+ $/ {
+        if $line && $line ~~ /^
+            [ $<class>=[ <.ident>+ % '::' ]
+              [ ':'
+                $<n>=\w+
+                  <[ < ( [ ]> $<v>=<[\w-]>+ <[ > ) \] ]>
+                { %options{$<n>} = $<v> }
+              ]*
+              '='
+            ]?
+            $<path>=.+
+        $/ {
             my $class = $<class> ?? ~$<class> !! 'CompUnitRepo::Local::File';
             my @paths = $<path>.split($sep);
             for @paths -> $path {

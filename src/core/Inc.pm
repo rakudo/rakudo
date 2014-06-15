@@ -34,7 +34,7 @@
                     @INC.push: $cur
                 }
                 elsif %options<name> {
-                    %CUSTOM_LIB{~%options<name>} = Nil; # prime it
+                    %CUSTOM_LIB{~%options<name>} = $path; # prime it
                 }
             }
         }

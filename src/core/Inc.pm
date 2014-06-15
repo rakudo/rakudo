@@ -33,6 +33,9 @@
                     %CUSTOM_LIB{~%options<name>} = $cur if %options<name>;
                     @INC.push: $cur
                 }
+                elsif %options<name> {
+                    %CUSTOM_LIB{~%options<name>} = Nil; # prime it
+                }
             }
         }
     }
@@ -72,6 +75,9 @@
                                 @cur_group.push: $cur;
                                 %CUSTOM_LIB{$prop.key} = $cur;
                             }
+                            else {
+                                %CUSTOM_LIB{$prop.key} = $path; # prime it
+                            }
                         }
                     }
                     else {
@@ -100,6 +106,9 @@
             if CompUnitRepo::Local::Installation.new("$home/.perl6/$ver") -> $cur {
                 @cur_inst.push: %CUSTOM_LIB<home> = $cur;
             }
+            else {
+                %CUSTOM_LIB<home> = "$home/.perl6/$ver";  # prime it
+            }
         }
         if CompUnitRepo::Local::File.new("$prefix/lib") -> $cur {
             @INC.push: $cur;
@@ -113,11 +122,20 @@
         if CompUnitRepo::Local::Installation.new($prefix) -> $cur {
             @cur_inst.push: %CUSTOM_LIB<perl> = $cur;
         }
+        else {
+            %CUSTOM_LIB<perl> = $prefix;  # prime it
+        }
         if CompUnitRepo::Local::Installation.new("$prefix/vendor") -> $cur {
             @cur_inst.push: %CUSTOM_LIB<vendor> = $cur;
         }
+        else {
+            %CUSTOM_LIB<vendor> = "$prefix/vendor";  # prime it
+        }
         if CompUnitRepo::Local::Installation.new("$prefix/site") -> $cur {
             @cur_inst.push: %CUSTOM_LIB<site> = $cur;
+        }
+        else {
+            %CUSTOM_LIB<site> = "$prefix/site";  # prime it
         }
         @INC.push([@cur_inst]) if @cur_inst;
     }

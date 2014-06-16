@@ -904,6 +904,10 @@ my class X::Syntax::Missing does X::Syntax {
     has $.what;
     method message() { "Missing $.what" }
 }
+my class X::Syntax::BlockTaken does X::Syntax {
+    has $.what;
+    method message() { "{ $.what ?? 'Function ' ~ $.what !! 'Expression' } needs parens to avoid taking the block." };
+}
 
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;

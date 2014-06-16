@@ -269,8 +269,8 @@ my class IO::Handle does IO::FileTestable {
 
 
     proto method print(|) { * }
-    multi method print(IO::Handle:D: Str:D $value) {
-        nqp::printfh($!PIO, nqp::unbox_s($value));
+    multi method print(IO::Handle:D: Str:D \x) {
+        nqp::printfh($!PIO, nqp::unbox_s(x));
         Bool::True
     }
     multi method print(IO::Handle:D: *@list) {

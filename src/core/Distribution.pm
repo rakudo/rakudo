@@ -1,4 +1,4 @@
-class CompUnitRepo::Distribution {
+class Distribution {
     has $.id is rw;
     has $.name;
     has $.auth;
@@ -13,7 +13,7 @@ class CompUnitRepo::Distribution {
     has $.source-url;
     method auth { $!auth // $!author // $!authority }
     method ver  { $!ver // $!version }
-    method Hash {
+    method hash {
         {
             :$!id,
             :$!name,
@@ -26,4 +26,9 @@ class CompUnitRepo::Distribution {
             :$!source-url,
         }
     }
+}
+
+# during panda migration period
+class CompUnitRepo::Distribution is Distribution {
+    method Hash { self.hash }
 }

@@ -179,8 +179,8 @@ J_CORE_SOURCES = \
   src/core/Perl.pm \
   src/core/OS.pm \
   src/core/JSON/Pretty.pm \
+  src/core/Distribution.pm \
   src/core/CompUnitRepo.pm \
-  src/core/CompUnitRepo/Distribution.pm \
   src/core/CompUnitRepo/Locally.pm \
   src/core/CompUnitRepo/Local/File.pm \
   src/core/CompUnitRepo/Local/Installation.pm \

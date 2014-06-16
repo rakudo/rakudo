@@ -46,8 +46,8 @@ class Deprecation {
 
         submethod BUILD (:$!name, :$!value, :$!instead) {}
 
-        method Str  { DEPRECATED( $!instead, :up(2), :what($!name) ); $!value }
-        method gist { DEPRECATED( $!instead, :up(2), :what($!name) ); $!value }
+        method Str  { DEPRECATED( $!instead, :up(3), :what($!name) ); $!value }
+        method gist { DEPRECATED( $!instead, :up(3), :what($!name) ); $!value }
     }
 
     # system variable deprecations

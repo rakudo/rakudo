@@ -16,4 +16,6 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         }
         @candi
     }
+
+    method short-id() { 'file' }
 }

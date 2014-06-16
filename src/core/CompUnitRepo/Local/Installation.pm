@@ -184,4 +184,6 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         }
         @candi
     }
+
+    method short-id() { 'inst' }
 }

@@ -19,11 +19,12 @@ role CompUnitRepo::Locally {
     }
 
     method Str { $!path.Str }
-    method gist { self.^name ~ '(' ~ $!path.Str ~ ')' }
-    method perl { self.^name ~ ".new('" ~ $!path.Str ~ "')" }
+    method gist { "{self.short-id}:{$!path.Str}" }
+    method perl { "CompUnitRepo.new('{self.short-id}:{$!path.Str}')" }
 
     # stubs
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) { ... }
     method candidates($name, :$file, :$auth, :$ver) { ... }
+    method short-id() { ... }
 }

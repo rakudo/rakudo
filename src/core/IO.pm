@@ -8,10 +8,8 @@ sub print(|) {
 }
 
 proto sub say(|) { * }
-multi sub say(\x) {
-    my $out := $*OUT;
-    $out.print(x.gist, "\n");
-}
+multi sub say(Str:D \x) { $*OUT.print(x, "\n") }
+multi sub say(\x)       { $*OUT.print(x.gist, "\n") }
 multi sub say(|) {
     my $args := nqp::p6argvmarray();
     my $out := $*OUT;
@@ -20,10 +18,8 @@ multi sub say(|) {
 }
 
 proto sub note(|) { * }
-multi sub note(\x) {
-    my $err := $*ERR;
-    $err.print(x.gist, "\n");
-}
+multi sub note(Str:D \x) { $*ERR.print(x, "\n") }
+multi sub note(\x)       { $*ERR.print(x.gist, "\n") }
 multi sub note(|) {
     my $args := nqp::p6argvmarray();
     my $err := $*ERR;

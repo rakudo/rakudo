@@ -858,6 +858,7 @@ integration/advent2011-day07.t
 integration/advent2011-day10.t
 integration/advent2011-day11.t
 integration/advent2011-day14.t
+integration/advent2011-day15.t
 integration/advent2012-day02.t
 integration/advent2012-day03.t
 integration/advent2012-day04.t #stress

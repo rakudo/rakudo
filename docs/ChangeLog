@@ -1,9 +1,19 @@
 New in 2014.06
++ say/note now a little faster for single Str (which is most common)
 + an initial implementation of S11 (Compilation Units) is now available
 + .IO.{d|s|z} are now about 40% faster and return Failure if path doesn't exist
 + $*DISTRO now works correctly on OS X (with name "macosx")
 + $*KERNEL now works correctly on OS X (with name "darwin")
 + initial implementation of $*USER and $*GROUP
++ initial implementation of Supply.zip-latest
++ implement dummy Lock (for $lock.protect( {...} ) ) on parrot
++ @*INC now only contains elements for actually existing paths
++ more work on allowing slangs transparently (such as "v5")
++ IO::Socket::Async now also works on JVM
++ can now also bind to dynamic variables
++ LAST phaser used to fire when not actually iterating, now fixed
++ (Set|Bag|Mix).pairs now return immutable Enums
++ (Set|Bag|Mix)Hash.pairs no longer allow changes feeding back
 
 New in 2014.05
 + asynchronous timers on MoarVM backend

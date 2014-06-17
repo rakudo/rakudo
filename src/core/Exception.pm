@@ -402,9 +402,10 @@ my role X::Comp is Exception {
                 }
             }
             for @.modules.reverse[1..*] {
+                my $line = nqp::p6box_i($_<line>);
                 $r ~= $_<module>.defined
-                        ?? "\n  from module $_<module> ($_<filename>:$_<line>)"
-                        !! "\n  from $_<filename>:$_<line>";
+                        ?? "\n  from module $_<module> ($_<filename>:$line)"
+                        !! "\n  from $_<filename>:$line";
             }
             $r;
         }

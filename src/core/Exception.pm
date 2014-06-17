@@ -39,6 +39,7 @@ my class Exception {
     }
 
     method resume() {
+#?if parrot
         my Mu $resume := nqp::atkey($!ex, 'resume');
         if $resume {
             $resume();
@@ -46,6 +47,11 @@ my class Exception {
         else {
             die "Exception is not resumable";
         }
+#?endif
+#?if !parrot
+        nqp::resume($!ex);
+        True
+#?endif
     }
 
     method die(Exception:D:) { self.throw }

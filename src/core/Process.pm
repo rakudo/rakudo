@@ -20,6 +20,7 @@
     my Mu $comp := nqp::getcomp('perl6');
     my $PROGRAM_NAME = $comp.user-progname();
     PROCESS::<$PROGRAM_NAME> = $PROGRAM_NAME;
+    PROCESS::<$PROGRAM> = IO::Path.new($PROGRAM_NAME);
 
     PROCESS::<$TMPDIR> = IO::Spec.tmpdir().path;
 

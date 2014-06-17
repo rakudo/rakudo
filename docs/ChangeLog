@@ -10,10 +10,20 @@ New in 2014.06
 + @*INC now only contains elements for actually existing paths
 + more work on allowing slangs transparently (such as "v5")
 + IO::Socket::Async now also works on JVM
++ can close tap to stop listening on a socket
++ implement Supply.on_demand, for making on-demand supplies
++ fix race condition in async socket reading
 + can now also bind to dynamic variables
 + LAST phaser used to fire when not actually iterating, now fixed
 + (Set|Bag|Mix).pairs now return immutable Enums
 + (Set|Bag|Mix)Hash.pairs no longer allow changes feeding back
++ optimize :a(:$b) and attributive binding
++ optimize IO::Path.contents
++ optimize push, unshift, and comb
++ assorted optimizations to Junction construction and dispatch
++ optimize no-args case of @foo>>.bar
++ implement :42nd colonpair syntax
++ include correct version information in perl6-debug
 
 New in 2014.05
 + asynchronous timers on MoarVM backend

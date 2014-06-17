@@ -18,9 +18,15 @@ role CompUnitRepo::Locally {
         self
     }
 
-    method Str { $!path.Str }
-    method gist { "{self.short-id}:{$!path.Str}" }
-    method perl { "CompUnitRepo.new('{self.short-id}:{$!path.Str}')" }
+    method Str  { self.DEFINITE ?? $!path.Str !! Nil }
+    method gist { self.DEFINITE
+      ?? "{self.short-id}:{$!path.Str}"
+      !! self.^name;
+    }
+    method perl { self.DEFINITE
+      ?? "CompUnitRepo.new('{self.short-id}:{$!path.Str}')"
+      !! self.^name;
+    }
 
     # stubs
     method install($source, $from?) { ... }

@@ -1,6 +1,17 @@
 
 my %DEPRECATIONS; # where we keep our deprecation info
 
+class Obsolete is Str {
+    has $!name;
+    has $!value;
+    has $!instead;
+
+    submethod BUILD (:$!name, :$!value, :$!instead) {}
+
+    method Str  { DEPRECATED( $!instead, :up(2), :what($!name) ); $!value }
+    method gist { DEPRECATED( $!instead, :up(2), :what($!name) ); $!value }
+}
+
 class Deprecation {
     has $.file;         # file of the code that is deprecated
     has $.type;         # type of code (sub/method etc.) that is deprecated
@@ -37,17 +48,6 @@ class Deprecation {
         }
         $message ~= "Please use $.alternative instead.\n";
         $message;
-    }
-
-    class Obsolete is Str {
-        has $!name;
-        has $!value;
-        has $!instead;
-
-        submethod BUILD (:$!name, :$!value, :$!instead) {}
-
-        method Str  { DEPRECATED( $!instead, :up(3), :what($!name) ); $!value }
-        method gist { DEPRECATED( $!instead, :up(3), :what($!name) ); $!value }
     }
 
     # system variable deprecations

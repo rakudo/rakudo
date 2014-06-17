@@ -8,6 +8,11 @@ sub print(|) {
 }
 
 proto sub say(|) { * }
+multi sub say(Obsolete:D \x) {
+    my $out := $*OUT;
+    $out.print(x.gist);
+    $out.print("\n");
+}
 multi sub say(Str:D \x) {
     my $out := $*OUT;
     $out.print(x);

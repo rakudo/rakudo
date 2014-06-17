@@ -480,6 +480,8 @@ multi sub sort(*@values)      {
 }
 
 proto sub item(|) is pure { * }
+multi sub item(Iterable \x) { my $ = x }
+multi sub item(Parcel \x) { my $ = x }
 multi sub item(*@a) { my $ = @a }
 multi sub item(Mu $a) { $a }
 

@@ -7,11 +7,11 @@
 #?endif
 #?if jvm
         $*VM.properties<perl6.execname>
-        or $*VM.properties<perl6.prefix> ~ '/bin/perl6-j';
+        // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j';
 #?endif
 #?if moar
         nqp::execname()
-        or ($*VM.config<prefix> ~ '/bin/' ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
+        // ($*VM.config<prefix> ~ '/bin/' ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
 #?endif
     $EXECUTABLE := $EXECUTABLE.path.absolute;
     PROCESS::<$EXECUTABLE>      := $EXECUTABLE;

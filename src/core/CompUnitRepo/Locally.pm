@@ -1,7 +1,7 @@
 role CompUnitRepo::Locally {
     has Lock $!lock;
     has IO::Path $.path;
-    has Str $.WHICH;
+    has Str $!WHICH;
 
     my %instances;
 
@@ -18,12 +18,13 @@ role CompUnitRepo::Locally {
         self
     }
 
-    method Str  { self.DEFINITE ?? $!path.Str !! Nil }
-    method gist { self.DEFINITE
+    method WHICH { self.DEFINITE ?? $!WHICH !! self.^name }
+    method Str   { self.DEFINITE ?? $!path.Str !! Nil }
+    method gist  { self.DEFINITE
       ?? "{self.short-id}:{$!path.Str}"
       !! self.^name;
     }
-    method perl { self.DEFINITE
+    method perl  { self.DEFINITE
       ?? "CompUnitRepo.new('{self.short-id}:{$!path.Str}')"
       !! self.^name;
     }

@@ -599,7 +599,7 @@ my role Supply {
         }
     }
 
-    method zip-latest(*@s, :&with is copy) {
+    method zip-latest(*@s, :&with is copy, :$initial ) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to do.
         return @s[0] if +@s == 1;           # nothing to do.
@@ -609,6 +609,11 @@ my role Supply {
 
         my $uninitialised = +@s; # how many supplies have yet to more until we
                                  # can start more-ing, too?
+
+        if $initial {
+            @values = @$initial;
+            $uninitialised = 0 max $uninitialised - @$initial;
+        }
 
         my $dones = 0;
 

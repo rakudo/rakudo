@@ -1,4 +1,6 @@
-my role IO { }
+my role IO {
+    method umask { state $ = EVAL "0o" ~ qx/umask/ }
+}
 
 sub print(|) {
     my $args := nqp::p6argvmarray();

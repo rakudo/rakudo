@@ -798,6 +798,14 @@ my class X::Bind::ZenSlice is X::Bind::Slice {
     }
 }
 
+my class X::Subscript::FromEnd is Exception {
+    has $.index;
+    has $.type;
+    method message() {
+        "Unsupported use of [{$.index}] subscript to access from end of {$.type.^name}; in Perl 6 please use [*{$.index}]"
+    }
+}
+
 my class X::Value::Dynamic does X::Comp {
     has $.what;
     method message() { "$.what value must be known at compile time" }

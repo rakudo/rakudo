@@ -3,6 +3,7 @@ my class Pair { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
+my class X::Subscript::FromEnd { ... }
 
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
@@ -517,7 +518,7 @@ sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) is hidden_from_backtrace {
 
 # internal 1 element hash/array access with adverbs
 sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
-    fail "Cannot use negative index $one on {SELF.WHAT.perl}"
+    fail X::Subscript::FromEnd.new(index => $one, type => SELF.WHAT)
       if $array && $one < 0;
 
     my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];

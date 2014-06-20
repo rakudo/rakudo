@@ -1,5 +1,6 @@
 my class X::Item { ... };
 my class X::TypeCheck { ... };
+my class X::Subscript::FromEnd { ... };
 
 class Array { # declared in BOOTSTRAP
     # class Array is List {
@@ -92,7 +93,7 @@ class Array { # declared in BOOTSTRAP
         self.delete_pos(pos);
     }
     method delete_pos(\pos) {
-        fail "Cannot use negative index {pos} on {self.WHAT.perl}" if pos < 0;
+        fail X::Subscript::FromEnd.new(index => pos, type => self.WHAT) if pos < 0;
 
         my $value := self.at_pos(pos); # needed for reification
         my $items := nqp::getattr(self,List,'$!items');

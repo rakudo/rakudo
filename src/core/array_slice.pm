@@ -18,15 +18,15 @@ proto sub postcircumfix:<[ ]>(|) { * }
 
 # @a[1]
 multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
-    fail "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
+    fail X::Subscript::FromEnd.new(index => $pos, type => SELF.WHAT) if $pos < 0;
     SELF.at_pos($pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Mu \assignee ) is rw {
-    die "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
+    X::Subscript::FromEnd.new(index => $pos, type => SELF.WHAT).throw if $pos < 0;
     SELF.assign_pos($pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
-    fail "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
+    fail X::Subscript::FromEnd.new(index => $pos, type => SELF.WHAT) if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is rw {
@@ -53,15 +53,15 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
 
 # @a[$x]
 multi sub postcircumfix:<[ ]>( \SELF, \pos ) is rw {
-    fail "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
+    fail X::Subscript::FromEnd.new(index => pos, type => SELF.WHAT) if pos < 0;
     SELF.at_pos(pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, \pos, Mu \assignee ) is rw {
-    die "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
+    X::Subscript::FromEnd.new(index => pos, type => SELF.WHAT).throw if pos < 0;
     SELF.assign_pos(pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, \pos, Mu :$BIND! is parcel) is rw {
-    fail "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
+    fail X::Subscript::FromEnd.new(index => pos, type => SELF.WHAT) if pos < 0;
     SELF.bind_pos(pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, \pos, :$SINK!, *%other ) is rw {
@@ -89,7 +89,7 @@ multi sub postcircumfix:<[ ]>( \SELF, \pos, :$v!, *%other ) is rw {
 # @a[@i]
 multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
     if nqp::iscont(pos)  {
-        fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
+        fail X::Subscript::FromEnd.new(index => pos, type => SELF.WHAT) if pos < 0;
         SELF.at_pos(pos);
     }
     else {
@@ -98,7 +98,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
 }
 multi sub postcircumfix:<[ ]>( \SELF, Positional \pos, Mu \assignee ) is rw {
     if nqp::iscont(pos)  {
-        fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
+        fail X::Subscript::FromEnd.new(index => pos, type => SELF.WHAT) if pos < 0;
         SELF.assign_pos(pos, assignee);
     }
     else {

@@ -4970,6 +4970,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 )
             );
         }
+        # Transliteration shuffles values around itself and returns the
+        # Right Thing regardless of whether we're in a smart-match or
+        # implicitely against $_, so we just do the RHS here.
+        elsif $rhs<is_trans> {
+            $sm_call := QAST::Stmt.new(
+                $rhs
+            );
+        }
         else {
             # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
             $sm_call := QAST::Op.new(
@@ -5834,15 +5842,58 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::elems($<rx_adverbs><quotepair>) {
             $*W.throw($/, 'X::Comp::NYI', feature => 'tr/// adverbs');
         }
-        my $left  := ~$<tribble><left>;
-        my $right := ~$<tribble><right>;
-        make QAST::Op.new(:op<p6store>,
-            QAST::Var.new(:name('$_'), :scope<lexical>),
-            QAST::Op.new(:op<callmethod>, :name<trans>,
-                QAST::Var.new(:name('$_'), :scope<lexical>),
-                make_pair($left, QAST::SVal.new(:value($right))),
+        my $left  := $<tribble><left>.ast;
+        my $right := $<tribble><right>.ast;
+
+        # First we get ourselves a local variable to store the original LHS,
+        # which might be $_ or a LHS to ~~ - in both cases $_ holds the value.
+        my $orig_lhs := $*W.cur_lexpad.unique('orig_lhs');
+        
+        # Next we build a Pair to pass to .trans.
+        $left.named('key');
+        $right.named('value');
+        my $pair := QAST::Op.new(
+            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
+            QAST::Var.new( :name('Pair'), :scope('lexical') ),
+            $left, $right
+        );
+
+        # We store the value currently in $_ to get the distance later.
+        my $store := QAST::Op.new( :op<bind>, 
+            QAST::Var.new( :name($orig_lhs), :scope<lexical>, :decl<var> ),
+            QAST::Op.new( :op<decont>,
+                QAST::Var.new( :name('$_'), :scope<lexical> )
             )
         );
+
+        # ...pass the Pair we build to &Str.trans.
+        my $trans := QAST::Op.new(
+            :node($/),
+            :op<callmethod>, :name<trans>,
+            QAST::Var.new(:name('$_'), :scope<lexical>),
+            $pair
+        );
+
+        my $StrDistance := $*W.find_symbol(['StrDistance']);
+        # Putting it all together.
+        my $past := make QAST::Stmt.new(
+            $store,
+            QAST::Op.new(
+                :op<call>, :name('&infix:<=>'),
+                QAST::Var.new(:name('$_'), :scope<lexical>),
+                $trans,
+            ),
+            # We build a StrDistance here, which lazily gets us the distance.
+            QAST::Op.new(
+                :op<callmethod>, :name<new>, :returns($StrDistance),
+                QAST::Var.new( :name<StrDistance>, :scope<lexical> ),
+                QAST::Var.new( :name($orig_lhs), :scope<lexical>, :named('before') ),
+                QAST::Var.new( :name('$_'), :scope<lexical>, :named('after') )
+            )
+        );
+
+        $past<is_trans> := 1;
+        $past
     }
 
     method quote:sym<s>($/) {
@@ -7144,6 +7195,11 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 :node($/)));
     }
     
+    # The next three are currently only used for tr///.
+    method escape:ch ($/)     { make ~$/; }
+    method escape:sym<..>($/) { make ~$/; }
+    method escape:ws ($/)     { make ~$/; }
+
     method escape:sym<$>($/) { make $<EXPR>.ast; }
     method escape:sym<@>($/) { make $<EXPR>.ast; }
     method escape:sym<%>($/) { make $<EXPR>.ast; }

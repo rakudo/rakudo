@@ -3169,12 +3169,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $start;
         :my $stop;
         :my $*CCSTATE := '';
-        <babble($l)>
+        <babble($l, @lang2tweaks)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
         $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
         { $*CCSTATE := ''; }
         [ <?{ $start ne $stop }>
-            <.ws> <quibble($lang2)>
+            $start <right=.nibble($lang)> [ $stop || { $/.CURSOR.panic("Couldn't find terminator $stop") } ]
         ||
             { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
             <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
@@ -3186,7 +3187,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         <rx_adverbs>
-        <tribble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['cc'])>
+        <tribble(%*LANG<Q>, %*LANG<Q>, ['cc'])>
         <.old_rx_mods>?
     }
 
@@ -4269,7 +4270,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         # (must not allow anything to match . in nibbler or we'll lose track of state)
         token escape:ws { \s+ [ <?[#]> <.ws> ]? }
         token escape:sym<#> { '#' <.panic: "Please backslash # for literal char or put whitespace in front for comment"> }
-        token escape:sym<\\> { <sym> <item=.backslash> <.ccstate('\\' ~ $<item>.Str)> }
+        token escape:sym<\\> { <sym> <item=.backslash> <.ccstate('\\' ~ $<item>)> }
         token escape:sym<..> { <sym>
             [
             || <?{ ($*CCSTATE eq '') || ($*CCSTATE eq '..') }> <.sorry("Range missing start character on the left")>
@@ -4283,9 +4284,10 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
             '-' <?{ $*CCSTATE ne '' }> \s* <!stopper> \S 
             <.obs('- as character range','.. (or \\- if you mean a literal hyphen)')>
         }
-        token escape:ch { $<ch> = [\S] <.ccstate($<ch>.Str)> }
+        token escape:ch { $<ch> = [\S] { self.ccstate($<ch>) } }
 
         token backslash:delim { <text=.starter> | <text=.stopper> }
+        token backslash:<\\> { <text=.sym> }
         token backslash:a { :i <sym> }
         token backslash:b { :i <sym> }
         token backslash:c { :i <sym> <charspec> }

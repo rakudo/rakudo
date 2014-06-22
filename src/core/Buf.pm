@@ -130,7 +130,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             my $amount = $unit.substr(1);
 
             given $directive {
-                when 'A' {
+                when 'a' | 'A' | 'Z' {
                     my $asciistring;
                     if $amount eq '*' {
                         $amount = @bytes.elems;

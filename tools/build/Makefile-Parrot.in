@@ -248,6 +248,7 @@ P_CORE_SOURCES = \
   src/core/OS.pm \
   src/core/JSON/Pretty.pm \
   src/core/Distribution.pm \
+  src/core/CompUnit.pm \
   src/core/CompUnitRepo.pm \
   src/core/CompUnitRepo/Locally.pm \
   src/core/CompUnitRepo/Local/File.pm \

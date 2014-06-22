@@ -419,4 +419,16 @@ multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
     ($a cmp $b) != -1
 }
 
+sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) {
+    my Blob $subbuf = $b.subbuf($from, $elems);
+    Proxy.new(
+        FETCH   => sub ($) { $subbuf },
+        STORE   => sub ($, Blob $new) {
+            $b = $b.subbuf(0, $from)
+               ~ $new
+               ~ $b.subbuf($from + $elems);
+        }
+    );
+}
+
 # vim: ft=perl6 expandtab sw=4

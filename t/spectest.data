@@ -24,6 +24,7 @@ S02-lexical-conventions/unicode.t                          # icu
 S02-lexical-conventions/unicode-whitespace.t
 S02-lexical-conventions/unspace.t
 S02-lists/tree.t
+S02-literals/adverbs.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t # icu
@@ -244,6 +245,7 @@ S04-declarations/our.t
 S04-declarations/state.t
 S04-declarations/will.t
 S04-exception-handlers/catch.t
+S04-exceptions/control_across_runloop.t
 S04-exceptions/fail.t
 S04-exceptions/pending.t
 S04-phasers/ascending-order.t
@@ -254,6 +256,7 @@ S04-phasers/end.t
 S04-phasers/enter-leave.t
 S04-phasers/eval-in-begin.t
 S04-phasers/first.t
+S04-phasers/init.t
 S04-phasers/in-eval.t
 S04-phasers/in-loop.t
 S04-phasers/keep-undo.t
@@ -637,6 +640,8 @@ S17-supply/zip.t         # conc
 S17-supply/zip-latest.t  # conc
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
+S19-command-line-options/03-dash-p.t
+S22-package-format/local.t
 S22-package-format/parse-spec.t
 S24-testing/0-compile.t
 S26-documentation/01-delimited.t
@@ -852,6 +857,8 @@ integration/advent2010-day14.t
 integration/advent2010-day16.t
 integration/advent2010-day19.t
 integration/advent2010-day21.t
+integration/advent2010-day22.t
+integration/advent2010-day23.t
 integration/advent2011-day03.t
 integration/advent2011-day04.t
 integration/advent2011-day05.t

@@ -20,10 +20,10 @@ my class Range is Iterable is Cool does Positional {
         fail "*..* is not a valid range";
     }
     multi method new(Whatever $min, $max, :$excludes_min, :$excludes_max) {
-        nqp::create(self).BUILD(-$Inf, $max, $excludes_min, $excludes_max)
+        nqp::create(self).BUILD(-Inf, $max, $excludes_min, $excludes_max)
     }
     multi method new($min, Whatever $max, :$excludes_min, :$excludes_max) {
-        nqp::create(self).BUILD($min, $Inf, $excludes_min, $excludes_max)
+        nqp::create(self).BUILD($min, Inf, $excludes_min, $excludes_max)
     }
     multi method new(Real $min, $max, :$excludes_min, :$excludes_max) {
         nqp::create(self).BUILD($min, $max.Real, $excludes_min, $excludes_max)
@@ -73,12 +73,12 @@ my class Range is Iterable is Cool does Positional {
         } 
         my $count;
         if nqp::istype($n, Whatever) {
-            $count = self.infinite ?? 10 !! $Inf;
+            $count = self.infinite ?? 10 !! Inf;
         }
         else {
             $count = $n.Num max 1024e0;
             fail "request for infinite elements from range"
-              if $count == $Inf && self.infinite;
+              if $count == Inf && self.infinite;
         }
         my $cmpstop = $!excludes_max ?? 0 !! 1;
         my $realmax = nqp::istype($!min, Numeric) && !nqp::istype($!max, Callable) && !nqp::istype($!max, Whatever)
@@ -87,7 +87,7 @@ my class Range is Iterable is Cool does Positional {
         
         # Pre-size the buffer, to avoid reallocations.
         my Mu $rpa := nqp::list();
-        nqp::setelems($rpa, $count == $Inf ?? 256 !! $count.Int);
+        nqp::setelems($rpa, $count == Inf ?? 256 !! $count.Int);
         nqp::setelems($rpa, 0);
         
         if nqp::istype($value, Int) && nqp::istype($!max, Int) && !nqp::isbig_I(nqp::decont $!max)

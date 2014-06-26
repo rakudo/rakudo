@@ -40,7 +40,7 @@ my role Mixy does Baggy  {
     method roll ($count = 1) {
         my $total = [+] self.values.grep: * > 0;
         my $rolls = $count ~~ Num
-          ?? $total min $count !! $count ~~ Whatever ?? $Inf !! $count;
+          ?? $total min $count !! $count ~~ Whatever ?? Inf !! $count;
 #        my @pairs := %!elems.values;
         my @pairs := self.pairs;
 

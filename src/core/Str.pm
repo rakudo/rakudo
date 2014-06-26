@@ -454,7 +454,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
                 # 'Inf'
                 $pos = nqp::add_i($pos, 3);
-                return $neg ?? -$Inf !! $Inf;
+                return $neg ?? -Inf !! Inf;
             }
             else {
                 # Last chance: a simple decimal number
@@ -563,9 +563,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $self = self;
         (^self.chars).map({ nqp::p6box_s(nqp::substr($self, $_, 1)) });
     }
-    multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
+    multi method comb(Str:D: Regex $pat, $limit = Inf, :$match) {
         my $x;
-        $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == $Inf;
+        $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
         $match
             ?? self.match(:g, :$x, $pat)
             !! self.match(:g, :$x, $pat).map: { .Str }
@@ -687,9 +687,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
     }
 
-    method lines(Str:D: $limit = $Inf) {
+    method lines(Str:D: $limit = Inf) {
         my $prev_pos = -1;
-        if $limit == $Inf {
+        if $limit == Inf {
             gather {
                 while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) {
                     take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
@@ -745,7 +745,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $match-string = $delim-str;
         return unless nqp::chars($self-string) || nqp::chars($match-string);
 
-        my int $l = nqp::istype($limit, Whatever) || $limit == $Inf
+        my int $l = nqp::istype($limit, Whatever) || $limit == Inf
             ?? nqp::chars($self-string) + 1
             !! $limit.Int;
         return ().list     if $l <= 0;
@@ -1031,7 +1031,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # Figure out the amount * should outdent by, we also use this for warnings
         my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
-        return self if $common-prefix === $Inf;
+        return self if $common-prefix === Inf;
 
         # Set the actual outdent amount here
         my Int $outdent = $steps ~~ Whatever ?? $common-prefix

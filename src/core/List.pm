@@ -126,7 +126,7 @@ my class List does Positional { # declared in BOOTSTRAP
         # Get as many elements as we can.  If gimme stops before
         # reaching the end of the list, assume the list is infinite.
         my $n = self.gimme(*);
-        $!nextiter.defined ?? $Inf !! $n
+        $!nextiter.defined ?? Inf !! $n
     }
 
     method exists (\pos) {  # is DEPRECATED doesn't work in settings
@@ -143,7 +143,7 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless self.DEFINITE;
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems(nqp::p6listitems(self));
-        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || nqp::istype($n, Num) && $n == $Inf);
+        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || nqp::istype($n, Num) && $n == Inf);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
@@ -186,7 +186,7 @@ my class List does Positional { # declared in BOOTSTRAP
         ## of the list, resulting in an O(n) algorithm.
         my $elems = self.elems;
         return unless $elems;
-        $n = +$Inf if nqp::istype($n, Whatever);
+        $n = Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
         return self.at_pos($elems.rand.floor) if $n == 1;
         my Mu $rpa := nqp::clone($!items);
@@ -326,7 +326,7 @@ my class List does Positional { # declared in BOOTSTRAP
         my $elems = self.gimme(*);
         fail 'Cannot .roll from an infinite list' if $!nextiter.defined;
         return unless $elems;
-        $n = +$Inf if nqp::istype($n, Whatever);
+        $n = Inf if nqp::istype($n, Whatever);
         return self.at_pos($elems.rand.floor) if $n == 1;
 
         gather while $n > 0 {
@@ -652,8 +652,8 @@ proto infix:<xx>(|)       { * }
 multi infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \x)   {x }
 multi infix:<xx>(Mu \x, $n is copy, :$thunked) {
-    $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? $Inf !! $n.Int;
-    GatherIter.new({ take ($thunked ?? x.() !! x) while $n-- > 0; }, :infinite($n == $Inf)).list
+    $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? Inf !! $n.Int;
+    GatherIter.new({ take ($thunked ?? x.() !! x) while $n-- > 0; }, :infinite($n == Inf)).list
 }
 
 proto sub pop(@) {*}

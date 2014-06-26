@@ -226,7 +226,7 @@ my class Any { # declared in BOOTSTRAP
         for self { 
             $min = $_ if .defined and !$min.defined || $cmp($_, $min) < 0;
         }
-        $min // +$Inf;
+        $min // Inf;
     }
 
     method max($by = &infix:<cmp>) {
@@ -235,7 +235,7 @@ my class Any { # declared in BOOTSTRAP
         for self { 
             $max = $_ if .defined and !$max.defined || $cmp($_, $max) > 0;
         }
-        $max // -$Inf;
+        $max // -Inf;
     }
 
     method minmax($by = &infix:<cmp>) {
@@ -269,8 +269,8 @@ my class Any { # declared in BOOTSTRAP
                 }
             }
         }
-        Range.new($min // +$Inf,
-                  $max // -$Inf,
+        Range.new($min // Inf,
+                  $max // -Inf,
                   :excludes_min($excludes_min),
                   :excludes_max($excludes_max));
     }

@@ -177,10 +177,10 @@ my class Cool { # declared in BOOTSTRAP
 
     method ords(Cool:D:) { self.Str.ords }
     proto method split(|) {*}
-    multi method split(Regex $pat, $limit = $Inf, :$all) {
+    multi method split(Regex $pat, $limit = Inf, :$all) {
         self.Stringy.split($pat, $limit, :$all);
     }
-    multi method split(Cool $pat, $limit = $Inf, :$all) {
+    multi method split(Cool $pat, $limit = Inf, :$all) {
         self.Stringy.split($pat.Stringy, $limit, :$all);
     }
     proto method match(|) {*}
@@ -190,7 +190,7 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method comb(|) {*}
     multi method comb() { self.Str.comb() }
-    multi method comb(Regex $matcher, $limit = $Inf) { self.Str.comb($matcher, $limit) }
+    multi method comb(Regex $matcher, $limit = Inf) { self.Str.comb($matcher, $limit) }
 
     proto method lines(|) {*}
     multi method lines(Cool:D:) { self.Str.lines() }
@@ -275,7 +275,7 @@ sub sprintf(Cool $format, *@args) {
 
 sub printf(Cool $format, *@args) { print sprintf $format, @args };
 sub samecase(Cool $string, Cool $pattern) { $string.samecase($pattern) }
-sub split($pat, Cool $target, $limit = $Inf, :$all) {
+sub split($pat, Cool $target, $limit = Inf, :$all) {
     $target.split($pat, $limit, :$all);
 }
 

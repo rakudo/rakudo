@@ -241,8 +241,8 @@ my class IO::Handle does IO::FileTestable {
         $c;
     }
 
-    method lines($limit = $Inf) {
-        if $limit == $Inf {
+    method lines($limit = Inf) {
+        if $limit == Inf {
             gather while nqp::p6definite(my $line = self.get) {
                 take $line;
             }
@@ -669,7 +669,7 @@ multi sub open($path, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp =
 }
 
 proto sub lines(|) { * }
-multi sub lines($fh = $*ARGFILES, $limit = $Inf) { 
+multi sub lines($fh = $*ARGFILES, $limit = Inf) { 
     $fh.lines($limit) 
 }
 

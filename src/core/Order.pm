@@ -10,8 +10,8 @@ sub ORDER(int $i) {
 
 proto infix:<cmp>($, $) { * }
 multi infix:<cmp>(\a, \b) {
-    return Order::Less if a === -$Inf || b === $Inf;
-    return Order::More if a ===  $Inf || b === -$Inf;
+    return Order::Less if a === -Inf || b === Inf;
+    return Order::More if a ===  Inf || b === -Inf;
     a.Stringy cmp b.Stringy
 }
 multi infix:<cmp>(Real \a, Real \b) { a.Bridge cmp b.Bridge }

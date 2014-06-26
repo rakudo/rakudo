@@ -43,7 +43,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
-        (self == $Inf || self == -$Inf) && fail("Cannot coerce Inf to a Rat");
+        (self == Inf || self == -Inf) && fail("Cannot coerce Inf to a Rat");
         
         my Num $num = self;
         my Int $signum = $num < 0 ?? -1 !! 1;

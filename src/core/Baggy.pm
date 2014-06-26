@@ -98,7 +98,7 @@ my role Baggy does QuantHash {
         my $total = $self.total;
         my $todo  = $count ~~ Num
           ?? $total min $count
-          !! ($count ~~ Whatever ?? ( $keep ?? $Inf !! $total ) !! $count);
+          !! ($count ~~ Whatever ?? ( $keep ?? Inf !! $total ) !! $count);
 
         map {
             my $rand = $total.rand.Int;

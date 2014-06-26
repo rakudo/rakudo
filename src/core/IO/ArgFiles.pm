@@ -26,7 +26,7 @@ my class IO::ArgFiles is IO::Handle {
     }
 
     method lines($limit = *) {
-        my $l = $limit ~~ Whatever ?? $Inf !! $limit;
+        my $l = $limit ~~ Whatever ?? Inf !! $limit;
         gather while $l-- > 0 {
            take $.get // last;
         }

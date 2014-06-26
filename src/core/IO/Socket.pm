@@ -10,7 +10,7 @@ my role IO::Socket does IO {
 #?endif
 
     # if bin is true, will return Buf, Str otherwise
-    method recv (Cool $chars = $Inf, :$bin? = False) {
+    method recv (Cool $chars = Inf, :$bin? = False) {
         fail('Socket not available') unless $!PIO;
 
 #?if parrot
@@ -71,11 +71,11 @@ my role IO::Socket does IO {
 #?if moar
         if $bin {
             nqp::readfh($!PIO, nqp::decont(buf8.new),
-                $chars == $Inf ?? 1048576 !! $chars.Int);
+                $chars == Inf ?? 1048576 !! $chars.Int);
         }
         else {
             nqp::p6box_s(nqp::readcharsfh($!PIO,
-                $chars == $Inf ?? 1048576 !! $chars.Int));
+                $chars == Inf ?? 1048576 !! $chars.Int));
         }
 #?endif
     }

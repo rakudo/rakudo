@@ -19,8 +19,8 @@ my class ThreadPoolScheduler does Scheduler {
     has $!loads_lock;
     
     # Initial and maximum threads.
-    has $!initial_threads;
-    has $!max_threads;
+    has Int $.initial_threads;
+    has Int $.max_threads;
     
     # Have we started any threads yet?
     has int $!started_any;

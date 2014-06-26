@@ -80,10 +80,10 @@ my class Complex is Cool does Numeric {
 
     method roots(Complex:D: $an) {
         my Int $n = $an.Int;
-        return $NaN if $n < 1;
+        return NaN if $n < 1;
         return self if $n == 1;
         for $!re, $!im {
-            return $NaN if $_ eq 'Inf' || $_ eq '-Inf' || $_ eq 'NaN';
+            return NaN if $_ eq 'Inf' || $_ eq '-Inf' || $_ eq 'NaN';
         }
 
         my ($mag, $angle) = self.polar;

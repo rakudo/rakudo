@@ -229,13 +229,13 @@ sub shell($cmd) {
     $status
 }
 
-# XXX: Temporary definition of $Inf and $NaN until we have constants ava
+# XXX: Temporary definition of $Inf until we have constants available
 # need to come pretty early, because we use it in lots of setting files
 # constant Inf = ...
-# constant NaN = ...
 my $Inf = nqp::p6box_n(nqp::inf());
-my $NaN = nqp::p6box_n(nqp::nan());
 # EM 20130627 attempt at using constants failed during optimizing phase
+
+constant NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
 #?if parrot    

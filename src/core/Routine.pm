@@ -92,7 +92,7 @@ my class Routine { # declared in BOOTSTRAP
                 nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
                 $handle
             }
-            method postcircumfix:<( )>($c) {
+            method postcircumfix:<( )>($c) is rw {
                 $!dispatcher.enter(|$c);
             }
             method soft() { True }

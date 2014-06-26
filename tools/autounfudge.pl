@@ -69,6 +69,7 @@ our $out_filename = 'autounfudge.patch';
 my $exclude = '(?!)';
 our $threads_num = 1;
 my $jvm;
+my $moar;
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,
@@ -82,6 +83,7 @@ GetOptions  'impl=s'        => \$impl,
             'exclude'       => \$exclude,
             'jobs=i'        => \$threads_num,
             'jvm'           => \$jvm,
+            'moar'          => \$moar,
             or usage();
 
 my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
@@ -90,7 +92,9 @@ $ENV{PERL6LIB} = join($path_sep, qw/lib ./) unless $keep_env;
 my $impl_re = quotemeta $impl;
 
 if ($impl eq 'rakudo') {
-    my $postfix = $jvm ? 'jvm' : 'parrot';
+    my $postfix = $jvm  ? 'jvm'   :
+                  $moar ? 'moar'  :
+                          'parrot';
     $impl_re = qr{rakudo(?:\.$postfix)?(?=\s)};
 }
 
@@ -246,6 +250,7 @@ Valid options:
     --out               Output patch file (defaults to "autounfudge.patch")
     --jobs number       Number of threads to use when processing 
     --jvm               For Rakudo running on the JVM
+    --moar              For Rakudo running on Moar
 USAGE
 }
 

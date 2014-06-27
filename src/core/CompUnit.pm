@@ -1,22 +1,25 @@
 class CompUnit {
     has Lock     $!lock;
     has Str      $.from;
+    has Str      $.name;
     has IO::Path $.path;
     has Str      $!WHICH;
     has Bool     $.loaded;
 
     my Lock $global = Lock.new;
+    my $default-from = 'perl6';
     my %instances;
 
-    method new( $path is copy, :$from = 'perl6' ) {
+    method new( $path is copy, :$name, :$from = $default-from ) {
         $path = IO::Spec.rel2abs($path);
         for $path.IO -> $io {
             return Nil if !$io.e or $io.d;
         }
-        $global.protect( { %instances{$path} //= self.bless(:$path,:$from) } );
+        $global.protect( { %instances{$path} //=
+          self.bless(:$path,:$name,:$from) } );
     }
 
-    method BUILD( :$path, :$!from ) {
+    method BUILD( :$path, :$!name, :$!from ) {
         $!lock  = Lock.new;
         $!WHICH = "{self.^name}|$path";
         $!path  = $path.path;
@@ -30,7 +33,7 @@ class CompUnit {
       !! self.^name;
     }
     method perl  { self.DEFINITE
-      ?? "CompUnit.new('{$!path.Str}')"
+      ?? "CompUnit.new('{$!path.Str}',:name<$!name>{",:from<$!from>" if $!from ne $default-from})"
       !! self.^name;
     }
 

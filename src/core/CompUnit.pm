@@ -2,6 +2,7 @@ class CompUnit {
     has Lock     $!lock;
     has Str      $.from;
     has Str      $.name;
+    has Str      $.extension;
     has IO::Path $.path;
     has Str      $!WHICH;
     has Bool     $.loaded;
@@ -10,16 +11,16 @@ class CompUnit {
     my $default-from = 'perl6';
     my %instances;
 
-    method new( $path is copy, :$name, :$from = $default-from ) {
+    method new( $path is copy, :$name, :$extension, :$from = $default-from ) {
         $path = IO::Spec.rel2abs($path);
         for $path.IO -> $io {
             return Nil if !$io.e or $io.d;
         }
         $global.protect( { %instances{$path} //=
-          self.bless(:$path,:$name,:$from) } );
+          self.bless(:$path,:$name,:$extension,:$from) } );
     }
 
-    method BUILD( :$path, :$!name, :$!from ) {
+    method BUILD( :$path, :$!name, :$!extension, :$!from ) {
         $!lock  = Lock.new;
         $!WHICH = "{self.^name}|$path";
         $!path  = $path.path;
@@ -33,8 +34,12 @@ class CompUnit {
       !! self.^name;
     }
     method perl  { self.DEFINITE
-      ?? "CompUnit.new('{$!path.Str}',:name<$!name>{",:from<$!from>" if $!from ne $default-from})"
+      ?? "CompUnit.new('{$!path.Str}',:name<$!name>,:extension<$!extension>{",:from<$!from>" if $!from ne $default-from})"
       !! self.^name;
+    }
+
+    method key {
+        $!extension eq $*VM.precomp-ext ?? $*VM.precomp-ext !! 'pm';
     }
 
     # same magic I'm not sure we need
@@ -81,4 +86,12 @@ class CompUnit {
             );
         } );
     }
+}
+
+# TEMPORARY ACCESS TO COMPUNIT INTERNALS UNTIL WE CAN LOAD DIRECTLY
+multi postcircumfix:<{ }> (CompUnit \c, "provides" ) {
+    my % = ( c.name => { c.key => { file => c.path } } );
+}
+multi postcircumfix:<{ }> (CompUnit \c, "ver" ) {
+    Version.new('0');
 }

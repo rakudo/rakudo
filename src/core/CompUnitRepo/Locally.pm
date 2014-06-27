@@ -1,7 +1,7 @@
 role CompUnitRepo::Locally {
-    has Lock $!lock;
+    has Lock     $!lock;
     has IO::Path $.path;
-    has Str $!WHICH;
+    has Str      $!WHICH;
 
     my %instances;
 

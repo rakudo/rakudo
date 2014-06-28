@@ -5111,7 +5111,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
-        if $lhs_ast.isa(QAST::Var) {
+        if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
         }
         if nqp::istype($lhs_ast, QAST::Var)
@@ -5123,12 +5123,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $var_sigil eq '@' || $var_sigil eq '%' {
             # While the scalar container store op would end up calling .STORE,
-            # it does it in a nested runloop, which gets pricey. This is a
+            # it may do it in a nested runloop, which gets pricey. This is a
             # simple heuristic check to try and avoid that by calling .STORE.
             $past := QAST::Op.new(
                 :op('callmethod'), :name('STORE'),
                 $lhs_ast, $rhs_ast);
             $past<nosink> := 1;
+        }
+        elsif $var_sigil eq '$' {
+            # If it's a $ scalar, we can assume it's some kind of scalar
+            # container with a container spec, so can go directly for the
+            # low level assign op.
+            $past := QAST::Op.new( :op('assign'), $lhs_ast, $rhs_ast );
         }
         elsif $lhs_ast.isa(QAST::Op) && $lhs_ast.op eq 'call' &&
               ($lhs_ast.name eq '&postcircumfix:<[ ]>' || $lhs_ast.name eq '&postcircumfix:<{ }>') &&

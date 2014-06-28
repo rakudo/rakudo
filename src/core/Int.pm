@@ -101,20 +101,20 @@ my class Int does Real { # declared in BOOTSTRAP
     method narrow(Int:D:) { self }
 }
 
-multi prefix:<++>(Int:D \a is rw) {   # XXX
-    a = nqp::add_I(nqp::decont(a), 1, Int);
+multi prefix:<++>(Int:D $a is rw) {
+    $a = nqp::add_I(nqp::decont($a), 1, Int);
 }
-multi prefix:<-->(Int:D \a is rw) {   # XXX
-    a = nqp::sub_I(nqp::decont(a), 1, Int);
+multi prefix:<-->(Int:D $a is rw) {
+    $a = nqp::sub_I(nqp::decont($a), 1, Int);
 }
-multi postfix:<++>(Int:D \a is rw) {  # XXX
-    my \b = nqp::decont(a);
-    a = nqp::add_I(b, 1, Int);
+multi postfix:<++>(Int:D $a is rw) {
+    my \b = nqp::decont($a);
+    $a = nqp::add_I(b, 1, Int);
     b
 }
-multi postfix:<-->(Int:D \a is rw) {  # XXX
-    my \b = nqp::decont(a);
-    a = nqp::sub_I(b, 1, Int);
+multi postfix:<-->(Int:D $a is rw) {
+    my \b = nqp::decont($a);
+    $a = nqp::sub_I(b, 1, Int);
     b
 }
 

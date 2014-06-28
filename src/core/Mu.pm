@@ -120,8 +120,8 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
-                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
-                    $attr = nqp::atpos($task, 3)(self, $attr);
+                    my \attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
+                    attr = nqp::atpos($task, 3)(self, attr);
                 }
             }
             elsif nqp::iseq_i($code, 5) {
@@ -195,8 +195,8 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
-                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                    $attr = nqp::atpos($task, 3)(self, $attr);
+                    my \attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
+                    attr = nqp::atpos($task, 3)(self, attr);
                 }
             }
             elsif nqp::iseq_i($code, 5) {
@@ -276,8 +276,8 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
-                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
-                    $attr = nqp::atpos($task, 3)(self, $attr);
+                    my \attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
+                    attr = nqp::atpos($task, 3)(self, attr);
                 }
             }
             elsif nqp::iseq_i($code, 5) || nqp::iseq_i($code, 6) || nqp::iseq_i($code, 7) {
@@ -355,8 +355,8 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
-                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                    $attr = nqp::atpos($task, 3)(self, $attr);
+                    my \attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
+                    attr = nqp::atpos($task, 3)(self, attr);
                 }
             }
             elsif nqp::iseq_i($code, 5) {

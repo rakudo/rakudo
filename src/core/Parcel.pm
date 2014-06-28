@@ -101,30 +101,30 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         my Mu $lhs := nqp::clone($!storage);
         my Mu $tv := nqp::list();
         while ($lhs) {
-            my Mu $x := nqp::shift($lhs);
-            if nqp::iscont($x) {
+            my Mu \x := nqp::shift($lhs);
+            if nqp::iscont(x) {
                 # container: scalar assignment
-                nqp::push($tv, $x);
+                nqp::push($tv, x);
                 nqp::push($tv, $rhs.gimme(1) ?? nqp::decont($rhs.shift) !! Nil);
             }
-            elsif nqp::istype($x, Whatever) {
+            elsif nqp::istype(x, Whatever) {
                 # Whatever: skip assigning value
                 $rhs.shift;
             }
-            elsif nqp::istype($x, Parcel) {
+            elsif nqp::istype(x, Parcel) {
                 # Parcel: splice into current lhs
-                nqp::splice($lhs, nqp::getattr($x, Parcel, '$!storage'), 0, 0)
+                nqp::splice($lhs, nqp::getattr(x, Parcel, '$!storage'), 0, 0)
             }
             else {
                 # store entire rhs
-                nqp::push($tv, $x);
+                nqp::push($tv, x);
                 nqp::push($tv, $rhs);
                 $rhs := ().list;
             }
         }
 
         # second pass, perform the assignments
-        while ($tv) { my $x := nqp::shift($tv); $x = nqp::shift($tv); }
+        while ($tv) { my \x := nqp::shift($tv); x = nqp::shift($tv); }
         self
     }
 

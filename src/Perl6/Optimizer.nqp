@@ -1512,6 +1512,7 @@ class Perl6::Optimizer {
     method inline_immediate_block($block, $outer, $preserve_topic) {
         # Sanity check.
         return $block if +@($block) != 2;
+        return $block unless nqp::istype($outer[0], QAST::Stmts);
 
         # Extract interesting parts of block.
         my $decls := $block.shift;

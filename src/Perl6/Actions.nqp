@@ -2428,7 +2428,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $block := $<blockoid>.ast;
-            $block[1] := wrap_return_handler($block[1]);
+            if is_clearly_returnless($block) {
+                unless nqp::objprimspec($block[1].returns) {
+                    $block[1] := QAST::Op.new(
+                        :op('p6decontrv'),
+                        QAST::WVal.new( :value($*DECLARAND) ),
+                        $block[1]);
+                }
+                $block[1] := wrap_return_type_check($block[1], $*DECLARAND);
+            }
+            else {
+                $block[1] := wrap_return_handler($block[1]);
+            }
         }
         $block.blocktype('declaration_static');
 
@@ -3064,6 +3075,51 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $*SCOPE eq 'our' {
             $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
             $*W.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+        }
+    }
+
+    sub is_clearly_returnless($block) {
+        sub returnless_past($past) {
+            return 0 unless
+                # It's a simple operation.
+                nqp::istype($past, QAST::Op)
+                    && nqp::getcomp('QAST').operations.is_inlinable('perl6', $past.op) ||
+                # Just a variable lookup.
+                nqp::istype($past, QAST::Var) ||
+                # Just a QAST::Want
+                nqp::istype($past, QAST::Want) ||
+                # Just a primitive or world value.
+                nqp::istype($past, QAST::WVal) ||
+                nqp::istype($past, QAST::IVal) ||
+                nqp::istype($past, QAST::NVal) ||
+                nqp::istype($past, QAST::SVal);
+            for @($past) {
+                if nqp::istype($_, QAST::Node) {
+                    if !returnless_past($_) {
+                        return 0;
+                    }
+                }
+            }
+            1;
+        }
+        
+        # Only analyse things with a single simple statement.
+        if +$block[1].list == 1 && nqp::istype($block[1][0], QAST::Stmt) && +$block[1][0].list == 1 {
+            # Ensure there's no nested blocks.
+            for @($block[0]) {
+                if nqp::istype($_, QAST::Block) { return 0; }
+                if nqp::istype($_, QAST::Stmts) {
+                    for @($_) {
+                        if nqp::istype($_, QAST::Block) { return 0; }
+                    }
+                }
+            }
+
+            # Ensure that the PAST is whitelisted things.
+            returnless_past($block[1][0][0])
+        }
+        else {
+            0
         }
     }
     

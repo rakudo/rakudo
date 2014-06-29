@@ -299,7 +299,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $pos    = $p;
 
                     $int   := nqp::atpos($parse, 0);
-                    $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+                    if nqp::isge_i($pos, $eos) {
+                        return $int;
+                    }
+                    else {
+                        $ch = nqp::ord($str, $pos);
+                    }
                 }
 
                 # Fraction, if any
@@ -476,7 +481,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
                 my $denom := parse-simple-number();
 
-                $result := $result.WHAT === Int && $denom.WHAT === Int
+                $result := nqp::istype($result, Int) && nqp::istype($denom, Int)
                         ?? Rat.new($result, $denom)
                         !! $result / $denom;
             }

@@ -16,26 +16,26 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         my %seen;
 
         FILES:
-        for $!path.contents -> $file {
-            if $file.basename -> $base {
-                my $root;
-                my $ext;
-                for $base.rindex(".") -> $i {
-                    next FILES unless $i.defined; # could not find extension
+        for $!path.contents -> $path {
+            my $file = ~$path;
 
-                    $root = $base.substr(0,$i);
-                    next FILES unless $root ~~ $name;         # not right name
+            for $file.rindex(".") -> $i {
+                next FILES unless $i.defined; # could not find any extension
 
-                    $ext = $base.substr($i + 1);
-                    next FILES unless $ext ~~ $anyextensions; # not right ext
+                my $ext = $file.substr($i + 1);
+                next FILES unless $ext ~~ $anyextensions; # not right ext
+
+                my $root = $file.substr(0,$i);
+                my $j := $root.rindex(IO::Spec.rootdir);
+                $root = $root.substr($j + 1) if $j.defined;
+                next FILES unless $root ~~ $name;         # not right name
+
+                if %seen{$root} -> $seenroot {            # seen name before
+                    $seenroot{$ext} := \($file, :name($root) );
                 }
 
-                if %seen{$root} -> $seenroot {                # seen name before
-                    $seenroot{$ext} := \(~$file, :name($root) );
-                }
-
-                else {                                        # first time
-                    %seen{$root}{$ext} := \(~$file, :name($root) );
+                else {                                    # first time
+                    %seen{$root}{$ext} := \($file, :name($root) );
                     @candidates.push: %seen{$root};
                 }
             }

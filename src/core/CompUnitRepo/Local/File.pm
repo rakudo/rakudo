@@ -15,20 +15,19 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         my @candidates;
         my %seen;
 
-        FILES:
         for $!path.contents -> $path {
             my $file = ~$path;
 
             for $file.rindex(".") -> $i {
-                next FILES unless $i.defined; # could not find any extension
+                last unless $i.defined; # could not find any extension
 
                 my $ext = $file.substr($i + 1);
-                next FILES unless $ext ~~ $anyextensions; # not right ext
+                last unless $ext ~~ $anyextensions; # not right ext
 
                 my $root = $file.substr(0,$i);
                 my $j := $root.rindex(IO::Spec.rootdir);
                 $root = $root.substr($j + 1) if $j.defined;
-                next FILES unless $root ~~ $name;         # not right name
+                last unless $root ~~ $name;         # not right name
 
                 if %seen{$root} -> $seenroot {            # seen name before
                     $seenroot{$ext} := \($file, :name($root) );

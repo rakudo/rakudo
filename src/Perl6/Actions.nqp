@@ -5189,11 +5189,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     
     sub xx_op($/, $lhs, $rhs) {
-        QAST::Op.new(
-            :op('call'), :name('&infix:<xx>'), :node($/),
-            block_closure(make_thunk_ref($lhs, $/)),
-            $rhs,
-            QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ), :named('thunked') ))
+        if $lhs.has_compile_time_value {
+            # Constant expression on the left; need not thunk.
+            QAST::Op.new( :op('call'), :name('&infix:<xx>'), :node($/), $lhs, $rhs )
+        }
+        else {
+            # Not a simple constant expression, so must thunk left hand side.
+            QAST::Op.new(
+                :op('call'), :name('&infix:<xx>'), :node($/),
+                block_closure(make_thunk_ref($lhs, $/)),
+                $rhs,
+                QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ), :named('thunked') ))
+        }
     }
 
     sub andthen_op($/) {

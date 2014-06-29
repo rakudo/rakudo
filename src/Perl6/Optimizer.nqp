@@ -860,11 +860,8 @@ class Perl6::Optimizer {
             
             # If we have no interesting ones, then we can inline the
             # statements.
-            # XXX We can also check for lack of colliding symbols and
-            # do something in that case. However, it's non-trivial as
-            # the static lexpad entries will need twiddling with.
             if +@sigsyms == 0 {
-                if $!level >= 3 {
+                if $!level >= 2 {
                     my $outer := $!symbols.top_block;
                     $result := self.inline_immediate_block($block, $outer,
                         nqp::existskey($vars_info.get_decls(), '$_'));

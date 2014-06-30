@@ -80,8 +80,8 @@ my class Hash { # declared in BOOTSTRAP
         nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         while $items {
             my Mu $x := $items.shift;
-            if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key, $x.value) }
-            elsif EnumMap.ACCEPTS($x) {
+            if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
+            elsif nqp::istype($x,EnumMap) {
                 for $x.list { self.STORE_AT_KEY(.key, .value) }
             }
             elsif $items { self.STORE_AT_KEY($x, $items.shift) }

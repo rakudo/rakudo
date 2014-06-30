@@ -1183,13 +1183,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                    if $*BORG<name> {
                         $/.CURSOR.'!clear_highwater'();
                         $/.CURSOR.'!cursor_pos'($*BORG<block>.CURSOR.pos);
-                        $/.CURSOR.typed_sorry('X::Syntax::BlockTaken', what => ~$*BORG<name>);
+                        $/.CURSOR.typed_sorry('X::Syntax::BlockGobbled', what => ~$*BORG<name>);
                         $/.CURSOR.'!cursor_pos'($pos);
                         $/.CURSOR.missing("block (apparently taken by '" ~ $*BORG<name> ~ "')");
                    } else {
                         $/.CURSOR.'!clear_highwater'();
                         $/.CURSOR.'!cursor_pos'($*BORG<block>.CURSOR.pos);
-                        $/.CURSOR.typed_sorry('X::Syntax::BlockTaken');
+                        $/.CURSOR.typed_sorry('X::Syntax::BlockGobbled');
                         $/.CURSOR.'!cursor_pos'($pos);
                         $/.CURSOR.missing("block (apparently taken by expression)");
                    }

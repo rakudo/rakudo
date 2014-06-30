@@ -283,8 +283,8 @@ my class DateTime does Dateish {
     }
 
     method clone(*%_) {
-        my %args = { :$!year, :$!month, :$!day, :$!hour, :$!minute,
-                     :$!second, :$!timezone, :&!formatter, %_ };
+        my %args = ( :$!year, :$!month, :$!day, :$!hour, :$!minute,
+                     :$!second, :$!timezone, :&!formatter, %_ );
         self.new(|%args);
     }
 

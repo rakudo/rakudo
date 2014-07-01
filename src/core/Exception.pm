@@ -1103,7 +1103,7 @@ my class X::Constructor::Positional is Exception {
 }
 
 my class X::Hash::Store::OddNumber is Exception {
-    method message() { "Odd number of elements found where hash expected" }
+    method message() { "Odd number of elements found where hash initializer expected" }
 }
 
 my class X::Package::Stubbed does X::Comp {

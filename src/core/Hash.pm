@@ -81,7 +81,7 @@ my class Hash { # declared in BOOTSTRAP
         while $items {
             my Mu $x := $items.shift;
             if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
-            elsif nqp::istype($x,EnumMap) {
+            elsif nqp::istype($x,EnumMap) and !nqp::iscont($x) {
                 for $x.list { self.STORE_AT_KEY(.key, .value) }
             }
             elsif $items { self.STORE_AT_KEY($x, $items.shift) }

@@ -74,14 +74,15 @@ my class MapIter is Iterator {
 
                 set_addr handler, catch
             };
-            if $!label {
-                Q:PIR { handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO, 512, 513, 514) };
-                1
-            }
-            else {
-                Q:PIR { handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO) };
-                1
-            }
+            $!label ??
+                Q:PIR {
+                    handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO, 512, 513, 514)
+                    %r = 42
+                } !!
+                Q:PIR {
+                    handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO)
+                    %r = 42
+                };
             Q:PIR {
                 push_eh handler
 
@@ -124,7 +125,7 @@ my class MapIter is Iterator {
                 if type == .CONTROL_LOOP_REDO goto redo
                 if type == .CONTROL_LOOP_LAST goto last
             };
-            if $!label {
+            $!label &&
                 Q:PIR {
                     .local int id1_reg, id2_reg
                     .local pmc label
@@ -137,9 +138,8 @@ my class MapIter is Iterator {
                     if type == 514 goto last
                   rethrow:
                     rethrow exception # XXX Should that be perl6_based_rethrow?
+                    %r = 42
                 };
-                1
-            }
             Q:PIR {
               next:
                 unless NEXT goto iter_loop

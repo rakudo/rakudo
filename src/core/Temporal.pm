@@ -283,14 +283,14 @@ my class DateTime does Dateish {
     }
 
     method clone(*%_) {
-        my %args = ( :$!year, :$!month, :$!day, :$!hour, :$!minute,
-                     :$!second, :$!timezone, :&!formatter, %_ );
+        my %args = :$!year, :$!month, :$!day, :$!hour, :$!minute,
+                   :$!second, :$!timezone, :&!formatter, %_;
         self.new(|%args);
     }
 
     method clone-without-validating(*%_) { # A premature optimization.
-        my %args = { :$!year, :$!month, :$!day, :$!hour, :$!minute,
-                     :$!second, :$!timezone, :&!formatter, %_ };
+        my %args = :$!year, :$!month, :$!day, :$!hour, :$!minute,
+                   :$!second, :$!timezone, :&!formatter, %_;
         self.bless(|%args);
     }
 
@@ -581,7 +581,7 @@ my class Date does Dateish {
     }
 
     method clone(*%_) {
-        my %args = { :$!year, :$!month, :$!day, %_ };
+        my %args = :$!year, :$!month, :$!day, %_;
         self.new(|%args);
     }
 

@@ -491,12 +491,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <.quibble(%*LANG<Q>)> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
-    token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(%*LANG<Q>)>
+    token comment:sym<#|(...)> {
+        '#|' <?opener> <attachment=.quibble(%*LANG<Q>)>
     }
 
-    token comment:sym<#=> {
-        '#=' \h+ $<attachment>=[\N*]
+    token comment:sym<#|> {
+        '#|' \h+ $<attachment>=[\N*]
         { $*DECLARATOR_DOCS := $<attachment> }
     }
 

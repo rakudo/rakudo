@@ -114,12 +114,12 @@ sub signature2text($params) {
       !! "()";
 }
 
-my %formats = {
-        "C" => "bold",
-        "L" => "underline",
-        "D" => "underline",
-        "R" => "inverse"
-    };
+my %formats =
+  C => "bold",
+  L => "underline",
+  D => "underline",
+  R => "inverse"
+;
 
 sub formatting2text($pod) {
     my $text = $pod.content>>.&pod2text.join;

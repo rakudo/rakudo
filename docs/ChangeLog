@@ -1,3 +1,10 @@
+New in 2014.07
++ assigning a single itemized hash to a hash is now DEPRECATED (my %h = {...})
++ itemized hashes in an assignment to a hash, are no longer auto-flattened
++ unpack directives "a" and "Z" added
++ subbuf-rw specced and implemented
++ Supply.zip-latest specced and implemented
+
 New in 2014.06
 + say/note now a little faster for single Str (which is most common)
 + an initial implementation of S11 (Compilation Units) is now available

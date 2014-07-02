@@ -657,7 +657,9 @@ S26-documentation/07-tables.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
-S26-documentation/why.t
+S26-documentation/why-both.t
+S26-documentation/why-following.t
+S26-documentation/why-preceding.t
 S28-named-variables/cwd.t
 S28-named-variables/inc.t
 S29-any/cmp.t

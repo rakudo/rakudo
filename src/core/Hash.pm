@@ -75,9 +75,20 @@ my class Hash { # declared in BOOTSTRAP
         nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
     }
 
-    method STORE(\to_store) is hidden_from_backtrace {
+    method STORE(\to_store) {
         my $items = (to_store,).flat.eager;
         nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+
+        if $items.elems == 1 {
+            if nqp::istype($items[0],EnumMap) {
+                my Mu $x := $items.shift;
+                DEPRECATED(self.VAR.name ~ ' = ...', :what(self.VAR.name ~ ' = { ... }'))
+                  if nqp::iscont($x);
+                for $x.list { self.STORE_AT_KEY(.key, .value) }
+                return self;
+            }
+        }
+
         while $items {
             my Mu $x := $items.shift;
             if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }

@@ -117,9 +117,7 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         }
     }
     
-    method hash(\SELF:) is rw {
-        SELF
-    }
+    method hash() { self }
 }
 
 multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {

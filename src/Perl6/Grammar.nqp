@@ -921,6 +921,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_BLOCKS_SEEN := {};
         :my $*POD_PAST;
         :my $*DECLARATOR_DOCS;
+        :my $*PRECEDING_DECL; # for #= comments
+        :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
         
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block
@@ -1994,41 +1996,49 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token package_declarator:sym<package> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<module> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'module';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<class> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'class';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<grammar> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'grammar';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<role> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'role';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<knowhow> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'knowhow';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<native> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'native';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<trusts> {
@@ -2191,6 +2201,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 
                 # Set declarand as the package.
                 $*DECLARAND := $*PACKAGE;
+
+                if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                    $*PRECEDING_DECL_LINE := $*LINE_NO;
+                    $*PRECEDING_DECL := $*DECLARAND;
+                }
                 
                 # Apply any traits.
                 for $<trait> {

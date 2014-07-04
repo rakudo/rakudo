@@ -500,6 +500,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := $<attachment> }
     }
 
+    token comment:sym<#=> { # This seems to occur before the end of package_def (even if the comment follows the block) =)
+        '#=' \h+ $<attachment>=[\N*]
+        {
+            my $*DOC := $<attachment>;
+            attach_docs;
+            my $docs := $*PRECEDING_DECL.HOW.trailing_docs;
+
+            if nqp::defined($docs) {
+                $docs := nqp::concat(nqp::unbox_s($docs), nqp::concat("\n", ~$*DOC));
+            } else {
+                $docs := ~$*DOC;
+            }
+            # XXX probably use $*DOCEE
+            $*PRECEDING_DECL.HOW.set_trailing_docs($docs);
+        }
+    }
+
     method attach_docs() {
         if ~$*DOC ne '' {
             my $cont  := Perl6::Pod::serialize_aos(

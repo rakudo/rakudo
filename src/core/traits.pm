@@ -248,28 +248,28 @@ multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
 
 # this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
 # will catch it and declare "docs" to be an unknown trait
-multi trait_mod:<is>(Routine:D $docee, :$docs!) {
+multi trait_mod:<is>(Routine:D $docee, :$leading_docs!) {
     $docee does role {
         has $!WHY;
-        method WHY          { $!WHY      }
-        method set_docs($d) { $!WHY = $d }
+        method WHY                  { $!WHY      }
+        method set_leading_docs($d) { $!WHY = $d }
     }
-    $docee.set_docs($docs);
-    $docs.set_docee($docee);
+    $docee.set_leading_docs($leading_docs);
+    $leading_docs.set_docee($docee);
 }
-multi trait_mod:<is>(Mu:D $docee, :$docs!) {
+multi trait_mod:<is>(Mu:D $docee, :$leading_docs!) {
     $docee does role {
         has $!WHY;
-        method WHY          { $!WHY      }
-        method set_docs($d) { $!WHY = $d }
+        method WHY                  { $!WHY      }
+        method set_leading_docs($d) { $!WHY = $d }
     }
-    $docee.set_docs($docs);
-    $docs.set_docee($docee);
+    $docee.set_leading_docs($leading_docs);
+    $leading_docs.set_docee($docee);
 }
 
-multi trait_mod:<is>(Mu:U $docee, :$docs!) {
-    $docee.HOW.set_docs($docs);
-    $docs.set_docee($docee);
+multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
+    $docee.HOW.set_leading_docs($leading_docs);
+    $leading_docs.set_docee($docee);
 }
 
 

@@ -1,9 +1,13 @@
 role Perl6::Metamodel::Documenting {
-    has $!docs;
-    method set_docs($new) {
-        $!docs := $new
+    has $!leading_docs;
+    method set_leading_docs($new) {
+        $!leading_docs := $new
     }
+    method leading_docs() {
+        $!leading_docs
+    }
+
     method docs() {
-        $!docs
+        $!leading_docs
     }
 }

@@ -458,8 +458,8 @@ sub MAIN(*@ARGS) {
     $comp.language('perl6');
     $comp.parsegrammar(Perl6::HookGrammar);
     $comp.parseactions(Perl6::HookActions);
-    $comp.addstage('syntaxcheck', :before<past>);
-    $comp.addstage('optimize', :before<post>);
+    $comp.addstage('syntaxcheck', :before<ast>);
+    $comp.addstage('optimize', :after<ast>);
     hll-config($comp.config);
     my $COMPILER_CONFIG := $comp.config;
     nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);

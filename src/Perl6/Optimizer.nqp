@@ -1048,7 +1048,7 @@ class Perl6::Optimizer {
             }
         }
 
-        # Make be able to simplify takedispatcher ops.
+        # May be able to simplify takedispatcher ops.
         elsif $optype eq 'takedispatcher' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_takedispatcher($op);
         }

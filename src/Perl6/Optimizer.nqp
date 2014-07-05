@@ -590,31 +590,37 @@ my class BlockVarOptimizer {
         }
     }
 
-    method lexicals_to_locals() {
+    method lexical_vars_to_locals($block) {
         return 0 if $!poisoned || $!uses_bindsig;
+        return 0 unless nqp::istype($block[0], QAST::Stmts);
         for %!decls {
-            # We're looking for lexical var or param decls.
+            # We're looking for lexical var decls; these have no magical
+            # vivification lexical behavior and so are safe to lower.
             my $qast := $_.value;
+            my str $decl := $qast.decl;
+            next unless $decl eq 'var';
             my str $scope := $qast.scope;
             next unless $scope eq 'lexical';
-            my str $decl := $qast.decl;
-            next unless $decl eq 'param' || $decl eq 'var';
 
             # Consider name. Can't lower if it's used by any nested blocks.
             my str $name := $_.key;
             unless nqp::existskey(%!usages_inner, $name) {
                 # Lowerable if it's a normal variable.
-                next if nqp::chars($name) < 2;
-                if $name ne 'self' && $name ne '$/' {
+                next if nqp::chars($name) < 1;
+                unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 0) {
                     my str $sigil := nqp::substr($name, 0, 1);
                     next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
-                    next unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
+                    next unless nqp::chars($name) >= 2 &&
+                                nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
                 }
 
-                # Seems good; lower it.
+                # Seems good; lower it. Note we need to retain a lexical in
+                # case of binder failover to generate errors.
                 my $new_name := $qast.unique('__lowered_lex');
-                $qast.scope('local');
+                $block[0].unshift(QAST::Var.new( :name($qast.name), :scope('lexical'),
+                                                 :decl('var'), :returns($qast.returns) ));
                 $qast.name($new_name);
+                $qast.scope('local');
                 if %!usages_flat{$name} {
                     for %!usages_flat{$name} {
                         $_.scope('local');
@@ -891,6 +897,9 @@ class Perl6::Optimizer {
                 }
             }
         }
+
+        # Do any possible lexical => local lowering.
+        $vars_info.lexical_vars_to_locals($block);
 
         # Incorporate this block's info into outer block's info.
         @!block_var_stack[nqp::elems(@!block_var_stack) - 1].incorporate_inner($vars_info, $flattened)

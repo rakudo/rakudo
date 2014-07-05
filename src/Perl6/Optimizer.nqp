@@ -414,6 +414,9 @@ my class BlockVarOptimizer {
     has @!autoslurpy_setups;
     has @!autoslurpy_binds;
 
+    # The takedispatcher operation.
+    has $!takedispatcher;
+
     # If lowering is, for some reason, poisoned.
     has $!poisoned;
 
@@ -447,6 +450,10 @@ my class BlockVarOptimizer {
 
     method register_autoslurpy_bind($node) {
         nqp::push(@!autoslurpy_binds, $node);
+    }
+
+    method register_takedispatcher($node) {
+        $!takedispatcher := $node;
     }
 
     method poison_lowering() { $!poisoned := 1; }
@@ -564,6 +571,15 @@ my class BlockVarOptimizer {
                 $to_null := @!autoslurpy_binds[0];
                 nqp::shift($to_null) while @($to_null);
                 $to_null.op('null');
+            }
+        }
+    }
+
+    method simplify_takedispatcher() {
+        unless $!calls {
+            if $!takedispatcher {
+                $!takedispatcher.op('cleardispatcher');
+                $!takedispatcher.shift();
             }
         }
     }
@@ -841,9 +857,10 @@ class Perl6::Optimizer {
         my $vars_info := @!block_var_stack.pop();
 
         # We might be able to delete some of the magical variables when they
-        # are trivially unused.
+        # are trivially unused, and also simplify takedispatcher.
         $vars_info.delete_unused_magicals($block);
         $vars_info.delete_unused_autoslurpy();
+        $vars_info.simplify_takedispatcher();
 
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
@@ -1029,6 +1046,11 @@ class Perl6::Optimizer {
                     $update[0] := $target[0];
                 }
             }
+        }
+
+        # Make be able to simplify takedispatcher ops.
+        elsif $optype eq 'takedispatcher' {
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_takedispatcher($op);
         }
 
         # Calls are especially interesting as we may wish to do some

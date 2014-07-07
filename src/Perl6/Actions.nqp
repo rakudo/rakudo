@@ -6012,7 +6012,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 0 if %info<default_from_outer>;
 
             # Generate a var to bind into.
-            my $name := "__lowered_param_$i";
+            my $name := QAST::Node.unique("__lowered_param_");
             my $var  := QAST::Var.new( :$name, :scope('local'), :decl('param') );
             if %info<is_capture> {
                 # If this is a final and anonymous capture, then we're good.

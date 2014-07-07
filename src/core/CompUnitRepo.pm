@@ -10,7 +10,7 @@ class CompUnitRepo {
             my @candi;
             for $group.list {
                 if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
-                    @candi := (@candi, $cur.candidates($name, :$file, :$auth, :$ver)).flat
+                    @candi := (@candi, $cur.files($name, :$file, :$auth, :$ver)).flat
                 }
             }
             return @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) } if +@candi

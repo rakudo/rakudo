@@ -317,9 +317,12 @@ sub proclaim($cond, $desc) {
             $num_of_tests_failed = $num_of_tests_failed + 1
         }
     }
-    print "ok ", $num_of_tests_run, " - ", $desc;
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
-        print $todo_reason;
+        # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
+        print "ok ", $num_of_tests_run, " - ", $desc.subst('#', '', :g), $todo_reason;
+    }
+    else {
+        print "ok ", $num_of_tests_run, " - ", $desc;
     }
     print "\n";
     print $indents

@@ -207,8 +207,8 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
 }
 
 # XXX Wants to be a macro when we have them.
-sub WHAT(\x) { x.WHAT }
-sub VAR (\x) { x.VAR }
+sub WHAT(Mu \x) { x.WHAT }
+sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) { * }
 multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }

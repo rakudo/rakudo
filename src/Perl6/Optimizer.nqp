@@ -420,6 +420,9 @@ my class BlockVarOptimizer {
     # If lowering is, for some reason, poisoned.
     has $!poisoned;
 
+    # If p6bindsig is used.
+    has int $!uses_bindsig;
+
     method add_decl($var) {
         if $var.scope eq 'lexical' {
             %!decls{$var.name} := $var;
@@ -457,6 +460,8 @@ my class BlockVarOptimizer {
     }
 
     method poison_lowering() { $!poisoned := 1; }
+
+    method uses_bindsig() { $!uses_bindsig := 1; }
 
     method get_decls() { %!decls }
 
@@ -509,7 +514,7 @@ my class BlockVarOptimizer {
 
     method delete_unused_magicals($block) {
         # Magicals are contextual, so if we call anything when we're done for.
-        return 0 if $!calls || $!poisoned;
+        return 0 if $!calls || $!poisoned || $!uses_bindsig;
 
         # Otherwise see if there's any we can kill.
         my %kill;
@@ -562,7 +567,8 @@ my class BlockVarOptimizer {
     }
 
     method delete_unused_autoslurpy() {
-        if !$!poisoned && nqp::existskey(%!decls, '%_') && nqp::elems(@!autoslurpy_setups) == 1
+        if !$!poisoned && !$!uses_bindsig && nqp::existskey(%!decls, '%_')
+                && nqp::elems(@!autoslurpy_setups) == 1
                 && nqp::elems(@!autoslurpy_binds) == 1 {
             if !nqp::existskey(%!usages_inner, '%_') && nqp::elems(%!usages_flat<%_>) == 1 {
                 my $to_null := @!autoslurpy_setups[0];
@@ -576,7 +582,7 @@ my class BlockVarOptimizer {
     }
 
     method simplify_takedispatcher() {
-        unless $!calls {
+        unless $!calls || $!uses_bindsig {
             if $!takedispatcher {
                 $!takedispatcher.op('cleardispatcher');
                 $!takedispatcher.shift();
@@ -585,7 +591,7 @@ my class BlockVarOptimizer {
     }
 
     method lexicals_to_locals() {
-        return 0 if $!poisoned;
+        return 0 if $!poisoned || $!uses_bindsig;
         for %!decls {
             # We're looking for lexical var or param decls.
             my $qast := $_.value;
@@ -986,7 +992,7 @@ class Perl6::Optimizer {
             }
         }
         elsif $optype eq 'p6bindsig' {
-            self.poison_var_lowering();
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].uses_bindsig();
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();

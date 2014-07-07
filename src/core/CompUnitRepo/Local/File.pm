@@ -1,57 +1,61 @@
 class CompUnitRepo::Local::File does CompUnitRepo::Locally {
+    has Hash $!potentials;
+
+    my $precomp := $*VM.precomp-ext;
+    my %extensions =
+      perl6 => [$precomp,'pm6','pm'],
+      perl5 => [$precomp,'pm5','pm'],
+      nqp   => [$precomp,'nqp'];
+    my $anyextensions = any($precomp,<pm6 pm5 pm nqp>);
 
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) { ... }
 
-    method candidates($name, :$from = 'perl6', :$file, :$auth, :$ver) {
-        my @extensions = $from eq 'perl6'
-          ?? ($*VM.precomp-ext,'pm6','pm')
-          !! $from eq 'perl5'
-            ?? ($*VM.precomp-ext,'pm5','pm')
-            !! $from eq 'nqp'
-               ?? ($*VM.precomp-ext,'nqp')
-               !! die "Don't know how to handle :from<$from>";
-        my $anyextensions = any(@extensions);
+    method candidates($name = /./, :$from = 'perl6', :$file, :$auth, :$ver) {
+        my @extensions := %extensions{$from};
+
         my @candidates;
-        my %seen;
+        for ( $!potentials //= self.potentials ).keys -> $root {
+            next unless $root ~~ $name;             # not right name
+
+            my $candidate := $!potentials{$root};
+            for @extensions -> $extension {
+                if $candidate{$extension} -> $sig { # use this extension
+                    @candidates.push: CompUnit.new(|$sig, :$extension);
+                    last;
+                }
+            }
+        }
+        @candidates;
+    }
+
+    method short-id() { 'file' }
+
+    submethod potentials {
+        my Hash $potentials = {};
 
         for $!path.contents -> $path {
             my $file = ~$path;
 
             for $file.rindex(".") -> $i {
-                last unless $i.defined; # could not find any extension
+                last unless $i.defined;               # could not find any ext
 
                 my $ext = $file.substr($i + 1);
-                last unless $ext ~~ $anyextensions; # not right ext
+                last unless $ext ~~ $anyextensions;   # not right ext
 
                 my $root = $file.substr(0,$i);
                 my $j := $root.rindex(IO::Spec.rootdir);
                 $root = $root.substr($j + 1) if $j.defined;
-                last unless $root ~~ $name;         # not right name
 
-                if %seen{$root} -> $seenroot {            # seen name before
-                    $seenroot{$ext} := \($file, :name($root) );
+                if $potentials{$root} -> $seenroot { # seen name before
+                    $potentials{$ext} := \($file, :name($root) );
                 }
 
-                else {                                    # first time
-                    %seen{$root}{$ext} := \($file, :name($root) );
-                    @candidates.push: %seen{$root};
+                else {                               # first time
+                    $potentials{$root}{$ext} := \($file, :name($root) );
                 }
             }
         }
-
-        CANDIDATE:
-        for @candidates <-> $can {
-            for @extensions -> $extension {
-                if $can{$extension} -> $sig { # use this extension
-                    $can = CompUnit.new(|$sig, :$extension);
-                    next CANDIDATE;
-                }
-            }
-        }
-
-        @candidates;
+        $potentials;
     }
-
-    method short-id() { 'file' }
 }

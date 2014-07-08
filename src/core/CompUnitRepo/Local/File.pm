@@ -8,6 +8,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
       NQP   => [$precomp,'nqp'],
       JVM   => [$precomp];
     my $anyextensions = any($precomp,<pm6 pm5 pm nqp>);
+    my $slash := IO::Spec.rootdir;
 
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) { ... }
@@ -38,7 +39,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         for $!path.contents -> $path {
             my $file = ~$path;
 
-            # We loop over one element to be able to 'last' out ot if.
+            # We loop over one element to be able to 'last' out of if.
             for $file.rindex(".") -> $i {
                 last unless $i.defined;               # could not find any ext
 
@@ -46,7 +47,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
                 last unless $ext ~~ $anyextensions;   # not right ext
 
                 my $root = $file.substr(0,$i);
-                my $j := $root.rindex(IO::Spec.rootdir);
+                my $j := $root.rindex($slash);
                 $root = $root.substr($j + 1) if $j.defined;
 
                 $potentials{$root}{$ext} := \($file, :name($root) );

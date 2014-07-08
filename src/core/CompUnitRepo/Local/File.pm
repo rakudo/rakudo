@@ -3,16 +3,15 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
 
     my $precomp := $*VM.precomp-ext;
     my %extensions =
-      perl6 => [$precomp,'pm6','pm'],
-      perl5 => [$precomp,'pm5','pm'],
-      nqp   => [$precomp,'nqp'],
+      Perl6 => [$precomp,'pm6','pm'],
+      Perl5 => [$precomp,'pm5','pm'],
       NQP   => [$precomp,'nqp'];
     my $anyextensions = any($precomp,<pm6 pm5 pm nqp>);
 
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) { ... }
 
-    method candidates($name = /./, :$from = 'perl6', :$file, :$auth, :$ver) {
+    method candidates($name = /./, :$from = 'Perl6', :$file, :$auth, :$ver) {
         my @extensions := %extensions{$from};
 
         my @candidates;

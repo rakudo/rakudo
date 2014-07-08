@@ -38,6 +38,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         for $!path.contents -> $path {
             my $file = ~$path;
 
+            # We loop over one element to be able to 'last' out ot if.
             for $file.rindex(".") -> $i {
                 last unless $i.defined;               # could not find any ext
 
@@ -48,13 +49,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
                 my $j := $root.rindex(IO::Spec.rootdir);
                 $root = $root.substr($j + 1) if $j.defined;
 
-                if $potentials{$root} -> $seenroot { # seen name before
-                    $potentials{$ext} := \($file, :name($root) );
-                }
-
-                else {                               # first time
-                    $potentials{$root}{$ext} := \($file, :name($root) );
-                }
+                $potentials{$root}{$ext} := \($file, :name($root) );
             }
         }
         $potentials;

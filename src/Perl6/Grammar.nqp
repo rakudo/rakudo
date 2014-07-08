@@ -504,16 +504,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '#=' \h+ $<attachment>=[\N*]
         {
             my $*DOC := $<attachment>;
-            attach_docs;
-            my $docs := $*PRECEDING_DECL.HOW.trailing_docs;
+            self.attach_docs;
+            my $docs := $*PRECEDING_DECL.HOW.trailing_docs; # XXX this is probably an object...
 
             if nqp::defined($docs) {
                 $docs := nqp::concat(nqp::unbox_s($docs), nqp::concat("\n", ~$*DOC));
             } else {
                 $docs := ~$*DOC;
             }
-            # XXX probably use $*DOCEE
-            $*PRECEDING_DECL.HOW.set_trailing_docs($docs);
+            $*PRECEDING_DECL.HOW.set_trailing_docs($*DOCEE);
         }
     }
 

@@ -5,7 +5,8 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
     my %extensions =
       Perl6 => [$precomp,'pm6','pm'],
       Perl5 => [$precomp,'pm5','pm'],
-      NQP   => [$precomp,'nqp'];
+      NQP   => [$precomp,'nqp'],
+      JVM   => [$precomp];
     my $anyextensions = any($precomp,<pm6 pm5 pm nqp>);
 
     method install($source, $from?) { ... }

@@ -3,18 +3,27 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
 
     my $precomp := $*VM.precomp-ext;
     my %extensions =
-      Perl6 => [$precomp,'pm6','pm'],
-      Perl5 => [$precomp,'pm5','pm'],
-      NQP   => [$precomp,'nqp'],
-      JVM   => [$precomp];
+      Perl6 => ($precomp,'pm6','pm'),
+      Perl5 => ($precomp,'pm5','pm'),
+      NQP   => ($precomp,'nqp'),
+      JVM   => ($precomp,);
     my $anyextensions = any($precomp,<pm6 pm5 pm nqp>);
     my $slash := IO::Spec.rootdir;
 
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) { ... }
 
-    method candidates($name = /./, :$from = 'Perl6', :$file, :$auth, :$ver) {
-        my @extensions := %extensions{$from};
+    method candidates(
+      $name  = /./,
+      :$from = 'Perl6',
+      :$file,           # not used here (yet)
+      :$auth,           # not used here (yet)
+      :$ver,            # not usde here (yet)
+      :$no-precomp,
+      ) {
+        my @extensions := $no-precomp
+          ?? %extensions{$from}[1..*]
+          !! %extensions{$from};
 
         my @candidates;
         for ( $!potentials //= self.potentials ).keys -> $root {

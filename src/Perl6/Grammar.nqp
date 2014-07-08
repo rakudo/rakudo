@@ -2566,6 +2566,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # We'll collect parameter information into a hash, then use it to
         # build up the parameter object in the action method
         :my %*PARAM_INFO;
+        :my $*DOC := $*DECLARATOR_DOCS;
+        <.attach_docs>
         [
         | <type_constraint>+
             [

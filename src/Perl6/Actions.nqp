@@ -301,7 +301,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
-        $code := make_topic_block_ref($code, copy => 1);
+        $code := make_topic_block_ref($/, $code, copy => 1);
         QAST::Op.new(
             :op<call>, :name<&eager>,
             QAST::Op.new(:op<callmethod>, :name<map>,
@@ -871,13 +871,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if ~$ml<sym> eq 'given' {
                     $past := QAST::Op.new(
                         :op('call'),
-                        block_closure(make_topic_block_ref($past)),
+                        block_closure(make_topic_block_ref($/, $past)),
                         $cond
                     );
                 }
                 elsif ~$ml<sym> eq 'for' {
                     unless $past.ann('past_block') {
-                        $past := make_topic_block_ref($past);
+                        $past := make_topic_block_ref($/, $past);
                     }
                     $past := QAST::Op.new(
                             :op<callmethod>, :name<map>, :node($/),
@@ -2680,7 +2680,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.pop_lexpad();
         $install_in.push(QAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_symbol(['Mu']) )];
-        my $p_sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter(@p_params[0])]));
+        my $p_sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($/, @p_params[0])]));
         add_signature_binding_code($p_past, $p_sig, @p_params);
         my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
         $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
@@ -3448,7 +3448,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
-        my $refinement := make_where_block($<EXPR> ?? $<EXPR>.ast !!
+        my $refinement := make_where_block($/, $<EXPR> ?? $<EXPR>.ast !!
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
@@ -3636,6 +3636,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
         %*PARAM_INFO<is_parcel>    := $quant eq '\\';
         %*PARAM_INFO<is_capture>   := $quant eq '|';
+
+        # Handle leading declarative docs
+        if $*DECLARATOR_DOCS ne '' {
+            %*PARAM_INFO<docs> := $*DECLARATOR_DOCS;
+            $*DECLARATOR_DOCS  := '';
+        }
 
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
@@ -3867,7 +3873,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
-            %*PARAM_INFO<post_constraints>.push(make_where_block($<EXPR>.ast));
+            %*PARAM_INFO<post_constraints>.push(make_where_block($/, $<EXPR>.ast));
         }
     }
 
@@ -3925,7 +3931,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Create parameter object and apply any traits.
-            my $param_obj := $*W.create_parameter($_);
+            my $param_obj := $*W.create_parameter($/, $_);
             if $_<traits> {
                 for $_<traits> {
                     ($_.ast)($param_obj) if $_.ast;
@@ -6570,7 +6576,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block);
     }
 
-    sub make_topic_block_ref($past, :$copy) {
+    sub make_topic_block_ref($/, $past, :$copy) {
         my $block := QAST::Block.new(
             QAST::Stmts.new(
                 QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
@@ -6583,7 +6589,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $*W.find_symbol(['Mu']), 0, '$_'
             );
         }
-        my $param_obj := $*W.create_parameter($param);
+        my $param_obj := $*W.create_parameter($/, $param);
         if $copy { $param_obj.set_copy() } else { $param_obj.set_rw() }
         my $sig := $*W.create_signature(nqp::hash('parameters', [$param_obj]));
         add_signature_binding_code($block, $sig, [$param]);
@@ -6592,7 +6598,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block)
     }
 
-    sub make_where_block($expr) {
+    sub make_where_block($/, $expr) {
         # If it's already a block, nothing to do at all.
         if $expr.ann('past_block') {
             return $expr.ann('code_object');
@@ -6616,7 +6622,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $param := hash(
             variable_name => '$_',
             nominal_type => $*W.find_symbol(['Mu']));
-        my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($param)]));
+        my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($/, $param)]));
         add_signature_binding_code($past, $sig, [$param]);
         $*W.create_code_object($past, 'Block', $sig)
     }
@@ -6777,8 +6783,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
         ];
         my $sig := $*W.create_signature(nqp::hash('parameters', [
-            $*W.create_parameter(@params[0]),
-            $*W.create_parameter(@params[1])
+            $*W.create_parameter($/, @params[0]),
+            $*W.create_parameter($/, @params[1])
         ]));
         $block[0].push(QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') ));
         $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));

@@ -2835,8 +2835,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             :decl<routine>, :with_adverbs);
         }
         elsif $<sigil> {
-            if $<sigil> eq '@'    { $name := 'at_pos' }
-            elsif $<sigil> eq '%' { $name := 'at_key' }
+            if $<sigil> eq '@'    { $name := 'postcircumfix:<[ ]>' }
+            elsif $<sigil> eq '%' { $name := 'postcircumfix:<{ }>' }
             elsif $<sigil> eq '&' { $name := 'postcircumfix:<( )>' }
             else {
                 $/.CURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");

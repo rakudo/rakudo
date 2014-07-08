@@ -185,6 +185,15 @@ multi trait_mod:<is>(Parameter:D $param, :$required!) {
 multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
     $param.set_parcel();
 }
+multi trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
+    $param does role {
+        has $!WHY;
+        method WHY                  { $!WHY      }
+        method set_leading_docs($d) { $!WHY = $d }
+    }
+    $param.set_leading_docs($leading_docs);
+    $leading_docs.set_docee($param);
+}
 
 # Declare these, as setting mainline doesn't get them automatically (as the
 # Mu/Any/Scalar are not loaded).

@@ -3307,19 +3307,30 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
         :my $*IN_META := $in_meta;
+        :my $oper;
         <!stdstopper>
         <!infixstopper>
         :dba('infix or meta-infix')
         [
-        | <colonpair> <OPER=fake_infix>
-        | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> {} <OPER=.copyOPER($<infixish>)>
-            # XXX Gets false positives.
-            #[ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
-        | <OPER=infix_circumfix_meta_operator>
-        | <OPER=infix> <![=]>
-        | <OPER=infix_prefix_meta_operator>
-        | <infix> <OPER=infix_postfix_meta_operator>
+        | <colonpair> <fake_infix> { $oper := $<fake_infix> }
+        |   [
+            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $oper := $<infixish><OPER> }
+                # XXX Gets false positives.
+                #[ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
+            | <infix_circumfix_meta_operator> { $oper := $<infix_circumfix_meta_operator> }
+            | <infix_prefix_meta_operator> { $oper := $<infix_prefix_meta_operator> }
+            | <infix> { $oper := $<infix> }
+            ]
+            [ <?before '='> <infix_postfix_meta_operator> { $oper := $<infix_postfix_meta_operator> } ]?
         ]
+        <OPER=.asOPER($oper)>
+    }
+
+    method asOPER($OPER) {
+        my $cur  := self.'!cursor_start_cur'();
+        $cur.'!cursor_pass'(self.pos());
+        nqp::bindattr($cur, NQPCursor, '$!match', $OPER);
+        $cur
     }
     
     token fake_infix {
@@ -3424,14 +3435,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         my $cur := self.'!cursor_start_cur'();
         $cur.'!cursor_pass'(self.pos());
         nqp::bindattr($cur, NQPCursor, '$!match', $O);
-        $cur
-    }
-
-    method copyOPER($from) {
-        my $OPER := $from<OPER>;
-        my $cur  := self.'!cursor_start_cur'();
-        $cur.'!cursor_pass'(self.pos());
-        nqp::bindattr($cur, NQPCursor, '$!match', $OPER);
         $cur
     }
 

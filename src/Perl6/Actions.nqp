@@ -2275,7 +2275,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %cont_info, $descriptor);
 
             # Document it
-            # Perl6::Pod::document($/, $attr, $*DOC); #XXX var traits NYI
+            Perl6::Pod::document($/, $attr, $*DOC);
 
             # If no twigil, note $foo is an alias to $!foo.
             if $twigil eq '' {

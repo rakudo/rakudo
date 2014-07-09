@@ -2404,6 +2404,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Generate and install code block for accessor.
         my $a_past := $*W.push_lexpad($/);
         $a_past.name($meth_name);
+        $a_past.blocktype('declaration_static');
         $a_past.push($var_past);
         $*W.pop_lexpad();
         $install_in[0].push($a_past);

@@ -1,4 +1,5 @@
 New in 2014.07
++ Cool.eval and eval() are now removed
 + assigning a single itemized hash to a hash is now DEPRECATED (my %h = {...})
 + itemized hashes in an assignment to a hash, are no longer auto-flattened
 + .hash now turns an itemized hash into a hash

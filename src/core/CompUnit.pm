@@ -8,7 +8,7 @@ class CompUnit {
     has Bool     $.loaded;
 
     my Lock $global = Lock.new;
-    my $default-from = 'perl6';
+    my $default-from = 'Perl6';
     my %instances;
 
     method new( $path is copy, :$name, :$extension, :$from = $default-from ) {

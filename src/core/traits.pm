@@ -82,6 +82,15 @@ multi trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 # need to add a COMPOSE phaser to the class, that will add an ENTER phaser
 # to the (possibly auto-generated) accessor method.
 }
+multi trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
+    $attr does role {
+        has $!WHY;
+        method WHY                  { $!WHY      }
+        method set_leading_docs($d) { $!WHY = $d }
+    }
+    $attr.set_leading_docs($leading_docs);
+    $leading_docs.set_docee($attr);
+}
 
 multi trait_mod:<is>(Routine:D $r, |c ) {
     X::Comp::Trait::Unknown.new(

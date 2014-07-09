@@ -27,24 +27,21 @@ class CompUnit {
         self
     }
 
-    method WHICH { self.DEFINITE ?? $!WHICH !! self.^name }
-    method Str   { self.DEFINITE ?? $!path.Str !! Nil }
-    method gist  { self.DEFINITE
-      ?? "{self.name}:{$!path.Str}"
-      !! self.^name;
-    }
-    method perl  { self.DEFINITE
+    method WHICH() { self.DEFINITE ?? $!WHICH !! self.^name }
+    method Str()   { self.DEFINITE ?? $!path.Str !! Nil }
+    method gist()  { self.DEFINITE ?? "{self.name}:{$!path.Str}" !! self.^name }
+    method perl()  { self.DEFINITE
       ?? "CompUnit.new('{$!path.Str}',:name<$!name>,:extension<$!extension>{",:from<$!from>" if $!from ne $default-from})"
       !! self.^name;
     }
 
-    method key {
+    method key() {
         $!extension eq $*VM.precomp-ext ?? $*VM.precomp-ext !! 'pm';
     }
 
     # same magic I'm not sure we need
     my Mu $p6ml := nqp::gethllsym('perl6', 'ModuleLoader');
-    method p6ml { $p6ml }
+    method p6ml() { $p6ml }
     method ctxsave() { $p6ml.ctxsave() }
     method absolute_path($path) { $p6ml.absolute_path($path) }
     method load_setting($setting_name) { $p6ml.load_setting($setting_name) }
@@ -85,6 +82,21 @@ class CompUnit {
               :%chosen
             );
         } );
+    }
+
+    method compiled() { $!extension eq $*VM.precomp-ext }
+
+    method precomp-path() {
+        my $ext := $!extension;  # cannot use attributes in regex
+        $!path.subst(/$ext$/,$*VM.precomp-ext);
+    }
+
+    method compile($output = self.precomp-path, :$force) {
+        die "Cannot compile an already compiled file: $!path"
+          if self.compiled;
+        die "Cannot compile over an existing file: $output"
+          if !$force and $output.IO.e;
+        ?shell("$*EXECUTABLE --target={$*VM.precomp-target} --output=$output $!path");
     }
 }
 

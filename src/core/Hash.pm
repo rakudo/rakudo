@@ -82,8 +82,10 @@ my class Hash { # declared in BOOTSTRAP
         if $items.elems == 1 {
             if nqp::istype($items[0],EnumMap) {
                 my Mu $x := $items.shift;
-                DEPRECATED(self.VAR.name ~ ' = ...', :what(self.VAR.name ~ ' = { ... }'))
-                  if nqp::iscont($x);
+                DEPRECATED(
+                  self.VAR.name ~ ' = %(itemized hash)',
+                  :what(self.VAR.name ~ ' = itemized hash')
+                ) if nqp::iscont($x);
                 for $x.list { self.STORE_AT_KEY(.key, .value) }
                 return self;
             }

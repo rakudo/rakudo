@@ -266,6 +266,15 @@ multi trait_mod:<is>(Routine:D $docee, :$leading_docs!) {
     $docee.set_leading_docs($leading_docs);
     $leading_docs.set_docee($docee);
 }
+multi trait_mod:<is>(Routine:D $docee, :$trailing_docs!) {
+    $docee does role {
+        has $!WHY;
+        method WHY                   { $!WHY      }
+        method set_trailing_docs($d) { $!WHY = $d }
+    }
+    $docee.set_trailing_docs($trailing_docs);
+    $trailing_docs.set_docee($docee);
+}
 multi trait_mod:<is>(Mu:D $docee, :$leading_docs!) {
     $docee does role {
         has $!WHY;
@@ -275,10 +284,23 @@ multi trait_mod:<is>(Mu:D $docee, :$leading_docs!) {
     $docee.set_leading_docs($leading_docs);
     $leading_docs.set_docee($docee);
 }
+multi trait_mod:<is>(Mu:D $docee, :$trailing_docs!) {
+    $docee does role {
+        has $!WHY;
+        method WHY                   { $!WHY      }
+        method set_trailing_docs($d) { $!WHY = $d }
+    }
+    $docee.set_trailing_docs($trailing_docs);
+    $trailing_docs.set_docee($docee);
+}
 
 multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
     $docee.HOW.set_leading_docs($leading_docs);
     $leading_docs.set_docee($docee);
+}
+multi trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
+    $docee.HOW.set_trailing_docs($trailing_docs);
+    #$trailing_docs.set_docee($docee); # skipping for now; we need to move trait application until after the package has been "closed"
 }
 
 

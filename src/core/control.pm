@@ -161,13 +161,13 @@ multi sub warn(*@msg) is hidden_from_backtrace {
 }
 
 proto sub EVAL($, *%) {*}
-multi sub EVAL(Str $code, :$lang = 'perl6', PseudoStash :$context) {
+multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
     my $compiler := nqp::getcomp($lang);
     X::Eval::NoSuchLang.new(:$lang).throw
         if nqp::isnull($compiler);
-    my $compiled := $compiler.compile($code, :outer_ctx($eval_ctx), :global(GLOBAL));
+    my $compiled := $compiler.compile($code.Stringy, :outer_ctx($eval_ctx), :global(GLOBAL));
     nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
     $compiled();
 }

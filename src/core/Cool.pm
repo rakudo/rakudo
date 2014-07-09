@@ -214,12 +214,8 @@ my class Cool { # declared in BOOTSTRAP
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };
 
-    method eval(*%opts) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("'EVAL'");
-        EVAL(self.Stringy, context => CALLER::, |%opts);
-    }
     method EVAL(*%opts) {
-        EVAL(self.Stringy, context => CALLER::, |%opts);
+        EVAL(self, context => CALLER::, |%opts);
     }
 
     multi method Real() { self.Numeric.Real }

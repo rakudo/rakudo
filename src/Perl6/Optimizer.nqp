@@ -961,6 +961,16 @@ class Perl6::Optimizer {
         },
         );
 
+    # Poisonous calls.
+    my %poison_calls := nqp::hash(
+        'eval',     NQPMu, '&eval',     NQPMu,
+        'EVAL',     NQPMu, '&EVAL',     NQPMu,
+        'callwith', NQPMu, '&callwith', NQPMu,
+        'callsame', NQPMu, '&callsame', NQPMu,
+        'nextwith', NQPMu, '&nextwith', NQPMu,
+        'nextsame', NQPMu, '&nextsame', NQPMu,
+        'samewith', NQPMu, '&samewith', NQPMu);
+
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
@@ -1009,8 +1019,7 @@ class Perl6::Optimizer {
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();
-            my str $callee := $op.name;
-            if $callee eq 'EVAL' || $callee eq 'eval' {
+            if nqp::existskey(%poison_calls, $op.name) {
                 self.poison_var_lowering();
             }
         }

@@ -3607,22 +3607,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
     token infix:sym<.>    { <sym> <[\]\)\},:\s\$"']>  <.obs('. to concatenate strings', '~')> }
 
-    token infix:sym<&>   {                             <sym> <O('%junctive_and')> }
-    token infix:sym<(&)> { <!before <sym> <infixish> > <sym> <O('%junctive_and')> }
-    token infix:sym«∩»   { <!before <sym> <infixish> > <sym> <O('%junctive_and')> }
-    token infix:sym<(.)> { <!before <sym> <infixish> > <sym> <O('%junctive_and')> }
-    token infix:sym«⊍»   { <!before <sym> <infixish> > <sym> <O('%junctive_and')> }
+    token infix:sym<&>   { <sym> <O('%junctive_and')> }
+    token infix:sym<(&)> { <sym> <O('%junctive_and')> }
+    token infix:sym«∩»   { <sym> <O('%junctive_and')> }
+    token infix:sym<(.)> { <sym> <O('%junctive_and')> }
+    token infix:sym«⊍»   { <sym> <O('%junctive_and')> }
 
     token infix:sym<|>    { <sym> <O('%junctive_or')> }
     token infix:sym<^>    { <sym> <O('%junctive_or')> }
-    token infix:sym<(|)>  { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
-    token infix:sym«∪»    { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
-    token infix:sym<(^)>  { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
-    token infix:sym«⊖»    { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
-    token infix:sym<(+)>  { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
-    token infix:sym«⊎»    { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
-    token infix:sym<(-)>  { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
-    token infix:sym«∖»    { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
+    token infix:sym<(|)>  { <sym> <O('%junctive_or')> }
+    token infix:sym«∪»    { <sym> <O('%junctive_or')> }
+    token infix:sym<(^)>  { <sym> <O('%junctive_or')> }
+    token infix:sym«⊖»    { <sym> <O('%junctive_or')> }
+    token infix:sym<(+)>  { <sym> <O('%junctive_or')> }
+    token infix:sym«⊎»    { <sym> <O('%junctive_or')> }
+    token infix:sym<(-)>  { <sym> <O('%junctive_or')> }
+    token infix:sym«∖»    { <sym> <O('%junctive_or')> }
 
     token prefix:sym<let>  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
     token prefix:sym<temp> { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }

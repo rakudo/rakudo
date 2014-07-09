@@ -5361,25 +5361,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method infixish($/) {
-        if $<infix_postfix_meta_operator> {
-            my $base     := $<infix>;
-            my $basesym  := ~$base<sym>;
-            my $basepast := $base.ast
-                              ?? $base.ast[0]
-                              !! QAST::Var.new(:name("&infix:<$basesym>"),
-                                               :scope<lexical>);
-            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' {
-                make QAST::Op.new( :op<call>,
-                        :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
-            }
-            else {
-                make QAST::Op.new( :node($/), :op<call>,
-                        QAST::Op.new( :op<call>,
-                            :name<&METAOP_ASSIGN>, $basepast ));
-            }
-        }
+        return 0 if $<fake_infix>;
 
-        if $<infix_prefix_meta_operator> {
+        my $ast;
+        if $<infix> {
+            $ast := $<infix>.ast;
+        }
+        elsif $<infixish> {
+            $ast := $<infixish>.ast;
+        }
+        elsif $<infix_circumfix_meta_operator> {
+            $ast := $<infix_circumfix_meta_operator>.ast;
+        }
+        elsif $<infix_prefix_meta_operator> {
             my $metasym  := ~$<infix_prefix_meta_operator><sym>;
             my $base     := $<infix_prefix_meta_operator><infixish>;
             my $basesym  := ~$base<OPER>;
@@ -5397,12 +5391,35 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
-            make QAST::Op.new( :node($/), :op<call>, $metapast );
+            $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
+        }
+        
+        if $<infix_postfix_meta_operator> {
+            my $basesym;
+            if $<infix> {
+                $basesym := ~$<infix><sym>;
+            }
+            elsif $<infixish> {
+                my $cur := $/;
+                while $cur<infixish> { $cur := $cur<infixish> }
+                if $cur<infix> { $basesym := ~$cur<infix><sym> }
+            }
+            else {
+                $basesym := '';
+            }
+            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' {
+                $ast := QAST::Op.new( :op<call>,
+                        :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
+            }
+            else {
+                $ast := QAST::Op.new( :node($/), :op<call>,
+                    QAST::Op.new( :op<call>, :name<&METAOP_ASSIGN>,
+                        ($ast // QAST::Var.new(
+                            :name("&infix:<$basesym>"), :scope('lexical') ))));
+            }
         }
 
-        if $<infixish> {
-            make $<infixish>.ast;
-        }
+        make $ast;
     }
 
     method term:sym<reduce>($/) {

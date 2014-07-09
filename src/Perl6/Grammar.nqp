@@ -2398,14 +2398,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto token routine_declarator { <...> }
-    token routine_declarator:sym<sub>
-        { <sym> <.end_keyword> <routine_def('sub')> }
-    token routine_declarator:sym<method>
-        { <sym> <.end_keyword> <method_def('method')> }
-    token routine_declarator:sym<submethod>
-        { <sym> <.end_keyword> <method_def('submethod')> }
-    token routine_declarator:sym<macro>
-        { <sym> <.end_keyword> <macro_def()> }
+    token routine_declarator:sym<sub> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        <sym> <.end_keyword> <routine_def('sub')>
+    }
+    token routine_declarator:sym<method> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        <sym> <.end_keyword> <method_def('method')>
+    }
+    token routine_declarator:sym<submethod> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        <sym> <.end_keyword> <method_def('submethod')>
+    }
+    token routine_declarator:sym<macro> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        <sym> <.end_keyword> <macro_def()>
+    }
 
     rule routine_def($d) {
         :my $*IN_DECL := $d;

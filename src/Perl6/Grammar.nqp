@@ -2413,6 +2413,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
         <.attach_docs>
         <deflongname>?
         {

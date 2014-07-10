@@ -66,6 +66,7 @@ my role Supply {
         Nil;
     }
 
+    method taps(Supply:D:) { +@!tappers }
     method live(Supply:D:) { True };
 
     method Supply(Supply:) { self }

@@ -124,14 +124,14 @@ my class SupplyOperations is repr('Uninstantiable') {
     method flat(Supply $source) {
         my class FlatSupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             
             submethod BUILD(:$!source) { }
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap( -> \val {
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap( -> \val {
                       self!more(val.flat)
                   },
                   done => { self!done(); },
@@ -145,15 +145,15 @@ my class SupplyOperations is repr('Uninstantiable') {
     method grep(Supply $source, Mu $test) {
         my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             has Mu $!test;
             
             submethod BUILD(:$!source, :$!test) { }
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap( $!test.DEFINITE
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap( $!test.DEFINITE
                   ?? $!test ~~ Callable
                     ?? $!test ~~ Regex
                        ?? -> \val { self!more(val) if val.match($!test) }
@@ -172,15 +172,15 @@ my class SupplyOperations is repr('Uninstantiable') {
     method map(Supply $source, &mapper) {
         my class MapSupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             has &!mapper;
             
             submethod BUILD(:$!source, :&!mapper) { }
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap( -> \val {
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap( -> \val {
                       self!more(&!mapper(val))
                   },
                   done => { self!done(); },
@@ -194,15 +194,15 @@ my class SupplyOperations is repr('Uninstantiable') {
     method schedule_on(Supply $source, Scheduler $scheduler) {
         my class ScheduleSupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             has $!scheduler;
             
             submethod BUILD(:$!source, :$!scheduler) { }
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap( -> \val {
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap( -> \val {
                       $!scheduler.cue: { self!more(val) }
                   },
                   done => { $!scheduler.cue: { self!done(); } },
@@ -246,7 +246,6 @@ my class SupplyOperations is repr('Uninstantiable') {
 
         my class StableSupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             has $!time;
             has $!scheduler;
             has $!lock;
@@ -258,8 +257,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap(
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap(
                     -> \val {
                         $!lock.protect({
                             if $!last_cancellation {
@@ -289,7 +289,6 @@ my class SupplyOperations is repr('Uninstantiable') {
 
         my class DelaySupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             has $!time;
             has $!scheduler;
             
@@ -297,8 +296,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap(
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap(
                     -> \val {
                         $!scheduler.cue( { self!more(val) }, :in($time) );
                     },
@@ -317,7 +317,6 @@ my class SupplyOperations is repr('Uninstantiable') {
     method migrate(Supply $source) {
         my class MigrateSupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             has $!current;
             has $!lock;
             
@@ -327,8 +326,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap(
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap(
                     -> \inner_supply {
                         X::Supply::Migrate::Needs.new.throw
                           unless inner_supply ~~ Supply;
@@ -350,7 +350,6 @@ my class SupplyOperations is repr('Uninstantiable') {
     method classify(Supply $source, &mapper, :$multi ) {
         my class ClassifySupply does Supply does PrivatePublishing {
             has $!source;
-            has $!source-tap;
             has %!mapping;
             
             submethod BUILD(:$!source) { }
@@ -364,8 +363,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method live { $source.live }
             method tap(|c) {
-                my $tap = self.Supply::tap(|c, closing => {$!source-tap.close});
-                $!source-tap //= $!source.tap( $multi
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
+                $source_tap = $!source.tap( $multi
                   ?? -> \val {
                       for @(mapper(val)) -> $key {
                           self.find_supply($key).more(val);

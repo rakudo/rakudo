@@ -161,11 +161,24 @@ static void rakudo_scalar_deserialize(MVMThreadContext *tc, MVMSTable *st, MVMSe
     /* Nothing to do. */
 }
 
+static void rakudo_scalar_spesh(MVMThreadContext *tc, MVMSTable *st, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
+    switch (ins->info->opcode) {
+    case MVM_OP_decont: {
+        ins->info = MVM_op_get_op(MVM_OP_sp_p6oget_o);
+        ins->operands[2].lit_i16 = offsetof( Rakudo_Scalar, value );
+        break;
+        }
+    default: break;
+    }
+}
+
+
 static const MVMContainerSpec rakudo_scalar_spec = {
     "rakudo_scalar",
     rakudo_scalar_fetch,
     rakudo_scalar_store,
     rakudo_scalar_store_unchecked,
+    rakudo_scalar_spesh,
     NULL,
     NULL,
     rakudo_scalar_serialize,

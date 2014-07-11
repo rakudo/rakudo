@@ -224,6 +224,14 @@ my class Parameter { # declared in BOOTSTRAP
     method sub_signature(Parameter:D:) {
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }
+
+    method set_trailing_docs(Mu $docs) {
+        $!trailing_docs := $docs;
+    }
+
+    method WHY() {
+        $!trailing_docs // ''
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

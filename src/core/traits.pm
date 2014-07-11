@@ -213,6 +213,10 @@ multi trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
     $param.set_leading_docs($leading_docs);
     $leading_docs.set_docee($param);
 }
+multi trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
+    $param.set_trailing_docs($trailing_docs);
+    # XXX docee has to wait for now
+}
 
 # Declare these, as setting mainline doesn't get them automatically (as the
 # Mu/Any/Scalar are not loaded).

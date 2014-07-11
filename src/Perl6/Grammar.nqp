@@ -2583,6 +2583,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*PARAM_INFO;
         :my $*DOC := $*DECLARATOR_DOCS;
         <.attach_docs>
+        {
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from());
+            if $*PRECEDING_DECL_LINE < $line_no {
+                $*PRECEDING_DECL_LINE := $line_no;
+                my $par_type := $*W.find_symbol(['Parameter']);
+                $*PRECEDING_DECL := nqp::create($par_type); # actual declarand comes later, in World::create_parameter
+            }
+        }
         [
         | <type_constraint>+
             [

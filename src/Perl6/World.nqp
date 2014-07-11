@@ -858,6 +858,13 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%param_info, 'docs') {
             self.apply_trait($/, '&trait_mod:<is>', $parameter, :leading_docs($*DOCEE));
         }
+        if nqp::istype($*PRECEDING_DECL, $par_type) {
+            my $existing := nqp::getattr($*PRECEDING_DECL, $par_type, '$!trailing_docs');
+            unless nqp::isnull($existing) {
+                $parameter.set_trailing_docs($existing);
+            }
+        }
+        $*PRECEDING_DECL := $parameter;
         # Return created parameter.
         $parameter
     }

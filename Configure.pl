@@ -34,7 +34,7 @@ MAIN: {
     GetOptions(\%options, 'help!', 'prefix=s',
                 'backends=s', 'no-clean!',
                'gen-nqp:s',
-               'gen-moar:s',
+               'gen-moar:s', 'moar-option=s@',
                'git-protocol=s',
                'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
@@ -331,6 +331,8 @@ General Options:
                        Download and build a copy of NQP
         --gen-moar[=branch]
                        Download and build a copy of MoarVM to use
+        --moar-option='--option=value'
+                       Options to pass to MoarVM's Configure.pl
         --gen-parrot[=branch]
                        Download and build a copy of Parrot
         --parrot-option='--option'

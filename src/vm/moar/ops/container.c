@@ -165,7 +165,7 @@ static void rakudo_scalar_spesh(MVMThreadContext *tc, MVMSTable *st, MVMSpeshGra
     switch (ins->info->opcode) {
     case MVM_OP_decont: {
         ins->info = MVM_op_get_op(MVM_OP_sp_p6oget_o);
-        ins->operands[2].lit_i16 = offsetof( Rakudo_Scalar, value );
+        ins->operands[2].lit_i16 = offsetof( Rakudo_Scalar, value ) - offsetof( MVMObjectStooge, data );
         break;
         }
     default: break;

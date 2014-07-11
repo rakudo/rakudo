@@ -132,10 +132,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
-                      self!more(val.flat)
+                      $tap.more().(val.flat)
                   },
-                  done => { self!done(); },
-                  quit => -> $ex { self!quit($ex) });
+                  done => { if $tap.done { $tap.done().() } },
+                  quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
         }
@@ -156,12 +156,12 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $source_tap = $!source.tap( $!test.DEFINITE
                   ?? $!test ~~ Callable
                     ?? $!test ~~ Regex
-                       ?? -> \val { self!more(val) if val.match($!test) }
-                       !! -> \val { self!more(val) if $!test(val) }
-                    !! -> \val { self!more(val) if val ~~ $!test }
-                  !! -> \val { self!more(val) if val ~~ $!test },
-                  done => { self!done(); },
-                  quit => -> $ex { self!quit($ex) }
+                       ?? -> \val { $tap.more().(val) if val.match($!test) }
+                       !! -> \val { $tap.more().(val) if $!test(val) }
+                    !! -> \val { $tap.more().(val) if val ~~ $!test }
+                  !! -> \val { $tap.more().(val) if val ~~ $!test },
+                  done => { if $tap.done { $tap.done().() } },
+                  quit => -> $ex { if $tap.quit { $tap.quit().($ex) } }
                 );
                 $tap
             }
@@ -181,10 +181,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
-                      self!more(&!mapper(val))
+                      $tap.more().(&!mapper(val))
                   },
-                  done => { self!done(); },
-                  quit => -> $ex { self!quit($ex) });
+                  done => { if $tap.done { $tap.done().() } },
+                  quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
         }
@@ -203,10 +203,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
-                      $!scheduler.cue: { self!more(val) }
+                      $!scheduler.cue: { $tap.more().(val) }
                   },
-                  done => { $!scheduler.cue: { self!done(); } },
-                  quit => -> $ex { $!scheduler.cue: { self!quit($ex) } });
+                  done => { $!scheduler.cue: { if $tap.done { $tap.done().() } } },
+                  quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
         }
@@ -271,12 +271,12 @@ my class SupplyOperations is repr('Uninstantiable') {
                                     $!lock.protect({
                                         $!last_cancellation = Nil;
                                     });
-                                    self!more(val);
+                                    $tap.more().(val);
                                 });
                         });
                     },
-                    done => { self!done(); },
-                    quit => -> $ex { self!quit($ex) });
+                    done => { if $tap.done { $tap.done().() } },
+                    quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
         }
@@ -300,13 +300,13 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap(
                     -> \val {
-                        $!scheduler.cue( { self!more(val) }, :in($time) );
+                        $!scheduler.cue( { $tap.more().(val) }, :in($time) );
                     },
                     done => {
-                        $!scheduler.cue( { self!done }, :in($time) );
+                        $!scheduler.cue( { if $tap.done { $tap.done().() } }, :in($time) );
                     },
                     quit => -> $ex {
-                        $!scheduler.cue( { self!quit($ex) }, :in($time) );
+                        $!scheduler.cue( { if $tap.quit { $tap.quit().($ex) } }, :in($time) );
                     } );
                 $tap
             }
@@ -335,12 +335,12 @@ my class SupplyOperations is repr('Uninstantiable') {
                         $!lock.protect({
                             $!current.close() if $!current;
                             $!current = inner_supply.tap(-> \val {
-                                self!more(val);
+                                $tap.more().(val);
                             });
                         });
                     },
-                    done => { self!done(); },
-                    quit => -> $ex { self!quit($ex) });
+                    done => { if $tap.done { $tap.done().() } },
+                    quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
         }

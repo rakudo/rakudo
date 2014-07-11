@@ -506,7 +506,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $*DOC := $<attachment>;
             my $*DOCEE;
             self.attach_docs;
-            $*W.apply_trait($/, '&trait_mod:<is>', $*PRECEDING_DECL, :trailing_docs($*DOCEE));
+            unless $*PRECEDING_DECL =:= Mu {
+                $*W.apply_trait($/, '&trait_mod:<is>', $*PRECEDING_DECL, :trailing_docs($*DOCEE));
+            }
         }
     }
 
@@ -2302,6 +2304,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token scope_declarator:sym<my>        { <sym> <scoped('my')> }
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
     token scope_declarator:sym<has>       {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
         <sym>
         :my $*HAS_SELF := 'partial';
         :my $*ATTR_INIT_BLOCK;
@@ -2320,6 +2323,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
+        {
+            if $*SCOPE eq 'has' {
+                if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                    $*PRECEDING_DECL_LINE := $*LINE_NO;
+                    $*PRECEDING_DECL := Mu; # actual declarand comes later, in Actions::declare_variable
+                }
+            }
+        }
         <.attach_docs>
         <.ws>
         [

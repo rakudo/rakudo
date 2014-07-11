@@ -164,8 +164,8 @@ static void rakudo_scalar_deserialize(MVMThreadContext *tc, MVMSTable *st, MVMSe
 static void rakudo_scalar_spesh(MVMThreadContext *tc, MVMSTable *st, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
     switch (ins->info->opcode) {
     case MVM_OP_decont: {
-        ins->info = MVM_op_get_op(MVM_OP_sp_p6oget_o);
         MVMSpeshOperand *old_operands = ins->operands;
+        ins->info = MVM_op_get_op(MVM_OP_sp_p6oget_o);
         ins->operands = MVM_spesh_alloc(tc, g, 3 * sizeof(MVMSpeshOperand));
         ins->operands[0] = old_operands[0];
         ins->operands[1] = old_operands[1];

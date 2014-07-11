@@ -92,6 +92,16 @@ multi trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
     $leading_docs.set_docee($attr);
 }
 
+multi trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
+    $attr does role {
+        has $!WHY;
+        method WHY                   { $!WHY      }
+        method set_trailing_docs($d) { $!WHY = $d }
+    }
+    $attr.set_trailing_docs($trailing_docs);
+    $trailing_docs.set_docee($attr);
+}
+
 multi trait_mod:<is>(Routine:D $r, |c ) {
     X::Comp::Trait::Unknown.new(
       file       => $?FILE,

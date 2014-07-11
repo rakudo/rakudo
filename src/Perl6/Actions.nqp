@@ -2305,6 +2305,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Document it
             Perl6::Pod::document($/, $attr, $*DOC);
 
+            # Set it up for trailing declarations
+            $*PRECEDING_DECL := $attr;
+
             # If no twigil, note $foo is an alias to $!foo.
             if $twigil eq '' {
                 $BLOCK.symbol($name, :attr_alias($attrname));

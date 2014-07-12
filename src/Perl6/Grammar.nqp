@@ -4291,21 +4291,21 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
         token backslash:delim { <text=.starter> | <text=.stopper> }
         token backslash:<\\> { <text=.sym> }
-        token backslash:a { :i <sym> }
-        token backslash:b { :i <sym> }
-        token backslash:c { :i <sym> <charspec> }
-        token backslash:d { :i <sym> { $*CCSTATE := '' } }
-        token backslash:e { :i <sym> }
-        token backslash:f { :i <sym> }
-        token backslash:h { :i <sym> { $*CCSTATE := '' } }
-        token backslash:n { :i <sym> }
-        token backslash:o { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
-        token backslash:r { :i <sym> }
-        token backslash:s { :i <sym> { $*CCSTATE := '' } }
-        token backslash:t { :i <sym> }
-        token backslash:v { :i <sym> { $*CCSTATE := '' } }
-        token backslash:w { :i <sym> { $*CCSTATE := '' } }
-        token backslash:x { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
+        token backslash:sym<a> { :i <sym> }
+        token backslash:sym<b> { :i <sym> }
+        token backslash:sym<c> { :i <sym> <charspec> }
+        token backslash:sym<d> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<e> { :i <sym> }
+        token backslash:sym<f> { :i <sym> }
+        token backslash:sym<h> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<n> { :i <sym> }
+        token backslash:sym<o> { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
+        token backslash:sym<r> { :i <sym> }
+        token backslash:sym<s> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<t> { :i <sym> }
+        token backslash:sym<v> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<w> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<x> { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
         token backslash:sym<0> { <sym> }
 
         # keep random backslashes like qq does

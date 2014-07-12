@@ -1,6 +1,7 @@
 use NQPHLL;
 use QAST;
 use Perl6::ModuleLoader;
+use Perl6::Pod;
 use Perl6::Ops;
 
 # Binder constants.
@@ -856,7 +857,7 @@ class Perl6::World is HLL::World {
         }
 
         if nqp::existskey(%param_info, 'docs') {
-            self.apply_trait($/, '&trait_mod:<is>', $parameter, :leading_docs($*DOCEE));
+            Perl6::Pod::document($/, $parameter, %param_info<docs>, :leading);
         }
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             my $existing := nqp::getattr($*PRECEDING_DECL, $par_type, '$!trailing_docs');

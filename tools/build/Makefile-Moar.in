@@ -189,6 +189,7 @@ M_CORE_SOURCES = \
   src/core/Argfiles.pm \
   src/core/Inc.pm \
   src/core/Process.pm \
+  src/core/StrDistance.pm \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm

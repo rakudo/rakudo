@@ -1,7 +1,15 @@
 # various helper methods for Pod parsing and processing
 class Perl6::Pod {
-    our sub document($/, $what, $with) {
+    our sub document($/, $what, $with, :$leading, :$trailing) {
+        if $leading && $trailing || !$leading && !$trailing {
+            nqp::die("You must provide one of leading or trailing to Perl6::Pod::document");
+        }
         if ~$with ne '' {
+            if $leading {
+                $*W.apply_trait($/, '&trait_mod:<is>', $what, :leading_docs($*DOCEE));
+            } else { # trailing
+                $*W.apply_trait($/, '&trait_mod:<is>', $what, :trailing_docs($*DOCEE));
+            }
         }
     }
 

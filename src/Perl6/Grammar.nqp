@@ -2062,6 +2062,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
+        { $*DECLARATOR_DOCS := '' }
         <.attach_docs>
         
         # Type-object will live in here; also set default REPR (a trait
@@ -2325,6 +2326,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOCEE;
         {
             if $*SCOPE eq 'has' {
+                $*DECLARATOR_DOCS := '';
                 if $*PRECEDING_DECL_LINE < $*LINE_NO {
                     $*PRECEDING_DECL_LINE := $*LINE_NO;
                     $*PRECEDING_DECL := Mu; # actual declarand comes later, in Actions::declare_variable
@@ -2422,6 +2424,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*METHODTYPE;
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
         {
@@ -2459,6 +2462,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*METHODTYPE := $d;
         :my $*HAS_SELF := $d eq 'submethod' ?? 'partial' !! 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
         {
@@ -2495,6 +2499,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := 'macro';
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
         <.attach_docs>
@@ -2581,7 +2586,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # We'll collect parameter information into a hash, then use it to
         # build up the parameter object in the action method
         :my %*PARAM_INFO;
-        :my $*DOC := $*DECLARATOR_DOCS;
+        :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
         <.attach_docs>
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from());

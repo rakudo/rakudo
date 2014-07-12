@@ -507,7 +507,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $*DOCEE;
             self.attach_docs;
             unless $*PRECEDING_DECL =:= Mu {
-                $*W.apply_trait($/, '&trait_mod:<is>', $*PRECEDING_DECL, :trailing_docs($*DOCEE));
+                Perl6::Pod::document($/, $*PRECEDING_DECL, $*DOC, :trailing);
             }
         }
     }

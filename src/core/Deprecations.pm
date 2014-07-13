@@ -44,7 +44,7 @@ class Deprecation {
         my $message = $type ~ $name ~ $package ~ "called at:\n";
         for %.callsites.kv -> $file, $lines {
             $message ~=
-              "  $file, line{ 's' if +$lines > 1 } {$lines.keys.join(',')}\n";
+              "  $file, line{ 's' if +$lines > 1 } {$lines.keys.sort.join(',')}\n";
         }
         $message ~= "Please use $.alternative instead.\n";
         $message;

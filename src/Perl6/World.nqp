@@ -47,6 +47,11 @@ sub p6ize_recursive($x) {
     nqp::hllizefor($x, 'perl6');
 }
 
+# Helper sub that turns a list of items into an NQPArray. This is needed when
+# using e.g. $*W.find_symbol from Perl 6 code (example: slangs).
+sub nqplist(*@arr) { @arr }
+nqp::bindcurhllsym('nqplist', &nqplist);
+
 # this levenshtein implementation is used to suggest good alternatives
 # when deriving from an unknown/typo'd class.
 sub levenshtein($a, $b) {

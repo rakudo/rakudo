@@ -93,7 +93,7 @@ class CompUnit {
 
     method precomp($output = self.precomp-path, :$force) {
         die "Cannot pre-compile an already pre-compiled file: $!path"
-          if self.compiled;
+          if self.precomped;
         die "Cannot pre-compile over an existing file: $output"
           if !$force and $output.IO.e;
         ?shell("$*EXECUTABLE --target={$*VM.precomp-target} --output=$output $!path");

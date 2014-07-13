@@ -84,17 +84,17 @@ class CompUnit {
         } );
     }
 
-    method compiled() { $!extension eq $*VM.precomp-ext }
+    method precomped() { $!extension eq $*VM.precomp-ext }
 
     method precomp-path() {
         my $ext := $!extension;  # cannot use attributes in regex
         $!path.subst(/$ext$/,$*VM.precomp-ext);
     }
 
-    method compile($output = self.precomp-path, :$force) {
-        die "Cannot compile an already compiled file: $!path"
+    method precomp($output = self.precomp-path, :$force) {
+        die "Cannot pre-compile an already pre-compiled file: $!path"
           if self.compiled;
-        die "Cannot compile over an existing file: $output"
+        die "Cannot pre-compile over an existing file: $output"
           if !$force and $output.IO.e;
         ?shell("$*EXECUTABLE --target={$*VM.precomp-target} --output=$output $!path");
     }

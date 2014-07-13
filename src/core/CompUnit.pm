@@ -5,7 +5,7 @@ class CompUnit {
     has Str      $.extension;
     has IO::Path $.path;
     has Str      $!WHICH;
-    has Bool     $.loaded;
+    has Bool     $.loaded = False;
 
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';

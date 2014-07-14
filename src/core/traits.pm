@@ -9,6 +9,12 @@ my class X::Inheritance::SelfInherit { ... }
 my class X::Comp::Trait::Unknown { ... }
 my class WHY { ... }
 
+my sub set_leading_docs($obj, $type, $docs) {
+}
+
+my sub set_trailing_docs($obj, $type, $docs) {
+}
+
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
@@ -84,23 +90,11 @@ multi trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 # to the (possibly auto-generated) accessor method.
 }
 multi trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
-    $attr does role {
-        has $!WHY;
-        method WHY                  { $!WHY      }
-        method set_leading_docs($d) { $!WHY = $d }
-    }
-    $attr.set_leading_docs($leading_docs);
-    $leading_docs.set_docee($attr);
+    set_leading_docs($attr, Attribute, $leading_docs);
 }
 
 multi trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
-    $attr does role {
-        has $!WHY;
-        method WHY                   { $!WHY      }
-        method set_trailing_docs($d) { $!WHY = $d }
-    }
-    $attr.set_trailing_docs($trailing_docs);
-    $trailing_docs.set_docee($attr);
+    set_trailing_docs($attr, Attribute, $trailing_docs);
 }
 
 multi trait_mod:<is>(Routine:D $r, |c ) {
@@ -206,17 +200,10 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
     $param.set_parcel();
 }
 multi trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
-    $param does role {
-        has $!WHY;
-        method WHY                  { $!WHY      }
-        method set_leading_docs($d) { $!WHY = $d }
-    }
-    $param.set_leading_docs($leading_docs);
-    $leading_docs.set_docee($param);
+    set_leading_docs($param, Parameter, $leading_docs);
 }
 multi trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
-    $param.set_trailing_docs($trailing_docs);
-    # XXX docee has to wait for now
+    set_trailing_docs($param, Parameter, $trailing_docs);
 }
 
 # Declare these, as setting mainline doesn't get them automatically (as the
@@ -281,50 +268,18 @@ multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
 
 # this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
 # will catch it and declare "docs" to be an unknown trait
-multi trait_mod:<is>(Routine:D $docee, :$leading_docs!) {
-    $docee does role {
-        has $!WHY;
-        method WHY                  { $!WHY      }
-        method set_leading_docs($d) { $!WHY = $d }
-    }
-    $docee.set_leading_docs($leading_docs);
-    $leading_docs.set_docee($docee);
+multi trait_mod:<is>(Routine:D $r, :$leading_docs!) {
+    set_leading_docs($r, Routine, $leading_docs);
 }
-multi trait_mod:<is>(Routine:D $docee, :$trailing_docs!) {
-    $docee does role {
-        has $!WHY;
-        method WHY                   { $!WHY      }
-        method set_trailing_docs($d) { $!WHY = $d }
-    }
-    $docee.set_trailing_docs($trailing_docs);
-    $trailing_docs.set_docee($docee);
-}
-multi trait_mod:<is>(Mu:D $docee, :$leading_docs!) {
-    $docee does role {
-        has $!WHY;
-        method WHY                  { $!WHY      }
-        method set_leading_docs($d) { $!WHY = $d }
-    }
-    $docee.set_leading_docs($leading_docs);
-    $leading_docs.set_docee($docee);
-}
-multi trait_mod:<is>(Mu:D $docee, :$trailing_docs!) {
-    $docee does role {
-        has $!WHY;
-        method WHY                   { $!WHY      }
-        method set_trailing_docs($d) { $!WHY = $d }
-    }
-    $docee.set_trailing_docs($trailing_docs);
-    $trailing_docs.set_docee($docee);
+multi trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
+    set_trailing_docs($r, Routine, $trailing_docs);
 }
 
 multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
-    $docee.HOW.set_leading_docs($leading_docs);
-    $leading_docs.set_docee($docee);
+    set_leading_docs($docee.HOW, Mu, $leading_docs);
 }
 multi trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
-    $docee.HOW.set_trailing_docs($trailing_docs);
-    #$trailing_docs.set_docee($docee); # skipping for now; we need to move trait application until after the package has been "closed"
+    set_trailing_docs($docee.HOW, Mu, $trailing_docs);
 }
 
 

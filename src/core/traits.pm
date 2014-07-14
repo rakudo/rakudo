@@ -7,6 +7,7 @@ my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 my class X::Inheritance::SelfInherit { ... }
 my class X::Comp::Trait::Unknown { ... }
+my class WHY { ... }
 
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {

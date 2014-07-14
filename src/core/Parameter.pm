@@ -12,6 +12,7 @@ my class Parameter { # declared in BOOTSTRAP
     #     has Mu $!default_value
     #     has Mu $!container_descriptor;
     #     has Mu $!attr_package;
+    #     has Mu $!why;
 
     my constant $SIG_ELEM_BIND_CAPTURE       = 1;
     my constant $SIG_ELEM_BIND_PRIVATE_ATTR  = 2;
@@ -225,12 +226,8 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }
 
-    method set_trailing_docs(Mu $docs) {
-        $!trailing_docs := $docs;
-    }
-
     method WHY() {
-        $!trailing_docs // ''
+        $!why
     }
 }
 

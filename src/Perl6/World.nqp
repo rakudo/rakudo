@@ -856,14 +856,14 @@ class Perl6::World is HLL::World {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
 
-        if nqp::existskey(%param_info, 'docs') {
-            Perl6::Pod::document($/, $parameter, %param_info<docs>, :leading);
-        }
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             my $existing := nqp::getattr($*PRECEDING_DECL, $par_type, '$!why');
             unless nqp::isnull($existing) {
-                $parameter.set_trailing_docs($existing);
+                nqp::bindattr($parameter, $par_type, '$!why', $existing);
             }
+        }
+        if nqp::existskey(%param_info, 'docs') {
+            Perl6::Pod::document($/, $parameter, %param_info<docs>, :leading);
         }
         $*PRECEDING_DECL := $parameter;
         # Return created parameter.

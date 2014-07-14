@@ -10,9 +10,25 @@ my class X::Comp::Trait::Unknown { ... }
 my class WHY { ... }
 
 my sub set_leading_docs($obj, $type, $docs) {
+    my $dc := nqp::decont($obj);
+    my $current_why := nqp::getattr($dc, $type, '$!why');
+
+    if $current_why {
+        $current_why._add_leading($docs);
+    } else {
+        nqp::bindattr($dc, $type, '$!why', WHY.new(:leading($docs)));
+    }
 }
 
 my sub set_trailing_docs($obj, $type, $docs) {
+    my $dc := nqp::decont($obj);
+    my $current_why := nqp::getattr($dc, $type, '$!why');
+
+    if $current_why {
+        $current_why._add_trailing($docs);
+    } else {
+        nqp::bindattr($dc, $type, '$!why', WHY.new(:trailing($docs)));
+    }
 }
 
 proto trait_mod:<is>(|) { * }

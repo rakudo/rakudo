@@ -860,7 +860,7 @@ class Perl6::World is HLL::World {
             Perl6::Pod::document($/, $parameter, %param_info<docs>, :leading);
         }
         if nqp::istype($*PRECEDING_DECL, $par_type) {
-            my $existing := nqp::getattr($*PRECEDING_DECL, $par_type, '$!trailing_docs');
+            my $existing := nqp::getattr($*PRECEDING_DECL, $par_type, '$!why');
             unless nqp::isnull($existing) {
                 $parameter.set_trailing_docs($existing);
             }

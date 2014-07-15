@@ -32,7 +32,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method WHY() {
-        self.HOW.docs // Any
+        self.HOW.WHY // Any
     }
     
     proto method Bool(|) {*}

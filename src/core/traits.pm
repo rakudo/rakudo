@@ -292,10 +292,10 @@ multi trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
 }
 
 multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
-    set_leading_docs($docee.HOW, Mu, $leading_docs);
+    set_leading_docs($docee.HOW, $docee.HOW.WHAT, $leading_docs);
 }
 multi trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
-    set_trailing_docs($docee.HOW, Mu, $trailing_docs);
+    set_trailing_docs($docee.HOW, $docee.HOW.WHAT, $trailing_docs);
 }
 
 

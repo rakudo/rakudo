@@ -18,6 +18,7 @@ end of this document.
   2014-08-21   Rakudo #79  Coke
   2014-09-18   Rakudo #80  masak
   2014-10-16   Rakudo #81  duff
+  2014-11-20   Rakudo #82  lizmat
 
 =head2 Suggested .pm group names for future releases
 

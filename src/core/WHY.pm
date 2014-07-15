@@ -28,7 +28,7 @@ my class WHY {
         }
     }
 
-    method Str {
+    method content {
         my $result = '';
 
         $result ~= $!leading  if $!leading.defined;
@@ -38,7 +38,11 @@ my class WHY {
         $result
     }
 
+    method Str {
+        $.content
+    }
+
     method gist {
-        $.Str
+        $.content
     }
 }

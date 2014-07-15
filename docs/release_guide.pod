@@ -16,7 +16,7 @@ end of this document.
 
   2014-07-17   Rakudo #78  FROGGS
   2014-08-21   Rakudo #79  Coke
-  2014-09-18   Rakudo #80  FROGGS
+  2014-09-18   Rakudo #80  masak
   2014-10-16   Rakudo #81  duff
 
 =head2 Suggested .pm group names for future releases

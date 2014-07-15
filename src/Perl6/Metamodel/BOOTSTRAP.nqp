@@ -1527,6 +1527,7 @@ BEGIN {
     #     has int $!onlystar;
     #     has Mu $!dispatch_order;
     #     has Mu $!dispatch_cache;
+    #     has Mu $!why;
     Routine.HOW.add_parent(Routine, Block);
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
@@ -1538,6 +1539,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_order>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);

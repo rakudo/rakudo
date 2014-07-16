@@ -48,14 +48,34 @@ my class Pod::Block::Code is Pod::Block {
 
 my class Pod::Block::Declarator is Pod::Block {
     has $.WHEREFORE;
+    has @!leading;
+    has @!trailing;
+
     method set_docee($d) {
         $!WHEREFORE = $d
     }
     method Str {
-        ~@.content
+        $.content
     }
     multi method gist(Pod::Block::Declarator:D:) {
-        self.Str
+        $.content
+    }
+
+    method content {
+        my @result = @!leading;
+        @result.push: @!trailing;
+        @result.join("\n")
+    }
+
+    method leading  { @!leading.join("\n") }
+    method trailing { @!trailing.join("\n") }
+
+    method _add_leading($addition) {
+        @!leading.push: ~$addition;
+    }
+
+    method _add_trailing($addition) {
+        @!trailing.push: ~$addition;
     }
 }
 

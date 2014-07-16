@@ -363,9 +363,12 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(CP) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
 	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
+	$(CP) lib/Test.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/Test.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) lib/lib.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/lib.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP) lib/Pod/To/Text.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) lib/Pod/To/Text.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"

@@ -15,6 +15,8 @@ my sub set_leading_docs($obj, $type, $docs) {
 
     unless $current_why {
         $current_why := Pod::Block::Declarator.new();
+        # XXX doesn't work properly for class decls atm
+        $current_why.set_docee($obj);
         nqp::bindattr($dc, $type, '$!why', $current_why);
     }
     $current_why._add_leading($docs);
@@ -26,6 +28,7 @@ my sub set_trailing_docs($obj, $type, $docs) {
 
     unless $current_why {
         $current_why := Pod::Block::Declarator.new();
+        $current_why.set_docee($obj);
         nqp::bindattr($dc, $type, '$!why', $current_why);
     }
     $current_why._add_trailing($docs);

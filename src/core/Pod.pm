@@ -67,8 +67,8 @@ my class Pod::Block::Declarator is Pod::Block {
         @result.join("\n")
     }
 
-    method leading  { @!leading.join("\n") }
-    method trailing { @!trailing.join("\n") }
+    method leading  { @!leading  ?? @!leading.join("\n")  !! Any }
+    method trailing { @!trailing ?? @!trailing.join("\n") !! Any }
 
     method _add_leading($addition) {
         @!leading.push: ~$addition;

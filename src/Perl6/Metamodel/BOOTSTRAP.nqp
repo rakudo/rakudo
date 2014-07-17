@@ -2383,6 +2383,18 @@ BEGIN {
             nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
             $dcself
         }));
+    Routine.HOW.add_method(Routine, 'clone', nqp::getstaticcode(sub ($self) {
+            my $dcself := nqp::decont($self);
+            my $cloned := nqp::findmethod(Block, 'clone')($self);
+
+            my $why := nqp::getattr($dcself, Routine, '$!why');
+            unless nqp::isnull($why) {
+                my $new_why := nqp::clone($why);
+                nqp::bindattr($cloned, Routine, '$!why', $new_why);
+                nqp::bindattr($new_why, $new_why.WHAT, '$!WHEREFORE', $cloned);
+            }
+            $cloned
+        }));
     Routine.HOW.compose_repr(Routine);
     Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);

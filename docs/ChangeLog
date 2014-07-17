@@ -1,15 +1,35 @@
 New in 2014.07
++ bump nqp revision to get parrot 6.6.0
 + Cool.eval and eval() are now removed
 + assigning a single itemized hash to a hash is now DEPRECATED (my %h = {...})
-+ itemized hashes in an assignment to a hash, are no longer auto-flattened
 + .hash now turns an itemized hash into a hash
-+ unpack directives "a" and "Z" added
++ added unpack directives "a" and "Z"
 + subbuf-rw specced and implemented
 + Supply.zip-latest specced and implemented
-+ Timezone offsets in timestamps passed to DateTime.new() can now omit the minute offset
-+ Timezone offsets in timestamps passed to DateTime.new() can now have the minute offset deliminated by a colon
-+ File copy and creation operations on the MoarVM now give default file permissions of 0666
-+ the tr/// operator is implemented now and has the proper return value.
++ minute value is optional in Timezone offsets in DateTime.new(), also a colon
+  to delimit hours/minutes is now optional
++ file copy and creation operations on the MoarVM now give default file permissions of 0666
++ the tr/// operator is implemented and has the proper return value
++ improved string handling for MoarVM backend
++ fixed class A { my $.x = 42 } scoping on MoarVM
++ removed hack that kept (|)= & co from working
++ re-arranged infixish actions to support [[*]]= etc
++ optimized CompUnitRepo::Local::File
++ optimized takedispatcher to cleardispatcher
++ all backends now allow C pointer arithmetic and casting of pointers to Perl 6 types
+  (this funtionality is exposed by NativeCall)
++ made block inlining a level 2 optimization
++ small optimizations to number parsing
++ fixed Label.gist
++ fixed 'fail' so it also prints a backtrace
++ fixed a repeat until code-gen bug
++ added CompUnit.name and fixed .perl
++ removed hack for $Inf/$NaN: constants Inf/NaN are exposed since a while
++ made initial/max threads introspectable
++ naive implementation of IO.umask
++ make .WHICH also work on type objects
++ throw a X::Subscript::FromEnd for @foo[-1]
++ throw X::TypeCheck::Binding on all backends (was MoarVM only)
 
 New in 2014.06
 + say/note now a little faster for single Str (which is most common)

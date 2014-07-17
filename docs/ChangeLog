@@ -6,6 +6,9 @@ New in 2014.07
 + unpack directives "a" and "Z" added
 + subbuf-rw specced and implemented
 + Supply.zip-latest specced and implemented
++ Timezone offsets in timestamps passed to DateTime.new() can now omit the minute offset
++ Timezone offsets in timestamps passed to DateTime.new() can now have the minute offset deliminated by a colon
++ File copy and creation operations on the MoarVM now give default file permissions of 0666
 
 New in 2014.06
 + say/note now a little faster for single Str (which is most common)

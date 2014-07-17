@@ -194,6 +194,8 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_NUM }, null);
     private static final CallSiteDescriptor ACCEPTS_s = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
+    private static final CallSiteDescriptor bindThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, String[] error) {
         /* Get parameter flags and variable name. */
@@ -324,10 +326,17 @@ public final class Binder {
                 if (nomType != gcx.Mu && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
-                        /* XXX include types */
-                        error[0] = String.format(
-                            "Nominal type check failed for parameter '%s'",
-                            varName);
+
+                        SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding");
+                        if (thrower != null && decontValue.st.WHAT != gcx.Junction) {
+                            Ops.invokeDirect(tc, thrower,
+                                bindThrower, new Object[] { decontValue.st.WHAT, nomType.st.WHAT, varName });
+                            return BIND_RESULT_FAIL;
+                        }
+                        else
+                            error[0] = String.format(
+                                "Nominal type check failed for parameter '%s'",
+                                varName);
                     }
                 
                     /* Report junction failure mode if it's a junction. */

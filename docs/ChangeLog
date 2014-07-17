@@ -9,6 +9,7 @@ New in 2014.07
 + Timezone offsets in timestamps passed to DateTime.new() can now omit the minute offset
 + Timezone offsets in timestamps passed to DateTime.new() can now have the minute offset deliminated by a colon
 + File copy and creation operations on the MoarVM now give default file permissions of 0666
++ the tr/// operator is implemented now and has the proper return value.
 
 New in 2014.06
 + say/note now a little faster for single Str (which is most common)

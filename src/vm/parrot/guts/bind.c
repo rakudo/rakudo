@@ -7,6 +7,7 @@ Copyright (C) 2009-2013, The Perl Foundation.
 #include "parrot/parrot.h"
 #include "parrot/extend.h"
 #include "pmc_callcontext.h"
+#include "exceptions.h"
 #include "bind.h"
 #include "container.h"
 #include "types.h"
@@ -447,15 +448,25 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                      !STABLE(decont_value)->type_check(interp, decont_value, nom_type))) {
                 /* Type check failed; produce error if needed. */
                 if (error) {
-                    PMC    * got_how       = STABLE(decont_value)->HOW;
-                    PMC    * exp_how       = STABLE(nom_type)->HOW;
-                    PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
-                    PMC    * exp_name_meth = VTABLE_find_method(interp, exp_how, NAME_str);
-                    STRING * expected, * got;
-                    Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, bv.val.o, &got);
-                    Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, nom_type, &expected);
-                    *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
-                                param->variable_name, expected, got);
+                    PMC * thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Binding");
+                    if (!PMC_IS_NULL(thrower) &&
+                        !(decont_value->vtable->base_type == smo_id && STABLE(decont_value)->WHAT == Rakudo_types_junction_get())) {
+                        PMC * got_what = STABLE(decont_value)->WHAT;
+                        PMC * exp_what = STABLE(nom_type)->WHAT;
+                        Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PPS->", got_what, exp_what, param->variable_name);
+                        return BIND_RESULT_FAIL;
+                    }
+                    else {
+                        PMC    * got_how       = STABLE(decont_value)->HOW;
+                        PMC    * exp_how       = STABLE(nom_type)->HOW;
+                        PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
+                        PMC    * exp_name_meth = VTABLE_find_method(interp, exp_how, NAME_str);
+                        STRING * expected, * got;
+                        Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, bv.val.o, &got);
+                        Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, nom_type, &expected);
+                        *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
+                                    param->variable_name, expected, got);
+                    }
                 }
                 
                 /* Report junction failure mode if it's a junction. */

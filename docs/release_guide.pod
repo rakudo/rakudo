@@ -14,7 +14,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2014-07-17   Rakudo #78  FROGGS
   2014-08-21   Rakudo #79  Coke
   2014-09-18   Rakudo #80  masak
   2014-10-23   Rakudo #81  duff
@@ -303,6 +302,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2014-04-17   Rakudo #75 "Echt"               (masak)
   2014-05-22   Rakudo #76 "Bajor"              (FROGGS)
   2014-06-19   Rakudo #77 "Gdańsk"             (sergot)
+  2014-07-17   Rakudo #78 "Sofia"              (FROGGS)
 
 =head1 COPYRIGHT
 

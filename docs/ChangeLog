@@ -1,5 +1,5 @@
 New in 2014.07
-+ bump nqp revision to get parrot 6.6.0
++ require and build parrot 6.6.0
 + Cool.eval and eval() are now removed
 + assigning a single itemized hash to a hash is now DEPRECATED (my %h = {...})
 + .hash now turns an itemized hash into a hash

@@ -858,7 +858,7 @@ class Perl6::World is HLL::World {
 
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             my $existing := nqp::getattr($*PRECEDING_DECL, $par_type, '$!why');
-            unless nqp::isnull($existing) {
+            if !nqp::isnull($existing) && $*DUMMY_PARAM {
                 nqp::bindattr($parameter, $par_type, '$!why', $existing);
             }
         }
@@ -872,6 +872,7 @@ class Perl6::World is HLL::World {
             $current_why.set_docee($parameter);
         }
         $*PRECEDING_DECL := $parameter;
+        $*DUMMY_PARAM    := 0;
         # Return created parameter.
         $parameter
     }

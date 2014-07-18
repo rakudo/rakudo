@@ -1,3 +1,6 @@
+New in 2014.08
++ print file/line annotations for warnings also on moar and jvm
+
 New in 2014.07
 + require and build parrot 6.6.0
 + Cool.eval and eval() are now removed

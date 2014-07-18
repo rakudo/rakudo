@@ -207,9 +207,8 @@ do {
 #?if parrot
             nqp::printfh($err, Backtrace.new($ex.backtrace, 0).nice(:oneline));
 #?endif
-#?if jvm
-#            XXX Backtraces busted
-#            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
+#?if !parrot
+            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
 #?endif
             nqp::printfh($err, "\n");
 #?if parrot

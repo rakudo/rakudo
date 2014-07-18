@@ -450,6 +450,7 @@ S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
+S10-packages/precompilation.t
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 S11-modules/importing.t

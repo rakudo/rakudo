@@ -932,6 +932,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARATOR_DOCS;
         :my $*PRECEDING_DECL; # for #= comments
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
+        :my $*DUMMY_PARAM := 0;
         :my %*SEEN_IT;
         
         # Quasis and unquotes
@@ -2654,6 +2655,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*PRECEDING_DECL_LINE := $line_no;
                 my $par_type := $*W.find_symbol(['Parameter']);
                 $*PRECEDING_DECL := nqp::create($par_type); # actual declarand comes later, in World::create_parameter
+                $*DUMMY_PARAM := 1;
             }
         }
         [

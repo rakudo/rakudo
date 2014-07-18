@@ -629,9 +629,17 @@ my class X::Undeclared::Symbols does X::Comp {
             }
         }
         if %.unk_routines {
+            my $obs = {
+                y => "tr",
+                qr => "rx",
+                local => "temp (or dynamic var)",
+                new => "method call syntax",
+                foreach => "for",
+            }
             $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
+                $r ~= " (in Perl 6 please use " ~ $obs{$_.key()} ~ " instead)" if $obs{$_.key()};
                 if +%.routine_suggestion{$_.key()} {
                     $r ~= ". " ~ s(%.routine_suggestion{$_.key()});
                 }

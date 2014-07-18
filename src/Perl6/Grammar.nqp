@@ -3191,6 +3191,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.old_rx_mods>?
     }
 
+    token quote:sym<y> {
+        <sym> »
+        # could be defined as a function or constant
+        <!{ $*W.is_lexical('&y') || $*W.is_lexical('y') }>
+        <!before '('> <?before \h*\W>
+        <.obs('y///','tr///')>
+    }
+
     token old_rx_mods {
         (<[ i g s m x c e ]>)
         {

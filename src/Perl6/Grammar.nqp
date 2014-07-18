@@ -2593,16 +2593,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # We'll collect parameter information into a hash, then use it to
         # build up the parameter object in the action method
         :my %*PARAM_INFO;
-        :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
-        <.attach_docs>
-        {
-            my $line_no := HLL::Compiler.lineof(self.orig(), self.from());
-            if $*PRECEDING_DECL_LINE < $line_no {
-                $*PRECEDING_DECL_LINE := $line_no;
-                my $par_type := $*W.find_symbol(['Parameter']);
-                $*PRECEDING_DECL := nqp::create($par_type); # actual declarand comes later, in World::create_parameter
-            }
-        }
         [
         | <type_constraint>+
             [
@@ -2665,6 +2655,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token param_var {
         :dba('formal parameter')
+        :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
+        <.attach_docs>
+        {
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from());
+            if $*PRECEDING_DECL_LINE < $line_no {
+                $*PRECEDING_DECL_LINE := $line_no;
+                my $par_type := $*W.find_symbol(['Parameter']);
+                $*PRECEDING_DECL := nqp::create($par_type); # actual declarand comes later, in World::create_parameter
+            }
+        }
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>

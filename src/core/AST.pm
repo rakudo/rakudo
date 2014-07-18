@@ -3,6 +3,7 @@
 my class AST {
     has $!past;
     has $!quasi_context;
+    has $!Str;
 
     submethod BUILD(:$past) {
         $!past := $past;
@@ -31,6 +32,10 @@ my class AST {
 
     method is_quasi_ast {
         so $!quasi_context;
+    }
+
+    method Str {
+        $!Str;
     }
 }
 

@@ -4258,7 +4258,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $<args><semiarglist> {
                     for $<args><semiarglist><arglist> {
                         if $_<EXPR> {
-                            add_macro_arguments($_<EXPR>.ast, @argument_asts);
+                            add_macro_arguments($_<EXPR>.ast, @argument_asts, ~$<args>);
                         }
                     }
                 }
@@ -4273,13 +4273,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    sub add_macro_arguments($expr, @argument_asts) {
+    sub add_macro_arguments($expr, @argument_asts, $code_string) {
         my $ast_class := $*W.find_symbol(['AST']);
 
         sub wrap_and_add_expr($expr) {
             my $quasi_ast := $ast_class.new();
             my $wrapped := QAST::Op.new( :op('call'), make_thunk_ref($expr, $expr.node) );
             nqp::bindattr($quasi_ast, $ast_class, '$!past', $wrapped);
+            nqp::bindattr($quasi_ast, $ast_class, '$!Str', $code_string);
             @argument_asts.push($quasi_ast);
         }
 
@@ -4337,13 +4338,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     if $<args><semiarglist> {
                         for $<args><semiarglist><arglist> {
                             if $_<EXPR> {
-                                add_macro_arguments($_<EXPR>.ast, @argument_asts);
+                                add_macro_arguments($_<EXPR>.ast, @argument_asts, ~$<args>);
                             }
                         }
                     }
                     elsif $<args><arglist> {
                         if $<args><arglist><EXPR> {
-                            add_macro_arguments($<args><arglist><EXPR>.ast, @argument_asts);
+                            add_macro_arguments($<args><arglist><EXPR>.ast, @argument_asts, ~$<args>);
                         }
                     }
                     return @argument_asts;
@@ -4827,7 +4828,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 make expand_macro($macro, $name, $/, sub () {
                     my @argument_asts := [];
                     for @($/) {
-                        add_macro_arguments($_.ast, @argument_asts);
+                        add_macro_arguments($_.ast, @argument_asts, '');
                     }
                     return @argument_asts;
                 });
@@ -5950,6 +5951,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $quasi_ast := $ast_class.new();
         my $past := $<block>.ast<past_block>.pop;
         nqp::bindattr($quasi_ast, $ast_class, '$!past', $past);
+        nqp::bindattr($quasi_ast, $ast_class, '$!Str', $/.Str());
         $*W.add_object($quasi_ast);
         my $throwaway_block := QAST::Block.new();
         my $quasi_context := block_closure(

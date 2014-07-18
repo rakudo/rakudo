@@ -220,14 +220,19 @@ constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
-#?if parrot    
-    nqp::chdir($*CWD);
-    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
-    fail "Unable to execute '$cmd'" unless $pio;
-    $pio.encoding('utf8');
-    my $result = nqp::p6box_s($pio.readall());
-    $pio.close();
-    $result;
+#?if parrot
+    my $pipe := pir::new__Ps('FileHandle');
+    my $env := pir::new__Ps('Env');
+    $pipe.set_keyed('env', $env);
+    $pipe.open(nqp::unbox_s($cmd), 'rp');
+    fail "Unable to execute '$cmd'" unless $pipe;
+    $pipe.encoding('utf8');
+    my $result := $pipe.readall;
+    $pipe.close();
+    # FIXME
+    #pir::store_dynamic_lex__vsP('$!', $pipe.exit_status)
+    #  unless nqp::isnull(pir::find_dynamic_lex__Ps('$!'));
+    $result
 #?endif
 #?if !parrot
     my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
@@ -243,7 +248,7 @@ sub QX($cmd) {
     my $result = nqp::p6box_s(nqp::readallfh($pio));
     nqp::closefh($pio);
     $result;
-#?endif    
+#?endif
 }
 
 sub EXHAUST(|) {

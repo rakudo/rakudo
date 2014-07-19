@@ -6,9 +6,9 @@ class Perl6::Pod {
         }
         if ~$with ne '' {
             if $leading {
-                $*W.apply_trait($/, '&trait_mod:<is>', $what, :leading_docs($*DOCEE));
+                $*W.apply_trait($/, '&trait_mod:<is>', $what, :leading_docs(~$with));
             } else { # trailing
-                $*W.apply_trait($/, '&trait_mod:<is>', $what, :trailing_docs($*DOCEE));
+                $*W.apply_trait($/, '&trait_mod:<is>', $what, :trailing_docs(~$with));
             }
         }
     }

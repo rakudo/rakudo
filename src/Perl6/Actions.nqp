@@ -2512,7 +2512,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document it
-        Perl6::Pod::document($/, $code, $*DOC, :leading);
+        Perl6::Pod::document($/, $code, ~$*DOCEE, :leading);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.

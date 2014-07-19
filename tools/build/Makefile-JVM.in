@@ -231,7 +231,7 @@ $(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_OPS_JAR) --encoding=utf8 \
 	    src/vm/jvm/Perl6/Ops.nqp
 
-$(PERL6_W_JAR): $(PERL6_ML_JAR) $(PERL6_OPS_JAR) src/Perl6/World.nqp
+$(PERL6_W_JAR): $(PERL6_ML_JAR) $(PERL6_OPS_JAR) $(PERL6_P_JAR) src/Perl6/World.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 

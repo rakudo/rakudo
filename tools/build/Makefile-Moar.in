@@ -103,7 +103,7 @@ $(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL)
 	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) --encoding=utf8 \
 	    src/vm/moar/Perl6/Ops.nqp
 
-$(PERL6_W_MOAR): $(PERL6_ML_MOAR) $(PERL6_OPS_MOAR) src/Perl6/World.nqp
+$(PERL6_W_MOAR): $(PERL6_ML_MOAR) $(PERL6_OPS_MOAR) $(PERL6_P_MOAR) src/Perl6/World.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_W_MOAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 

@@ -1156,7 +1156,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <?before ')' | ']' | '}' >
         || $
         || <?stopper>
-        || <.typed_panic: 'X::Syntax::Confused'>
+        || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon." ) }
     }
 
     token xblock($*IMPLICIT = 0) {

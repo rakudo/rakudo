@@ -3326,11 +3326,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $oper := $<infixish><OPER> }
                 # XXX Gets false positives.
                 #[ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
-            | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <infix=.variable>
+            | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
                 {
-                    $<infix><O> := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive') unless $<infix><O>;
-                    $oper := $<infix>;
-                    self.check_variable($<infix>)
+                    $<variable><O> := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive') unless $<variable><O>;
+                    $oper := $<variable>;
+                    self.check_variable($<variable>)
                 }
             | <infix_circumfix_meta_operator> { $oper := $<infix_circumfix_meta_operator> }
             | <infix_prefix_meta_operator> { $oper := $<infix_prefix_meta_operator> }

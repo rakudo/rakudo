@@ -5375,6 +5375,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<infix> {
             $ast := $<infix>.ast;
         }
+        elsif $<variable> {
+            $ast := QAST::Op.new( :node($/), :op<call>, $<variable>.ast);
+        }
         elsif $<infixish> {
             $ast := $<infixish>.ast;
         }

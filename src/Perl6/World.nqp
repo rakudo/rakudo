@@ -874,7 +874,6 @@ class Perl6::World is HLL::World {
             $current_why.set_docee($parameter);
         }
         $*PRECEDING_DECL := $parameter;
-        $*DUMMY_PARAM    := 0;
         # Return created parameter.
         $parameter
     }

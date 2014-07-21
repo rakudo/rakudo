@@ -3761,6 +3761,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+        my $par_type := $*W.find_symbol(['Parameter']);
+        if nqp::istype($*PRECEDING_DECL, $par_type) {
+            %*PARAM_INFO<dummy> := $*PRECEDING_DECL;
+        }
     }
 
     method declare_param($/, $name) {

@@ -4926,21 +4926,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
 
-        # In case the rhs is a substitution, the result should say if it actually
-        # matched something. Calling ACCEPTS will always be True for this case.
-        if $rhs.ann('is_subst') {
-            $sm_call := QAST::Stmt.new(
-                $rhs,
-                QAST::Op.new(
-                    :op('callmethod'), :name('Bool'),
-                    QAST::Var.new( :name('$/'), :scope('lexical') )
-                )
-            );
-        }
         # Transliteration shuffles values around itself and returns the
         # Right Thing regardless of whether we're in a smart-match or
         # implicitely against $_, so we just do the RHS here.
-        elsif $rhs.ann('is_trans') {
+        if $rhs.ann('is_trans') {
             $sm_call := QAST::Stmt.new(
                 $rhs
             );
@@ -5933,17 +5922,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $past.push(QAST::IVal.new(:named('SET_CALLER_DOLLAR_SLASH'), :value(1)));
 
-        $past := make QAST::Op.new(
-            :node($/),
-            :op('call'),
-            :name('&infix:<=>'),
-            QAST::Var.new(:name('$_'), :scope('lexical')),
-            $past
+        $past := make QAST::Stmt.new(
+            QAST::Op.new(
+                :node($/),
+                :op('call'),
+                :name('&infix:<=>'),
+                QAST::Var.new(:name('$_'), :scope('lexical')),
+                $past
+            ),
+            QAST::Op.new(
+                :op<decont>,
+                QAST::Var.new( :name('$/'), :scope<lexical> )
+            )
         );
 
         $past.annotate('is_subst', 1);
         $past
-}
+    }
 
     method quote:sym<quasi>($/) {
         my $ast_class := $*W.find_symbol(['AST']);

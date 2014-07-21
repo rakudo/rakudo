@@ -227,7 +227,7 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method WHY() {
-        $!why
+        nqp::isnull($!why) ?? Any !! $!why
     }
 }
 

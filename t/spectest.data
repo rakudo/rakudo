@@ -845,6 +845,7 @@ integration/advent2009-day20.t
 integration/advent2009-day21.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
+integration/advent2009-day24.t
 integration/advent2010-day03.t
 integration/advent2010-day04.t
 integration/advent2010-day06.t

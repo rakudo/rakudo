@@ -4401,6 +4401,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
 
     token metachar:sym<rakvar> {
         <?before <sigil> $<twigil>=[<alpha> | \W<alpha> | '(']>
+        <!before <sigil> <rxstopper> >
         <var=.LANG('MAIN', 'variable')>
         [
         || $<binding> = ( \s* '=' \s* <quantified_atom> )

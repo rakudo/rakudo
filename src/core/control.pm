@@ -173,9 +173,14 @@ multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
 }
 
 sub exit($status = 0) {
-    $_() for nqp::hllize(nqp::getcurhllsym('@END_PHASERS'));
+    THE_END();
     nqp::exit(nqp::unbox_i($status.Int));
     $status;
+}
+
+sub THE_END {
+    my @END := nqp::p6list(nqp::getcurhllsym("@END_PHASERS"), Array, Mu);
+    while @END.shift -> $end { $end() };
 }
 
 my class Proc::Status { ... }

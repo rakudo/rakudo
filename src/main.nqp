@@ -52,8 +52,9 @@ sub MAIN(@ARGS) {
     }
 
     # Run any END blocks before exiting.
-    for nqp::gethllsym('perl6', '@END_PHASERS') {
-        $result := $_();
+    my @END := nqp::gethllsym('perl6', '@END_PHASERS');
+    while +@END {
+        $result := (@END.shift)();
         nqp::can($result, 'sink') && $result.sink();
         CATCH { $comp.handle-exception($_); }
         CONTROL { $comp.handle-control($_); }

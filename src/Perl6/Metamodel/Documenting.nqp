@@ -2,6 +2,6 @@ role Perl6::Metamodel::Documenting {
     has $!why;
 
     method WHY() {
-        $!why
+        nqp::isnull($!why) ?? Any !! $!why
     }
 }

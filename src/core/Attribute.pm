@@ -115,7 +115,14 @@ my class Attribute { # declared in BOOTSTRAP
     multi method Str(Attribute:D:) { self.name }
     multi method gist(Attribute:D:) { self.type.^name ~ " " ~ self.name }
 
-    method WHY() { $!why }
+    method WHY() {
+        if nqp::isnull($!why) {
+            Any
+        } else {
+            $!why.set_docee(self);
+            $!why
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

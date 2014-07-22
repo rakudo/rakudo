@@ -129,7 +129,14 @@ my class Routine { # declared in BOOTSTRAP
 
     method package() { $!package }
 
-    method WHY() { $!why }
+    method WHY() {
+        if nqp::isnull($!why) {
+            Any
+        } else {
+            $!why.set_docee(self);
+            $!why
+        }
+    }
 }
 
 multi sub trait_mod:<is>(Routine $r, :$cached!) {

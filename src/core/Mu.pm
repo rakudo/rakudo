@@ -32,7 +32,12 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method WHY() {
-        self.HOW.WHY // Any
+        my $why = self.HOW.WHY;
+
+        if $why.defined && !$.defined #`(ie. we're a type object) {
+            $why.set_docee(self);
+        }
+        $why // Any
     }
     
     proto method Bool(|) {*}

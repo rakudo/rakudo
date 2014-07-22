@@ -869,10 +869,6 @@ class Perl6::World is HLL::World {
         }
         # we have to override the WHEREFORE, because trailing docs have been
         # referring to a dummy parameter this whole time
-        my $current_why := nqp::getattr($parameter, $par_type, '$!why');
-        if $current_why {
-            $current_why.set_docee($parameter);
-        }
         $*PRECEDING_DECL := $parameter;
         # Return created parameter.
         $parameter

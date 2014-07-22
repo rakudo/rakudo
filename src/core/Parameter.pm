@@ -227,7 +227,13 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method WHY() {
-        nqp::isnull($!why) ?? Any !! $!why
+        if nqp::isnull($!why) {
+            Any
+        } else {
+            # XXX check first?
+            $!why.set_docee(self);
+            $!why
+        }
     }
 }
 

@@ -2081,20 +2081,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Document
         Perl6::Pod::document($/, $*PACKAGE, $*DOC, :leading);
 
-        try {
-            my $current_why := nqp::getattr(nqp::decont($*PACKAGE.HOW), $*PACKAGE.HOW.WHAT, '$!why');
-
-            # XXX this should probably be done in traits.pm, but we need to wait
-            #     for the package to become finalized before we can do this
-            #     for trailing docs.  So, ideally, trailing docs should be
-            #     applied now instead of in the #= in Grammar.pm
-            if $current_why {
-                $current_why.set_docee($*PACKAGE);
-            }
-
-            CATCH {}
-        }
-
         make QAST::Stmts.new(
             $block, QAST::WVal.new( :value($*PACKAGE) )
         );

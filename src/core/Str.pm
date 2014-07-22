@@ -802,7 +802,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       !! $p ~~ /<.lower>/  ?? $s.lc
                       !! $s;
         }
-        @chars.join('');
+        @chars.join;
     }
 
     method samespace(Str:D: Str:D $pat) {
@@ -1221,7 +1221,7 @@ sub unbase_bracket($base, @a) {
 }
 
 sub chrs(*@c) returns Str:D {
-    @c.map({.chr}).join('');
+    @c.map({.chr}).join;
 }
 
 sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {

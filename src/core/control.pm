@@ -151,7 +151,7 @@ multi sub die(*@msg) is hidden_from_backtrace {
 
 multi sub warn(*@msg) is hidden_from_backtrace {
     my $ex := nqp::newexception();
-    nqp::setmessage($ex, nqp::unbox_s(@msg.join('')));
+    nqp::setmessage($ex, nqp::unbox_s(@msg.join));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);
 #?if parrot
     nqp::bindattr($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));

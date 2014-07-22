@@ -1,6 +1,7 @@
 New in 2014.08
 + print file/line annotations for warnings also on moar and jvm
 + fixed infixed function syntax [[&foo]]
++ can now call exit() in END blocks without hanging or affecting END block execution
 
 New in 2014.07
 + require and build parrot 6.6.0

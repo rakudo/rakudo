@@ -73,7 +73,7 @@ my role Real does Numeric {
             push @frac_digits, @conversion[$frac.Int];
             $frac = $frac - $frac.Int;
         }
-        my Str $r = $int_part.base($base) ~ '.' ~ @frac_digits.join('');
+        my Str $r = $int_part.base($base) ~ '.' ~ @frac_digits.join;
         # if $int_part is 0, $int_part.base doesn't see the sign of self
         $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
     }

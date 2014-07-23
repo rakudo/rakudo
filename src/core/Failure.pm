@@ -56,7 +56,7 @@ multi sub fail($payload) is hidden_from_backtrace {
     $fail
 }
 multi sub fail(*@msg) is hidden_from_backtrace {
-    my $payload = @msg == 1 ?? @msg[0] !! @msg.join('');
+    my $payload = @msg == 1 ?? @msg[0] !! @msg.join;
     die $payload if $*FATAL;
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');

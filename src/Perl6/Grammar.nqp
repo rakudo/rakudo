@@ -4386,6 +4386,12 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
         self.typed_sorry('X::Syntax::Regex::NullRegex');
     }
 
+    method throw_malformed_range() { self.typed_sorry('X::Syntax::Regex::MalformedRange') }
+    method throw_confused() { self.typed_sorry('X::Syntax::Confused') }
+    method throw_unspace($char) { self.typed_sorry('X::Syntax::Regex::Unspace', :$char) }
+    method throw_regex_not_terminated() { self.typed_sorry('X::Syntax::Regex::Unterminated') }
+    method throw_spaces_in_bare_range() { self.typed_sorry('X::Syntax::Regex::SpacesInBareRange') }
+    
     token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
 
     token rxstopper { <stopper> }

@@ -1038,6 +1038,26 @@ my class X::Syntax::Regex::NullRegex does X::Syntax {
     method message() { 'Null regex not allowed' }
 }
 
+my class X::Syntax::Regex::MalformedRange does X::Syntax {
+    method message() { 'Malformed Range' }
+}
+
+my class X::Syntax::Regex::Unspace does X::Syntax {
+    has $.char;
+    method message { "No unspace allowed in regex; if you meant to match the literal character, " ~
+        "please enclose in single quotes ('" ~ $.char ~ "') or use a backslashed form like \\x" ~ 
+        sprintf('%02x', $.char.ord)
+    }
+}
+
+my class X::Syntax::Regex::Unterminated does X::Syntax { 
+    method message { 'Regex not terminated.' }
+}
+
+my class X::Syntax::Regex::SpacesInBareRange does X::Syntax {
+    method message { 'Spaces not allowed in bare range.' }
+}
+
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     method message() {
         "Can only use : as invocant marker in a signature after the first parameter"

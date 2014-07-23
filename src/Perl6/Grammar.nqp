@@ -497,7 +497,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token comment:sym<#|> {
         '#|' \h+ $<attachment>=[\N*]
-        { $*DECLARATOR_DOCS := $<attachment> }
+        {
+            unless %*SEEN_IT{ self.from() } {
+                %*SEEN_IT{ self.from() } := 1;
+                if $*DECLARATOR_DOCS eq '' {
+                    $*DECLARATOR_DOCS := $<attachment>;
+                } else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment>));
+                }
+            }
+        }
     }
 
     token comment:sym<#=> { # This seems to occur before the end of package_def (even if the comment follows the block) =)

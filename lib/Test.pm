@@ -318,6 +318,7 @@ sub proclaim($cond, $desc) {
         unless  $num_of_tests_run <= $todo_upto_test_num {
             $num_of_tests_failed = $num_of_tests_failed + 1
         }
+        diag "\nFailed test $desc";
     }
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
         # TAP parsers do not like '#' in the description, they'd miss the '# TODO'

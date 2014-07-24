@@ -2079,7 +2079,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document
-        Perl6::Pod::document($/, $*PACKAGE, $*DOC, :leading);
+        Perl6::Pod::document($/, $*PACKAGE, $*DOCEE, :leading);
 
         make QAST::Stmts.new(
             $block, QAST::WVal.new( :value($*PACKAGE) )
@@ -2303,7 +2303,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %cont_info, $descriptor);
 
             # Document it
-            Perl6::Pod::document($/, $attr, $*DOC, :leading);
+            Perl6::Pod::document($/, $attr, $*DOCEE, :leading);
 
             # Set it up for trailing declarations
             $*PRECEDING_DECL := $attr;
@@ -2526,7 +2526,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document it
-        Perl6::Pod::document($/, $code, ~$*DOCEE, :leading);
+        Perl6::Pod::document($/, $code, $*DOCEE, :leading);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -2895,7 +2895,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         
         # Document it
-        Perl6::Pod::document($/, $code, $*DOC, :leading);
+        Perl6::Pod::document($/, $code, $*DOCEE, :leading);
 
         # Install &?ROUTINE.
         $*W.install_lexical_symbol($past, '&?ROUTINE', $code);
@@ -2971,7 +2971,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.finish_code_object($code, $block, $*MULTINESS eq 'proto');
 
         # Document it
-        Perl6::Pod::document($/, $code, $*DOC, :leading);
+        Perl6::Pod::document($/, $code, $*DOCEE, :leading);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.

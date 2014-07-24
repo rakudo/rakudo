@@ -170,7 +170,7 @@ sub diag(Mu $message) is export {
 
 multi sub flunk($reason) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    my $ok = proclaim(0, "flunk $reason");
+    my $ok = proclaim(0, $reason);
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
 }

@@ -51,6 +51,8 @@ my class Pod::Block::Declarator is Pod::Block {
     has @!leading;
     has @!trailing;
 
+    submethod BUILD(:@!leading, :@!trailing) {}
+
     method set_docee($d) {
         $!WHEREFORE = $d
     }

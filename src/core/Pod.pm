@@ -64,13 +64,19 @@ my class Pod::Block::Declarator is Pod::Block {
     }
 
     method content {
-        my @result = @!leading;
-        @result.push: @!trailing;
-        @result.join("\n")
+        if @!leading && @!trailing {
+            $.leading ~ "\n" ~ $.trailing
+        } elsif @!leading {
+            $.leading
+        } elsif @!trailing {
+            $.trailing
+        } else {
+            ''
+        }
     }
 
-    method leading  { @!leading  ?? @!leading.join("\n")  !! Any }
-    method trailing { @!trailing ?? @!trailing.join("\n") !! Any }
+    method leading  { @!leading  ?? @!leading.join(' ')  !! Any }
+    method trailing { @!trailing ?? @!trailing.join(' ') !! Any }
 
     method _add_leading($addition) {
         @!leading.push: ~$addition;

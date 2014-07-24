@@ -2663,6 +2663,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token param_var {
         :dba('formal parameter')
         :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
+        :my $*DOCEE;
         <.attach_docs>
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from());

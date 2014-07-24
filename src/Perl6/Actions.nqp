@@ -3595,12 +3595,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*PARAM_INFO<is_parcel>    := $quant eq '\\';
         %*PARAM_INFO<is_capture>   := $quant eq '|';
 
-        # Handle leading declarative docs
-        if $*DECLARATOR_DOCS ne '' {
-            %*PARAM_INFO<docs> := $*DOCEE;
-            $*DECLARATOR_DOCS  := '';
-        }
-
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
 
@@ -3702,6 +3696,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+        # Handle leading declarative docs
+        if $*DECLARATOR_DOCS ne '' {
+            %*PARAM_INFO<docs> := $*DOCEE;
+            $*DECLARATOR_DOCS  := '';
+        }
+
         my $par_type := $*W.find_symbol(['Parameter']);
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             %*PARAM_INFO<dummy> := $*PRECEDING_DECL;

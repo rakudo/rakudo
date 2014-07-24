@@ -3747,6 +3747,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*DECLARATOR_DOCS  := '';
         }
 
+        # Attach the dummy param we set up in Grammar::param_var to PARAM_INFO,
+        # so we can access it later on.  The dummy param may have goodies like
+        # trailing docs!
         my $par_type := $*W.find_symbol(['Parameter']);
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             %*PARAM_INFO<dummy> := $*PRECEDING_DECL;

@@ -3642,7 +3642,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Handle leading declarative docs
         if $*DECLARATOR_DOCS ne '' {
-            %*PARAM_INFO<docs> := $*DECLARATOR_DOCS;
+            %*PARAM_INFO<docs> := $*DOCEE;
             $*DECLARATOR_DOCS  := '';
         }
 

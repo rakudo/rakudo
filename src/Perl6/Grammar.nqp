@@ -518,7 +518,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $*DOCEE;
                 self.attach_docs;
                 unless nqp::isnull($*PRECEDING_DECL) {
-                    Perl6::Pod::document($/, $*PRECEDING_DECL, $*DOC, :trailing);
+                    Perl6::Pod::document($/, $*PRECEDING_DECL, ~$*DOC, :trailing);
                 }
             }
         }

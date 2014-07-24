@@ -417,6 +417,7 @@ END {
     if !$done_testing_has_been_run && !$no_plan {
         done;
     }
+    exit($num_of_tests_failed);
 }
 
 =begin pod

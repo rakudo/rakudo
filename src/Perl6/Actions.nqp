@@ -7277,7 +7277,37 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                 :rxtype<subrule>, :subtype<method>, :node($/));
         }
     }
-    
+
+    method quantifier:sym<**>($/) {
+        my $qast;
+        if $<codeblock> {
+            $qast := QAST::Regex.new( :rxtype<dynquant>, :node($/),
+                QAST::Op.new( :op('callmethod'), :name('DYNQUANT_LIMITS'),
+                    QAST::Var.new( :name('$¢'), :scope('lexical') ),
+                    $<codeblock>.ast
+                ),
+            );
+        }
+        else {
+            my $min := $<min>.ast;
+            my $max := -1;
+            if ! $<max> { $max := $min }
+            elsif $<max> ne '*' {
+                $max := $<max>.ast;
+                $/.CURSOR.panic("Empty range") if $min > $max;
+            }
+            $qast := QAST::Regex.new( :rxtype<quant>, :min($min), :max($max), :node($/) );
+        }
+        make backmod($qast, $<backmod>);
+    }
+
+    sub backmod($ast, $backmod) {
+        if $backmod eq ':' { $ast.backtrack('r') }
+        elsif $backmod eq ':?' || $backmod eq '?' { $ast.backtrack('f') }
+        elsif $backmod eq ':!' || $backmod eq '!' { $ast.backtrack('g') }
+        $ast;
+    }
+
     method metachar:sym<rakvar>($/) {
         make QAST::Regex.new( QAST::Node.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),

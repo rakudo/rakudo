@@ -161,7 +161,19 @@ my class Cursor does NQPCursorRole {
             self."!cursor_start_cur"()
         }
     }
-    
+
+    method DYNQUANT_LIMITS($mm) {
+        if $mm ~~ Range {
+            die 'Range minimum in quantifier (**) cannot be +Inf' if $mm.min ==  Inf;
+            die 'Range maximum in quantifier (**) cannot be -Inf' if $mm.max == -Inf;
+            nqp::list_i($mm.min < 0 ?? 0 !! $mm.min, $mm.max == Inf ?? -1 !! $mm.max)
+        }
+        else {
+            fail 'Fixed quantifier cannot be infinite' if $mm == -Inf || $mm == Inf;
+            nqp::list_i($mm, $mm)
+        }
+    }
+
     method OTHERGRAMMAR($grammar, $name, |) {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
         $lang_cursor."$name"(); 

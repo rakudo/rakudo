@@ -161,8 +161,8 @@ sub subtest(&subtests, $desc = '') is export {
 
 sub diag(Mu $message) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    print $indents;
-    say $message.Str.subst(rx/^^/, '# ', :g);
+    $*ERR.print: $indents;
+    $*ERR.say: $message.Str.subst(rx/^^/, '# ', :g);
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 

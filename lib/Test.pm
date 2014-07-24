@@ -334,12 +334,6 @@ sub proclaim($cond, $desc) {
         unless  $num_of_tests_run <= $todo_upto_test_num {
             $num_of_tests_failed = $num_of_tests_failed + 1
         }
-        my $caller = callframe(3);
-        if $desc ne '' {
-            diag "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}";
-        } else {
-            diag "\nFailed test at {$caller.file} line {$caller.line}";
-        }
     }
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
         # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
@@ -354,6 +348,15 @@ sub proclaim($cond, $desc) {
       ~ ceiling(($time_after-$time_before)*1_000_000)
       ~ "\n"
         if $perl6_test_times;
+
+    unless $cond {
+        my $caller = callframe(3);
+        if $desc ne '' {
+            diag "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}";
+        } else {
+            diag "\nFailed test at {$caller.file} line {$caller.line}";
+        }
+    }
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

@@ -241,4 +241,14 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
    SLICE_MORE( SELF, SELF.keys, True, :$v, |%other );
 }
 
+# @a[;]
+multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, *%adv) is rw {
+    keys > 1 ?? SELF[keys[0].list].map({postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)}).eager
+             !! postcircumfix:<[ ]>(SELF, keys[0].list, |%adv);
+}
+multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
+    keys > 1 ?? SELF[keys[0].list].map({postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), assignee, |%adv)}).eager
+             !! postcircumfix:<[ ]>(SELF, keys[0].list, assignee, |%adv);
+}
+
 # vim: ft=perl6 expandtab sw=4

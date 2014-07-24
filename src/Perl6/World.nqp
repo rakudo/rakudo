@@ -867,8 +867,6 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%param_info, 'docs') {
             Perl6::Pod::document($/, $parameter, %param_info<docs>, :leading);
         }
-        # we have to override the WHEREFORE, because trailing docs have been
-        # referring to a dummy parameter this whole time
         $*PRECEDING_DECL := $parameter;
         # Return created parameter.
         $parameter

@@ -425,7 +425,6 @@ static void p6routinereturn(MVMThreadContext *tc) {
         MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
         tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
         STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
-        *(tc->interp_cur_op) -= 4; /* Oh my, what a hack... */
     }
     else {
         MVMObject *thrower = get_thrower(tc, str_cfr);
@@ -645,7 +644,6 @@ static void p6finddispatcher(MVMThreadContext *tc) {
                     tc->cur_frame->args[2].o = ctx_ref;
                     tc->cur_frame->args[3].o = capture;
                     STABLE(meth)->invoke(tc, meth, &disp_callsite, tc->cur_frame->args);
-                    *(tc->interp_cur_op) -= 4; /* Coutneract addition of ext-op size. */
                     return;
                 }
                 else {
@@ -668,7 +666,6 @@ static void p6finddispatcher(MVMThreadContext *tc) {
             MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_str_callsite);
             tc->cur_frame->args[0].s = usage;
             STABLE(thrower)->invoke(tc, thrower, &one_str_callsite, tc->cur_frame->args);
-            *(tc->interp_cur_op) -= 4; /* Coutneract addition of ext-op size. */
         }
         else {
             MVM_exception_throw_adhoc(tc,
@@ -856,7 +853,6 @@ static void p6invokeunder(MVMThreadContext *tc) {
     MVM_args_setup_thunk(tc, res, MVM_RETURN_OBJ, &no_arg_callsite);
     tc->cur_frame->special_return = return_from_fake;
     STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
-    *(tc->interp_cur_op) -= 6;
 }
 
 /* Registers the extops with MoarVM. */

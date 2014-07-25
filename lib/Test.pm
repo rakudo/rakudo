@@ -445,7 +445,16 @@ END {
     if !$done_testing_has_been_run && !$no_plan {
         done;
     }
-    exit($num_of_tests_failed);
+
+    if $num_of_tests_failed > 0 {
+        exit($num_of_tests_failed min 254);
+    }
+    elsif !$no_plan && $num_of_tests_planned != $num_of_tests_run {
+        exit(255);
+    }
+    else {
+        exit(0);
+    }
 }
 
 =begin pod

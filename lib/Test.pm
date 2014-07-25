@@ -199,10 +199,13 @@ sub subtest(&subtests, $desc = '') is export {
 }
 
 sub diag(Mu $message) is export {
+    my $is_todo = $num_of_tests_run <= $todo_upto_test_num;
+    my $out     = $is_todo ?? $todo_output !! $failure_output;
+
     $time_after = nqp::p6box_n(nqp::time_n);
     my $str-message = $message.Str.subst(rx/^^/, '# ', :g);
     $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
-    $failure_output.say: $indents ~ $str-message;
+    $out.say: $indents ~ $str-message;
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 

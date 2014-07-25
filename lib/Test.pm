@@ -22,22 +22,6 @@ my $die_on_fail;
 my $time_before;
 my $time_after;
 
-# handles
-my $output         = $*OUT;
-my $failure_output = $*ERR;
-my $todo_output    = $*OUT;
-
-try {
-    # XXX do this with dup or an analogous cross-platform construct
-    my $output_h         = open('/dev/stdout', :w);
-    my $failure_output_h = open('/dev/stderr', :w);
-    my $todo_output_h    = open('/dev/stdout', :w);
-
-    ( $output, $failure_output, $todo_output ) = ( $output_h, $failure_output_h, $todo_output_h );
-
-    CATCH {}
-}
-
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
 ## plans and don't call done_testing.
@@ -63,8 +47,8 @@ multi sub plan($number_of_tests) is export {
         $num_of_tests_planned = $number_of_tests;
         $no_plan = 0;
 
-        $output.print: $indents;
-        $output.say: '1..' ~ $number_of_tests;
+        print $indents;
+        say '1..' ~ $number_of_tests;
     }
     # Get two successive timestamps to say how long it takes to read the
     # clock, and to let the first test timing work just like the rest.
@@ -73,7 +57,7 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::p6box_n(nqp::time_n).
     $time_before = nqp::p6box_n(nqp::time_n);
     $time_after  = nqp::p6box_n(nqp::time_n);
-    $output.print: $indents
+    print $indents
       ~ '# between two timestamps '
       ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
       ~ "\n"
@@ -177,7 +161,7 @@ sub subtest(&subtests, $desc = '') is export {
 
 sub diag(Mu $message) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    $failure_output.print: $indents;
+    $*ERR.print: $indents;
     my $str-message = $message.Str.subst(rx/^^/, '# ', :g);
     $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
     $*ERR.say: $str-message;
@@ -328,22 +312,22 @@ sub proclaim($cond, $desc) {
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
 
-    $output.print: $indents;
+    print $indents;
     unless $cond {
-        $output.print: "not ";
+        print "not ";
         unless  $num_of_tests_run <= $todo_upto_test_num {
             $num_of_tests_failed = $num_of_tests_failed + 1
         }
     }
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
         # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-        $output.print: "ok ", $num_of_tests_run, " - ", $desc.subst('#', '', :g), $todo_reason;
+        print "ok ", $num_of_tests_run, " - ", $desc.subst('#', '', :g), $todo_reason;
     }
     else {
-        $output.print: "ok ", $num_of_tests_run, " - ", $desc;
+        print "ok ", $num_of_tests_run, " - ", $desc;
     }
-    $output.print: "\n";
-    $output.print: $indents
+    print "\n";
+    print $indents
       ~ "# t="
       ~ ceiling(($time_after-$time_before)*1_000_000)
       ~ "\n"
@@ -375,8 +359,8 @@ sub done() is export {
 
     if $no_plan {
         $num_of_tests_planned = $num_of_tests_run;
-        $output.print: $indents;
-        $output.say: "1..$num_of_tests_planned";
+        print $indents;
+        say "1..$num_of_tests_planned";
     }
 
     if ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests

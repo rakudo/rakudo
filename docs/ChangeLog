@@ -5,7 +5,7 @@ New in 2014.08
 + remove speed penalty of large ranges in character classes
 + make LF, FF, CR and NEL available as character names
 + fixed negated character lookup in regexes \C[...]
-+ quote words syntax <a b c> does not split on breakable space only
++ quote words syntax <a b c> splits on breakable space only
 + duplicates in character classes warn now, like in accidently quoted items <[ '/' ]>
 
 New in 2014.07

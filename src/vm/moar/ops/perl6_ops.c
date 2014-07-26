@@ -191,19 +191,15 @@ static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
 
 static void p6box_i_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Int);
-    printf("discovered p6box_i.\n");
 }
 static void p6box_n_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Num);
-    printf("discovered p6box_n.\n");
 }
 static void p6box_s_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Str);
-    printf("discovered p6box_s.\n");
 }
 static void p6parcel_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Parcel);
-    printf("discovered p6parcel.\n");
 }
 
 static MVMuint8 s_p6box_i[] = {
@@ -298,7 +294,6 @@ static void p6listiter(MVMThreadContext *tc) {
 }
 static void p6listiter_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, ListIter);
-    printf("discovered p6listiter.\n");
 }
 
 
@@ -333,6 +328,9 @@ static MVMuint8 s_p6bool[] = {
 static void p6bool(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = GET_REG(tc, 2).i64 ? True : False;
 }
+static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, STABLE(True)->WHAT);
+}
 
 /* Creates a Scalar from the specified descriptor. */
 static MVMuint8 s_p6scalarfromdesc[] = {
@@ -354,7 +352,6 @@ static void p6scalarfromdesc_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MV
     MVMSpeshFacts *tfacts = &(g->facts[ins->operands[0].reg.orig][ins->operands[0].reg.i]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;
     tfacts->type   = Scalar;
-    printf("scalarfromdesc discovered.\n");
 }
 
 static MVMuint8 s_p6recont_ro[] = {
@@ -399,6 +396,7 @@ static void p6var(MVMThreadContext *tc) {
      }
 }
 
+
 static MVMuint8 s_p6reprname[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -417,7 +415,6 @@ static void p6reprname(MVMThreadContext *tc) {
 }
 static void p6reprname_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, tc->instance->boot_types.BOOTStr);
-    printf("discovered p6reprname\n");
 }
 
 /* Decontainerizes the return value of a routine as needed. */
@@ -910,7 +907,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list, NULL, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6listitems",  p6listitems, 2, s_p6listitems, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, p6scalarfromdesc_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro, NULL, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE);

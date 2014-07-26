@@ -1665,28 +1665,39 @@ class Perl6::Optimizer {
     }
     
     # If we decide a dispatch at compile time, this emits the direct call.
+    # Note that we do not do this on MoarVM, since it can actually make a
+    # much better job of these than we are able to here and we don't have a
+    # way to convey the choice.
     method call_ct_chosen_multi($call, $proto, $chosen) {
-        my @cands := $proto.dispatchees();
-        my int $idx := 0;
-        for @cands {
-            if $_ =:= $chosen {
-                $call.unshift(QAST::Op.new(
-                    :op('atpos'),
-                    QAST::Var.new(
-                        :name('$!dispatchees'), :scope('attribute'),
-                        QAST::Var.new( :name($call.name), :scope('lexical') ),
-                        QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
-                    ),
-                    QAST::IVal.new( :value($idx) )
-                ));
-                $call.name(NQPMu);
-                $call.op('call');
-                #say("# Compile-time resolved a call to " ~ $proto.name);
-                last;
+        if nqp::getcomp('perl6').backend.name ne 'moar' {
+            my @cands := $proto.dispatchees();
+            my int $idx := 0;
+            for @cands {
+                if $_ =:= $chosen {
+                    $call.unshift(QAST::Op.new(
+                        :op('atpos'),
+                        QAST::Var.new(
+                            :name('$!dispatchees'), :scope('attribute'),
+                            QAST::Var.new( :name($call.name), :scope('lexical') ),
+                            QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
+                        ),
+                        QAST::IVal.new( :value($idx) )
+                    ));
+                    $call.name(NQPMu);
+                    $call.op('call');
+                    #say("# Compile-time resolved a call to " ~ $proto.name);
+                    last;
+                }
+                $idx := $idx + 1;
             }
-            $idx := $idx + 1;
+            $call := copy_returns($call, $chosen);
         }
-        $call := copy_returns($call, $chosen);
+        else {
+            my $scopes := $!symbols.scopes_in($call.name);
+            if $scopes == 0 || $scopes == 1 && nqp::can($proto, 'soft') && !$proto.soft {
+                $call.op('callstatic');
+            }
+        }
         $call
     }
     

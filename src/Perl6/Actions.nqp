@@ -840,6 +840,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
+    # Should produce a LoL, with most uses converted to actually statementlist
     method semilist($/) {
         my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
@@ -5508,20 +5509,34 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
+        # Should eventually be $past.push($<semilist>.ast) if $<semilist><statement>
         if $<semilist><statement> {
-            my $slast := $<semilist>.ast;
-            $past.push($slast);
+            if $<semilist><statement> > 1 {
+                my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
+                for $<semilist><statement> {
+                    $l.push($_.ast);
+                }
+                $past.push(QAST::Op.new( :name('lol'), :op('callmethod'), $l));
+            } else {
+                $past.push($<semilist>.ast);
+            }
         }
         make $past;
     }
 
     method postcircumfix:sym<{ }>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
+        # Should eventually be $past.push($<semilist>.ast) if $<semilist><statement>
         if $<semilist><statement> {
-            if +$<semilist><statement> > 1 {
-                $*W.throw($/, 'X::Comp::NYI', feature => 'multi-dimensional indexes');
+            if $<semilist><statement> > 1 {
+                my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
+                for $<semilist><statement> {
+                    $l.push($_.ast);
+                }
+                $past.push(QAST::Op.new( :name('lol'), :op('callmethod'), $l));
+            } else {
+                $past.push($<semilist>.ast);
             }
-            $past.push($<semilist>.ast);
         }
         make $past;
     }

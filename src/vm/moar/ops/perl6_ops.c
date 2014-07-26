@@ -183,6 +183,29 @@ static void p6settypes(MVMThreadContext *tc) {
 }
 
 /* Boxing to Perl 6 types. */
+static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins, MVMObject *type) {
+    MVMSpeshFacts *tfacts = &(g->facts[ins->operands[0].reg.orig][ins->operands[0].reg.i]);
+    tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE | MVM_SPESH_FACT_DECONTED;
+    tfacts->type   = type;
+}
+
+static void p6box_i_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, Int);
+    printf("discovered p6box_i.\n");
+}
+static void p6box_n_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, Num);
+    printf("discovered p6box_n.\n");
+}
+static void p6box_s_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, Str);
+    printf("discovered p6box_s.\n");
+}
+static void p6parcel_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, Parcel);
+    printf("discovered p6parcel.\n");
+}
+
 static MVMuint8 s_p6box_i[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_int64 | MVM_operand_read_reg,
@@ -273,6 +296,11 @@ static void p6listiter(MVMThreadContext *tc) {
     MVMObject *list = GET_REG(tc, 4).o;
     GET_REG(tc, 0).o = make_listiter(tc, arr, list);
 }
+static void p6listiter_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, ListIter);
+    printf("discovered p6listiter.\n");
+}
+
 
 /* Returns the $!items attribute of a List, vivifying it to a
  * low-level array if it isn't one already. */
@@ -321,6 +349,12 @@ static void p6scalarfromdesc(MVMThreadContext *tc) {
     MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->value,
         ((Rakudo_ContainerDescriptor *)descriptor)->the_default);
     GET_REG(tc, 0).o = new_scalar;
+}
+static void p6scalarfromdesc_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    MVMSpeshFacts *tfacts = &(g->facts[ins->operands[0].reg.orig][ins->operands[0].reg.i]);
+    tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;
+    tfacts->type   = Scalar;
+    printf("scalarfromdesc discovered.\n");
 }
 
 static MVMuint8 s_p6recont_ro[] = {
@@ -380,6 +414,10 @@ static void p6reprname(MVMThreadContext *tc) {
             GET_REG(tc, 0).o = name;
         });
     });
+}
+static void p6reprname_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, tc->instance->boot_types.BOOTStr);
+    printf("discovered p6reprname\n");
 }
 
 /* Decontainerizes the return value of a routine as needed. */
@@ -864,19 +902,19 @@ static void p6invokeunder(MVMThreadContext *tc) {
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i, NULL, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n, NULL, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s, NULL, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i, NULL, p6box_i_discover, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n, NULL, p6box_n_discover, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s, NULL, p6box_s_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6parcel",  p6parcel, 3, s_p6parcel, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6listiter",  p6listiter, 3, s_p6listiter, NULL, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6listiter",  p6listiter, 3, s_p6listiter, NULL, p6listiter_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list, NULL, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6listitems",  p6listitems, 2, s_p6listitems, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, p6scalarfromdesc_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro, NULL, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);

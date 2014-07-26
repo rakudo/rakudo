@@ -413,6 +413,12 @@ static void p6decontrv(MVMThreadContext *tc) {
     }
     GET_REG(tc, 0).o = retval;
 }
+static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
+    /* If it's already deconted, can just become a set. */
+    MVMSpeshFacts *obj_facts = MVM_spesh_get_facts(tc, g, ins->operands[1]);
+    if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ))
+        ins->info = MVM_op_get_op(MVM_OP_set);
+}
 
 static MVMuint8 s_p6routinereturn[] = {
     MVM_operand_obj | MVM_operand_write_reg,
@@ -857,37 +863,37 @@ static void p6invokeunder(MVMThreadContext *tc) {
 
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
-    MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
-    MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i);
-    MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n);
-    MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s);
-    MVM_ext_register_extop(tc, "p6parcel",  p6parcel, 3, s_p6parcel);
-    MVM_ext_register_extop(tc, "p6listiter",  p6listiter, 3, s_p6listiter);
-    MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list);
-    MVM_ext_register_extop(tc, "p6listitems",  p6listitems, 2, s_p6listitems);
-    MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);
-    MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);
-    MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc);
-    MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro);
-    MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
-    MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname);
-    MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv);
-    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn);
-    MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
-    MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere);
-    MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx);
-    MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 2, s_p6captureouters);
-    MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit);
-    MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag);
-    MVM_ext_register_extop(tc, "p6takefirstflag", p6takefirstflag, 1, s_p6takefirstflag);
-    MVM_ext_register_extop(tc, "p6setpre", p6setpre, 1, s_p6setpre);
-    MVM_ext_register_extop(tc, "p6clearpre", p6clearpre, 1, s_p6clearpre);
-    MVM_ext_register_extop(tc, "p6inpre", p6inpre, 1, s_p6inpre);
-    MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher);
-    MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher);
-    MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush);
-    MVM_ext_register_extop(tc, "p6arrfindtypes", p6arrfindtypes, 5, s_p6arrfindtypes);
-    MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime);
-    MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter);
-    MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder);
+    MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, 0);
+    MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6parcel",  p6parcel, 3, s_p6parcel, NULL, 0);
+    MVM_ext_register_extop(tc, "p6listiter",  p6listiter, 3, s_p6listiter, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6listitems",  p6listitems, 2, s_p6listitems, NULL, 0);
+    MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, 0);
+    MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn, NULL, 0);
+    MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, 0);
+    MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, 0);
+    MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 2, s_p6captureouters, NULL, 0);
+    MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit, NULL, 0);
+    MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag, NULL, 0);
+    MVM_ext_register_extop(tc, "p6takefirstflag", p6takefirstflag, 1, s_p6takefirstflag, NULL, 0);
+    MVM_ext_register_extop(tc, "p6setpre", p6setpre, 1, s_p6setpre, NULL, 0);
+    MVM_ext_register_extop(tc, "p6clearpre", p6clearpre, 1, s_p6clearpre, NULL, 0);
+    MVM_ext_register_extop(tc, "p6inpre", p6inpre, 1, s_p6inpre, NULL, 0);
+    MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher, NULL, 0);
+    MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher, NULL, 0);
+    MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush, NULL, 0);
+    MVM_ext_register_extop(tc, "p6arrfindtypes", p6arrfindtypes, 5, s_p6arrfindtypes, NULL, 0);
+    MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime, NULL, 0);
+    MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter, NULL, 0);
+    MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder, NULL, 0);
 }

@@ -184,7 +184,7 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     my $tmp_reg := $*REGALLOC.fresh_i();
     my $res_reg := $*REGALLOC.fresh_o();
     nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $tmp_reg, $value_res.result_reg ));
-    nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+    nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($qastcomp.mast_compunit),
         $res_reg, $tmp_reg ));
     $*REGALLOC.release_register($value_res.result_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
@@ -390,7 +390,7 @@ my $p6bool := -> $qastcomp, $op {
     my $res_reg   := $*REGALLOC.fresh_o();
     my $cond_kind := $exprres.result_kind;
     if $cond_kind == $MVM_reg_int64 {
-        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($qastcomp.mast_compunit),
             $res_reg, $exprres.result_reg ));
     }
     elsif $cond_kind == $MVM_reg_num64 {
@@ -398,7 +398,7 @@ my $p6bool := -> $qastcomp, $op {
         my $zero_reg := $*REGALLOC.fresh_n();
         nqp::push(@ops, MAST::Op.new( :op('const_n64'), $zero_reg, MAST::NVal.new( :value(0.0) ) ));
         nqp::push(@ops, MAST::Op.new( :op('eq_n'), $tmp_reg, $exprres.result_reg, $zero_reg ));
-        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($qastcomp.mast_compunit),
             $res_reg, $tmp_reg ));
         $*REGALLOC.release_register($zero_reg, $MVM_reg_num64);
         $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
@@ -406,7 +406,7 @@ my $p6bool := -> $qastcomp, $op {
     elsif $cond_kind == $MVM_reg_str {
         my $tmp_reg := $*REGALLOC.fresh_i();
         nqp::push(@ops, MAST::Op.new( :op('istrue_s'), $tmp_reg, $exprres.result_reg ));
-        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($qastcomp.mast_compunit),
             $res_reg, $tmp_reg ));
         $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     }
@@ -414,7 +414,7 @@ my $p6bool := -> $qastcomp, $op {
         my $tmp_reg := $*REGALLOC.fresh_i();
         nqp::push(@ops, MAST::Op.new( :op('decont'), $res_reg, $exprres.result_reg ));
         nqp::push(@ops, MAST::Op.new( :op('istrue'), $tmp_reg, $res_reg ));
-        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($qastcomp.mast_compunit),
             $res_reg, $tmp_reg ));
         $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     }
@@ -474,7 +474,7 @@ sub boxer($kind, $op) {
     -> $qastcomp, $reg {
         my @ops;
         my $res_reg := $*REGALLOC.fresh_register($MVM_reg_obj);
-        nqp::push(@ops, MAST::ExtOp.new( :op($op), :cu($*MAST_COMPUNIT),
+        nqp::push(@ops, MAST::ExtOp.new( :op($op), :cu($qastcomp.mast_compunit),
             $res_reg, $reg ));
         $*REGALLOC.release_register($reg, $kind);
         MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
@@ -647,7 +647,7 @@ $ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
             my @ops;
             my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
             push_ilist(@ops, $value_res);
-            nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($*MAST_COMPUNIT),
+            nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($qastcomp.mast_compunit),
                 $value_res.result_reg, $value_res.result_reg ));
             MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
         }

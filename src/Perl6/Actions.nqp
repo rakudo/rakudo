@@ -2530,7 +2530,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Install &?ROUTINE.
         $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
 
-        my $past;
         if $<deflongname> {
             # If it's a multi, need to associate it with the surrounding
             # proto.
@@ -2645,7 +2644,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.add_proto_to_sort($code);
         }
 
-        my $closure := block_closure(reference_to_code_object($code, $past));
+        my $closure := block_closure(reference_to_code_object($code, $block));
         $closure<sink_past> := QAST::Op.new( :op('null') );
         make $closure;
     }
@@ -2956,7 +2955,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Install &?ROUTINE.
         $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
 
-        my $past;
         if $<deflongname> {
             my $name := '&' ~ ~$<deflongname>.ast;
             # Install.
@@ -2990,9 +2988,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         for $<trait> {
             if $_.ast { ($_.ast)($code) }
         }
-        $*W.add_phasers_handling_code($code, $past);
+        $*W.add_phasers_handling_code($code, $block);
 
-        my $closure := block_closure(reference_to_code_object($code, $past));
+        my $closure := block_closure(reference_to_code_object($code, $block));
         $closure<sink_past> := QAST::Op.new( :op('null') );
         make $closure;
     }

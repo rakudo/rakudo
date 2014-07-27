@@ -8,7 +8,7 @@ sub ORDER(int $i) {
     $i == 0 ?? Same !! $i <  0 ?? Less !! More
 }
 
-proto infix:<cmp>($, $) { * }
+proto infix:<cmp>(Mu $, Mu $) { * }
 multi infix:<cmp>(\a, \b) {
     return Order::Less if a === -Inf || b === Inf;
     return Order::More if a ===  Inf || b === -Inf;

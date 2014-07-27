@@ -346,17 +346,17 @@ my class Any { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
-proto infix:<===>($?, $?) is pure { * }
+proto infix:<===>(Mu $?, Mu $?) is pure { * }
 multi infix:<===>($?)    { Bool::True }
 multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-proto infix:<before>($, $?)  is pure { * }
+proto infix:<before>(Mu $, Mu $?)  is pure { * }
 multi infix:<before>($?)      { Bool::True }
 multi infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-proto infix:<after>($, $?) is pure { * }
+proto infix:<after>(Mu $, Mu $?) is pure { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\a, \b)    { (a cmp b) > 0 }
 

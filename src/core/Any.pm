@@ -276,7 +276,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method at_pos(|) {*}
-    multi method at_pos(Any:D: $pos) {
+    multi method at_pos(Any:D: $pos as Int) {
         fail X::OutOfRange.new(
             what => 'Index',
             got  => $pos,

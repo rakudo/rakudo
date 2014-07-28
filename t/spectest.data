@@ -22,6 +22,7 @@ S02-lexical-conventions/sub-block-parsing.t
 S02-lexical-conventions/unicode.t                          # icu
 S02-lexical-conventions/unicode-whitespace.t
 S02-lexical-conventions/unspace.t
+S02-lists/indexing.t
 S02-lists/tree.t
 S02-literals/adverbs.t
 S02-literals/array-interpolation.t

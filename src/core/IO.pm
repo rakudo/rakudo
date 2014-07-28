@@ -153,6 +153,7 @@ my class IO::Handle does IO::FileTestable {
     has Int $.ins = 0;
     has $.chomp = Bool::True;
     has $.path;
+    has Bool $!isDir;
 
     proto method open(|) { * }
     multi method open($path? is copy, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
@@ -160,6 +161,11 @@ my class IO::Handle does IO::FileTestable {
         $path //= $!path;
         $r = $w = True if $rw;
         my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
+        $!isDir = Bool::True if $path ne "-" &&
+            nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_EXISTS))
+            && nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_ISDIR));
+        fail (X::IO::Directory.new(:$path, :trying<open( :w )>))
+            if $w && $!isDir;
 #?if parrot
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
@@ -221,6 +227,7 @@ my class IO::Handle does IO::FileTestable {
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
         }
+        fail (X::IO::Directory.new(:$!path, :trying<get>)) if $!isDir;
         return Str if self.eof;
         my Str $x = nqp::p6box_s(nqp::readlinefh($!PIO));
         # XXX don't fail() as long as it's fatal
@@ -236,12 +243,14 @@ my class IO::Handle does IO::FileTestable {
         unless $!PIO {
             self.open($!path, :chomp($.chomp));
         }
+        fail (X::IO::Directory.new(:$!path, :trying<getc>)) if $!isDir;
         my $c = nqp::p6box_s(nqp::getcfh($!PIO));
         fail if $c eq '';
         $c;
     }
 
     method lines($limit = Inf) {
+        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
         if $limit == Inf {
             gather while nqp::p6definite(my $line = self.get) {
                 take $line;
@@ -256,6 +265,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method read(IO::Handle:D: Cool:D $bytes as Int) {
+        fail (X::IO::Directory.new(:$!path, :trying<read>)) if $!isDir;
         my $buf := buf8.new();
         nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
         $buf;
@@ -278,6 +288,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method write(IO::Handle:D: Blob:D $buf) {
+        fail (X::IO::Directory.new(:$!path, :trying<write>)) if $!isDir;
         nqp::writefh($!PIO, nqp::decont($buf));
         True;
     }
@@ -293,15 +304,18 @@ my class IO::Handle does IO::FileTestable {
 
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D \x) {
+        fail (X::IO::Directory.new(:$!path, :trying<print>)) if $!isDir;
         nqp::printfh($!PIO, nqp::unbox_s(x));
         Bool::True
     }
     multi method print(IO::Handle:D: *@list) {
+        fail (X::IO::Directory.new(:$!path, :trying<print>)) if $!isDir;
         nqp::printfh($!PIO, nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }
 
     multi method say(IO::Handle:D: |) {
+        fail (X::IO::Directory.new(:$!path, :trying<say>)) if $!isDir;
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;
@@ -310,6 +324,8 @@ my class IO::Handle does IO::FileTestable {
     
     method slurp(:$bin, :enc($encoding)) {
         self.open(:r, :$bin) unless self.opened;
+        fail (X::IO::Directory.new(:$!path, :trying<slurp>, :use<dir>))
+            if $!isDir;
         self.encoding($encoding) if $encoding.defined;
 
         if $bin {
@@ -333,10 +349,10 @@ my class IO::Handle does IO::FileTestable {
     multi method spurt(Cool $contents,
                     :encoding(:$enc) = 'utf8',
                     :$createonly, :$append) {
-    
         fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
             if $createonly && self.e;
-        
+        fail (X::IO::Directory.new(:$!path, :trying<spurt>, :use<mkdir>))
+            if self.d();
         if self.opened {
             self.encoding($enc);
         } else {
@@ -352,7 +368,8 @@ my class IO::Handle does IO::FileTestable {
                     :$append) {
         fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
                 if $createonly && self.e;
-        
+        fail (X::IO::Directory.new(:$!path, :trying<spurt>, :use<mkdir>))
+            if self.d();
         unless self.opened {
             my $mode = $append ?? :a !! :w;
             self.open(:bin, |$mode);
@@ -388,7 +405,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     multi method perl (IO::Handle:D:) {
-        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl})"
+        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl}, Directory => {$!isDir.Bool})"
     }
 
 

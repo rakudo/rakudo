@@ -10,6 +10,10 @@
 #include <sys/time.h>
 #endif
 
+#ifndef MVM_spesh_get_and_use_facts
+#define MVM_spesh_get_and_use_facts MVM_spesh_get_facts
+#endif
+
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
 #define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
@@ -184,7 +188,7 @@ static void p6settypes(MVMThreadContext *tc) {
 
 /* Boxing to Perl 6 types. */
 static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins, MVMObject *type) {
-    MVMSpeshFacts *tfacts = &(g->facts[ins->operands[0].reg.orig][ins->operands[0].reg.i]);
+    MVMSpeshFacts *tfacts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[0]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE | MVM_SPESH_FACT_DECONTED;
     tfacts->type   = type;
 }
@@ -349,7 +353,7 @@ static void p6scalarfromdesc(MVMThreadContext *tc) {
     GET_REG(tc, 0).o = new_scalar;
 }
 static void p6scalarfromdesc_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    MVMSpeshFacts *tfacts = &(g->facts[ins->operands[0].reg.orig][ins->operands[0].reg.i]);
+    MVMSpeshFacts *tfacts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[0]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;
     tfacts->type   = Scalar;
 }
@@ -450,7 +454,7 @@ static void p6decontrv(MVMThreadContext *tc) {
 }
 static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
     /* If it's already deconted, can just become a set. */
-    MVMSpeshFacts *obj_facts = MVM_spesh_get_facts(tc, g, ins->operands[1]);
+    MVMSpeshFacts *obj_facts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[1]);
     if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ))
         ins->info = MVM_op_get_op(MVM_OP_set);
 }

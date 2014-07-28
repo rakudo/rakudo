@@ -4816,22 +4816,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $past := QAST::Op.new( :node($/), :op('call') );
             }
-            my $name;
-            if $past.isa(QAST::Op) && !$past.name {
-                if $key eq 'LIST' { $key := 'infix'; }
-                $name := nqp::lc($key) ~ ':<' ~ $<OPER><sym> ~ '>';
-                $past.name('&' ~ $name);
-            }
-            my $macro := find_macro_routine(['&' ~ $name]);
-            if $macro {
-                make expand_macro($macro, $name, $/, sub () {
-                    my @argument_asts := [];
-                    for @($/) {
-                        add_macro_arguments($_.ast, @argument_asts, '');
-                    }
-                    return @argument_asts;
-                });
-                return 'an irrelevant value';
+            if $<OPER><sym> {
+                my $name;
+                if $past.isa(QAST::Op) && !$past.name {
+                    if $key eq 'LIST' { $key := 'infix'; }
+                    $name := nqp::lc($key) ~ ':<' ~ $<OPER><sym> ~ '>';
+                    $past.name('&' ~ $name);
+                }
+                my $macro := find_macro_routine(['&' ~ $name]);
+                if $macro {
+                    make expand_macro($macro, $name, $/, sub () {
+                        my @argument_asts := [];
+                        for @($/) {
+                            add_macro_arguments($_.ast, @argument_asts, '');
+                        }
+                        return @argument_asts;
+                    });
+                    return 'an irrelevant value';
+                }
             }
         }
         if $key eq 'POSTFIX' {

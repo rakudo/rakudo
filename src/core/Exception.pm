@@ -309,6 +309,17 @@ my class X::IO::NotAFile does X::IO is Exception {
     }
 }
 
+my class X::IO::Directory does X::IO is Exception {
+    has $.path;
+    has $.trying;
+    has $.use;
+    method message () {
+        my $x = "'$.path' is a directory, cannot do '.$.trying' on a directory";
+        if $.use { $x ~= ", try '{$.use}()' instead" }
+        $x;
+    }
+}
+
 my class X::IO::Symlink does X::IO is Exception {
     has $.target;
     has $.name;

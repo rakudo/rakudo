@@ -14,10 +14,6 @@ my class Int does Real { # declared in BOOTSTRAP
             ObjAt
         );
     }
-    method WHY(Int:D:) {
-        nextsame if self != 42;
-        "Life, the Universe and Everything";
-    }
     multi method perl(Int:D:) {
         self.Str;
     }

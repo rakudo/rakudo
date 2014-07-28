@@ -29,6 +29,7 @@ my $todo_output    = $*OUT;
 
 try {
     # XXX do this with dup or an analogous cross-platform construct
+    # XXX these should probably have :autoflush
     my $output_h         = open('/dev/stdout', :w);
     my $failure_output_h = open('/dev/stderr', :w);
     my $todo_output_h    = open('/dev/stdout', :w);
@@ -444,6 +445,12 @@ END {
     ## So call it for them if they didn't
     if !$done_testing_has_been_run && !$no_plan {
         done;
+    }
+
+    for $output, $failure_output, $todo_output -> $handle {
+        next if $handle === ($*ERR|$*OUT);
+
+        $handle.close;
     }
 
     if $num_of_tests_failed > 0 {

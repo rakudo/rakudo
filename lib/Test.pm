@@ -359,8 +359,9 @@ sub proclaim($cond, $desc) {
       ~ "\n"
         if $perl6_test_times;
 
+    my $caller = callframe(3); # due to a bug in MoarVM, this callframe has to occur outside of the
+                               # unless block (see https://github.com/MoarVM/MoarVM/issues/120)
     unless $cond {
-        my $caller = callframe(3);
         if $desc ne '' {
             diag "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}";
         } else {

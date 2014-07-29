@@ -319,7 +319,7 @@ sub gen_nqp {
     if (defined $gen_nqp || defined $gen_parrot || defined $gen_moar) {
         git_checkout(
             github_url($git_protocol, 'perl6', 'nqp'),
-            'nqp', $nqp_want,
+            'nqp', $gen_nqp || $nqp_want,
             github_url('ssh', 'perl6', 'nqp'),
         );
     }

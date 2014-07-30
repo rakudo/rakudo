@@ -57,21 +57,21 @@ my class Pod::Block::Declarator is Pod::Block {
         $!WHEREFORE = $d
     }
     method Str {
-        $.contents
+        @.contents.join('')
     }
     multi method gist(Pod::Block::Declarator:D:) {
-        $.contents
+        @.contents.join('')
     }
 
     method contents {
         if @!leading && @!trailing {
-            $.leading ~ "\n" ~ $.trailing
+            [ $.leading ~ "\n" ~ $.trailing ]
         } elsif @!leading {
-            $.leading
+            [ $.leading ]
         } elsif @!trailing {
-            $.trailing
+            [ $.trailing ]
         } else {
-            ''
+            []
         }
     }
 

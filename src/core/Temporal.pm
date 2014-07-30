@@ -603,6 +603,10 @@ my class Date does Dateish {
     multi method perl(Date:D:) {
         "Date.new($.year.perl(), $.month.perl(), $.day.perl())";
     }
+
+    multi method ACCEPTS(Date:D: DateTime:D $dt) {
+        return $dt.year == $.year && $dt.month == $.month && $dt.day == $.day;
+    }
 }
  
 multi infix:<+>(Date:D $d, Int:D $x) {

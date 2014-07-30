@@ -111,7 +111,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
                 }
             }
             if $sub.WHY {
-                $docs = '-- ' ~ $sub.WHY.content
+                $docs = '-- ' ~ $sub.WHY.contents
             }
             my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
             @help-msgs.push($msg);

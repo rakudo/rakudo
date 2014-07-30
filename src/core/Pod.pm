@@ -1,6 +1,6 @@
 my class Pod::Block {
     has %.config;
-    has @.content;
+    has @.contents;
 
     sub pod-gist(Pod::Block $pod, $level = 0) {
         my $leading = ' ' x $level;
@@ -14,7 +14,7 @@ my class Pod::Block {
             }
         }
         @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
-        for $pod.content.list -> $c {
+        for $pod.contents.list -> $c {
             if $c ~~ Pod::Block {
                 @chunks.push: pod-gist($c, $level + 2);
             }
@@ -57,13 +57,13 @@ my class Pod::Block::Declarator is Pod::Block {
         $!WHEREFORE = $d
     }
     method Str {
-        $.content
+        $.contents
     }
     multi method gist(Pod::Block::Declarator:D:) {
-        $.content
+        $.contents
     }
 
-    method content {
+    method contents {
         if @!leading && @!trailing {
             $.leading ~ "\n" ~ $.trailing
         } elsif @!leading {

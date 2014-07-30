@@ -433,6 +433,44 @@ $ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
     $op[1].flat(1);
     $qastcomp.as_mast(QAST::Op.new( :op('call'), $op[0], $op[1]));
 });
+$ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
+    # Only need to do anything special if it's an object.
+    my $sinkee_res := $qastcomp.as_mast($op[0]);
+    if $sinkee_res.result_kind == $MVM_reg_obj {
+        # Put computation of sinkee first.
+        my @ops;
+        push_ilist(@ops, $sinkee_res);
+
+        # Check it's concrete and can sink.
+        my $sinkee_reg := $sinkee_res.result_reg;
+        my $itmp       := $*REGALLOC.fresh_i();
+        my $done_lbl   := MAST::Label.new( :name($op.unique('p6sink')) );
+        nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $itmp, $sinkee_reg ));
+        nqp::push(@ops, MAST::Op.new( :op('unless_i'), $itmp, $done_lbl ));
+        nqp::push(@ops, MAST::Op.new( :op('can'), $itmp, $sinkee_reg,
+            MAST::SVal.new( :value('sink') )));
+        nqp::push(@ops, MAST::Op.new( :op('unless_i'), $itmp, $done_lbl ));
+        $*REGALLOC.release_register($itmp, $MVM_reg_int64);
+
+        # Emit sink method call.
+        my $meth := $*REGALLOC.fresh_o();
+        $*REGALLOC.release_register($meth, $MVM_reg_obj);
+        nqp::push(@ops, MAST::Op.new( :op('findmeth'), $meth, $sinkee_reg,
+            MAST::SVal.new( :value('sink') )));
+        nqp::push(@ops, MAST::Call.new(
+            :target($meth), :flags([$Arg::obj]), $sinkee_reg
+        ));
+        $*REGALLOC.release_register($meth, $MVM_reg_obj);
+
+        # Add end label, and we're done.
+        nqp::push(@ops, $done_lbl);
+        $*REGALLOC.release_register($sinkee_res.result_reg, $MVM_reg_obj);
+        MAST::InstructionList.new(@ops, MAST::VOID, $MVM_reg_void);
+    }
+    else {
+        $sinkee_res
+    }
+});
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.

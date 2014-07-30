@@ -70,6 +70,33 @@ $ops.add_hll_op('perl6', 'p6staticouter', -> $qastcomp, $op {
 });
 $ops.add_hll_pirop_mapping('perl6', 'p6scalarfromdesc', 'p6scalarfromdesc', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6invokehandler', 'perl6_invoke_catchhandler', 'vPP');
+$ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $past {
+    my $name := $past.unique('sink');
+    $qastcomp.as_post(QAST::Op.new(
+        :op('locallifetime'),
+        QAST::Stmts.new(
+            QAST::Op.new(:op<bind>,
+                QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                $past[0],
+            ),
+            QAST::Op.new(:op<if>,
+                QAST::Op.new(:op<if>,
+                    QAST::Op.new(:op<isconcrete>,
+                        QAST::Var.new(:$name, :scope<local>),
+                    ),
+                    QAST::Op.new(:op<can>,
+                        QAST::Var.new(:$name, :scope<local>),
+                        QAST::SVal.new(:value('sink')),
+                    )
+                ),
+                QAST::Op.new(:op<callmethod>, :name<sink>,
+                    QAST::Var.new(:$name, :scope<local>),
+                ),
+            ),
+        ),
+        $name
+    ))
+});
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.

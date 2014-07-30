@@ -84,10 +84,20 @@ role Perl6::Metamodel::MethodContainer {
     }
 
     # Caches or updates a cached value.
-    method cache($obj, $key, $value_generator) {
+    method cache($obj, str $key, $value_generator) {
         %!cache || (%!cache := {});
         nqp::existskey(%!cache, $key) ??
             %!cache{$key} !!
             (%!cache{$key} := $value_generator())
+    }
+
+    method cache_get($obj, str $key) {
+        my %caches := %!cache;
+        nqp::ishash(%caches) ?? nqp::atkey(%caches, $key) !! nqp::null()
+    }
+
+    method cache_add($obj, str $key, $value) {
+        %!cache := nqp::hash() unless nqp::ishash(%!cache);
+        %!cache{$key} := $value;
     }
 }

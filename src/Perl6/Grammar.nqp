@@ -621,7 +621,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         [ <!{$<code> eq 'E'}>
-          $<content>=[
+          $<contents>=[
               <!before $endtag>
               [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
               <pod_string_character>
@@ -652,7 +652,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             {
                 $endtag := nqp::x(">", nqp::chars($<start>));
             }
-            $<content>=[ <pod_string_character>*?]
+            $<contents>=[ <pod_string_character>*?]
             <!after '>'> $<endtag>=[$endtag]
         ]
     }

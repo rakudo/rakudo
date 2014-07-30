@@ -42,7 +42,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     #     has str $!value is box_target;
 
     method WHY(Str:D:) {
-        nextsame if self ne "Life, the Universe and Everything";
+        nextsame if self ne "Life, the Universe, and Everything";
         42;
     }
 

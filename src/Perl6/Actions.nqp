@@ -553,10 +553,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method pod_block:sym<delimited_code>($/) {
         my $config  := $<pod_configuration>.ast;
-        my @content := $<delimited_code_content>.ast;
-        my $twine   := Perl6::Pod::serialize_array(@content).compile_time_value;
+        my @contents := $<delimited_code_content>.ast;
+        my $twine   := Perl6::Pod::serialize_array(@contents).compile_time_value;
         make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :content($twine),
+            'Pod::Block::Code', :contents($twine),
             :config($config),
         ).compile_time_value
     }
@@ -593,7 +593,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $twine  := Perl6::Pod::serialize_array(@t).compile_time_value;
         make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :content($twine),
+            'Pod::Block::Code', :contents($twine),
             :config($config),
         ).compile_time_value
     }
@@ -617,7 +617,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
         make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :content($twine)
+            'Pod::Block::Code', :contents($twine)
         ).compile_time_value
     }
 
@@ -649,7 +649,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @t     := Perl6::Pod::merge_twines($<pod_string>);
         my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
         make Perl6::Pod::serialize_object(
-            'Pod::Block::Para', :content($twine)
+            'Pod::Block::Para', :contents($twine)
         ).compile_time_value
     }
 
@@ -659,48 +659,48 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $t    := subst($t, /\n$/, ''); # chomp!
         my $past := Perl6::Pod::serialize_object(
             'Pod::Block::Code',
-            :content(Perl6::Pod::serialize_aos([$t]).compile_time_value),
+            :contents(Perl6::Pod::serialize_aos([$t]).compile_time_value),
         );
         make $past.compile_time_value;
     }
 
     method pod_formatting_code($/) {
         if $<code> eq 'V' {
-            make ~$<content>;
+            make ~$<contents>;
         } elsif $<code> eq 'E' {
-            my @content := [];
+            my @contents := [];
             my @meta    := [];
             for $/[0] {
                 if $_<html_ref> {
-                    @content.push(~$_);
+                    @contents.push(~$_);
                     @meta.push($*W.add_string_constant(~$_).compile_time_value);
                     #my $s := Perl6::Pod::str_from_entity(~$_);
-                    #$s ?? @content.push($s) && @meta.push(~$_)
+                    #$s ?? @contents.push($s) && @meta.push(~$_)
                     #   !! $/.CURSOR.worry("\"$_\" is not a valid HTML5 entity.");
                 } else {
                     my $n := $_<integer>
                           ?? $_<integer>.made
                           !! nqp::codepointfromname(~$_);
                     if $n >= 0 {
-                        @content.push(nqp::chr($n));
+                        @contents.push(nqp::chr($n));
                         @meta.push($n);
                     } else {
                         $/.CURSOR.worry("\"$_\" is not a valid Unicode character name or code point.");
                     }
                 }
             }
-            @content := Perl6::Pod::serialize_aos(@content).compile_time_value;
+            @contents := Perl6::Pod::serialize_aos(@contents).compile_time_value;
             @meta    := Perl6::Pod::serialize_array(@meta).compile_time_value;
             make Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
                 :type($*W.add_string_constant(~$<code>).compile_time_value),
-                :@content,
+                :@contents,
                 :@meta,
             ).compile_time_value;
         } else {
-            my @content := [];
+            my @contents := [];
             for $<pod_string_character> {
-                @content.push($_.ast)
+                @contents.push($_.ast)
             }
             my @meta := [];
             if $<code> eq 'X' {
@@ -718,13 +718,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 @meta := Perl6::Pod::serialize_aos(@meta).compile_time_value;
             }
-            my @t    := Perl6::Pod::build_pod_string(@content);
+            my @t    := Perl6::Pod::build_pod_string(@contents);
             my $past := Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
                 :type(
                     $*W.add_string_constant(~$<code>).compile_time_value
                 ),
-                :content(
+                :contents(
                     Perl6::Pod::serialize_array(@t).compile_time_value
                 ),
                 :meta(@meta),
@@ -734,16 +734,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_string($/) {
-        my @content := [];
+        my @contents := [];
         for $<pod_string_character> {
-            @content.push($_.ast)
+            @contents.push($_.ast)
         }
-        make Perl6::Pod::build_pod_string(@content);
+        make Perl6::Pod::build_pod_string(@contents);
     }
 
     method pod_balanced_braces($/) {
         if $<endtag> {
-            my @content := [];
+            my @contents := [];
             my @stringparts := [];
             @stringparts.push(~$<start>);
             if $<pod_string_character> {
@@ -751,18 +751,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     if nqp::isstr($_.ast) {
                         @stringparts.push($_.ast);
                     } else {
-                        @content.push(nqp::join("", @stringparts));
+                        @contents.push(nqp::join("", @stringparts));
                         @stringparts := nqp::list();
-                        @content.push($_.ast);
+                        @contents.push($_.ast);
                     }
                 }
             }
             @stringparts.push(~$<endtag>);
-            @content.push(nqp::join("", @stringparts));
-            if +@content == 1 {
-                make @content[0];
+            @contents.push(nqp::join("", @stringparts));
+            if +@contents == 1 {
+                make @contents[0];
             } else {
-                make Perl6::Pod::build_pod_string(@content);
+                make Perl6::Pod::build_pod_string(@contents);
             }
         } else {
             make ~$<braces>

@@ -35,7 +35,7 @@ class Perl6::Pod {
             @children.push($_.ast);
         }
 
-        my $content := serialize_array(@children);
+        my $contents := serialize_array(@children);
         if $leveled {
             my $level := nqp::substr($<type>.Str, 4);
             my $level_past;
@@ -49,7 +49,7 @@ class Perl6::Pod {
 
             my $past := serialize_object(
                 $type, :level($level_past), :config($config),
-                :content($content.compile_time_value)
+                :contents($contents.compile_time_value)
             );
             return $past.compile_time_value;
         }
@@ -57,7 +57,7 @@ class Perl6::Pod {
         my $name := $*W.add_constant('Str', 'str', $<type>.Str);
         my $past := serialize_object(
             'Pod::Block::Named', :name($name.compile_time_value),
-            :config($config), :content($content.compile_time_value),
+            :config($config), :contents($contents.compile_time_value),
         );
         return $past.compile_time_value;
     }
@@ -67,10 +67,10 @@ class Perl6::Pod {
             ?? $<pod_configuration>.ast
             !! serialize_object('Hash').compile_time_value;
         my $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
-        my $content := serialize_array([$str.compile_time_value]);
+        my $contents := serialize_array([$str.compile_time_value]);
         my $past := serialize_object(
             'Pod::Block::Comment', :config($config),
-            :content($content.compile_time_value),
+            :contents($contents.compile_time_value),
         );
         return $past.compile_time_value;
     }
@@ -237,7 +237,7 @@ class Perl6::Pod {
         my $past := serialize_object(
             'Pod::Block::Table', :config($config),
             :headers(serialize_aos($headers).compile_time_value),
-            :content(serialize_aoaos($content).compile_time_value),
+            :contents(serialize_aoaos($content).compile_time_value),
         );
         make $past.compile_time_value;
     }

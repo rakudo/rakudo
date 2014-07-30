@@ -3,7 +3,7 @@ M_LD      = @moar::ld@
 M_CFLAGS  = @moar::cflags@ @moar::ccmiscflags@ @moar::ccoptiflags@ @moar::ccwarnflags@
 M_LDFLAGS = @moar::ldflags@ @moar::ldmiscflags@ @moar::ldoptiflags@ @moar::ldlibs@
 
-M_GEN_CAT = tools/build/gen-cat.pl moar
+M_GEN_CAT = tools/build/gen-cat.nqp moar
 
 MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
 M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
@@ -233,7 +233,7 @@ $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_LD) @moar::ldswitch@ @moar::ldshared@ $(M_LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) @moarimplib@
 
 $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
-	$(PERL) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/m-ModuleLoader.nqp
+	$(M_NQP) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/m-ModuleLoader.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
 	    src/gen/m-ModuleLoader.nqp
 
@@ -267,22 +267,22 @@ $(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
 
 $(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
 	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
-	$(PERL) $(M_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/m-main.nqp
+	$(M_NQP) $(M_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/m-main.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_MOAR) \
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-main.nqp
 
 $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
-	$(PERL) $(M_GEN_CAT) $(M_METAMODEL_SOURCES) > src/gen/m-Metamodel.nqp
+	$(M_NQP) $(M_GEN_CAT) $(M_METAMODEL_SOURCES) > src/gen/m-Metamodel.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_M_MOAR) --encoding=utf8 \
 	    src/gen/m-Metamodel.nqp
 
 $(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
-	$(PERL) $(M_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/m-BOOTSTRAP.nqp
+	$(M_NQP) $(M_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/m-BOOTSTRAP.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_B_MOAR) --encoding=utf8 \
         --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-BOOTSTRAP.nqp
 
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
-	$(PERL) $(M_GEN_CAT) $(M_CORE_SOURCES) > src/gen/m-CORE.setting
+	$(M_NQP) $(M_GEN_CAT) $(M_CORE_SOURCES) > src/gen/m-CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
@@ -296,7 +296,7 @@ m-runner-default: $(M_RUNNER)
 	$(CP) $(M_RUNNER) perl6@runner_suffix@
 
 $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
-	$(PERL) $(M_GEN_CAT) src/perl6-debug.nqp src/gen/main-version.nqp > src/gen/m-perl6-debug.nqp
+	$(M_NQP) $(M_GEN_CAT) src/perl6-debug.nqp src/gen/main-version.nqp > src/gen/m-perl6-debug.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_DEBUG_MOAR) \
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-perl6-debug.nqp
 

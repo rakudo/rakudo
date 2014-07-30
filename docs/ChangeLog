@@ -7,6 +7,8 @@ New in 2014.08
 + fixed negated character lookup in regexes \C[...]
 + quote words syntax <a b c> splits on breakable space only
 + duplicates in character classes warn now, like in accidently quoted items <[ '/' ]>
++ fixed (s)printf regression with "+" and " " flags
++ allow a DateTime to smartmatch against a Date
 
 New in 2014.07
 + require and build parrot 6.6.0

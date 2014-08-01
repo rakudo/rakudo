@@ -275,9 +275,9 @@ P_CLEANUPS = \
   perl6-p.c \
   perl6-p$(O) \
   perl6_group.* \
-  lib/Test.pir \
-  lib/lib.pir \
-  lib/Pod/To/Text.pir \
+  lib/Test.pm.pir \
+  lib/lib.pm6.pir \
+  lib/Pod/To/Text.pm.pir \
   p-rakudo_test_run.tar.gz \
   $(DYNEXT_DYNOPS) \
   src/gen/p-CORE.setting \
@@ -302,7 +302,7 @@ P_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_IC
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir $(PERL6_DEBUG_EXE)
+p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/Test.pm.pir lib/lib.pm6.pir lib/Pod/To/Text.pm.pir $(PERL6_DEBUG_EXE)
 
 # the install target
 p-install: p-all
@@ -323,12 +323,12 @@ p-install: p-all
 	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
-	$(CP)     lib/Test.pir        $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pm.pir     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/lib.pm6         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
-	$(CP)     lib/lib.pir         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/lib.pm6.pir     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     lib/Pod/To/Text.pir $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pm.pir $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNOPS)           $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)

@@ -998,6 +998,7 @@ class Perl6::Optimizer {
               nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) &&
               $!symbols.is_from_core($c2.name) {
             self.optimize_for_range($op, $c2);
+            self.visit_op_children($op);
             return $op;
         }
         

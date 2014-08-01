@@ -6,27 +6,25 @@ class CompUnitRepo {
     my $lock := Lock.new;
 
     method files($file, :$name, :$auth, :$ver) {
-        for @*INC -> $group {
-            my @candi;
-            for $group.list {
-                if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
-                    @candi := (@candi, $cur.files($name, :$file, :$auth, :$ver)).flat
+        for @*INC {
+            if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+                if $cur.files($name, :$file,:$auth,:$ver).list -> @candi {
+                    return @candi;
                 }
             }
-            return @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) } if +@candi
         }
+        ();
     }
 
     method candidates($name, :$file, :$auth, :$ver) {
-        for @*INC -> $group {
-            my @candi;
-            for $group.list {
-                if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
-                    @candi := (@candi, $cur.candidates($name, :$file, :$auth, :$ver)).flat
+        for @*INC {
+            if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+                if $cur.candidates($name, :$file,:$auth,:$ver).list -> @candi {
+                    return @candi;
                 }
             }
-            return @candi.sort: { ($^b<ver> // Version.new('0')) cmp ($^a<ver> // Version.new('0')) } if +@candi
         }
+        ();
     }
 
     method p6ml { $p6ml }

@@ -76,13 +76,12 @@
         my $config = "$prefix/share/libraries.json".IO.e ?? from-json( slurp "$prefix/share/libraries.json" ) !! [];
 
         for $config.list -> @group {
-            my @cur_group;
             for @group>>.kv -> $class, $props {
                 for $props.list -> $prop {
                     if $prop ~~ Associative {
                         for $prop.value.flat -> $path {
                             if make-cur($class, $path) -> $cur {
-                                @cur_group.push: $cur;
+                                @INC.push: $cur;
                                 %CUSTOM_LIB{$prop.key} = $cur;
                             }
                             else {
@@ -93,20 +92,18 @@
                     else {
                         for $prop.flat -> $path {
                             if make-cur($class, $path) -> $cur {
-                                @cur_group.push: $cur;
+                                @INC.push: $cur;
                             }
                         }
                     }
                 }
             }
-            @INC.push: +@cur_group > 1 ?? [@cur_group] !! @cur_group
         }
     }
     # There is no config file, so pick sane defaults.
     else {
         # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
-        my @cur_inst;
         try {
             my $home := %*ENV<HOME> // %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
             my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
@@ -114,7 +111,7 @@
                 @INC.push: $cur;
             }
             if CompUnitRepo::Local::Installation.new("$home/.perl6/$ver") -> $cur {
-                @cur_inst.push: %CUSTOM_LIB<home> = $cur;
+                @INC.push: %CUSTOM_LIB<home> = $cur;
             }
             else {
                 %CUSTOM_LIB<home> = "$home/.perl6/$ver";  # prime it
@@ -130,24 +127,23 @@
             @INC.push: $cur;
         }
         if CompUnitRepo::Local::Installation.new($prefix) -> $cur {
-            @cur_inst.push: %CUSTOM_LIB<perl> = $cur;
+            @INC.push: %CUSTOM_LIB<perl> = $cur;
         }
         else {
             %CUSTOM_LIB<perl> = $prefix;  # prime it
         }
         if CompUnitRepo::Local::Installation.new("$prefix/vendor") -> $cur {
-            @cur_inst.push: %CUSTOM_LIB<vendor> = $cur;
+            @INC.push: %CUSTOM_LIB<vendor> = $cur;
         }
         else {
             %CUSTOM_LIB<vendor> = "$prefix/vendor";  # prime it
         }
         if CompUnitRepo::Local::Installation.new("$prefix/site") -> $cur {
-            @cur_inst.push: %CUSTOM_LIB<site> = $cur;
+            @INC.push: %CUSTOM_LIB<site> = $cur;
         }
         else {
             %CUSTOM_LIB<site> = "$prefix/site";  # prime it
         }
-        @INC.push([@cur_inst]) if @cur_inst;
     }
 
     PROCESS::<@INC>        := @INC;

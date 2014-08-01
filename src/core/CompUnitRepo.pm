@@ -37,7 +37,8 @@ class CompUnitRepo {
         my %chosen;
         if $candi {
             %chosen<pm>   :=
-              $candi<provides>{$module_name}<pm><file>;
+              $candi<provides>{$module_name}<pm><file> //
+              $candi<provides>{$module_name}<pm6><file>;
             %chosen<load> :=
               $candi<provides>{$module_name}{$*VM.precomp-ext}<file>;
             %chosen<key>  := %chosen<pm> // %chosen<load>;

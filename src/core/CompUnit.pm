@@ -3,40 +3,87 @@ class CompUnit {
     has Str      $.from;
     has Str      $.name;
     has Str      $.extension;
+    has Str      $.precomp-ext;
     has IO::Path $.path;
     has Str      $!WHICH;
-    has Bool     $.loaded = False;
+    has Bool     $.has-source;
+    has Bool     $.has-precomp;
+    has Bool     $.is-loaded;
 
+    my $slash := IO::Spec.rootdir;
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';
     my %instances;
 
     method new( $path is copy, :$name, :$extension, :$from = $default-from ) {
+
+        # remove precomp extension if a precomp file
+        my $precomp-ext = $*VM.precomp-ext;
+        $path = $path.subst(/\.($precomp-ext)$/,"");
+        my $has-precomp = ?$0;
+
+        # set name / extension if not already given
+        if !$name or !$extension {
+            my $file;
+            for $path.rindex($slash) -> $i {
+                $file = $i.defined ?? $path.substr($i+1) !! $path;
+            }
+            # no $slash in char class
+            if $file ~~ m/ (<-[\\/.]>+) . (<-[.]>+) $/ {
+                $name      ||= ~$0;
+                $extension ||= ~$1;
+            }
+        }
+
+        # sanity test
+        my $has-source;
         $path = IO::Spec.rel2abs($path);
         for $path.IO -> $io {
-            return Nil if !$io.e or $io.d;
+            return Nil if $io.d; # cannot be a directory
+
+            # do we have a precomp?
+            $has-source    = $io.e;
+            $has-precomp ||= "$path.$precomp-ext".IO.e;
+            return Nil unless $has-source or $has-precomp;
         }
-        $global.protect( { %instances{$path} //=
-          self.bless(:$path,:$name,:$extension,:$from) } );
+
+        $global.protect( { %instances{$path} //= self.bless(
+          :$path,
+          :$name,
+          :$extension,
+          :$precomp-ext,
+          :$from,
+          :$has-source,
+          :$has-precomp,
+          :!is-loaded,
+        ) } );
     }
 
-    method BUILD( :$path, :$!name, :$!extension, :$!from ) {
+    method BUILD(
+      :$path,
+      :$!name,
+      :$!extension,
+      :$!precomp-ext,
+      :$!from,
+      :$!has-source,
+      :$!has-precomp,
+      :$!is-loaded,
+    ) {
         $!lock  = Lock.new;
         $!WHICH = "{self.^name}|$path";
         $!path  = $path.path;
         self
     }
 
-    method WHICH() { self.DEFINITE ?? $!WHICH !! self.^name }
-    method Str()   { self.DEFINITE ?? $!path.Str !! Nil }
-    method gist()  { self.DEFINITE ?? "{self.name}:{$!path.Str}" !! self.^name }
-    method perl()  { self.DEFINITE
-      ?? "CompUnit.new('{$!path.Str}',:name<$!name>,:extension<$!extension>{",:from<$!from>" if $!from ne $default-from})"
-      !! self.^name;
+    method WHICH(--> Str) { self.DEFINITE ?? $!WHICH !! self.^name }
+    method Str(--> Str)   { self.DEFINITE ?? $!path.Str !! Nil }
+    method gist(--> Str)  {
+        self.DEFINITE ?? "{self.name}:{$!path.Str}" !! self.^name;
     }
+    method perl(--> Str)  { self.DEFINITE ?? nextsame() !! self.^name }
 
-    method key() {
-        $!extension eq $*VM.precomp-ext ?? $*VM.precomp-ext !! 'pm';
+    method key(--> Str) {
+        $!has-precomp ?? $!precomp-ext !! $!extension;
     }
 
     # same magic I'm not sure we need
@@ -62,7 +109,7 @@ class CompUnit {
         $!lock.protect( {
 
             # nothing to do
-            return $!loaded if $!loaded;
+            return $!is-loaded if $!is-loaded;
 
             my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];
             my %chosen;
@@ -70,7 +117,7 @@ class CompUnit {
                 %chosen<pm>   :=
                   $candi<provides>{$module_name}<pm><file>;
                 %chosen<load> :=
-                  $candi<provides>{$module_name}{$*VM.precomp-ext}<file>;
+                  $candi<provides>{$module_name}{$!precomp-ext}<file>;
                 %chosen<key>  := %chosen<pm> // %chosen<load>;
             }
             $p6ml.load_module(
@@ -84,25 +131,32 @@ class CompUnit {
         } );
     }
 
-    method precomped() { $!extension eq $*VM.precomp-ext }
+    method precomp-path(--> Str) { "$!path.$!precomp-ext" }
 
-    method precomp-path() {
-        my $ext := $!extension;  # cannot use attributes in regex
-        $!path.subst(/$ext$/,$*VM.precomp-ext);
-    }
-
-    method precomp($output = self.precomp-path, :$force) {
+    method precomp($output = self.precomp-path, :$force --> Bool) {
         die "Cannot pre-compile an already pre-compiled file: $!path"
-          if self.precomped;
+          if $.has-precomp;
         die "Cannot pre-compile over an existing file: $output"
           if !$force and $output.IO.e;
-        ?shell("$*EXECUTABLE --target={$*VM.precomp-target} --output=$output $!path");
+        my Bool $result = ?shell("$*EXECUTABLE --target={$*VM.precomp-target} --output=$output $!path");
+
+        $!has-precomp = $result if $output eq self.precomp-path;
+        $result;
     }
 }
 
 # TEMPORARY ACCESS TO COMPUNIT INTERNALS UNTIL WE CAN LOAD DIRECTLY
 multi postcircumfix:<{ }> (CompUnit \c, "provides" ) {
-    my % = ( c.name => { c.key => { file => c.path } } );
+    my % = (
+      c.name => {
+        c.key => {
+          file => c.has-precomp ?? c.precomp-path !! c.path
+        }
+      }
+    );
+}
+multi postcircumfix:<{ }> (CompUnit \c, "key" ) {
+    c.key;
 }
 multi postcircumfix:<{ }> (CompUnit \c, "ver" ) {
     Version.new('0');

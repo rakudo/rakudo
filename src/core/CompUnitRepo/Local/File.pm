@@ -1,67 +1,54 @@
 class CompUnitRepo::Local::File does CompUnitRepo::Locally {
-    has Hash $!potentials;
 
-    my $precomp := $*VM.precomp-ext;
+    my Str $precomp-ext     := $*VM.precomp-ext;
+    my Int $precomp-ext-dot := $precomp-ext.chars + 1;
     my %extensions =
-      Perl6 => ($precomp,'pm6','pm'),
-      Perl5 => ($precomp,'pm5','pm'),
-      NQP   => ($precomp,'nqp'),
-      JVM   => ($precomp,);
-    my $anyextensions = any($precomp,<pm6 pm5 pm nqp>);
-    my $slash := IO::Spec.rootdir;
+      Perl6 => <pm6 pm>,
+      Perl5 => <pm5 pm>,
+      NQP   => <nqp>,
+      JVM   => ();
+    my Str $slash := IO::Spec.rootdir;
+
+    # global cache of files seen
+    my %seen;
 
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) { ... }
 
     method candidates(
-      $name  = /./,
+      $name,
       :$from = 'Perl6',
       :$file,           # not used here (yet)
       :$auth,           # not used here (yet)
-      :$ver,            # not usde here (yet)
-      :$no-precomp,
+      :$ver,            # not used here (yet)
       ) {
-        my @extensions := $no-precomp
-          ?? %extensions{$from}[1..*]
-          !! %extensions{$from};
 
-        my @candidates;
-        for ( $!potentials //= self.potentials ).keys -> $root {
-            next unless $root ~~ $name;             # not right name
+        # sorry, cannot handle this one
+        return () unless %extensions{$from}:exists;
 
-            my $candidate := $!potentials{$root};
+        my $base := $!path ~ $slash ~ $name.subst(:g, "::", $slash) ~ '.';
+        if %seen{$base} -> $found {
+            return $found;
+        }
+
+        # have extensions to check
+        if %extensions{$from} -> @extensions {
             for @extensions -> $extension {
-                if $candidate{$extension} -> $sig { # use this extension
-                    @candidates.push: CompUnit.new(|$sig, :$extension);
-                    last;
-                }
+                my $path = $base ~ $extension;
+                return %seen{$base} = CompUnit.new($path,:$name,:$extension)
+                  if $path.IO.f;
             }
         }
-        @candidates;
+
+        # no extensions to check, just check compiled version
+        elsif $base ~ $precomp-ext -> $path {
+            return %seen{$base} = CompUnit.new($path, :$name)
+              if $path.IO.f;
+        }
+
+        # alas
+        ();
     }
 
     method short-id() { 'file' }
-
-    submethod potentials {
-        my Hash $potentials = {};
-
-        for $!path.contents -> $path {
-            my $file = ~$path;
-
-            # We loop over one element to be able to 'last' out of if.
-            for $file.rindex(".") -> $i {
-                last unless $i.defined;               # could not find any ext
-
-                my $ext = $file.substr($i + 1);
-                last unless $ext ~~ $anyextensions;   # not right ext
-
-                my $root = $file.substr(0,$i);
-                my $j := $root.rindex($slash);
-                $root = $root.substr($j + 1) if $j.defined;
-
-                $potentials{$root}{$ext} := \($file, :name($root) );
-            }
-        }
-        $potentials;
-    }
 }

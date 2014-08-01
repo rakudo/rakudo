@@ -989,6 +989,17 @@ class Perl6::Optimizer {
         if $optype eq 'handle' {
             return self.visit_handle($op);
         }
+
+        # If it's a for 1..1000000 { } we can simplify it to a while loop. We
+        # check this here, before the tree is transformed by call inline opts.
+        if $optype eq 'callmethod' && $op.name eq 'sink' &&
+              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
+              nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
+              nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) &&
+              $!symbols.is_from_core($c2.name) {
+            self.optimize_for_range($op, $c2);
+            return $op;
+        }
         
         # A chain with exactly two children can become the op itself.
         if $optype eq 'chain' {
@@ -1091,15 +1102,6 @@ class Perl6::Optimizer {
         # compile time. If so, we can reduce it to a sub call in some cases.
         elsif $!level >= 2 && $optype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
             self.optimize_private_method_call($op);
-        }
-        
-        # If it's a for 1..1000000 { } we can simplify it to a while loop.
-        elsif $optype eq 'callmethod' && $op.name eq 'sink' &&
-              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
-              nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
-              nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) &&
-              $!symbols.is_from_core($c2.name) {
-            self.optimize_for_range($op, $c2);
         }
         
         # If we end up here, just leave op as is.

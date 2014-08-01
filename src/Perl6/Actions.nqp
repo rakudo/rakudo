@@ -2678,13 +2678,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $arg_num := $arg_num + 1;
         }
 
-        # Ensure nothing extra is declared.
+        # Ensure nothing extra is declared and there are no inner blocks.
         for @($past[0]) {
             if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
                 return 0 if $name ne '$*DISPATCHER' && $name ne '$_' &&
                     $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
                     !nqp::existskey(%arg_placeholders, $name);
+            }
+            elsif nqp::istype($_, QAST::Block) {
+                return 0;
+            }
+            elsif nqp::istype($_, QAST::Stmt) && nqp::istype($_[0], QAST::Block) {
+                return 0;
             }
         }
 

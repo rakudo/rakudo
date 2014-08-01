@@ -741,65 +741,69 @@ my class JunctionOptimizer {
                 $proceed := $exp-side == 0;
             }
             if $proceed {
-                # TODO chain_handles_Any may get more cleverness to check only the parameters that actually have
-                # a junction passed to them, so that in some cases the unfolding may still happen.
-                my str $juncop    := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
-                my str $juncname  := %foldable_junction{$op[0][$exp-side].name};
-                my str $chainop   := $op[0].op;
-                my str $chainname := $op[0].name;
-                my $values := $op[0][$exp-side];
-                my $ovalue := $op[0][1 - $exp-side];
-
-                # the first time $valop is refered to, create a bind op for a
-                # local var, next time create a reference var op.
-                my %reference;
-                sub refer_to($valop) {
-                    my $id := nqp::where($valop);
-                    if nqp::existskey(%reference, $id) {
-                        QAST::Var.new(:name(%reference{$id}), :scope<local>);
-                    } else {
-                        %reference{$id} := $op.unique('junction_unfold');
-                        QAST::Op.new(:op<bind>,
-                                     QAST::Var.new(:name(%reference{$id}),
-                                                   :scope<local>,
-                                                   :decl<var>),
-                                     $valop);
-                    }
-                }
-
-                # create a comparison operation for the inner comparisons
-                sub chain($value) {
-                    if $exp-side == 0 {
-                        QAST::Op.new(:op($chainop), :name($chainname),
-                                     $value,
-                                     refer_to($ovalue));
-                    } else {
-                        QAST::Op.new(:op($chainop), :name($chainname),
-                                     refer_to($ovalue),
-                                     $value);
-                    }
-                }
-
-                # create a chain of outer logical junction operators with inner comparisons
-                sub create_junc() {
-                    my $junc := QAST::Op.new(:name($juncname), :op($juncop));
-
-                    $junc.push(chain($values.shift()));
-
-                    if +$values.list > 1 {
-                        $junc.push(create_junc());
-                    } else {
-                        $junc.push(chain($values.shift()));
-                    }
-                    return $junc;
-                }
-
-                $op.shift;
-                $op.unshift(create_junc());
-                return $!optimizer.visit_op($op);
+                return self.apply_transform($op, $exp-side);
             }
         }
         return NQPMu;
+    }
+
+    method apply_transform($op, $exp-side) {
+        # TODO chain_handles_Any may get more cleverness to check only the parameters that actually have
+        # a junction passed to them, so that in some cases the unfolding may still happen.
+        my str $juncop    := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
+        my str $juncname  := %foldable_junction{$op[0][$exp-side].name};
+        my str $chainop   := $op[0].op;
+        my str $chainname := $op[0].name;
+        my $values := $op[0][$exp-side];
+        my $ovalue := $op[0][1 - $exp-side];
+
+        # the first time $valop is refered to, create a bind op for a
+        # local var, next time create a reference var op.
+        my %reference;
+        sub refer_to($valop) {
+            my $id := nqp::where($valop);
+            if nqp::existskey(%reference, $id) {
+                QAST::Var.new(:name(%reference{$id}), :scope<local>);
+            } else {
+                %reference{$id} := $op.unique('junction_unfold');
+                QAST::Op.new(:op<bind>,
+                             QAST::Var.new(:name(%reference{$id}),
+                                           :scope<local>,
+                                           :decl<var>),
+                             $valop);
+            }
+        }
+
+        # create a comparison operation for the inner comparisons
+        sub chain($value) {
+            if $exp-side == 0 {
+                QAST::Op.new(:op($chainop), :name($chainname),
+                             $value,
+                             refer_to($ovalue));
+            } else {
+                QAST::Op.new(:op($chainop), :name($chainname),
+                             refer_to($ovalue),
+                             $value);
+            }
+        }
+
+        # create a chain of outer logical junction operators with inner comparisons
+        sub create_junc() {
+            my $junc := QAST::Op.new(:name($juncname), :op($juncop));
+
+            $junc.push(chain($values.shift()));
+
+            if +$values.list > 1 {
+                $junc.push(create_junc());
+            } else {
+                $junc.push(chain($values.shift()));
+            }
+            return $junc;
+        }
+
+        $op.shift;
+        $op.unshift(create_junc());
+        return $!optimizer.visit_op($op);
     }
 }
 

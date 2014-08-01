@@ -830,6 +830,12 @@ class Perl6::Optimizer {
     # How deep a chain we're in, for chaining operators.
     has int $!chain_depth;
 
+    # Are we in void context?
+    has int $!void_context;
+
+    # Are we in a declaration?
+    has int $!in_declaration;
+
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
@@ -838,9 +844,9 @@ class Perl6::Optimizer {
         $!junc_opt                := JunctionOptimizer.new(self, $!symbols);
         $!problems                := Problems.new($!symbols);
         $!chain_depth             := 0;
+        $!in_declaration          := 0;
+        $!void_context            := 0;
         my $*DYNAMICALLY_COMPILED := 0;
-        my $*VOID_CONTEXT         := 0;
-        my $*IN_DECLARATION       := 0;
         my $*W                    := $past<W>;
 
         # Work out optimization level.
@@ -1104,8 +1110,10 @@ class Perl6::Optimizer {
     }
     
     method visit_op_children($op) {
-        my $*VOID_CONTEXT := 0;
+        my int $orig_void := $!void_context;
+        $!void_context    := 0;
         self.visit_children($op);
+        $!void_context := $orig_void;
     }
 
     method optimize_p6typecheckrv($op) {
@@ -1142,7 +1150,7 @@ class Perl6::Optimizer {
                     }
                     nqp::substr($m.orig, $from, $to - $from);
                 }
-                if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
+                if $op.node && $!void_context && !$!in_declaration {
                     my str $op_txt := nqp::escape($op.node.Str);
                     my str $expr   := nqp::escape(widen($op.node));
                     $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
@@ -1174,7 +1182,7 @@ class Perl6::Optimizer {
                         }
                     }
                     if $survived {
-                        return $NULL if $*VOID_CONTEXT && !$*IN_DECLARATION;
+                        return $NULL if $!void_context && !$!in_declaration;
                         $*W.add_object($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));
                         if $op.named {
@@ -1351,15 +1359,17 @@ class Perl6::Optimizer {
 
     # Handles visiting a QAST::Op :op('handle').
     method visit_handle($op) {
-        my $*VOID_CONTEXT := 0;
+        my int $orig_void := $!void_context;
+        $!void_context    := 0;
         self.visit_children($op, :skip_selectors);
+        $!void_context := $orig_void;
         $op
     }
     
     # Handles visiting a QAST::Want node.
     method visit_want($want) {
         # Any literal in void context deserves a warning.
-        if $*VOID_CONTEXT && !$*IN_DECLARATION
+        if $!void_context && !$!in_declaration
                 && +@($want) == 3 && $want.node {
 
             my str $warning;
@@ -1411,7 +1421,8 @@ class Perl6::Optimizer {
                 @!block_var_stack[$top].add_decl($var);
                 if $decl eq 'param' {
                     self.visit_children($var);
-                    if $var.default -> $default {
+                    my $default := $var.default;
+                    if $default {
                         my $stmts_def := QAST::Stmts.new( $default );
                         self.visit_children($stmts_def);
                         $var.default($stmts_def[0]);
@@ -1424,7 +1435,7 @@ class Perl6::Optimizer {
         }
 
         # Warn about usage of variable in void context.
-        if  $*VOID_CONTEXT && !$*IN_DECLARATION && $var.name && !$var<sink_ok> {
+        if $!void_context && !$!in_declaration && $var.name && !$var<sink_ok> {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $sigil := nqp::substr($var.name, 0, 1);
@@ -1532,11 +1543,11 @@ class Perl6::Optimizer {
         my int $i := 0;
         my int $n := +@($node);
         while $i < $n {
-            my $outer_void := $*VOID_CONTEXT;
-            my $outer_decl := $*IN_DECLARATION;
+            my int $outer_void := $!void_context;
+            my int $outer_decl := $!in_declaration;
             unless $skip_selectors && $i % 2 {
-                my $*VOID_CONTEXT   := $outer_void || ($r != -1 && $i != $r);
-                my $*IN_DECLARATION := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
+                $!void_context   := $outer_void || ($r != -1 && $i != $r);
+                $!in_declaration := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
                 my $visit := $node[$i];
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
@@ -1578,7 +1589,9 @@ class Perl6::Optimizer {
                     }
                 }
             }
-            $i := $first ?? $n !! $i + 1;
+            $i               := $first ?? $n !! $i + 1;
+            $!void_context   := $outer_void;
+            $!in_declaration := $outer_decl;
         }
     }
     

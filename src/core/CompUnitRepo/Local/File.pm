@@ -36,7 +36,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
             for @extensions -> $extension {
                 my $path = $base ~ $extension;
                 return %seen{$base} = CompUnit.new($path,:$name,:$extension)
-                  if $path.IO.f;
+                  if $path.IO.f or ($path ~ '.' ~ $precomp-ext).IO.f;
             }
         }
 

@@ -2354,9 +2354,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*PRECEDING_DECL_LINE := $*LINE_NO;
                     $*PRECEDING_DECL := Mu; # actual declarand comes later, in Actions::declare_variable
                 }
+                self.attach_docs;
             }
         }
-        <.attach_docs>
         <.ws>
         [
         | <DECL=declarator>

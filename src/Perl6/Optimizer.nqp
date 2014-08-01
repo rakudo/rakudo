@@ -1001,10 +1001,7 @@ class Perl6::Optimizer {
         }
 
         # Visit the children.
-        {
-            my $*VOID_CONTEXT := 0;
-            self.visit_children($op);
-        }
+        self.visit_op_children($op);
 
         # Some ops are significant for variable analysis/lowering.
         if $optype eq 'bind' {
@@ -1052,16 +1049,8 @@ class Perl6::Optimizer {
 
         # Also some return type checks.
         elsif $optype eq 'p6typecheckrv' {
-            try {
-                my $rettype        := $!symbols.top_routine.returns;
-                my int $rettype_ps := nqp::objprimspec($rettype);
-                if $rettype =:= $!symbols.Mu {
-                    return $op[0];
-                }
-                elsif $rettype_ps && $rettype_ps == nqp::objprimspec($op[0].returns) {
-                    return $op[0];
-                }
-            }
+            my $optres := self.optimize_p6typecheckrv($op);
+            return $optres if $optres;
         }
 
         # Some ops have first boolean arg, and we may be able to get rid of
@@ -1088,186 +1077,14 @@ class Perl6::Optimizer {
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' && $op.name ne '' {
-            # See if we can find the thing we're going to call.
-            my $obj;
-            my int $found := 0;
-            try {
-                $obj := $!symbols.find_lexical($op.name);
-                $found := 1;
-            }
-            if $found {
-                # Pure operators can be constant folded.
-                if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
-                    # First ensure we're not in void context; warn if so.
-                    sub widen($m) {
-                        my int $from := $m.from;
-                        my int $to   := $m.to;
-                        for $m.list {
-                            $from := $_.from if $_.from < $from;
-                            $to   := $_.to   if $_.to   > $to;
-                        }
-                        nqp::substr($m.orig, $from, $to - $from);
-                    }
-                    if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
-                        my str $op_txt := nqp::escape($op.node.Str);
-                        my str $expr   := nqp::escape(widen($op.node));
-                        $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
-                    }
-                    # check if all arguments are known at compile time
-                    my int $all_args_known := 1;
-                    my @args := [];
-                    for @($op) {
-                        if nqp::istype($_, QAST::Node)
-                                && $_.has_compile_time_value
-                                && !$_.named {
-                            nqp::push(@args, $_.compile_time_value);
-                        }
-                        else {
-                            $all_args_known := 0;
-                            last;
-                        }
-                    }
-                    
-                    # If so, attempt to constant fold.
-                    if $all_args_known {
-                        my int $survived := 0;
-                        my $ret_value;
-                        try {
-                            $ret_value := $obj(|@args);
-                            $survived  := 1 ;
-                            CONTROL {
-                                $survived := 0;
-                            }
-                        }
-                        if $survived {
-                            return $NULL if $*VOID_CONTEXT && !$*IN_DECLARATION;
-                            $*W.add_object($ret_value);
-                            my $wval := QAST::WVal.new(:value($ret_value));
-                            if $op.named {
-                                $wval.named($op.named);
-                            }
-                            # if it's an Int, Num or Str, we can create a Want
-                            # from it with an int, num or str value.
-                            my $want;
-                            if nqp::istype($ret_value, $!symbols.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
-                                $want := QAST::Want.new($wval,
-                                    "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
-                            } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Num")) {
-                                $want := QAST::Want.new($wval,
-                                    "Nn", QAST::NVal.new(:value(nqp::unbox_n($ret_value))));
-                            } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Str")) {
-                                $want := QAST::Want.new($wval,
-                                    "Ss", QAST::SVal.new(:value(nqp::unbox_s($ret_value))));
-                            }
-                            if nqp::defined($want) {
-                                if $op.named {
-                                    $want.named($op.named);
-                                }
-                                return $want;
-                            }
-                            return $wval;
-                        }
-                    }
-                }
-                # If it's an onlystar proto, we have a couple of options.
-                # The first is that we may be able to work out what to
-                # call at compile time. Failing that, we can at least inline
-                # the proto.
-                my $dispatcher;
-                try { if $obj.is_dispatcher { $dispatcher := 1 } }
-                if $dispatcher && $obj.onlystar {
-                    # Try to do compile-time multi-dispatch. Need to consider
-                    # both the proto and the multi candidates.
-                    my @ct_arg_info := self.analyze_args_for_ct_call($op);
-                    if +@ct_arg_info {
-                        my @types := @ct_arg_info[0];
-                        my @flags := @ct_arg_info[1];
-                        my $ct_result_proto := nqp::p6trialbind($obj.signature, @types, @flags);
-                        my @ct_result_multi := $obj.analyze_dispatch(@types, @flags);
-                        if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
-                            my $chosen := @ct_result_multi[1];
-                            if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                            if $!level >= 2 {
-                                return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
-                                    ?? self.inline_call($op, $chosen)
-                                    !! self.call_ct_chosen_multi($op, $obj, $chosen);
-                            }
-                        }
-                        elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
-                            self.report_inevitable_dispatch_failure($op, @types, @flags, $obj,
-                                :protoguilt($ct_result_proto == -1));
-                        }
-                    }
-                    if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                }
-                elsif !$dispatcher && nqp::can($obj, 'signature') {
-                    # If we know enough about the arguments, do a "trial bind".
-                    my @ct_arg_info := self.analyze_args_for_ct_call($op);
-                    if +@ct_arg_info {
-                        my @types := @ct_arg_info[0];
-                        my @flags := @ct_arg_info[1];
-                        my $ct_result := nqp::p6trialbind($obj.signature, @types, @flags);
-                        if $ct_result == 1 {
-                            if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                            #say("# trial bind worked!");
-                            if $!level >= 2 {
-                                if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
-                                    return self.inline_call($op, $obj);
-                                }
-                                copy_returns($op, $obj);
-                            }
-                        }
-                        elsif $ct_result == -1 {
-                            self.report_inevitable_dispatch_failure($op, @types, @flags, $obj);
-                        }
-                    }
-                }
-
-                # If we get here, no inlining or compile-time decision was
-                # possible, but we may still be able to make it a callstatic,
-                # which is cheaper on some backends.
-                my $scopes := $!symbols.scopes_in($op.name);
-                if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
-                    $op.op('callstatic');
-                }
-            }
-            else {
-                # We really should find routines; failure to do so is a CHECK
-                # time error. Check that it's not just compile-time unknown,
-                # however (shows up in e.g. sub foo(&x) { x() }).
-                unless $!symbols.is_lexical_declared($op.name) {
-                    # Shouldn't be able to hit this due to checks done in the parse
-                    # phase, but this will catch anything that sneaks past it.
-                    $!problems.add_exception(['X', 'Undeclared'], $op, :symbol($op.name));
-                }
-            }
+            my $opt_result := self.optimize_call($op);
+            return $opt_result if $opt_result;
         }
         
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
         elsif $!level >= 2 && $optype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
-            if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
-                my str $name := $op[1][2].value; # get raw string name
-                my $pkg  := $op[2].returns;  # actions always sets this
-                my $meth := $pkg.HOW.find_private_method($pkg, $name);
-                if nqp::defined($meth) && $meth {
-                    try {
-                        $*W.get_ref($meth); # may fail, thus the try; verifies it's in SC
-                        my $call := QAST::WVal.new( :value($meth) );
-                        my $inv  := $op.shift;
-                        $op.shift; $op.shift; # name, package (both pre-resolved now)
-                        $op.unshift($inv);
-                        $op.unshift($call);
-                        $op.op('call');
-                        $op.name(NQPMu);
-                    }
-                }
-                else {
-                    $!problems.add_exception(['X', 'Method', 'NotFound'], $op, 
-                        :private(nqp::p6bool(1)), :method($name),
-                        :typename($pkg.HOW.name($pkg)));
-                }
-            }
+            self.optimize_private_method_call($op);
         }
         
         # If it's a for 1..1000000 { } we can simplify it to a while loop.
@@ -1276,49 +1093,7 @@ class Perl6::Optimizer {
               nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
               nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) && nqp::existskey(%range_bounds, $c2.name) &&
               $!symbols.is_from_core($c2.name) {
-            my $callee  := $op[0][1];
-            my $code    := $callee<code_object>;
-            my $count   := $code.count;
-            my $phasers := nqp::getattr($code, $!symbols.Block, '$!phasers');
-            if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
-                my $it_var     := QAST::Node.unique('range_it_');
-                my $callee_var := QAST::Node.unique('range_callee_');
-                $op.shift while $op.list;
-                $op.op('stmts');
-                $op<range_optimized> := 1;
-                $op.push(QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($it_var), :scope('local'), :decl('var'), :returns(int) ),
-                        QAST::IVal.new( :value(@bounds[0]) )
-                    ),
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($callee_var), :scope('local'), :decl('var') ),
-                        $callee
-                    ),
-                    QAST::Op.new(
-                        :op('while'),
-                        QAST::Op.new(
-                            :op('isle_i'),
-                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                            QAST::IVal.new( :value(@bounds[1]) )
-                        ),
-                        QAST::Op.new(
-                            :op('call'),
-                            QAST::Var.new( :name($callee_var), :scope('local') ),
-                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) )
-                        ),
-                        QAST::Op.new(
-                            :op('bind'),
-                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                            QAST::Op.new(
-                                :op('add_i'),
-                                QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                                QAST::IVal.new( :value(1) )
-                            ))),
-                            QAST::WVal.new( :value($!symbols.Nil) )));
-            }
+            self.optimize_for_range($op, $c2);
         }
         
         # If we end up here, just leave op as is.
@@ -1328,6 +1103,252 @@ class Perl6::Optimizer {
         $op
     }
     
+    method visit_op_children($op) {
+        my $*VOID_CONTEXT := 0;
+        self.visit_children($op);
+    }
+
+    method optimize_p6typecheckrv($op) {
+        try {
+            my $rettype        := $!symbols.top_routine.returns;
+            my int $rettype_ps := nqp::objprimspec($rettype);
+            if $rettype =:= $!symbols.Mu {
+                return $op[0];
+            }
+            elsif $rettype_ps && $rettype_ps == nqp::objprimspec($op[0].returns) {
+                return $op[0];
+            }
+        }
+    }
+
+    method optimize_call($op) {
+        # See if we can find the thing we're going to call.
+        my $obj;
+        my int $found := 0;
+        try {
+            $obj := $!symbols.find_lexical($op.name);
+            $found := 1;
+        }
+        if $found {
+            # Pure operators can be constant folded.
+            if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
+                # First ensure we're not in void context; warn if so.
+                sub widen($m) {
+                    my int $from := $m.from;
+                    my int $to   := $m.to;
+                    for $m.list {
+                        $from := $_.from if $_.from < $from;
+                        $to   := $_.to   if $_.to   > $to;
+                    }
+                    nqp::substr($m.orig, $from, $to - $from);
+                }
+                if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
+                    my str $op_txt := nqp::escape($op.node.Str);
+                    my str $expr   := nqp::escape(widen($op.node));
+                    $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
+                }
+                # check if all arguments are known at compile time
+                my int $all_args_known := 1;
+                my @args := [];
+                for @($op) {
+                    if nqp::istype($_, QAST::Node)
+                            && $_.has_compile_time_value
+                            && !$_.named {
+                        nqp::push(@args, $_.compile_time_value);
+                    }
+                    else {
+                        $all_args_known := 0;
+                        last;
+                    }
+                }
+                
+                # If so, attempt to constant fold.
+                if $all_args_known {
+                    my int $survived := 0;
+                    my $ret_value;
+                    try {
+                        $ret_value := $obj(|@args);
+                        $survived  := 1 ;
+                        CONTROL {
+                            $survived := 0;
+                        }
+                    }
+                    if $survived {
+                        return $NULL if $*VOID_CONTEXT && !$*IN_DECLARATION;
+                        $*W.add_object($ret_value);
+                        my $wval := QAST::WVal.new(:value($ret_value));
+                        if $op.named {
+                            $wval.named($op.named);
+                        }
+                        # if it's an Int, Num or Str, we can create a Want
+                        # from it with an int, num or str value.
+                        my $want;
+                        if nqp::istype($ret_value, $!symbols.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
+                            $want := QAST::Want.new($wval,
+                                "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
+                        } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Num")) {
+                            $want := QAST::Want.new($wval,
+                                "Nn", QAST::NVal.new(:value(nqp::unbox_n($ret_value))));
+                        } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Str")) {
+                            $want := QAST::Want.new($wval,
+                                "Ss", QAST::SVal.new(:value(nqp::unbox_s($ret_value))));
+                        }
+                        if nqp::defined($want) {
+                            if $op.named {
+                                $want.named($op.named);
+                            }
+                            return $want;
+                        }
+                        return $wval;
+                    }
+                }
+            }
+            # If it's an onlystar proto, we have a couple of options.
+            # The first is that we may be able to work out what to
+            # call at compile time. Failing that, we can at least inline
+            # the proto.
+            my $dispatcher;
+            try { if $obj.is_dispatcher { $dispatcher := 1 } }
+            if $dispatcher && $obj.onlystar {
+                # Try to do compile-time multi-dispatch. Need to consider
+                # both the proto and the multi candidates.
+                my @ct_arg_info := self.analyze_args_for_ct_call($op);
+                if +@ct_arg_info {
+                    my @types := @ct_arg_info[0];
+                    my @flags := @ct_arg_info[1];
+                    my $ct_result_proto := nqp::p6trialbind($obj.signature, @types, @flags);
+                    my @ct_result_multi := $obj.analyze_dispatch(@types, @flags);
+                    if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
+                        my $chosen := @ct_result_multi[1];
+                        if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+                        if $!level >= 2 {
+                            return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
+                                ?? self.inline_call($op, $chosen)
+                                !! self.call_ct_chosen_multi($op, $obj, $chosen);
+                        }
+                    }
+                    elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
+                        self.report_inevitable_dispatch_failure($op, @types, @flags, $obj,
+                            :protoguilt($ct_result_proto == -1));
+                    }
+                }
+                if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+            }
+            elsif !$dispatcher && nqp::can($obj, 'signature') {
+                # If we know enough about the arguments, do a "trial bind".
+                my @ct_arg_info := self.analyze_args_for_ct_call($op);
+                if +@ct_arg_info {
+                    my @types := @ct_arg_info[0];
+                    my @flags := @ct_arg_info[1];
+                    my $ct_result := nqp::p6trialbind($obj.signature, @types, @flags);
+                    if $ct_result == 1 {
+                        if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+                        #say("# trial bind worked!");
+                        if $!level >= 2 {
+                            if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
+                                return self.inline_call($op, $obj);
+                            }
+                            copy_returns($op, $obj);
+                        }
+                    }
+                    elsif $ct_result == -1 {
+                        self.report_inevitable_dispatch_failure($op, @types, @flags, $obj);
+                    }
+                }
+            }
+
+            # If we get here, no inlining or compile-time decision was
+            # possible, but we may still be able to make it a callstatic,
+            # which is cheaper on some backends.
+            my $scopes := $!symbols.scopes_in($op.name);
+            if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
+                $op.op('callstatic');
+            }
+        }
+        else {
+            # We really should find routines; failure to do so is a CHECK
+            # time error. Check that it's not just compile-time unknown,
+            # however (shows up in e.g. sub foo(&x) { x() }).
+            unless $!symbols.is_lexical_declared($op.name) {
+                # Shouldn't be able to hit this due to checks done in the parse
+                # phase, but this will catch anything that sneaks past it.
+                $!problems.add_exception(['X', 'Undeclared'], $op, :symbol($op.name));
+            }
+        }
+        return NQPMu;
+    }
+
+    method optimize_private_method_call($op) {
+        if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
+            my str $name := $op[1][2].value; # get raw string name
+            my $pkg  := $op[2].returns;  # actions always sets this
+            my $meth := $pkg.HOW.find_private_method($pkg, $name);
+            if nqp::defined($meth) && $meth {
+                try {
+                    $*W.get_ref($meth); # may fail, thus the try; verifies it's in SC
+                    my $call := QAST::WVal.new( :value($meth) );
+                    my $inv  := $op.shift;
+                    $op.shift; $op.shift; # name, package (both pre-resolved now)
+                    $op.unshift($inv);
+                    $op.unshift($call);
+                    $op.op('call');
+                    $op.name(NQPMu);
+                }
+            }
+            else {
+                $!problems.add_exception(['X', 'Method', 'NotFound'], $op, 
+                    :private(nqp::p6bool(1)), :method($name),
+                    :typename($pkg.HOW.name($pkg)));
+            }
+        }
+    }
+
+    method optimize_for_range($op, $c2) {
+        my $callee  := $op[0][1];
+        my $code    := $callee<code_object>;
+        my $count   := $code.count;
+        my $phasers := nqp::getattr($code, $!symbols.Block, '$!phasers');
+        if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
+            my $it_var     := QAST::Node.unique('range_it_');
+            my $callee_var := QAST::Node.unique('range_callee_');
+            $op.shift while $op.list;
+            $op.op('stmts');
+            $op<range_optimized> := 1;
+            $op.push(QAST::Stmts.new(
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($it_var), :scope('local'), :decl('var'), :returns(int) ),
+                    QAST::IVal.new( :value(@bounds[0]) )
+                ),
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($callee_var), :scope('local'), :decl('var') ),
+                    $callee
+                ),
+                QAST::Op.new(
+                    :op('while'),
+                    QAST::Op.new(
+                        :op('isle_i'),
+                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
+                        QAST::IVal.new( :value(@bounds[1]) )
+                    ),
+                    QAST::Op.new(
+                        :op('call'),
+                        QAST::Var.new( :name($callee_var), :scope('local') ),
+                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) )
+                    ),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
+                        QAST::Op.new(
+                            :op('add_i'),
+                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
+                            QAST::IVal.new( :value(1) )
+                        ))),
+                        QAST::WVal.new( :value($!symbols.Nil) )));
+        }
+    }
+
     # Handles visiting a QAST::Op :op('handle').
     method visit_handle($op) {
         my $*VOID_CONTEXT := 0;

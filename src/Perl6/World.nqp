@@ -1292,13 +1292,8 @@ class Perl6::World is HLL::World {
                     # Add symbol.
                     my %sym := $_.value;
                     my $value := nqp::existskey(%sym, 'value') ?? %sym<value> !! $mu;
-                    try {
-                        if nqp::isnull(nqp::getobjsc($value)) {
-                            self.add_object($value);
-                        }
-                        CATCH {
-                            $value := $mu;
-                        }
+                    if nqp::isnull(nqp::getobjsc($value)) {
+                        $value := self.try_add_to_sc($value, $mu);
                     }
                     $wrapper[0].push(QAST::Var.new(
                         :name($_.key), :scope('lexical'),
@@ -1363,6 +1358,11 @@ class Perl6::World is HLL::World {
         # Return the VM coderef that maps to the thing we were originally
         # asked to compile.
         $result
+    }
+    method try_add_to_sc($value, $fallback) {
+        self.add_object($value);
+        CATCH { $value := $fallback; }
+        $value
     }
     
     # Adds a constant value to the constants table. Returns PAST to do

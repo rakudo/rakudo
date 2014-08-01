@@ -948,7 +948,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARATOR_DOCS;
         :my $*PRECEDING_DECL; # for #= comments
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
-        :my %*SEEN_IT;
+        :my %*SEEN_IT; # XXX how does this relate to POD_BLOCKS_SEEN?
         
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block

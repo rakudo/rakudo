@@ -522,6 +522,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $child := $<pod_block>.ast;
         # make sure we don't push the same thing twice
         if $child {
+            # XXX is this ever reached?
             my $id := $/.from ~ "," ~ ~$/.to;
             if !$*POD_BLOCKS_SEEN{$id} {
                 $*POD_BLOCKS.push($child);

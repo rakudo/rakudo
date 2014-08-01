@@ -395,8 +395,12 @@ my class List does Positional { # declared in BOOTSTRAP
         # indices from 0..^$list.elems, then use that Parcel as
         # a slice into self.
 
+        # nothing to do here
+        my $elems := self.elems;
+        return self if $elems < 2;
+
         # Range is currently optimized for fast Parcel construction.
-        my $index := Range.new(0, self.elems, :excludes_max).reify(*);
+        my $index := Range.new(0, $elems, :excludes_max).reify(*);
         my Mu $index_rpa := nqp::getattr($index, Parcel, '$!storage');
 
         # if $by.arity < 2, then we apply the block to the elements

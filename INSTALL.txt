@@ -45,11 +45,12 @@
 
     Once you have an up-to-date copy of Rakudo, build it as follows:
 
-        $ cd rakudo
-        $ perl Configure.pl --gen-parrot # to get only the parrot backend
-        $ perl Configure.pl --gen-parrot --gen-moar # to get parrot & moar
-          # or to get parrot, moar and jvm:
-        $ perl Configure.pl --gen-parrot --gen-moar --backends=parrot,moar,jvm
+        $ perl Configure.pl --gen-moar --gen-nqp --backends=moar     # Moar only
+    or:
+        $ perl Configure.pl --gen-parrot --gen-nqp --backends=parrot # Parrot
+    or:
+        $ perl Configure.pl --gen-nqp --backends=jvm  # needs JDK 1.7 installed
+    then:
         $ make
 
     This will create a "perl6" or "perl6.exe" executable in the current
@@ -73,32 +74,32 @@
     If you want to have perl6, nqp, parrot, and moar installed into a
     different directory, you may supply --prefix= to Configure.pl.
 
-    The "--gen-parrot" above option tells Configure.pl to automatically
-    download and build the most appropriate version of NQP and Parrot 
-    into local "nqp/" and "parrot/" subdirectories, install NQP and Parrot
+    The "--gen-moar" above option tells Configure.pl to automatically
+    download and build the most appropriate version of NQP and MoarVM
+    into local "nqp/" and "moar/" subdirectories, install NQP and MoarVM
     into the "install/" subdirectory, and use them for building Rakudo.
-    It's okay to use the "--gen-parrot" option on later invocations of
-    Configure.pl; the configure system will re-build NQP and/or Parrot 
+    It's okay to use the "--gen-moar" option on later invocations of
+    Configure.pl; the configure system will re-build NQP and/or MoarVM 
     only if a newer version is needed for whatever version of Rakudo 
-    you're working with.  The --gen-moar flag works the same way.
+    you're working with.  The --gen-parrot flag works the same way.
 
-    If you already have Parrot installed, you can use 
-    "--with-parrot=/path/to/bin/parrot" to use it instead of
-    building a new one.  This installed Parrot must include its
+    If you already have MoarVM installed, you can use 
+    "--with-moar=/path/to/bin/moar" to use it instead of
+    building a new one.  This installed MoarVM must include its
     development environment.  Similarly, if you already have NQP
     installed, you can specify "--with-nqp=/path/to/bin/nqp"
     to use it.  (Note that this must be NQP, not the NQP-rx that
-    comes with Parrot.)  Also, "--with-moar" does what you'd expect.
+    comes with MoarVM.)  Also, "--with-parrot" does what you'd expect.
 
-    The versions of any already installed NQP or Parrot binaries must
+    The versions of any already installed NQP or MoarVM/Parrot binaries must
     satify a minimum specified by the Rakudo being built -- Configure.pl
     and "make" will verify this for you.  Released versions of Rakudo
-    always build against the latest release of Parrot; checkouts of 
-    Rakudo's HEAD revision from Github often require a version of Parrot 
-    that is newer than the most recent Parrot monthly release.
+    generally build against the latest release of MoarVM/Parrot; checkouts of 
+    Rakudo's HEAD revision from Github often require a version of MoarVM/Parrot 
+    that is newer than the most recent MoarVM/Parrot monthly release.
 
     Once built, Rakudo's "make install" target will install Rakudo and its
-    libraries into the directories specified by the Parrot installation
+    libraries into the directories specified by the MoarVM/Parrot installation
     used to create it or whatever you specified with the --prefix flag.
     Until this step is performed, the "perl6" executable created by "make"
     above can only be reliably run from the root of Rakudo's build directory.
@@ -123,7 +124,7 @@
         $ cd rakudo
         $ rm -r install
         $ git pull
-        $ perl Configure.pl --gen-parrot # and whatever else you'd like
+        $ perl Configure.pl --gen-moar --gen-nqp --backends=moar # for instance
         $ make
 
     Or, in case you are really stuck, start with a fresh source tree:

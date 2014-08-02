@@ -150,8 +150,8 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     
     my $iscont_reg  := $*REGALLOC.fresh_i();
     my $decont_reg  := $*REGALLOC.fresh_o();
-    my $no_cont_lbl := MAST::Label.new(:name($op.unique('p6store_no_cont_')));
-    my $done_lbl    := MAST::Label.new(:name($op.unique('p6store_done_')));
+    my $no_cont_lbl := MAST::Label.new();
+    my $done_lbl    := MAST::Label.new();
     nqp::push(@ops, MAST::Op.new( :op('iscont'), $iscont_reg, $cont_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('unless_i'), $iscont_reg, $no_cont_lbl ));
     $*REGALLOC.release_register($iscont_reg, $MVM_reg_int64);
@@ -202,7 +202,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     # Emit a type check.
     my $tcr_reg  := $*REGALLOC.fresh_i();
     my $dc_reg   := $*REGALLOC.fresh_o();
-    my $lbl_done := MAST::Label.new(:name($op.unique('bindassert_done_')));
+    my $lbl_done := MAST::Label.new();
     nqp::push(@ops, MAST::Op.new( :op('decont'), $dc_reg, $value_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('istype'), $tcr_reg, $dc_reg, $type_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('if_i'), $tcr_reg, $lbl_done ));
@@ -262,8 +262,8 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     my $n_reg    := $*REGALLOC.fresh_i();
     my $cmp_reg  := $*REGALLOC.fresh_i();
     my $tmp_reg  := $*REGALLOC.fresh_o();
-    my $lbl_next := MAST::Label.new(:name($op.unique('vmarr_next')));
-    my $lbl_done := MAST::Label.new(:name($op.unique('vmarr_done')));
+    my $lbl_next := MAST::Label.new();
+    my $lbl_done := MAST::Label.new();
     nqp::push(@ops, MAST::Op.new( :op('elems'), $n_reg, $res_reg ));
     nqp::push(@ops, MAST::Op.new( :op('const_i64'), $i_reg, MAST::IVal.new( :value(0) ) ));
     nqp::push(@ops, $lbl_next);
@@ -444,7 +444,7 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
         # Check it's concrete and can sink.
         my $sinkee_reg := $sinkee_res.result_reg;
         my $itmp       := $*REGALLOC.fresh_i();
-        my $done_lbl   := MAST::Label.new( :name($op.unique('p6sink')) );
+        my $done_lbl   := MAST::Label.new();
         nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $itmp, $sinkee_reg ));
         nqp::push(@ops, MAST::Op.new( :op('unless_i'), $itmp, $done_lbl ));
         nqp::push(@ops, MAST::Op.new( :op('can'), $itmp, $sinkee_reg,
@@ -557,7 +557,7 @@ our $Binder;
 $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     my @ops;
     my $isnull_result := $*REGALLOC.fresh_i();
-    my $dont_return_lbl := MAST::Label.new(:name($op.unique('p6bind_no_junction_return')));
+    my $dont_return_lbl := MAST::Label.new();
     my $bind_res := $qastcomp.as_mast(
                 QAST::Op.new(
                     :op('callmethod'), :name('bind_sig'),
@@ -623,7 +623,7 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             my @ops;
             my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
             my $type_res  := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
-            my $lbl_done  := MAST::Label.new(:name($op.unique('rtc_done_')));
+            my $lbl_done  := MAST::Label.new();
             push_ilist(@ops, $value_res);
             push_ilist(@ops, $type_res);
             my $decont := $*REGALLOC.fresh_o();

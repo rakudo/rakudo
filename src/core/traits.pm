@@ -27,7 +27,6 @@ my sub set_trailing_docs($obj, $type, $docs) {
 
     unless $current_why {
         $current_why := Pod::Block::Declarator.new();
-        $*POD_BLOCKS.push($current_why);
         nqp::bindattr($dc, $type, '$!why', $current_why);
     }
     $current_why._add_trailing($docs);

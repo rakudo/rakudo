@@ -677,6 +677,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $prev = 0;
         my $result = '';
         for @matches -> $m {
+            try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
+
             $result ~= self.substr($prev, $m.from - $prev);
             my $real_replacement = ~($replacement ~~ Callable
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))

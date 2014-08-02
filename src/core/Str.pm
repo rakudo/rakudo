@@ -650,7 +650,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         if $multi {
             if nqp::istype($pat, Regex) {
                 try $caller_dollar_slash = +@matches
-                    ?? @matches[ +@matches - 1 ]
+                    ?? Match.new(:from(@matches[0].from), :to(@matches[@matches - 1].to),
+                        :orig(@matches[0].orig), :CURSOR(@matches[@matches - 1].CURSOR),
+                        :list(@matches))
                     !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start_cur'().MATCH;
             }
             @matches
@@ -675,9 +677,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $prev = 0;
         my $result = '';
         for @matches -> $m {
-            try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
             $result ~= self.substr($prev, $m.from - $prev);
-
             my $real_replacement = ~($replacement ~~ Callable
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
                 !! $replacement);
@@ -686,6 +686,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $result ~= $real_replacement;
             $prev = $m.to;
         }
+
         my $last = @matches.pop;
         $result ~= self.substr($last.to);
         $result;

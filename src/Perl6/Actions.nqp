@@ -4926,10 +4926,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
 
+<<<<<<< HEAD
         # Transliteration shuffles values around itself and returns the
         # Right Thing regardless of whether we're in a smart-match or
         # implicitely against $_, so we just do the RHS here.
         if $rhs.ann('is_trans') {
+=======
+        # Neither substitution nor transliteration should return what 
+        # ACCEPTS would return, thus we just do the RHS and return 
+        # what both of those operators would return.
+        if $rhs<is_trans> {
+>>>>>>> Correctly return a nested Match object from some matches.
             $sm_call := QAST::Stmt.new(
                 $rhs
             );
@@ -5931,12 +5938,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past
             ),
             QAST::Op.new(
-                :op<decont>,
-                QAST::Var.new( :name('$/'), :scope<lexical> )
+                :op<decont>, QAST::Var.new( :name('$/'), :scope<lexical> )
             )
         );
 
+<<<<<<< HEAD
         $past.annotate('is_subst', 1);
+=======
+>>>>>>> Correctly return a nested Match object from some matches.
         $past
     }
 

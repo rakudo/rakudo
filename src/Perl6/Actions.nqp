@@ -2081,6 +2081,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Document
         Perl6::Pod::document($/, $*PACKAGE, $*DOCEE, :leading);
+        # XXX isn't DOCEE a misnomer?
+        if ~$*DOCEE ne '' {
+            $*DOCEE.set_docee($*PACKAGE);
+        }
 
         make QAST::Stmts.new(
             $block, QAST::WVal.new( :value($*PACKAGE) )
@@ -2305,6 +2309,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Document it
             Perl6::Pod::document($/, $attr, $*DOCEE, :leading);
+            if ~$*DOCEE ne '' {
+                $*DOCEE.set_docee($attr);
+            }
 
             # Set it up for trailing declarations
             $*PRECEDING_DECL := $attr;
@@ -2528,6 +2535,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Document it
         Perl6::Pod::document($/, $code, $*DOCEE, :leading);
+        if ~$*DOCEE ne '' {
+            $*DOCEE.set_docee($code);
+        }
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -2897,6 +2907,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
         # Document it
         Perl6::Pod::document($/, $code, $*DOCEE, :leading);
+        if ~$*DOCEE ne '' {
+            $*DOCEE.set_docee($code);
+        }
 
         # Install &?ROUTINE.
         $*W.install_lexical_symbol($past, '&?ROUTINE', $code);

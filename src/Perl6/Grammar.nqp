@@ -1020,7 +1020,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         <.finishpad>
         <.bom>?
-        <statementlist=.LANG($*MAIN, 'statementlist', 1)>
+        <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 
         <.install_doc_phaser>
         

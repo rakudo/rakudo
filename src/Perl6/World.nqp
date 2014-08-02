@@ -866,6 +866,9 @@ class Perl6::World is HLL::World {
 
         if nqp::existskey(%param_info, 'docs') {
             Perl6::Pod::document($/, $parameter, %param_info<docs>, :leading);
+            if ~%param_info<docs> ne '' {
+                %param_info<docs>.set_docee($parameter);
+            }
         }
         $*PRECEDING_DECL := $parameter;
         # Return created parameter.

@@ -166,11 +166,11 @@ my class Cursor does NQPCursorRole {
         if $mm ~~ Range {
             die 'Range minimum in quantifier (**) cannot be +Inf' if $mm.min ==  Inf;
             die 'Range maximum in quantifier (**) cannot be -Inf' if $mm.max == -Inf;
-            nqp::list_i($mm.min < 0 ?? 0 !! $mm.min, $mm.max == Inf ?? -1 !! $mm.max)
+            nqp::list_i($mm.min < 0 ?? 0 !! $mm.min.Int, $mm.max == Inf ?? -1 !! $mm.max.Int)
         }
         else {
             fail 'Fixed quantifier cannot be infinite' if $mm == -Inf || $mm == Inf;
-            nqp::list_i($mm, $mm)
+            nqp::list_i($mm.Int, $mm.Int)
         }
     }
 

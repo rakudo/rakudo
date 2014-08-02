@@ -36,6 +36,20 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
     
     method search_path() {
+        # See if we have an @*INC set up, and if so just use that.
+        my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+        if !nqp::isnull($PROCESS) && nqp::existskey($PROCESS.WHO, '@INC') {
+            my $INC := ($PROCESS.WHO)<@INC>;
+            if nqp::defined($INC) {
+                my @INC := $INC.FLATTENABLE_LIST();
+                if +@INC {
+                    return @INC;
+                }
+            }
+        }
+
+        # Too early to have @*INC; probably no setting yet loaded to provide
+        # the PROCESS initialization.
         my @search_paths;
         @search_paths.push('.');
         @search_paths.push('blib');

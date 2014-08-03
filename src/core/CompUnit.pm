@@ -15,7 +15,7 @@ class CompUnit {
     my $default-from = 'Perl6';
     my %instances;
 
-    method new( $path is copy, :$name, :$extension, :$from = $default-from ) {
+    method new( $path is copy, :$name is copy, :$extension is copy, :$from = $default-from ) {
 
         # remove precomp extension if a precomp file
         my $precomp-ext = $*VM.precomp-ext;

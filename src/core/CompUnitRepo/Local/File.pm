@@ -13,7 +13,11 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
     my %seen;
 
     method install($source, $from?) { ... }
-    method files($file, :$name, :$auth, :$ver) { ... }
+    method files($file, :$name, :$auth, :$ver) {
+        my $base := $file.path.is-absolute ?? $file !! $!path ~ $slash ~ $file;
+        return { files => { $file => $base }, ver => Version.new('0') } if $base.IO.f;
+        ();
+    }
 
     method candidates(
       $name,

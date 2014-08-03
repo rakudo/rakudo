@@ -235,6 +235,10 @@ my class Parameter { # declared in BOOTSTRAP
             $!why
         }
     }
+
+    method set_why($why) {
+        $!why := $why;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

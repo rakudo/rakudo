@@ -10,26 +10,24 @@ my class X::Comp::Trait::Unknown { ... }
 my class Pod::Block::Declarator { ... }
 
 my sub set_leading_docs($obj, $type, $docs) {
-    my $dc := nqp::decont($obj);
-    my $current_why := nqp::getattr($dc, $type, '$!why');
+    my $current_why := $obj.WHY;
 
     if $current_why {
         # XXX remove $docs from $*POD_BLOCKS (best way to do this?)
         $current_why._add_leading(~$docs);
     } else {
-        nqp::bindattr($dc, $type, '$!why', $docs);
+        $obj.set_why($docs);
     }
 }
 
 my sub set_trailing_docs($obj, $type, $docs) {
-    my $dc := nqp::decont($obj);
-    my $current_why := nqp::getattr($dc, $type, '$!why');
+    my $current_why := $obj.WHY;
 
-    unless $current_why {
-        $current_why := Pod::Block::Declarator.new();
-        nqp::bindattr($dc, $type, '$!why', $current_why);
+    if $current_why {
+        $current_why._add_trailing(~$docs);
+    } else {
+        $obj.set_why($docs);
     }
-    $current_why._add_trailing($docs);
 }
 
 proto trait_mod:<is>(|) { * }
@@ -293,7 +291,7 @@ multi trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
 }
 
 multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
-    set_leading_docs($docee.HOW, $docee.HOW.WHAT, $leading_docs);
+    set_leading_docs($docee, $docee, $leading_docs);
 }
 multi trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
     set_trailing_docs($docee.HOW, $docee.HOW.WHAT, $trailing_docs);

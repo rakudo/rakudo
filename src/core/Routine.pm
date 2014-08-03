@@ -137,6 +137,10 @@ my class Routine { # declared in BOOTSTRAP
             $!why
         }
     }
+
+    method set_why($why) {
+        $!why := $why;
+    }
 }
 
 multi sub trait_mod:<is>(Routine $r, :$cached!) {

@@ -39,6 +39,10 @@ my class Mu { # declared in BOOTSTRAP
         }
         $why // Any
     }
+
+    method set_why($why) {
+        self.HOW.set_why($why);
+    }
     
     proto method Bool(|) {*}
     multi method Bool() {

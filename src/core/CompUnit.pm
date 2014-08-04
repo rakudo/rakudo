@@ -15,19 +15,22 @@ class CompUnit {
     my $default-from = 'Perl6';
     my %instances;
 
-    method new( $path is copy, :$name is copy, :$extension is copy, :$from = $default-from ) {
-
-        # remove precomp extension if a precomp file
-        my $precomp-ext = $*VM.precomp-ext;
-        $path = $path.subst(/\.($precomp-ext)$/,"");
-        my $has-precomp = ?$0;
+    method new(
+      $path is copy,
+      :$name is copy,
+      :$extension is copy,
+      :$from = $default-from,
+      :$has-source is copy,
+      :$has-precomp is copy,
+    ) {
 
         # set name / extension if not already given
-        if !$name or !$extension {
+        if !$name or !$extension.defined {
             my $file;
             for $path.rindex($slash) -> $i {
                 $file = $i.defined ?? $path.substr($i+1) !! $path;
             }
+
             # no $slash in char class
             if $file ~~ m/ (<-[\\/.]>+) . (<-[.]>+) $/ {
                 $name      ||= ~$0;
@@ -36,16 +39,11 @@ class CompUnit {
         }
 
         # sanity test
-        my $has-source;
+        my $precomp-ext = $*VM.precomp-ext;
         $path = IO::Spec.rel2abs($path);
-        for $path.IO -> $io {
-            return Nil if $io.d; # cannot be a directory
-
-            # do we have a precomp?
-            $has-source    = $io.e;
-            $has-precomp ||= "$path.$precomp-ext".IO.e;
-            return Nil unless $has-source or $has-precomp;
-        }
+        $has-source  //= ?$path.IO.f;
+        $has-precomp //= ?"$path.$precomp-ext".IO.f;
+        return Nil unless $has-source or $has-precomp;
 
         $global.protect( { %instances{$path} //= self.bless(
           :$path,

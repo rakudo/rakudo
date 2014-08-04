@@ -39,15 +39,20 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         if %extensions{$from} -> @extensions {
             for @extensions -> $extension {
                 my $path = $base ~ $extension;
-                return %seen{$base} = CompUnit.new($path,:$name,:$extension)
-                  if $path.IO.f or ($path ~ '.' ~ $precomp-ext).IO.f;
+                return %seen{$base} = CompUnit.new(
+                  $path, :$name, :$extension, :has-source
+                ) if $path.IO.f;
+                return %seen{$base} = CompUnit.new(
+                  $path, :$name, :$extension, :!has-source, :has-precomp
+                ) if ($path ~ '.' ~ $precomp-ext).IO.f;
             }
         }
 
         # no extensions to check, just check compiled version
         elsif $base ~ $precomp-ext -> $path {
-            return %seen{$base} = CompUnit.new($path, :$name)
-              if $path.IO.f;
+            return %seen{$base} = CompUnit.new(
+              $path, :$name, :extension(''), :!has-source, :has-precomp
+            ) if $path.IO.f;
         }
 
         # alas

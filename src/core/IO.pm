@@ -33,6 +33,9 @@ multi sub say(|) {
 }
 
 proto sub note(|) { * }
+multi sub note() {
+    $*ERR.print("Noted\n");
+}
 multi sub note(Str:D \x) {
     my $err := $*ERR;
     $err.print(x);

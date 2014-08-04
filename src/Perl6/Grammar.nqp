@@ -2817,7 +2817,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<time> { <sym> <.end_keyword> }
 
-    token term:sym<<∅>> { <sym> <.end_keyword> }
+    token term:sym<empty_set> { "\x2205" <!before <[ \( \\ ' \- ]> || \h* '=>'> }
 
     token term:sym<rand> {
         <sym> »

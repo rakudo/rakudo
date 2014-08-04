@@ -362,6 +362,7 @@ S05-modifier/perl5_2.t
 S05-modifier/perl5_3.t
 S05-modifier/perl5_4.t
 S05-modifier/perl5_5.t
+S05-modifier/perl5_6.t
 S05-modifier/perl5_7.t
 S05-modifier/perl5_8.t
 S05-modifier/pos.t

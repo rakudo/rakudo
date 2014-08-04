@@ -417,6 +417,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method say(Obsolete:D:) { say(self.gist) }
     multi method say() { say(self) }
     method print() { print(self) }
+    method note() { note(self) }
 
     proto method gist(|) { * }
     multi method gist(Mu:U:) { '(' ~ self.HOW.name(self) ~ ')' }

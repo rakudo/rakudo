@@ -987,12 +987,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     proto method indent($) {*}
     # Zero indent does nothing
-    multi method indent(Int $steps where { $_ == 0 }) {
+    multi method indent($steps as Int where { $_ == 0 }) {
         self;
     }
 
     # Positive indent does indent
-    multi method indent(Int $steps where { $_ > 0 }) {
+    multi method indent($steps as Int where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
         return self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
@@ -1018,10 +1018,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    # Negative values and Whatever-* do outdent
-    multi method indent($steps where { nqp::istype($_, Whatever) || nqp::istype($_, Int) && $_ < 0 }) {
+    # Negative indent (outdent)
+    multi method indent($steps as Int where { $_ < 0 }) {
+        return outdent(self, $steps);
+    }
+
+    # Whatever indent (outdent)
+    multi method indent(Whatever $steps) {
+        return outdent(self, $steps);
+    }
+
+    sub outdent($obj, $steps) {
         # Loop through all lines to get as much info out of them as possible
-        my @lines = self.comb(/:r ^^ \N* \n?/).map({
+        my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
             # Split the line into indent and content
             my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
 
@@ -1041,7 +1050,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # Figure out the amount * should outdent by, we also use this for warnings
         my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
-        return self if $common-prefix === Inf;
+        return $obj if $common-prefix === Inf;
 
         # Set the actual outdent amount here
         my Int $outdent = $steps ~~ Whatever ?? $common-prefix

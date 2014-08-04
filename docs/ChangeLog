@@ -11,6 +11,7 @@ New in 2014.08
 + allow a DateTime to smartmatch against a Date
 + fix %a{5}:delete anomaly, "as Str" is your friend
 + die / note now say "Died" / "Noted" when not given anything
++ ∅ is finally recognized as the empty set
 + more work under the hood to get in line with S11 / S22
 
 New in 2014.07

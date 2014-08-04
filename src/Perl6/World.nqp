@@ -235,7 +235,7 @@ class Perl6::World is HLL::World {
         # Create pad, link to outer and add to stack.
         my $pad := QAST::Block.new( QAST::Stmts.new( :node($/) ) );
         if +@!BLOCKS {
-            $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
+            $pad.annotate('outer', @!BLOCKS[+@!BLOCKS - 1]);
         }
         @!BLOCKS[+@!BLOCKS] := $pad;
         $pad
@@ -253,7 +253,7 @@ class Perl6::World is HLL::World {
     
     # Marks the current lexpad as being a signatured block.
     method mark_cur_lexpad_signatured() {
-        @!BLOCKS[+@!BLOCKS - 1]<signatured> := 1;
+        @!BLOCKS[+@!BLOCKS - 1].annotate('signatured', 1);
     }
     
     # Finds the nearest signatured block and checks if it declares
@@ -262,7 +262,7 @@ class Perl6::World is HLL::World {
         my $i := +@!BLOCKS;
         while $i > 0 {
             $i := $i - 1;
-            if @!BLOCKS[$i]<signatured> {
+            if @!BLOCKS[$i].ann('signatured') {
                 return +@!BLOCKS[$i].symbol($symbol);
             }
         }
@@ -980,7 +980,7 @@ class Perl6::World is HLL::World {
         my $routine_type := self.find_symbol(['Routine']);
         
         # Attach code object to QAST node.
-        $code_past<code_object> := $code;
+        $code_past.annotate('code_object', $code);
         
         # Stash it under the QAST block unique ID.
         %!sub_id_to_code_object{$code_past.cuid()} := $code;
@@ -1281,7 +1281,7 @@ class Perl6::World is HLL::World {
         # Create outer lexical contexts with all symbols visible. Maybe 
         # we can be a bit smarter here some day. But for now we just make a
         # single frame and copy all the visible things into it.
-        $wrapper<DYN_COMP_WRAPPER> := 1;
+        $wrapper.annotate('DYN_COMP_WRAPPER', 1);
         my %seen;
         my $mu        := try { self.find_symbol(['Mu']) };
         my $cur_block := $past;
@@ -1304,7 +1304,7 @@ class Perl6::World is HLL::World {
                 }
                 %seen{$_.key} := 1;
             }
-            $cur_block := $cur_block<outer>;
+            $cur_block := $cur_block.ann('outer');
         }
         
         # Compile it, set wrapper's static lexpad, then invoke the wrapper,
@@ -1353,7 +1353,7 @@ class Perl6::World is HLL::World {
         }
         
         # Flag block as dynamically compiled.
-        $past<DYNAMICALLY_COMPILED> := 1;
+        $past.annotate('DYNAMICALLY_COMPILED', 1);
         
         # Return the VM coderef that maps to the thing we were originally
         # asked to compile.
@@ -2505,7 +2505,7 @@ class Perl6::World is HLL::World {
                 return nqp::existskey(%sym, 'value') && 
                     !nqp::isconcrete(%sym<value>) ?? 2 !! 1;
             }
-            $cur_block := $cur_block<outer>;
+            $cur_block := $cur_block.ann('outer');
         }
     }
 

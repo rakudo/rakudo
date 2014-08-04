@@ -44,8 +44,8 @@ my class Symbols {
     }
     method BUILD($compunit) {
         @!block_stack   := [$compunit[0]];
-        $!GLOBALish     := $compunit<GLOBALish>;
-        $!UNIT          := $compunit<UNIT>;
+        $!GLOBALish     := $compunit.ann('GLOBALish');
+        $!UNIT          := $compunit.ann('UNIT');
         %!SETTING_CACHE := {};
         unless nqp::istype($!UNIT, QAST::Block) {
             nqp::die("Optimizer could not find UNIT");
@@ -75,7 +75,7 @@ my class Symbols {
         my int $i := nqp::elems(@!block_stack);
         while $i > 0 {
             $i := $i - 1;
-            my $co := @!block_stack[$i]<code_object>;
+            my $co := @!block_stack[$i].ann('code_object');
             if nqp::istype($co, $!Routine) {
                 return $co;
             }
@@ -847,7 +847,7 @@ class Perl6::Optimizer {
         $!in_declaration          := 0;
         $!void_context            := 0;
         my $*DYNAMICALLY_COMPILED := 0;
-        my $*W                    := $past<W>;
+        my $*W                    := $past.ann('W');
 
         # Work out optimization level.
         $!level := nqp::existskey(%adverbs, 'optimize') ??
@@ -870,7 +870,7 @@ class Perl6::Optimizer {
         @!block_var_stack.push(BlockVarOptimizer.new);
         
         # Visit children.
-        if $block<DYNAMICALLY_COMPILED> {
+        if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
             self.visit_children($block, :resultchild(+@($block) - 1));
         }
@@ -1028,7 +1028,7 @@ class Perl6::Optimizer {
             elsif nqp::istype($op[0], QAST::Var) && $op[0].name eq '%_' {
                 @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_bind($op);
             }
-            elsif $op<autoslurpy> {
+            elsif $op.ann('autoslurpy') {
                 @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_setup($op);
             }
         }
@@ -1315,7 +1315,7 @@ class Perl6::Optimizer {
 
     method optimize_for_range($op, $c2) {
         my $callee  := $op[0][1];
-        my $code    := $callee<code_object>;
+        my $code    := $callee.ann('code_object');
         my $count   := $code.count;
         my $phasers := nqp::getattr($code, $!symbols.Block, '$!phasers');
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
@@ -1323,7 +1323,7 @@ class Perl6::Optimizer {
             my $callee_var := QAST::Node.unique('range_callee_');
             $op.shift while $op.list;
             $op.op('stmts');
-            $op<range_optimized> := 1;
+            $op.annotate('range_optimized', 1);
             $op.push(QAST::Stmts.new(
                 QAST::Op.new(
                     :op('bind'),
@@ -1400,7 +1400,7 @@ class Perl6::Optimizer {
         # child. Otherwise, see all.
         if +@($want) == 3 && $want[1] eq 'v' {
             self.visit_children($want, :first);
-            if $want[0]<range_optimized> {
+            if $want[0].ann('range_optimized') {
                 $want[2] := $want[0];
             }
         }
@@ -1437,7 +1437,7 @@ class Perl6::Optimizer {
         }
 
         # Warn about usage of variable in void context.
-        if $!void_context && !$!in_declaration && $var.name && !$var<sink_ok> {
+        if $!void_context && !$!in_declaration && $var.name && !$var.ann('sink_ok') {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $sigil := nqp::substr($var.name, 0, 1);

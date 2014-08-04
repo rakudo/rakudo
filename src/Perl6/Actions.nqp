@@ -2080,10 +2080,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document
-        Perl6::Pod::document($/, $*PACKAGE, $*DOCEE, :leading);
+        my $docer; # opposite of DOCEE
+        if $*PKGDECL eq 'role' {
+            $docer := $*PACKAGE.HOW.group($*PACKAGE);
+        }
+        else {
+            $docer := $*PACKAGE;
+        }
+        Perl6::Pod::document($/, $docer, $*DOCEE, :leading);
         # XXX isn't DOCEE a misnomer?
         if ~$*DOCEE ne '' {
-            $*DOCEE.set_docee($*PACKAGE);
+            $*DOCEE.set_docee($docer);
         }
 
         make QAST::Stmts.new(

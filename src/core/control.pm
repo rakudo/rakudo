@@ -142,7 +142,7 @@ my &samewith := -> *@pos, *%named {
 
 proto sub die(|) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
-multi sub die($payload) is hidden_from_backtrace {
+multi sub die($payload = "Died") is hidden_from_backtrace {
     X::AdHoc.new(:$payload).throw
 }
 multi sub die(*@msg) is hidden_from_backtrace {

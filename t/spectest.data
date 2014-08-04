@@ -568,7 +568,7 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
-#S15-unicode-information/uniname.t	# moar
+S15-unicode-information/uniname.t	# moar
 S15-unicode-information/unimatch-general.t	# moar
 S15-unicode-information/unival.t	# moar
 S16-filehandles/chmod.t

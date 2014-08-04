@@ -531,8 +531,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
         if %a.delete_key('delete') {          # :delete:*
             my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
             if %a.delete_key('SINK') {          # :delete:SINK
-                $de(SELF,$one);
-                Nil;
+                $de(SELF,$one,:SINK);
             }
             elsif !%a {                         # :delete
                 $de(SELF,$one);
@@ -718,7 +717,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
         if %a.delete_key('delete') {       # :delete:*
             my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
             if %a.delete_key('SINK') {       # :delete:SINK
-                $de(SELF,$_) for $more;
+                $de(SELF,$_,:SINK) for $more;
                 Nil;
             }
             elsif !%a {                      # :delete

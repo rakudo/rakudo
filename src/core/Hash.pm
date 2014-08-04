@@ -144,6 +144,13 @@ my class Hash { # declared in BOOTSTRAP
         );
         $val;
     }
+    multi method delete_key(Str:D \key, :$SINK!) {
+        nqp::deletekey(
+            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::unbox_s(key)
+        );
+        Nil;
+    }
     multi method delete_key(\key as Str) {
         my Mu $val = self.at_key(key);
         nqp::deletekey(
@@ -151,6 +158,13 @@ my class Hash { # declared in BOOTSTRAP
             nqp::unbox_s(key)
         );
         $val;
+    }
+    multi method delete_key(\key as Str, :$SINK!) {
+        nqp::deletekey(
+            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::unbox_s(key)
+        );
+        Nil;
     }
 
     method push(*@values) {

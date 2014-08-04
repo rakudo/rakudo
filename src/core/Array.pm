@@ -92,7 +92,7 @@ class Array { # declared in BOOTSTRAP
         DEPRECATED("the :delete adverb with postcircumfix:<[ ]>");
         self.delete_pos(pos);
     }
-    method delete_pos(\pos) {
+    method delete_pos(\pos, :$SINK) {
         fail X::Subscript::FromEnd.new(index => pos, type => self.WHAT) if pos < 0;
 
         my $value := self.at_pos(pos); # needed for reification

@@ -973,7 +973,6 @@ class Perl6::Optimizer {
 
     # Poisonous calls.
     my %poison_calls := nqp::hash(
-        'eval',     NQPMu, '&eval',     NQPMu,
         'EVAL',     NQPMu, '&EVAL',     NQPMu,
         'callwith', NQPMu, '&callwith', NQPMu,
         'callsame', NQPMu, '&callsame', NQPMu,

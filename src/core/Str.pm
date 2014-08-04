@@ -648,12 +648,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         if $multi {
-            if nqp::istype($pat, Regex) {
-                try $caller_dollar_slash = +@matches
+            my $matchobj = +@matches
                     ?? Match.new(:from(@matches[0].from), :to(@matches[@matches - 1].to),
                         :orig(@matches[0].orig), :CURSOR(@matches[@matches - 1].CURSOR),
                         :list(@matches))
                     !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start_cur'().MATCH;
+            if nqp::istype($pat, Regex) {
+                try $caller_dollar_slash = $matchobj
             }
             @matches
         }
@@ -687,6 +688,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
             $result ~= $real_replacement;
             $prev = $m.to;
+        }
+
+        if @matches > 1 {
+            try $caller_dollar_slash = Match.new(:from(@matches[0].from), 
+                        :to(@matches[@matches - 1].to), :orig(@matches[0].orig), 
+                        :CURSOR(@matches[@matches - 1].CURSOR), :list(@matches))
         }
 
         my $last = @matches.pop;

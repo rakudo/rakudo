@@ -1427,7 +1427,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block')); }
 
     method statement_prefix:sym<DOC>($/)   {
+<<<<<<< HEAD
         $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block'))
+=======
+        $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'))
+>>>>>>> Resolve merge conflict.
             if %*COMPILING<%?OPTIONS><doc>;
     }
 
@@ -4926,17 +4930,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
 
-<<<<<<< HEAD
         # Transliteration shuffles values around itself and returns the
         # Right Thing regardless of whether we're in a smart-match or
         # implicitely against $_, so we just do the RHS here.
         if $rhs.ann('is_trans') {
-=======
-        # Neither substitution nor transliteration should return what 
-        # ACCEPTS would return, thus we just do the RHS and return 
-        # what both of those operators would return.
-        if $rhs<is_trans> {
->>>>>>> Correctly return a nested Match object from some matches.
             $sm_call := QAST::Stmt.new(
                 $rhs
             );

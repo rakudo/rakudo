@@ -2738,6 +2738,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'rule';
         :my $*IN_DECL    := 'rule';
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from());
         {
             %*RX<s> := 1;
             %*RX<r> := 1;
@@ -2750,6 +2751,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'token';
         :my $*IN_DECL    := 'token';
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from());
         {
             %*RX<r> := 1;
         }
@@ -2761,6 +2763,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'regex';
         :my $*IN_DECL    := 'regex';
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from());
         <regex_def>
     }
 
@@ -2768,7 +2771,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.end_keyword>
         :my $*CURPAD;
         :my $*HAS_SELF := 'complete';
+        :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Regex');
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
+        <.attach_docs>
         [
           <deflongname>?
           { if $<deflongname> { %*RX<name> := ~$<deflongname>.ast } }

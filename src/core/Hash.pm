@@ -136,11 +136,11 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method delete_key(|) { * }
     multi method delete_key(Hash:U:) { Nil }
-    multi method delete_key($key) {
-        my Mu $val = self.at_key($key);
+    multi method delete_key(\key as Str) {
+        my Mu $val = self.at_key(key);
         nqp::deletekey(
             nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s($key)
+            nqp::unbox_s(key)
         );
         $val;
     }

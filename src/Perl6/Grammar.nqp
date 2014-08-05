@@ -2299,14 +2299,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
     token multi_declarator:sym<proto> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> :my $*MULTINESS := 'proto'; :my $*IN_PROTO := 1; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<only> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> :my $*MULTINESS := 'only'; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('only')>]
     }

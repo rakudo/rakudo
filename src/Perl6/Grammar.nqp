@@ -3957,7 +3957,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # runs us into fun with terminators.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
-                nqp::die("Unable to find starter and stopper from '$opname'");
+                self.panic("Unable to identify both starter and stopper from '$opname'\nPerhaps you forgot to separate them with whitespace?");
             }
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -3973,7 +3973,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # Find opener and closer and parse an EXPR between them.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
-                nqp::die("Unable to find starter and stopper from '$opname'");
+                self.panic("Unable to identify both starter and stopper from '$opname'\nPerhaps you forgot to separate them with whitespace?");
             }
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {

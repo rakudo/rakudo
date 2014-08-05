@@ -516,9 +516,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 %*SEEN_IT{ self.from() } := 1;
                 my $*DOC := $<attachment>;
                 my $*DOCEE;
-                self.attach_docs;
+                #self.attach_docs;
+                if ~$*DOC ne '' {
+                    my $cont  := Perl6::Pod::serialize_aos(
+                        [Perl6::Pod::formatted_text(~$*DOC)]
+                    ).compile_time_value;
+                    my $block := $*W.add_constant(
+                        'Pod::Block::Declarator', 'type_new',
+                        :nocache, :trailing([$cont]),
+                    );
+                    # XXX why compile_time_value?
+                    $*DOCEE := $block.compile_time_value;
+                    $*POD_BLOCKS.push($*DOCEE);
+                }
                 unless nqp::isnull($*PRECEDING_DECL) {
-                    Perl6::Pod::document($/, $*PRECEDING_DECL, ~$*DOC, :trailing);
+                    Perl6::Pod::document($/, $*PRECEDING_DECL, $*DOCEE, :trailing);
                 }
             }
         }

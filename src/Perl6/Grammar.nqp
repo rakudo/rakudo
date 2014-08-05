@@ -2022,49 +2022,49 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token package_declarator:sym<package> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<module> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'module';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<class> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'class';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<grammar> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'grammar';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<role> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'role';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<knowhow> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'knowhow';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<native> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'native';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<trusts> {
@@ -2328,7 +2328,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token scope_declarator:sym<my>        { <sym> <scoped('my')> }
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
     token scope_declarator:sym<has>       {
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym>
         :my $*HAS_SELF := 'partial';
         :my $*ATTR_INIT_BLOCK;
@@ -2426,19 +2426,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token routine_declarator { <...> }
     token routine_declarator:sym<sub> {
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <routine_def('sub')>
     }
     token routine_declarator:sym<method> {
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <method_def('method')>
     }
     token routine_declarator:sym<submethod> {
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <method_def('submethod')>
     }
     token routine_declarator:sym<macro> {
-        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <macro_def()>
     }
 
@@ -2675,7 +2675,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOCEE;
         <.attach_docs>
         {
-            my $line_no := HLL::Compiler.lineof(self.orig(), self.from());
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
             if $*PRECEDING_DECL_LINE < $line_no {
                 $*PRECEDING_DECL_LINE := $line_no;
                 my $par_type := $*W.find_symbol(['Parameter']);
@@ -2738,7 +2738,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'rule';
         :my $*IN_DECL    := 'rule';
-        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         {
             %*RX<s> := 1;
             %*RX<r> := 1;
@@ -2751,7 +2751,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'token';
         :my $*IN_DECL    := 'token';
-        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         {
             %*RX<r> := 1;
         }
@@ -2763,7 +2763,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'regex';
         :my $*IN_DECL    := 'regex';
-        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from());
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <regex_def>
     }
 

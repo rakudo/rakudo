@@ -30,8 +30,8 @@ role CompUnitRepo::Locally {
     }
 
     # stubs
-    method install($source, $from?) { ... }
-    method files($file, :$name, :$auth, :$ver) { ... }
-    method candidates($name, :$file, :$auth, :$ver) { ... }
-    method short-id() { ... }
+    method install    ($source, $from?             ) { ... }
+    method files      ($file, :$name, :$auth, :$ver) { ... }
+    method candidates ($name, :$file, :$auth, :$ver) { ... }
+    method short-id   (                            ) { ... }
 }

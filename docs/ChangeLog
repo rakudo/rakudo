@@ -13,6 +13,7 @@ New in 2014.08
 + die / note now say "Died" / "Noted" when not given anything
 + ∅ is finally recognized as the empty set
 + more work under the hood to get in line with S11 / S22
++ Str.indent() now treats its arg as an Int where appropriate
 
 New in 2014.07
 + require and build parrot 6.6.0

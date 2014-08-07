@@ -915,7 +915,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn, NULL, NULL, 0);
+    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn, NULL, NULL, MVM_EXTOP_INVOKISH);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE);
@@ -926,11 +926,11 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6setpre", p6setpre, 1, s_p6setpre, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6clearpre", p6clearpre, 1, s_p6clearpre, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6inpre", p6inpre, 1, s_p6inpre, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher, NULL, NULL, 0);
+    MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher, NULL, NULL, MVM_EXTOP_NO_JIT);
     MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6arrfindtypes", p6arrfindtypes, 5, s_p6arrfindtypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder, NULL, NULL, 0);
+    MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder, NULL, NULL, MVM_EXTOP_INVOKISH);
 }

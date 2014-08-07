@@ -240,34 +240,27 @@ my class List does Positional { # declared in BOOTSTRAP
     
     multi method push(List:D: *@values) {
         fail 'Cannot .push an infinite list' if @values.infinite;
-        $!nextiter.DEFINITE && self.gimme(*);
-        fail 'Cannot .push to an infinite list' if $!nextiter.defined;
         nqp::p6listitems(self);
+        my $elems = self.gimme(*);
+        fail 'Cannot .push to an infinite list' if $!nextiter.defined;
 
-        # don't bother with type checks
+        # push is always eager
+        @values.gimme(*);
+
+        # need type checks?
         my $of := self.of;
-        if ( $of =:= Mu ) {
-            nqp::push( $!items, @values.shift ) while @values.gimme(1);
+
+        unless $of =:= Mu {
+            X::TypeCheck.new(
+              operation => '.push',
+              expected  => $of,
+              got       => $_,
+            ).throw unless nqp::istype($_, $of) for @values;
         }
 
-        # we must check types
-        else {
-            while @values.gimme(1) {
-                my $value := @values.shift;
-                if nqp::istype($value, $of) {
-                    nqp::push( $!items, $value );
-                }
-
-                # huh?
-                else {
-                    X::TypeCheck.new(
-                      operation => '.push',
-                      expected  => $of,
-                      got       => $value,
-                    ).throw;
-                }
-            }
-        }
+        nqp::splice($!items,
+                nqp::getattr(@values, List, '$!items'),
+                $elems, 0);
 
         self;
     }

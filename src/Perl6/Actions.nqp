@@ -1427,11 +1427,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block')); }
 
     method statement_prefix:sym<DOC>($/)   {
-<<<<<<< HEAD
         $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block'))
-=======
-        $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'))
->>>>>>> Resolve merge conflict.
             if %*COMPILING<%?OPTIONS><doc>;
     }
 
@@ -5814,16 +5810,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new( :name('$_'), :scope('lexical') ),
             block_closure($coderef)
         );
-        if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
-            # if this match returns a list of matches instead of a single
-            # match, don't assing to $/ (which imposes item context)
-            make $past;
-        } else {
-            make QAST::Op.new( :op('p6store'),
-                QAST::Var.new(:name('$/'), :scope('lexical')),
-                $past
-            );
-        }
+        self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
+        $past := QAST::Op.new( 
+            :op<p6store>,
+            QAST::Var.new(:name('$/'), :scope<lexical>),
+            $past
+        );
+        self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
+        make $past;
     }
 
     # returns 1 if the adverbs indicate that the return value of the
@@ -5939,10 +5933,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             )
         );
 
-<<<<<<< HEAD
-        $past.annotate('is_subst', 1);
-=======
->>>>>>> Correctly return a nested Match object from some matches.
         $past
     }
 

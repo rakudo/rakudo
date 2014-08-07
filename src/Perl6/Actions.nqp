@@ -2708,8 +2708,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         sub clone_qast($qast) {
             my $cloned := nqp::clone($qast);
-            nqp::bindattr($cloned, QAST::Node, '@!array',
-                nqp::clone(nqp::getattr($cloned, QAST::Node, '@!array')));
+            if nqp::istype($cloned, QAST::Children) {
+                nqp::bindattr($cloned, QAST::Children, '@!children',
+                    nqp::clone(nqp::getattr($cloned, QAST::Children, '@!children')));
+            }
             $cloned
         }
         sub node_walker($node) {

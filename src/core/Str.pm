@@ -690,7 +690,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $prev = $m.to;
         }
 
-        if %options<g> {
+        if nqp::istype($match, Match) && $match.multiple {
             try $caller_dollar_slash = Match.new(:from(@matches[0].from), 
                         :to(@matches[@matches - 1].to), :orig(@matches[0].orig), 
                         :CURSOR(@matches[@matches - 1].CURSOR), :list(@matches), :multiple(True))

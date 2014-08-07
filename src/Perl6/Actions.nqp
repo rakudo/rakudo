@@ -489,9 +489,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             $block.push(
                 QAST::Op.new(
-                    :op<call>, :node($/),
-                    :name('&say'), $pod2text,
-                ),
+                    :op('if'),
+                    $pod2text,
+                    QAST::Op.new(
+                        :op<call>, :node($/),
+                        :name('&say'), $pod2text,
+                    ),
+                )
             );
 
             # TODO: We should print out $?USAGE too,

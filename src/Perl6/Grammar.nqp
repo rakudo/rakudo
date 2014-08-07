@@ -1084,7 +1084,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
             # Install POD-related variables.
             $*POD_PAST := $*W.add_constant(
-                'Array', 'type_new', |$*POD_BLOCKS
+                'Array', 'type_new', :nocache, |$*POD_BLOCKS
             );
             $*W.install_lexical_symbol(
                 $*UNIT, '$=pod', $*POD_PAST.compile_time_value

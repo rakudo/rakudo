@@ -137,7 +137,7 @@ multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
              !! postcircumfix:<{ }>(SELF, keys[0].list, |%adv);
 }
 multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
-    keys > 1 ?? SELF{keys[0].list}.map({postcircumfix:<{ }>($_, LoL.new(|keys[1..*]), assignee, |%adv)}).eager
+    keys > 1 ?? (SELF{keys[0].list}.map({postcircumfix:<{ }>($_, LoL.new(|keys[1..*]), |%adv)}).eager.Parcel = assignee)
              !! postcircumfix:<{ }>(SELF, keys[0].list, assignee, |%adv);
 }
 

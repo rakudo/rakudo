@@ -270,6 +270,7 @@ sub gen_nqp {
     my $prefix      = $options{'prefix'} || cwd().'/install';
     my $startdir    = cwd();
     my $git_protocol = $options{'git-protocol'} // 'https';
+    my @moar_options = @{ $options{'moar-option'} // [] };
 
     my $PARROT_REVISION = 'nqp/tools/build/PARROT_REVISION';
 
@@ -343,6 +344,10 @@ sub gen_nqp {
 
     if (defined $gen_moar) {
         push @cmd, $gen_moar ? "--gen-moar=$gen_moar" : '--gen-moar';
+
+        if (@moar_options) {
+            push @cmd, map(sprintf('--moar-option=%s', $_), @moar_options);
+        }
     }
 
     print "Building NQP ...\n";

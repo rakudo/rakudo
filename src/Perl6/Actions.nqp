@@ -2706,20 +2706,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $qast.node(nqp::null());
             $qast
         }
-        sub clone_qast($qast) {
-            my $cloned := nqp::clone($qast);
-            if nqp::istype($cloned, QAST::Children) {
-                nqp::bindattr($cloned, QAST::Children, '@!children',
-                    nqp::clone(nqp::getattr($cloned, QAST::Children, '@!children')));
-            }
-            $cloned
-        }
         sub node_walker($node) {
             # Simple values are always fine; just return them as they are, modulo
             # removing any :node(...).
             if nqp::istype($node, QAST::IVal) || nqp::istype($node, QAST::SVal)
             || nqp::istype($node, QAST::NVal) {
-                return $node.node ?? clear_node(clone_qast($node)) !! $node;
+                return $node.node ?? clear_node($node.shallow_clone()) !! $node;
             }
             
             # WVal is OK, though special case for PseudoStash usage (which means
@@ -2729,7 +2721,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     nqp::die("Routines using pseudo-stashes are not inlinable");
                 }
                 else {
-                    return $node.node ?? clear_node(clone_qast($node)) !! $node;
+                    return $node.node ?? clear_node($node.shallow_clone()) !! $node;
                 }
             }
             
@@ -2737,7 +2729,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # themselves, it comes down to the children.
             elsif nqp::istype($node, QAST::Op) {
                 if nqp::getcomp('QAST').operations.is_inlinable('perl6', $node.op) {
-                    my $replacement := clone_qast($node);
+                    my $replacement := $node.shallow_clone();
                     my int $i := 0;
                     my int $n := +@($node);
                     while $i < $n {
@@ -2756,7 +2748,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if nqp::existskey(%arg_placeholders, $node.name) {
                     my $replacement := %arg_placeholders{$node.name};
                     if $node.named || $node.flat {
-                        $replacement := clone_qast($replacement);
+                        $replacement := $replacement.shallow_clone();
                         if $node.named { $replacement.named($node.named) }
                         if $node.flat { $replacement.flat($node.flat) }
                     }
@@ -2770,7 +2762,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Statements need to be cloned and then each of the nodes below them
             # visited.
             elsif nqp::istype($node, QAST::Stmt) || nqp::istype($node, QAST::Stmts) {
-                my $replacement := clone_qast($node);
+                my $replacement := $node.shallow_clone();
                 my int $i := 0;
                 my int $n := +@($node);
                 while $i < $n {
@@ -2782,7 +2774,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             # Want nodes need copying and every other child visiting.
             elsif nqp::istype($node, QAST::Want) {
-                my $replacement := clone_qast($node);
+                my $replacement := $node.shallow_clone();
                 my int $i := 0;
                 my int $n := +@($node);
                 while $i < $n {

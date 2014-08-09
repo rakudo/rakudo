@@ -4655,18 +4655,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $has_stuff := 0;
         }
         elsif $stmts == 1 {
-            my $elem := $past.ann('past_block')[1][0][0];
-            $elem := $elem[0] if $elem ~~ QAST::Want;
-            if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
+            my $elem := try $past.ann('past_block')[1][0][0];
+            $elem := $elem[0] if nqp::istype($elem, QAST::Want);
+            if nqp::istype($elem, QAST::Op) && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
             }
-            if $elem ~~ QAST::Op
+            if nqp::istype($elem, QAST::Op)
                     && (istype($elem.returns, $Pair) || $elem.name eq '&infix:<=>>') {
                 # first item is a pair
                 $is_hash := 1;
             }
-            elsif $elem ~~ QAST::Var
+            elsif nqp::istype($elem, QAST::Var)
                     && nqp::substr($elem.name, 0, 1) eq '%' {
                 # first item is a hash
                 $is_hash := 1;
@@ -7270,7 +7270,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             make $qast;
         }
         else {
-            make QAST::Regex.new( QAST::Node.new(
+            make QAST::Regex.new( QAST::NodeList.new(
                                         QAST::SVal.new( :value('!LITERAL') ),
                                         $quote,
                                         QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
@@ -7309,7 +7309,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( QAST::Node.new(
+        make QAST::Regex.new( QAST::NodeList.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),
                                     $<var>.ast,
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
@@ -7319,7 +7319,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method assertion:sym<{ }>($/) {
         make QAST::Regex.new( 
-                 QAST::Node.new(
+                 QAST::NodeList.new(
                     QAST::SVal.new( :value('INTERPOLATE') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
@@ -7335,7 +7335,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method assertion:sym<var>($/) {
-        make QAST::Regex.new( QAST::Node.new(
+        make QAST::Regex.new( QAST::NodeList.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),
                                     $<var>.ast,
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
@@ -7374,20 +7374,20 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             if +@parts {
                 my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::Node.new(
+                                         :node($/), QAST::NodeList.new(
                                             QAST::SVal.new( :value('OTHERGRAMMAR') ), 
                                             $gref, QAST::SVal.new( :value($name) )),
                                          :name(~$<longname>) );
             } elsif $*W.regex_in_scope('&' ~ $name) {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::Node.new(
+                                         :node($/), QAST::NodeList.new(
                                             QAST::SVal.new( :value('INDRULE') ),
                                             QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
                                          :name($name) );
             }
             else {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::Node.new(QAST::SVal.new( :value($name) )), 
+                                         :node($/), QAST::NodeList.new(QAST::SVal.new( :value($name) )), 
                                          :name($name) );
             }
             if $<arglist> {
@@ -7413,7 +7413,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         }
         else {
             make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
-                QAST::Node.new(QAST::SVal.new( :value('RECURSE') )), :node($/) );
+                QAST::NodeList.new(QAST::SVal.new( :value('RECURSE') )), :node($/) );
         }
     }
     
@@ -7463,7 +7463,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
 
     method p5metachar:sym<(??{ })>($/) {
         make QAST::Regex.new( 
-                 QAST::Node.new(
+                 QAST::NodeList.new(
                     QAST::SVal.new( :value('INTERPOLATE') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
@@ -7473,7 +7473,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     }
 
     method p5metachar:sym<var>($/) {
-        make QAST::Regex.new( QAST::Node.new(
+        make QAST::Regex.new( QAST::NodeList.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),
                                     $<var>.ast,
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),

@@ -3095,6 +3095,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Ensure that the PAST is whitelisted things.
             returnless_past($block[1][0][0])
         }
+        elsif +$block[1].list == 1 && nqp::istype($block[1][0], QAST::WVal) {
+            1
+        }
         else {
             0
         }

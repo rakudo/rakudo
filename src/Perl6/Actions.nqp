@@ -2504,6 +2504,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
         my $outer := $*W.cur_lexpad();
+        my $clone := !($outer =:= $*UNIT);
         $outer[0].push(QAST::Stmt.new($block));
 
         # Install &?ROUTINE.
@@ -2541,7 +2542,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
 
                     # Install in current scope.
-                    $*W.install_lexical_symbol($outer, $name, $new_proto, :clone(1));
+                    $*W.install_lexical_symbol($outer, $name, $new_proto, :$clone);
                     $proto := $new_proto;
                 }
 
@@ -2565,12 +2566,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
-                    $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
+                    $*W.install_lexical_symbol($outer, $name, $code, :$clone);
                 }
                 elsif $*SCOPE eq 'our' {
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
-                    $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
+                    $*W.install_lexical_symbol($outer, $name, $code, :$clone);
                     $*W.install_package_symbol($*PACKAGE, $name, $code);
                     $outer[0].push(QAST::Op.new(
                         :op('bindkey'),

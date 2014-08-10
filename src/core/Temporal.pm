@@ -513,6 +513,11 @@ my class Date does Dateish {
         );
     }
 
+    multi method new(Instant $i) {
+        my $dt = DateTime.new($i);
+        self.new($dt);
+    }
+
     multi method WHICH(Date:D:) {
         nqp::box_s(
             nqp::concat(

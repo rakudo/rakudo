@@ -981,7 +981,11 @@ class Perl6::World is HLL::World {
         
         # Attach code object to QAST node.
         $code_past.annotate('code_object', $code);
-        
+
+        # Associate QAST block with code object, which will ensure it is
+        # fixed up as needed.
+        $code_past.code_object($code);
+
         # Stash it under the QAST block unique ID.
         %!sub_id_to_code_object{$code_past.cuid()} := $code;
         
@@ -1046,14 +1050,9 @@ class Perl6::World is HLL::World {
         # which case pre-comp will have sorted it out.
         unless $*PKGDECL eq 'role' {
             unless self.is_precompilation_mode() {
-                $fixups.push(QAST::Stmts.new(
-                    self.set_attribute($code, $code_type, '$!do', QAST::BVal.new( :value($code_past) )),
-                    QAST::Op.new(
-                        :op('setcodeobj'),
-                        QAST::BVal.new( :value($code_past) ),
-                        QAST::WVal.new( :value($code) )
-                    )));
-                
+                $fixups.push(self.set_attribute($code, $code_type, '$!do',
+                    QAST::BVal.new( :value($code_past) )));
+
                 # If we clone the stub, then we must remember to do a fixup
                 # of it also.
                 @compstuff[2] := sub ($orig, $clone) {
@@ -1095,14 +1094,6 @@ class Perl6::World is HLL::World {
         # Set yada flag if needed.
         if $yada {
             nqp::bindattr_i($code, $routine_type, '$!yada', 1);
-        }
-
-        # Deserialization also needs to give the Parrot sub its backlink.
-        if self.is_precompilation_mode() {
-            $des.push(QAST::Op.new(
-                :op('setcodeobj'),
-                QAST::BVal.new( :value($code_past) ),
-                QAST::WVal.new( :value($code) )));
         }
 
         # If it's a routine, store the package to make backtraces nicer.

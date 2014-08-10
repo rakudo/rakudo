@@ -3401,7 +3401,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method type_declarator:sym<subset>($/) {
         # We refine Any by default; "of" may override.
-        my $refinee := $*W.find_symbol(['Any']);
+        my $refinee := $*W.find_symbol([ $*OFTYPE // 'Any']);
 
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.

@@ -667,7 +667,7 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                         ((MVMContext *)ctx_ref)->body.context = MVM_frame_inc_ref(tc, ctx);
                     });
                     capture = MVM_args_use_capture(tc, ctx);
-                    p6sub = ((MVMCode *)ctx->code_ref)->body.code_object;
+                    p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
 
                     /* Lookup method, invoke it, and set up callback to ensure it
                      * is also stored in the lexical. */

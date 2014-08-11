@@ -1144,6 +1144,11 @@ my class X::Hash::Store::OddNumber is Exception {
     method message() { "Odd number of elements found where hash initializer expected" }
 }
 
+my class X::Match::Bool is Exception {
+    has $.type;
+    method message() { "Cannot use Bool as Matcher with '" ~ $.type ~ "'.  Did you mean to use \$_ inside a block?" }
+}
+
 my class X::Package::Stubbed does X::Comp {
     has @.packages;
     # TODO: suppress display of line number

@@ -3,6 +3,7 @@ my class Pair { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
+my class X::Match::Bool { ... }
 my class X::Subscript::FromEnd { ... }
 
 my class Any { # declared in BOOTSTRAP
@@ -424,22 +425,27 @@ multi map(&code, Whatever) { (1..Inf).map(&code) }
 proto grep(|) {*}
 multi grep(Mu $test, @values) { @values.grep($test) }
 multi grep(Mu $test, *@values) { @values.grep($test) }
+multi grep(Bool $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
 
 proto grep-index(|) {*}
 multi grep-index(Mu $test, @values) { @values.grep-index($test) }
 multi grep-index(Mu $test, *@values) { @values.grep-index($test) }
+multi grep-index(Bool $t, *@v) { fail X::Match::Bool.new(type => 'grep-index') }
 
 proto first(|) {*}
 multi first(Mu $test, @values) { @values.first($test) }
 multi first(Mu $test, *@values) { @values.first($test) }
+multi first(Bool $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
 
 proto first-index(|) {*}
 multi first-index(Mu $test, @values) { @values.first-index($test) }
 multi first-index(Mu $test, *@values) { @values.first-index($test) }
+multi first-index(Bool $t, *@v) {fail X::Match::Bool.new(type => 'first-index')}
 
 proto last-index(|) {*}
 multi last-index(Mu $test, @values) { @values.last-index($test) }
 multi last-index(Mu $test, *@values) { @values.last-index($test) }
+multi last-index(Bool $t, *@v) { fail X::Match::Bool.new(type => 'last-index') }
 
 proto join(|) { * }
 multi join($sep = '', *@values) { @values.join($sep) }

@@ -45,7 +45,7 @@ To automatically download and build a fresh MoarMV and NQP, run:
 If you want to be at the front of all new (experimental) optimizations, then
 you can add the --moar-option=--enable-jit parameter like so:
 
-    perl Configure.pl --gen-moar --moar-option=enable-jit --gen-nqp --backends=moar
+    perl Configure.pl --gen-moar --moar-option=--enable-jit --gen-nqp --backends=moar
 
 ### Configuring Rakudo to run on Parrot
 

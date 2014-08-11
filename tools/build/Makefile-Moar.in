@@ -170,6 +170,7 @@ M_CORE_SOURCES = \
   src/core/IO/Socket/INET.pm \
   src/core/IO/Socket/Async.pm \
   src/core/IO/Notification.pm \
+  src/core/Proc/Async.pm \
   src/core/Env.pm \
   src/core/signals.pm \
   src/core/Systemic.pm \

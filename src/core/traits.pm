@@ -9,7 +9,7 @@ my class X::Inheritance::SelfInherit { ... }
 my class X::Comp::Trait::Unknown { ... }
 my class Pod::Block::Declarator { ... }
 
-my sub set_leading_docs($obj, $type, $docs) {
+my sub set_leading_docs($obj, $docs) {
     my $current_why := $obj.WHY;
 
     if $current_why {
@@ -20,7 +20,7 @@ my sub set_leading_docs($obj, $type, $docs) {
     }
 }
 
-my sub set_trailing_docs($obj, $type, $docs) {
+my sub set_trailing_docs($obj, $docs) {
     my $current_why := $obj.WHY;
 
     if $current_why {
@@ -105,11 +105,11 @@ multi trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 # to the (possibly auto-generated) accessor method.
 }
 multi trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
-    set_leading_docs($attr, Attribute, $leading_docs);
+    set_leading_docs($attr, $leading_docs);
 }
 
 multi trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
-    set_trailing_docs($attr, Attribute, $trailing_docs);
+    set_trailing_docs($attr, $trailing_docs);
 }
 
 multi trait_mod:<is>(Routine:D $r, |c ) {
@@ -215,10 +215,10 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
     $param.set_parcel();
 }
 multi trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
-    set_leading_docs($param, Parameter, $leading_docs);
+    set_leading_docs($param, $leading_docs);
 }
 multi trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
-    set_trailing_docs($param, Parameter, $trailing_docs);
+    set_trailing_docs($param, $trailing_docs);
 }
 
 # Declare these, as setting mainline doesn't get them automatically (as the
@@ -284,17 +284,17 @@ multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
 # this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
 # will catch it and declare "docs" to be an unknown trait
 multi trait_mod:<is>(Routine:D $r, :$leading_docs!) {
-    set_leading_docs($r, Routine, $leading_docs);
+    set_leading_docs($r, $leading_docs);
 }
 multi trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
-    set_trailing_docs($r, Routine, $trailing_docs);
+    set_trailing_docs($r, $trailing_docs);
 }
 
 multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
-    set_leading_docs($docee, $docee, $leading_docs);
+    set_leading_docs($docee, $leading_docs);
 }
 multi trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
-    set_trailing_docs($docee.HOW, $docee.HOW.WHAT, $trailing_docs);
+    set_trailing_docs($docee.HOW, $trailing_docs);
 }
 
 

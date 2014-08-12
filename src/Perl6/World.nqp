@@ -480,7 +480,7 @@ class Perl6::World is HLL::World {
     # Installs something package-y in the right place, creating the nested
     # pacakges as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
-        if $scope eq 'anon' { return 1 }
+        if $scope eq 'anon' || +@name_orig == 0 { return 1 }
         my @parts := nqp::clone(@name_orig);
         my $name  := @parts.pop();
         my $create_scope := $scope;

@@ -131,6 +131,9 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method grep(|) { * }
+    multi method grep(Bool:D $t) is rw {
+        fail X::Match::Bool.new( type => '.grep' );
+    }
     multi method grep(Regex:D $test) is rw {
         self.map({ $_ if .match($test) });
     }
@@ -142,6 +145,9 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method grep-index(|) { * }
+    multi method grep-index(Bool:D $t) is rw {
+        fail X::Match::Bool.new( type => '.grep-index' );
+    }
     multi method grep-index(Regex:D $test) {
         my $index = -1;
         self.map: { $index++; +$index if .match($test) };
@@ -156,6 +162,9 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method first(|) { * }
+    multi method first(Bool:D $t) is rw {
+        fail X::Match::Bool.new( type => '.first' );
+    }
     multi method first(Regex:D $test) is rw {
         self.map({ return $_ if .match($test) });
         Nil;
@@ -170,6 +179,9 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method first-index(|) { * }
+    multi method first-index(Bool:D $t) is rw {
+        fail X::Match::Bool.new( type => '.first-index' );
+    }
     multi method first-index(Regex:D $test) {
         my $index = -1;
         self.map: { $index++; return $index if .match($test) };
@@ -187,6 +199,9 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method last-index(|) { * }
+    multi method last-index(Bool:D $t) is rw {
+        fail X::Match::Bool.new( type => '.last-index' );
+    }
     multi method last-index(Regex:D $test) {
         my $index = self.elems;
         self.reverse.map: { $index--; return $index if .match($test) };
@@ -425,27 +440,27 @@ multi map(&code, Whatever) { (1..Inf).map(&code) }
 proto grep(|) {*}
 multi grep(Mu $test, @values) { @values.grep($test) }
 multi grep(Mu $test, *@values) { @values.grep($test) }
-multi grep(Bool $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
+multi grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
 
 proto grep-index(|) {*}
 multi grep-index(Mu $test, @values) { @values.grep-index($test) }
 multi grep-index(Mu $test, *@values) { @values.grep-index($test) }
-multi grep-index(Bool $t, *@v) { fail X::Match::Bool.new(type => 'grep-index') }
+multi grep-index(Bool:D $t, *@v) {fail X::Match::Bool.new(type => 'grep-index')}
 
 proto first(|) {*}
 multi first(Mu $test, @values) { @values.first($test) }
 multi first(Mu $test, *@values) { @values.first($test) }
-multi first(Bool $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
+multi first(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
 
 proto first-index(|) {*}
 multi first-index(Mu $test, @values) { @values.first-index($test) }
 multi first-index(Mu $test, *@values) { @values.first-index($test) }
-multi first-index(Bool $t, *@v) {fail X::Match::Bool.new(type => 'first-index')}
+multi first-index(Bool:D $t,*@v) {fail X::Match::Bool.new(type => 'first-index')}
 
 proto last-index(|) {*}
 multi last-index(Mu $test, @values) { @values.last-index($test) }
 multi last-index(Mu $test, *@values) { @values.last-index($test) }
-multi last-index(Bool $t, *@v) { fail X::Match::Bool.new(type => 'last-index') }
+multi last-index(Bool:D $t, *@v) {fail X::Match::Bool.new(type => 'last-index')}
 
 proto join(|) { * }
 multi join($sep = '', *@values) { @values.join($sep) }

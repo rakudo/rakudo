@@ -2543,6 +2543,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
         <.attach_docs>
         <deflongname>?
         {

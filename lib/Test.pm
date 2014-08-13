@@ -189,16 +189,11 @@ multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
 multi sub dies_ok(Callable $closure, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $death = 1;
-    my $bad_death = 0;
     try {
         $closure();
         $death = 0;
     }
-    if $death && $!.Str.index('Null PMC access') {
-        $bad_death = 1;
-        diag("Wrong way to die: '$!'");
-    }
-    my $ok = proclaim( $death && !$bad_death, $reason );
+    my $ok = proclaim( $death, $reason );
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
 }

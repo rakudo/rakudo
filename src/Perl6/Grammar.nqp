@@ -527,7 +527,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     );
                     # XXX why compile_time_value?
                     $*DOCEE := $block.compile_time_value;
-                    $*POD_BLOCKS.push($*DOCEE);
                 }
                 unless nqp::isnull($*PRECEDING_DECL) {
                     if $*PKGDECL eq 'role' && nqp::can($*PRECEDING_DECL.HOW, 'group') {

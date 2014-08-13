@@ -13,7 +13,17 @@ my sub set_leading_docs($obj, $docs) {
     my $current_why := $obj.WHY;
 
     if $current_why {
-        # XXX remove $docs from $*POD_BLOCKS (best way to do this?)
+        my $end := nqp::elems($*POD_BLOCKS) - 1;
+        my $i   := $end;
+
+        while $i >= 0 {
+            if $docs === $*POD_BLOCKS[$i] {
+                nqp::splice($*POD_BLOCKS, nqp::list(), $i, 1);
+                last;
+            }
+            $i := $i - 1;
+        }
+
         $current_why._add_leading(~$docs);
     } else {
         $obj.set_why($docs);
@@ -27,6 +37,7 @@ my sub set_trailing_docs($obj, $docs) {
         $current_why._add_trailing(~$docs);
     } else {
         $obj.set_why($docs);
+        $*POD_BLOCKS.push($docs);
     }
 }
 

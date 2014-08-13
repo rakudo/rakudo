@@ -216,18 +216,7 @@ multi sub lives_ok(Callable $closure, $reason = '') is export {
 multi sub eval_dies_ok(Str $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
-    my $ok;
-    if defined $ee {
-        # XXX no regexes yet in nom
-        my $bad_death = $ee.Str.index('Null PMC access ').defined;
-        if $bad_death {
-            diag "wrong way to die: '$ee'";
-        }
-        $ok = proclaim( !$bad_death, $reason );
-    }
-    else {
-        $ok = proclaim( 0, $reason );
-    }
+    my $ok = proclaim( $ee.defined, $reason );
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
 }

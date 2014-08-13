@@ -103,6 +103,9 @@ multi sub isnt(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $test = !($got eq $expected);
     my $ok = proclaim($test, $desc);
+    if !$test {
+        diag "twice: '$got'";
+    }
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
 }

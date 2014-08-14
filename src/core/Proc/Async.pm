@@ -21,6 +21,7 @@ my class X::Proc::Async::AlreadyStarted is Exception {
 my class Proc::Async {
     has $.path;
     has @.args;
+    has $.w;
     has Bool $!started;
     has $!stdout_supply;
     has Bool $!stdout_supply_chars;
@@ -129,6 +130,7 @@ my class Proc::Async {
                 });
         }
         nqp::bindkey($callbacks, 'buf_type', buf8.new);
+        nqp::bindkey($callbacks, 'write', True) if $.w;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
             $args-without, $*CWD.Str, $hash-without, $callbacks);
@@ -188,6 +190,11 @@ my class Proc::Async {
             },
             nqp::decont($b), ProcessCancellation);
         $p
+    }
+
+    method close_stdin() {
+        nqp::closefh($!process_handle);
+        True;
     }
 
     method kill($signal = 1) {

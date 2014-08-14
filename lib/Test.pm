@@ -110,6 +110,26 @@ multi sub isnt(Mu $got, Mu $expected, $desc = '') is export {
     return $ok;
 }
 
+multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    $got.defined; # Hack to deal with Failures
+    my $ok;
+    if $op ~~ Callable ?? $op !! try EVAL "&infix:<$op>" -> $matcher {
+        $ok = proclaim(?$matcher($got,$expected), $desc);
+        if !$ok {
+            diag "     got: '$got'";
+            diag " matcher: '$matcher'";
+            diag "expected: '{$expected // $expected.^name}'";
+        }
+    }
+    else {
+        $ok = proclaim(False, $desc);
+        diag "Could not use '$op' as a comparator";
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;

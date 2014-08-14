@@ -2825,9 +2825,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token type_declarator { <...> }
 
     token type_declarator:sym<enum> {
-        :my $*IN_DECL := 'enum';
-        :my $*DECLARAND;
         <sym>  <.end_keyword> <.ws>
+        :my $*IN_DECL := 'enum';
+        :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*DOCEE;
+        :my $*DECLARAND;
+        {
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+            if $*PRECEDING_DECL_LINE < $line_no {
+                $*PRECEDING_DECL_LINE := $line_no;
+                $*PRECEDING_DECL      := Mu; # actual declarand comes later, in Actions::type_declarator:sym<enum>
+            }
+        }
+        <.attach_docs>
         [
         | <longname>
             {

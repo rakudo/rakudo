@@ -3468,6 +3468,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
             ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
+        # Document it
+        Perl6::Pod::document($/, $type_obj, $*DOCEE, :leading);
+        if ~$*DOCEE ne '' {
+            $*DOCEE.set_docee($type_obj);
+        }
+        # Set it up for trailing declarations
+        $*PRECEDING_DECL := $type_obj;
+
         # We evaluate to the enum type object.
         make QAST::WVal.new( :value($type_obj) );
     }

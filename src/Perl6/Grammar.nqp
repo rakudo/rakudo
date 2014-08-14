@@ -959,7 +959,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
             }
             elsif $have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
-                $*GLOBALish := $*UNIT_OUTER.symbol('GLOBALish')<value>;
+                $*GLOBALish := $*W.force_value($*UNIT_OUTER.symbol('GLOBALish'), 'GLOBALish', 1);
             }
             else {
                 $*GLOBALish := $*W.pkg_create_mo($/, %*HOW<package>, :name('GLOBAL'));
@@ -968,7 +968,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 
             # Create or pull in existing EXPORT.
             if $have_outer && $*UNIT_OUTER.symbol('EXPORT') {
-                $*EXPORT := $*UNIT_OUTER.symbol('EXPORT')<value>;
+                $*EXPORT := $*W.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
             }
             else {
                 $*EXPORT := $*W.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
@@ -983,7 +983,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # Take current package from outer context if any, otherwise for a
             # fresh compilation unit we start in GLOBAL.
             if $have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
-                $*PACKAGE := $*UNIT_OUTER.symbol('$?PACKAGE')<value>;
+                $*PACKAGE := $*W.force_value($*UNIT_OUTER.symbol('$?PACKAGE'), '$?PACKAGE', 1);
             }
             else {
                 $*PACKAGE := $*GLOBALish;
@@ -992,12 +992,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # If we're eval'ing in the context of a %?LANG, set up our own
             # %*LANG based on it.
             if $have_outer && $*UNIT_OUTER.symbol('%?LANG') {
-                for $*UNIT_OUTER.symbol('%?LANG')<value>.FLATTENABLE_HASH() {
+                for $*W.force_value($*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
                     %*LANG{$_.key} := $_.value;
                 }
             }
             if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
-                $*MAIN := $*UNIT_OUTER.symbol('$*MAIN')<value>;
+                $*MAIN := $*W.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
             }
             
             # Install unless we've no setting, in which case we've likely no

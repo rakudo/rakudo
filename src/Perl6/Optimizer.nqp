@@ -120,12 +120,7 @@ my class Symbols {
                 $i := $i - 1;
                 my %sym := @!block_stack[$i].symbol($final_name);
                 if +%sym {
-                    if nqp::existskey(%sym, 'value') {
-                        return %sym<value>;
-                    }
-                    else {
-                        nqp::die("No compile-time value for $final_name");
-                    }
+                    return self.force_value(%sym, $final_name, 1);
                 }
             }
         }
@@ -141,15 +136,10 @@ my class Symbols {
                 $i := $i - 1;
                 my %sym := @!block_stack[$i].symbol($first);
                 if +%sym {
-                    if nqp::existskey(%sym, 'value') {
-                        $result := %sym<value>;
-                        @name := nqp::clone(@name);
-                        @name.shift();
-                        $i := 0;
-                    }
-                    else {
-                        nqp::die("No compile-time value for $first");
-                    }
+                    $result := self.force_value(%sym, $first, 1);
+                    @name := nqp::clone(@name);
+                    @name.shift();
+                    $i := 0;
                 }
             }
         }
@@ -177,12 +167,7 @@ my class Symbols {
             my $block := @!block_stack[$i];
             my %sym := $block.symbol($name);
             if +%sym {
-                if nqp::existskey(%sym, 'value') {
-                    return %sym<value>;
-                }
-                else {
-                    nqp::die("Optimizer: No lexical compile time value for $name");
-                }
+                return self.force_value(%sym, $name, 1);
             }
         }
         nqp::die("Optimizer: No lexical $name found");
@@ -201,6 +186,19 @@ my class Symbols {
             }
         }
         0
+    }
+
+    # Forces a value to be made available.
+    method force_value(%sym, $key, int $die) {
+        if nqp::existskey(%sym, 'value') {
+            %sym<value>
+        }
+        elsif nqp::existskey(%sym, 'lazy_value_from') {
+            %sym<value> := nqp::atkey(nqp::atkey(%sym, 'lazy_value_from'), $key)
+        }
+        else {
+            $die ?? nqp::die("No compile-time value for $key") !! NQPMu
+        }
     }
 
     # Works out how many scopes in from the outermost a given name is. A 0
@@ -257,12 +255,7 @@ my class Symbols {
         }
         my %sym := $!SETTING.symbol($symbol);
         if +%sym {
-            if nqp::existskey(%sym, 'value') {
-                %!SETTING_CACHE{$symbol} := %sym<value>;
-                return %sym<value>;
-            } else {
-                nqp::die("Optimizer: cannot find $symbol in SETTING.");
-            }
+            return %!SETTING_CACHE{$symbol} := self.force_value(%sym, $symbol, 1);
         }
     }
 }

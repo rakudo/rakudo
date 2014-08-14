@@ -1279,21 +1279,24 @@ class Perl6::World is HLL::World {
         while $cur_block {
             my %symbols := $cur_block.symtable();
             for %symbols {
-                unless %seen{$_.key} {
+                my str $name := $_.key;
+                unless %seen{$name} {
                     # Add symbol.
-                    my %sym := $_.value;
-                    my $value := nqp::existskey(%sym, 'value') ?? %sym<value> !! $mu;
+                    my %sym   := $_.value;
+                    my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
+                        ?? self.force_value(%sym, $name, 0)
+                        !! $mu;
                     if nqp::isnull(nqp::getobjsc($value)) {
                         $value := self.try_add_to_sc($value, $mu);
                     }
                     $wrapper[0].push(QAST::Var.new(
-                        :name($_.key), :scope('lexical'),
+                        :name($name), :scope('lexical'),
                         :decl(%sym<state> ?? 'statevar' !! 'static'), :$value
                     ));
-                    $wrapper.symbol($_.key, :scope('lexical'));
+                    $wrapper.symbol($name, :scope('lexical'));
                     
                 }
-                %seen{$_.key} := 1;
+                %seen{$name} := 1;
             }
             $cur_block := $cur_block.ann('outer');
         }
@@ -2170,10 +2173,12 @@ class Perl6::World is HLL::World {
     # Checks if a symbol has already been declared in the current
     # scope, and thus may not be redeclared.
     method already_declared($scope, $curpackage, $curpad, @name) {
+        my str $first_name := ~@name[0];
         if $scope eq 'my' && +@name == 1 {
-            my %sym := $curpad.symbol(@name[0]);
+            my %sym := $curpad.symbol($first_name);
             if %sym {
-                return %sym<value>.HOW.HOW.name(%sym<value>.HOW) ne 'Perl6::Metamodel::PackageHOW';
+                my $value := self.force_value(%sym, $first_name, 0);
+                return $value.HOW.HOW.name($value.HOW) ne 'Perl6::Metamodel::PackageHOW';
             }
             return 0;
         }
@@ -2181,11 +2186,11 @@ class Perl6::World is HLL::World {
             # Does the current lexpad or package declare the first
             # part of the name? If not, we're in the clear.
             my $first_sym;
-            if $curpad.symbol(@name[0]) {
-                $first_sym := $curpad.symbol(@name[0])<value>;
+            if $curpad.symbol($first_name) {
+                $first_sym := self.force_value($curpad.symbol($first_name), $first_name, 0);
             }
-            elsif nqp::existskey($curpackage.WHO, @name[0]) {
-                $first_sym := ($curpackage.WHO){@name[0]};
+            elsif nqp::existskey($curpackage.WHO, $first_name) {
+                $first_sym := ($curpackage.WHO){$first_name};
             }
             else {
                 return 0;
@@ -2220,13 +2225,11 @@ class Perl6::World is HLL::World {
         sub walk_block($block) {
             my %symtable := $block.symtable();
             for %symtable -> $symp {
-                if nqp::existskey($symp.value, 'value') {
-                    my $val := $symp.value<value>;
-                    if (try nqp::istype($val, QAST::Block)) {
-                        return 0 if walk_block($val) == 0;
-                    } else {
-                        return 0 if $code($symp.key, $val, $symp.value) == 0;
-                    }
+                my $key := $symp.key;
+                my %sym := $symp.value;
+                if nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from') {
+                    my $val := self.force_value(%sym, $key, 0);
+                    return 0 if $code($key, $val, %sym) == 0;
                 }
             }
             1;
@@ -2261,12 +2264,7 @@ class Perl6::World is HLL::World {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($final_name);
                 if +%sym {
-                    if nqp::existskey(%sym, 'value') {
-                        return %sym<value>;
-                    }
-                    else {
-                        nqp::die("No compile-time value for $final_name");
-                    }
+                    return self.force_value(%sym, $final_name, 1);
                 }
             }
         }
@@ -2282,15 +2280,10 @@ class Perl6::World is HLL::World {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($first);
                 if +%sym {
-                    if nqp::existskey(%sym, 'value') {
-                        $result := %sym<value>;
-                        @name := nqp::clone(@name);
-                        @name.shift();
-                        $i := 0;
-                    }
-                    else {
-                        nqp::die("No compile-time value for $first");
-                    }                    
+                    $result := self.force_value(%sym, $first, 1);
+                    @name := nqp::clone(@name);
+                    @name.shift();
+                    $i := 0;
                 }
             }
         }
@@ -2493,10 +2486,24 @@ class Perl6::World is HLL::World {
             my %symbols := $cur_block.symtable();
             if nqp::existskey(%symbols, $name) {
                 my %sym := %symbols{$name};
+                self.force_value(%sym, $name, 0);
                 return nqp::existskey(%sym, 'value') && 
                     !nqp::isconcrete(%sym<value>) ?? 2 !! 1;
             }
             $cur_block := $cur_block.ann('outer');
+        }
+    }
+
+    # Forces a value to be made available.
+    method force_value(%sym, $key, int $die) {
+        if nqp::existskey(%sym, 'value') {
+            %sym<value>
+        }
+        elsif nqp::existskey(%sym, 'lazy_value_from') {
+            %sym<value> := nqp::atkey(nqp::atkey(%sym, 'lazy_value_from'), $key)
+        }
+        else {
+            $die ?? nqp::die("No compile-time value for $key") !! NQPMu
         }
     }
 

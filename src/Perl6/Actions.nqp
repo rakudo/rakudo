@@ -2519,7 +2519,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Do we have a proto in the current scope?
                 my $proto;
                 if $outer.symbol($name) {
-                    $proto := $outer.symbol($name)<value>;
+                    $proto := $*W.force_value($outer.symbol($name), $name, 0);
                 }
                 else {
                     unless $*SCOPE eq '' || $*SCOPE eq 'my' {

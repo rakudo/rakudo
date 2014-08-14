@@ -270,7 +270,7 @@ static MVMuint8 s_p6list[] = {
 };
 static void p6list(MVMThreadContext *tc, MVMuint8 *cur_op) {
      MVMObject *list = MVM_repr_alloc_init(tc, GET_REG(tc, 4).o);
-     if (MVM_6model_istype_cache_only(tc, list, List)) {
+     if (IS_CONCRETE(list) && MVM_6model_istype_cache_only(tc, list, List)) {
         MVMROOT(tc, list, {
             MVMObject *items = GET_REG(tc, 2).o;
             if (!MVM_is_null(tc, items)) {
@@ -282,7 +282,7 @@ static void p6list(MVMThreadContext *tc, MVMuint8 *cur_op) {
         GET_REG(tc, 0).o = list;
     }
     else {
-        MVM_exception_throw_adhoc(tc, "p6list may only be used on a List");
+        MVM_exception_throw_adhoc(tc, "p6list may only be used on a concrete List");
     }
 }
 
@@ -308,7 +308,7 @@ static MVMuint8 s_p6listitems[] = {
 };
 static void p6listitems(MVMThreadContext *tc, MVMuint8 *cur_op) {
      MVMObject *list = GET_REG(tc, 2).o;
-     if (MVM_6model_istype_cache_only(tc, list, List)) {
+     if (IS_CONCRETE(list) && MVM_6model_istype_cache_only(tc, list, List)) {
         MVMObject *items = ((Rakudo_List *)REAL_BODY(tc, list))->items;
         if (MVM_is_null(tc, items) || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
             MVMROOT(tc, list, {
@@ -319,7 +319,7 @@ static void p6listitems(MVMThreadContext *tc, MVMuint8 *cur_op) {
         GET_REG(tc, 0).o = items;
      }
      else {
-        MVM_exception_throw_adhoc(tc, "p6listitems may only be used on a List");
+        MVM_exception_throw_adhoc(tc, "p6listitems may only be used on a concrete List");
      }
 }
 

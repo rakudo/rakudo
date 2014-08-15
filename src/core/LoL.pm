@@ -38,6 +38,7 @@ class LoL { # declared in BOOTSTRAP
 
 }
 
+sub lol (**@l) { @l }
 
 sub infix:<X>(|lol) {
     my @l;

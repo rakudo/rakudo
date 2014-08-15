@@ -243,12 +243,27 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 
 # @a[;]
 multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, *%adv) is rw {
-    keys > 1 ?? SELF[keys[0].list].map({postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)}).eager
-             !! postcircumfix:<[ ]>(SELF, keys[0].list, |%adv);
+    if keys > 1 {
+        postcircumfix:<[ ]>(SELF, keys[0], :kv).map(-> \key, \value {
+            map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2), value2 } !!
+                %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
+                # .item so that recursive calls don't map the LoL's elems
+                %adv<k>  ?? { LoL.new(key, |$_).item } !!
+                *,
+            postcircumfix:<[ ]>(value, LoL.new(|keys[1..*]), |%adv);
+        }).eager;
+    } else {
+        postcircumfix:<[ ]>(SELF, keys[0], |%adv);
+    }
 }
 multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
-    keys > 1 ?? (SELF[keys[0].list].map({postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)}).eager.Parcel = assignee)
-             !! postcircumfix:<[ ]>(SELF, keys[0].list, assignee, |%adv);
+    if keys > 1 {
+        postcircumfix:<[ ]>(SELF, keys[0]).map({
+            postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)
+        }).eager.Parcel = assignee;
+    } else {
+        postcircumfix:<[ ]>(SELF, keys[0], assignee, |%adv);
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

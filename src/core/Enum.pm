@@ -43,6 +43,10 @@ my class Enum does Associative {
     method at_key($key) {
         $key eq $!key ?? $!value !! Mu
     }
+
+    method exists_key(Enum:D: $key) {
+        $key eq $!key
+    }
     
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() { nqp::hash($!key, $!value) }

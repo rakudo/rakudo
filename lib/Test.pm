@@ -262,7 +262,7 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
     return $ok;
 }
 
-sub throws_like($code, $ex_type, *%matcher) is export {
+sub throws_like($code, $ex_type, $reason?, *%matcher) is export {
     subtest {
         plan 2 + %matcher.keys;
         my $msg;
@@ -298,7 +298,7 @@ sub throws_like($code, $ex_type, *%matcher) is export {
                 }
             }
         }
-    }, "did we throws_like {$ex_type.^name}?";
+    }, $reason // "did we throws_like {$ex_type.^name}?";
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {

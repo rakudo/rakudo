@@ -46,10 +46,10 @@ role Perl6::Metamodel::InvocationProtocol {
     method multi_cache_attr_name($obj) { $!md_cache_attr_name }
     
     method compose_invocation($obj) {
-        # Check if we have a postcircumfix:<( )>, and if so install
+        # Check if we have a invoke, and if so install
         # the default invocation forwarder. Otherwise, see if we or
         # a parent has an invocation attr.
-        my $pcmeth := self.find_method($obj, 'postcircumfix:<( )>', :no_fallback(1));
+        my $pcmeth := self.find_method($obj, 'invoke', :no_fallback(1));
         if !nqp::isnull(pcmeth) && nqp::defined($pcmeth) {
             nqp::die('Default invocation handler is not invokable')
                 unless nqp::isinvokable($default_invoke_handler);

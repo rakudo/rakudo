@@ -38,7 +38,7 @@ my role Enumeration {
         self.value.Int
     }
 
-    method postcircumfix:<( )>(|) {
+    method invoke(|) {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).at_pos(0);
         nqp::istype($x, ::?CLASS)
             ?? $x

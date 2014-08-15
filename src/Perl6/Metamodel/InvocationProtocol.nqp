@@ -64,38 +64,40 @@ role Perl6::Metamodel::InvocationProtocol {
                 nqp::setinvokespec($obj, nqp::null(), nqp::null_s(),
                     $default_invoke_handler);
             }
-            for self.mro($obj) -> $class {
-                if nqp::can($class.HOW, 'has_invocation_attr') {
-                    if $class.HOW.has_invocation_attr($class) {
-                        nqp::setinvokespec($obj,
-                            $class.HOW.invocation_attr_class($class),
-                            $class.HOW.invocation_attr_name($class),
-                            nqp::null());
-                        last;
+            else {
+                for self.mro($obj) -> $class {
+                    if nqp::can($class.HOW, 'has_invocation_attr') {
+                        if $class.HOW.has_invocation_attr($class) {
+                            nqp::setinvokespec($obj,
+                                $class.HOW.invocation_attr_class($class),
+                                $class.HOW.invocation_attr_name($class),
+                                nqp::null());
+                            last;
+                        }
+                    }
+                    if nqp::can($class.HOW, 'has_invocation_handler') {
+                        if $class.HOW.has_invocation_handler($class) {
+                            nqp::setinvokespec($obj,
+                                nqp::null(), nqp::null_s(),
+                                $class.HOW.invocation_handler($class));
+                            last;
+                        }
                     }
                 }
-                if nqp::can($class.HOW, 'has_invocation_handler') {
-                    if $class.HOW.has_invocation_handler($class) {
-                        nqp::setinvokespec($obj,
-                            nqp::null(), nqp::null_s(),
-                            $class.HOW.invocation_handler($class));
-                        last;
-                    }
-                }
-            }
 #?if moar
-            for self.mro($obj) -> $class {
-                if nqp::can($class.HOW, 'has_multi_invocation_attrs') {
-                    if $class.HOW.has_multi_invocation_attrs($class) {
-                        nqp::setmultispec($obj,
-                            $class.HOW.multi_attr_class($class),
-                            $class.HOW.multi_valid_attr_name($class),
-                            $class.HOW.multi_cache_attr_name($class));
-                        last;
+                for self.mro($obj) -> $class {
+                    if nqp::can($class.HOW, 'has_multi_invocation_attrs') {
+                        if $class.HOW.has_multi_invocation_attrs($class) {
+                            nqp::setmultispec($obj,
+                                $class.HOW.multi_attr_class($class),
+                                $class.HOW.multi_valid_attr_name($class),
+                                $class.HOW.multi_cache_attr_name($class));
+                            last;
+                        }
                     }
                 }
-            }
 #?endif
+            }
         }
     }
 }

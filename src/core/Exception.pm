@@ -1541,4 +1541,10 @@ my class X::Caller::NotDynamic is Exception {
     0;
 }
 
+my class X::HyperWhatever::Multiple is Exception {
+    method message() {
+        "Multiple HyperWhatevers and Whatevers may not be used together"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

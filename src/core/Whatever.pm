@@ -5,7 +5,7 @@ my class Whatever {
     multi method perl(Whatever:D:) { '*' }
 }
 
-my class HyperWhatever is Whatever {
+my class HyperWhatever {
     multi method ACCEPTS(HyperWhatever:D: $topic) { True }
     method new() { nqp::create(self) }
 

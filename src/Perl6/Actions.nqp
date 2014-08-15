@@ -6859,10 +6859,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                    +@($check) == 1;
             $whatevers++ if istype($check.returns, $WhateverCode)
                             || $curried > 1 && istype($check.returns, $Whatever);
-            $hyperwhatever := 1 if istype($check.returns, $HyperWhatever);
+            if $curried > 1 && istype($check.returns, $HyperWhatever) {
+                $hyperwhatever := 1;
+                $whatevers++;
+            }
             $i++;
         }
         if $whatevers {
+            if $hyperwhatever && $whatevers > 1 {
+                $*W.throw($/, ['X', 'HyperWhatever', 'Multiple']);
+            }
             my $was_chain := $past.op eq 'chain' ?? $past.name !! NQPMu;
             my int $i := 0;
             my @params;
@@ -6911,7 +6917,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     $past[$i] := $new;
                 }
-                elsif $curried > 1 && istype($old.returns, $Whatever) {
+                elsif $curried > 1 && (istype($old.returns, $Whatever) || istype($old.returns, $HyperWhatever)) {
                     my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
                     @params.push(hash(
                         :variable_name($pname),

@@ -2810,10 +2810,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.blocktype('declaration_static');
 
         my $name;
-        if $<longname> {
-            my $longname := $*W.dissect_longname($<longname>);
-            $name := $longname.name(:dba('method name'),
-                            :decl<routine>, :with_adverbs);
+        if $<longname> -> $ln {
+            if $ln<colonpair> {
+                $name := ~$ln<name>;
+                if $ln<colonpair>[0] {
+                    $name := $name ~ ':';
+                }
+                if $ln<colonpair>[0]<identifier> {
+                    $name := $name ~ ~$ln<colonpair>[0]<identifier>;
+                }
+                if $ln<colonpair>[0]<coloncircumfix> -> $cf {
+                    if $cf<circumfix> -> $op_name {
+                        $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($ln, $op_name<nibble>) ~ '>';
+                    }
+                    else {
+                        $name := $name ~ '<>';
+                    }
+                }
+            }
+            else {
+                my $longname := $*W.dissect_longname($<longname>);
+                $name := $longname.name(:dba('method name'), :decl<routine>);
+            }
         }
         elsif $<sigil> {
             if $<sigil> eq '@'    { $name := 'postcircumfix:<[ ]>' }

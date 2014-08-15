@@ -212,6 +212,14 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$v!, *%other) is rw {
    SLICE_MORE( SELF, SELF.keys, True, :$v, |%other );
 }
 
+# @a[**]
+multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever ) is rw {
+    X::NYI.new(feature => 'HyperWhatever in array index')
+}
+multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever, Mu \assignee ) is rw {
+    X::NYI.new(feature => 'HyperWhatever in array index')
+}
+
 # @a[]
 multi sub postcircumfix:<[ ]>( \SELF ) is rw {
     SELF.list;
@@ -243,12 +251,28 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 
 # @a[;]
 multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, *%adv) is rw {
-    keys > 1 ?? SELF[keys[0].list].map({postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)}).eager
-             !! postcircumfix:<[ ]>(SELF, keys[0].list, |%adv);
+    if keys > 1 {
+        X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
+            if keys[0].isa(HyperWhatever);
+
+        SELF[keys[0].list].map({
+            postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)
+        }).eager;
+    } else {
+         postcircumfix:<[ ]>(SELF, keys[0].list, |%adv);
+    }
 }
 multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
-    keys > 1 ?? (SELF[keys[0].list].map({postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)}).eager.Parcel = assignee)
-             !! postcircumfix:<[ ]>(SELF, keys[0].list, assignee, |%adv);
+    if keys > 1 {
+        X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
+            if keys[0].isa(HyperWhatever);
+
+        SELF[keys[0].list].map({
+            postcircumfix:<[ ]>($_, LoL.new(|keys[1..*]), |%adv)
+        }).eager.Parcel = assignee;
+    } else {
+         postcircumfix:<[ ]>(SELF, keys[0].list, assignee, |%adv);
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

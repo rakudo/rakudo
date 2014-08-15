@@ -1599,7 +1599,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<regex_declarator>   { <regex_declarator> }
     token term:sym<circumfix>          { <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }
-    token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
+    token term:sym<**>                 { <sym> }
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> if nqp::ishash($*BORG)} }
     token term:sym<type_declarator>    { <type_declarator> }

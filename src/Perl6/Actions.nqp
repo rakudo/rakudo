@@ -4447,6 +4447,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         )
     }
 
+    method term:sym<**>($/) {
+        my $hw := $*W.find_symbol(['HyperWhatever']);
+        make QAST::Op.new(
+            :op('callmethod'), :name('new'), :node($/), :returns($hw),
+            QAST::Var.new( :name('HyperWhatever'), :scope('lexical') )
+        )
+    }
+
     method term:sym<capterm>($/) {
         make $<capterm>.ast;
     }

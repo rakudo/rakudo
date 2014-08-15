@@ -14,6 +14,8 @@ sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
     } ).eager.Parcel;
 }
 
+my class X::NYI { ... }
+
 proto sub postcircumfix:<[ ]>(|) { * }
 
 # @a[1]
@@ -213,12 +215,12 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$v!, *%other) is rw {
 }
 
 # @a[**]
-#multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever $) is rw {
-#    X::NYI.new(feature => 'HyperWhatever in array index')
-#}
-#multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever $, Mu \assignee ) is rw {
-#    X::NYI.new(feature => 'HyperWhatever in array index')
-#}
+multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever $, *%adv) is rw {
+    X::NYI.new(feature => 'HyperWhatever in array index').throw;
+}
+multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever $, Mu \assignee, *%adv) is rw {
+    X::NYI.new(feature => 'HyperWhatever in array index').throw;
+}
 
 # @a[]
 multi sub postcircumfix:<[ ]>( \SELF ) is rw {

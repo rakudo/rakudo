@@ -2607,7 +2607,7 @@ BEGIN {
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
-            if !nqp::isconcrete($self) && !nqp::can($self, 'invoke') {
+            if !nqp::isconcrete($self) && !nqp::can($self, 'invoke') && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
                 nqp::die("Cannot coerce to $coercer_name with named parameters")
                   if +%named;
@@ -2624,7 +2624,7 @@ BEGIN {
                 my $c := nqp::create(Capture);
                 nqp::bindattr($c, Capture, '$!list', @pos);
                 nqp::bindattr($c, Capture, '$!hash', %named);
-                $self.invoke($c);
+                nqp::can($self, 'invoke') ?? $self.invoke($c) !! $self.postcircumfix:<( )>($c);
             }
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);

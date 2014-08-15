@@ -261,7 +261,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $<colonpair>[0]<coloncircumfix> -> $cf {
                 if $cf<circumfix> -> $op_name {
-                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name<nibble>) ~ '>';
+                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str(
+                        $/, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>) ~ '>';
                 }
                 else {
                     $name := $name ~ '<>';
@@ -2821,7 +2822,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 if $ln<colonpair>[0]<coloncircumfix> -> $cf {
                     if $cf<circumfix> -> $op_name {
-                        $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($ln, $op_name<nibble>) ~ '>';
+                        $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str(
+                            $ln, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>) ~ '>';
                     }
                     else {
                         $name := $name ~ '<>';

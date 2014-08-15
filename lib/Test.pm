@@ -271,7 +271,7 @@ sub throws_like($code, $ex_type, *%matcher) is export {
             $code()
         } else {
             $msg = "'$code' died";
-            EVAL $code;
+            EVAL $code, :context(CALLER::CALLER::CALLER::CALLER::);
         }
         ok 0, $msg;
         skip 'Code did not die, can not check exception', 1 + %matcher.elems;

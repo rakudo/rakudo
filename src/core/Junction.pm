@@ -55,7 +55,7 @@ my class Junction { # declared in BOOTSTRAP
         $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
     }
     
-    method postcircumfix:<( )>($c) {
+    method invoke($c) {
         self.AUTOTHREAD(
             -> $obj, |c { $obj(|c) },
             self, |$c);

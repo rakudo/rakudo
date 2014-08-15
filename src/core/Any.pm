@@ -17,8 +17,12 @@ my class Any { # declared in BOOTSTRAP
         DEPRECATED("the :exists adverb");
         False;
     }
-    method exists_key(Any:U: $key) { False }
-    method exists_pos(Any:U: $pos) { False }
+
+    method exists_key($key) { False }
+    proto method exists_pos(|) { * }
+    multi method exists_pos(Any:U: $pos) { False }
+    multi method exists_pos(Any:D: $pos) { $pos == 0 }
+
     method delete (Any:U: $key) {  # is DEPRECATED doesn't work in settings
         DEPRECATED("the :delete adverb");
         Nil;

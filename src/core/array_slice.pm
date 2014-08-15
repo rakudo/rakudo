@@ -213,12 +213,12 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$v!, *%other) is rw {
 }
 
 # @a[**]
-multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever ) is rw {
-    X::NYI.new(feature => 'HyperWhatever in array index')
-}
-multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever, Mu \assignee ) is rw {
-    X::NYI.new(feature => 'HyperWhatever in array index')
-}
+#multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever $) is rw {
+#    X::NYI.new(feature => 'HyperWhatever in array index')
+#}
+#multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever $, Mu \assignee ) is rw {
+#    X::NYI.new(feature => 'HyperWhatever in array index')
+#}
 
 # @a[]
 multi sub postcircumfix:<[ ]>( \SELF ) is rw {

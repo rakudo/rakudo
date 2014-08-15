@@ -6828,6 +6828,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub whatever_curry($/, $past, $upto_arity) {
         my $Whatever := $*W.find_symbol(['Whatever']);
         my $WhateverCode := $*W.find_symbol(['WhateverCode']);
+        my $HyperWhatever := $*W.find_symbol(['HyperWhatever']);
         my $curried :=
             # It must be an op and...
             nqp::istype($past, QAST::Op) && (
@@ -6850,6 +6851,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         my int $i := 0;
         my int $whatevers := 0;
+        my int $hyperwhatever := 0;
         while $curried && $i < $upto_arity {
             my $check := $past[$i];
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) || 
@@ -6857,6 +6859,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                    +@($check) == 1;
             $whatevers++ if istype($check.returns, $WhateverCode)
                             || $curried > 1 && istype($check.returns, $Whatever);
+            $hyperwhatever := 1 if istype($check.returns, $HyperWhatever);
             $i++;
         }
         if $whatevers {
@@ -6935,6 +6938,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.annotate('chain_args', @params);
                 $past.annotate('chain_name', $was_chain);
                 $past.annotate('chain_block', $block);
+            }
+            if $hyperwhatever {
+                $past := QAST::Op.new( :op<call>, :name<&HYPERWHATEVER>, $past );
             }
         }
         $past

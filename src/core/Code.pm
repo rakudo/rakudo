@@ -14,7 +14,7 @@ my class Code does Callable { # declared in BOOTSTRAP
     
     method signature(Code:D:) { $!signature }
     
-    multi method Str(Code:D:) { warn("Code object coerced to string (please use .gist or .perl to do that"); self.name }
+    multi method Str(Code:D:) { warn("Code object coerced to string (please use .gist or .perl to do that)"); self.name }
 
     method outer(Code:D:) {
         nqp::ifnull(nqp::getcodeobj(nqp::p6staticouter($!do)), Mu)

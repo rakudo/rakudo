@@ -1833,7 +1833,7 @@ BEGIN {
                     $i++;
                 }
                 if $rem_results == nqp::elems(@result) {
-                    nqp::die("Circularity detected in multi sub types");
+                    nqp::die("Circularity detected in multi sub types" ~ ($self.name ?? " for &" ~ $self.name !! ''));
                 }
 
                 # Now we need to decrement edges in counts for things that had

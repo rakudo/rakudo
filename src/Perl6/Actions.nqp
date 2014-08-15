@@ -3506,6 +3506,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ($*SCOPE || 'our'), 'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }
 
+        # Document it
+        Perl6::Pod::document($/, $subset, $*DOCEE, :leading);
+        if ~$*DOCEE ne '' {
+            $*DOCEE.set_docee($subset);
+        }
+        # Set it up for trailing declarations
+        $*PRECEDING_DECL := $subset;
+
         # We evaluate to the refinement type object.
         make QAST::WVal.new( :value($subset) );
     }

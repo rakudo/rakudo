@@ -2861,6 +2861,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule type_declarator:sym<subset> {
         <sym><.end_keyword> :my $*IN_DECL := 'subset';
+        :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*DOCEE;
+        :my $*DECLARAND;
+        {
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+            if $*PRECEDING_DECL_LINE < $line_no {
+                $*PRECEDING_DECL_LINE := $line_no;
+                $*PRECEDING_DECL      := Mu; # actual declarand comes later, in Actions::type_declarator:sym<subset>
+            }
+        }
+        <.attach_docs>
         [
             [
                 [

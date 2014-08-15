@@ -1531,7 +1531,7 @@ class Perl6::Optimizer {
     sub multi_sig_list($dispatcher) {
         my @sigs := ["    Expected any of:"];
         for $dispatcher.dispatchees {
-            @sigs.push("    " ~ $_.signature.perl);
+            @sigs.push("\n    " ~ $_.signature.perl);
         }
         @sigs
     }

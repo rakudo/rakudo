@@ -135,24 +135,25 @@ multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
 multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
     if keys > 1 {
         postcircumfix:<{ }>(SELF, keys[0], :kv).map(-> \key, \value {
-            map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2), value2 } !!
-                %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
-                # .item so that recursive calls don't map the LoL's elems
-                %adv<k>  ?? { LoL.new(key, |$_).item } !!
-                *,
-            postcircumfix:<{ }>(value, LoL.new(|keys[1..*]), |%adv);
-        }).eager;
+            if [||] %adv<kv p k> {
+                map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2), value2 } !!
+                    %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
+                    # .item so that recursive calls don't map the LoL's elems
+                    %adv<k>  ?? { LoL.new(key, |$_).item } !!
+                    *, postcircumfix:<{ }>(value, LoL.new(|keys[1..*]), |%adv);
+            } else {
+                postcircumfix:<{ }>(value, LoL.new(|keys[1..*]), |%adv);
+            }
+        }).eager.Parcel;
     } else {
-        postcircumfix:<{ }>(SELF, keys[0], |%adv);
+        postcircumfix:<{ }>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);
     }
 }
 multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
     if keys > 1 {
-        postcircumfix:<{ }>(SELF, keys[0]).map({
-            postcircumfix:<{ }>($_, LoL.new(|keys[1..*]), |%adv);
-        }).eager.Parcel = assignee;
+        postcircumfix:<{ }>(SELF, keys, |%adv) = assignee;
     } else {
-        postcircumfix:<{ }>(SELF, keys[0].list, assignee, |%adv);
+        postcircumfix:<{ }>(SELF, keys[0], assignee, |%adv);
     }
 }
 

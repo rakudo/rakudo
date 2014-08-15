@@ -206,11 +206,11 @@ multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
     return $ok;
 }
 
-multi sub dies_ok($code, $reason = '') is export {
+multi sub dies_ok(Callable $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $death = 1;
     try {
-        $code ~~ Callable ?? $code() !! EVAL $code;
+        $code();
         $death = 0;
     }
     my $ok = proclaim( $death, $reason );
@@ -218,10 +218,10 @@ multi sub dies_ok($code, $reason = '') is export {
     return $ok;
 }
 
-multi sub lives_ok($code, $reason = '') is export {
+multi sub lives_ok(Callable $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     try {
-        $code ~~ Callable ?? $code() !! EVAL $code;
+        $code();
     }
     my $ok = proclaim((not defined $!), $reason) or diag($!);
     $time_before = nqp::p6box_n(nqp::time_n);

@@ -32,7 +32,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_DEFINED_ONLY       = 131072;
 
     method name() {
-        $!variable_name
+        nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
     
     method constraint_list() {

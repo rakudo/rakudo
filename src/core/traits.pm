@@ -361,6 +361,26 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                         }
                         0;
                     }
+                    elsif $expr.isa(Whatever) {
+                        $pkg.HOW.add_fallback($pkg,
+                            -> $obj, $name {
+                                so $attr.get_value($obj).can($name);
+                            },
+                            -> $obj, $name {
+                                -> $self, |c {
+                                    $attr.get_value($self)."$name"(|c)
+                                }
+                            });
+                    }
+                    elsif $expr.isa(HyperWhatever) {
+                        $pkg.HOW.add_fallback($pkg,
+                            -> $obj, $name { True },
+                            -> $obj, $name {
+                                -> $self, |c {
+                                    $attr.get_value($self)."$name"(|c)
+                                }
+                            });
+                    }
                     else {
                         $pkg.HOW.add_fallback($pkg,
                             -> $obj, $name {

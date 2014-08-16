@@ -2,19 +2,29 @@
 # putting the traits directly on the op bodies, since some of the things that
 # the traits are implemented using aren't defined that early.
 BEGIN {
-    my Mu $methodcall     := nqp::hash('prec', 'y=');
-    my Mu $autoincrement  := nqp::hash('prec', 'x=');
-    my Mu $exponentiation := nqp::hash('prec', 'w=');
-    my Mu $symbolic_unary := nqp::hash('prec', 'v=');
-    my Mu $multiplicative := nqp::hash('prec', 'u=');
-    my Mu $additive       := nqp::hash('prec', 't=');
-    my Mu $replication    := nqp::hash('prec', 's=');
-    my Mu $concatenation  := nqp::hash('prec', 'r=');
-    my Mu $junctive_and   := nqp::hash('prec', 'q=');
-    my Mu $junctive_or    := nqp::hash('prec', 'p=');
-    my Mu $structural     := nqp::hash('prec', 'n=');
-    my Mu $chaining       := nqp::hash('prec', 'm=', 'iffy', 1, 'pasttype', 'chain');
-    my Mu $iffy           := nqp::hash('prec', 'u=', 'iffy', 1);
+    my Mu $methodcall       := nqp::hash('prec', 'y=');
+    my Mu $autoincrement    := nqp::hash('prec', 'x=');
+    my Mu $exponentiation   := nqp::hash('prec', 'w=');
+    my Mu $symbolic_unary   := nqp::hash('prec', 'v=');
+    my Mu $multiplicative   := nqp::hash('prec', 'u=');
+    my Mu $iffy             := nqp::hash('prec', 'u=', 'iffy', 1);
+    my Mu $additive         := nqp::hash('prec', 't=');
+    my Mu $replication      := nqp::hash('prec', 's=');
+    my Mu $concatenation    := nqp::hash('prec', 'r=');
+    my Mu $junctive_and     := nqp::hash('prec', 'q=');
+    my Mu $junctive_or      := nqp::hash('prec', 'p=');
+    my Mu $structural       := nqp::hash('prec', 'n=');
+    my Mu $chaining         := nqp::hash('prec', 'm=', 'iffy', 1, 'pasttype', 'chain');
+    my Mu $tight_and        := nqp::hash('prec', 'l=');
+    my Mu $tight_or         := nqp::hash('prec', 'k=');
+    my Mu $conditional      := nqp::hash('prec', 'j=', 'iffy', 1);
+    my Mu $item_assignment  := nqp::hash('prec', 'i=');
+    my Mu $loose_unary      := nqp::hash('prec', 'h=');
+    my Mu $comma            := nqp::hash('prec', 'g=');
+    my Mu $list_infix       := nqp::hash('prec', 'f=');
+    my Mu $list_prefix      := nqp::hash('prec', 'e=');
+    my Mu $loose_and        := nqp::hash('prec', 'd=');
+    my Mu $loose_or         := nqp::hash('prec', 'c=');
 
     trait_mod:<is>(&postfix:<i>, :prec($methodcall));
 
@@ -124,6 +134,40 @@ BEGIN {
     trait_mod:<is>(&infix:<cmp>,  :prec($structural));
     trait_mod:<is>(&infix:<but>,  :prec($structural));
     trait_mod:<is>(&infix:<does>, :prec($structural));
+
+    trait_mod:<is>(&infix:<&&>, :prec($tight_and));
+
+    trait_mod:<is>(&infix:<||>,  :prec($tight_or));
+    trait_mod:<is>(&infix:<^^>,  :prec($tight_or));
+    trait_mod:<is>(&infix:<//>,  :prec($tight_or));
+    trait_mod:<is>(&infix:<min>, :prec($tight_or));
+    trait_mod:<is>(&infix:<max>, :prec($tight_or));
+
+    #trait_mod:<is>(&infix:<ff>,  :prec($conditional));
+    #trait_mod:<is>(&infix:<fff>, :prec($conditional));
+
+    trait_mod:<is>(&infix:<< => >>, :prec($item_assignment));
+
+    trait_mod:<is>(&prefix:<so>,   :prec($loose_unary));
+    trait_mod:<is>(&prefix:<not>,  :prec($loose_unary));
+
+    trait_mod:<is>(&infix:<,>, :prec($comma));
+
+    trait_mod:<is>(&infix:<Z>,      :prec($list_infix));
+    trait_mod:<is>(&infix:<X>,      :prec($list_infix));
+    trait_mod:<is>(&infix:<...>,    :prec($list_infix));
+    trait_mod:<is>(&infix:<minmax>, :prec($list_infix));
+
+    trait_mod:<is>(&infix:<=>,   :prec($list_prefix));
+    #trait_mod:<is>(&infix:<:=>,  :prec($list_prefix));
+    #trait_mod:<is>(&infix:<::=>, :prec($list_prefix));
+
+    trait_mod:<is>(&infix:<and>,     :prec($loose_and));
+    trait_mod:<is>(&infix:<andthen>, :prec($loose_and));
+
+    trait_mod:<is>(&infix:<or>,     :prec($loose_or));
+    trait_mod:<is>(&infix:<xor>,    :prec($loose_or));
+    trait_mod:<is>(&infix:<orelse>, :prec($loose_or));
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -130,7 +130,7 @@ my class Any { # declared in BOOTSTRAP
     # auto-vivifying
     proto method push(|) { * }
     multi method push(Any:U \SELF: *@values) {
-        SELF = Array.new;
+        SELF = SELF.WHAT.new;
         SELF.push(@values);
     }
 

@@ -8,7 +8,7 @@
 # Each of them results in a type object that has a HOW of type
 # Perl6::Metamodel::ParametricRoleHOW. In here, we keep the whole
 # group of those, and know how to specialize to a certain parameter
-# list by multi-dispatching over the set of possibilities to pick
+# list by multi-dispatching over the set of candidates to pick
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
@@ -17,7 +17,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::BoolificationProtocol
 {
-    has @!possibilities;
+    has @!candidates;
     has @!add_to_selector;
     has $!selector;
     has @!role_typecheck_list;
@@ -54,7 +54,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
     
     method add_possibility($obj, $possible) {
-        @!possibilities[+@!possibilities] := $possible;
+        @!candidates[+@!candidates] := $possible;
         @!add_to_selector[+@!add_to_selector] := $possible;
         self.update_role_typecheck_list($obj);
     }
@@ -90,7 +90,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
     
     method update_role_typecheck_list($obj) {
-        for @!possibilities {
+        for @!candidates {
             if !$_.HOW.signatured($_) {
                 @!role_typecheck_list := $_.HOW.role_typecheck_list($_);
             }

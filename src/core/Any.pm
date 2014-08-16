@@ -115,9 +115,7 @@ my class Any { # declared in BOOTSTRAP
     multi method tree(Any:D: Whatever ) { self.tree }
     multi method tree(Any:D: Cool $count as Int) {
         self ~~ Positional && $count > 0
-            ?? $count > 1
-                ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
-                !! self.lol
+            ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
             !! self
     }
     multi method tree(Any:D: *@ [&first, *@rest]) {

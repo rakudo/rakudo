@@ -17,7 +17,7 @@ class LoL { # declared in BOOTSTRAP
     }
 
     multi method perl(LoL:D \SELF:) {
-        self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
+        'lol(' ~ self.map({.perl}).join(', ') ~ ')'
             ~ ('.item' if nqp::iscont(SELF));
     }
 

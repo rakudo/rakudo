@@ -118,4 +118,6 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         }
         0;
     }
+
+    method candidates($obj) { nqp::clone(@!candidates) }
 }

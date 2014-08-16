@@ -107,16 +107,24 @@ my class Any { # declared in BOOTSTRAP
 
     proto method tree(|) { * }
     multi method tree(Any:U:) { self }
-    multi method tree(Any:D:) { self.lol }
-    multi method tree(Any:D: Cool $count as Int) {
-        $count > 1
-          ?? MapIter.new(self.list, { .tree($count-1).item }, Mu).list
-          !! $count == 1
-             ?? self.lol
-             !! self
+    multi method tree(Any:D:) {
+        self ~~ Positional
+            ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
+            !! self
     }
-    multi method tree(Any:D: &c) {
-        MapIter.new(self.list, { .&c.item }, Mu).list
+    multi method tree(Any:D: Whatever ) { self.tree }
+    multi method tree(Any:D: Cool $count as Int) {
+        self ~~ Positional && $count > 0
+            ?? $count > 1
+                ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
+                !! self.lol
+            !! self
+    }
+    multi method tree(Any:D: *@ [&first, *@rest]) {
+        self ~~ Positional
+            ?? @rest ?? first MapIter.new(self.list, { .tree(|@rest) }, Mu).list
+                     !! first self.list
+            !! self
     }
 
     method Array() { Array.new(self.flat) }

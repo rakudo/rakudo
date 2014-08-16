@@ -69,29 +69,6 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method flattens() { $!flattens }
 
-    my &itemify = { .elems == 1 ?? $_ !! [.list] };
-    proto method tree(|) {*}
-    multi method tree(List:U:) { self }
-    multi method tree(List:D:) {
-        MapIter.new(self, &itemify, Mu).list;
-    }
-    multi method tree(List:D: Cool $count as Int) {
-           $count <= 0 ?? self
-        !! $count == 1 ?? self.tree
-        !!  MapIter.new(
-                self,
-                {.elems == 1 ?? $_ !! [.tree($count - 1)]},
-                Mu
-            ).list;
-    }
-    multi method tree(List:D: &c) {
-        MapIter.new(self, &c, Mu).list;
-    }
-    # uncommenting causes "Circularity detected in multi sub types"
-#    multi method tree(List:D: *@ [$first, *@rest] where {.elems >= 2 }) {
-#        MapIter.new(:list(self), :block(*.list(|@rest))).list.tree($first)
-#    }
-
     method Capture() {
         self.gimme(*);
         my $cap := nqp::create(Capture);

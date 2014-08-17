@@ -65,6 +65,7 @@ sub infix:<X>(|lol) {
 
 sub infix:<Z>(|lol) {
     my $arity = lol.elems;
+    return if $arity == 0;
     my @l = eager for ^$arity -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 

@@ -173,7 +173,7 @@ my class Parameter { # declared in BOOTSTRAP
             $perl ~= ':U';
         }
         $perl ~= " ::$_" for @($.type_captures);
-        my $name = $!variable_name || '';
+        my $name = $.name;
         if $!flags +& $SIG_ELEM_IS_CAPTURE {
             $name = '|' ~ $name;
         } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
@@ -214,7 +214,7 @@ my class Parameter { # declared in BOOTSTRAP
             $sig ~~ s/^^ ':'//;
             $rest ~= ' ' ~ $sig;
         }
-        if $name ne '$' or $rest {
+        if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
             $perl ~~ s/^^ \s* Mu \s+//;
         }

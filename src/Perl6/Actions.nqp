@@ -822,14 +822,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Should produce a LoL, with most uses converted to actually statementlist
     method semilist($/) {
-        my $past := QAST::Stmts.new( :node($/) );
+	my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
-            for $<statement> { $past.push($_.ast) if $_.ast; }
+            if $<statement> > 1 {
+                my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
+                for $<statement> {
+                    $l.push($_.ast);
+                }
+                $past.push(QAST::Op.new( :name('lol'), :op('callmethod'), $l));
+            }
+	    else {
+		$past.push($<statement>[0].ast);
+	    }
         }
-        unless +@($past) {
-            $past.push( QAST::Op.new( :op('call'), :name('&infix:<,>') ) );
-        }
-        make $past;
+	unless +@($past) {
+	    $past := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+	}
+
+	make $past;
     }
 
     method statement($/, $key?) {
@@ -4635,19 +4645,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<value>($/) { make $<value>.ast; }
 
     method circumfix:sym<( )>($/) {
-        my $past := $<semilist>.ast;
-        my $size := +$past.list;
-        if $size == 0 {
-            $past := QAST::Op.new( :op('call'), :name('&infix:<,>') );
-        }
-        else {
-            my $last := $past[ $size - 1 ];
-            $past.returns($last.returns);
-            if nqp::istype($last, QAST::Block) {
-                $past.arity($last.arity);
-            }
-        }
-        make $past;
+        make $<semilist>.ast;
     }
 
     method circumfix:sym<ang>($/) { make $<nibble>.ast; }
@@ -5520,35 +5518,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
-        # Should eventually be $past.push($<semilist>.ast) if $<semilist><statement>
-        if $<semilist><statement> {
-            if $<semilist><statement> > 1 {
-                my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
-                for $<semilist><statement> {
-                    $l.push($_.ast);
-                }
-                $past.push(QAST::Op.new( :name('lol'), :op('callmethod'), $l));
-            } else {
-                $past.push($<semilist>.ast);
-            }
-        }
+        $past.push($<semilist>.ast);
         make $past;
     }
 
     method postcircumfix:sym<{ }>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
-        # Should eventually be $past.push($<semilist>.ast) if $<semilist><statement>
-        if $<semilist><statement> {
-            if $<semilist><statement> > 1 {
-                my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
-                for $<semilist><statement> {
-                    $l.push($_.ast);
-                }
-                $past.push(QAST::Op.new( :name('lol'), :op('callmethod'), $l));
-            } else {
-                $past.push($<semilist>.ast);
-            }
-        }
+        $past.push($<semilist>.ast);
         make $past;
     }
 

@@ -21,7 +21,7 @@ class GatherIter is Iterator {
         }
         $state := {
             nqp::handle( $block().eager(),
-                'TAKE', ($takings := nqp::getpayload(nqp::exception()); yield(); nqp::resume(nqp::exception())));
+                'TAKE', do { $takings := nqp::getpayload(nqp::exception()); yield(); nqp::resume(nqp::exception())});
             $takings := $SENTINEL; yield();
         };
         my $coro := { nqp::continuationreset($GATHER_PROMPT, $state); $takings };

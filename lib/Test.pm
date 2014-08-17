@@ -178,16 +178,15 @@ sub subtest(&subtests, $desc = '') is export {
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
-    $indents = $indents.chop(4);
+    $indents .= chop(4);
     proclaim($status,$desc);
 }
 
 sub diag(Mu $message) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    $*ERR.print: $indents;
     my $str-message = $message.Str.subst(rx/^^/, '# ', :g);
     $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
-    $*ERR.say: $str-message;
+    $*ERR.say: $indents ~ $str-message;
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 
@@ -273,11 +272,11 @@ sub throws_like($code, $ex_type, $reason?, *%matcher) is export {
             $msg = "'$code' died";
             EVAL $code;
         }
-        ok 0, $msg;
+        flunk $msg;
         skip 'Code did not die, can not check exception', 1 + %matcher.elems;
         CATCH {
             default {
-                ok 1, $msg;
+                pass $msg;
                 my $type_ok = $_ ~~ $ex_type;
                 ok $type_ok , "right exception type ({$ex_type.^name})";
                 if $type_ok {

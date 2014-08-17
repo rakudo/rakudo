@@ -611,10 +611,10 @@ my class X::Undeclared::Symbols does X::Comp {
     has %.unk_routines;
     has %.routine_suggestion;
     has %.type_suggestion;
-    multi method gist(X::Undeclared::Symbols:D :$sorry = True) {
+    multi method gist(X::Undeclared::Symbols:D: :$sorry = True) {
         ($sorry ?? self.sorry_heading() !! "") ~ self.message
     }
-    method message(X::Undeclared::Symbols:D) {
+    method message(X::Undeclared::Symbols:D:) {
         sub l(@l) {
             my @lu = @l.map({ nqp::hllize($_) }).uniq.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')

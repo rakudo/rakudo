@@ -22,22 +22,10 @@ my $die_on_fail;
 my $time_before;
 my $time_after;
 
-# handles
-my $output         = $*OUT;
-my $failure_output = $*ERR;
-my $todo_output    = $*OUT;
-
-try {
-    # XXX do this with dup or an analogous cross-platform construct
-    # XXX these should probably have :autoflush
-    my $output_h         = open('/dev/stdout', :w);
-    my $failure_output_h = open('/dev/stderr', :w);
-    my $todo_output_h    = open('/dev/stdout', :w);
-
-    ( $output, $failure_output, $todo_output ) = ( $output_h, $failure_output_h, $todo_output_h );
-
-    CATCH {}
-}
+# Output should always go to real stdout/stderr, not to any dynamic overrides.
+my $output         = $PROCESS::OUT;
+my $failure_output = $PROCESS::ERR;
+my $todo_output    = $PROCESS::OUT;
 
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use

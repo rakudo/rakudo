@@ -836,7 +836,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 	    }
         }
 	unless +@($past) {
-	    $past := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+	    $past := QAST::Op.new( :op('call'), :name('&infix:<,>'));
 	}
 
 	make $past;
@@ -5545,13 +5545,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
-        $past.push($<semilist>.ast);
+	if $<semilist> {
+	    my $ast := $<semilist>.ast;
+	    $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+	}
         make $past;
     }
 
     method postcircumfix:sym<{ }>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
-        $past.push($<semilist>.ast);
+	if $<semilist> {
+	    my $ast := $<semilist>.ast;
+	    $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+	}
         make $past;
     }
 

@@ -822,7 +822,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Should produce a LoL, with most uses converted to actually statementlist
     method semilist($/) {
-	my $past := QAST::Stmts.new( :node($/) );
+        my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
             if $<statement> > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
@@ -831,15 +831,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 $past.push(QAST::Op.new( :name('lol'), :op('callmethod'), $l));
             }
-	    else {
-		$past.push($<statement>[0].ast);
-	    }
+            else {
+                $past.push($<statement>[0].ast);
+            }
         }
-	unless +@($past) {
-	    $past := QAST::Op.new( :op('call'), :name('&infix:<,>'));
-	}
+        unless +@($past) {
+            $past := QAST::Op.new( :op('call'), :name('&infix:<,>'));
+        }
 
-	make $past;
+        make $past;
     }
 
     method sequence($/) {
@@ -4202,12 +4202,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_yada($name, $/) {
-	    my $past := $<args>.ast;
-	    $past.name($name);
-	    $past.node($/);
-	    unless +$past.list() {
+            my $past := $<args>.ast;
+            $past.name($name);
+            $past.node($/);
+            unless +$past.list() {
             $past.push($*W.add_string_constant('Stub code executed'));
-	    }
+            }
         $past
     }
 
@@ -4656,7 +4656,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<value>($/) { make $<value>.ast; }
 
     method circumfix:sym<( )>($/) {
-        make $<semilist>.ast;
+        my $past := $<semilist>.ast;
+        my $size := +$past.list;
+        if $size == 0 {
+            $past := QAST::Stmts.new( :node($/) );
+            $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>')));
+        }
+        make $past;
     }
 
     method circumfix:sym<SEQ( )>($/) {
@@ -5545,19 +5551,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
-	if $<semilist> {
-	    my $ast := $<semilist>.ast;
-	    $past.push($ast) if nqp::istype($ast, QAST::Stmts);
-	}
+        if $<semilist> {
+            my $ast := $<semilist>.ast;
+            $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+        }
         make $past;
     }
 
     method postcircumfix:sym<{ }>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
-	if $<semilist> {
-	    my $ast := $<semilist>.ast;
-	    $past.push($ast) if nqp::istype($ast, QAST::Stmts);
-	}
+        if $<semilist> {
+            my $ast := $<semilist>.ast;
+            $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+        }
         make $past;
     }
 
@@ -7552,4 +7558,4 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     }
 }
 
-# vim: ft=perl6
+# vim: ft=perl6 et

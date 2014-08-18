@@ -4497,3 +4497,5 @@ grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
         <block=.LANG('MAIN','block')>
     }
 }
+
+# vim: ft=perl6 et

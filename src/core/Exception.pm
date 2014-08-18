@@ -541,6 +541,17 @@ my class X::OutOfRange is Exception {
     }
 }
 
+my class X::Op::TheseTwo is Exception {
+    has $.op;
+    has $.first;
+    has $.second;
+    has $.perhaps;
+    method message() {
+        "Cannot '{$.first.^name} $.op { $.second.^name }'."
+          ~ ( $.perhaps ?? "  Perhaps $.perhaps?" !! "" );
+    }
+}
+
 my class X::Buf::AsStr is Exception {
     has $.method;
     method message() {

@@ -493,6 +493,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token comment:sym<#|(...)> {
         '#|' <?opener> <attachment=.quibble(%*LANG<Q>)>
+        {
+            unless %*SEEN_IT{ self.from() } {
+                %*SEEN_IT{ self.from() } := 1;
+                if $*DECLARATOR_DOCS eq '' {
+                    $*DECLARATOR_DOCS := $<attachment><nibble>;
+                } else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment><nibble>));
+                }
+            }
+        }
     }
 
     token comment:sym<#|> {

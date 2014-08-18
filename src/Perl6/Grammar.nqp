@@ -1098,7 +1098,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule semilist {
-        :dba('semicolon list')
+        :dba('lol composer')
         ''
         [
         | <?before <[)\]}]> >

@@ -259,7 +259,7 @@ multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, *%adv) is rw {
 
         postcircumfix:<[ ]>(SELF, keys[0], :kv).map(-> \key, \value {
             if [||] %adv<kv p k> {
-                map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2), value2 } !!
+                map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2).item, value2 } !!
                     %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
                     # .item so that recursive calls don't map the LoL's elems
                     %adv<k>  ?? { LoL.new(key, |$_).item } !!

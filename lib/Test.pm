@@ -22,6 +22,11 @@ my $die_on_fail;
 my $time_before;
 my $time_after;
 
+# Output should always go to real stdout/stderr, not to any dynamic overrides.
+my $output         = $PROCESS::OUT;
+my $failure_output = $PROCESS::ERR;
+my $todo_output    = $PROCESS::OUT;
+
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
 ## plans and don't call done_testing.
@@ -47,8 +52,8 @@ multi sub plan($number_of_tests) is export {
         $num_of_tests_planned = $number_of_tests;
         $no_plan = 0;
 
-        print $indents;
-        say '1..' ~ $number_of_tests;
+        $output.print: $indents;
+        $output.say: '1..' ~ $number_of_tests;
     }
     # Get two successive timestamps to say how long it takes to read the
     # clock, and to let the first test timing work just like the rest.
@@ -57,7 +62,7 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::p6box_n(nqp::time_n).
     $time_before = nqp::p6box_n(nqp::time_n);
     $time_after  = nqp::p6box_n(nqp::time_n);
-    print $indents
+    $output.print: $indents
       ~ '# between two timestamps '
       ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
       ~ "\n"
@@ -178,16 +183,18 @@ sub subtest(&subtests, $desc = '') is export {
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
-    $indents = $indents.chop(4);
+    $indents .= chop(4);
     proclaim($status,$desc);
 }
 
 sub diag(Mu $message) is export {
+    my $is_todo = $num_of_tests_run <= $todo_upto_test_num;
+    my $out     = $is_todo ?? $todo_output !! $failure_output;
+
     $time_after = nqp::p6box_n(nqp::time_n);
-    $*ERR.print: $indents;
     my $str-message = $message.Str.subst(rx/^^/, '# ', :g);
     $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
-    $*ERR.say: $str-message;
+    $out.say: $indents ~ $str-message;
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 
@@ -273,11 +280,11 @@ sub throws_like($code, $ex_type, $reason?, *%matcher) is export {
             $msg = "'$code' died";
             EVAL $code;
         }
-        ok 0, $msg;
+        flunk $msg;
         skip 'Code did not die, can not check exception', 1 + %matcher.elems;
         CATCH {
             default {
-                ok 1, $msg;
+                pass $msg;
                 my $type_ok = $_ ~~ $ex_type;
                 ok $type_ok , "right exception type ({$ex_type.^name})";
                 if $type_ok {
@@ -319,29 +326,30 @@ sub proclaim($cond, $desc) {
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
 
-    print $indents;
+    $output.print: $indents;
     unless $cond {
-        print "not ";
+        $output.print: "not ";
         unless  $num_of_tests_run <= $todo_upto_test_num {
             $num_of_tests_failed = $num_of_tests_failed + 1
         }
     }
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
         # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-        print "ok ", $num_of_tests_run, " - ", $desc.subst('#', '', :g), $todo_reason;
+        $output.print: "ok ", $num_of_tests_run, " - ", $desc.subst('#', '', :g), $todo_reason;
     }
     else {
-        print "ok ", $num_of_tests_run, " - ", $desc;
+        $output.print: "ok ", $num_of_tests_run, " - ", $desc;
     }
-    print "\n";
-    print $indents
+    $output.print: "\n";
+    $output.print: $indents
       ~ "# t="
       ~ ceiling(($time_after-$time_before)*1_000_000)
       ~ "\n"
         if $perl6_test_times;
 
+    my $caller = callframe(3); # due to a bug in MoarVM, this callframe has to occur outside of the
+                               # unless block (see https://github.com/MoarVM/MoarVM/issues/120)
     unless $cond {
-        my $caller = callframe(3);
         if $desc ne '' {
             diag "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}";
         } else {
@@ -366,8 +374,8 @@ sub done() is export {
 
     if $no_plan {
         $num_of_tests_planned = $num_of_tests_run;
-        print $indents;
-        say "1..$num_of_tests_planned";
+        $output.print: $indents;
+        $output.say: "1..$num_of_tests_planned";
     }
 
     if ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
@@ -427,7 +435,22 @@ END {
     if !$done_testing_has_been_run && !$no_plan {
         done;
     }
-    exit($num_of_tests_failed);
+
+    for $output, $failure_output, $todo_output -> $handle {
+        next if $handle === ($*ERR|$*OUT);
+
+        $handle.close;
+    }
+
+    if $num_of_tests_failed > 0 {
+        exit($num_of_tests_failed min 254);
+    }
+    elsif !$no_plan && $num_of_tests_planned != $num_of_tests_run {
+        exit(255);
+    }
+    else {
+        exit(0);
+    }
 }
 
 =begin pod

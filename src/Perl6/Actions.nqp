@@ -825,9 +825,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
             if $<statement> > 1 {
-		if !nqp::getenvhash<LOLLY> {
-		    $/.CURSOR.obs('; in brackets as a statement sequence','SEQ(;) or $(;) for C comma semantics (or set LOLLY for the new list-of-list semantics for the (;) and [;] constructs)', 'in this and future versions');
-		}
+                if !nqp::getenvhash<LOLLY> {
+                    $/.CURSOR.obs('; in brackets as a statement sequence','SEQ(;) or $(;) for C comma semantics (or set LOLLY for the new list-of-list semantics for the (;) and [;] constructs)', 'in this and future versions');
+                }
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
                 for $<statement> {
                     $l.push($_.ast);

@@ -529,11 +529,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*DOCEE := $block.compile_time_value;
                 }
                 unless $*PRECEDING_DECL =:= Mu {
-                    if $*PKGDECL eq 'role' && nqp::can($*PRECEDING_DECL.HOW, 'group') {
-                        Perl6::Pod::document($/, $*PRECEDING_DECL.HOW.group($*PRECEDING_DECL), $*DOCEE, :trailing);
-                    } else {
-                        Perl6::Pod::document($/, $*PRECEDING_DECL, $*DOCEE, :trailing);
-                    }
+                    Perl6::Pod::document($/, $*PRECEDING_DECL, $*DOCEE, :trailing);
                 }
             }
         }

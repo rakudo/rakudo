@@ -105,25 +105,12 @@ multi sub infix:<+>(Instant:D $a, Duration:D $b) {
 multi sub infix:<+>(Duration:D $a, Instant:D $b) {
     Instant.new: $a.x + $b.x;
 }
-multi sub infix:<+>(Instant:D $a, Instant:D $b) {
-    fail X::Op::TheseTwo.new(
-      :op<+>, :first($a), :second($b), :perhaps<you meant '-'> );
-}
-multi sub infix:<+>(Instant:D $a, Any:D $b) {
-    fail X::Op::TheseTwo.new( :op<+>, :first($a), :second($b) );
-}
-multi sub infix:<+>(Any:D $a, Instant:D $b) {
-    fail X::Op::TheseTwo.new( :op<+>, :first($a), :second($b) );
-}
 
 multi sub infix:<->(Instant:D $a, Instant:D $b) {
     Duration.new: $a.x - $b.x;
 }
 multi sub infix:<->(Instant:D $a, Real:D $b) {
     Instant.new: $a.x - $b;
-}
-multi sub infix:<->(Instant:D $a, Any:D $b) {
-    fail X::Op::TheseTwo.new( :op<->, :first($a), :second($b) );
 }
 
 sub term:<time>() { nqp::p6box_i(nqp::time_i()) }

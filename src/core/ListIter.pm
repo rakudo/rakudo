@@ -35,7 +35,7 @@ my class ListIter { # declared in BOOTSTRAP
                 if $!rest && (nqp::elems($rpa) < $count) {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
-                        (nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
+                        SEQ(nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
                         $x := $x.iterator.reify(
                                   $eager 
                                     ?? Whatever 

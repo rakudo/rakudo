@@ -1106,6 +1106,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
+    rule sequence {
+        :dba('sequence of statements')
+        ''
+        [
+        | <?before <[)\]}]> >
+        | [<statement><.eat_terminator> ]*
+        ]
+    }
+
     token label {
         <identifier> ':' <?[\s]> <.ws>
         {
@@ -1956,7 +1965,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <special_variable>
             | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.typed_panic: "X::Syntax::Variable::Numeric">]?
             | <sigil> <?[<]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
-            | :dba('contextualizer') <sigil> '(' ~ ')' <semilist> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
+            | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
             | <!{ $*QSIGIL }> {
@@ -3221,6 +3230,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my @*UNQUOTE_ASTS := [];
         <block>
     }
+
+    token circumfix:sym<SEQ( )> { :dba('statement list') 'SEQ(' ~ ')' <sequence> }
 
     token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }

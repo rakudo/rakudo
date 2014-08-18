@@ -842,6 +842,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
 	make $past;
     }
 
+    method sequence($/) {
+        my $past := QAST::Stmts.new( :node($/) );
+        if $<statement> {
+            for $<statement> { $past.push($_.ast) if $_.ast; }
+        }
+        unless +@($past) {
+            $past.push( QAST::Op.new( :op('call'), :name('&infix:<,>') ) );
+        }
+        make $past;
+    }
+
     method statement($/, $key?) {
         my $past;
         if $<EXPR> {
@@ -1703,9 +1714,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
             }
         }
-        elsif $<semilist> {
-            $past := $<semilist>.ast;
-            if $<sigil> eq '$' && ~$<semilist> eq '' { # for '$()'
+        elsif $<sequence> {
+            $past := $<sequence>.ast;
+            if $<sigil> eq '$' && ~$<sequence> eq '' { # for '$()'
                 my $result_var := $past.unique('sm_result');
                 $past := QAST::Stmt.new(
                     # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
@@ -1741,7 +1752,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             ~$<sigil> eq '%' ?? 'hash' !!
                                                 'item';
                 # @() and %()
-                $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if ~$<semilist> eq '';
+                $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if ~$<sequence> eq '';
 
                 $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
             }
@@ -4646,6 +4657,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method circumfix:sym<( )>($/) {
         make $<semilist>.ast;
+    }
+
+    method circumfix:sym<SEQ( )>($/) {
+        my $past := $<sequence>.ast;
+        my $size := +$past.list;
+        if $size == 0 {
+            $past := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+        }
+        else {
+            my $last := $past[ $size - 1 ];
+            $past.returns($last.returns);
+            if nqp::istype($last, QAST::Block) {
+                $past.arity($last.arity);
+            }
+        }
+        make $past;
     }
 
     method circumfix:sym<ang>($/) { make $<nibble>.ast; }

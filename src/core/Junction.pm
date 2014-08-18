@@ -18,11 +18,11 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Bool(Junction:D:) {
-        ($!storage.map({return True if $_}).gimme(*); return False)
+        SEQ($!storage.map({return True if $_}).gimme(*); return False)
             if nqp::iseq_s($!type, 'any');
-        ($!storage.map({return False unless $_}).gimme(*); return True) 
+        SEQ($!storage.map({return False unless $_}).gimme(*); return True) 
             if nqp::iseq_s($!type, 'all');
-        ($!storage.map({return False if $_}).gimme(*); return True)
+        SEQ($!storage.map({return False if $_}).gimme(*); return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
@@ -35,11 +35,11 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        ($!storage.map({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
+        SEQ($!storage.map({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
             if nqp::iseq_s($!type, 'any');
-        ($!storage.map({return False unless $_.ACCEPTS(topic)}).gimme(*); return True) 
+        SEQ($!storage.map({return False unless $_.ACCEPTS(topic)}).gimme(*); return True) 
             if nqp::iseq_s($!type, 'all');
-        ($!storage.map({return False if $_.ACCEPTS(topic)}).gimme(*); return True)
+        SEQ($!storage.map({return False if $_.ACCEPTS(topic)}).gimme(*); return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;

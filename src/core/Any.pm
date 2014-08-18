@@ -522,7 +522,7 @@ multi squish(*@values, |c) { @values.squish(|c) }
 proto sub sort(|) {*}
 multi sub sort(*@values)      {
     nqp::istype(@values.at_pos(0), Callable)
-        ?? (my $cmp := @values.shift; @values.sort($cmp) )
+        ?? SEQ(my $cmp := @values.shift; @values.sort($cmp) )
         !! @values.sort;
 }
 
@@ -843,7 +843,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 if !%a {                       # :delete:k(0|1)
                     $k
                       ?? $more.list.map( {
-                             ( $de(SELF,$_); $_ ) if $ex(SELF,$_);
+                             SEQ( $de(SELF,$_); $_ ) if $ex(SELF,$_);
                          } ).eager.Parcel
                       !! $more.list.map( {
                              $de(SELF,$_); $_

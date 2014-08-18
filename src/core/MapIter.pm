@@ -179,7 +179,7 @@ my class MapIter is Iterator {
                                 $state = 0)
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                            ($sink ?? ($did_iterate = 1; $block($arg))
+                            ($sink ?? SEQ($did_iterate = 1; $block($arg))
                                    !! nqp::push($rpa, $block($arg))),
                             $state = 1
                         ))
@@ -204,7 +204,7 @@ my class MapIter is Iterator {
                                 $state = 0)
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                            ($sink ?? ($did_iterate = 1; $block($arg)) 
+                            ($sink ?? SEQ($did_iterate = 1; $block($arg)) 
                                    !! nqp::push($rpa, $block($arg))),
                             $state = 1
                         ))
@@ -234,7 +234,7 @@ my class MapIter is Iterator {
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
                             ($sink
-                                ?? ($did_iterate = 1; nqp::p6invokeflat($block, $args))
+                                ?? SEQ($did_iterate = 1; nqp::p6invokeflat($block, $args))
                                 !! nqp::push($rpa, nqp::p6invokeflat($block, $args))),
                             $state = 3
                         )),
@@ -266,7 +266,7 @@ my class MapIter is Iterator {
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
                             ($sink
-                                ?? ($did_iterate = 1; nqp::p6invokeflat($block, $args))
+                                ?? SEQ($did_iterate = 1; nqp::p6invokeflat($block, $args))
                                 !! nqp::push($rpa, nqp::p6invokeflat($block, $args))),
                             $state = 3
                         )),

@@ -113,7 +113,7 @@ my class Range is Iterable is Cool does Positional {
             $value = nqp::p6box_i($nvalue);
         }    
         else {
-          (nqp::push($rpa, $value++); $count--)
+          SEQ(nqp::push($rpa, $value++); $count--)
               while $count > 0 && ($value cmp $realmax) < $cmpstop;
         }
         if ($value cmp $!max) < $cmpstop {

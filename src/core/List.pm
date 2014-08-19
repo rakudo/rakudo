@@ -635,20 +635,17 @@ multi infix:<xx>(Mu \x, Whatever, :$thunked!) {
 multi infix:<xx>(Mu \x, Whatever) {
     GatherIter.new({ loop { take x } }, :infinite(True)).flat
 }
-multi infix:<xx>(Mu \x, $n is copy) {
-    $n = $n.Int;
-    if $n <= 10 {
-        GatherIter.new({ take x while --$n >= 0; }).flat
-    }
-    else {
-        my \size = floor sqrt($n);
-        my \batch := infix:<xx>(x, size);
-        GatherIter.new({
-            take batch while ($n -= size) >= 0;
-            $n += size;  # make up for extra -=
-            take batch[0 ..^ $n] if $n;
-        }).flat
-    }
+multi infix:<xx>(Mu \x, $n) {
+    my int $size = $n.Int;
+
+    my Mu $rpa := nqp::list();
+    nqp::setelems($rpa, $size);
+    nqp::setelems($rpa, 0);
+
+    $size = $size + 1;
+    nqp::push($rpa,x) while $size = $size - 1;
+
+    nqp::p6parcel($rpa, Any);
 }
 
 proto sub pop(@) {*}

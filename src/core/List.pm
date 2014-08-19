@@ -639,6 +639,9 @@ multi infix:<xx>(Mu \x, $n) {
     my int $size = $n.Int;
 
     my Mu $rpa := nqp::list();
+    if $size < 0 {
+        return nqp::p6parcel($rpa, Any);
+    }
     nqp::setelems($rpa, $size);
     nqp::setelems($rpa, 0);
 

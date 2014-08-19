@@ -629,6 +629,9 @@ multi infix:<xx>(Mu \x, $n is copy, :$thunked!) {
     $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? Inf !! $n.Int;
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
+multi infix:<xx>(Mu \x, Whatever, :$thunked!) {
+    GatherIter.new({ loop { take x.() } }, :infinite(True)).flat
+}
 multi infix:<xx>(Mu \x, Whatever) {
     GatherIter.new({ loop { take x } }, :infinite(True)).flat
 }

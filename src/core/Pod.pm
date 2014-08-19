@@ -31,6 +31,11 @@ my class Pod::Block {
     multi method gist(Pod::Block:D:) {
         pod-gist(self)
     }
+
+    method content { # is DEPRECATED doesn't work in settings
+        DEPRECATED("Pod::Block.contents");
+        @.contents
+    }
 }
 
 my class Pod::Block::Para is Pod::Block {

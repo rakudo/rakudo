@@ -638,14 +638,15 @@ multi infix:<xx>(Mu \x, Whatever) {
 multi infix:<xx>(Mu \x, $n is copy) {
     $n = $n.Int;
     if $n <= 10 {
-        GatherIter.new({ take x while --$n >= 0; }).list
+        GatherIter.new({ take x while --$n >= 0; }).flat
     }
     else {
         my \size = floor sqrt($n);
         my \batch := infix:<xx>(x, size);
         GatherIter.new({
-            { take batch while ($n -= size) >= 0; }
-            take batch[0 ..^ $n + size];
+            take batch while ($n -= size) >= 0;
+            $n += size;  # make up for extra -=
+            take batch[0 ..^ $n] if $n;
         }).flat
     }
 }

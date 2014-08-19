@@ -625,26 +625,25 @@ sub list(|) {
 proto infix:<xx>(|)       { * }
 multi infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \x)   {x }
-multi infix:<xx>(Mu \x, $n is copy, :$thunked) {
+multi infix:<xx>(Mu \x, $n is copy, :$thunked!) {
     $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? Inf !! $n.Int;
-    if $thunked {
-        GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
+    GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
+}
+multi infix:<xx>(Mu \x, Whatever) {
+    my \batch = x xx 100;
+    GatherIter.new({ loop { take batch } }, :infinite(True)).flat
+}
+multi infix:<xx>(Mu \x, $n is copy) {
+    if $n <= 10 {
+        GatherIter.new({ take x while --$n >= 0; }).list
     }
     else {
+        my \size = floor sqrt($n);
+        my \batch := infix:<xx>(x, size);
         GatherIter.new({
-            SEQ( $n -= 100; take x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-                                 x,x,x,x,x,x,x,x,x,x,
-            ) while $n >= 100;
-            take x while --$n >= 0;
-        }, :infinite($n == Inf)).flat
+            { take batch while ($n -= size) >= 0; }
+            take batch[0 ..^ $n + size];
+        }).flat
     }
 }
 

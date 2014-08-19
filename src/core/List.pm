@@ -630,10 +630,10 @@ multi infix:<xx>(Mu \x, $n is copy, :$thunked!) {
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
 multi infix:<xx>(Mu \x, Whatever) {
-    my \batch = x xx 100;
-    GatherIter.new({ loop { take batch } }, :infinite(True)).flat
+    GatherIter.new({ loop { take x } }, :infinite(True)).flat
 }
 multi infix:<xx>(Mu \x, $n is copy) {
+    $n = $n.Int;
     if $n <= 10 {
         GatherIter.new({ take x while --$n >= 0; }).list
     }

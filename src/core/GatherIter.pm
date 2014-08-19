@@ -20,7 +20,7 @@ class GatherIter is Iterator {
             nqp::continuationcontrol(0, $GATHER_PROMPT, -> Mu \c { $state := c; });
         }
         $state := {
-            nqp::handle( $block().eager(),
+            nqp::handle( $block(),
                 'TAKE', SEQ($takings := nqp::getpayload(nqp::exception()); yield(); nqp::resume(nqp::exception())));
             $takings := $SENTINEL; yield();
         };
@@ -49,7 +49,7 @@ class GatherIter is Iterator {
             my Mu $rpa := nqp::list();
             my Mu $parcel;
             my $end = Bool::False;
-            my $count = nqp::istype($n, Whatever) ?? 1 !! $n;
+            my $count = nqp::istype($n, Whatever) ?? 1000 !! $n;
             while !$end && $count > 0 {
                 $parcel := $!coro();
 #?if parrot

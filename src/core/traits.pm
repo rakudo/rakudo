@@ -97,7 +97,7 @@ multi trait_mod:<is>(Attribute:D $attr, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => 'n attribute',
-      highexpect => <rw readonly box_target>,
+      highexpect => <rw readonly box_target leading_docs trailing_docs>,
     ).throw;
 }
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
@@ -132,7 +132,7 @@ multi trait_mod:<is>(Routine:D $r, |c ) {
       declaring  => ' ' ~ lc( $r.^name ),
       highexpect => ('rw parcel hidden_from_backtrace',
                      'pure default DEPRECATED inlinable',
-                     'prec equiv tighter looser assoc' ),
+                     'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
 }
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
@@ -207,7 +207,7 @@ multi trait_mod:<is>(Parameter:D $param, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => ' parameter',
-      highexpect => <rw readonly copy required parcel>,
+      highexpect => <rw readonly copy required parcel leading_docs trailing_docs>,
     ).throw;
 }
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {

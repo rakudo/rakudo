@@ -595,7 +595,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method combinations($?) {*}                                                  
     multi method combinations( Int $of ) {
-        ([self[@$_]] for combinations self.elems, $of)
+        ([self[@$_]] for combinations(self.elems, $of).eager)
     }
     multi method combinations( Range $of = 0 .. * ) {
         gather for @$of {
@@ -606,7 +606,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method permutations() {
         # need block on Moar because of RT#121830
-        gather { take [self[@$_]] for permutations self.elems }
+        gather { take [self[@$_]] for permutations(self.elems).eager }
     }
 }
 

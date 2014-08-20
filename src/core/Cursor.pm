@@ -1,6 +1,10 @@
 my class Cursor does NQPCursorRole {
     has $!made; # Need it to survive re-creations of the match object.
 
+    multi method Bool(Cursor:D:) {
+        nqp::getattr_i(self, Cursor, '$!pos') >= nqp::getattr_i(self, Cursor, '$!from')
+    }
+
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);

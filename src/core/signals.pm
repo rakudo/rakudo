@@ -9,10 +9,41 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
     @signals .= uniq;
 
     state %sigmap =
-        SIGINT,   nqp::const::SIG_INT,
-        SIGBREAK, nqp::const::SIG_BREAK,
         SIGHUP,   nqp::const::SIG_HUP,
-        SIGWINCH, nqp::const::SIG_WINCH;
+        SIGINT,   nqp::const::SIG_INT,
+        SIGQUIT,  nqp::const::SIG_QUIT,
+        SIGILL,   nqp::const::SIG_ILL,
+        SIGTRAP,  nqp::const::SIG_TRAP,
+        SIGABRT,  nqp::const::SIG_ABRT,
+        SIGEMT,   nqp::const::SIG_EMT,
+        SIGFPE,   nqp::const::SIG_FPE,
+        SIGKILL,  nqp::const::SIG_KILL,
+        SIGBUS,   nqp::const::SIG_BUS,
+        SIGSEGV,  nqp::const::SIG_SEGV,
+        SIGSYS,   nqp::const::SIG_SYS,
+        SIGPIPE,  nqp::const::SIG_PIPE,
+        SIGALRM,  nqp::const::SIG_ALRM,
+        SIGTERM,  nqp::const::SIG_TERM,
+        SIGURG,   nqp::const::SIG_URG,
+        SIGSTOP,  nqp::const::SIG_STOP, # hammer time
+        SIGTSTP,  nqp::const::SIG_TSTP,
+        SIGCONT,  nqp::const::SIG_CONT,
+        SIGCHLD,  nqp::const::SIG_CHLD,
+        SIGTTIN,  nqp::const::SIG_TTIN,
+        SIGTTOU,  nqp::const::SIG_TTOU,
+        SIGIO,    nqp::const::SIG_IO,
+        SIGXCPU,  nqp::const::SIG_XCPU,
+        SIGXFSZ,  nqp::const::SIG_XFSZ,
+        SIGVTALRM,nqp::const::SIG_VTALRM,
+        SIGPROF,  nqp::const::SIG_PROF,
+        SIGWINCH, nqp::const::SIG_WINCH,
+        SIGINFO,  nqp::const::SIG_INFO,
+        SIGUSR1,  nqp::const::SIG_USR1,
+        SIGUSR2,  nqp::const::SIG_USR2,
+        SIGTHR,   nqp::const::SIG_THR,
+        SIGSTKFLT,nqp::const::SIG_STKFLT,
+        SIGPWR,   nqp::const::SIG_PWR,
+        SIGBREAK, nqp::const::SIG_BREAK;
 
     state @known_signals := $*KERNEL.signals;
 

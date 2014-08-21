@@ -294,7 +294,9 @@ $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "$(M_LIBPATH)" .
 
 m-runner-default: $(M_RUNNER)
-	$(CP) $(M_RUNNER) perl6@runner_suffix@
+	$(RM_F) perl6@runner_suffix@
+	-$(CP) $(M_RUNNER) perl6@runner_suffix@
+	-$(CHMOD) 755 perl6@runner_suffix@
 
 $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
 	$(M_NQP) $(M_GEN_CAT) src/perl6-debug.nqp src/gen/main-version.nqp > src/gen/m-perl6-debug.nqp

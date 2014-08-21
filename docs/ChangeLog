@@ -23,7 +23,6 @@ New in 2014.08
 + Implement cmp_ok in Test.pm
 + Add HyperWhatever / **
 + Add method invoke as the preferred way to write what was method postcircumfix:<( )>
-+ No longer allow string test as the argument to dies_ok and lives_ok
 + Warn when a Code object is coerced to Str
 + If the LOLLY envar is set, have (;;), [;;], etc., turn into LoLs. Otherwise, parsefail
 + Add SEQ(a; b) to emulate the old behavior of (a; b)

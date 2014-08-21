@@ -588,6 +588,8 @@ my role Supply {
         return Supply unless +@s;           # nothing to be done
         return @s[0]  if +@s == 1;          # nothing to be done
 
+        &with //= &[,];
+
         my @values = ( [] xx +@s );
         on -> $res {
             @s => -> $val, $index {
@@ -615,6 +617,8 @@ my role Supply {
         }
 
         my $dones = 0;
+
+        &with //= &[,];
 
         on -> $res {
             @s => do {

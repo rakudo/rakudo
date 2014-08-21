@@ -226,16 +226,6 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }
 
-    method WHY() {
-        if nqp::isnull($!why) {
-            Any
-        } else {
-            # XXX check first?
-            $!why.set_docee(self);
-            $!why
-        }
-    }
-
     method set_why($why) {
         $!why := $why;
     }

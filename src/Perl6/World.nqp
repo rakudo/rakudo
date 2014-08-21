@@ -857,11 +857,10 @@ class Perl6::World is HLL::World {
         }
 
         if nqp::existskey(%param_info, 'dummy') {
-            # XXX do this with set_why, somehow
-            my $dummy    := %param_info<dummy>;
-            my $existing := nqp::getattr($dummy, $par_type, '$!why');
-            if !nqp::isnull($existing) {
-                nqp::bindattr($parameter, $par_type, '$!why', $existing);
+            my $dummy := %param_info<dummy>;
+            my $why   := $dummy.WHY;
+            if $why {
+                $parameter.set_why($why);
             }
         }
 

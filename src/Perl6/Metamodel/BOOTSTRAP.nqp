@@ -1434,6 +1434,15 @@ BEGIN {
             nqp::bindattr($dcself, Parameter, '$!coerce_type', nqp::decont($type));
             $dcself
         }));
+    Parameter.HOW.add_method(Parameter, 'WHY', nqp::getstaticcode(sub ($self) {
+            my $why := nqp::getattr(nqp::decont($self), Parameter, '$!why');
+            if nqp::isnull($why) || !$why {
+                Any
+            } else {
+                $why.set_docee($self);
+                $why
+            }
+        }));
     Parameter.HOW.compose_repr(Parameter);
     
     # class Code {

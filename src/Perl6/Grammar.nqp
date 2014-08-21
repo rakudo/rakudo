@@ -576,7 +576,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 'Pod::Block::Declarator', 'type_new',
                 :nocache, :leading([$cont]),
             );
-            # XXX why compile_time_value?
             $*DOCEE := $block.compile_time_value;
             $*POD_BLOCKS.push($*DOCEE);
         }

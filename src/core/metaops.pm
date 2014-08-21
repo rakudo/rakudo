@@ -20,8 +20,10 @@ sub METAOP_CROSS(\op, &reduce) {
 
     -> |lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
+        my $Inf = False;
         my @lol = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+            $Inf = True if elem.infinite;
 
             if nqp::iscont(elem) { (elem,).list.item }
             else                 { (elem,).flat.item }
@@ -38,8 +40,14 @@ sub METAOP_CROSS(\op, &reduce) {
         my @j;
         my @v;
 
+        # Don't care if a finite Range is lazy
+        my $policy = &list;
+        if lol[0] ~~ Range {
+            $policy = &eager unless $Inf || lol[0].infinite;
+        }
+
         $i = 0;
-        gather {
+        $policy(gather {
             while $i >= 0 {
                 my Mu $sublist := nqp::atpos($cache, $i);
                 if $j < nqp::elems($sublist) {
@@ -64,7 +72,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     }
                 }
             }
-        }
+        })
     }
 }
 

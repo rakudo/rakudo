@@ -27,7 +27,9 @@ New in 2014.08
 + If the LOLLY envar is set, have (;;), [;;], etc., turn into LoLs. Otherwise, parsefail
 + Add SEQ(a; b) to emulate the old behavior of (a; b)
 + Make &infix:<xx> many times faster
-+ NaN === NaN
++ NaN === NaN (but still NaN != NaN)
++ fix multi-dimensional slice assignment
++ Add .note() method to Mu
 
 New in 2014.07
 + require and build parrot 6.6.0

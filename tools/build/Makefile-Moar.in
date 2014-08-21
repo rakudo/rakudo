@@ -291,7 +291,9 @@ $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC)
 	$(M_RUN_PERL6) --target=mbc --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
 $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
+	$(RM_F) $(M_RUNNER)
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "$(M_LIBPATH)" .
+	-$(CHMOD) 755 $(M_RUNNER)
 
 m-runner-default: $(M_RUNNER)
 	$(RM_F) perl6@runner_suffix@

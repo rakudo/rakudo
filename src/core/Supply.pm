@@ -588,7 +588,7 @@ my role Supply {
         return Supply unless +@s;           # nothing to be done
         return @s[0]  if +@s == 1;          # nothing to be done
 
-        &with //= &[,];
+        &with //= &[,]; # fallback
 
         my @values = ( [] xx +@s );
         on -> $res {
@@ -618,7 +618,7 @@ my role Supply {
 
         my $dones = 0;
 
-        &with //= &[,];
+        &with //= &[,]; # fallback
 
         on -> $res {
             @s => do {

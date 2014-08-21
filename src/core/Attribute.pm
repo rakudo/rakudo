@@ -10,6 +10,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has Mu $!package;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
+    #     has Mu $!why;
 
     method compose(Mu $package) {
         # Generate accessor method, if we're meant to have one.
@@ -113,6 +114,19 @@ my class Attribute { # declared in BOOTSTRAP
     method package() { $!package }
     multi method Str(Attribute:D:) { self.name }
     multi method gist(Attribute:D:) { self.type.^name ~ " " ~ self.name }
+
+    method WHY() {
+        if nqp::isnull($!why) {
+            Any
+        } else {
+            $!why.set_docee(self);
+            $!why
+        }
+    }
+
+    method set_why($why) {
+        $!why := $why;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

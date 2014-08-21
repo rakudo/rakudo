@@ -1,6 +1,6 @@
 my class Pod::Block {
     has %.config;
-    has @.content;
+    has @.contents;
 
     sub pod-gist(Pod::Block $pod, $level = 0) {
         my $leading = ' ' x $level;
@@ -14,7 +14,7 @@ my class Pod::Block {
             }
         }
         @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
-        for $pod.content.list -> $c {
+        for $pod.contents.list -> $c {
             if $c ~~ Pod::Block {
                 @chunks.push: pod-gist($c, $level + 2);
             }
@@ -48,14 +48,42 @@ my class Pod::Block::Code is Pod::Block {
 
 my class Pod::Block::Declarator is Pod::Block {
     has $.WHEREFORE;
+    has @!leading;
+    has @!trailing;
+
+    submethod BUILD(:@!leading, :@!trailing) {}
+
     method set_docee($d) {
         $!WHEREFORE = $d
     }
     method Str {
-        ~@.content
+        @.contents.join('')
     }
     multi method gist(Pod::Block::Declarator:D:) {
-        self.Str
+        @.contents.join('')
+    }
+
+    method contents {
+        if @!leading && @!trailing {
+            [ $.leading ~ "\n" ~ $.trailing ]
+        } elsif @!leading {
+            [ $.leading ]
+        } elsif @!trailing {
+            [ $.trailing ]
+        } else {
+            []
+        }
+    }
+
+    method leading  { @!leading  ?? @!leading.join(' ')  !! Any }
+    method trailing { @!trailing ?? @!trailing.join(' ') !! Any }
+
+    method _add_leading($addition) {
+        @!leading.push: ~$addition;
+    }
+
+    method _add_trailing($addition) {
+        @!trailing.push: ~$addition;
     }
 }
 

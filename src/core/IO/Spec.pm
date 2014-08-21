@@ -30,8 +30,6 @@ my class IO::Spec {
 
     method FSTYPE ($OS = $*DISTRO.name)   { %module{$OS} // 'Unix' }
 
-    #| Dispatches methods to the appropriate class for the current $*DISTRO.name
-    #| Well, it should, if handles worked here.  Still useful, though.
     method MODULE 
        # handles
        # <canonpath curdir updir rootdir devnull tmpdir
@@ -40,8 +38,6 @@ my class IO::Spec {
        #  splitdir catdir abs2rel rel2abs>
             { $SPEC }
 
-    #| Returns a copy of the module for the given OS string
-    #| e.g. IO::Spec.os('Win32') returns IO::Spec::Win32
     method os (Str $OS = $*DISTRO.name) {
         IO::Spec.WHO{%module{$OS} // 'Unix'};
     }

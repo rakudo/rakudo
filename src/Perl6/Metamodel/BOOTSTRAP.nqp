@@ -1046,6 +1046,7 @@ BEGIN {
     #     has Mu $!package;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
+    #     has Mu $!why;
     Attribute.HOW.add_parent(Attribute, Any);
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
@@ -1059,6 +1060,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!positional_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Attribute)));
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
@@ -1334,6 +1336,7 @@ BEGIN {
     #     has Mu $!default_value
     #     has Mu $!container_descriptor;
     #     has Mu $!attr_package;
+    #     has Mu $!why;
     Parameter.HOW.add_parent(Parameter, Any);
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu), :package(Parameter)));
@@ -1347,6 +1350,7 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
@@ -1525,6 +1529,7 @@ BEGIN {
     #     has int $!onlystar;
     #     has Mu $!dispatch_order;
     #     has Mu $!dispatch_cache;
+    #     has Mu $!why;
     Routine.HOW.add_parent(Routine, Block);
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
@@ -1536,6 +1541,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_order>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
@@ -2377,6 +2383,18 @@ BEGIN {
             nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
             $dcself
         }));
+    Routine.HOW.add_method(Routine, 'clone', nqp::getstaticcode(sub ($self) {
+            my $dcself := nqp::decont($self);
+            my $cloned := nqp::findmethod(Block, 'clone')($self);
+
+            # XXX this should probably be done after the clone that installs
+            #     the sub
+            my $why := nqp::getattr($dcself, Routine, '$!why');
+            unless nqp::isnull($why) {
+                $why.set_docee($cloned);
+            }
+            $cloned
+        }));
     Routine.HOW.compose_repr(Routine);
     Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);
@@ -2388,6 +2406,19 @@ BEGIN {
 
     # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
+    Method.HOW.add_method(Method, 'clone', nqp::getstaticcode(sub ($self) {
+            my $dcself := nqp::decont($self);
+            my $clone  := nqp::findmethod(Routine, 'clone')($self);
+
+            # XXX this should probably be done after the clone that installs
+            #     the method
+            my $why := nqp::getattr($dcself, Routine, '$!why');
+            unless nqp::isnull($why) {
+                $why.set_docee($self);
+            }
+
+            $clone
+        }));
     Method.HOW.compose_repr(Method);
     Method.HOW.compose_invocation(Method);
 

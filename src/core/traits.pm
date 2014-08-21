@@ -7,6 +7,28 @@ my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 my class X::Inheritance::SelfInherit { ... }
 my class X::Comp::Trait::Unknown { ... }
+my class Pod::Block::Declarator { ... }
+
+my sub set_leading_docs($obj, $type, $docs) {
+    my $current_why := $obj.WHY;
+
+    if $current_why {
+        # XXX remove $docs from $*POD_BLOCKS (best way to do this?)
+        $current_why._add_leading(~$docs);
+    } else {
+        $obj.set_why($docs);
+    }
+}
+
+my sub set_trailing_docs($obj, $type, $docs) {
+    my $current_why := $obj.WHY;
+
+    if $current_why {
+        $current_why._add_trailing(~$docs);
+    } else {
+        $obj.set_why($docs);
+    }
+}
 
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -81,6 +103,13 @@ multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
 multi trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 # need to add a COMPOSE phaser to the class, that will add an ENTER phaser
 # to the (possibly auto-generated) accessor method.
+}
+multi trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
+    set_leading_docs($attr, Attribute, $leading_docs);
+}
+
+multi trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
+    set_trailing_docs($attr, Attribute, $trailing_docs);
 }
 
 multi trait_mod:<is>(Routine:D $r, |c ) {
@@ -185,6 +214,12 @@ multi trait_mod:<is>(Parameter:D $param, :$required!) {
 multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
     $param.set_parcel();
 }
+multi trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
+    set_leading_docs($param, Parameter, $leading_docs);
+}
+multi trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
+    set_trailing_docs($param, Parameter, $trailing_docs);
+}
 
 # Declare these, as setting mainline doesn't get them automatically (as the
 # Mu/Any/Scalar are not loaded).
@@ -248,28 +283,18 @@ multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
 
 # this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
 # will catch it and declare "docs" to be an unknown trait
-multi trait_mod:<is>(Routine:D $docee, :$docs!) {
-    $docee does role {
-        has $!WHY;
-        method WHY          { $!WHY      }
-        method set_docs($d) { $!WHY = $d }
-    }
-    $docee.set_docs($docs);
-    $docs.set_docee($docee);
+multi trait_mod:<is>(Routine:D $r, :$leading_docs!) {
+    set_leading_docs($r, Routine, $leading_docs);
 }
-multi trait_mod:<is>(Mu:D $docee, :$docs!) {
-    $docee does role {
-        has $!WHY;
-        method WHY          { $!WHY      }
-        method set_docs($d) { $!WHY = $d }
-    }
-    $docee.set_docs($docs);
-    $docs.set_docee($docee);
+multi trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
+    set_trailing_docs($r, Routine, $trailing_docs);
 }
 
-multi trait_mod:<is>(Mu:U $docee, :$docs!) {
-    $docee.HOW.set_docs($docs);
-    $docs.set_docee($docee);
+multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
+    set_leading_docs($docee, $docee, $leading_docs);
+}
+multi trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
+    set_trailing_docs($docee.HOW, $docee.HOW.WHAT, $trailing_docs);
 }
 
 

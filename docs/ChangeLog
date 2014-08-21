@@ -14,6 +14,21 @@ New in 2014.08
 + ∅ is finally recognized as the empty set
 + more work under the hood to get in line with S11 / S22
 + Str.indent() now treats its arg as an Int where appropriate
++ Restructure the QAST classes
++ Add LoL candidates for postcircumfix:<[ ]> and postcircumfix:<{ }>
++ Pass --moar-options configuration to NQP's Configure
++ Add .new candidate for creating a Date from an Instant
++ Fail when a Boolean is used as the matcher for &grep, &grep-index, &first,
+  &first-index, &last-index, and the corresponding methods
++ Implement cmp_ok in Test.pm
++ Add HyperWhatever / **
++ Add method invoke as the preferred way to write what was method postcircumfix:<( )>
++ No longer allow string test as the argument to dies_ok and lives_ok
++ Warn when a Code object is coerced to Str
++ If the LOLLY envar is set, have (;;), [;;], etc., turn into LoLs. Otherwise, parsefail
++ Add SEQ(a; b) to emulate the old behavior of (a; b)
++ Make &infix:<xx> many times faster
++ NaN === NaN
 
 New in 2014.07
 + require and build parrot 6.6.0

@@ -2415,19 +2415,6 @@ BEGIN {
 
     # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
-    Method.HOW.add_method(Method, 'clone', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my $clone  := nqp::findmethod(Routine, 'clone')($self);
-
-            # XXX this should probably be done after the clone that installs
-            #     the method
-            my $why := nqp::getattr($dcself, Routine, '$!why');
-            unless nqp::isnull($why) {
-                $why.set_docee($self);
-            }
-
-            $clone
-        }));
     Method.HOW.compose_repr(Method);
     Method.HOW.compose_invocation(Method);
 

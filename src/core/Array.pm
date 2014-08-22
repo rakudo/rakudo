@@ -135,7 +135,11 @@ class Array { # declared in BOOTSTRAP
     }
     multi method perl(Array:D \SELF:) {
         nqp::iscont(SELF)
-          ?? '[' ~ self.map({.perl}).join(', ') ~ ']'
+          ?? '[' ~ (  # simplify arrays that look 2D (in first 3 elems anyway)
+            self[0] ~~ Parcel || self[1] ~~ Parcel || self[2] ~~ Parcel
+                ?? self.map({.list.map({.perl}).join(', ')}).join('; ')
+                !! self.map({.perl}).join(', ')
+            ) ~ ']'
           !! self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
     }
 

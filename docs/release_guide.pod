@@ -8,7 +8,7 @@ follow Parrot's release cycle).
 
 Each development release is given a sequential number and a code name
 based on an active Perl Mongers group.  Rakudo's February 2009 release
-is #14; prior releases were bundled as part of monthly Parrot releases.
+was #14; prior releases were bundled as part of monthly Parrot releases.
 For releases made so far, see the list of development releases at the
 end of this document.
 
@@ -208,7 +208,7 @@ Upload the tarball to L<http://rakudo.org/downloads/rakudo>:
   $ scp rakudo-YYYY.MM.tar.gz rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn,
-masak, tadzik, moritz, PerlJam) on #perl6 to do it for you.
+masak, tadzik, moritz, PerlJam, Coke) on #perl6 to do it for you.
 
 =item 15.
 

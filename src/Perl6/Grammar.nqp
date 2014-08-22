@@ -494,8 +494,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token comment:sym<#|(...)> {
         '#|' <?opener> <attachment=.quibble(%*LANG<Q>)>
         {
-            unless %*SEEN_IT{ self.from() } {
-                %*SEEN_IT{ self.from() } := 1;
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 if $*DECLARATOR_DOCS eq '' {
                     $*DECLARATOR_DOCS := $<attachment><nibble>;
                 } else {
@@ -508,8 +508,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token comment:sym<#|> {
         '#|' \h+ $<attachment>=[\N*]
         {
-            unless %*SEEN_IT{ self.from() } {
-                %*SEEN_IT{ self.from() } := 1;
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 if $*DECLARATOR_DOCS eq '' {
                     $*DECLARATOR_DOCS := $<attachment>;
                 } else {
@@ -522,8 +522,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token comment:sym<#=(...)> {
         '#=' <?opener> <attachment=.quibble(%*LANG<Q>)>
         {
-            unless %*SEEN_IT{ self.from() } {
-                %*SEEN_IT{ self.from() } := 1;
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 my $*DOC := $<attachment><nibble>;
                 my $*DOCEE;
                 if ~$*DOC ne '' {
@@ -546,8 +546,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token comment:sym<#=> {
         '#=' \h+ $<attachment>=[\N*]
         {
-            unless %*SEEN_IT{ self.from() } {
-                %*SEEN_IT{ self.from() } := 1;
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 my $*DOC := $<attachment>;
                 my $*DOCEE;
                 if ~$*DOC ne '' {
@@ -990,7 +990,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARATOR_DOCS;
         :my $*PRECEDING_DECL; # for #= comments
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
-        :my %*SEEN_IT; # XXX how does this relate to POD_BLOCKS_SEEN?
         
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block

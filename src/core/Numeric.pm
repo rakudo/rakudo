@@ -5,7 +5,7 @@ my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
     multi method ACCEPTS(Numeric:D: $a) {
-        self.isNaN ?? $a.isNaN !! $a == self;
+        self.isNaN ?? $a.defined && $a.isNaN !! $a == self;
     }
 
     proto method log(|) {*}

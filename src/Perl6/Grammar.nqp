@@ -525,7 +525,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             unless $*POD_BLOCKS_SEEN{ self.from() } {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 my $*DOC := $<attachment><nibble>;
-                my $*DOCEE;
+                my $pod_block;
                 if ~$*DOC ne '' {
                     my $cont  := Perl6::Pod::serialize_aos(
                         [Perl6::Pod::formatted_text(~$*DOC)]
@@ -534,10 +534,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         'Pod::Block::Declarator', 'type_new',
                         :nocache, :trailing([$cont]),
                     );
-                    $*DOCEE := $block.compile_time_value;
+                    $pod_block := $block.compile_time_value;
                 }
                 unless $*PRECEDING_DECL =:= Mu {
-                    Perl6::Pod::document($/, $*PRECEDING_DECL, $*DOCEE, :trailing);
+                    Perl6::Pod::document($/, $*PRECEDING_DECL, $pod_block, :trailing);
                 }
             }
         }
@@ -549,7 +549,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             unless $*POD_BLOCKS_SEEN{ self.from() } {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 my $*DOC := $<attachment>;
-                my $*DOCEE;
+                my $pod_block;
                 if ~$*DOC ne '' {
                     my $cont  := Perl6::Pod::serialize_aos(
                         [Perl6::Pod::formatted_text(~$*DOC)]
@@ -558,10 +558,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         'Pod::Block::Declarator', 'type_new',
                         :nocache, :trailing([$cont]),
                     );
-                    $*DOCEE := $block.compile_time_value;
+                    $pod_block := $block.compile_time_value;
                 }
                 unless $*PRECEDING_DECL =:= Mu {
-                    Perl6::Pod::document($/, $*PRECEDING_DECL, $*DOCEE, :trailing);
+                    Perl6::Pod::document($/, $*PRECEDING_DECL, $pod_block, :trailing);
                 }
             }
         }
@@ -576,8 +576,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 'Pod::Block::Declarator', 'type_new',
                 :nocache, :leading([$cont]),
             );
-            $*DOCEE := $block.compile_time_value;
-            $*POD_BLOCKS.push($*DOCEE);
+            $*POD_BLOCK := $block.compile_time_value;
+            $*POD_BLOCKS.push($*POD_BLOCK);
         }
         self
     }
@@ -2125,7 +2125,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := '';
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         { $*DECLARATOR_DOCS := '' }
         <.attach_docs>
         
@@ -2390,7 +2390,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('scoped declarator')
         [
         :my $*DOC := $*DECLARATOR_DOCS;
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         {
             if $*SCOPE eq 'has' {
                 $*DECLARATOR_DOCS := '';
@@ -2492,7 +2492,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
@@ -2530,7 +2530,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := $d eq 'submethod' ?? 'partial' !! 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
@@ -2567,7 +2567,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
@@ -2722,7 +2722,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token param_var {
         :dba('formal parameter')
         :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         <.attach_docs>
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
@@ -2823,7 +2823,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Regex');
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
@@ -2855,7 +2855,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := 'enum';
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         :my $*DECLARAND;
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
@@ -2889,7 +2889,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.end_keyword> :my $*IN_DECL := 'subset';
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
-        :my $*DOCEE;
+        :my $*POD_BLOCK;
         :my $*DECLARAND;
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));

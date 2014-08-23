@@ -2079,10 +2079,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document
-        Perl6::Pod::document($/, $*PACKAGE, $*DOCEE, :leading);
-        # XXX isn't DOCEE a misnomer?
-        if ~$*DOCEE ne '' {
-            $*DOCEE.set_docee($*PACKAGE);
+        Perl6::Pod::document($/, $*PACKAGE, $*POD_BLOCK, :leading);
+        if ~$*POD_BLOCK ne '' {
+            $*POD_BLOCK.set_docee($*PACKAGE);
         }
 
         make QAST::Stmts.new(
@@ -2307,9 +2306,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %cont_info, $descriptor);
 
             # Document it
-            Perl6::Pod::document($/, $attr, $*DOCEE, :leading);
-            if ~$*DOCEE ne '' {
-                $*DOCEE.set_docee($attr);
+            Perl6::Pod::document($/, $attr, $*POD_BLOCK, :leading);
+            if ~$*POD_BLOCK ne '' {
+                $*POD_BLOCK.set_docee($attr);
             }
 
             # Set it up for trailing declarations
@@ -2533,9 +2532,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document it
-        Perl6::Pod::document($/, $code, $*DOCEE, :leading);
-        if ~$*DOCEE ne '' {
-            $*DOCEE.set_docee($code);
+        Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);
+        if ~$*POD_BLOCK ne '' {
+            $*POD_BLOCK.set_docee($code);
         }
 
         # Install PAST block so that it gets capture_lex'd correctly and also
@@ -2905,9 +2904,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         
         # Document it
-        Perl6::Pod::document($/, $code, $*DOCEE, :leading);
-        if ~$*DOCEE ne '' {
-            $*DOCEE.set_docee($code);
+        Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);
+        if ~$*POD_BLOCK ne '' {
+            $*POD_BLOCK.set_docee($code);
         }
 
         # Install &?ROUTINE.
@@ -2984,7 +2983,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.finish_code_object($code, $block, $*MULTINESS eq 'proto');
 
         # Document it
-        Perl6::Pod::document($/, $code, $*DOCEE, :leading);
+        Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -3249,9 +3248,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document it
-        Perl6::Pod::document($/, $*DECLARAND, $*DOCEE, :leading);
-        if ~$*DOCEE ne '' {
-            $*DOCEE.set_docee($*DECLARAND);
+        Perl6::Pod::document($/, $*DECLARAND, $*POD_BLOCK, :leading);
+        if ~$*POD_BLOCK ne '' {
+            $*POD_BLOCK.set_docee($*DECLARAND);
         }
 
         # Install &?ROUTINE.
@@ -3461,9 +3460,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # Document it
-        Perl6::Pod::document($/, $type_obj, $*DOCEE, :leading);
-        if ~$*DOCEE ne '' {
-            $*DOCEE.set_docee($type_obj);
+        Perl6::Pod::document($/, $type_obj, $*POD_BLOCK, :leading);
+        if ~$*POD_BLOCK ne '' {
+            $*POD_BLOCK.set_docee($type_obj);
         }
         # Set it up for trailing declarations
         $*PRECEDING_DECL := $type_obj;
@@ -3499,9 +3498,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document it
-        Perl6::Pod::document($/, $subset, $*DOCEE, :leading);
-        if ~$*DOCEE ne '' {
-            $*DOCEE.set_docee($subset);
+        Perl6::Pod::document($/, $subset, $*POD_BLOCK, :leading);
+        if ~$*POD_BLOCK ne '' {
+            $*POD_BLOCK.set_docee($subset);
         }
         # Set it up for trailing declarations
         $*PRECEDING_DECL := $subset;
@@ -3778,7 +3777,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         # Handle leading declarative docs
         if $*DECLARATOR_DOCS ne '' {
-            %*PARAM_INFO<docs> := $*DOCEE;
+            %*PARAM_INFO<docs> := $*POD_BLOCK;
             $*DECLARATOR_DOCS  := '';
         }
 

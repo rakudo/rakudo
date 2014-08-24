@@ -144,6 +144,18 @@ MAIN: {
         print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
     }
 
+    for my $target (qw/common_bootstrap_sources/) {
+        open my $FILELIST, '<', "tools/build/$target"
+            or die "Cannot read 'tools/build/$target': $!";
+        my @lines;
+        while (<$FILELIST>) {
+            chomp;
+            push @lines, "  $_\\\n";
+        }
+        close $FILELIST;
+        $config{$target} = join '', @lines;
+    }
+
     fill_template_file('tools/build/Makefile-common.in', $MAKEFILE, %config);
 
     # determine the version of NQP we want

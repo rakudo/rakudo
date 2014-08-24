@@ -273,7 +273,7 @@ $(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PE
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-main.nqp
 
 $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
-	$(M_NQP) $(M_GEN_CAT) $(M_METAMODEL_SOURCES) > src/gen/m-Metamodel.nqp
+	$(M_NQP) $(M_GEN_CAT) -f tools/build/common_bootstrap_sources > src/gen/m-Metamodel.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_M_MOAR) --encoding=utf8 \
 	    src/gen/m-Metamodel.nqp
 

@@ -522,48 +522,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token comment:sym<#=(...)> {
         '#=' <?opener> <attachment=.quibble(%*LANG<Q>)>
         {
-            unless $*POD_BLOCKS_SEEN{ self.from() } {
-                $*POD_BLOCKS_SEEN{ self.from() } := 1;
-                my $*DOC := $<attachment><nibble>;
-                my $pod_block;
-                if ~$*DOC ne '' {
-                    my $cont  := Perl6::Pod::serialize_aos(
-                        [Perl6::Pod::formatted_text(~$*DOC)]
-                    ).compile_time_value;
-                    my $block := $*W.add_constant(
-                        'Pod::Block::Declarator', 'type_new',
-                        :nocache, :trailing([$cont]),
-                    );
-                    $pod_block := $block.compile_time_value;
-                }
-                unless $*PRECEDING_DECL =:= Mu {
-                    Perl6::Pod::document($/, $*PRECEDING_DECL, $pod_block, :trailing);
-                }
-            }
+            self.attach_trailing_docs(~$<attachment><nibble>);
         }
     }
 
     token comment:sym<#=> {
         '#=' \h+ $<attachment>=[\N*]
         {
-            unless $*POD_BLOCKS_SEEN{ self.from() } {
-                $*POD_BLOCKS_SEEN{ self.from() } := 1;
-                my $*DOC := $<attachment>;
-                my $pod_block;
-                if ~$*DOC ne '' {
-                    my $cont  := Perl6::Pod::serialize_aos(
-                        [Perl6::Pod::formatted_text(~$*DOC)]
-                    ).compile_time_value;
-                    my $block := $*W.add_constant(
-                        'Pod::Block::Declarator', 'type_new',
-                        :nocache, :trailing([$cont]),
-                    );
-                    $pod_block := $block.compile_time_value;
-                }
-                unless $*PRECEDING_DECL =:= Mu {
-                    Perl6::Pod::document($/, $*PRECEDING_DECL, $pod_block, :trailing);
-                }
-            }
+            self.attach_trailing_docs(~$<attachment>);
         }
     }
 
@@ -580,6 +546,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $*POD_BLOCKS.push($*POD_BLOCK);
         }
         self
+    }
+
+    method attach_trailing_docs($doc) {
+        unless $*POD_BLOCKS_SEEN{ self.from() } {
+            $*POD_BLOCKS_SEEN{ self.from() } := 1;
+            my $pod_block;
+            if $doc ne '' {
+                my $cont  := Perl6::Pod::serialize_aos(
+                    [Perl6::Pod::formatted_text($doc)]
+                ).compile_time_value;
+                my $block := $*W.add_constant(
+                    'Pod::Block::Declarator', 'type_new',
+                    :nocache, :trailing([$cont]),
+                );
+                $pod_block := $block.compile_time_value;
+            }
+            unless $*PRECEDING_DECL =:= Mu {
+                Perl6::Pod::document($/, $*PRECEDING_DECL, $pod_block, :trailing);
+            }
+        }
     }
 
     token pod_content_toplevel {

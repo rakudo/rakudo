@@ -144,7 +144,7 @@ MAIN: {
         print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
     }
 
-    for my $target (qw/common_bootstrap_sources/) {
+    for my $target (qw/common_bootstrap_sources moar_core_sources/) {
         open my $FILELIST, '<', "tools/build/$target"
             or die "Cannot read 'tools/build/$target': $!";
         my @lines;

@@ -567,7 +567,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    method attach_docs() {
+    method attach_leading_docs() {
         if ~$*DOC ne '' {
             my $cont  := Perl6::Pod::serialize_aos(
                 [Perl6::Pod::formatted_text(~$*DOC)]
@@ -2127,7 +2127,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*POD_BLOCK;
         { $*DECLARATOR_DOCS := '' }
-        <.attach_docs>
+        <.attach_leading_docs>
         
         # Type-object will live in here; also set default REPR (a trait
         # may override this, e.g. is repr('...')).
@@ -2398,7 +2398,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*PRECEDING_DECL_LINE := $*LINE_NO;
                     $*PRECEDING_DECL := Mu; # actual declarand comes later, in Actions::declare_variable
                 }
-                self.attach_docs;
+                self.attach_leading_docs;
             }
         }
         <.ws>
@@ -2500,7 +2500,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*PRECEDING_DECL := $*DECLARAND;
             }
         }
-        <.attach_docs>
+        <.attach_leading_docs>
         <deflongname>?
         {
             if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
@@ -2538,7 +2538,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*PRECEDING_DECL := $*DECLARAND;
             }
         }
-        <.attach_docs>
+        <.attach_leading_docs>
         [
             <.newpad>
             [
@@ -2575,7 +2575,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*PRECEDING_DECL := $*DECLARAND;
             }
         }
-        <.attach_docs>
+        <.attach_leading_docs>
         <deflongname>?
         {
             if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
@@ -2723,7 +2723,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('formal parameter')
         :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
         :my $*POD_BLOCK;
-        <.attach_docs>
+        <.attach_leading_docs>
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
             if $*PRECEDING_DECL_LINE < $line_no {
@@ -2831,7 +2831,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*PRECEDING_DECL := $*DECLARAND;
             }
         }
-        <.attach_docs>
+        <.attach_leading_docs>
         [
           <deflongname>?
           { if $<deflongname> { %*RX<name> := ~$<deflongname>.ast } }
@@ -2864,7 +2864,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*PRECEDING_DECL      := Mu; # actual declarand comes later, in Actions::type_declarator:sym<enum>
             }
         }
-        <.attach_docs>
+        <.attach_leading_docs>
         [
         | <longname>
             {
@@ -2898,7 +2898,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*PRECEDING_DECL      := Mu; # actual declarand comes later, in Actions::type_declarator:sym<subset>
             }
         }
-        <.attach_docs>
+        <.attach_leading_docs>
         [
             [
                 [

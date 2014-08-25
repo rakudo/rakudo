@@ -466,13 +466,13 @@ my class IO::Path is Cool does IO::FileTestable {
     method parts {
         $.SPEC.split($!path).hash
     }
-    method basename {
+    method basename(IO::Path:D:) {
         self.parts<basename>
     }
-    method directory {
+    method directory(IO::Path:D:) {
         self.parts<directory>
     }
-    method volume {
+    method volume(IO::Path:D:) {
         self.parts<volume>
     }
 
@@ -515,28 +515,28 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 #?endif
 
-    method is-absolute {
+    method is-absolute(IO::Path:D:) {
         $.SPEC.is-absolute($!path);
     }
-    method is-relative {
+    method is-relative(IO::Path:D:) {
         ! $.SPEC.is-absolute($!path);
     }
-    method absolute ($base = ~$*CWD) {
+    method absolute (IO::Path:D: $base = ~$*CWD) {
         return self.new($.SPEC.rel2abs($!path, $base));
     }
-    method relative ($relative_to_directory = ~$*CWD) {
+    method relative (IO::Path:D: $relative_to_directory = ~$*CWD) {
         return self.new($.SPEC.abs2rel($!path, $relative_to_directory));
     }
 
-    method cleanup (:$parent) {
+    method cleanup (IO::Path:D: :$parent) {
         return self.new($.SPEC.canonpath($!path, :$parent));
     }
-    method resolve {
+    method resolve (IO::Path:D:) {
         # NYI: requires readlink()
         X::NYI.new(feature=>'IO::Path.resolve').fail;
     }
 
-    method parent {
+    method parent(IO::Path:D:) {
         if self.is-absolute {
             return self.new($.SPEC.join($.volume, $.directory, ''));
         }
@@ -556,7 +556,7 @@ my class IO::Path is Cool does IO::FileTestable {
         }
     }
 
-    method child ($childname) {
+    method child (IO::Path:D: $childname) {
         self.new: path => $.SPEC.catfile($!path, $childname);
     }
 

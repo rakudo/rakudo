@@ -161,10 +161,11 @@ my class IO::Handle does IO::FileTestable {
     proto method open(|) { * }
     multi method open($path? is copy, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
+        my $is_std_handle = $path eq "-";
         $path //= $!path;
         $r = $w = True if $rw;
-        my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
-        $!isDir = Bool::True if $path ne "-" &&
+        my $abspath = !$is_std_handle && defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
+        $!isDir = Bool::True if !$is_std_handle &&
             nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_EXISTS))
             && nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_ISDIR));
         fail (X::IO::Directory.new(:$path, :trying<open( :w )>))
@@ -174,7 +175,7 @@ my class IO::Handle does IO::FileTestable {
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO::Handle, '$!PIO',
-             $path eq '-'
+             $is_std_handle
                 ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
                 !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
         );
@@ -194,7 +195,7 @@ my class IO::Handle does IO::FileTestable {
 
             my $errpath = '';
             nqp::bindattr(self, IO::Handle, '$!PIO',
-                 $path eq '-'
+                 $is_std_handle
                     ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
                     !! nqp::openpipe(nqp::unbox_s($abspath.Str), nqp::unbox_s($*CWD.Str), $hash-without, nqp::unbox_s($errpath))
             );
@@ -203,7 +204,7 @@ my class IO::Handle does IO::FileTestable {
             my $mode =  $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
             # TODO: catch error, and fail()
             nqp::bindattr(self, IO::Handle, '$!PIO',
-                 $path eq '-'
+                 $is_std_handle
                     ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
                     !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
             );

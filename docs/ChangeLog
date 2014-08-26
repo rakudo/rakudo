@@ -928,7 +928,7 @@ New in 2010.12 release
 New in 2010.11 release
 + now works with parrot on git
 + implemented qw//
-+ 5x speedup of .trans 
++ 5x speedup of .trans
 + various improvements to Set
 + don't use deprecated charset ops anymore
 + Bool.Bool and Bool.so now return False
@@ -1235,7 +1235,7 @@ New in 2009-06 release
 + cleaned up IO methods
 + improved "is export" handling for modules and setting
 + automatically transcode to iso-8859-1 for faster parsing when possible
-+ refactored and corrected assignment, .succ, .pred, C<++>, C<-->, 
++ refactored and corrected assignment, .succ, .pred, C<++>, C<-->,
   postcircumfix:<[ ]>, Whatever
 + "module Foo;"  now allows statements before it
 + improved Unicode string handling
@@ -1306,7 +1306,7 @@ New in 2009-03 release (#15, "Oslo")
 + outer lexicals are now visible in eval()
 + next, last etc. work in grep()
 + added R metaoperator
-+ add an initial draft of Match.perl 
++ add an initial draft of Match.perl
 + refactor Grammar and Match class hierarchy
 + fix if/unless/while/until/for/... on line after close curlies
 + add Q quoting, including Q:PIR

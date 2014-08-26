@@ -52,146 +52,7 @@ M_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES)
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
 M_CORE_SOURCES = \
-  src/core/core_prologue.pm \
-  src/core/traits.pm \
-  src/core/Positional.pm \
-  src/core/Associative.pm \
-  src/core/Callable.pm \
-  src/core/natives.pm \
-  src/core/stubs.pm \
-  src/core/control.pm \
-  src/core/Mu.pm \
-  src/core/Stringy.pm \
-  src/core/Any.pm \
-  src/core/array_slice.pm \
-  src/core/hash_slice.pm \
-  src/core/Scalar.pm \
-  src/core/Code.pm \
-  src/core/WhateverCode.pm \
-  src/core/Block.pm \
-  src/core/Attribute.pm \
-  src/core/Variable.pm \
-  src/core/Routine.pm \
-  src/core/Sub.pm \
-  src/core/Macro.pm \
-  src/core/Method.pm \
-  src/core/Submethod.pm \
-  src/core/Junction.pm \
-  src/core/Cool.pm \
-  src/core/Enumeration.pm \
-  src/core/Whatever.pm \
-  src/core/Bool.pm \
-  src/core/Numeric.pm \
-  src/core/Real.pm \
-  src/core/Int.pm \
-  src/core/Order.pm \
-  src/core/UInt64.pm \
-  src/core/Num.pm \
-  src/core/Buf.pm \
-  src/core/Str.pm \
-  src/core/Capture.pm \
-  src/core/Parcel.pm \
-  src/core/Iterable.pm \
-  src/core/Iterator.pm \
-  src/core/Nil.pm \
-  src/core/Range.pm \
-  src/core/ListIter.pm \
-  src/core/MapIter.pm \
-  src/core/GatherIter.pm \
-  src/core/List.pm \
-  src/core/LoL.pm \
-  src/core/Array.pm \
-  src/core/Enum.pm \
-  src/core/Pair.pm \
-  src/core/HashIter.pm \
-  src/core/EnumMap.pm \
-  src/core/Hash.pm \
-  src/core/Stash.pm \
-  src/core/Label.pm \
-  src/core/PseudoStash.pm \
-  src/core/Parameter.pm \
-  src/core/Signature.pm \
-  src/core/Rational.pm \
-  src/core/Rat.pm \
-  src/core/Complex.pm \
-  src/core/Backtrace.pm \
-  src/core/Exception.pm \
-  src/core/Failure.pm \
-  src/core/Match.pm \
-  src/core/Cursor.pm \
-  src/core/Grammar.pm \
-  src/core/Regex.pm \
-  src/core/IO/Spec/Unix.pm \
-  src/core/IO/Spec/Win32.pm \
-  src/core/IO/Spec/Cygwin.pm \
-  src/core/IO/Spec.pm \
-  src/core/IO.pm \
-  src/core/IO/ArgFiles.pm \
-  src/core/AST.pm \
-  src/core/CallFrame.pm \
-  src/core/Main.pm \
-  src/core/tai-utc.pm \
-  src/core/Instant.pm \
-  src/core/Duration.pm \
-  src/core/Temporal.pm \
-  src/core/EXPORTHOW.pm \
-  src/core/Pod.pm \
-  src/core/QuantHash.pm \
-  src/core/Setty.pm \
-  src/core/Set.pm \
-  src/core/SetHash.pm \
-  src/core/Baggy.pm \
-  src/core/Bag.pm \
-  src/core/BagHash.pm \
-  src/core/Mixy.pm \
-  src/core/Mix.pm \
-  src/core/MixHash.pm \
-  src/core/set_operators.pm \
-  src/core/ObjAt.pm \
-  src/core/Version.pm \
-  src/core/ForeignCode.pm \
-  src/core/operators.pm \
-  src/core/metaops.pm \
-  src/core/precedence.pm \
-  src/core/Deprecations.pm \
-  src/core/Thread.pm \
-  src/core/Lock.pm \
-  src/core/Semaphore.pm \
-  src/core/Cancellation.pm \
-  src/core/Scheduler.pm \
-  src/core/ThreadPoolScheduler.pm \
-  src/core/CurrentThreadScheduler.pm \
-  src/core/Promise.pm \
-  src/core/Channel.pm \
-  src/core/Supply.pm \
-  src/core/SupplyOperations.pm \
-  src/core/asyncops.pm \
-  src/core/IO/Socket.pm \
-  src/core/IO/Socket/INET.pm \
-  src/core/IO/Socket/Async.pm \
-  src/core/IO/Notification.pm \
-  src/core/Proc/Async.pm \
-  src/core/Env.pm \
-  src/core/signals.pm \
-  src/core/Systemic.pm \
-  src/core/VM.pm \
-  src/core/Distro.pm \
-  src/core/Kernel.pm \
-  src/core/Compiler.pm \
-  src/core/Perl.pm \
-  src/core/OS.pm \
-  src/core/JSON/Pretty.pm \
-  src/core/Distribution.pm \
-  src/core/CompUnit.pm \
-  src/core/CompUnitRepo.pm \
-  src/core/CompUnitRepo/Locally.pm \
-  src/core/CompUnitRepo/Local/File.pm \
-  src/core/CompUnitRepo/Local/Installation.pm \
-  src/core/Argfiles.pm \
-  src/core/Inc.pm \
-  src/core/Process.pm \
-  src/core/StrDistance.pm \
-  src/core/core_epilogue.pm \
+	@moar_core_sources@
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm
 M_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
@@ -273,7 +134,7 @@ $(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PE
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-main.nqp
 
 $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
-	$(M_NQP) $(M_GEN_CAT) $(M_METAMODEL_SOURCES) > src/gen/m-Metamodel.nqp
+	$(M_NQP) $(M_GEN_CAT) -f tools/build/common_bootstrap_sources > src/gen/m-Metamodel.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_M_MOAR) --encoding=utf8 \
 	    src/gen/m-Metamodel.nqp
 
@@ -283,7 +144,7 @@ $(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
         --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-BOOTSTRAP.nqp
 
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
-	$(M_NQP) $(M_GEN_CAT) $(M_CORE_SOURCES) > src/gen/m-CORE.setting
+	$(M_NQP) $(M_GEN_CAT) -f tools/build/moar_core_sources > src/gen/m-CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 

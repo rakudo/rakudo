@@ -1,3 +1,10 @@
+New in 2014.09
++ ./perl6 --profile for MoarVM, generates HTML profile output, including
+  spesh/JIT info
++ Reduced memory size of CORE.setting, improved startup time
++ Workaound OS X make bug for MoarVM
++ Make new LOLLY syntax the default
+
 New in 2014.08
 + print file/line annotations for warnings also on moar and jvm
 + fixed reduce/infix function syntax [[&foo]] LIST and ITEM [&foo] ITEM

@@ -30,7 +30,7 @@ my class ListIter { # declared in BOOTSTRAP
             nqp::p6shiftpush($rpa, $!rest, nqp::elems($!rest))
                 if nqp::istype($!list, LoL);
             while $!rest && (nqp::elems($rpa) < $count) {
-                $index = nqp::p6arrfindtypes($!rest, $want_types, 0, $max);
+                $index = nqp::p6arrfindtypes($!rest, $want_types, 0, $count);
                 nqp::p6shiftpush($rpa, $!rest, $index);
                 if $!rest && (nqp::elems($rpa) < $count) {
                     $x := nqp::shift($!rest);

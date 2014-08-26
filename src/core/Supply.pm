@@ -582,30 +582,28 @@ my role Supply {
         }
     }
     
-    method zip(*@s, :&with is copy) {
+    method zip(*@s, :&with is copy = &[,]) {
 
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
         return @s[0]  if +@s == 1;          # nothing to be done
 
-        my &infix:<op> = &with // &[,]; # hack for [[&with]] parse failure
         my @values = ( [] xx +@s );
         on -> $res {
             @s => -> $val, $index {
                 @values[$index].push($val);
                 if all(@values) {
-                    $res.more( [op] @values>>.shift );
+                    $res.more( [[&with]] @values>>.shift );
                 }
             }
         }
     }
 
-    method zip-latest(*@s, :&with is copy, :$initial ) {
+    method zip-latest(*@s, :&with is copy = &[,], :$initial ) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to do.
         return @s[0] if +@s == 1;           # nothing to do.
 
-        my &infix:<op> = &with // &[,]; # hack, see zip above.
         my @values;
 
         my $uninitialised = +@s; # how many supplies have yet to more until we
@@ -627,7 +625,7 @@ my role Supply {
                     }
                     @values[$index] = $val;
                     unless $uninitialised {
-                        $res.more( [op] @values );
+                        $res.more( [[&with]] @values );
                     }
                 },
                 done => { $res.done() if ++$dones == +@s }

@@ -82,4 +82,10 @@ class Pod::Config {
     has %.config;
 }
 
+# for passing raw instructions to specific backends
+class Pod::Raw {
+    has $.target;
+    has $.content;
+}
+
 # vim: ft=perl6 expandtab sw=4

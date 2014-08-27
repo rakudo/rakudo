@@ -154,7 +154,7 @@ multi infix:<div>(Int:D \a, Int:D \b) {
     nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
 }
 multi infix:<div>(int $a, int $b) {
-    fail X::Numeric::DivideByZero.new unless $b;
+    # relies on opcode or hardware to detect division by 0
     nqp::div_i($a, $b)
 }
 
@@ -163,7 +163,7 @@ multi infix:<%>(Int:D \a, Int:D \b) returns Int {
     nqp::mod_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<%>(int $a, int $b) returns int {
-    fail X::Numeric::DivideByZero.new(using => 'infix:<%>') unless $b;
+    # relies on opcode or hardware to detect division by 0
     nqp::mod_i($a, $b)
 }
 

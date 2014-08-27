@@ -161,8 +161,8 @@ my class IO::Handle does IO::FileTestable {
     proto method open(|) { * }
     multi method open($path? is copy, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
-        my $is_std_handle = $path eq "-";
         $path //= $!path;
+        my $is_std_handle = $path eq "-";
         $r = $w = True if $rw;
         my $abspath = !$is_std_handle && defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
         $!isDir = Bool::True if !$is_std_handle &&

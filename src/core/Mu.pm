@@ -32,10 +32,10 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method WHY() {
-        my $why;
+        my Mu $why;
 
         if nqp::can(self.HOW, 'WHY') {
-            $why = self.HOW.WHY;
+            $why := self.HOW.WHY;
         }
 
         if $why.defined && !$.defined #`(ie. we're a type object) {

@@ -17,7 +17,7 @@ my sub set_leading_docs($obj, $docs) {
         my $i   := $end;
 
         while $i >= 0 {
-            if $docs === $*POD_BLOCKS[$i] {
+            if $docs === nqp::atpos($*POD_BLOCKS, $i) {
                 nqp::splice($*POD_BLOCKS, nqp::list(), $i, 1);
                 last;
             }

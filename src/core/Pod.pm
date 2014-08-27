@@ -118,7 +118,12 @@ class Pod::Config {
 # for passing raw instructions to specific backends
 class Pod::Raw {
     has $.target;
-    has $.content;
+    has @.contents;
+
+    method content { # is DEPRECATED doesn't work in settings
+        DEPRECATED("Pod::Raw.contents");
+        @.contents
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

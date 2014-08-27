@@ -1,9 +1,11 @@
 role Perl6::Metamodel::Documenting {
-    has $!docs;
-    method set_docs($new) {
-        $!docs := $new
+    has $!why;
+
+    method WHY() {
+        nqp::isnull($!why) ?? Any !! $!why
     }
-    method docs() {
-        $!docs
+
+    method set_why($why) {
+        $!why := $why;
     }
 }

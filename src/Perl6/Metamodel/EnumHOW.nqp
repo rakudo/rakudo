@@ -4,6 +4,7 @@
 # one or two of which presumably provide the core enum-ish methods.
 class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::MethodContainer

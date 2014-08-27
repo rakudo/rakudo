@@ -1,6 +1,7 @@
 use NQPHLL;
 use QAST;
 use Perl6::ModuleLoader;
+use Perl6::Pod;
 use Perl6::Ops;
 
 # Binder constants.
@@ -748,7 +749,7 @@ class Perl6::World is HLL::World {
     }
     
     # Creates a parameter object.
-    method create_parameter(%param_info) {
+    method create_parameter($/, %param_info) {
         # Create parameter object now.
         my $par_type  := self.find_symbol(['Parameter']);
         my $parameter := nqp::create($par_type);
@@ -855,6 +856,21 @@ class Perl6::World is HLL::World {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
 
+        if nqp::existskey(%param_info, 'dummy') {
+            my $dummy := %param_info<dummy>;
+            my $why   := $dummy.WHY;
+            if $why {
+                $parameter.set_why($why);
+            }
+        }
+
+        if nqp::existskey(%param_info, 'docs') {
+            Perl6::Pod::document($/, $parameter, %param_info<docs>, :leading);
+            if ~%param_info<docs> ne '' {
+                %param_info<docs>.set_docee($parameter);
+            }
+        }
+        $*PRECEDING_DECL := $parameter;
         # Return created parameter.
         $parameter
     }
@@ -1861,7 +1877,7 @@ class Perl6::World is HLL::World {
                 $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
                 nqp::push(
                     nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
-                    self.create_parameter(hash(
+                    self.create_parameter($/, hash(
                             variable_name => '$_', is_parcel => 1,
                             nominal_type => self.find_symbol(['Mu'])
                         )));

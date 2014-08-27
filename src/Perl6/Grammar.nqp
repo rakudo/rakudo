@@ -491,28 +491,81 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <.quibble(%*LANG<Q>)> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
+    token comment:sym<#|(...)> {
+        '#|' <?opener> <attachment=.quibble(%*LANG<Q>)>
+        {
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
+                if $*DECLARATOR_DOCS eq '' {
+                    $*DECLARATOR_DOCS := $<attachment><nibble>;
+                } else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment><nibble>));
+                }
+            }
+        }
+    }
+
+    token comment:sym<#|> {
+        '#|' \h+ $<attachment>=[\N*]
+        {
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
+                if $*DECLARATOR_DOCS eq '' {
+                    $*DECLARATOR_DOCS := $<attachment>;
+                } else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment>));
+                }
+            }
+        }
+    }
+
     token comment:sym<#=(...)> {
         '#=' <?opener> <attachment=.quibble(%*LANG<Q>)>
+        {
+            self.attach_trailing_docs(~$<attachment><nibble>);
+        }
     }
 
     token comment:sym<#=> {
         '#=' \h+ $<attachment>=[\N*]
-        { $*DECLARATOR_DOCS := $<attachment> }
+        {
+            self.attach_trailing_docs(~$<attachment>);
+        }
     }
 
-    method attach_docs() {
+    method attach_leading_docs() {
         if ~$*DOC ne '' {
             my $cont  := Perl6::Pod::serialize_aos(
                 [Perl6::Pod::formatted_text(~$*DOC)]
             ).compile_time_value;
             my $block := $*W.add_constant(
                 'Pod::Block::Declarator', 'type_new',
-                :nocache, :content($cont),
+                :nocache, :leading([$cont]),
             );
-            $*DOCEE := $block.compile_time_value;
-            $*POD_BLOCKS.push($*DOCEE);
+            $*POD_BLOCK := $block.compile_time_value;
+            $*POD_BLOCKS.push($*POD_BLOCK);
         }
         self
+    }
+
+    method attach_trailing_docs($doc) {
+        unless $*POD_BLOCKS_SEEN{ self.from() } {
+            $*POD_BLOCKS_SEEN{ self.from() } := 1;
+            my $pod_block;
+            if $doc ne '' {
+                my $cont  := Perl6::Pod::serialize_aos(
+                    [Perl6::Pod::formatted_text($doc)]
+                ).compile_time_value;
+                my $block := $*W.add_constant(
+                    'Pod::Block::Declarator', 'type_new',
+                    :nocache, :trailing([$cont]),
+                );
+                $pod_block := $block.compile_time_value;
+            }
+            unless $*PRECEDING_DECL =:= Mu {
+                Perl6::Pod::document($/, $*PRECEDING_DECL, $pod_block, :trailing);
+            }
+        }
     }
 
     token pod_content_toplevel {
@@ -596,7 +649,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         [ <!{$<code> eq 'E'}>
-          $<content>=[
+          $<contents>=[
               <!before $endtag>
               [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
               <pod_string_character>
@@ -627,7 +680,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             {
                 $endtag := nqp::x(">", nqp::chars($<start>));
             }
-            $<content>=[ <pod_string_character>*?]
+            $<contents>=[ <pod_string_character>*?]
             <!after '>'> $<endtag>=[$endtag]
         ]
     }
@@ -921,6 +974,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_BLOCKS_SEEN := {};
         :my $*POD_PAST;
         :my $*DECLARATOR_DOCS;
+        :my $*PRECEDING_DECL; # for #= comments
+        :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
         
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block
@@ -1044,7 +1099,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
             # Install POD-related variables.
             $*POD_PAST := $*W.add_constant(
-                'Array', 'type_new', |$*POD_BLOCKS
+                'Array', 'type_new', :nocache, |$*POD_BLOCKS
             );
             $*W.install_lexical_symbol(
                 $*UNIT, '$=pod', $*POD_PAST.compile_time_value
@@ -1994,41 +2049,49 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token package_declarator:sym<package> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<module> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'module';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<class> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'class';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<grammar> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'grammar';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<role> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'role';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<knowhow> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'knowhow';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<native> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'native';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<trusts> {
@@ -2048,8 +2111,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := '';
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
-        :my $*DOCEE;
-        <.attach_docs>
+        :my $*POD_BLOCK;
+        { $*DECLARATOR_DOCS := '' }
+        <.attach_leading_docs>
         
         # Type-object will live in here; also set default REPR (a trait
         # may override this, e.g. is repr('...')).
@@ -2191,6 +2255,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 
                 # Set declarand as the package.
                 $*DECLARAND := $*PACKAGE;
+
+                if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                    $*PRECEDING_DECL_LINE := $*LINE_NO;
+                    $*PRECEDING_DECL := $*DECLARAND;
+                }
                 
                 # Apply any traits.
                 for $<trait> {
@@ -2266,14 +2335,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
     token multi_declarator:sym<proto> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> :my $*MULTINESS := 'proto'; :my $*IN_PROTO := 1; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<only> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym> :my $*MULTINESS := 'only'; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('only')>]
     }
@@ -2286,6 +2358,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token scope_declarator:sym<my>        { <sym> <scoped('my')> }
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
     token scope_declarator:sym<has>       {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym>
         :my $*HAS_SELF := 'partial';
         :my $*ATTR_INIT_BLOCK;
@@ -2303,8 +2376,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('scoped declarator')
         [
         :my $*DOC := $*DECLARATOR_DOCS;
-        :my $*DOCEE;
-        <.attach_docs>
+        :my $*POD_BLOCK;
+        {
+            if $*SCOPE eq 'has' {
+                $*DECLARATOR_DOCS := '';
+                if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                    $*PRECEDING_DECL_LINE := $*LINE_NO;
+                    $*PRECEDING_DECL := Mu; # actual declarand comes later, in Actions::declare_variable
+                }
+                self.attach_leading_docs;
+            }
+        }
         <.ws>
         [
         | <DECL=declarator>
@@ -2373,23 +2455,38 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto token routine_declarator { <...> }
-    token routine_declarator:sym<sub>
-        { <sym> <.end_keyword> <routine_def('sub')> }
-    token routine_declarator:sym<method>
-        { <sym> <.end_keyword> <method_def('method')> }
-    token routine_declarator:sym<submethod>
-        { <sym> <.end_keyword> <method_def('submethod')> }
-    token routine_declarator:sym<macro>
-        { <sym> <.end_keyword> <macro_def()> }
+    token routine_declarator:sym<sub> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        <sym> <.end_keyword> <routine_def('sub')>
+    }
+    token routine_declarator:sym<method> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        <sym> <.end_keyword> <method_def('method')>
+    }
+    token routine_declarator:sym<submethod> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        <sym> <.end_keyword> <method_def('submethod')>
+    }
+    token routine_declarator:sym<macro> {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        <sym> <.end_keyword> <macro_def()>
+    }
 
     rule routine_def($d) {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE;
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
-        :my $*DOCEE;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
-        <.attach_docs>
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
+        <.attach_leading_docs>
         <deflongname>?
         {
             if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
@@ -2418,9 +2515,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*METHODTYPE := $d;
         :my $*HAS_SELF := $d eq 'submethod' ?? 'partial' !! 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
-        :my $*DOCEE;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
-        <.attach_docs>
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
+        <.attach_leading_docs>
         [
             <.newpad>
             [
@@ -2448,9 +2552,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := 'macro';
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
-        :my $*DOCEE;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
-        <.attach_docs>
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
+        <.attach_leading_docs>
         <deflongname>?
         {
             if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
@@ -2596,6 +2707,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token param_var {
         :dba('formal parameter')
+        :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
+        :my $*POD_BLOCK;
+        <.attach_leading_docs>
+        {
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+            if $*PRECEDING_DECL_LINE < $line_no {
+                $*PRECEDING_DECL_LINE := $line_no;
+                my $par_type := $*W.find_symbol(['Parameter']);
+                $*PRECEDING_DECL := nqp::create($par_type); # actual declarand comes later, in World::create_parameter
+            }
+        }
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
@@ -2652,6 +2774,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'rule';
         :my $*IN_DECL    := 'rule';
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         {
             %*RX<s> := 1;
             %*RX<r> := 1;
@@ -2664,6 +2787,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'token';
         :my $*IN_DECL    := 'token';
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         {
             %*RX<r> := 1;
         }
@@ -2675,6 +2799,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'regex';
         :my $*IN_DECL    := 'regex';
+        :my $*LINE_NO    := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <regex_def>
     }
 
@@ -2682,7 +2807,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.end_keyword>
         :my $*CURPAD;
         :my $*HAS_SELF := 'complete';
+        :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Regex');
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
+        <.attach_leading_docs>
         [
           <deflongname>?
           { if $<deflongname> { %*RX<name> := ~$<deflongname>.ast } }
@@ -2702,9 +2837,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token type_declarator { <...> }
 
     token type_declarator:sym<enum> {
-        :my $*IN_DECL := 'enum';
-        :my $*DECLARAND;
         <sym>  <.end_keyword> <.ws>
+        :my $*IN_DECL := 'enum';
+        :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*POD_BLOCK;
+        :my $*DECLARAND;
+        {
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+            if $*PRECEDING_DECL_LINE < $line_no {
+                $*PRECEDING_DECL_LINE := $line_no;
+                $*PRECEDING_DECL      := Mu; # actual declarand comes later, in Actions::type_declarator:sym<enum>
+            }
+        }
+        <.attach_leading_docs>
         [
         | <longname>
             {
@@ -2727,6 +2873,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule type_declarator:sym<subset> {
         <sym><.end_keyword> :my $*IN_DECL := 'subset';
+        :my $*DOC := $*DECLARATOR_DOCS;
+        { $*DECLARATOR_DOCS := '' }
+        :my $*POD_BLOCK;
+        :my $*DECLARAND;
+        {
+            my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+            if $*PRECEDING_DECL_LINE < $line_no {
+                $*PRECEDING_DECL_LINE := $line_no;
+                $*PRECEDING_DECL      := Mu; # actual declarand comes later, in Actions::type_declarator:sym<subset>
+            }
+        }
+        <.attach_leading_docs>
         [
             [
                 [

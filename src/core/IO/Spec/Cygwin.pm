@@ -1,7 +1,5 @@
 my class IO::Spec::Cygwin is IO::Spec::Unix {
 
-    #| Any C<\> (backslashes) are converted to C</> (forward slashes),
-    #| and then IO::Spec::Unix.canonpath() is called on the result.
     method canonpath (Cool:D $path is copy) {
         $path.=subst(:g, '\\', '/');
 
@@ -13,8 +11,6 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
         $node ~ IO::Spec::Unix.canonpath($path);
     }
 
-    #| Calls the Unix version, and additionally prevents
-    #| accidentally creating a //network/path.
     method catdir ( *@paths ) {
         my $result = IO::Spec::Unix.catdir(@paths);
 
@@ -23,7 +19,6 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 
 
-    #| Tests if the file name begins with C<drive_letter:/> or a slash.
     method is-absolute ($file) {
         so $file ~~ / ^ [<[A..Z a..z]> ':']?  <[\\/]>/; # C:/test
     }

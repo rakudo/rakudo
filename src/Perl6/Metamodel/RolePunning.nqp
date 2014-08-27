@@ -35,6 +35,10 @@ role Perl6::Metamodel::RolePunning {
             !! $pun_meta.new_type(:name(self.name($obj)));
         $pun.HOW.add_role($pun, $obj);
         $pun.HOW.compose($pun);
+        my $why := self.WHY;
+        if $why {
+            $pun.set_why(self.WHY);
+        }
         $pun
     }
     

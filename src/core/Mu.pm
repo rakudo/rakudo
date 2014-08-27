@@ -32,7 +32,20 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method WHY() {
-        self.HOW.docs // Any
+        my Mu $why;
+
+        if nqp::can(self.HOW, 'WHY') {
+            $why := self.HOW.WHY;
+        }
+
+        if $why.defined && !$.defined #`(ie. we're a type object) {
+            $why.set_docee(self);
+        }
+        $why // Any
+    }
+
+    method set_why($why) {
+        self.HOW.set_why($why);
     }
     
     proto method Bool(|) {*}

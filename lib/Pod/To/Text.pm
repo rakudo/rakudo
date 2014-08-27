@@ -17,7 +17,7 @@ sub pod2text($pod) is export {
         when Pod::Heading      { heading2text($pod)             }
         when Pod::Block::Code  { code2text($pod)                }
         when Pod::Block::Named { named2text($pod)               }
-        when Pod::Block::Para  { $pod.content.map({pod2text($_)}).join("") }
+        when Pod::Block::Para  { $pod.contents.map({pod2text($_)}).join("") }
         when Pod::Block::Table { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod).indent(2)      }
@@ -31,38 +31,38 @@ sub pod2text($pod) is export {
 
 sub heading2text($pod) {
     given $pod.level {
-        when 1  {          pod2text($pod.content)  }
-        when 2  { '  '   ~ pod2text($pod.content)  }
-        default { '    ' ~ pod2text($pod.content)  }
+        when 1  {          pod2text($pod.contents)  }
+        when 2  { '  '   ~ pod2text($pod.contents)  }
+        default { '    ' ~ pod2text($pod.contents)  }
     }
 }
 
 sub code2text($pod) {
-    "    " ~ $pod.content>>.&pod2text.subst(/\n/, "\n    ", :g)
+    "    " ~ $pod.contents>>.&pod2text.subst(/\n/, "\n    ", :g)
 }
 
 sub item2text($pod) {
-    '* ' ~ pod2text($pod.content).chomp.chomp
+    '* ' ~ pod2text($pod.contents).chomp.chomp
 }
 
 sub named2text($pod) {
     given $pod.name {
-        when 'pod'  { pod2text($pod.content)     }
-        when 'para' { para2text($pod.content[0]) }
-        when 'defn' { pod2text($pod.content[0]) ~ "\n"
-                    ~ pod2text($pod.content[1..*-1]) }
+        when 'pod'  { pod2text($pod.contents)     }
+        when 'para' { para2text($pod.contents[0]) }
+        when 'defn' { pod2text($pod.contents[0]) ~ "\n"
+                    ~ pod2text($pod.contents[1..*-1]) }
         when 'config' { }
         when 'nested' { }
-        default     { $pod.name ~ "\n" ~ pod2text($pod.content) }
+        default     { $pod.name ~ "\n" ~ pod2text($pod.contents) }
     }
 }
 
 sub para2text($pod) {
-    twine2text($pod.content)
+    twine2text($pod.contents)
 }
 
 sub table2text($pod) {
-    my @rows = $pod.content;
+    my @rows = $pod.contents;
     @rows.unshift($pod.headers.item) if $pod.headers;
     my @maxes;
     for 0..(@rows[1].elems - 1) -> $i {
@@ -105,7 +105,7 @@ sub declarator2text($pod) {
             ''
         }
     }
-    return "$what\n{$pod.WHEREFORE.WHY.content}"
+    return "$what\n{$pod.WHEREFORE.WHY.contents}"
 }
 
 sub signature2text($params) {
@@ -122,7 +122,7 @@ my %formats =
 ;
 
 sub formatting2text($pod) {
-    my $text = $pod.content>>.&pod2text.join;
+    my $text = $pod.contents>>.&pod2text.join;
     if $pod.type ~~ %formats {
         return colored($text, %formats{$pod.type});
     }
@@ -133,7 +133,7 @@ sub twine2text($twine) {
     return '' unless $twine.elems;
     my $r = $twine[0];
     for $twine[1..*] -> $f, $s {
-        $r ~= twine2text($f.content);
+        $r ~= twine2text($f.contents);
         $r ~= $s;
     }
     return $r;

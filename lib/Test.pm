@@ -97,8 +97,8 @@ multi sub is(Mu $got, Mu $expected, $desc = '') is export {
     my $test = $got eq $expected;
     my $ok = proclaim(?$test, $desc);
     if !$test {
-        diag "     got: '$got'";
         diag "expected: '$expected'";
+        diag "     got: '$got'";
     }
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
@@ -122,9 +122,9 @@ multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     if $op ~~ Callable ?? $op !! try EVAL "&infix:<$op>" -> $matcher {
         $ok = proclaim(?$matcher($got,$expected), $desc);
         if !$ok {
-            diag "     got: '$got'";
-            diag " matcher: '$matcher'";
             diag "expected: '{$expected // $expected.^name}'";
+            diag " matcher: '$matcher'";
+            diag "     got: '$got'";
         }
     }
     else {
@@ -141,8 +141,8 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     my $test = ($got - $expected).abs <= $tol;
     my $ok = proclaim(?$test, $desc);
     unless $test {
-        diag("got:      $got");
         diag("expected: $expected");
+        diag("got:      $got");
     }
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
@@ -261,8 +261,8 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
         my $got_perl      = try { $got.perl };
         my $expected_perl = try { $expected.perl };
         if $got_perl.defined && $expected_perl.defined {
-            diag "     got: $got_perl";
             diag "expected: $expected_perl";
+            diag "     got: $got_perl";
         }
     }
     $time_before = nqp::p6box_n(nqp::time_n);
@@ -293,13 +293,13 @@ sub throws_like($code, $ex_type, $reason?, *%matcher) is export {
                         my $ok = $got ~~ $v,;
                         ok $ok, ".$k matches {$v.defined ?? $v !! $v.gist}";
                         unless $ok {
-                            diag "Got:      $got";
                             diag "Expected: $v";
+                            diag "Got:      $got";
                         }
                     }
                 } else {
-                    diag "Got:      {$_.WHAT.gist}";
                     diag "Expected: {$ex_type.gist}";
+                    diag "Got:      {$_.WHAT.gist}";
                     diag "Exception message: $_.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }

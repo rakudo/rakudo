@@ -648,7 +648,9 @@ multi infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-$PROCESS::TZ = get-local-timezone-offset();
+PROCESS::<$TZ> := Proxy.new(
+    FETCH => -> $       { PROCESS::<$TZ> := my $ = get-local-timezone-offset(); },
+    STORE => -> $, $val { PROCESS::<$TZ> := my $ = $val;                        });
 
 sub sleep($seconds = Inf --> Nil) {
     if $seconds ~~ (Inf|Whatever) {

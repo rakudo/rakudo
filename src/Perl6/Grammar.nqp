@@ -1785,13 +1785,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$~> {
-        <sym> <?before \s | ',' | '=' <terminator> >
+        <sym> <?before \h* '='>
         <.obs('$~ variable', 'Form module')>
     }
 
     token special_variable:sym<$`> {
         <sym>  <?before \s | ',' | <terminator> >
-        <.obs('$` variable', 'explicit pattern before <(')>
+        <.obs('$` variable', '$/.prematch')>
     }
 
     token special_variable:sym<$@> {
@@ -1813,14 +1813,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obs('$$ variable', '$*PID')>
     }
     token special_variable:sym<$%> {
-        <sym> <!before \w | '(' | <sigil> >
+        <sym> <?before \h* '='>
         <.obs('$% variable', 'Form module')>
     }
 
     # TODO: $^X and other "caret" variables
 
     token special_variable:sym<$^> {
-        <sym> <?before \s | ',' | '=' | <terminator> >
+        <sym> <?before \h* '='>
         <.obs('$^ variable', 'Form module')>
     }
 
@@ -1830,22 +1830,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$*> {
-        <sym> <?before \s | ',' | '=' | <terminator> >
+        <sym> <?before \h* '='>
         <.obs('$* variable', '^^ and $$')>
     }
 
-    token special_variable:sym<$)> {
-        <sym> <?{ $*GOAL ne ')' }> <?before \s | ',' | <terminator> >
-        <.obs('$) variable', '$*EGID')>
-    }
-
-    token special_variable:sym<$-> {
-        <sym> <?before \s | ',' | '=' | <terminator> >
-        <.obs('$- variable', 'Form module')>
-    }
-
     token special_variable:sym<$=> {
-        <sym> <?before \s | ',' | '=' | <terminator> >
+        <sym> <?before \h+ '='>
         <.obs('$= variable', 'Form module')>
     }
 
@@ -1899,61 +1889,39 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obs('%- variable', '.from method')>
     }
 
-    token special_variable:sym<$+> {
-        <sym> <?before \s | ',' | <terminator> >
-        <.obs('$+ variable', 'Form module')>
-    }
-
-    token special_variable:sym<$[> {
-        <sym> <?before \s | ',' | '=' | <terminator> >
-        <.obs('$[ variable', 'user-defined array indices')>
-    }
-
-    token special_variable:sym<$]> {
-        <sym> <?before \s | ',' | <terminator> >
-        <.obs('$] variable', '$*PERL_VERSION')>
-    }
-
     token special_variable:sym<$\\> {
         '$\\' <?before \s | ',' | '=' | <terminator> >
         <.obs('$\\ variable', "the filehandle's :ors attribute")>
     }
 
     token special_variable:sym<$|> {
-        <sym> <?before \s | ',' | '=' | <terminator> >
+        <sym> <?before \h* '='>
         <.obs('$| variable', ':autoflush on open')>
     }
 
     token special_variable:sym<$:> {
-        <sym> <?[\x20\t\n\],=)}]>
+        <sym> <?before \h* '='>
         <.obs('$: variable', 'Form module')>
     }
 
     token special_variable:sym<$;> {
-        <sym> <?before \s | ',' | '=' | <terminator> >
+        <sym> <?before \h* '='>
         <.obs('$; variable', 'real multidimensional hashes')>
     }
 
     token special_variable:sym<$'> { #'
         <sym> <?before \s | ',' | <terminator> >
-        <.obs('$' ~ "'" ~ 'variable', "explicit pattern after )\x3E")>
+        <.obs('$' ~ "'" ~ 'variable', "$/.postmatch")>
     }
 
-    # TODO: $"
+    token special_variable:sym<$"> {
+        <sym> <?before \h* '='>
+        <.obs('$" variable', '.join() method')>
+    }
 
     token special_variable:sym<$,> {
-        <sym> <?before \h* <[ = , ; ? : ! ) \] } ]> >
+        <sym> <?before \h* '='>
         <.obs('$, variable', ".join() method")>
-    }
-
-    token special_variable:sym['$<'] {
-        <sym> <?before \h* <[ = , ; ? : ! ) \] } ]> <!before \S* '>'> >
-        <.obs('$< variable', '$*UID')>
-    }
-
-    token special_variable:sym«\$>» {
-        <sym> {} <?before \s | ',' | <terminator> >
-        <.obs('$> variable', '$*EUID')>
     }
 
     token special_variable:sym<$.> {

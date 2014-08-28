@@ -16,7 +16,7 @@ class CompUnit {
     my %instances;
 
     method new(
-      $path is copy,
+      $path,
       :$name is copy,
       :$extension is copy,
       :$from = $default-from,
@@ -40,7 +40,6 @@ class CompUnit {
 
         # sanity test
         my $precomp-ext = $*VM.precomp-ext;
-        $path = IO::Spec.rel2abs($path);
         $has-source  //= ?$path.IO.f;
         $has-precomp //= ?"$path.$precomp-ext".IO.f;
         return Nil unless $has-source or $has-precomp;

@@ -5,8 +5,7 @@ role CompUnitRepo::Locally {
 
     my %instances;
 
-    method new( $path is copy ) {
-        $path = IO::Spec.rel2abs($path);
+    method new( $path ) {
         return Nil unless $path.IO.e;
         %instances{$path} //= self.bless(:$path)
     }

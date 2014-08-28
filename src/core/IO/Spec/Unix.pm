@@ -34,7 +34,7 @@ my class IO::Spec::Unix {
     method no-parent-or-current-test { none('.', '..')  }
 
     method is-absolute( $file ) {
-        so $file.match(/^\//)
+        substr( $file, 0, 1 ) eq '/';
     }
 
     method path {

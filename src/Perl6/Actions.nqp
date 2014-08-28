@@ -5163,12 +5163,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ($target[0].name eq '&postcircumfix:<[ ]>' || $target[0].name eq '&postcircumfix:<{ }>') {
             $source.named('BIND');
             $target[0].push($source);
+            $target.annotate('nosink', 1);
             make $target;
         }
         elsif $target.isa(QAST::Op) && $target.op eq 'call' &&
               ($target.name eq '&postcircumfix:<[ ]>' || $target.name eq '&postcircumfix:<{ }>') {
             $source.named('BIND');
             $target.push($source);
+            $target.annotate('nosink', 1);
             make $target;
         }
         elsif $target.isa(QAST::WVal) && nqp::istype($target.value, $*W.find_symbol(['Signature'])) {
@@ -5188,7 +5190,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
             my $contextual := QAST::VarWithFallback.new(
                 :name($target[0][2].value), :scope('contextual'), :fallback($complain) );
-            make QAST::Op.new( :op('bind'), $contextual, $source)
+            my $dynbind := QAST::Op.new( :op('bind'), $contextual, $source);
+            $dynbind.annotate('nosink', 1);
+            make $dynbind;
         }
         # XXX Several more cases to do...
         else {

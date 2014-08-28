@@ -195,26 +195,6 @@ my class List does Positional { # declared in BOOTSTRAP
           !! fail 'Element shifted from empty list';
     }
 
-    multi method push(List:D: \value) {
-        if nqp::iscont(value) || !(nqp::istype(value, Iterable) || nqp::istype(value, Parcel)) {
-            $!nextiter.DEFINITE && self.gimme(*);
-            fail 'Cannot .push to an infinite list' if $!nextiter.defined;
-            nqp::p6listitems(self);
-            value.gimme(*) if nqp::istype(value, List); # fixes #121994
-            nqp::istype(value, self.of)
-                ?? nqp::push($!items, my $ = value)
-                !! X::TypeCheck.new(
-                      operation => '.push',
-                      expected  => self.of,
-                      got       => value,
-                    ).throw;
-            self
-        }
-        else {
-            callsame();
-        }
-    }
-    
     multi method push(List:D: *@values) {
         fail 'Cannot .push an infinite list' if @values.infinite;
         nqp::p6listitems(self);

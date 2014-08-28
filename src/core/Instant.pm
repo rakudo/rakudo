@@ -120,6 +120,12 @@ sub term:<now>() {
     Instant.from-posix: nqp::time_n
 }
 
-PROCESS::<$INITTIME> = now;
+{
+    my num $init-time-num = nqp::time_n;
+    PROCESS::<$INITTIME> := Proxy.new(
+        FETCH => -> $       { PROCESS::<$INITTIME> := my $ = Instant.from-posix: $init-time-num; },
+        STORE => -> $, $val { PROCESS::<$INITTIME> := my $ = $val;                               });
+    Nil; # Don't sink the bind!
+}
 
 # vim: ft=perl6 expandtab sw=4

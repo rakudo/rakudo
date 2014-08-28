@@ -148,10 +148,12 @@ my class IO::Spec::Unix {
         return self.canonpath( self.catpath('', $result_dirs, '') );
     }
 
-    method rel2abs( $path, $base is copy = $*CWD) {
+    method rel2abs( $path, $base? is copy) {
         return self.canonpath($path) if self.is-absolute($path);
-        if !self.is-absolute( $base ) {
-            $base = self.rel2abs( $base, $*CWD ) unless $base eq $*CWD;
+
+        my $cwd := $*CWD;
+        if !self.is-absolute( $base //= $cwd ) {
+            $base = self.rel2abs( $base, $cwd ) unless $base eq $cwd;
         }
         self.catdir( self.canonpath($base), $path );
     }

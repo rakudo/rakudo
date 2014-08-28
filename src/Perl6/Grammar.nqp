@@ -787,12 +787,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         \h* <!before '=' \w> \N* \n
     }
 
-    token pod_block:sym<end> {
+    token pod_block:sym<finish> {
         ^^ \h*
         [
-            | '=begin' \h+ 'END' <pod_newline>
-            | '=for'   \h+ 'END' <pod_newline>
-            | '=END' <pod_newline>
+            | '=begin' \h+ 'finish' <pod_newline>
+            | '=for'   \h+ 'finish' <pod_newline>
+            | '=finish' <pod_newline>
         ]
         .*
     }
@@ -845,7 +845,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<abbreviated> {
         ^^
         $<spaces> = [ \h* ]
-        '=' <!before begin || end || for || END || config>
+        '=' <!before begin || end || for || finish || config>
         {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }

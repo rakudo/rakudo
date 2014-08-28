@@ -629,7 +629,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make @t;
     }
 
-    method pod_block:sym<end>($/) {
+    method pod_block:sym<finish>($/) {
     }
 
     method pod_content:sym<config>($/) {

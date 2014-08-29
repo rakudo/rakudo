@@ -2,6 +2,13 @@ my class Pod::Block {
     has %.config;
     has @.contents;
 
+    submethod BUILD(:$content = Any, :%!config, :@!contents) {
+        if $content.defined {
+            DEPRECATED("Pod::Block.new(:contents)", :up(5), :what('Pod::Block.new(:content)'));
+            @!contents.push: $content.list;
+        }
+    }
+
     sub pod-gist(Pod::Block $pod, $level = 0) {
         my $leading = ' ' x $level;
         my %confs;

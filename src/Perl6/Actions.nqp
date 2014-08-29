@@ -1800,6 +1800,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $past := QAST::Var.new( );
                     $past := declare_variable($/, $past, $name, '', '', 0);
                     $past.annotate('nosink', 1);
+                    make $past;
+                    return;
                 }
                 else {
                     $past := make_variable($/, [$name]);

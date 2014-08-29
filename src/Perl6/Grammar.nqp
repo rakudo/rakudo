@@ -282,7 +282,6 @@ role STD {
         }
         if !$*IN_DECL && nqp::istype($varast, QAST::Var) && $varast.scope eq 'lexical' {
             my $name := $varast.name;
-            return self if $name eq '$' || $name eq '@' || $name eq '%' || $name eq '&';
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
                     my @suggestions := $*W.suggest_lexicals($name);

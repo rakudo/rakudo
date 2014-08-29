@@ -2996,6 +2996,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'nqp::const::' $<const>=[\w+]
     }
 
+    my %deftrap := nqp::hash(
+        'say', 1, 'print', 1, 'abs', 1, 'alarm', 1, 'chomp', 1, 'chop', 1, 'chr', 1, 'chroot', 1, 'cos', 1,
+        'defined', 1, 'eval', 1, 'exp', 1, 'glob', 1, 'lc', 1, 'lcfirst', 1, 'log', 1, 'lstat', 1, 'mkdir', 1,
+        'ord', 1, 'readlink', 1, 'readpipe', 1, 'require', 1, 'reverse', 1, 'rmdir', 1, 'sin', 1,
+        'split', 1, 'sqrt', 1, 'stat', 1, 'uc', 1, 'ucfirst', 1, 'unlink', 1,
+        'WHAT', 2, 'WHICH', 2, 'WHERE', 2, 'HOW', 2, 'WHENCE', 2, 'WHO', 2, 'VAR', 2,
+        'any', 2, 'all', 2, 'none', 2, 'one', 2, 'set', 2, 'bag', 2
+    );
+
     token term:sym<name> {
         <longname>
         :my $*longname;
@@ -3011,11 +3020,29 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
                         unless nqp::index($<longname>.Str, '::') >= 0 }
            {
-               if nqp::ishash($*BORG) && $*BORG<block> {
-                   unless $*BORG<name> {
-                       $*BORG<name> := $*BORG<name> // ~$<longname>;
-                   }
-               }
+                my $name := ~$<longname>;
+                if nqp::ishash($*BORG) && $*BORG<block> {
+                    unless $*BORG<name> {
+                        $*BORG<name> := $*BORG<name> // $name;
+                    }
+                }
+                if %deftrap{$name} {
+                    my $al := $<args><arglist>;
+                    my int $ok := 0;
+                    $ok := 1 if $al && $al.from != $al.to;
+                    $ok := 1 if $<args><semiarglist>;
+                    unless $ok {
+                        my $trap := %deftrap{$name};
+                        $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
+                            if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
+                        if $trap == 1 {        # probably misused P5ism
+                            $<longname>.CURSOR.sorryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
+                        }
+                        elsif $trap == 2 {        # probably misused P6ism
+                            $<longname>.CURSOR.sorry("The '$name' listop may not be called without arguments (please use () or whitespace to clarify)");
+                        }
+                    }
+                }
            }
         ]
     }

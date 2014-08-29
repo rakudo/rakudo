@@ -10,6 +10,9 @@ sub print(|) {
 }
 
 proto sub say(|) { * }
+multi sub say() {
+    fail X::Bare.new( :name<say> );
+}
 multi sub say(Obsolete:D \x) {
     my $out := $*OUT;
     $out.print(x.gist);

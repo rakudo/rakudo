@@ -414,7 +414,7 @@ my class Mu { # declared in BOOTSTRAP
     
     proto method Str(|) { * }
     multi method Str(Mu:U \v:) {
-        my $name = v.VAR.?name // '';
+        my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
         warn "use of uninitialized value {$name}of type {self.HOW.name(self)} in string context";
         ''
@@ -425,10 +425,8 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method Stringy(|) { * }
     multi method Stringy(Mu:U \v:) {
-        my $name = v.VAR.?name // '';
-        $name   ~= ' ' if $name ne '';
-        warn "use of uninitialized value {$name}of type {self.HOW.name(self)} in string context";
-        ''
+        my $*VAR_NAME = v.VAR.?name;
+        self.Str
     }
     multi method Stringy(Mu:D $:) { self.Str }
     

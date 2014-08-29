@@ -3028,7 +3028,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 if %deftrap{$name} {
                     my $al := $<args><arglist>;
                     my int $ok := 0;
-                    $ok := 1 if $al && $al.from != $al.to;
+                    $ok := 1 unless $al<EXPR> eq '';
                     $ok := 1 if $<args><semiarglist>;
                     unless $ok {
                         my $trap := %deftrap{$name};

@@ -1796,8 +1796,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if !$*IN_DECL && nqp::chars($name) == 1 && $name eq ~$<sigil> {
                     my $*IN_DECL := 'variable';
                     my $*SCOPE := 'state';
-                    my $past := QAST::Var.new( :name('') );
-                    $past := declare_variable($/, $past, $name, '', '', []);
+                    my $*OFTYPE;  # should default to Mu/Mu/Any
+                    my $past := QAST::Var.new( );
+                    $past := declare_variable($/, $past, $name, '', '', 0);
+                    $past.annotate('nosink', 1);
                 }
                 else {
                     $past := make_variable($/, [$name]);
@@ -2351,6 +2353,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
                 }
             }
+            elsif $desigilname eq '' {
+                if $twigil {
+                    $/.CURSOR.panic("Cannot have an anonymous variable with a twigil");
+                }
+                $name := QAST::Node.unique($sigil ~ 'ANON_VAR_');
+            }
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
@@ -2359,9 +2367,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
               %cont_info<value_type>, 1, $name, %cont_info<default_value>);
 
             # Install the container.
-            if $desigilname eq '' {
-                $name := QAST::Node.unique('ANON_VAR_');
-            }
             my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
                 :scope($*SCOPE), :package($*PACKAGE));
             

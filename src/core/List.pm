@@ -272,6 +272,26 @@ my class List does Positional { # declared in BOOTSTRAP
         self
     }
 
+    method plan(List:D: |args) {
+        nqp::p6listitems(self);
+        my $elems = self.gimme(*);
+        fail 'Cannot add plan to an infinite list' if $!nextiter.defined;
+
+#        # need type checks?
+#        my $of := self.of;
+#
+#        unless $of =:= Mu {
+#            X::TypeCheck.new(
+#              operation => '.push',
+#              expected  => $of,
+#              got       => $_,
+#            ).throw unless nqp::istype($_, $of) for @values;
+#        }
+
+        nqp::bindattr(self, List, '$!nextiter', args.list.iterator);
+        Nil;
+    }
+
     method roll($n is copy = 1) {
         my $elems = self.gimme(*);
         fail 'Cannot .roll from an infinite list' if $!nextiter.defined;

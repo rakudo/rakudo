@@ -506,11 +506,11 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
-        join ' ', @(self).map: {
+        join ' ', @(self).map: -> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }
-                default {$_.gist}
+                default  { $elem.gist }
             }
         }
     }

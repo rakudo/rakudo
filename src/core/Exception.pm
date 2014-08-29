@@ -1502,13 +1502,6 @@ my class X::Multi::NoMatch is Exception {
     }
 }
 
-my class X::Bare is Exception {
-    has $.name;
-    method message() {
-        "Unsupported use of bare '$!name'; in Perl 6 please use .$!name if you meant \$_, or use an explicit invocant or argument"
-    }
-}
-
 my class X::Caller::NotDynamic is Exception {
     has $.symbol;
     method message() {

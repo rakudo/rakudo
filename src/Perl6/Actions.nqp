@@ -1792,7 +1792,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             else {
-                $past := make_variable($/, [~$/]);
+                my $name := ~$/;
+                if !$*IN_DECL && nqp::chars($name) == 1 && $name eq ~$<sigil> {
+                    my $*IN_DECL := 'variable';
+                    my $*SCOPE := 'state';
+                    my $past := QAST::Var.new( :name('') );
+                    $past := declare_variable($/, $past, $name, '', '', []);
+                }
+                else {
+                    $past := make_variable($/, [$name]);
+                }
             }
         }
         if $*IN_DECL eq 'variable' {

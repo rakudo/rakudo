@@ -257,6 +257,9 @@ role STD {
             when        => $when,
         );
     }
+    method obsvar($name) {
+        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'], :$name);
+    }
     method sorryobs($old, $new, $when = ' in Perl 6') {
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],
             old         => $old,
@@ -279,6 +282,7 @@ role STD {
         }
         if !$*IN_DECL && nqp::istype($varast, QAST::Var) && $varast.scope eq 'lexical' {
             my $name := $varast.name;
+            return self if $name eq '$' || $name eq '@' || $name eq '%' || $name eq '&';
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
                     my @suggestions := $*W.suggest_lexicals($name);
@@ -1780,23 +1784,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token special_variable { <...> }
 
     token special_variable:sym<$!{ }> {
-        '$!{' .*? '}'
-        <.obs('${ ... } or %! variable', 'smart match against $!')>
+        [ '$!{' .*? '}' | '%!' ]
+        <.obsvar('%!')>
     }
 
     token special_variable:sym<$~> {
         <sym> <?before \h* '='>
-        <.obs('$~ variable', 'Form module')>
+        <.obsvar('$~')>
     }
 
     token special_variable:sym<$`> {
         <sym>  <?before \s | ',' | <terminator> >
-        <.obs('$` variable', '$/.prematch')>
+        <.obsvar('$`')>
     }
 
     token special_variable:sym<$@> {
-        <sym> <!before \w | '(' | <sigil> >
-        <.obs('$@ variable as eval error', '$!')>
+        <sym> <[ \s ; , ) ]> .
+        <.obsvar('$@')>
     }
 
     # TODO: use actual variable in error message
@@ -1804,134 +1808,134 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym>
         [
         || \w+ <.obs('$#variable', '@variable.end')>
-        || <.obs('$# variable', '.fmt')>
+        || <.obsvar('$#')>
         ]
     }
 
     token special_variable:sym<$$> {
-        <sym> <!alpha> <?before \s | ',' | <terminator> >
-        <.obs('$$ variable', '$*PID')>
+        <sym> .
+        <.obsvar('$$')>
     }
     token special_variable:sym<$%> {
         <sym> <?before \h* '='>
-        <.obs('$% variable', 'Form module')>
+        <.obsvar('$%')>
     }
 
     # TODO: $^X and other "caret" variables
 
     token special_variable:sym<$^> {
         <sym> <?before \h* '='>
-        <.obs('$^ variable', 'Form module')>
+        <.obsvar('$^')>
     }
 
     token special_variable:sym<$&> {
         <sym> <?before \s | ',' | <terminator> >
-        <.obs('$& variable', '$/ or $()')>
+        <.obsvar('$&')>
     }
 
     token special_variable:sym<$*> {
         <sym> <?before \h* '='>
-        <.obs('$* variable', '^^ and $$')>
+        <.obsvar('$*')>
     }
 
     token special_variable:sym<$=> {
         <sym> <?before \h+ '='>
-        <.obs('$= variable', 'Form module')>
+        <.obsvar('$=')>
     }
 
     token special_variable:sym<@+> {
         <sym> <?before \s | ',' | <terminator> >
-        <.obs('@+ variable', '.to method')>
+        <.obsvar('@+')>
     }
 
     token special_variable:sym<%+> {
         <sym> <?before \s | ',' | <terminator> >
-        <.obs('%+ variable', '.to method')>
+        <.obsvar('%+')>
     }
 
     token special_variable:sym<$+[ ]> {
         '$+['
-        <.obs('@+ variable', '.to method')>
+        <.obsvar('@+')>
     }
 
     token special_variable:sym<@+[ ]> {
         '@+['
-        <.obs('@+ variable', '.to method')>
+        <.obsvar('@+')>
     }
 
     token special_variable:sym<@+{ }> {
         '@+{'
-        <.obs('%+ variable', '.to method')>
+        <.obsvar('%+')>
     }
 
     token special_variable:sym<@-> {
         <sym> <?before \s | ',' | <terminator> >
-        <.obs('@- variable', '.from method')>
+        <.obsvar('@-')>
     }
 
     token special_variable:sym<%-> {
         <sym> <?before \s | ',' | <terminator> >
-        <.obs('%- variable', '.from method')>
+        <.obsvar('%-')>
     }
 
     token special_variable:sym<$-[ ]> {
         '$-['
-        <.obs('@- variable', '.from method')>
+        <.obsvar('@-')>
     }
 
     token special_variable:sym<@-[ ]> {
         '@-['
-        <.obs('@- variable', '.from method')>
+        <.obsvar('@-')>
     }
 
     token special_variable:sym<%-{ }> {
         '@-{'
-        <.obs('%- variable', '.from method')>
+        <.obsvar('%-')>
     }
 
     token special_variable:sym<$\\> {
         '$\\' <?before \s | ',' | '=' | <terminator> >
-        <.obs('$\\ variable', "the filehandle's :ors attribute")>
+        <.obsvar('$\\')>
     }
 
     token special_variable:sym<$|> {
         <sym> <?before \h* '='>
-        <.obs('$| variable', ':autoflush on open')>
+        <.obsvar('$|')>
     }
 
     token special_variable:sym<$:> {
         <sym> <?before \h* '='>
-        <.obs('$: variable', 'Form module')>
+        <.obsvar('$:')>
     }
 
     token special_variable:sym<$;> {
         <sym> <?before \h* '='>
-        <.obs('$; variable', 'real multidimensional hashes')>
+        <.obsvar('$;')>
     }
 
     token special_variable:sym<$'> { #'
         <sym> <?before \s | ',' | <terminator> >
-        <.obs('$' ~ "'" ~ 'variable', "$/.postmatch")>
+        <.obsvar('$' ~ "'")>
     }
 
     token special_variable:sym<$"> {
         <sym> <?before \h* '='>
-        <.obs('$" variable', '.join() method')>
+        <.obsvar('$"')>
     }
 
     token special_variable:sym<$,> {
         <sym> <?before \h* '='>
-        <.obs('$, variable', ".join() method")>
+        <.obsvar('$,')>
     }
 
     token special_variable:sym<$.> {
         <sym> {} <?before \s | ',' | <terminator> >
-        <.obs('$. variable', "the filehandle's .line method")>
+        <.obsvar('$.')>
     }
 
     token special_variable:sym<$?> {
         <sym> {} <?before \s | ',' | <terminator> >
-        <.obs('$? variable as child error', '$!')>
+        <.obsvar('$?')>
     }
     
     regex special_variable:sym<${ }> {
@@ -1990,11 +1994,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <sigil> <?[<]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
             | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
-            | <sigil> <?{ $*IN_DECL }>
-            | <!{ $*QSIGIL }> {
-                $/.CURSOR.typed_panic( 'X::Syntax::Perl5Var',
-                  name => nqp::substr(~$/.orig, $/.to - 1, 3 ) )
-              }
+            | <sigil>
             ]
         ]
         [ <?{ $<twigil> && $<twigil> eq '.' }>

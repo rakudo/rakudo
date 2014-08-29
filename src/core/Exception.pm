@@ -954,8 +954,8 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$>'  => '$*EUID',
       '$;'  => 'real multidimensional hashes',
       '$&'  => '$<>',
-      '$`'  => 'explicit pattern before <(',
-      '$\'' => 'explicit pattern after )>',
+      '$`'  => '$/.prematch',
+      '$\'' => '$/.postmatch',
       '$,'  => '$*OUT.output_field_separator()',
       '$.'  => "the filehandle's .line method",
       '$\\' => "the filehandle's .ors attribute",
@@ -1005,7 +1005,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
           ?? %m{~$v}
             ?? "Unsupported use of $v variable; in Perl 6 please use {%m{~$v}}"
             !! "Unsupported use of $v variable"
-          !! 'Non-declarative sigil is missing its name';
+          !! 'Weird unrecognized variable name: ' ~ $.name;
     }
 }
 

@@ -716,7 +716,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          $<pod_content> = [ .*? ]
-         ^^ $<spaces> '=end' \h+ 'comment' <pod_newline>
+         ^^ $<spaces> '=end' \h+ 'comment' [ <pod_newline> | $ ]
          || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>}
         ]
     }
@@ -741,7 +741,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          <pod_content> *
-         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
+         ^^ $<spaces> '=end' \h+ $<type> [ <pod_newline> | $ ]
          || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>}
         ]
     }
@@ -755,7 +755,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          <table_row>*
-         ^^ \h* '=end' \h+ 'table' <pod_newline>
+         ^^ \h* '=end' \h+ 'table' [ <pod_newline> | $ ]
          || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>}
         ]
     }
@@ -779,7 +779,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | $spaces
           [
-          || '=end' \h+ 'code' <pod_newline>
+          || '=end' \h+ 'code' [ <pod_newline> | $ ]
           || <pod_string>**0..1 <pod_newline>
              <delimited_code_content($spaces)>
           ]
@@ -894,7 +894,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_line { <pod_string>**1 <pod_newline> }
 
     token pod_newline {
-        \h* [ \n | $ ]
+        \h* \n
     }
 
     token pod_code_parent {

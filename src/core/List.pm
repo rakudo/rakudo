@@ -505,7 +505,15 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    multi method gist(List:D:) { join ' ', map { $_.gist }, @(self) }
+    multi method gist(List:D:) {
+        join ' ', @(self).map: {
+            given ++$ {
+                when 100 {'...'}
+                when 101 { last }
+                default {$_.gist}
+            }
+        }
+    }
     multi method perl(List:D \SELF:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  

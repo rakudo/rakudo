@@ -508,8 +508,8 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method gist(List:D:) {
         join ' ', @(self).map: {
             given ++$ {
-                when 100 {'...'}
-                when 101 { last }
+                when 101 { '...' }
+                when 102 { last }
                 default {$_.gist}
             }
         }

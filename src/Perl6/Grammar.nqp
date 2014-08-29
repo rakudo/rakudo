@@ -1993,7 +1993,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <sigil> <?[<]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
             | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
-            | <sigil>
+            | <!before '&'> <sigil>
             ]
         ]
         [ <?{ $<twigil> && $<twigil> eq '.' }>

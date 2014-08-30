@@ -446,33 +446,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         make $compunit;
     }
-    
-    # XXX Move to HLL::Actions after NQP gets QAST.
-    method CTXSAVE() {
-        QAST::Stmt.new(
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name('ctxsave'), :scope('local'), :decl('var') ),
-                QAST::Var.new( :name('$*CTXSAVE'), :scope('contextual') )
-            ),
-            QAST::Op.new(
-                :op('unless'),
-                QAST::Op.new(
-                    :op('isnull'),
-                    QAST::Var.new( :name('ctxsave'), :scope('local') )
-                ),
-                QAST::Op.new(
-                    :op('if'),
-                    QAST::Op.new(
-                        :op<can>,
-                        QAST::Var.new( :name('ctxsave'), :scope('local') ),
-                        QAST::SVal.new( :value('ctxsave') )
-                    ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('ctxsave'),
-                        QAST::Var.new( :name('ctxsave'), :scope('local')
-                    )))))
-    }
 
     method install_doc_phaser($/) {
         # Add a default DOC INIT phaser

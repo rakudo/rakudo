@@ -1812,7 +1812,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$$> {
-        <sym> .
+        <sym> \W
         <.obsvar('$$')>
     }
     token special_variable:sym<$%> {

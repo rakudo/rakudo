@@ -17,7 +17,7 @@ my class Range is Iterable is Cool does Positional {
         X::Range::InvalidArg.new(:got($max)).throw;
     }
     multi method new(Whatever $min, Whatever $max, :$excludes_min, :$excludes_max) {
-        fail "*..* is not a valid range";
+        nqp::create(self).BUILD(-Inf, Inf, $excludes_min, $excludes_max)
     }
     multi method new(Whatever $min, $max, :$excludes_min, :$excludes_max) {
         nqp::create(self).BUILD(-Inf, $max, $excludes_min, $excludes_max)

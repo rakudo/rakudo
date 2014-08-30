@@ -52,10 +52,10 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
     }
 }
 
-multi prefix:<->(Rat \a) {
+multi prefix:<->(Rat:D \a) {
     Rat.new(-a.numerator, a.denominator);
 }
-multi prefix:<->(FatRat \a) {
+multi prefix:<->(FatRat:D \a) {
     FatRat.new(-a.numerator, a.denominator);
 }
 

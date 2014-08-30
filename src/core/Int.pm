@@ -114,7 +114,7 @@ multi postfix:<-->(Int:D $a is rw) {
     b
 }
 
-multi prefix:<->(Int \a) returns Int {
+multi prefix:<->(Int:D \a) returns Int {
     nqp::neg_I(nqp::decont(a), Int);
 }
 multi prefix:<->(int $a) returns int {

@@ -1939,18 +1939,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     regex special_variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'
+        <!{ $*QSIGIL }>
         <?{
             my $sigil := $<sigil>.Str;
             my $text := $<text>.Str;
             my $bad := $sigil ~ '{' ~ $text ~ '}';
             $text := $text - 1 if $text ~~ /^\d+$/ && $text > 0;
             if !($text ~~ /^(\w|\:)+$/) {
-                if $*QSIGIL {
-                    0
-                }
-                else {
-                    $/.CURSOR.obs($bad, $sigil ~ '(' ~ $text ~ ')');
-                }
+                $/.CURSOR.obs($bad, $sigil ~ '(' ~ $text ~ ')');
             }
             elsif $*QSIGIL {
                 $/.CURSOR.obs($bad, '{' ~ $sigil ~ $text ~ '}');
@@ -1984,7 +1980,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
         | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
         | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
-        | {} <sigil>  # try last, to allow sublanguages to redefine sigils (like & in regex)
+        | {} <sigil> <!{ $*QSIGIL }>  # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && $<twigil> eq '.' }>
             [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>

@@ -1976,29 +1976,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token variable {
         :my $*IN_META := '';
-        <?before <sigil> {
-            unless $*LEFTSIGIL {
-                $*LEFTSIGIL := $<sigil>.Str;
-            }
-        }> {}
         [
-        || '&'
-            [
-            | :dba('infix noun') '[' ~ ']' <infixish('[]')>
-            ]
-        ||  [
-            | <sigil> <twigil>? <desigilname>
-            | <special_variable>
-            | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.typed_panic: "X::Syntax::Variable::Numeric">]?
-            | <sigil> <?[<]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
-            | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
-            | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
-            | <!before '&'> <sigil>
-            ]
+        | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
+        | <sigil> <twigil>? <desigilname>
+        | <special_variable>
+        | <sigil> $<index>=[\d+]                              [<?{ $*IN_DECL }> <.typed_panic: "X::Syntax::Variable::Numeric">]?
+        | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
+        | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
+        | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+        | {} <sigil>  # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && $<twigil> eq '.' }>
             [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>
         ]?
+        { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
     }
 
     token sigil { <[$@%&]> }

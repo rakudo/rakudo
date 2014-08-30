@@ -21,7 +21,7 @@ my class Mu { # declared in BOOTSTRAP
         nqp::box_s(
             nqp::concat(
                 nqp::concat(nqp::unbox_s(self.HOW.name(self)), '|'),
-                nqp::where(self)
+                nqp::objectid(self)
             ),
             ObjAt
         )

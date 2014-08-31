@@ -473,7 +473,7 @@ class Perl6::World is HLL::World {
             if $categorical {
                 $/.CURSOR.add_categorical(~$categorical[0], ~$categorical[1],
                     ~$categorical[0] ~ ':sym<' ~$categorical[1] ~ '>',
-                    $_.key, $_.value);
+                    nqp::substr($_.key, 1), $_.value);
             }
         }
     }

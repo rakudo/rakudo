@@ -526,13 +526,13 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
-        join ' ', @(self).map: -> $elem {
+        @(self).map( -> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }
                 default  { $elem.gist }
             }
-        }
+        } ).join: ' ';
     }
     multi method perl(List:D \SELF:) {
         self.gimme(*);

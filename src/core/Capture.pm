@@ -82,7 +82,7 @@ my class Capture { # declared in BOOTSTRAP
     multi method gist(Capture:D:) {
         my @list := self.list;
         my %hash := self.hash;
-        ':('
+        '\('
           ~ (@list.map( {.gist} ).join: ', ' if +@list)
           ~ (', ' if +@list and +%hash)
           ~ (%hash.keys.sort.map( { $_.gist ~ ' => ' ~ %hash{$_}.gist } ).join: ', ' if +%hash)

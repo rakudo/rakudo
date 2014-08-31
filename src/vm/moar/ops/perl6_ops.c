@@ -462,8 +462,9 @@ static MVMuint8 s_p6routinereturn[] = {
     MVM_operand_obj | MVM_operand_read_reg,
 };
 static void p6routinereturn(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *ret = MVM_frame_find_lexical_by_name_rel_caller(tc, str_return,
-        tc->cur_frame)->o;
+    MVMRegister *reg = MVM_frame_find_lexical_by_name_rel_caller(tc, str_return,
+                                                                 tc->cur_frame);
+    MVMObject   *ret = (reg ? reg->o : NULL);
     if (!MVM_is_null(tc, ret) && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
         MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
         tc->cur_frame->args[0].o = GET_REG(tc, 2).o;

@@ -4151,7 +4151,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my role PostcircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(
-                        :op('call'), :name('&' ~ $subname),
+                        :op('call'), :name('&' ~ $subname), :node($/),
                         $<statement>.ast
                     );
                 }
@@ -4163,7 +4163,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my role CircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(
-                        :op('call'), :name('&' ~ $subname),
+                        :op('call'), :name('&' ~ $subname), :node($/),
                         $<semilist>.ast
                     );
                 }
@@ -4175,7 +4175,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my role TermAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(
-                        :op('call'), :name('&' ~ $subname),
+                        :op('call'), :name('&' ~ $subname), :node($/),
                     );
                 }
             };

@@ -54,9 +54,13 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method gist(Hash:D \SELF:) {
-        nqp::iscont(SELF)
-          ?? '{' ~ self.pairs.sort.map({.perl}).join(', ') ~ '}'
-          !! '(' ~ self.pairs.sort.map({.perl}).join(', ') ~ ').hash'
+        SELF.pairs.sort.map( -> $elem {
+            given ++$ {
+                when 101 { '...' }
+                when 102 { last }
+                default  { $elem.gist }
+            }
+        } ).join: ', ';
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {

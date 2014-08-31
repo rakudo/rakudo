@@ -49,8 +49,8 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method perl(Hash:D \SELF:) {
         nqp::iscont(SELF)
-          ?? '{' ~ self.pairs.pick(*).map({.perl}).join(', ') ~ '}'
-          !! '(' ~ self.pairs.pick(*).map({.perl}).join(', ') ~ ').hash'
+          ?? '{' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ '}'
+          !! '(' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ ').hash'
     }
 
     multi method gist(Hash:D \SELF:) {

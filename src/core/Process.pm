@@ -22,7 +22,10 @@
     PROCESS::<$PROGRAM_NAME> = $PROGRAM_NAME;
     PROCESS::<$PROGRAM> = IO::Path.new($PROGRAM_NAME);
 
-    PROCESS::<$TMPDIR> = IO::Spec.tmpdir().path;
+    PROCESS::<$TMPDIR> := Proxy.new(
+      FETCH => -> $ { PROCESS::<$TMPDIR> := my $ = IO::Spec.tmpdir.path },
+      STORE => -> $, $val { PROCESS::<$TMPDIR> := my $ = $val.path }
+    );
 
     class IdName {
         has Int $!id;

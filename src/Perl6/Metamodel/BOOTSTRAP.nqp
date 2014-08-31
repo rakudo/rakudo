@@ -2493,6 +2493,7 @@ BEGIN {
     #     has Mu $!storage;    # VM's array of Parcel's elements
     Parcel.HOW.add_parent(Parcel, Cool);
     Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
+    Parcel.HOW.add_attribute(Parcel, scalar_attr('$!WHICH', Str, Parcel));
     Parcel.HOW.compose_repr(Parcel);
 
     # class Iterable is Any {

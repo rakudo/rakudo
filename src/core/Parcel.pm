@@ -1,6 +1,7 @@
 my class Parcel does Positional { # declared in BOOTSTRAP
     # class Parcel is Cool {
     #    has Mu $!storage;        # VM's array of Parcel's elements
+    #    has Str $!WHICH;
 
     submethod BUILD() { $!storage := nqp::list() }
 
@@ -10,6 +11,10 @@ my class Parcel does Positional { # declared in BOOTSTRAP
 #    multi method Int(Parcel:D:)            { self.flat.elems }
     multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
 
+    multi method WHICH(Parcel:D:) {
+        $!WHICH //=
+          self.^name ~ '|' ~ @(self).map( {'(' ~ .WHICH ~ ')'} ).join;
+    }
     method Parcel()  { self }
     method Capture() {
         my $cap := nqp::create(Capture);

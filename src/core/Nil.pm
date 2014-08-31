@@ -1,24 +1,24 @@
 my class Nil is Cool { # declared in BOOTSTRAP
     # class Nil is Iterator {
 
-    method new() { Nil }
-    method iterator() { self }
+    method new(*@) { Nil }
+    method iterator(*@) { self }
     method reify($n?) { () }
-    method gist() { 'Nil' }
-    multi method Str() { '' }
+    method gist(*@) { 'Nil' }
+    method Str(*@) { '' }       # XXX still needs warning
+    method sink(*@) { Nil }     # required by RESTRICTED setting
 
-    method at_pos($pos) {
-        return self
-    }
-    method at_key($pos) {
-        return self
-    }
-    method bind_pos($pos, $bind) {
-        die "Attempted to bind_pos to Nil.";
-    }
-    method bind_key($pos, $bind) {
-        die "Attempted to bind_key to Nil.";
-    }
+    method at_pos(*@)     { Nil }
+    method at_key(*@)     { Nil }
+#    method ACCEPTS(*@)    { Nil }  # XXX spec says Nil, but makes spectest hang
+
+    method bind_pos(*@)   { die "Attempted to bind_pos to Nil." }
+    method bind_key(*@)   { die "Attempted to bind_key to Nil." }
+    method assign_pos(*@) { die "Attempted to assign_pos to Nil." }
+    method assign_key(*@) { die "Attempted to assign_key to Nil." }
+    method STORE(*@)      { die "Attempted to STORE to Nil." }
+    method push(*@)       { die "Attempted to push to Nil." }
+    method unshift(*@)    { die "Attempted to unshift to Nil." }
 }
 
 Nil.^add_fallback(

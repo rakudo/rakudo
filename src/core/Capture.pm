@@ -21,8 +21,8 @@ my class Capture { # declared in BOOTSTRAP
             }
             if $!hash {
                 $WHICH ~= '|';
-                $WHICH ~= ( $_ ~ '(' ~ $!hash{$_}.WHICH ~ ')' )
-                  for $!hash.keys.sort;
+                $WHICH ~= ( $_ ~ '(' ~ $!hash{nqp::unbox_s($_)}.WHICH ~ ')' )
+                  for self.hash.keys.sort;
             }
         }
         $WHICH;

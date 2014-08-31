@@ -4106,7 +4106,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $<postop>.ast;
         }
         else {
-            make $<colonpair>.ast;
+            if $<colonpair><identifier> eq "" && $<colonpair><coloncircumfix> -> $cf {
+                if $cf<circumfix> -> $op_name {
+                    make QAST::Op.new( :op<call>, :node($/),
+                    :name('&prefix:<' ~
+                    $*W.colonpair_nibble_to_str(
+                        $/, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>
+                    ) ~ '>'));
+                }
+            } else {
+                make $<colonpair>.ast;
+            }
         }
     }
 

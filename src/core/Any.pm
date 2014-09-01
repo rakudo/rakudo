@@ -59,6 +59,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     # derived from .list
+    method Parcel() { self.list.Parcel }
     method elems() { self.list.elems }
     method end()   { self.list.end }
     method uniq(|c) { self.list.uniq(|c) }

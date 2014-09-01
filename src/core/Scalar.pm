@@ -4,7 +4,7 @@ my class Scalar { # declared in BOOTSTRAP
     #     has Mu $!value;
     #     has Mu $!whence;
 
-    method WHICH {
+    multi method WHICH(Scalar:D:) {
         'Scalar|' ~ nqp::objectid($!descriptor);
     }
     method name() {

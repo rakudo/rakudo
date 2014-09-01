@@ -5,7 +5,7 @@ my class Scalar { # declared in BOOTSTRAP
     #     has Mu $!whence;
 
     method WHICH {
-        'Scalar|' ~ nqp::objectid(self);
+        'Scalar|' ~ nqp::objectid($!descriptor);
     }
     method name() {
         my $d := $!descriptor;

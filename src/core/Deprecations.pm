@@ -20,7 +20,9 @@ class Deprecation {
     has $.alternative;  # alternative for code that is deprecated
     has %.callsites;    # places where called (file -> line -> count)
 
-    method WHICH { ($!file||"",$!type||"",$!package||"",$!name).join(':') }
+    multi method WHICH (Deprecation:D:) {
+        ($!file||"",$!type||"",$!package||"",$!name).join(':');
+    }
 
     proto method report (|) { * }
     multi method report (Deprecation:U:) {

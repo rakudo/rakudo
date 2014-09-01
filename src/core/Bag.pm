@@ -5,7 +5,7 @@ my class Bag does Baggy {
 
     method total (--> Int) { $!total //= [+] self.values }
 
-    submethod WHICH {
+    multi method WHICH (Bag:D:) {
         $!WHICH //= self.^name
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );

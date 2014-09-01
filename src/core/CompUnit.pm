@@ -66,13 +66,12 @@ class CompUnit {
       :$!has-precomp,
       :$!is-loaded,
     ) {
-        $!lock  = Lock.new;
-        $!WHICH = "{self.^name}|$path";
-        $!path  = $path.path;
+        $!lock = Lock.new;
+        $!path = $path.path;
         self
     }
 
-    method WHICH(--> Str) { self.DEFINITE ?? $!WHICH !! self.^name }
+    multi method WHICH(CompUnit:D:) { $!WHICH //= "{self.^name}|$!path" }
     method Str(--> Str)   { self.DEFINITE ?? $!path.Str !! Nil }
     method gist(--> Str)  {
         self.DEFINITE ?? "{self.name}:{$!path.Str}" !! self.^name;

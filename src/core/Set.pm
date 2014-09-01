@@ -4,7 +4,7 @@ my class Set does Setty {
     has @!pairs;
 
     method total (--> Int) { $!total //= %!elems.elems }
-    submethod WHICH {
+    multi method WHICH (Set:D:) {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
         $!WHICH
     }

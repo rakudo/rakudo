@@ -11,19 +11,17 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
         1;
     }
-    submethod WHICH {
+    multi method WHICH (Capture:D:) {
         my $WHICH = self.^name;
-        if self.defined {
-            if $!list {
-                $WHICH ~= '|';
-                $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
-                  for $!list;
-            }
-            if $!hash {
-                $WHICH ~= '|';
-                $WHICH ~= ( $_ ~ '(' ~ $!hash{nqp::unbox_s($_)}.WHICH ~ ')' )
-                  for self.hash.keys.sort;
-            }
+        if $!list {
+            $WHICH ~= '|';
+            $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
+              for $!list;
+        }
+        if $!hash {
+            $WHICH ~= '|';
+            $WHICH ~= ( $_ ~ '(' ~ $!hash{nqp::unbox_s($_)}.WHICH ~ ')' )
+              for self.hash.keys.sort;
         }
         $WHICH;
     }

@@ -3,7 +3,7 @@ my class Mix does Mixy {
     has $!WHICH;
     has @!pairs;
 
-    submethod WHICH {
+    multi method WHICH (Mix:D:) {
         $!WHICH //= self.^name
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );

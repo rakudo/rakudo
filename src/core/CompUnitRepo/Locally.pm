@@ -12,12 +12,13 @@ role CompUnitRepo::Locally {
 
     method BUILD(:$path) {
         $!lock  = Lock.new;
-        $!WHICH = self.^name ~ '|' ~ $path;
         $!path  = $path.path;
         self
     }
 
-    method WHICH { self.DEFINITE ?? $!WHICH !! self.^name }
+    multi method WHICH (CompUnitRepo::Locally:D:) {
+        $!WHICH = self.^name ~ '|' ~ $!path;
+    }
     method Str   { self.DEFINITE ?? $!path.Str !! Nil }
     method gist  { self.DEFINITE
       ?? "{self.short-id}:{$!path.Str}"

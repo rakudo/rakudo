@@ -13,9 +13,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
 
     multi method WHICH(Parcel:D:) {
         $!WHICH //=
-          self.^name ~ '|' ~ @(self).map( {'(' ~ (
-            nqp::iscont($_) ?? nqp::objectid($_) !! .WHICH
-          ) ~ ')'} ).join;
+          self.^name ~ '|' ~ @(self).map( {'(' ~ .VAR.WHICH ~ ')'} ).join;
     }
     method Parcel()  { self }
     method Capture() {

@@ -260,14 +260,14 @@ role STD {
     method obsvar($name) {
         $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'], :$name);
     }
-    method sorryobs($old, $new, $when = ' in Perl 6') {
+    method sorryobs($old, $new, $when = 'in Perl 6') {
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],
             old         => $old,
             replacement => $new,
             when        => $when,
         );
     }
-    method worryobs($old, $new, $when = ' in Perl 6') {
+    method worryobs($old, $new, $when = 'in Perl 6') {
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],
             old         => $old,
             replacement => $new,

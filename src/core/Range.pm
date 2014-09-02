@@ -41,6 +41,15 @@ my class Range is Iterable is Cool does Positional {
         self;
     }
 
+    multi method WHICH (Range:D:) {
+        self.^name
+          ~ "|$!min"
+          ~ ("^" if $!excludes_min)
+          ~ '..'
+          ~ ("^" if $!excludes_max)
+          ~ $!max;
+    }
+
     method flat()     { nqp::p6list(nqp::list(self), List, Bool::True) }
     method infinite() { nqp::p6bool(nqp::istype($!max, Num)) && $!max eq 'Inf' }
     method iterator() { self }

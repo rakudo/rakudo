@@ -786,7 +786,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
                             ($_, !( $wasthere ?^ $exists )) 
                               if !$kv | $wasthere;
-                        } ).eager.Parcel
+                        } ).flat.eager.Parcel
                     }
                     else {
                         @nogo = <delete exists kv>;
@@ -815,10 +815,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     $kv
                       ?? $more.list.map( {
                              ( $_, $de(SELF,$_) ) if $ex(SELF,$_);
-                         } ).eager.Parcel
+                         } ).flat.eager.Parcel
                       !! $more.list.map( {
                              ( $_, $de(SELF,$_) )
-                         } ).eager.Parcel;
+                         } ).flat.eager.Parcel;
                 }
                 else {
                     @nogo = <delete kv>;
@@ -884,10 +884,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     $kv
                       ?? $more.list.map( {
                              ( $_, $exists ) if $ex(SELF,$_);
-                         } ).eager.Parcel
+                         } ).flat.eager.Parcel
                       !! $more.list.map( {
                              ( $_, !( $ex(SELF,$_) ?^ $exists ) )
-                         } ).eager.Parcel;
+                         } ).flat.eager.Parcel;
                 }
                 else {
                     @nogo = <exists kv>;
@@ -917,11 +917,11 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:kv(0|1)
                 $kv
                   ?? $more.list.map( {
-                         ($_, $at(SELF,$_)) if $ex(SELF,$_);
-                     } ).eager.Parcel
+                         $_, $at(SELF,$_) if $ex(SELF,$_);
+                     } ).flat.eager.Parcel
                   !! $more.list.map( {
-                         ($_, $at(SELF,$_))
-                     } ).eager.Parcel;
+                         $_, $at(SELF,$_)
+                     } ).flat.eager.Parcel;
             }
             else {
                 @nogo = <kv>;
@@ -947,7 +947,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             if !%a {                         # :!delete?:k(0|1)
                 $k
                   ?? $more.list.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
-                  !! $more.list.eager.Parcel;
+                  !! $more.list.flat.eager.Parcel;
             }
             else {
                 @nogo = <k>;

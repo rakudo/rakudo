@@ -6,9 +6,8 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     submethod BUILD() { $!storage := nqp::list() }
 
     multi method Bool(Parcel:D:)           { nqp::p6bool($!storage) }
-    multi method Numeric(Parcel:D:)        { self.flat.elems }
-    multi method Str(Parcel:D:)            { self.flat.Str }
-#    multi method Int(Parcel:D:)            { self.flat.elems }
+    multi method Numeric(Parcel:D:)        { nqp::elems($!storage) }
+    multi method Str(Parcel:D:)            { self.list.Str }
     multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
 
     multi method WHICH(Parcel:D:) {
@@ -34,7 +33,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $cap
     }
 
-    method elems() { self.flat.elems }
+    method elems() { nqp::elems($!storage) }
     method item()  { my $v = self; }
     method flat()  { nqp::p6list(nqp::clone($!storage), List, Bool::True) }
     method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
@@ -63,7 +62,12 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $parcel;
     }
 
-    method at_pos(Parcel:D: \x) is rw { self.flat.at_pos(x); }
+    multi method at_pos(Parcel:D: \x) is rw { self.at_pos(nqp::unbox_i(x.floor)) }
+    multi method at_pos(Parcel:D: int $x) is rw {
+        $x > nqp::elems($!storage) || $x < 0
+            ?? Nil
+            !! nqp::atpos($!storage, $x);
+    }
 
     multi method gist(Parcel:D:) {
         my Mu $gist := nqp::list();

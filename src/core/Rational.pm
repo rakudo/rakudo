@@ -104,7 +104,8 @@ my role Rational[::NuT, ::DeT] does Real {
                 }
             }
             $s ~= '.';
-            $s ~= (0..9,'A'..'Z')[@f].join;
+            state @digits = '0'..'9', 'A'..'Z';
+            $s ~= @digits[@f].join;
         }
         $s;
     }

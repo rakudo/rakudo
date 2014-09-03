@@ -177,15 +177,15 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.first' );
     }
     multi method first(Regex:D $test) is rw {
-        self.map({ return $_ if .match($test) });
+        self.map({ return-rw $_ if .match($test) });
         Nil;
     }
     multi method first(Callable:D $test) is rw {
-        self.map({ return $_ if $test($_) });
+        self.map({ return-rw $_ if $test($_) });
         Nil;
     }
     multi method first(Mu $test) is rw {
-        self.map({ return $_ if $_ ~~ $test });
+        self.map({ return-rw $_ if $_ ~~ $test });
         Nil;
     }
 

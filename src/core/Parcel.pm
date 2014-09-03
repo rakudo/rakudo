@@ -11,11 +11,9 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
 
     multi method WHICH(Parcel:D:) {
-        $!WHICH //= self[0] ~~ ListIter
-          ?? self.^name ~ '|(' ~ self[0].VAR.WHICH ~ ')'
-          !! self.^name
-             ~ '|'
-             ~ (^self.elems).map( {'(' ~ self[$_].VAR.WHICH ~ ')'} ).join;
+        $!WHICH //= self.^name
+          ~ '|'
+          ~ (^self.elems).map( {'(' ~ self[$_].VAR.WHICH ~ ')'} ).join;
     }
     method Parcel()  { self }
     method Capture() {

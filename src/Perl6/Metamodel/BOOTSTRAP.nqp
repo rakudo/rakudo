@@ -111,9 +111,9 @@ my class Binder {
     my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
 
     # Binding reuslt flags.
-    my int $BIND_RESULT_OK       := 0;
-    my int $BIND_RESULT_FAIL     := 1;
-    my int $BIND_RESULT_JUNCTION := 2;
+    my $BIND_RESULT_OK       := 0;
+    my $BIND_RESULT_FAIL     := 1;
+    my $BIND_RESULT_JUNCTION := 2;
 
     my $autothreader;
 
@@ -160,7 +160,7 @@ my class Binder {
 
     # Binds a single parameter.
     sub bind_one_param($lexpad, $sig, $param, int $no_nom_type_check, $error,
-                       $got_native, $oval, int $ival, num $nval, str $sval) {
+                       int $got_native, $oval, int $ival, num $nval, str $sval) {
         # Grab flags and variable name.
         my int $flags       := nqp::getattr_i($param, Parameter, '$!flags');
         my str $varname     := nqp::getattr_s($param, Parameter, '$!variable_name');
@@ -1718,12 +1718,12 @@ BEGIN {
                     'signature',    $sig,
                     'types',        [],
                     'type_flags',   nqp::list_i(),
-                    'constraints',  [],
-                    'min_arity',    0,
-                    'max_arity',    0,
-                    'num_types',    0,
+                    'constraints',  []
                 );
                 my int $significant_param := 0;
+                my int $min_arity         := 0;
+                my int $max_arity         := 0;
+                my int $num_types         := 0;
                 for @params -> $param {
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
@@ -1752,15 +1752,15 @@ BEGIN {
 
                     # Otherwise, positional or slurpy and contributes to arity.
                     if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_IS_CAPTURE) {
-                        %info<max_arity> := $SLURPY_ARITY;
+                        $max_arity := $SLURPY_ARITY;
                         last;
                     }
                     elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
-                        %info<max_arity>++;
+                        $max_arity++;
                     }
                     else {
-                        %info<max_arity>++;
-                        %info<min_arity>++;
+                        $max_arity++;
+                        $min_arity++;
                     }
 
                     # Record type info for this parameter.
@@ -1777,7 +1777,7 @@ BEGIN {
                         %info<bind_check> := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
-                        %info<num_types>++;
+                        $num_types++;
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY {
                         nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_DEFINED);
@@ -1799,6 +1799,9 @@ BEGIN {
                     }
                     $significant_param++;
                 }
+                %info<min_arity> := $min_arity;
+                %info<max_arity> := $max_arity;
+                %info<num_types> := $num_types;
 
                 # Add it to graph node, and initialize list of edges.
                 nqp::push(@graph, nqp::hash(
@@ -1907,7 +1910,7 @@ BEGIN {
                 nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
-            my $num_candidates := nqp::elems(@candidates);
+            my int $num_candidates := nqp::elems(@candidates);
 
             # Iterate over the candidates and collect best ones; terminate
             # when we see two type objects (indicating end).
@@ -1936,9 +1939,9 @@ BEGIN {
 
                         $i := 0;
                         while $i < $type_check_count && !$type_mismatch {
-                            my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
-                            my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
-                            my int $got_prim := nqp::captureposprimspec($capture, $i);
+                            my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+                            my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
+                            my int $got_prim   := nqp::captureposprimspec($capture, $i);
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
                                 if $got_prim == $BIND_VAL_OBJ {

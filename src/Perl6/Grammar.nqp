@@ -639,7 +639,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
               $*POD_ANGLE_COUNT := -1;
               1
             } else {
-              my $ct := nqp::chars($<begin-tag>);
+              my int $ct := nqp::chars($<begin-tag>);
               $endtag := nqp::x(">", $ct);
               my $rv := $*POD_ANGLE_COUNT <= 0 || $*POD_ANGLE_COUNT >= $ct;
               $*POD_ANGLE_COUNT := $ct;
@@ -1177,12 +1177,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <identifier> ':' <?[\s]> <.ws>
         {
             $*LABEL       := ~$<identifier>;
-            my $total     := nqp::chars(self.orig());
-            my $from      := self.MATCH.from();
-            my $to        := self.MATCH.to() + nqp::chars($*LABEL);
-            my $line      := HLL::Compiler.lineof(self.orig(), self.from());
-            my $prematch  := nqp::substr(self.orig(), $from > 20 ?? $from - 20 !! 0, 20);
-            my $postmatch := nqp::substr(self.orig(), $to, 20);
+            my str $orig      := self.orig();
+            my int $total     := nqp::chars($orig);
+            my int $from      := self.MATCH.from();
+            my int $to        := self.MATCH.to() + nqp::chars($*LABEL);
+            my int $line      := HLL::Compiler.lineof($orig, self.from());
+            my str $prematch  := nqp::substr($orig, $from > 20 ?? $from - 20 !! 0, 20);
+            my str $postmatch := nqp::substr($orig, $to, 20);
             my $label     := $*W.find_symbol(['Label']).new( :name($*LABEL), :$line, :$prematch, :$postmatch );
             $*W.add_object($label);
             $*W.install_lexical_symbol($*W.cur_lexpad(), $*LABEL, $label);
@@ -3443,9 +3444,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     sub bracket_ending($matches) {
-        my $check := $matches[+$matches - 1];
-        my $str   := $check.Str;
-        my $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
+        my $check     := $matches[+$matches - 1];
+        my str $str   := $check.Str;
+        my str $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
     }
 

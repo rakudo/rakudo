@@ -607,7 +607,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
              || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
 
         $<text> = [
-            \h* <!before '=' \w> <pod_string> <pod_newline>
+            \h* <!before '=' \w> <pod_string> [ <pod_newline> | $ ]
         ] +
     }
 
@@ -823,7 +823,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=for' \h+ 'comment' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
-        $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
+        $<pod_content> = [ \h* <!before '=' \w> \N+ [ \n | $ ] ]*
     }
 
     token pod_block:sym<paragraph_table> {
@@ -868,7 +868,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=comment' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         [\h*\n|\h+]
-        $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
+        $<pod_content> = [ \h* <!before '=' \w> \N+ [ \n | $ ] ]*
     }
 
     token pod_block:sym<abbreviated_table> {
@@ -890,7 +890,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <!before \h* '=' \w> <pod_line> ]*
     }
 
-    token pod_line { <pod_string>**1 <pod_newline> }
+    token pod_line { <pod_string>**1 [ <pod_newline> | $ ] }
 
     token pod_newline {
         \h* \n

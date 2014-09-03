@@ -848,8 +848,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method words(Str:D: $limit = *) {
-        my @chunks := self.comb( / \S+ /, $limit );
-        +@chunks == 1 ?? @chunks[0] !! @chunks
+        my Mu $rpa := nqp::list();
+        my str $str  = nqp::unbox_s(self);
+        my int $end  = nqp::chars($str);
+        my int $word;
+        my int $pos = 0;
+        my int $lim = nqp::istype($limit, Whatever) ?? 0x7fffffff !! $limit;
+        my int $newwhite;
+        my int $oldwhite = 1; # outside string counts as whitespace
+        nqp::setelems($rpa,$end div 6);
+        nqp::setelems($rpa,0);
+        while $pos < $end {
+            $newwhite = nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos);
+            if $oldwhite != $newwhite {
+                if $oldwhite   { $word = $pos }
+                elsif $lim > 0 { $lim = $lim - 1; nqp::push($rpa, nqp::substr($str, $word, $pos - $word)) }
+                else           { last }
+                $oldwhite = $newwhite;
+            }
+            $pos = $pos + 1;
+        }
+        nqp::push($rpa, nqp::substr($str, $word, $end - $word)) unless $newwhite || $lim < 1;
+        nqp::elems($rpa) == 1 ?? nqp::atpos($rpa,0) !! nqp::p6parcel($rpa, Nil);
     }
 
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;

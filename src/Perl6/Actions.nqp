@@ -7151,7 +7151,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $radixInt     := nqp::box_i($radix, $Int);
         my int $idx      := -1;
         my int $seen_dot := 0;
-        while $idx < nqp::chars($number) - 1 {
+        my int $chars    := nqp::chars($number);
+        while $idx < $chars - 1 {
             $idx++;
             my $current := nqp::uc(nqp::substr($number, $idx, 1));
             next if $current eq '_';

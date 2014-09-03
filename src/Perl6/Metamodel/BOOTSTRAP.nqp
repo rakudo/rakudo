@@ -1181,7 +1181,7 @@ BEGIN {
                 my $avc_var  := nqp::p6var($avc);
                 my $avc_copy := nqp::clone($avc_var);
                 my @avc_mro  := $avc_var.HOW.mro($avc_var);
-                my $i := 0;
+                my int $i := 0;
                 $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
                 nqp::bindattr($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins);
                 nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc_copy);

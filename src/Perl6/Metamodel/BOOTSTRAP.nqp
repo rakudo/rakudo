@@ -1910,7 +1910,6 @@ BEGIN {
                 nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
-            my int $num_candidates := nqp::elems(@candidates);
 
             # Iterate over the candidates and collect best ones; terminate
             # when we see two type objects (indicating end).
@@ -2215,7 +2214,6 @@ BEGIN {
                 nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
-            my $num_candidates := nqp::elems(@candidates);
             
             # Look through the candidates. If we see anything that needs a bind
             # check or a definedness check, we can't decide it at compile time,

@@ -727,7 +727,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?pod_newline>
           <.typed_panic('X::Syntax::Pod::BeginWithoutIdentifier')>
         ]?
-        \h+ <!before 'END'>
+        \h+ <!before 'finish'>
         {
             $*VMARGIN    := $<spaces>.to - $<spaces>.from;
         }
@@ -803,7 +803,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<paragraph> {
         ^^
         $<spaces> = [ \h* ]
-        '=for' \h+ <!before 'END'>
+        '=for' \h+ <!before 'finish'>
         {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }

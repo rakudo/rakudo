@@ -3446,7 +3446,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     sub bracket_ending($matches) {
         my $check     := $matches[+$matches - 1];
         my str $str   := $check.Str;
-        my str $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
+        my $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
     }
 

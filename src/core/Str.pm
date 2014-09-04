@@ -798,16 +798,30 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method samecase(Str:D: Str $pattern) {
-        my @chars;
-        my @pat = $pattern.comb;
-        my $p = '';
-        for self.comb -> $s {
-            $p = @pat.shift if @pat;
-            push @chars, $p ~~ /<.upper>/  ?? $s.uc
-                      !! $p ~~ /<.lower>/  ?? $s.lc
-                      !! $s;
+        my str $str = nqp::unbox_s(self);
+        my str $pat = nqp::unbox_s($pattern);
+        my int $n = min(nqp::chars($str), nqp::chars($pattern));
+        my int $i = 0;
+        my int $j = 0;
+        my int $l = 0;
+        my str $ret = '';
+        while $i < $n {
+
+            $j = $j + 1 while !(nqp::iscclass(nqp::const::CCLASS_LOWERCASE, $pat, $j) ||
+                                nqp::iscclass(nqp::const::CCLASS_UPPERCASE, $pat, $j) );
+            $ret ~= nqp::substr($str,$i,$j - $i) if $i != $j;
+            $i = $j;
+
+            $j = $j + 1 while nqp::iscclass(nqp::const::CCLASS_LOWERCASE, $pat, $j);
+            $ret ~= nqp::lc(nqp::substr($str,$i,$j - $i)) if $i != $j;
+            $i = $j;
+
+            $j = $j + 1 while nqp::iscclass(nqp::const::CCLASS_UPPERCASE, $pat, $j);
+            $ret ~= nqp::uc(nqp::substr($str,$i,$j - $i)) if $i != $j;
+            $i = $j;
         }
-        @chars.join;
+        $ret ~= nqp::substr($str,$i);
+        $ret;
     }
 
     method samespace(Str:D: Str:D $pat) {

@@ -753,7 +753,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>+
         [
-         <table_row>*
+         [ $<table_row>=<.table_row_or_blank> ]*
          ^^ \h* '=end' \h+ 'table' [ <pod_newline> | $ ]
          || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>}
         ]
@@ -787,7 +787,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token table_row {
-        \h* <!before '=' \w> \N* \n
+        \h* <!before '=' \w> \N+ [ \n | $ ]
+    }
+
+    token table_row_or_blank {
+        <.table_row> | [\h* <!before '=' \w> \n ]
     }
 
     token pod_block:sym<finish> {

@@ -756,6 +756,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make ~$/
     }
 
+    method table_row_or_blank($/) {
+        make ~$/
+    }
+
     method unitstart($/) {
         # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
         # to set dynamic outer lexical context and namespace details

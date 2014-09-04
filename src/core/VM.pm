@@ -56,52 +56,56 @@ multi postcircumfix:<{ }> (VM $d, "properties" ) {
 }
 #?endif
 
-{
-    my $config :=
+PROCESS::<$VM> := Proxy.new(
+    FETCH => -> $ {
+        state $VIVIFIED = do {
+            my $config :=
 #?if parrot
-      nqp::hllize(nqp::atpos(pir::getinterp__P,pir::const::IGLOBALS_CONFIG_HASH));
+                nqp::hllize(nqp::atpos(pir::getinterp__P,pir::const::IGLOBALS_CONFIG_HASH));
 #?endif
 #?if jvm
-      do {
-          my %CONFIG;
-          my $jenv := nqp::backendconfig();
-          my Mu $enviter := nqp::iterator($jenv);
-          my $envelem;
-          my $key;
-          while $enviter {
-              $envelem := nqp::shift($enviter);
-              $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-              %CONFIG{$key} = nqp::p6box_s(nqp::iterval($envelem));
-          }
-          %CONFIG;
-      };
+                do {
+                    my %CONFIG;
+                    my $jenv := nqp::backendconfig();
+                    my Mu $enviter := nqp::iterator($jenv);
+                    my $envelem;
+                    my $key;
+                    while $enviter {
+                        $envelem := nqp::shift($enviter);
+                        $key = nqp::p6box_s(nqp::iterkey_s($envelem));
+                        %CONFIG{$key} = nqp::p6box_s(nqp::iterval($envelem));
+                    }
+                    %CONFIG;
+                };
 #?endif
 #?if moar
-      nqp::backendconfig;
+                nqp::backendconfig;
 #?endif
 
 #?if jvm
-    my $properties := do {
-        my %PROPS;
-        my $jenv := nqp::jvmgetproperties();
-        my Mu $enviter := nqp::iterator($jenv);
-        my $envelem;
-        my $key;
-        while $enviter {
-            $envelem := nqp::shift($enviter);
-            $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-            %PROPS{$key} = nqp::p6box_s(nqp::iterval($envelem));
+            my $properties := do {
+                my %PROPS;
+                my $jenv := nqp::jvmgetproperties();
+                my Mu $enviter := nqp::iterator($jenv);
+                my $envelem;
+                my $key;
+                while $enviter {
+                    $envelem := nqp::shift($enviter);
+                    $key = nqp::p6box_s(nqp::iterkey_s($envelem));
+                    %PROPS{$key} = nqp::p6box_s(nqp::iterval($envelem));
+                }
+                %PROPS;
+            };
+#?endif
+            $VIVIFIED = VM.new(
+                :$config,
+#?if jvm
+                :$properties,
+#?endif
+            );
         }
-        %PROPS;
-    };
-#?endif
-
-    PROCESS::<$VM> = VM.new(
-      :$config,
-#?if jvm
-      :$properties,
-#?endif
-    );
-}
+        PROCESS::<$VM> := $VIVIFIED;
+    },
+    STORE => -> $, $val { PROCESS::<$VM> := my $ = $val; });
 
 # vim: ft=perl6 expandtab sw=4

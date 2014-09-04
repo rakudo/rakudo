@@ -3,7 +3,7 @@
 # If you find errors for your hardware or OS distribution, please report them
 # with the values that you expected and how to get them in your situation.
 
-class Distro does Systemic{
+class Distro does Systemic {
     has Str $.release;
     has Bool $.is-win;
     has Str $.path-sep;
@@ -29,54 +29,68 @@ class Distro does Systemic{
     }
 }
 
-{
+# set up $*DISTRO and deprecated $*OS and $*OSVER
+
+PROCESS::<$DISTRO> := Proxy.new(
+    FETCH => -> $ {
+        state $VIVIFIED = do {
 #?if jvm
-    my $properties := $*VM.properties;
-    my $name       := $properties<os.name>;
-    my $version    := $properties<os.version>;
-    my $path-sep   := $properties<path.separator>;
+            my $properties := $*VM.properties;
+            my $name       := $properties<os.name>;
+            my $version    := $properties<os.version>;
+            my $path-sep   := $properties<path.separator>;
 #?endif
 #?if !jvm
-    my $config   := $*VM.config;
-    my $name     := $config<osname>;
-    my $version  := $config<osvers>;
-    my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';
+            my $config   := $*VM.config;
+            my $name     := $config<osname>;
+            my $version  := $config<osvers>;
+            my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';
 #?endif
-    my Str $release;
-    my Str $auth := "unknown";
+            my Str $release;
+            my Str $auth := "unknown";
 
-    # darwin specific info
-    if $name eq 'darwin' {
-        if qx/sw_vers/ ~~ m/^
-          ProductName\: \s+ (<[\w\ ]>+) \s+
-          ProductVersion\: \s+ (<[\d\.]>+) \s+
-          BuildVersion\: \s+ (<[\w\d]>+)
-        / {
-            $name    := ~$0;
-            $version := ~$1;
-            $release := ~$2;
+            # darwin specific info
+            if $name eq 'darwin' {
+                if qx/sw_vers/ ~~ m/^
+                ProductName\: \s+ (<[\w\ ]>+) \s+
+                ProductVersion\: \s+ (<[\d\.]>+) \s+
+                BuildVersion\: \s+ (<[\w\d]>+)
+                / {
+                    $name    := ~$0;
+                    $version := ~$1;
+                    $release := ~$2;
+                }
+                else {
+                    $name    := 'Mac OS X'; # we assume
+                    $version := "unknown";
+                    $release := "unknown";
+                }
+                $auth := 'Apple Computer, Inc.'; # presumably
+            }
+            Distro.new( :$name, :$version, :$release, :$auth, :$path-sep )
         }
-        else {
-            $name    := 'Mac OS X'; # we assume
-            $version := "unknown";
-            $release := "unknown";
-        }
-        $auth := 'Apple Computer, Inc.'; # presumably
-    }
+        PROCESS::<$DISTRO> := $VIVIFIED;
+    },
+    STORE => -> $, $val { PROCESS::<$DISTRO> := my $ = $val; });
 
-    # set up $*DISTRO and deprecated $*OS and $*OSVER
-    PROCESS::<$DISTRO> =
-      Distro.new( :$name, :$version, :$release, :$auth, :$path-sep );
-    PROCESS::<$OS> = Deprecation.obsolete(
-      :name('$*OS'),
-      :value($name),
-      :instead('$*DISTRO.name'),
-    );
-    PROCESS::<$OSVER> = Deprecation.obsolete(
-      :name('$*OSVER'),
-      :value($version),
-      :instead('$*DISTRO.version'),
-    );
-}
+PROCESS::<$OS> := Proxy.new(
+    FETCH => -> $ {
+        PROCESS::<$OS> := my $ = Deprecation.obsolete(
+        :name('$*OS'),
+        :value($*DISTRO.name),
+        :instead('$*DISTRO.name'),
+        );
+    },
+    STORE => -> $, $val { PROCESS::<$OS> := my $ = $val; });
+
+PROCESS::<$OSVER> := Proxy.new(
+    FETCH => -> $ {
+        PROCESS::<$OSVER> := Deprecation.obsolete(
+            :name('$*OSVER'),
+            :value($*DISTRO.version),
+            :instead('$*DISTRO.version'),
+        );
+    },
+    STORE => -> $, $val { PROCESS::<$OSVER> := my $ = $val; });
 
 # vim: ft=perl6 expandtab sw=4

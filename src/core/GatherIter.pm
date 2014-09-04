@@ -4,8 +4,8 @@ class GatherIter is Iterator {
     has $!infinite;            # true if iterator is known infinite
 
 #?if !parrot
-    my $GATHER_PROMPT = Any.new.WHICH;
-    my $SENTINEL := Any.new.WHICH;
+    my $GATHER_PROMPT = Mu.new;
+    my $SENTINEL := Mu.new;
 #?endif
     method new($block, Mu :$infinite) {
 #?if parrot

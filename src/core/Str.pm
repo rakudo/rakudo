@@ -809,19 +809,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             $j = $j + 1 while !(nqp::iscclass(nqp::const::CCLASS_LOWERCASE, $pat, $j) ||
                                 nqp::iscclass(nqp::const::CCLASS_UPPERCASE, $pat, $j) );
-            $ret ~= nqp::substr($str,$i,$j - $i) if $i != $j;
+            $ret = $ret ~ nqp::substr($str,$i,$j - $i) if $i != $j;
             $i = $j;
 
             $j = $j + 1 while nqp::iscclass(nqp::const::CCLASS_LOWERCASE, $pat, $j);
-            $ret ~= nqp::lc(nqp::substr($str,$i,$j - $i)) if $i != $j;
+            $ret = $ret ~ nqp::lc(nqp::substr($str,$i,$j - $i)) if $i != $j;
             $i = $j;
 
             $j = $j + 1 while nqp::iscclass(nqp::const::CCLASS_UPPERCASE, $pat, $j);
-            $ret ~= nqp::uc(nqp::substr($str,$i,$j - $i)) if $i != $j;
+            $ret = $ret ~ nqp::uc(nqp::substr($str,$i,$j - $i)) if $i != $j;
             $i = $j;
         }
-        $ret ~= nqp::substr($str,$i);
-        $ret;
+        $ret ~ nqp::substr($str,$i);
     }
 
     method samespace(Str:D: Str:D $pat) {

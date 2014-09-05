@@ -56,8 +56,8 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method hash(|) { * }
-    multi method hash(Any:U:) { % = () }
-    multi method hash(Any:D:) { % = self }
+    multi method hash(Any:U:) { my % = () }
+    multi method hash(Any:D:) { my % = self }
 
     # derived from .list
     method Parcel() { self.list.Parcel }

@@ -251,6 +251,7 @@ class Perl6::Pod {
         for @rows -> $row {
             next if $row ~~ /^^\s*$$/;
             my $match := $row ~~ /^^\s+/;
+            next unless $match;
             my $n := $match.to;
             if $n < $w || $w == -1 {
                 $w := $n;
@@ -259,7 +260,9 @@ class Perl6::Pod {
         my $i := 0;
         while $i < +@rows {
             unless @rows[$i] ~~ /^^\s*$$/ {
-                @rows[$i] := nqp::substr(@rows[$i], $w);
+                if $w != -1 {
+                    @rows[$i] := nqp::substr(@rows[$i], $w);
+                }
             }
             # chomp
             @rows[$i] := subst(@rows[$i], /\n$/, '');

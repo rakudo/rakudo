@@ -83,9 +83,9 @@ my class Match is Capture is Cool {
 }
 
 sub make(Mu \made) {
-    my $slash := nqp::decont(nqp::getlexcaller('$/'));
-    nqp::bindattr( $slash,        Match,  '$!made', made );
-    nqp::bindattr( $slash.CURSOR, Cursor, '$!made', made );
+    my $slash := nqp::getlexcaller('$/');
+    nqp::bindattr( nqp::decont($slash),        Match,  '$!made', made );
+    nqp::bindattr( nqp::decont($slash.CURSOR), Cursor, '$!made', made );
 }
 
 

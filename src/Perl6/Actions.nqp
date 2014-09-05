@@ -302,21 +302,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
         $code := make_topic_block_ref($/, $code, copy => 1);
-        QAST::Op.new(
-            :op<call>, :name<&eager>,
-            QAST::Op.new(:op<callmethod>, :name<map>,
-                QAST::Op.new( :op<call>, :name<&flat>,
-                    QAST::Op.new(
-                        :op<call>, :name<&flat>,
-                        QAST::Op.new(
-                            :name<&lines>,
-                            :op<call>
-                        )
-                    )
-                ),
-                $code
-            )
-        )
+        my $past := QAST::Op.new(:op<callmethod>, :name<map>,
+            QAST::Op.new(:op<call>, :name<&lines>),
+            QAST::Op.new(:op<p6capturelex>, $code)
+        );
+        $past := QAST::Want.new(
+            QAST::Op.new( :op<callmethod>, :name<sink>, $past ),
+            'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past )
+        );
     }
 
     # Turn $code into "for lines() { $code; say $_ }"
@@ -353,10 +346,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         );
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
-            $mainline := wrap_option_p_code($/, $mainline);
+            $mainline[1] := QAST::Stmt.new(wrap_option_p_code($/, $mainline[1]));
         }
         elsif %*COMPILING<%?OPTIONS><n> {
-            $mainline := wrap_option_n_code($/, $mainline);
+            $mainline[1] := QAST::Stmt.new(wrap_option_n_code($/, $mainline[1]));
         }
 
         # We'll install our view of GLOBAL as the main one; any other

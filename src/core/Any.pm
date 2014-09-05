@@ -39,24 +39,25 @@ my class Any { # declared in BOOTSTRAP
         fail "Can not remove elements from a {self.^name}";
     }
 
-    method list() {
-        nqp::p6list(
-          self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu
-        );
+    proto method list(|) { * }
+    multi method list(Any:U:) { nqp::p6list(nqp::list(),     List, Mu) }
+    multi method list(Any:D:) { nqp::p6list(nqp::list(self), List, Mu) }
+
+    proto method flat(|) { * }
+    multi method flat(Any:U:) { nqp::p6list(nqp::list(),     List, Bool::True) }
+    multi method flat(Any:D:) { nqp::p6list(nqp::list(self), List, Bool::True) }
+
+    proto method eager(|) { * }
+    multi method eager(Any:U:) {
+        nqp::p6list(nqp::list(),     List, Bool::True).eager;
     }
-    method flat() {
-        nqp::p6list(
-          self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Bool::True
-        );
+    multi method eager(Any:D:) {
+        nqp::p6list(nqp::list(self), List, Bool::True).eager;
     }
-    method eager() {
-        nqp::p6list(
-          self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Bool::True
-        ).eager;
-    }
-    method hash() {
-        my % = self.DEFINITE ?? self !! ();
-    }
+
+    proto method hash(|) { * }
+    multi method hash(Any:U:) { % = () }
+    multi method hash(Any:D:) { % = self }
 
     # derived from .list
     method Parcel() { self.list.Parcel }

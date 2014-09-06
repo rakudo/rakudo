@@ -1,6 +1,6 @@
 my class IO::Handle does IO::FileTestable {
     has $!PIO;
-    has Int $.ins = 0;
+    has int $.ins;
     has $.chomp = Bool::True;
     has $.path;
     has Bool $!isDir;
@@ -86,7 +86,7 @@ my class IO::Handle does IO::FileTestable {
         $x.=chomp if $.chomp;
         return Str if self.eof && $x eq '';
 
-        $!ins++;
+        $!ins = $!ins + 1;
         $x;
     }
     
@@ -110,13 +110,13 @@ my class IO::Handle does IO::FileTestable {
         if $.chomp {
             gather until nqp::eoffh($!PIO) {
                 take nqp::readlinefh($!PIO).chomp;
-                $!ins++;
+                $!ins = $!ins + 1;
             }
         }
         else {
             gather until nqp::eoffh($!PIO) {
                 take nqp::p6box_s(nqp::readlinefh($!PIO));
-                $!ins++;
+                $!ins = $!ins + 1;
             }
         }
     }
@@ -131,14 +131,14 @@ my class IO::Handle does IO::FileTestable {
             gather while $count-- {
                 last if nqp::eoffh($!PIO);
                 take nqp::readlinefh($!PIO).chomp;
-                $!ins++;
+                $!ins = $!ins + 1;
             }
         }
         else {
             gather while $count-- {
                 last if nqp::eoffh($!PIO);
                 take nqp::p6box_s(nqp::readlinefh($!PIO));
-                $!ins++;
+                $!ins = $!ins + 1;
             }
         }
     }

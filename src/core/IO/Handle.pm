@@ -100,26 +100,44 @@ my class IO::Handle does IO::FileTestable {
         $c;
     }
 
-    method lines($limit = Inf) {
-        my $chomp = self.chomp;
+    proto method lines (|) { * }
+    multi method lines() {
         unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($chomp));
+            self.open($!path, :chomp($.chomp));
         }
         fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
 
-        if $limit == Inf {
+        if $.chomp {
             gather until nqp::eoffh($!PIO) {
-                my str $x = nqp::readlinefh($!PIO);
-                take nqp::p6box_s( $chomp ?? $x.chomp !! $x );
+                take nqp::readlinefh($!PIO).chomp;
                 $!ins++;
             }
         }
         else {
-            my $count = $limit;
+            gather until nqp::eoffh($!PIO) {
+                take nqp::p6box_s(nqp::readlinefh($!PIO));
+                $!ins++;
+            }
+        }
+    }
+    multi method lines($limit) {
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
+
+        my $count = $limit;
+        if $.chomp {
             gather while $count-- {
                 last if nqp::eoffh($!PIO);
-                my str $x = nqp::readlinefh($!PIO);
-                take nqp::p6box_s( $chomp ?? $x.chomp !! $x );
+                take nqp::readlinefh($!PIO).chomp;
+                $!ins++;
+            }
+        }
+        else {
+            gather while $count-- {
+                last if nqp::eoffh($!PIO);
+                take nqp::p6box_s(nqp::readlinefh($!PIO));
                 $!ins++;
             }
         }

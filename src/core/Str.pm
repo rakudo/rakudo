@@ -75,16 +75,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $chars = nqp::chars($sself);
         return '' if $chars == 0;
 
-        my str $last = nqp::substr($sself, $chars - 1);
-        if $last eq "\n" {
-            if $chars > 1 && nqp::substr($sself, $chars - 2, 1) eq "\r" {
+        my int $last = nqp::ordat($sself, $chars - 1);
+        if $last == 10 {
+            if $chars > 1 && nqp::iseq_i(nqp::ordat($sself, $chars - 2),  13) {
                 nqp::p6box_s(nqp::substr($sself, 0, $chars - 2));
             }
             else {
                 nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
             }
         }
-        elsif $last eq "\r" {
+        elsif $last == 13 {
             nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
         }
         else {

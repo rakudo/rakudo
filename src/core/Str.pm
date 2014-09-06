@@ -74,12 +74,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $sself = nqp::unbox_s(self);
         my int $chars = nqp::chars($sself);
         return '' if $chars == 0;
+
         my str $last = nqp::substr($sself, $chars - 1);
-        my int $to_remove = 0;
-        $to_remove = 1 if $last eq "\n" || $last eq "\r";
-        $to_remove = 2 if $chars > 1
-            && nqp::p6box_s(nqp::substr($sself, $chars - 2)) eq "\r\n";
-        nqp::p6box_s(nqp::substr($sself, 0, $chars - $to_remove))
+        if $last eq "\n" {
+            if $chars > 1 && nqp::substr($sself, $chars - 2, 1) eq "\r" {
+                nqp::p6box_s(nqp::substr($sself, 0, $chars - 2));
+            }
+            else {
+                nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
+            }
+        }
+        elsif $last eq "\r" {
+            nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
+        }
+        else {
+            self;
+        }
     }
 
     method chop(Str:D: $chars = 1) {

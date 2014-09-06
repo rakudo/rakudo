@@ -1,3 +1,3 @@
 my role IO {
-    method umask { state $ = EVAL "0o" ~ qx/umask/ }
+    method umask { state $ = :8( qx/umask/.chomp ) }
 }

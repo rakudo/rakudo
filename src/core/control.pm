@@ -37,18 +37,35 @@ my &return := -> | {
     $parcel
 };
 
-my &take-rw := -> | { 
-    my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+proto take-rw(|) { * }
+multi take-rw() {
+    THROW(Nil, nqp::const::CONTROL_TAKE);
+    Nil
+}
+multi take-rw(\x) {
+    THROW(x, nqp::const::CONTROL_TAKE);
+    x
+}
+multi take-rw(|) {
+    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW($parcel, nqp::const::CONTROL_TAKE);
     $parcel
-};
-my &take := -> | { 
-    my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+}
+
+proto take(|) { * }
+multi take() {
+    THROW(Nil, nqp::const::CONTROL_TAKE);
+    Nil
+}
+multi take(\x) {
+    THROW(nqp::p6recont_ro(x), nqp::const::CONTROL_TAKE);
+    x
+}
+multi take(|) {
+    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
     $parcel
-};
+}
 
 my &last := -> | {
     my Mu $args := nqp::p6argvmarray();
@@ -83,14 +100,19 @@ my &redo := -> | {
     }
 };
 
-my &succeed := -> | { 
-    my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::decont($parcel), 
-          nqp::const::CONTROL_SUCCEED)
-};
+proto succeed(|) { * }
+multi succeed() {
+    THROW(Nil, nqp::const::CONTROL_SUCCEED)
+}
+multi succeed(\x) {
+    THROW(nqp::decont(x), nqp::const::CONTROL_SUCCEED)
+}
+multi succeed(|) {
+    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+    THROW(nqp::decont($parcel), nqp::const::CONTROL_SUCCEED)
+}
 
-my &proceed := -> {
+sub proceed() {
     THROW(Nil, nqp::const::CONTROL_PROCEED)
 }
 

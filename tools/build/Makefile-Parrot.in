@@ -143,6 +143,7 @@ P_CORE_SOURCES = \
   src/core/Mu.pm \
   src/core/Stringy.pm \
   src/core/Any.pm \
+  src/core/Whatever.pm \
   src/core/array_slice.pm \
   src/core/hash_slice.pm \
   src/core/Scalar.pm \
@@ -159,7 +160,6 @@ P_CORE_SOURCES = \
   src/core/Junction.pm \
   src/core/Cool.pm \
   src/core/Enumeration.pm \
-  src/core/Whatever.pm \
   src/core/Bool.pm \
   src/core/Numeric.pm \
   src/core/Real.pm \

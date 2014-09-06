@@ -207,7 +207,11 @@ class Perl6::World is HLL::World {
     
     # Cached constants that we've built.
     has %!const_cache;
-    
+
+    # Cached * and ** instances.
+    has $!the_whatever;
+    has $!the_hyper_whatever;
+
     # List of CHECK blocks to run.
     has @!CHECKs;
     
@@ -1476,6 +1480,22 @@ class Perl6::World is HLL::World {
         QAST::Want.new(
             $const, :returns($const.returns),
             'Ss', QAST::SVal.new( :value($value) ));
+    }
+
+    method whatever() {
+        unless nqp::isconcrete($!the_whatever) {
+            $!the_whatever := nqp::create(self.find_symbol(['Whatever']));
+            self.add_object($!the_whatever);
+        }
+        QAST::WVal.new( :value($!the_whatever), :returns($!the_whatever.WHAT) )
+    }
+
+    method hyper_whatever() {
+        unless nqp::isconcrete($!the_hyper_whatever) {
+            $!the_hyper_whatever := nqp::create(self.find_symbol(['HyperWhatever']));
+            self.add_object($!the_hyper_whatever);
+        }
+        QAST::WVal.new( :value($!the_hyper_whatever), :returns($!the_hyper_whatever.WHAT) )
     }
     
     # Adds the result of a constant folding operation to the SC and

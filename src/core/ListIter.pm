@@ -9,8 +9,8 @@ my class ListIter { # declared in BOOTSTRAP
     
     method reify($n = 1, :$sink) {
         unless nqp::isconcrete($!reified) {
-            my $eager = nqp::p6bool(nqp::istype($n, Whatever));
-            my $flattens = nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;
+            my $eager := nqp::p6bool(nqp::istype($n, Whatever));
+            my $flattens := nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;
             my int $max = 100_000;
             my int $count;
             my $rpa := nqp::list();

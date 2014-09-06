@@ -1222,7 +1222,7 @@ sub trim-leading (Str:D $s) returns Str:D { $s.trim-leading }
 sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-sub unbase(Int:D $base, Str:D $str) returns Numeric:D {
+sub unbase(Int:D $base, Str:D $str) {
     my Str $prefix = $str.substr(0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>

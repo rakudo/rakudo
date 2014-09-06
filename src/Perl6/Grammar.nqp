@@ -1186,7 +1186,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my int $from      := self.MATCH.from();
             my int $to        := self.MATCH.to() + nqp::chars($*LABEL);
             my int $line      := HLL::Compiler.lineof($orig, self.from());
-            my str $prematch  := nqp::substr($orig, $from > 20 ?? $from - 20 !! 0, 20);
+            my str $prematch  := nqp::substr($orig, $from > 20 ?? $from - 20 !! 0, $from > 20 ?? 20 !! $from);
             my str $postmatch := nqp::substr($orig, $to, 20);
             my $label     := $*W.find_symbol(['Label']).new( :name($*LABEL), :$line, :$prematch, :$postmatch );
             $*W.add_object($label);

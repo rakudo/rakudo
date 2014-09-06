@@ -2,20 +2,18 @@ my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
 my class Label { ... }
 
-my &THROW :=
-    -> | {
-        my Mu $args := nqp::p6argvmarray();
-        my Mu $ex   := nqp::newexception();
-        nqp::setpayload($ex, nqp::atpos($args, 0));
-        nqp::setextype($ex, nqp::atpos($args, 1));
+sub THROW(Mu \arg, int $type) {
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex, arg);
+    nqp::setextype($ex, $type);
 #?if parrot
-        pir::setattribute__vPsP($ex, 'severity', pir::const::EXCEPT_NORMAL);
+    pir::setattribute__vPsP($ex, 'severity', pir::const::EXCEPT_NORMAL);
 #?endif
-        nqp::throw($ex);
-        0
-    };
+    nqp::throw($ex);
+    0
+}
 
-my &RETURN-PARCEL := -> Mu \parcel {
+sub RETURN-PARCEL(Mu \parcel) is rw {
     my Mu $storage := nqp::getattr(parcel, Parcel, '$!storage');
     nqp::iseq_i(nqp::elems($storage), 0)
       ?? Nil

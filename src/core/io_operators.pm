@@ -6,21 +6,10 @@ sub print(|) {
 }
 
 proto sub say(|) { * }
-multi sub say(Obsolete:D \x) {
-    my $out := $*OUT;
-    $out.print(x.gist);
-    $out.print("\n");
-}
-multi sub say(Str:D \x) {
-    my $out := $*OUT;
-    $out.print(x);
-    $out.print("\n");
-}
-multi sub say(\x) {
-    my $out := $*OUT;
-    $out.print(x.gist);
-    $out.print("\n");
-}
+multi sub say()              { $*OUT.print: "\n" }
+multi sub say(Obsolete:D \o) { $*OUT.print: o.gist ~ "\n" }
+multi sub say(Str:D \x)      { $*OUT.print: x ~ "\n" }
+multi sub say(\x)            { $*OUT.print: x.gist ~ "\n" }
 multi sub say(|) {
     my $args := nqp::p6argvmarray();
     my $out := $*OUT;

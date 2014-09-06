@@ -28,8 +28,8 @@ my class MapIter is Iterator {
 
     method reify($n = 1, :$sink) {
         unless nqp::isconcrete($!reified) {
-            my $argc   = $!block.count;
-            $argc = 1 if $argc < 1 || $argc ~~ Inf;
+            my $block_count  := $!block.count;
+            my int $argc     = $block_count < 1 || $block_count ~~ Inf ?? 1 !! nqp::unbox_i($block_count);
             my $block  := nqp::decont($!block);
             my Mu $rpa := nqp::list();
 
@@ -39,13 +39,16 @@ my class MapIter is Iterator {
                   if (nqp::can($block, 'phasers') && $block.phasers('FIRST'));
             }
 
-            my $count = $n;
+            my int $count;
             if nqp::istype($count, Whatever) {
                 $!listiter.reify($argc)
                 if $!listiter && nqp::elems($!items) < $argc;
                 $count = (nqp::elems($!items) / $argc).floor;
                 $count = 1 if $count < 1;
                 $count = 100000 if $count > 100000;
+            }
+            else {
+                $count = $n;
             }
 
             my int $NEXT        = nqp::can($block, 'fire_phasers')

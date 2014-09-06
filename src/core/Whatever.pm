@@ -1,13 +1,15 @@
 my class Whatever {
     multi method ACCEPTS(Whatever:D: $topic) { True }
-    method new() { nqp::create(self) }
+    method new() { our $star //= nqp::create(self) }
+    method clone() { self }
 
     multi method perl(Whatever:D:) { '*' }
 }
 
 my class HyperWhatever {
     multi method ACCEPTS(HyperWhatever:D: $topic) { True }
-    method new() { nqp::create(self) }
+    method new() { our $starstar //= nqp::create(self) }
+    method clone() { self }
 
     multi method perl(HyperWhatever:D:) { '**' }
 }

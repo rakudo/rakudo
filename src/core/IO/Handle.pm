@@ -101,15 +101,16 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method lines($limit = Inf) {
+        my $chomp = self.chomp;
         unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
+            self.open($!path, :chomp($chomp));
         }
         fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
 
         if $limit == Inf {
             gather until nqp::eoffh($!PIO) {
                 my str $x = nqp::readlinefh($!PIO);
-                take nqp::p6box_s( $.chomp ?? $x.chomp !! $x );
+                take nqp::p6box_s( $chomp ?? $x.chomp !! $x );
                 $!ins++;
             }
         }
@@ -118,7 +119,7 @@ my class IO::Handle does IO::FileTestable {
             gather while $count-- {
                 last if nqp::eoffh($!PIO);
                 my str $x = nqp::readlinefh($!PIO);
-                take nqp::p6box_s( $.chomp ?? $x.chomp !! $x );
+                take nqp::p6box_s( $chomp ?? $x.chomp !! $x );
                 $!ins++;
             }
         }

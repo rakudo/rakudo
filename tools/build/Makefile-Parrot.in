@@ -207,6 +207,10 @@ P_CORE_SOURCES = \
   src/core/IO/Spec/QNX.pm \
   src/core/IO/Spec.pm \
   src/core/IO.pm \
+  src/core/IO/FileTestable.pm \
+  src/core/IO/Handle.pm \
+  src/core/IO/Path.pm \
+  src/core/io_operators.pm \
   src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \

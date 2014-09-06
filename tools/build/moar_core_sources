@@ -73,6 +73,10 @@ src/core/IO/Spec/Cygwin.pm
 src/core/IO/Spec/QNX.pm
 src/core/IO/Spec.pm
 src/core/IO.pm
+src/core/IO/FileTestable.pm
+src/core/IO/Handle.pm
+src/core/IO/Path.pm
+src/core/io_operators.pm
 src/core/IO/ArgFiles.pm
 src/core/AST.pm
 src/core/CallFrame.pm

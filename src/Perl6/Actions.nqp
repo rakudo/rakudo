@@ -2638,7 +2638,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $*SOFT {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
-            else {
+            elsif !nqp::can($code, 'postcircumfix:<( )>') {
                 self.add_inlining_info_if_possible($/, $code, $block, @params);
             }
         }

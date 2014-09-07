@@ -34,12 +34,21 @@ sub DYNAMIC(\name) is rw {
         elsif nqp::existskey(PROCESS.WHO, $pkgname) {
             $x := nqp::atkey(PROCESS.WHO, $pkgname);
         }
+        elsif try INITIALIZE(name) -> $result {
+            $x := $result;
+        }
         else {
             fail X::Dynamic::NotFound.new(:name(name));
         }
     }
     $x
 }
+
+# prime the automagic dynamic variable initializers
+proto sub INITIALIZE(|) { * }
+#multi sub INITIALIZE('$*FOO') {   # example stub
+#    PROCESS::<$FOO> := "foo";
+#}
 
 # Set up ClassHOW's auto-gen proto (nested scope so it won't
 # actually appear in the setting).

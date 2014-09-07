@@ -1,6 +1,8 @@
-{
+multi sub INITIALIZE('$*PID') {
     PROCESS::<$PID> := nqp::p6box_i(nqp::getpid());
+}
 
+multi sub INITIALIZE('$*EXECUTABLE') {
     my $EXECUTABLE =
 #?if parrot
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
@@ -14,19 +16,30 @@
         // ($*VM.config<prefix> ~ '/bin/' ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
 #?endif
     $EXECUTABLE := $EXECUTABLE.path.absolute;
-    PROCESS::<$EXECUTABLE>      := $EXECUTABLE;
     PROCESS::<$EXECUTABLE_NAME> := $EXECUTABLE.basename;
+    PROCESS::<$EXECUTABLE>      := $EXECUTABLE.path.absolute;
+}
 
+multi sub INITIALIZE('$*EXECUTABLE_NAME') {
+    PROCESS::<$EXECUTABLE_NAME> := $*EXECUTABLE.basename;
+}
+
+multi sub INITIALIZE('$*PROGRAM_NAME') {
     my Mu $comp := nqp::getcomp('perl6');
     my $PROGRAM_NAME = $comp.user-progname();
-    PROCESS::<$PROGRAM_NAME> = $PROGRAM_NAME;
-    PROCESS::<$PROGRAM> = IO::Path.new($PROGRAM_NAME);
+    PROCESS::<$PROGRAM>      := IO::Path.new($PROGRAM_NAME);
+    PROCESS::<$PROGRAM_NAME> := $PROGRAM_NAME;
+}
 
-    PROCESS::<$TMPDIR> := Proxy.new(
-      FETCH => -> $ { PROCESS::<$TMPDIR> := my $ = IO::Spec.tmpdir.path },
-      STORE => -> $, $val { PROCESS::<$TMPDIR> := my $ = $val.path }
-    );
+multi sub INITIALIZE('$*PROGRAM') {
+    PROCESS::<$PROGRAM> := IO::Path.new($*PROGRAM_NAME);
+}
 
+multi sub INITIALIZE('$*TMPDIR') {
+    PROCESS::<$TMPDIR> := IO::Spec.tmpdir.path;
+}
+
+{
     class IdName {
         has Int $!id;
         has Str $!name;

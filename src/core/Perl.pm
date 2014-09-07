@@ -27,10 +27,9 @@ class Perl does Systemic {
     method KERNELnames { <darwin linux win32> }
 }
 
-PROCESS::<$PERL> := Proxy.new(
-    FETCH => -> $       { PROCESS::<$PERL> := my $ = Perl.new; },
-    STORE => -> $, $val { PROCESS::<$PERL> := my $ = $val;     });
-
+multi sub INITIALIZE('$*PERL') {
+    PROCESS::<$PERL> := Perl.new;
+}
 multi postcircumfix:<{ }> (Perl $d, "name" )   {
     DEPRECATED('$*PERL.name', :what('$*PERL<name>') );
     $d.name

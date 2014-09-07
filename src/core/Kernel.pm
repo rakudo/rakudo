@@ -105,8 +105,8 @@ class Kernel does Systemic {
 #?endif
 }
 
-PROCESS::<$KERNEL> := Proxy.new(
-    FETCH => -> $       { PROCESS::<$KERNEL> := my $ = Kernel.new; },
-    STORE => -> $, $val { PROCESS::<$KERNEL> := my $ = $val;       });
+multi sub INITIALIZE('$*KERNEL') {
+    PROCESS::<$KERNEL> := Kernel.new;
+}
 
 # vim: ft=perl6 expandtab sw=4

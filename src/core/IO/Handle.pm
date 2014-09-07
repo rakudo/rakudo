@@ -109,7 +109,7 @@ my class IO::Handle does IO::FileTestable {
 
         if $.chomp {
             gather until nqp::eoffh($!PIO) {
-                take nqp::readlinefh($!PIO).chomp;
+                take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
                 $!ins = $!ins + 1;
             }
         }
@@ -130,7 +130,7 @@ my class IO::Handle does IO::FileTestable {
         if $.chomp {
             gather while $count-- {
                 last if nqp::eoffh($!PIO);
-                take nqp::readlinefh($!PIO).chomp;
+                take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
                 $!ins = $!ins + 1;
             }
         }

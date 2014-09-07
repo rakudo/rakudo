@@ -9,6 +9,7 @@ my class X::AdHoc  { ... }
 my class FatRat    { ... }
 my class Enum      { ... }
 my class X::OutOfRange { ... }
+my class X::Dynamic::NotFound { ... }
 
 my role QuantHash { ... }
 my role Setty { ... }
@@ -27,9 +28,15 @@ sub DYNAMIC(\name) is rw {
     my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull($x) {
         my str $pkgname = nqp::replace(nqp::unbox_s(name), 1, 1, '');
-        if nqp::existskey(GLOBAL.WHO, $pkgname) { $x := nqp::atkey(GLOBAL.WHO, $pkgname) }
-        elsif nqp::existskey(PROCESS.WHO, $pkgname) { $x := nqp::atkey(PROCESS.WHO, $pkgname) }
-        else { fail "Dynamic variable {name} not found" }
+        if nqp::existskey(GLOBAL.WHO, $pkgname) {
+            $x := nqp::atkey(GLOBAL.WHO, $pkgname);
+        }
+        elsif nqp::existskey(PROCESS.WHO, $pkgname) {
+            $x := nqp::atkey(PROCESS.WHO, $pkgname);
+        }
+        else {
+            fail X::Dynamic::NotFound.new(:name(name));
+        }
     }
     $x
 }

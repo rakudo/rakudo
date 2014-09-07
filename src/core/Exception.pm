@@ -72,6 +72,12 @@ my class X::AdHoc is Exception {
     method Numeric() { $.payload.Numeric }
 }
 
+my class X::Dynamic::NotFound is Exception {
+    has $.name;
+    method message() {
+        "Dynamic variable $.name not found";
+    }
+}
 my class X::Method::NotFound is Exception {
     has $.invocant;
     has $.method;

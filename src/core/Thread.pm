@@ -14,7 +14,16 @@ my class Thread {
 
     submethod BUILD(:&code!, :$!app_lifetime as Bool = False, :$!name as Str = "<anon>") {
         $!vm_thread := nqp::newthread(
-            { my $*THREAD = self; code(); },
+            {
+                my $*THREAD = self;
+                CONTROL {
+                    default {
+                        my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                        nqp::getcomp('perl6').handle-control($vm-ex);
+                    }
+                }
+                code();
+            },
             $!app_lifetime ?? 1 !! 0);
     }
 

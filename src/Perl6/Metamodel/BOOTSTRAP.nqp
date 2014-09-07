@@ -118,7 +118,7 @@ my class Binder {
     my $autothreader;
 
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
-        my str $error_prefix := $too_many ?? "Too many" !! "Not enough";
+        my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
         my int $arity;
 
@@ -144,13 +144,15 @@ my class Binder {
 
             $param_i++;
         }
+	my str $s := $arity == 1 ?? "" !! "s";
 
         if $arity == $count {
-            return "$error_prefix positional parameters passed; got $num_pos_args but expected $arity";
+            return "$error_prefix positionals passed; expected $arity argument$s but got $num_pos_args";
         } elsif $count == -1 {
-            return "$error_prefix positional parameters passed; got $num_pos_args but expected at least $arity";
+            return "$error_prefix positionals passed; expected at least $arity argument$s but got only $num_pos_args";
         } else {
-            return "$error_prefix positional parameters passed; got $num_pos_args but expected between $arity and $count";
+	    my str $conj := $count == $arity+1 ?? "or" !! "to";
+            return "$error_prefix positionals passed; expected $arity $conj $count arguments but got $num_pos_args";
         }
     }
 

@@ -2970,8 +2970,15 @@ nqp::sethllconfig('perl6', nqp::hash(
             }
         }
         nqp::die("Method '$name' not found for invocant of class '$type'");
-    }
+    },
 #?endif
+    'finalize_handler', -> @objs {
+        for @objs -> $o {
+            for $o.HOW.destroyers($o) -> $d {
+                $d($o)
+            }
+        }
+    }
 ));
 
 #?if jvm

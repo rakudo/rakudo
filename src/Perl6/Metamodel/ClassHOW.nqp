@@ -20,6 +20,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
+    does Perl6::Metamodel::Finalization
 #?if parrot
     does Perl6::Metamodel::ParrotInterop
 #?endif
@@ -119,6 +120,9 @@ class Perl6::Metamodel::ClassHOW
 
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
+
+        # Set up finalization as needed.
+        self.setup_finalization($obj);
 
         # Compose attributes.
         self.compose_attributes($obj);

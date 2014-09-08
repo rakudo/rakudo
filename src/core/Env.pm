@@ -10,7 +10,9 @@
         %ENV{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
     PROCESS::<%ENV> := %ENV;
+}
 
+multi sub INITIALIZE('$*CWD') {
     ## duplicate src/core/IO.pm::cwd
     my $CWD = IO::Path.new(nqp::p6box_s(
 #?if parrot
@@ -22,7 +24,7 @@
             nqp::cwd(),
 #?endif
     ));
-    PROCESS::<$CWD> = $CWD;
+    PROCESS::<$CWD> := $CWD;
 }
 
 # vim: ft=perl6 expandtab sw=4

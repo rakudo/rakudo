@@ -57,7 +57,7 @@ New in 2014.07
 + optimized CompUnitRepo::Local::File
 + optimized takedispatcher to cleardispatcher
 + all backends now allow C pointer arithmetic and casting of pointers to Perl 6 types
-  (this funtionality is exposed by NativeCall)
+  (this functionality is exposed by NativeCall)
 + made block inlining a level 2 optimization
 + small optimizations to number parsing
 + fixed Label.gist

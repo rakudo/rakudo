@@ -17,7 +17,7 @@ multi sub INITIALIZE('$*EXECUTABLE') {
 #?endif
     $EXECUTABLE := $EXECUTABLE.path.absolute;
     PROCESS::<$EXECUTABLE_NAME> := $EXECUTABLE.basename;
-    PROCESS::<$EXECUTABLE>      := $EXECUTABLE.path.absolute;
+    PROCESS::<$EXECUTABLE>      := $EXECUTABLE;
 }
 
 multi sub INITIALIZE('$*EXECUTABLE_NAME') {

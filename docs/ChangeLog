@@ -4,6 +4,8 @@ New in 2014.09
 + Reduced memory size of CORE.setting, improved startup time
 + Workaound OS X make bug for MoarVM
 + Make new LOLLY syntax the default
++ support for submethod DESTROY (MoarVM only)
++ optimizations to IO.lines, chomp, return, and interpreter startup
 
 New in 2014.08
 + print file/line annotations for warnings also on moar and jvm

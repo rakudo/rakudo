@@ -34,10 +34,8 @@ sub DYNAMIC(\name) is rw {
         elsif nqp::existskey(PROCESS.WHO, $pkgname) {
             $x := nqp::atkey(PROCESS.WHO, $pkgname);
         }
-        elsif try INITIALIZE(name) -> $result {
-            $x := nqp::ordat(nqp::unbox_s(name),0) == 64
-              ?? @($result)
-              !! $result;
+        elsif try INITIALIZE(name) -> \result {
+            $x := result;
         }
         else {
             fail X::Dynamic::NotFound.new(:name(name));

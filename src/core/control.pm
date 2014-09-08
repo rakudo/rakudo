@@ -36,6 +36,7 @@ my &return := -> | {
 };
 
 proto take-rw(|) { * }
+#?if !jvm
 multi take-rw() {
     THROW(Nil, nqp::const::CONTROL_TAKE);
     Nil
@@ -44,13 +45,17 @@ multi take-rw(\x) {
     THROW(x, nqp::const::CONTROL_TAKE);
     x
 }
+#?endif
 multi take-rw(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+#?if !jvm
     THROW($parcel, nqp::const::CONTROL_TAKE);
+#?endif
     $parcel
 }
 
 proto take(|) { * }
+#?if !jvm
 multi take() {
     THROW(Nil, nqp::const::CONTROL_TAKE);
     Nil
@@ -59,9 +64,12 @@ multi take(\x) {
     THROW(nqp::p6recont_ro(x), nqp::const::CONTROL_TAKE);
     x
 }
+#?endif
 multi take(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+#?if !jvm
     THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
+#?endif
     $parcel
 }
 

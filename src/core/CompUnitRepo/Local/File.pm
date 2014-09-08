@@ -1,7 +1,5 @@
 class CompUnitRepo::Local::File does CompUnitRepo::Locally {
 
-    my Str $precomp-ext     := $*VM.precomp-ext;
-    my Int $precomp-ext-dot := $precomp-ext.chars + 1;
     my %extensions =
       Perl6 => <pm6 pm>,
       Perl5 => <pm5 pm>,
@@ -34,6 +32,8 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         if %seen{$base} -> $found {
             return $found;
         }
+
+        state Str $precomp-ext = $*VM.precomp-ext;
 
         # have extensions to check
         if %extensions{$from} -> @extensions {

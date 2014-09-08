@@ -1,4 +1,4 @@
-sub INIT-INC-CUSTOM_LIB($inc) {
+{
     my @INC;
     my %CUSTOM_LIB;
 
@@ -149,17 +149,7 @@ sub INIT-INC-CUSTOM_LIB($inc) {
     PROCESS::<@INC>        := @INC;
     PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
 
-    $inc ?? @INC !! %CUSTOM_LIB;
+    nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
 }
-
-multi sub INITIALIZE('@*INC') {
-    INIT-INC-CUSTOM_LIB(1);
-
-}
-multi sub INITIALIZE('%*CUSTOM_LIB') {
-    INIT-INC-CUSTOM_LIB(0);
-}
-
-nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
 
 # vim: ft=perl6 expandtab sw=4

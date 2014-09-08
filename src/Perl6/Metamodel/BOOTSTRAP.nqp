@@ -842,7 +842,7 @@ my class Binder {
                         |%named_args);
             }
             else {
-                nqp::die(@error[0]);
+                nqp::isinvokable(@error[0]) ?? @error[0]() !! nqp::die(@error[0]);
             }
         }
         nqp::null();
@@ -871,7 +871,7 @@ my class Binder {
         my $lexpad  := nqp::ctxcaller(nqp::ctx());
         my @error;
         if bind($capture, $sig, $lexpad, 0, @error) != $BIND_RESULT_OK {
-            nqp::die(@error[0]);
+            nqp::isinvokable(@error[0]) ?? @error[0]() !! nqp::die(@error[0]);
         }
         $sig
     }
@@ -2949,12 +2949,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                         |%named_args);
             }
             else {
-                if nqp::isinvokable(@error[0]) {
-                    @error[0]();
-                }
-                else {
-                    nqp::die(@error[0]);
-                }
+                nqp::isinvokable(@error[0]) ?? @error[0]() !! nqp::die(@error[0]);
             }
         }
         else {

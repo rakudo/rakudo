@@ -237,7 +237,7 @@ sub run(*@args ($, *@)) {
     }
     my Mu $args-without := nqp::list();
     for @args.eager {
-        nqp::push($args-without, nqp::decont($_));
+        nqp::push($args-without, nqp::decont(~$_));
     }
     try {
         $status.status( nqp::p6box_i( nqp::spawn($args-without, $*CWD.Str, $hash-without) ) );

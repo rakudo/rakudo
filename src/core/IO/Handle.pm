@@ -300,6 +300,10 @@ my class IO::Handle does IO::FileTestable {
             ?? nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc))
             !! $!PIO.encoding
     }
+
+    submethod DESTROY() {
+        self.close;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

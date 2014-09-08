@@ -35,8 +35,16 @@ my &return := -> | {
     $parcel
 };
 
-proto take-rw(|) { * }
+# RT #122732 - control operator crossed continuation barrier
+#?if jvm
+my &take-rw := -> | {
+    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+    THROW($parcel, nqp::const::CONTROL_TAKE);
+    $parcel
+}
+#?endif
 #?if !jvm
+proto take-rw(|) { * }
 multi take-rw() {
     THROW(Nil, nqp::const::CONTROL_TAKE);
     Nil
@@ -45,17 +53,23 @@ multi take-rw(\x) {
     THROW(x, nqp::const::CONTROL_TAKE);
     x
 }
-#?endif
 multi take-rw(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-#?if !jvm
     THROW($parcel, nqp::const::CONTROL_TAKE);
-#?endif
     $parcel
 }
+#?endif
 
-proto take(|) { * }
+# RT #122732 - control operator crossed continuation barrier
+#?if jvm
+my &take := -> | {
+    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+    THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
+    $parcel
+}
+#?endif
 #?if !jvm
+proto take(|) { * }
 multi take() {
     THROW(Nil, nqp::const::CONTROL_TAKE);
     Nil
@@ -64,14 +78,12 @@ multi take(\x) {
     THROW(nqp::p6recont_ro(x), nqp::const::CONTROL_TAKE);
     x
 }
-#?endif
 multi take(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-#?if !jvm
     THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
-#?endif
     $parcel
 }
+#?endif
 
 my &last := -> | {
     my Mu $args := nqp::p6argvmarray();

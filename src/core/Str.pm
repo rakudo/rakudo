@@ -728,7 +728,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
                   !! '';
                 $prev = $curr;
-                $prev = $prev + 1 if nqp::substr($ns,$curr+1,1) eq $LF;
+                $prev = $prev + nqp::eqat( $ns, $LF, $curr + 1 );
             }
 
             # now search for LF

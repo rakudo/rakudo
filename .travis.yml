@@ -15,7 +15,10 @@ notifications:
     channels:
     - "irc.freenode.net#perl6"
     on_success: change
-    on_failure: change
+    on_failure: always
+    template:
+      - "Rakudo build %{result}. %{author} '%{commit_message}'"
+      - "%{build_url} %{compare_url}"
 
 env:
   matrix:

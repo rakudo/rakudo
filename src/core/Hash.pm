@@ -268,8 +268,7 @@ my class Hash { # declared in BOOTSTRAP
             if self.{$key}.^isa(Array) {
                 self.{$key}.push($value);
             } else {
-                my Mu $tmp = self.{$key};
-                self.{$key} = [ $tmp, $value];
+                self.{$key} = [ self.{$key}, $value ];
             }
         } else {
             self.{$key} = $value;

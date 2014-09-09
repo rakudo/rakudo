@@ -37,6 +37,18 @@ _init_vars();
 
 ## test functions
 
+our sub output is rw {
+    $output
+}
+
+our sub failure_output is rw {
+    $failure_output
+}
+
+our sub todo_output is rw {
+    $todo_output
+}
+
 # you can call die_on_fail; to turn it on and die_on_fail(0) to turn it off
 sub die_on_fail($fail=1) {
     $die_on_fail = $fail;

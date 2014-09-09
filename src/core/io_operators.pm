@@ -225,11 +225,11 @@ multi sub mkdir($path as Str, $mode = 0o777) {
     }
 }
 
-$PROCESS::IN  = open('-');
-$PROCESS::OUT = open('-', :w);
-$PROCESS::ERR = IO::Handle.new;
-nqp::bindattr(nqp::decont($PROCESS::ERR),
-        IO::Handle, '$!PIO', nqp::getstderr());
+PROCESS::<$OUT> = open('-', :w);
+PROCESS::<$IN>  = open('-');
+PROCESS::<$ERR> = IO::Handle.new;
+nqp::bindattr(nqp::decont(PROCESS::<$ERR>),
+  IO::Handle, '$!PIO', nqp::getstderr());
 
 sub rename(Cool $from as Str, Cool $to as Str) {
     my $absfrom = IO::Spec.rel2abs($from);

@@ -707,26 +707,78 @@ my class Str does Stringy { # declared in BOOTSTRAP
         (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
     }
 
-    method lines(Str:D: $limit = Inf) {
-        my $prev_pos = -1;
-        if $limit == Inf {
-            gather {
-                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) {
-                    take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
-                    $prev_pos = $current_pos;
-                }
-                take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
+    # constants ???
+    my str $CR = nqp::unbox_s("\r");
+    my str $LF = nqp::unbox_s("\n");
+
+    multi method lines(Str:D:) {
+        my str $ns = nqp::unbox_s(self);
+        my str $CR = nqp::unbox_s("\r");
+        my str $LF = nqp::unbox_s("\n");
+        my int $prev = -1;
+        my int $curr;
+        my int $chars;
+
+        gather {
+
+            # search for CR first
+            until ($curr = nqp::index( $ns, $CR, $prev + 1 )) < 0 {
+                $chars = $curr - $prev - 1;
+                take $chars
+                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
+                  !! '';
+                $prev = $curr;
+                $prev = $prev + 1 if nqp::substr($ns,$curr+1,1) eq $LF;
             }
+
+            # now search for LF
+            until ($curr = nqp::index( $ns, $LF, $prev + 1 )) < 0 {
+                $chars = $curr - $prev - 1;
+                take $chars
+                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
+                  !! '';
+                $prev = $curr;
+            }
+
+            # take whatever is left
+            take nqp::box_s(nqp::substr($ns,$prev + 1), Str)
+              if $prev + 1 < nqp::chars($ns);
         }
-        else {
-            my $l = 0;
-            gather {
-                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
-                    take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
-                    $prev_pos = $current_pos;
-                }
-                take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars && $l <= $limit;
+    }
+
+    multi method lines(Str:D: $limit) {
+        my str $ns = nqp::unbox_s(self);
+        my int $prev = -1;
+        my int $curr;
+        my int $chars;
+        my int $count = $limit;
+
+        gather {
+
+            # search for CR first
+            while $count && ($curr = nqp::index( $ns, $CR, $prev + 1 )) >= 0 {
+                $chars = $curr - $prev - 1;
+                take $chars
+                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
+                  !! '';
+                $prev = $curr;
+                $prev = $prev + 1 if nqp::substr($ns,$curr+1,1) eq $LF;
+                $count = $count - 1;
             }
+
+            # now search for LF
+            while $count && ($curr = nqp::index( $ns, $LF, $prev + 1 )) >= 0 {
+                $chars = $curr - $prev - 1;
+                take $chars
+                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
+                  !! '';
+                $prev = $curr;
+                $count = $count - 1;
+            }
+
+            # take whatever is left
+            take nqp::box_s(nqp::substr($ns,$prev + 1), Str)
+              if $count && $prev + 1 < nqp::chars($ns);
         }
     }
 

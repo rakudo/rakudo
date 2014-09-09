@@ -86,8 +86,8 @@ multi sub open($path, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp =
 }
 
 proto sub lines(|) { * }
-multi sub lines($fh = $*ARGFILES, $limit = Inf) { 
-    $fh.lines($limit) 
+multi sub lines($what = $*ARGFILES, $limit = Inf) {
+    $limit == Inf ?? $what.lines !! $what.lines($limit);
 }
 
 proto sub get(|) { * }

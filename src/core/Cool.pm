@@ -138,13 +138,41 @@ my class Cool { # declared in BOOTSTRAP
     method trans(*@a) { self.Str.trans(@a) }
 
     proto method index(|) {*}
-    multi method index(Cool $needle, Cool $pos?) {
-        self.Stringy.index($needle.Str, $pos.Int);
+    multi method index(Cool $needle, Cool $pos = 0) {
+        if $needle eq '' {
+            my $chars = self.chars;
+            return $pos < $chars ?? $pos !! $chars;
+        }
+        my int $result = nqp::index(
+                nqp::unbox_s(self.Str),
+                nqp::unbox_s($needle.Str),
+                nqp::unbox_i($pos.Int)
+        );
+        # TODO: fail() instead of returning Int
+        $result < 0 ?? Int !! nqp::p6box_i($result);
     }
 
     proto method rindex(|) {*}
     multi method rindex(Cool $needle, Cool $pos?) {
-        self.Stringy.rindex($needle.Str, $pos.Int);
+        if $needle eq '' {
+            return $pos.defined && $pos < self.chars
+                    ?? $pos
+                    !! self.chars;
+        }
+        my $result = $pos.defined
+            ?? nqp::p6box_i(
+                nqp::rindex(
+                    nqp::unbox_s(self.Str),
+                    nqp::unbox_s($needle.Str),
+                    nqp::unbox_i($pos.Int)
+                ))
+            !! nqp::p6box_i(
+                nqp::rindex(
+                    nqp::unbox_s(self.Str),
+                    nqp::unbox_s($needle.Str),
+                ));
+        fail "substring not found" if $result < 0;
+        $result;
     }
 
     method ords(Cool:D:) { self.Str.ords }

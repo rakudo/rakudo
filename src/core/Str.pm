@@ -701,6 +701,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $result;
     }
 
+    multi method index(Str:D: Str $needle, Int $pos = 0) {
+        return $pos min self.chars if $needle eq '';
+
+        my int $result = nqp::index(
+          nqp::unbox_s(self), nqp::unbox_s($needle), nqp::unbox_i($pos)
+        );
+        fail "substring not found" if $result < 0;
+        nqp::p6box_i($result);
+    }
+
+    multi method rindex(Str:D: Str $needle, Int $pos = 0) {
+        return $pos min self.chars if $needle eq '';
+
+        my int $result = nqp::rindex(
+          nqp::unbox_s(self), nqp::unbox_s($needle), nqp::unbox_i($pos)
+        );
+        fail "substring not found" if $result < 0;
+        $result;
+    }
+
     method ords(Str:D:) {
         my Int $c  = self.chars;
         my str $ns = nqp::unbox_s(self);
@@ -711,7 +731,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $prev_pos = -1;
         if $limit == Inf {
             gather {
-                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) {
+                while (my $current_pos = self.index("\n", $prev_pos + 1)).defined {
                     take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
                     $prev_pos = $current_pos;
                 }
@@ -721,7 +741,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         else {
             my $l = 0;
             gather {
-                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
+                while (my $current_pos = self.index("\n", $prev_pos + 1)).defined && $l++ < $limit {
                     take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
                     $prev_pos = $current_pos;
                 }

@@ -1,0 +1,24 @@
+language: "perl"
+perl:
+    - "5.10"
+install: "echo"
+
+script: "perl Configure.pl --backends=moar $RAKUDO_OPTIONS; make test"
+
+branches:
+   only:
+     - nom
+     - /smoke-me/
+
+notifications:
+  irc:
+    channels:
+    - "irc.freenode.net#perl6"
+    on_success: change
+    on_failure: change
+
+env:
+  matrix:
+    - RAKUDO_OPTIONS="--gen-nqp        --gen-moar"
+    - RAKUDO_OPTIONS="--gen-nqp=master --gen-moar"
+    - RAKUDO_OPTIONS="--gen-nqp=master --gen-moar=master"

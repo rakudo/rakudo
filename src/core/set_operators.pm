@@ -108,28 +108,16 @@ only sub infix:<<"\x2216">>(|p) {
     infix:<(-)>(|p);
 }
 
-only sub infix:<(^)>(**@p) {
-    if @p[0] ~~ Baggy {
-        my $baghash = @p[0] ~~ BagHash
-          ?? BagHash.new-fp(@p.shift.keys)
-          !! @p.shift.BagHash;
-        for @p.map(*.Set(:view)) -> $bag {
-            $baghash = ($baghash (-) $bag) (|) ($bag (-) $baghash);
-        }
-        $baghash.Bag(:view);
-    } else {
-        my $sethash = @p[0] ~~ SetHash
-          ?? SetHash.new(@p.shift.keys)
-          !! @p.shift.SetHash;
-        for @p.map(*.Set(:view)) -> $set {
-            $sethash = ($sethash (-) $set) (|) ($set (-) $sethash);
-        }
-        $sethash.Set(:view);
-    }
+proto sub infix:<(^)>($, $ --> Setty) {*}
+multi sub infix:<(^)>(Any $a, Any $b --> Setty) {
+    $a.Set(:view) (^) $b.Set(:view);
+}
+multi sub infix:<(^)>(Set $a, Set $b --> Setty) {
+    ($a (-) $b) (|) ($b (-) $a);
 }
 # U+2296 CIRCLED MINUS
-only sub infix:<<"\x2296">>(|p) {
-    infix:<(^)>(|p);
+only sub infix:<<"\x2296">>($a, $b --> Setty) {
+    $a (^) $b;
 }
 
 # TODO: polymorphic eqv

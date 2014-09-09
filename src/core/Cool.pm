@@ -143,13 +143,13 @@ my class Cool { # declared in BOOTSTRAP
             my $chars = self.chars;
             return $pos < $chars ?? $pos !! $chars;
         }
-        my $result := nqp::p6box_i(nqp::index(
+        my int $result = nqp::index(
                 nqp::unbox_s(self.Str),
                 nqp::unbox_s($needle.Str),
                 nqp::unbox_i($pos.Int)
-        ));
+        );
         # TODO: fail() instead of returning Int
-        $result < 0 ?? Int !! $result;
+        $result < 0 ?? Int !! nqp::p6box_i($result);
     }
 
     proto method rindex(|) {*}

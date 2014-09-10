@@ -110,6 +110,7 @@ src/core/Lock.pm
 src/core/Semaphore.pm
 src/core/Cancellation.pm
 src/core/Scheduler.pm
+src/core/Env.pm
 src/core/ThreadPoolScheduler.pm
 src/core/CurrentThreadScheduler.pm
 src/core/Promise.pm
@@ -122,7 +123,6 @@ src/core/IO/Socket/INET.pm
 src/core/IO/Socket/Async.pm
 src/core/IO/Notification.pm
 src/core/Proc/Async.pm
-src/core/Env.pm
 src/core/signals.pm
 src/core/Systemic.pm
 src/core/VM.pm

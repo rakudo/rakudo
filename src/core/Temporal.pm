@@ -648,7 +648,7 @@ multi infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-multi sub INITIALIZE('$*TZ') {
+multi sub INITIALIZE_DYNAMIC('$*TZ') {
     PROCESS::<$TZ> = get-local-timezone-offset();
 }
 

@@ -122,7 +122,7 @@ sub term:<now>() {
 
 #{
     my num $init-time-num = nqp::time_n;  # need find a way to not leak this
-    multi sub INITIALIZE('$*INITTIME') {
+    multi sub INITIALIZE_DYNAMIC('$*INITTIME') {
         PROCESS::<$INITTIME> := Instant.from-posix: $init-time-num;
     }
 #}

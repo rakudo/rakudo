@@ -12,7 +12,7 @@
     PROCESS::<%ENV> := %ENV;
 }
 
-multi sub INITIALIZE('$*CWD') {
+multi sub INITIALIZE_DYNAMIC('$*CWD') {
     ## duplicate src/core/IO.pm::cwd
     my $CWD = IO::Path.new(nqp::p6box_s(
 #?if parrot

@@ -24,7 +24,7 @@ my role Mixy { ... }
 my class Mix { ... }
 my class MixHash { ... }
 
-sub DYNAMIC(\name) is rw { 
+sub DYNAMIC(\name) is rw {
     my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull($x) {
         my str $pkgname = nqp::replace(nqp::unbox_s(name), 1, 1, '');
@@ -34,19 +34,20 @@ sub DYNAMIC(\name) is rw {
         elsif nqp::existskey(PROCESS.WHO, $pkgname) {
             $x := nqp::atkey(PROCESS.WHO, $pkgname);
         }
-        elsif try INITIALIZE(name) -> \result {
-            $x := result;
-        }
         else {
-            fail X::Dynamic::NotFound.new(:name(name));
+            $x := INITIALIZE_DYNAMIC(name);
+            fail $x if nqp::istype($x, Exception);
         }
     }
     $x
 }
 
 # prime the automagic dynamic variable initializers
-proto sub INITIALIZE(|) { * }
-#multi sub INITIALIZE('$*FOO') {   # example stub
+proto sub INITIALIZE_DYNAMIC(|) { * }
+multi sub INITIALIZE_DYNAMIC(\name) {
+    X::Dynamic::NotFound.new(:name(name));
+}
+#multi sub INITIALIZE_DYNAMIC('$*FOO') {   # example stub
 #    PROCESS::<$FOO> := "foo";
 #}
 

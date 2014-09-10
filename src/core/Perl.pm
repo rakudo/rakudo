@@ -27,7 +27,7 @@ class Perl does Systemic {
     method KERNELnames { <darwin linux win32> }
 }
 
-multi sub INITIALIZE('$*PERL') {
+multi sub INITIALIZE_DYNAMIC('$*PERL') {
     PROCESS::<$PERL> := Perl.new;
 }
 multi postcircumfix:<{ }> (Perl $d, "name" )   {

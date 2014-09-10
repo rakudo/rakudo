@@ -162,6 +162,7 @@ J_CORE_SOURCES = \
   src/core/Semaphore.pm \
   src/core/Cancellation.pm \
   src/core/Scheduler.pm \
+  src/core/Env.pm \
   src/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \
   src/core/Promise.pm \
@@ -175,7 +176,6 @@ J_CORE_SOURCES = \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/Async.pm \
   src/core/IO/Socket/INET.pm \
-  src/core/Env.pm \
   src/core/Systemic.pm \
   src/core/VM.pm \
   src/core/Distro.pm \

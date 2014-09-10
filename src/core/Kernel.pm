@@ -105,7 +105,7 @@ class Kernel does Systemic {
 #?endif
 }
 
-multi sub INITIALIZE('$*KERNEL') {
+multi sub INITIALIZE_DYNAMIC('$*KERNEL') {
     PROCESS::<$KERNEL> := Kernel.new;
 }
 

@@ -1,8 +1,8 @@
-multi sub INITIALIZE('$*PID') {
+multi sub INITIALIZE_DYNAMIC('$*PID') {
     PROCESS::<$PID> := nqp::p6box_i(nqp::getpid());
 }
 
-multi sub INITIALIZE('$*EXECUTABLE') {
+multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE') {
     my $EXECUTABLE =
 #?if parrot
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
@@ -20,22 +20,22 @@ multi sub INITIALIZE('$*EXECUTABLE') {
     PROCESS::<$EXECUTABLE>      := $EXECUTABLE;
 }
 
-multi sub INITIALIZE('$*EXECUTABLE_NAME') {
+multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE_NAME') {
     PROCESS::<$EXECUTABLE_NAME> := $*EXECUTABLE.basename;
 }
 
-multi sub INITIALIZE('$*PROGRAM_NAME') {
+multi sub INITIALIZE_DYNAMIC('$*PROGRAM_NAME') {
     my Mu $comp := nqp::getcomp('perl6');
     my $PROGRAM_NAME = $comp.user-progname();
     PROCESS::<$PROGRAM>      := IO::Path.new($PROGRAM_NAME);
     PROCESS::<$PROGRAM_NAME> := $PROGRAM_NAME;
 }
 
-multi sub INITIALIZE('$*PROGRAM') {
+multi sub INITIALIZE_DYNAMIC('$*PROGRAM') {
     PROCESS::<$PROGRAM> := IO::Path.new($*PROGRAM_NAME);
 }
 
-multi sub INITIALIZE('$*TMPDIR') {
+multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
     PROCESS::<$TMPDIR> := IO::Spec.tmpdir.path;
 }
 

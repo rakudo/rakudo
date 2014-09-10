@@ -30,7 +30,7 @@ class Distro does Systemic {
 }
 
 # set up $*DISTRO and deprecated $*OS and $*OSVER
-multi sub INITIALIZE('$*DISTRO') {
+multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
     PROCESS::<$DISTRO> := do {
 #?if jvm
         my $properties := $*VM.properties;
@@ -69,7 +69,7 @@ multi sub INITIALIZE('$*DISTRO') {
     };
 }
 
-multi sub INITIALIZE('$*OS') {
+multi sub INITIALIZE_DYNAMIC('$*OS') {
     PROCESS::<$OS> := Deprecation.obsolete(
       :name('$*OS'),
       :value($*DISTRO.name),
@@ -77,7 +77,7 @@ multi sub INITIALIZE('$*OS') {
     );
 }
 
-multi sub INITIALIZE('$*OSVER') {
+multi sub INITIALIZE_DYNAMIC('$*OSVER') {
     PROCESS::<$OSVER> := Deprecation.obsolete(
       :name('$*OSVER'),
       :value($*DISTRO.version),

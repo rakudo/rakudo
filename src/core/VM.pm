@@ -56,7 +56,7 @@ multi postcircumfix:<{ }> (VM $d, "properties" ) {
 }
 #?endif
 
-multi sub INITIALIZE('$*VM') {
+multi sub INITIALIZE_DYNAMIC('$*VM') {
     PROCESS::<$VM> := do {
         my $config :=
 #?if parrot

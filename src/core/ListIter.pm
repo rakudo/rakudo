@@ -19,6 +19,7 @@ my class ListIter { # declared in BOOTSTRAP
             }
             else {
                 $count = nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
+                $max = $count if $count > $max;
                 nqp::setelems($rpa, $count);
                 nqp::setelems($rpa, 0);
             }

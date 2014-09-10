@@ -73,7 +73,7 @@ my role Baggy does QuantHash {
         ~ ").{self.^name}"
     }
 
-    method list() { self.keys }
+    method list() { self.pairs }
     method pairs() { %!elems.values.map: { (.key => .value) } }
 
     method grab ($count = 1) {

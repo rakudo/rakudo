@@ -1277,7 +1277,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.push($import_past);
         }
         
-        $past.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+        $past.push(QAST::WVal.new( :value($*W.find_symbol(['True'])) ));
 
         make $past;
     }

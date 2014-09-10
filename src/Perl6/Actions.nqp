@@ -4912,7 +4912,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     make expand_macro($macro, $name, $/, sub () {
                         my @argument_asts := [];
                         for @($/) {
-                            add_macro_arguments($_.ast, @argument_asts, '');
+                            add_macro_arguments($_.ast, @argument_asts, ~$_);
                         }
                         return @argument_asts;
                     });

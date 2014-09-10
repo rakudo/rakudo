@@ -716,25 +716,41 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $prev = -1;
         my int $curr;
         my int $chars;
+        my int $cr;
+        my int $lf;
 
         gather {
 
-            # search for CR first
-            until ($curr = nqp::index( $ns, $CR, $prev + 1 )) < 0 {
-                $chars = $curr - $prev - 1;
-                take $chars
-                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
-                  !! '';
-                $prev = $curr + nqp::eqat( $ns, $LF, $curr + 1 );
+            # only need to search LF
+            if nqp::index( $ns, $CR ) < 0 {
+                until ($curr = nqp::index( $ns, $LF, $prev + 1 )) < 0 {
+                    $chars = $curr - $prev - 1;
+                    take $chars
+                      ?? nqp::box_s(nqp::substr( $ns, $prev + 1, $chars ), Str)
+                      !! '';
+                    $prev = $curr;
+                }
             }
 
-            # now search for LF
-            until ($curr = nqp::index( $ns, $LF, $prev + 1 )) < 0 {
-                $chars = $curr - $prev - 1;
-                take $chars
-                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
-                  !! '';
-                $prev = $curr;
+            # potential mixed CR/LF
+            else {
+                loop {
+                    $cr = nqp::index( $ns, $CR, $prev + 1 );
+                    $lf = nqp::index( $ns, $LF, $prev + 1 );
+
+                    if $lf < 0 or $cr < $lf {
+                        last if $cr < 0;
+                        $chars = ($curr = $cr) - $prev - 1;
+                        $curr = $curr + 1 if $lf == $cr + 1;
+                    }
+                    else {
+                        $chars = ($curr = $lf) - $prev - 1;
+                    }
+                    take $chars
+                      ?? nqp::box_s(nqp::substr( $ns, $prev + 1, $chars ), Str)
+                      !! '';
+                    $prev = $curr;
+                }
             }
 
             # take whatever is left
@@ -743,33 +759,52 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
+    multi method lines(Str:D: Whatever $) { samewith }
     multi method lines(Str:D: $limit) {
+        samewith if $limit == Inf;
+
         my str $ns = nqp::unbox_s(self);
         my int $prev = -1;
         my int $curr;
         my int $chars;
         my int $count = $limit;
+        my int $cr;
+        my int $lf;
 
         gather {
 
-            # search for CR first
-            while $count && ($curr = nqp::index( $ns, $CR, $prev + 1 )) >= 0 {
-                $chars = $curr - $prev - 1;
-                take $chars
-                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
-                  !! '';
-                $prev = $curr + nqp::eqat( $ns, $LF, $curr + 1 );
-                $count = $count - 1;
+            # only need to search LF
+            if nqp::index( $ns, $CR ) < 0 {
+                while $count && ($curr = nqp::index($ns, $LF, $prev + 1)) >= 0 {
+                    $chars = $curr - $prev - 1;
+                    take $chars
+                      ?? nqp::box_s(nqp::substr( $ns, $prev + 1, $chars ), Str)
+                      !! '';
+                    $prev  = $curr;
+                    $count = $count - 1;
+                }
             }
 
-            # now search for LF
-            while $count && ($curr = nqp::index( $ns, $LF, $prev + 1 )) >= 0 {
-                $chars = $curr - $prev - 1;
-                take $chars
-                  ?? nqp::box_s( nqp::substr( $ns, $prev + 1, $chars ), Str )
-                  !! '';
-                $prev = $curr;
-                $count = $count - 1;
+            # potential mixed CR/LF
+            else {
+                while $count {
+                    $cr = nqp::index( $ns, $CR, $prev + 1 );
+                    $lf = nqp::index( $ns, $LF, $prev + 1 );
+
+                    if $lf < 0 or $cr < $lf {
+                        last if $cr < 0;
+                        $chars = ($curr = $cr) - $prev - 1;
+                        $curr = $curr + 1 if $lf == $cr + 1;
+                    }
+                    else {
+                        $chars = ($curr = $lf) - $prev - 1;
+                    }
+                    take $chars
+                      ?? nqp::box_s( nqp::substr($ns, $prev + 1, $chars ), Str)
+                      !! '';
+                    $prev  = $curr;
+                    $count = $count - 1;
+                }
             }
 
             # take whatever is left

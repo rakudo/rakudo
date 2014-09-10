@@ -23,9 +23,15 @@ my $time_before;
 my $time_after;
 
 # Output should always go to real stdout/stderr, not to any dynamic overrides.
-my $output         = $PROCESS::OUT;
-my $failure_output = $PROCESS::ERR;
-my $todo_output    = $PROCESS::OUT;
+my $output;
+my $failure_output;
+my $todo_output;
+
+INIT {
+    $output         = $PROCESS::OUT;
+    $failure_output = $PROCESS::ERR;
+    $todo_output    = $PROCESS::OUT;
+}
 
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
@@ -36,6 +42,18 @@ my $done_testing_has_been_run = 0;
 _init_vars();
 
 ## test functions
+
+our sub output is rw {
+    $output
+}
+
+our sub failure_output is rw {
+    $failure_output
+}
+
+our sub todo_output is rw {
+    $todo_output
+}
 
 # you can call die_on_fail; to turn it on and die_on_fail(0) to turn it off
 sub die_on_fail($fail=1) {

@@ -759,9 +759,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method lines(Str:D: Whatever $) { samewith }
+    multi method lines(Str:D: Whatever $) { self.lines }
     multi method lines(Str:D: $limit) {
-        return samewith if $limit == Inf;
+        return self.lines if $limit == Inf;
 
         my str $ns = nqp::unbox_s(self);
         my int $prev = -1;

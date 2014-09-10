@@ -288,7 +288,7 @@ my class List does Positional { # declared in BOOTSTRAP
 #            ).throw unless nqp::istype($_, $of) for @values;
 #        }
 
-        nqp::bindattr(self, List, '$!nextiter', args.list.iterator);
+        nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list(args.list), self));
         Nil;
     }
 

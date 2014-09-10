@@ -119,16 +119,7 @@ my class IO::Socket::INET does IO::Socket {
         
         my str $line = $PIO.readline($sep);
 #?endif
-#?if jvm
-        my str $sep = nqp::unbox_s($!input-line-separator);
-        my int $sep-len = nqp::chars($sep);
-        
-        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
-        nqp::setencoding($io, nqp::unbox_s($!encoding));
-        nqp::setinputlinesep($io, $sep);
-        my Str $line = nqp::p6box_s(nqp::readlinefh($io));
-#?endif
-#?if moar
+#?if !parrot
         my str $sep = nqp::unbox_s($!input-line-separator);
         my int $sep-len = nqp::chars($sep);
         
@@ -147,7 +138,6 @@ my class IO::Socket::INET does IO::Socket {
                 ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
                 !! nqp::p6box_s($line);
         }
-#?endif
     }
 
     method lines() {

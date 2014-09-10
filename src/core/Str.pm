@@ -891,17 +891,34 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method samecase(Str:D: Str $pattern) {
-        my @chars;
-        my @pat = $pattern.comb;
-        my $p = '';
-        for self.comb -> $s {
-            $p = @pat.shift if @pat;
-            push @chars, $p ~~ /<.upper>/  ?? $s.uc
-                      !! $p ~~ /<.lower>/  ?? $s.lc
-                      !! $s;
+        my str $str = nqp::unbox_s(self);
+        my str $pat = nqp::unbox_s($pattern);
+        my int $min = min(nqp::chars($str),nqp::chars($pattern));
+        my int $i = 0;
+        my int $j = 0;
+        my int $case = 0;
+        my int $last-case;
+        my Mu $ret := nqp::list_s();
+        my str $substr;
+        while $i < $min {
+            repeat {
+                $last-case = $case;
+                $case = nqp::iscclass(nqp::const::CCLASS_LOWERCASE, $pat, $j) ?? 1 !!
+                        nqp::iscclass(nqp::const::CCLASS_UPPERCASE, $pat, $j) ?? 2 !! 0;
+                last if $case != $last-case;
+                $j = $j + 1;
+            } while $j < $min;
+            $substr = nqp::substr($str, $i, $j - $i);
+            nqp::push_s($ret, $last-case == 1 ?? nqp::lc($substr) !!
+                              $last-case == 2 ?? nqp::uc($substr) !! $substr);
+            $i = $j
         }
-        @chars.join;
+        $substr = nqp::substr($str,$i);
+        nqp::push_s($ret, $case == 1 ?? nqp::lc($substr) !!
+                          $case == 2 ?? nqp::uc($substr) !! $substr);
+        nqp::join("",$ret);
     }
+
 
     method samespace(Str:D: Str:D $pat) {
         my @self-chunks  = self.split(rx/\s+/, :all).flat;

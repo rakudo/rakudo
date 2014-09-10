@@ -146,6 +146,7 @@ my role IO::Socket does IO {
 #?endif
 #?if !parrot
         nqp::closefh($!PIO);
+        $!PIO := Mu;
         True
 #?endif
     }

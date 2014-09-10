@@ -713,8 +713,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method lines(Str:D:) {
         my str $ns = nqp::unbox_s(self);
-        my str $CR = nqp::unbox_s("\r");
-        my str $LF = nqp::unbox_s("\n");
         my int $prev = -1;
         my int $curr;
         my int $chars;

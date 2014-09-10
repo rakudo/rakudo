@@ -125,7 +125,7 @@ my class Binder {
         my int $param_i := 0;
         while $param_i < $num_params {
             my $param := nqp::atpos($params, $param_i);
-            my $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
 
             if !nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
             }
@@ -1377,7 +1377,7 @@ BEGIN {
                 ?? $ap.HOW.instantiate_generic($ap, $type_environment)
                 !! $ap;
             unless $ins_type.HOW.archetypes.generic {
-                my $flags := nqp::getattr_i($ins, Parameter, '$!flags');
+                my int $flags := nqp::getattr_i($ins, Parameter, '$!flags');
                 if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
                     nqp::bindattr_i($ins, Parameter, '$!flags',
                         $flags - $SIG_ELEM_NOMINAL_GENERIC)
@@ -1392,7 +1392,7 @@ BEGIN {
             my $SIG_ELEM_IS_RW       := 256;
             my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := nqp::decont($self);
-            my $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
+            my int $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
                 nqp::die("Cannot use 'is rw' on an optional parameter");
             }
@@ -1413,7 +1413,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'set_required', nqp::getstaticcode(sub ($self) {
             my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := nqp::decont($self);
-            my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
+            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
                     $flags - $SIG_ELEM_IS_OPTIONAL);
@@ -1423,7 +1423,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'set_parcel', nqp::getstaticcode(sub ($self) {
             my $SIG_ELEM_IS_PARCEL := 1024;
             my $dcself := nqp::decont($self);
-            my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
+            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             unless $flags +& $SIG_ELEM_IS_PARCEL {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
                     $flags + $SIG_ELEM_IS_PARCEL);

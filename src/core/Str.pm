@@ -580,7 +580,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method comb(Str:D:) {
-        my str $self = self;
+        my str $self = nqp::unbox_s(self);
         (^self.chars).map({ nqp::p6box_s(nqp::substr($self, $_, 1)) });
     }
     multi method comb(Str:D: Regex $pat, $limit = Inf, :$match) {
@@ -702,9 +702,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method ords(Str:D:) {
-        my Int $c  = self.chars;
         my str $ns = nqp::unbox_s(self);
-        (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
+        (^self.chars).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
     }
 
     # constants ???

@@ -251,7 +251,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method min (|) { * }
     multi method min(Any:U:) {
-        fail "Cannot only determine min of Numeric types"
+        fail "Can only determine min of Numeric types"
           unless self ~~ Numeric;
         -Inf;
     }
@@ -273,7 +273,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method max (|) { * }
     multi method max(Any:U:) {
-        fail "Cannot only determine max of Numeric types"
+        fail "Can only determine max of Numeric types"
           unless self ~~ Numeric;
         Inf;
     }

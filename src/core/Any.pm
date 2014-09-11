@@ -1,4 +1,5 @@
 my class MapIter { ... }
+my role  Numeric { ... }
 my class Pair { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
@@ -248,7 +249,20 @@ my class Any { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
     }
 
-    method min($by = &infix:<cmp>) {
+    proto method min (|) { * }
+    multi method min(Any:U:) {
+        fail "Cannot only determine min of Numeric types"
+          unless self ~~ Numeric;
+        -Inf;
+    }
+    multi method min(Any:D:) {
+        my $min;
+        for self { 
+            $min = $_ if .defined and !$min.defined || $_ cmp $min < 0;
+        }
+        $min // Inf;
+    }
+    multi method min(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min;
         for self { 
@@ -257,7 +271,20 @@ my class Any { # declared in BOOTSTRAP
         $min // Inf;
     }
 
-    method max($by = &infix:<cmp>) {
+    proto method max (|) { * }
+    multi method max(Any:U:) {
+        fail "Cannot only determine max of Numeric types"
+          unless self ~~ Numeric;
+        Inf;
+    }
+    multi method max(Any:D:) {
+        my $max;
+        for self { 
+            $max = $_ if .defined and !$max.defined || $_ cmp $max > 0;
+        }
+        $max // -Inf;
+    }
+    multi method max(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max;
         for self { 
@@ -266,7 +293,13 @@ my class Any { # declared in BOOTSTRAP
         $max // -Inf;
     }
 
-    method minmax($by = &infix:<cmp>) {
+    proto method minmax (|) { * }
+    multi method minmax(Any:U:) {
+        fail "Can only determine min/max of Numeric types"
+          unless self ~~ Numeric;
+        Range.new(-Inf,Inf);
+    }
+    multi method minmax(Any:D: $by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
         my $min;

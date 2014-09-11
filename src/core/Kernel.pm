@@ -14,7 +14,7 @@ class Kernel does Systemic {
     method name {
         $!name //= do {
             given $*DISTRO.name {
-                when any <linux macosx> { # needs adapting
+                when any <linux macosx freebsd> { # needs adapting
                     qx/uname -s/.chomp.lc;
                 }
                 default {

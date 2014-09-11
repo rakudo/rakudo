@@ -933,7 +933,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $pos = nqp::findnotcclass(
                           nqp::const::CCLASS_WHITESPACE,
                           $str, 0, nqp::chars($str));
-        nqp::p6box_s(nqp::substr($str, $pos));
+        $pos ?? nqp::p6box_s(nqp::substr($str, $pos)) !! self;
     }
 
     method trim-trailing(Str:D:) {

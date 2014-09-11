@@ -19,7 +19,7 @@ class Perl does Systemic {
         <macosx linux mswin32>
 #?endif
 #?if moar
-        <macosx linux mswin32>
+        <macosx linux freebsd mswin32>
 #?endif
         )
     }

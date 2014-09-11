@@ -182,8 +182,8 @@ my role Baggy does QuantHash {
         samewith( { @test[$^a] }, @list );
     }
 
-    method Set()     {     Set.new-fp(self.keys) }
-    method SetHash() { SetHash.new-fp(self.keys) }
+    method Set()     {     Set.new(self.keys) }
+    method SetHash() { SetHash.new(self.keys) }
 }
 
 # vim: ft=perl6 expandtab sw=4

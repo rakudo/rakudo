@@ -181,6 +181,9 @@ my role Baggy does QuantHash {
     multi method categorize-list( @test, *@list ) {
         samewith( { @test[$^a] }, @list );
     }
+
+    method Set()     {     Set.new-fp(self.keys) }
+    method SetHash() { SetHash.new-fp(self.keys) }
 }
 
 # vim: ft=perl6 expandtab sw=4

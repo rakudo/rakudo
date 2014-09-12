@@ -8,7 +8,6 @@ my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
 my class X::NYI { ... }
 
-
 my $?TABSTOP = 8;
 
 sub NORMALIZE_ENCODING(Str:D $s) {
@@ -706,55 +705,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
         (^self.chars).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
     }
 
-    # constants ???
-    my str $CR = nqp::unbox_s("\r");
-    my str $LF = nqp::unbox_s("\n");
+    # constant ???
+    my str $CRLF = nqp::unbox_s("\r\n");
 
     multi method lines(Str:D:) {
-        my str $ns = nqp::unbox_s(self);
-        my int $prev = -1;
-        my int $curr;
+        my str $ns   = nqp::unbox_s(self);
+        my int $left = nqp::chars($ns);
+        my int $pos;
         my int $chars;
-        my int $cr;
-        my int $lf;
+        my int $nextpos;
+        my int $moving;
 
-        gather {
-
-            # only need to search LF
-            if nqp::index( $ns, $CR ) < 0 {
-                until ($curr = nqp::index( $ns, $LF, $prev + 1 )) < 0 {
-                    $chars = $curr - $prev - 1;
-                    take $chars
-                      ?? nqp::box_s(nqp::substr( $ns, $prev + 1, $chars ), Str)
-                      !! '';
-                    $prev = $curr;
-                }
-            }
-
-            # potential mixed CR/LF
-            else {
-                loop {
-                    $cr = nqp::index( $ns, $CR, $prev + 1 );
-                    $lf = nqp::index( $ns, $LF, $prev + 1 );
-
-                    if $lf < 0 or $cr < $lf {
-                        last if $cr < 0;
-                        $chars = ($curr = $cr) - $prev - 1;
-                        $curr = $curr + 1 if $lf == $cr + 1;
-                    }
-                    else {
-                        $chars = ($curr = $lf) - $prev - 1;
-                    }
-                    take $chars
-                      ?? nqp::box_s(nqp::substr( $ns, $prev + 1, $chars ), Str)
-                      !! '';
-                    $prev = $curr;
-                }
-            }
-
-            # take whatever is left
-            take nqp::box_s(nqp::substr($ns,$prev + 1), Str)
-              if $prev + 1 < nqp::chars($ns);
+        gather while $left > 0 {
+            $nextpos =
+              nqp::findcclass(nqp::const::CCLASS_NEWLINE,$ns,$pos,$left);
+            take ($chars = $nextpos - $pos)
+              ?? nqp::box_s(nqp::substr( $ns, $pos, $chars ), Str)
+              !! '';
+            $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
+            $left = $left - $moving;
+            $pos  = $pos  + $moving;
         }
     }
 
@@ -762,53 +732,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method lines(Str:D: $limit) {
         return self.lines if $limit == Inf;
 
-        my str $ns = nqp::unbox_s(self);
-        my int $prev = -1;
-        my int $curr;
+        my str $ns   = nqp::unbox_s(self);
+        my int $left = nqp::chars($ns);
+        my int $pos;
         my int $chars;
-        my int $count = $limit;
-        my int $cr;
-        my int $lf;
+        my int $nextpos;
+        my int $moving;
+        my int $count = $limit + 1;
 
-        gather {
-
-            # only need to search LF
-            if nqp::index( $ns, $CR ) < 0 {
-                while $count && ($curr = nqp::index($ns, $LF, $prev + 1)) >= 0 {
-                    $chars = $curr - $prev - 1;
-                    take $chars
-                      ?? nqp::box_s(nqp::substr( $ns, $prev + 1, $chars ), Str)
-                      !! '';
-                    $prev  = $curr;
-                    $count = $count - 1;
-                }
-            }
-
-            # potential mixed CR/LF
-            else {
-                while $count {
-                    $cr = nqp::index( $ns, $CR, $prev + 1 );
-                    $lf = nqp::index( $ns, $LF, $prev + 1 );
-
-                    if $lf < 0 or $cr < $lf {
-                        last if $cr < 0;
-                        $chars = ($curr = $cr) - $prev - 1;
-                        $curr = $curr + 1 if $lf == $cr + 1;
-                    }
-                    else {
-                        $chars = ($curr = $lf) - $prev - 1;
-                    }
-                    take $chars
-                      ?? nqp::box_s( nqp::substr($ns, $prev + 1, $chars ), Str)
-                      !! '';
-                    $prev  = $curr;
-                    $count = $count - 1;
-                }
-            }
-
-            # take whatever is left
-            take nqp::box_s(nqp::substr($ns,$prev + 1), Str)
-              if $count && $prev + 1 < nqp::chars($ns);
+        gather while ($count = $count - 1) and $left > 0 {
+            $nextpos =
+              nqp::findcclass(nqp::const::CCLASS_NEWLINE,$ns,$pos,$left);
+            take ($chars = $nextpos - $pos)
+              ?? nqp::box_s(nqp::substr( $ns, $pos, $chars ), Str)
+              !! '';
+            $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
+            $left = $left - $moving;
+            $pos  = $pos  + $moving;
         }
     }
 

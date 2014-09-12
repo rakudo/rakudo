@@ -101,7 +101,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     proto method lines (|) { * }
-    multi method lines() {
+    multi method lines(IO::Handle:D:) {
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
         }
@@ -120,27 +120,80 @@ my class IO::Handle does IO::FileTestable {
             }
         }
     }
-    multi method lines($limit) {
+    multi method lines(IO::Handle:D: :$eager!) {
+        return self.lines if !$eager;
+
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
         }
         fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
 
-        my $count = $limit;
+        my Mu $rpa := nqp::list();
         if $.chomp {
-            gather while $count-- {
+            until nqp::eoffh($!PIO) {
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
+                $!ins = $!ins + 1;
+            }
+        }
+        else {
+            until nqp::eoffh($!PIO) {
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
+                $!ins = $!ins + 1;
+            }
+        }
+        nqp::p6parcel($rpa, Nil);
+    }
+    multi method lines(IO::Handle:D: Whatever $) { self.lines }
+    multi method lines(IO::Handle:D: $limit) {
+        return self.lines if $limit == Inf;
+
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
+
+        my int $count = $limit + 1;
+        if $.chomp {
+            gather while $count = $count - 1 {
                 last if nqp::eoffh($!PIO);
                 take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
                 $!ins = $!ins + 1;
             }
         }
         else {
-            gather while $count-- {
+            gather while $count = $count - 1 {
                 last if nqp::eoffh($!PIO);
                 take nqp::p6box_s(nqp::readlinefh($!PIO));
                 $!ins = $!ins + 1;
             }
         }
+    }
+    multi method lines(IO::Handle:D: $limit, :$eager!) {
+        return self.lines         if $limit == Inf;
+        return self.lines($limit) if !$eager;
+
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
+
+        my Mu $rpa := nqp::list();
+        my int $count = $limit + 1;
+        if $.chomp {
+            while $count = $count - 1 {
+                last if nqp::eoffh($!PIO);
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
+                $!ins = $!ins + 1;
+            }
+        }
+        else {
+            while $count = $count - 1 {
+                last if nqp::eoffh($!PIO);
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
+                $!ins = $!ins + 1;
+            }
+        }
+        nqp::p6parcel($rpa, Nil);
     }
 
     method read(IO::Handle:D: Cool:D $bytes as Int) {

@@ -120,7 +120,7 @@ my class IO::Handle does IO::FileTestable {
             }
         }
     }
-    multi method lines(IO::Handle:D: :$eager!) {
+    multi method lines(IO::Handle:D: :$eager!) { # can probably go after GLR
         return self.lines if !$eager;
 
         unless nqp::defined($!PIO) {
@@ -168,7 +168,7 @@ my class IO::Handle does IO::FileTestable {
             }
         }
     }
-    multi method lines(IO::Handle:D: $limit, :$eager!) {
+    multi method lines(IO::Handle:D: $limit, :$eager!) { # can probably go after GLR
         return self.lines         if $limit == Inf;
         return self.lines($limit) if !$eager;
 

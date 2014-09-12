@@ -727,7 +727,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $pos  = $pos  + $moving;
         }
     }
-    multi method lines(Str:D: :$eager!) {
+    multi method lines(Str:D: :$eager!) {  # can probably go after GLR
         return self.lines if !$eager;
 
         my str $ns   = nqp::unbox_s(self);
@@ -774,7 +774,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $pos  = $pos  + $moving;
         }
     }
-    multi method lines(Str:D: $limit, :$eager! ) {
+    multi method lines(Str:D: $limit, :$eager! ) {  # can probably go after GLR
         return self.lines         if $limit == Inf;
         return self.lines($limit) if !$eager;
 

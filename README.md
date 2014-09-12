@@ -22,6 +22,8 @@ text file.
 
 ## Building and Installing Rakudo
 
+[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=nom)](https://travis-ci.org/rakudo/rakudo)
+
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions.
 

@@ -461,7 +461,7 @@ END {
     for $output, $failure_output, $todo_output -> $handle {
         next if $handle === ($*ERR|$*OUT);
 
-        $handle.close;
+        $handle.?close;
     }
 
     if $num_of_tests_failed > 0 {

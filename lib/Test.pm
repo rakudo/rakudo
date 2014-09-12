@@ -23,9 +23,9 @@ my $time_before;
 my $time_after;
 
 # Output should always go to real stdout/stderr, not to any dynamic overrides.
-my $output         = $PROCESS::OUT;
-my $failure_output = $PROCESS::ERR;
-my $todo_output    = $PROCESS::OUT;
+my $output;
+my $failure_output;
+my $todo_output;
 
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
@@ -34,6 +34,12 @@ my $done_testing_has_been_run = 0;
 
 # make sure we have initializations
 _init_vars();
+
+sub _init_io {
+    $output         = $PROCESS::OUT;
+    $failure_output = $PROCESS::ERR;
+    $todo_output    = $PROCESS::OUT;
+}
 
 ## test functions
 
@@ -57,6 +63,7 @@ sub die_on_fail($fail=1) {
 # "plan 'no_plan';" is now "plan *;"
 # It is also the default if nobody calls plan at all
 multi sub plan($number_of_tests) is export {
+    _init_io() unless $output;
     if $number_of_tests ~~ ::Whatever {
         $no_plan = 1;
     }
@@ -200,6 +207,7 @@ sub subtest(&subtests, $desc = '') is export {
 }
 
 sub diag(Mu $message) is export {
+    _init_io() unless $output;
     my $is_todo = $num_of_tests_run <= $todo_upto_test_num;
     my $out     = $is_todo ?? $todo_output !! $failure_output;
 
@@ -335,6 +343,7 @@ sub eval_exception($code) {
 }
 
 sub proclaim($cond, $desc) {
+    _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
 
@@ -382,6 +391,7 @@ sub done_testing() is export {
 }
 
 sub done() is export {
+    _init_io() unless $output;
     $done_testing_has_been_run = 1;
 
     if $no_plan {

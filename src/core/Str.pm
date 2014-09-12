@@ -727,7 +727,30 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $pos  = $pos  + $moving;
         }
     }
+    multi method lines(Str:D: :$eager!) {
+        return self.lines if !$eager;
 
+        my str $ns   = nqp::unbox_s(self);
+        my int $left = nqp::chars($ns);
+        my int $pos;
+        my int $chars;
+        my int $nextpos;
+        my int $moving;
+        my Mu $rpa := nqp::list();
+
+        while $left > 0 {
+            $nextpos =
+              nqp::findcclass(nqp::const::CCLASS_NEWLINE,$ns,$pos,$left);
+            nqp::push($rpa, ($chars = $nextpos - $pos)
+              ?? nqp::box_s(nqp::substr( $ns, $pos, $chars ), Str)
+              !! ''
+            );
+            $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
+            $left = $left - $moving;
+            $pos  = $pos  + $moving;
+        }
+        nqp::p6parcel($rpa, Nil);
+    }
     multi method lines(Str:D: Whatever $) { self.lines }
     multi method lines(Str:D: $limit) {
         return self.lines if $limit == Inf;
@@ -750,6 +773,32 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $left = $left - $moving;
             $pos  = $pos  + $moving;
         }
+    }
+    multi method lines(Str:D: $limit, :$eager! ) {
+        return self.lines         if $limit == Inf;
+        return self.lines($limit) if !$eager;
+
+        my str $ns   = nqp::unbox_s(self);
+        my int $left = nqp::chars($ns);
+        my int $pos;
+        my int $chars;
+        my int $nextpos;
+        my int $moving;
+        my int $count = $limit + 1;
+        my Mu $rpa := nqp::list();
+
+        while ($count = $count - 1) and $left > 0 {
+            $nextpos =
+              nqp::findcclass(nqp::const::CCLASS_NEWLINE,$ns,$pos,$left);
+            nqp::push($rpa, ($chars = $nextpos - $pos)
+              ?? nqp::box_s(nqp::substr( $ns, $pos, $chars ), Str)
+              !! ''
+            );
+            $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
+            $left = $left - $moving;
+            $pos  = $pos  + $moving;
+        }
+        nqp::p6parcel($rpa, Nil);
     }
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {

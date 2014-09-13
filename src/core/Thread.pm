@@ -55,7 +55,7 @@ my class Thread {
     }
 }
 
-{
+multi sub INITIALIZE_DYNAMIC ('$*THREAD') {
     my $init_thread := nqp::create(Thread);
     nqp::bindattr($init_thread, Thread, '$!vm_thread', nqp::currentthread());
     nqp::bindattr($init_thread, Thread, '$!app_lifetime', False);

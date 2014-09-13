@@ -129,14 +129,19 @@ class CompUnit {
 
     method precomp-path(--> Str) { "$!path.$!precomp-ext" }
 
-    method precomp($output = self.precomp-path, :$force --> Bool) {
+    method precomp($out = self.precomp-path, :$force --> Bool) {
         die "Cannot pre-compile an already pre-compiled file: $!path"
           if $.has-precomp;
-        die "Cannot pre-compile over an existing file: $output"
-          if !$force and $output.IO.e;
-        my Bool $result = ?shell("$*EXECUTABLE --target={$*VM.precomp-target} --output=$output $!path");
+        die "Cannot pre-compile over an existing file: $out"
+          if !$force and $out.IO.e;
+        my $lle = %*COMPILING<%?OPTIONS><ll-exception>
+          ?? ' --ll-exception'
+          !! '';
+        my Bool $result = ?shell(
+          "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path"
+        );
 
-        $!has-precomp = $result if $output eq self.precomp-path;
+        $!has-precomp = $result if $out eq self.precomp-path;
         $result;
     }
 }

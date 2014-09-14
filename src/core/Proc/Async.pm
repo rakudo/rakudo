@@ -19,53 +19,44 @@ my class X::Proc::Async::AlreadyStarted is Exception {
 }
 
 my class Proc::Async {
+    my class ProcessCancellation is repr('AsyncTask') { }
+    my enum  CharsOrBytes ( :Bytes(0), :Chars(1) );
+
     has $.path;
     has @.args;
     has $.w;
     has Bool $!started;
     has $!stdout_supply;
-    has Bool $!stdout_supply_chars;
+    has CharsOrBytes $!stdout_type;
     has $!stderr_supply;
-    has Bool $!stderr_supply_chars;
+    has CharsOrBytes $!stderr_type;
     has $!process_handle;
     has $!exited_promise;
 
-    my class ProcessCancellation is repr('AsyncTask') { }
+    method !supply(\what,\supply,\type,\value) is hidden_from_backtrace {
+        X::Proc::Async::TapBeforeSpawn.new(handle => what).throw
+          if $!started;
+        X::Proc::Async::CharsOrBytes.new(handle => what).throw
+          if supply and type != value;
+
+        type     = value;
+        supply //= Supply.new;
+    }
 
     method stdout_chars() {
-        X::Proc::Async::TapBeforeSpawn.new(handle => 'stdout').throw
-            if $!started;
-        X::Proc::Async::CharsOrBytes.new(handle => 'stdout').throw
-            if defined $!stderr_supply_chars && !$!stderr_supply_chars;
-        $!stdout_supply_chars = True;
-        $!stdout_supply //= Supply.new
+        self!supply('stdout', $!stdout_supply, $!stdout_type, Chars);
     }
 
     method stdout_bytes() {
-        X::Proc::Async::TapBeforeSpawn.new(handle => 'stdout').throw
-            if $!started;
-        X::Proc::Async::CharsOrBytes.new(handle => 'stdout').throw
-            if defined $!stderr_supply_chars && $!stderr_supply_chars;
-        $!stdout_supply_chars = False;
-        $!stdout_supply //= Supply.new
+        self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes);
     }
 
     method stderr_chars() {
-        X::Proc::Async::TapBeforeSpawn.new(handle => 'stderr').throw
-            if $!started;
-        X::Proc::Async::CharsOrBytes.new(handle => 'stderr').throw
-            if defined $!stdout_supply_chars && !$!stdout_supply_chars;
-        $!stderr_supply_chars = True;
-        $!stderr_supply //= Supply.new
+        self!supply('stderr', $!stderr_supply, $!stderr_type, Chars);
     }
 
     method stderr_bytes() {
-        X::Proc::Async::TapBeforeSpawn.new(handle => 'stderr').throw
-            if $!started;
-        X::Proc::Async::CharsOrBytes.new(handle => 'stderr').throw
-            if defined $!stdout_supply_chars && $!stdout_supply_chars;
-        $!stderr_supply_chars = False;
-        $!stderr_supply //= Supply.new
+        self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes);
     }
 
     method start(:$scheduler = $*SCHEDULER) {
@@ -99,9 +90,9 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'error', -> Mu \err {
             $exited_vow.break(err);
         });
-        if defined $!stdout_supply_chars {
+        if $!stdout_supply {
             nqp::bindkey($callbacks,
-                $!stdout_supply_chars ?? 'stdout_chars' !! 'stdout_bytes',
+                $!stdout_type ?? 'stdout_chars' !! 'stdout_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
                         $!stdout_supply.quit(err);
@@ -111,9 +102,9 @@ my class Proc::Async {
                     }
                 });
         }
-        if defined $!stderr_supply_chars {
+        if $!stderr_supply {
             nqp::bindkey($callbacks,
-                $!stderr_supply_chars ?? 'stderr_chars' !! 'stderr_bytes',
+                $!stderr_type ?? 'stderr_chars' !! 'stderr_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
                         $!stderr_supply.quit(err);

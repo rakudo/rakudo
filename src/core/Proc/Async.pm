@@ -145,23 +145,7 @@ my class Proc::Async {
         $p
     }
 
-    method say($str as Str, :$scheduler = $*SCHEDULER) {
-        my $p = Promise.new;
-        my $v = $p.vow;
-        nqp::asyncwritestr(
-            $!process_handle,
-            $scheduler.queue,
-            -> Mu \bytes, Mu \err {
-                if err {
-                    $v.break(err);
-                }
-                else {
-                    $v.keep(bytes);
-                }
-            },
-            nqp::unbox_s($str ~ "\n"), ProcessCancellation);
-        $p
-    }
+    method say($str as Str, |c) { self.print( $str ~ "\n", |c ) }
 
     method write(Buf $b, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;

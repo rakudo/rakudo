@@ -121,6 +121,8 @@ class Kernel does Systemic {
         }
         %!signals_by_Signal{$signal.WHICH};
     }
+
+    multi method signal(Kernel:D: Int:D $signal) { $signal }
 #?endif
 }
 

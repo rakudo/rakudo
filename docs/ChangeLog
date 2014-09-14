@@ -6,6 +6,7 @@ New in 2014.09
 + Make new LOLLY syntax the default
 + support for submethod DESTROY (MoarVM only)
 + optimizations to Str.lines, IO.lines, chomp, return, and interpreter startup
++ added experimental support for Proc::Async, MoarVM only for now
 
 New in 2014.08
 + print file/line annotations for warnings also on moar and jvm

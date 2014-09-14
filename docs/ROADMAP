@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2014-07-31
+Last updated: 2014-09-14
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -41,6 +41,7 @@ Operators
 
 Regexes
 2 **    ~~ inside regexes
+2 *     @< > (force a capture to be an array)
 3 **    <*foo>
 3 **    <~~0>, <~~foo>
 3 ***   explicit backtracking control (::, :::)
@@ -67,7 +68,6 @@ Language Features
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
-2 ***   coercion types
 2 *     tr///
 2 **    'no strict;' (moritz,FROGGS)
 3 ***   domain specific languages -- slang and grammar tweaks (FROGGS)

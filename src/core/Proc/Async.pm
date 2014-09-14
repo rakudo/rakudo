@@ -59,11 +59,12 @@ my class Proc::Async {
         self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes);
     }
 
-    method start(:$scheduler = $*SCHEDULER, :%ENV = %*ENV) {
+    method start(:$scheduler = $*SCHEDULER, :$ENV) {
         X::Proc::Async::AlreadyStarted.new.throw
             if $!started;
         $!started = True;
 
+        my %ENV := $ENV ?? $ENV.hash !! %*ENV;
         my Mu $hash-with-containers := nqp::getattr(%ENV, EnumMap, '$!storage');
         my Mu $hash-without         := nqp::hash();
         my Mu $enviter := nqp::iterator($hash-with-containers);

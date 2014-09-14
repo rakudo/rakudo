@@ -73,6 +73,7 @@ src/core/IO/Spec/Cygwin.pm
 src/core/IO/Spec/QNX.pm
 src/core/IO/Spec.pm
 src/core/IO.pm
+src/core/IO/Notification.pm
 src/core/IO/FileTestable.pm
 src/core/IO/Handle.pm
 src/core/IO/Path.pm
@@ -121,7 +122,6 @@ src/core/asyncops.pm
 src/core/IO/Socket.pm
 src/core/IO/Socket/INET.pm
 src/core/IO/Socket/Async.pm
-src/core/IO/Notification.pm
 src/core/Proc/Async.pm
 src/core/signals.pm
 src/core/Systemic.pm

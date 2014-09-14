@@ -1,7 +1,3 @@
-#?if moar
-my class IO::Notification { ... }
-#?endif
-
 my class IO::Path is Cool does IO::FileTestable {
     method SPEC { IO::Spec.MODULE };
     has Str $.path;

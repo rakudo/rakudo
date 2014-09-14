@@ -357,6 +357,12 @@ my class IO::Handle does IO::FileTestable {
     submethod DESTROY() {
         self.close;
     }
+
+#?if moar
+    method watch(IO::Handle:D:) {
+        IO::Notification.watch_path($!path);
+    }
+#?endif
 }
 
 # vim: ft=perl6 expandtab sw=4

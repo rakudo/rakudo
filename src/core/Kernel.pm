@@ -110,7 +110,7 @@ class Kernel does Systemic {
             %!signals_by_Str =
               @.signals.pairs.grep(*.value.defined).map({~$_.value => .key});
         }
-        %!signals_by_Str{$signal};
+        %!signals_by_Str{$signal} // %!signals_by_Str{"SIG$signal"};
     }
 
     has %!signals_by_Signal;

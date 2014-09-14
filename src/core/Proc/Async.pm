@@ -36,7 +36,7 @@ my class Proc::Async {
         X::Proc::Async::TapBeforeSpawn.new(handle => 'stdout').throw
             if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => 'stdout').throw
-            if defined $!stdout_supply_chars && !$!stdout_supply_chars;
+            if defined $!stderr_supply_chars && !$!stderr_supply_chars;
         $!stdout_supply_chars = True;
         $!stdout_supply //= Supply.new
     }
@@ -45,7 +45,7 @@ my class Proc::Async {
         X::Proc::Async::TapBeforeSpawn.new(handle => 'stdout').throw
             if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => 'stdout').throw
-            if defined $!stdout_supply_chars && $!stdout_supply_chars;
+            if defined $!stderr_supply_chars && $!stderr_supply_chars;
         $!stdout_supply_chars = False;
         $!stdout_supply //= Supply.new
     }
@@ -54,7 +54,7 @@ my class Proc::Async {
         X::Proc::Async::TapBeforeSpawn.new(handle => 'stderr').throw
             if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => 'stderr').throw
-            if defined $!stderr_supply_chars && !$!stderr_supply_chars;
+            if defined $!stdout_supply_chars && !$!stdout_supply_chars;
         $!stderr_supply_chars = True;
         $!stderr_supply //= Supply.new
     }
@@ -63,7 +63,7 @@ my class Proc::Async {
         X::Proc::Async::TapBeforeSpawn.new(handle => 'stderr').throw
             if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => 'stderr').throw
-            if defined $!stderr_supply_chars && $!stderr_supply_chars;
+            if defined $!stdout_supply_chars && $!stdout_supply_chars;
         $!stderr_supply_chars = False;
         $!stderr_supply //= Supply.new
     }

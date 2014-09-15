@@ -595,6 +595,7 @@ S17-channel/basic.t      # conc
 S17-channel/winner.t     # conc
 S17-lowlevel/lock.t      # conc
 S17-lowlevel/thread.t    # conc
+S17-procasync/basic.t    # moar
 S17-promise/allof.t      # conc
 S17-promise/anyof.t      # conc
 S17-promise/basic.t      # conc

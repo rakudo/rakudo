@@ -726,7 +726,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
 #?endif
 #?if parrot
-            # need to use temp otherwise basic math goes wrong
+            # need to use temp otherwise basic math goes wrong, RT #122783
             my int $extra = nqp::eqat($ns, $CRLF, $nextpos);
             $moving = $chars + 1 + $extra;
 #?endif
@@ -756,7 +756,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
 #?endif
 #?if parrot
-            # need to use temp otherwise basic math goes wrong
+            # need to use temp otherwise basic math goes wrong, RT #122783
             my int $extra = nqp::eqat($ns, $CRLF, $nextpos);
             $moving = $chars + 1 + $extra;
 #?endif
@@ -787,7 +787,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
 #?endif
 #?if parrot
-            # need to use temp otherwise basic math goes wrong
+            # need to use temp otherwise basic math goes wrong, RT #122783
             my int $extra = nqp::eqat($ns, $CRLF, $nextpos);
             $moving = $chars + 1 + $extra;
 #?endif
@@ -819,7 +819,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $moving = $chars + 1 + nqp::eqat($ns, $CRLF, $nextpos);
 #?endif
 #?if parrot
-            # need to use temp otherwise basic math goes wrong
+            # need to use temp otherwise basic math goes wrong, RT #122783
             my int $extra = nqp::eqat($ns, $CRLF, $nextpos);
             $moving = $chars + 1 + $extra;
 #?endif

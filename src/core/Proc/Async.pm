@@ -59,23 +59,23 @@ my class Proc::Async {
         self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars);
     }
 
-    method stdout_chars() {
+    method stdout_chars(Proc::Async:D:) {
         self!supply('stdout', $!stdout_supply, $!stdout_type, Chars);
     }
 
-    method stdout_bytes() {
+    method stdout_bytes(Proc::Async:D:) {
         self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes);
     }
 
-    method stderr_chars() {
+    method stderr_chars(Proc::Async:D:) {
         self!supply('stderr', $!stderr_supply, $!stderr_type, Chars);
     }
 
-    method stderr_bytes() {
+    method stderr_bytes(Proc::Async:D:) {
         self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes);
     }
 
-    method start(:$scheduler = $*SCHEDULER, :$ENV) {
+    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV) {
         X::Proc::Async::AlreadyStarted.new.throw
             if $!started;
         $!started = True;
@@ -143,7 +143,7 @@ my class Proc::Async {
         $!exited_promise
     }
 
-    method print($str as Str, :$scheduler = $*SCHEDULER) {
+    method print(Proc::Async:D: $str as Str, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
         nqp::asyncwritestr(
@@ -161,9 +161,9 @@ my class Proc::Async {
         $p
     }
 
-    method say($str as Str, |c) { self.print( $str ~ "\n", |c ) }
+    method say(Proc::Async:D: $str as Str, |c) { self.print( $str ~ "\n", |c ) }
 
-    method write(Buf $b, :$scheduler = $*SCHEDULER) {
+    method write(Proc::Async:D: Buf $b, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
         nqp::asyncwritebytes(
@@ -181,12 +181,12 @@ my class Proc::Async {
         $p
     }
 
-    method close_stdin() {
+    method close_stdin(Proc::Async:D:) {
         nqp::closefh($!process_handle);
         True;
     }
 
-    method kill($signal = 1) {
+    method kill(Proc::Async:D: $signal = 1) {
         nqp::killprocasync($!process_handle, $signal.Int)
     }
 }

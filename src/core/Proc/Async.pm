@@ -186,7 +186,11 @@ my class Proc::Async {
         True;
     }
 
-    method kill(Proc::Async:D: $signal = 1) {
-        nqp::killprocasync($!process_handle, $signal.Int)
+    proto method kill(|) { * }
+    multi method kill(Proc::Async:D: Int $signal) {
+        nqp::killprocasync($!process_handle, $signal)
+    }
+    multi method kill(Proc::Async:D: $signal = "HUP") {
+        nqp::killprocasync($!process_handle, $*KERNEL.signal($signal))
     }
 }

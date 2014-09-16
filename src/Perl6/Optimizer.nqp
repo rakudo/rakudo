@@ -1065,10 +1065,8 @@ class Perl6::Optimizer {
 
         # Also some return type checks.
         elsif $optype eq 'p6typecheckrv' {
-            unless $is-parrot {
-                my $optres := self.optimize_p6typecheckrv($op);
-                return $optres if $optres;
-            }
+            my $optres := self.optimize_p6typecheckrv($op);
+            return $optres if $optres;
         }
 
         # Some ops have first boolean arg, and we may be able to get rid of

@@ -18,6 +18,20 @@ my class X::Proc::Async::AlreadyStarted is Exception {
     }
 }
 
+my class X::Proc::Async::MustBeStarted is Exception {
+    has $.method;
+    method message() {
+        "Process must be started first before calling '$!method'"
+    }
+}
+
+my class X::Proc::Async::OpenForWriting is Exception {
+    has $.method;
+    method message() {
+        "Process must be opened for writing with :w to call '$!method'"
+    }
+}
+
 my class Proc::Async {
     my class ProcessCancellation is repr('AsyncTask') { }
     my enum  CharsOrBytes ( :Bytes(0), :Chars(1) );
@@ -87,8 +101,7 @@ my class Proc::Async {
     }
 
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV) {
-        X::Proc::Async::AlreadyStarted.new.throw
-            if $!started;
+        X::Proc::Async::AlreadyStarted.new.throw if $!started;
         $!started = True;
 
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
@@ -155,6 +168,9 @@ my class Proc::Async {
     }
 
     method print(Proc::Async:D: $str as Str, :$scheduler = $*SCHEDULER) {
+        X::Proc::Async::OpenForWriting(:method<print>).new.throw if !$!w;
+        X::Proc::Async::MustBeStarted(:method<print>).new.throw  if !$!started;
+
         my $p = Promise.new;
         my $v = $p.vow;
         nqp::asyncwritestr(
@@ -172,9 +188,17 @@ my class Proc::Async {
         $p
     }
 
-    method say(Proc::Async:D: $str as Str, |c) { self.print( $str ~ "\n", |c ) }
+    method say(Proc::Async:D: $str as Str, |c) {
+        X::Proc::Async::OpenForWriting(:method<say>).new.throw if !$!w;
+        X::Proc::Async::MustBeStarted(:method<say>).new.throw  if !$!started;
+
+        self.print( $str ~ "\n", |c );
+    }
 
     method write(Proc::Async:D: Buf $b, :$scheduler = $*SCHEDULER) {
+        X::Proc::Async::OpenForWriting.new(:method<write>).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<write>).throw  if !$!started;
+
         my $p = Promise.new;
         my $v = $p.vow;
         nqp::asyncwritebytes(
@@ -197,12 +221,19 @@ my class Proc::Async {
         self.close-stdin;
     }
     method close-stdin(Proc::Async:D:) {
+        X::Proc::Async::OpenForWriting.new(:method<close-stdin>).throw
+          if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<close-stdin>).throw
+          if !$!started;
+
         nqp::closefh($!process_handle);
         True;
     }
 
     proto method kill(|) { * }
     multi method kill(Proc::Async:D: Int $signal) {
+        X::Proc::Async::MustBeStarted.new(:method<kill>).throw if !$!started;
+
         nqp::killprocasync($!process_handle, $signal)
     }
     multi method kill(Proc::Async:D: $signal = "HUP") {

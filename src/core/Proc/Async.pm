@@ -138,7 +138,10 @@ my class Proc::Async {
                     if err {
                         $!stdout_supply.quit(err);
                     }
-                    elsif seq >= 0 {
+                    elsif seq < 0 {
+                        $!stdout_supply.done();
+                    }
+                    else {
                         $!stdout_supply.more(data);
                     }
                 });

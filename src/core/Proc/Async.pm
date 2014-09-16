@@ -33,7 +33,12 @@ my class Proc::Async {
     has $!process_handle;
     has $!exited_promise;
 
-    method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
+    proto method new(|) { * }
+    multi method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
+    multi method new(:$path!, :@args, :$w) {
+        DEPRECATED( 'new($path,@args)', :what('new(:path(),:args()) (from Proc::Async)') );
+        self.bless(:$path,:@args,:$w);
+    }
 
     method !supply(\what,\supply,\type,\value) is hidden_from_backtrace {
         X::Proc::Async::TapBeforeSpawn.new(handle => what).throw
@@ -59,6 +64,26 @@ my class Proc::Async {
     }
     multi method stderr(Proc::Async:D: :$bin!) {
         self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars);
+    }
+
+    method stdout_chars(Proc::Async:D:) {
+        DEPRECATED('stdout');
+        self.stdout;
+    }
+
+    method stdout_bytes(Proc::Async:D:) {
+        DEPRECATED('stdout(:bin)');
+        self.stdout(:bin);
+    }
+
+    method stderr_chars(Proc::Async:D:) {
+        DEPRECATED('stderr');
+        self.stderr;
+    }
+
+    method stderr_bytes(Proc::Async:D:) {
+        DEPRECATED('stderr(:bin)');
+        self.stderr(:bin);
     }
 
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV) {
@@ -167,6 +192,10 @@ my class Proc::Async {
         $p
     }
 
+    method close_stdin(Proc::Async:D:) {
+        DEPRECATED('close-stdin');
+        self.close-stdin;
+    }
     method close-stdin(Proc::Async:D:) {
         nqp::closefh($!process_handle);
         True;

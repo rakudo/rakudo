@@ -120,8 +120,9 @@ $(PERL6_G_MOAR): src/Perl6/Grammar.nqp $(PERL6_W_MOAR) $(PERL6_A_MOAR) $(PERL6_P
 	    src/Perl6/Grammar.nqp
 
 $(PERL6_O_MOAR): src/Perl6/Optimizer.nqp $(PERL6_OPS_MOAR)
+	$(M_NQP) $(M_GEN_CAT) src/Perl6/Optimizer.nqp > src/gen/m-Perl6-Optimizer.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_O_MOAR) --encoding=utf8 \
-	    src/Perl6/Optimizer.nqp
+	    src/gen/m-Perl6-Optimizer.nqp
 
 $(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
 	$(M_NQP) --target=mbc --output=$(PERL6_C_MOAR) --encoding=utf8 \

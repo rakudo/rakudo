@@ -45,7 +45,8 @@ my class Proc::Async {
     has $!stderr_supply;
     has CharsOrBytes $!stderr_type;
     has $!process_handle;
-    has $!exited_promise;
+    has $!exit_promise;
+    has %!promises;
 
     proto method new(|) { * }
     multi method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
@@ -119,26 +120,26 @@ my class Proc::Async {
             nqp::push($args-without, nqp::decont(.Str));
         }
 
-        $!exited_promise = Promise.new;
-        my $exited_vow   = $!exited_promise.vow;
+        $!exit_promise = Promise.new;
 
         my Mu $callbacks := nqp::hash();
         nqp::bindkey($callbacks, 'done', -> Mu \status {
-            $!stdout_supply.?done();
-            $!stderr_supply.?done();
-            $exited_vow.keep(Proc::Status.new(:exit(status)))
+            $!exit_promise.keep(Proc::Status.new(:exit(status)))
         });
         nqp::bindkey($callbacks, 'error', -> Mu \err {
-            $exited_vow.break(err);
+            $!exit_promise.break(err);
         });
         if $!stdout_supply {
+            %!promises<stdout> = Promise.new;
             nqp::bindkey($callbacks,
                 $!stdout_type ?? 'stdout_chars' !! 'stdout_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
+                        %!promises<stdout>.break(False);
                         $!stdout_supply.quit(err);
                     }
                     elsif seq < 0 {
+                        %!promises<stdout>.keep(True);
                         $!stdout_supply.done();
                     }
                     else {
@@ -147,13 +148,16 @@ my class Proc::Async {
                 });
         }
         if $!stderr_supply {
+            %!promises<stderr> = Promise.new;
             nqp::bindkey($callbacks,
                 $!stderr_type ?? 'stderr_chars' !! 'stderr_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
+                        %!promises<stderr>.break(False);
                         $!stderr_supply.quit(err);
                     }
                     elsif seq < 0 {
+                        %!promises<stderr>.keep(True);
                         $!stderr_supply.done();
                     }
                     else {
@@ -167,7 +171,11 @@ my class Proc::Async {
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
             $args-without, $*CWD.Str, $hash-without, $callbacks);
 
-        $!exited_promise
+        Promise.allof( $!exit_promise, %!promises.values ).then( {
+            $!stdout_supply.done if $!stdout_supply;
+            $!stderr_supply.done if $!stderr_supply;
+            $!exit_promise.result;
+        } );
     }
 
     method print(Proc::Async:D: $str as Str, :$scheduler = $*SCHEDULER) {

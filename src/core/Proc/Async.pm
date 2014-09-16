@@ -234,9 +234,11 @@ my class Proc::Async {
     multi method kill(Proc::Async:D: Int $signal) {
         X::Proc::Async::MustBeStarted.new(:method<kill>).throw if !$!started;
 
-        nqp::killprocasync($!process_handle, $signal)
+        nqp::killprocasync($!process_handle, $signal);
     }
     multi method kill(Proc::Async:D: $signal = "HUP") {
-        nqp::killprocasync($!process_handle, $*KERNEL.signal($signal))
+        X::Proc::Async::MustBeStarted.new(:method<kill>).throw if !$!started;
+
+        nqp::killprocasync($!process_handle, $*KERNEL.signal($signal));
     }
 }

@@ -33,6 +33,8 @@ my class Proc::Async {
     has $!process_handle;
     has $!exited_promise;
 
+    method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
+
     method !supply(\what,\supply,\type,\value) is hidden_from_backtrace {
         X::Proc::Async::TapBeforeSpawn.new(handle => what).throw
           if $!started;
@@ -57,22 +59,6 @@ my class Proc::Async {
     }
     multi method stderr(Proc::Async:D: :$bin!) {
         self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars);
-    }
-
-    method stdout_chars(Proc::Async:D:) {
-        self!supply('stdout', $!stdout_supply, $!stdout_type, Chars);
-    }
-
-    method stdout_bytes(Proc::Async:D:) {
-        self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes);
-    }
-
-    method stderr_chars(Proc::Async:D:) {
-        self!supply('stderr', $!stderr_supply, $!stderr_type, Chars);
-    }
-
-    method stderr_bytes(Proc::Async:D:) {
-        self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes);
     }
 
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV) {
@@ -181,7 +167,7 @@ my class Proc::Async {
         $p
     }
 
-    method close_stdin(Proc::Async:D:) {
+    method close-stdin(Proc::Async:D:) {
         nqp::closefh($!process_handle);
         True;
     }

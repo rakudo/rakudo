@@ -120,12 +120,18 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless self.DEFINITE;
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems(nqp::p6listitems(self));
-        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || nqp::istype($n, Num) && $n == Inf);
-        while $!nextiter.defined && ($eager 
-                                       ?? !$!nextiter.infinite 
-                                       !! ($count < $n)) {
-            $!nextiter.reify($eager ?? Whatever !! $n - $count, :$sink);
-            $count = nqp::elems($!items);
+        if nqp::istype($n, Whatever) || nqp::istype($n, Num) && nqp::istrue($n == Inf) {
+            while $!nextiter.DEFINITE && !$!nextiter.infinite {
+                $!nextiter.reify(*, :$sink);
+                $count = nqp::elems($!items);
+            }
+        }
+        else {
+            my int $target = $n.Int;
+            while nqp::isconcrete($!nextiter) && $count < $target {
+                $!nextiter.reify($target - $count, :$sink);
+                $count = nqp::elems($!items);
+            }
         }
 
         # return the number of elements we have now

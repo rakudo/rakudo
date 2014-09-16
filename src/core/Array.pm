@@ -26,7 +26,7 @@ class Array { # declared in BOOTSTRAP
         my \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         if nqp::existspos(items, $p)
-          || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && self.exists_pos($p) {
+          || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && nqp::istrue(self.exists_pos($p)) {
             nqp::atpos(items, $p);
         }
         else {
@@ -42,7 +42,7 @@ class Array { # declared in BOOTSTRAP
         my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         if nqp::existspos(items, $pos)
-          || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && self.exists_pos($pos) {
+          || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && nqp::istrue(self.exists_pos($pos)) {
             nqp::atpos(items, $pos);
         }
         else {

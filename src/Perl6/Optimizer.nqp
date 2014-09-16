@@ -1039,37 +1039,45 @@ class Perl6::Optimizer {
             }
         }
 
+# Can't do it on parrot currently, because we'd get:
+#   Type check failed for return value; expected 'Bool' but got 'Sub'
+# or
+#   maximum recursion depth exceeded (about infix:<-> / nqp::sub_I)
+# of
+#   perl6-p -e 'my int $foo; say $foo + 1 + nqp::add_i(0,0)' # 0
+#   perl6-p -e 'my int $foo; say $foo + 1 + nqp::add_i(0,1)' # 2
+#?if !parrot
         # May be able to eliminate some decontrv operations.
         if $optype eq 'p6decontrv' {
             # Natives don't need it.
             my $value := $op[1];
             return $value if nqp::objprimspec($value.returns);
 
-            # Can't do it on parrot currently, because we'd get:
-            #   Type check failed for return value; expected 'Bool' but got 'Sub'
-            # or
-            #   maximum recursion depth exceeded (about infix:<-> / nqp::sub_I)
-            if nqp::getcomp('perl6').backend.name ne 'parrot' {
-                # Boolifications don't need it, nor do _I ops.
-                my $last_stmt := get_last_stmt($value);
-                if nqp::istype($last_stmt, QAST::Op) {
-                    my str $op := $last_stmt.op;
-                    if $op eq 'p6bool' || nqp::substr($op, nqp::chars($op) - 1, 1) eq 'I' {
-                        return $value;
-                    }
+            # Boolifications don't need it, nor do _I ops.
+            my $last_stmt := get_last_stmt($value);
+            if nqp::istype($last_stmt, QAST::Op) {
+                my str $op := $last_stmt.op;
+                if $op eq 'p6bool' || nqp::substr($op, nqp::chars($op) - 1, 1) eq 'I' {
+                    return $value;
                 }
             }
         }
 
         # Also some return type checks.
         elsif $optype eq 'p6typecheckrv' {
-            my $optres := self.optimize_p6typecheckrv($op);
-            return $optres if $optres;
+            unless $is-parrot {
+                my $optres := self.optimize_p6typecheckrv($op);
+                return $optres if $optres;
+            }
         }
 
         # Some ops have first boolean arg, and we may be able to get rid of
         # a p6bool if there's already an integer result behind it.
         elsif $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
+#?endif
+#?if parrot
+        if $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
+#?endif
             my $update := $op;
             my $target := $op[0];
             while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && +@($target) == 1 {

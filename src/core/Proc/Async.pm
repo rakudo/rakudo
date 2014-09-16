@@ -43,6 +43,22 @@ my class Proc::Async {
         supply //= Supply.new;
     }
 
+    proto method stdout(|) { * }
+    multi method stdout(Proc::Async:D:) {
+        self!supply('stdout', $!stdout_supply, $!stdout_type, Chars);
+    }
+    multi method stdout(Proc::Async:D: :$bin!) {
+        self!supply('stdout',$!stdout_supply,$!stdout_type,$bin ?? Bytes !! Chars);
+    }
+
+    proto method stderr(|) { * }
+    multi method stderr(Proc::Async:D:) {
+        self!supply('stderr', $!stderr_supply, $!stderr_type, Chars);
+    }
+    multi method stderr(Proc::Async:D: :$bin!) {
+        self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars);
+    }
+
     method stdout_chars() {
         self!supply('stdout', $!stdout_supply, $!stdout_type, Chars);
     }

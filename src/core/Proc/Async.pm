@@ -46,7 +46,7 @@ my class Proc::Async {
     has CharsOrBytes $!stderr_type;
     has $!process_handle;
     has $!exit_promise;
-    has %!promises;
+    has @!promises;
 
     proto method new(|) { * }
     multi method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
@@ -130,16 +130,16 @@ my class Proc::Async {
             $!exit_promise.break(err);
         });
         if $!stdout_supply {
-            %!promises<stdout> = Promise.new;
+            @!promises.push: my $promise = Promise.new;
             nqp::bindkey($callbacks,
                 $!stdout_type ?? 'stdout_chars' !! 'stdout_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
-                        %!promises<stdout>.break(False);
+                        $promise.break(False);
                         $!stdout_supply.quit(err);
                     }
                     elsif seq < 0 {
-                        %!promises<stdout>.keep(True);
+                        $promise.keep(True);
                         $!stdout_supply.done();
                     }
                     else {
@@ -148,16 +148,16 @@ my class Proc::Async {
                 });
         }
         if $!stderr_supply {
-            %!promises<stderr> = Promise.new;
+            @!promises.push: my $promise = Promise.new;
             nqp::bindkey($callbacks,
                 $!stderr_type ?? 'stderr_chars' !! 'stderr_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
-                        %!promises<stderr>.break(False);
+                        $promise.break(False);
                         $!stderr_supply.quit(err);
                     }
                     elsif seq < 0 {
-                        %!promises<stderr>.keep(True);
+                        $promise.keep(True);
                         $!stderr_supply.done();
                     }
                     else {
@@ -171,7 +171,7 @@ my class Proc::Async {
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
             $args-without, $*CWD.Str, $hash-without, $callbacks);
 
-        Promise.allof( $!exit_promise, %!promises.values ).then( {
+        Promise.allof( $!exit_promise, @!promises ).then( {
             $!stdout_supply.done if $!stdout_supply;
             $!stderr_supply.done if $!stderr_supply;
             $!exit_promise.result;

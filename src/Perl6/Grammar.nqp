@@ -3002,7 +3002,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $pos;
         { $*longname := $*W.dissect_longname($<longname>); $pos := $/.CURSOR.pos }
         [
-        ||  <?{ nqp::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
+        ||  <?{ nqp::eqat($<longname>.Str, '::', 0) || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
                 <?{ $*W.is_type($*longname.components()) }>
@@ -3025,7 +3025,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     unless $ok {
                         my $trap := %deftrap{$name};
                         $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
-                            if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
+                            if $trap && nqp::eqat($/.CURSOR.orig, '<', $/.CURSOR.pos);
                         if $trap == 1 {        # probably misused P5ism
                             $<longname>.CURSOR.sorryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
                         }
@@ -3155,7 +3155,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <longname>
           <?{
             my $longname := $*W.dissect_longname($<longname>);
-            nqp::substr(~$<longname>, 0, 2) eq '::' ??
+            nqp::eqat(~$<longname>, '::', 0) ??
                 1 !! # ::T introduces a type, so always is one
                 $*W.is_name($longname.type_name_parts('type name'))
           }>
@@ -4011,7 +4011,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             next if $*W.is_lexically_visible('&' ~ $name, %sym<lex>);
 
             # no sigil or &
-            if $name ge 'a' || nqp::substr($name,0,1) eq '&' {
+            if nqp::eqat($name, '&', 0) || $name ge 'a' {
                 %unk_routines{$name} := [] unless %unk_routines{$name};
                 my @suggs := $*W.suggest_routines($name);
                 %routine_suggestion{$name} := @suggs;

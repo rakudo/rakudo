@@ -295,7 +295,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             # appropriately copied.
             if $orig.HOW.name($orig) eq 'Stash' {
                 for $orig.FLATTENABLE_HASH() {
-                    if !nqp::existskey($current, $_.key) || nqp::substr($_.key, 0, 1) eq '&' {
+                    if !nqp::existskey($current, $_.key) || nqp::eqat($_.key, '&', 0) {
                         $current{$_.key} := $_.value;
                     }
                 }

@@ -116,8 +116,7 @@ sub levenshtein($a, $b) {
 
         # switching two letters costs only 1 instead of 2.
         if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
-           nqp::substr($a, $apos + 1, 1) eq $bchar &&
-           nqp::substr($b, $bpos + 1, 1) eq $achar {
+           nqp::eqat($a, $bchar, $apos + 1) && nqp::eqat($b, $achar, $bpos + 1) {
             my $cd := levenshtein_impl($apos+2, $bpos+2, $estimate+1) + 1;
             $distance := $cd if $cd < $distance;
         }
@@ -657,7 +656,7 @@ class Perl6::World is HLL::World {
     }
     
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::substr($name, 1, 1) eq "*") {
+    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
         my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
         self.add_object($cd);
@@ -2465,15 +2464,15 @@ class Perl6::World is HLL::World {
     }
 
     method suggest_routines($name) {
-        my $with_sigil := nqp::substr($name, 0, 1) eq "&";
-        $name := "&" ~ $name unless $with_sigil;
+        my $with_sigil := nqp::eqat($name, '&', 0);
+        $name := '&' ~ $name unless $with_sigil;
         my @suggestions;
         my @candidates := [[], [], []];
         my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
         my %seen;
         %seen{$name} := 1;
         sub evaluate($name, $value, $hash) {
-            return 1 unless nqp::substr($name, 0, 1) eq "&";
+            return 1 unless nqp::eqat($name, '&', 0);
             return 1 if nqp::existskey(%seen, $name);
 
             %seen{$name} := 1;

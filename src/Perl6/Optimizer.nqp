@@ -1057,7 +1057,7 @@ class Perl6::Optimizer {
             my $last_stmt := get_last_stmt($value);
             if nqp::istype($last_stmt, QAST::Op) {
                 my str $op := $last_stmt.op;
-                if $op eq 'p6bool' || nqp::substr($op, nqp::chars($op) - 1, 1) eq 'I' {
+                if $op eq 'p6bool' || nqp::eqat($op, 'I', -1) {
                     return $value;
                 }
             }

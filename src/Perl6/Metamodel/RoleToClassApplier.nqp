@@ -36,7 +36,7 @@ my class RoleToClassApplier {
     sub has_public_attribute($target, $name) {
         my @attributes := $target.HOW.attributes($target, :local(1));
         for @attributes {
-            return 1 if nqp::substr($_.name, 2) eq $name && $_.has_accessor;
+            return 1 if nqp::eqat($_.name, $name, 2) && $_.has_accessor;
         }
         return 0;
     }

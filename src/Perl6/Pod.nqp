@@ -101,7 +101,7 @@ class Perl6::Pod {
             } else {
                 # and this is the worst hack of them all.
                 # Hide your kids, hide your wife!
-                my $truth := nqp::substr($colonpair, 1, 1) ne '!';
+                my $truth := !nqp::eqat($colonpair, '!', 1);
 
                 $val := $*W.add_constant('Int', 'int', $truth).compile_time_value;
             }

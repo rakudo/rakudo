@@ -21,7 +21,7 @@ role STDActions {
         my int $tabstop := $*W.find_symbol(['$?TABSTOP']);
         my int $checkidx := 0;
         while $checkidx < $actualchars {
-            if nqp::substr($ws, $checkidx, 1) eq "\t" {
+            if nqp::eqat($ws, "\t", $checkidx) {
                 $indent := $indent - ($tabstop - 1);
             }
             $checkidx := $checkidx + 1;
@@ -1975,7 +1975,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more
         # just yet.
-        if nqp::substr($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
+        if nqp::eqat($<blockoid><statementlist><statement>[0], '...', 0) {
             unless $*PKGDECL eq 'role' {
                 $*W.add_stub_to_check($*PACKAGE);
             }
@@ -3679,7 +3679,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
-            if nqp::substr(~$/, 0, 1) eq '[' {
+            if nqp::eqat(~$/, '[', 0) {
                 %*PARAM_INFO<sigil> := '@';
                 %*PARAM_INFO<nominal_type> := $*W.find_symbol(['Positional']);
             }
@@ -3809,9 +3809,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method type_constraint($/) {
         if $<typename> {
-            if nqp::substr(~$<typename>, 0, 2) eq '::' && nqp::substr(~$<typename>, 2, 1) ne '?' {
+            my str $typename := ~$<typename>;
+            if nqp::eqat($typename, '::', 0) && !nqp::eqat($typename, '?', 2) {
                 # Set up signature so it will find the typename.
-                my $desigilname := nqp::substr(~$<typename>, 2);
+                my $desigilname := nqp::substr($typename, 2);
                 unless %*PARAM_INFO<type_captures> {
                     %*PARAM_INFO<type_captures> := []
                 }
@@ -3897,7 +3898,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
-            if nqp::substr(~$/, 0, 1) eq '[' {
+            if nqp::eqat(~$/, '[', 0) {
                 %*PARAM_INFO<sigil> := '@' unless %*PARAM_INFO<sigil>;
             }
         }
@@ -4401,7 +4402,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Add & to name.
             my @name := nqp::clone($*longname.components());
             my $final := @name[+@name - 1];
-            if nqp::substr($final, 0, 1) ne '&' {
+            unless nqp::eqat($final, '&', 0) {
                 @name[+@name - 1] := '&' ~ $final;
             }
             my $macro := find_macro_routine(@name);
@@ -4766,7 +4767,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $is_hash := 1;
             }
             elsif $elem ~~ QAST::Var
-                    && nqp::substr($elem.name, 0, 1) eq '%' {
+                    && nqp::eqat($elem.name, '%', 0) {
                 # first item is a hash
                 $is_hash := 1;
             }
@@ -4868,7 +4869,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make make_dot_equals($/[0].ast, $/[1].ast);
             return 1;
         }
-        elsif $past && nqp::substr($past.name, 0, 19) eq '&METAOP_TEST_ASSIGN' {
+        elsif $past && nqp::eqat($past.name, '&METAOP_TEST_ASSIGN', 0) {
             $past.push($/[0].ast);
             $past.push(block_closure(make_thunk_ref($/[1].ast, $/)));
             make $past;
@@ -5735,7 +5736,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # dispatch with. Note that for '::T' style things we need to make a
         # GenericHOW, though whether/how it's used depends on context.
         if $<longname> {
-            if nqp::substr(~$<longname>, 0, 2) ne '::' {
+            my str $str_longname := ~$<longname>;
+            if !nqp::eqat($str_longname, '::', 0) {
                 my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
@@ -5751,10 +5753,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
                 }
-                if ~$<longname> eq '::' {
+                if $str_longname eq '::' {
                     $/.CURSOR.panic("Cannot use :: as a type name");
                 }
-                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(nqp::substr(~$<longname>, 2)));
+                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(nqp::substr($str_longname, 2)));
             }
         }
         else {
@@ -7108,11 +7110,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         nqp::die("You gave us an exponent for the magnitude, but you forgot the base.")
             if !nqp::defined($base) && nqp::defined($exponent);
 
-        if nqp::substr($number, 0, 1) eq '-' {
+        if nqp::eqat($number, '-', 0) {
             $sign := -1;
             $number := nqp::substr($number, 1);
         }
-        if nqp::substr($number, 0, 1) eq '0' {
+        if nqp::eqat($number, '0', 0) {
             my $radix_name := nqp::uc(nqp::substr($number, 1, 1));
             if nqp::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $radix_name) > $radix {
                 $number := nqp::substr($number, 2);

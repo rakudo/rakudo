@@ -112,11 +112,10 @@ my class Proc::Async {
             std ~ ( type ?? '_chars' !! '_bytes' ),
             -> Mu \seq, Mu \data, Mu \err {
                 if err {
-                    $promise.break;
-                    supply.quit(err);
+                    $promise.keep( (supply,err) );
                 }
                 elsif seq < 0 {
-                    $promise.keep;
+                    $promise.keep( supply );
                 }
                 else {
 #say "{std}: seq = {seq} with {data}   in {$*THREAD}" if std eq 'stdout';
@@ -170,8 +169,12 @@ my class Proc::Async {
             $args-without, $*CWD.Str, $hash-without, $callbacks);
 
         Promise.allof( $!exit_promise, @!promises ).then( {
-            $!stdout_supply.done if $!stdout_supply;
-            $!stderr_supply.done if $!stderr_supply;
+            for @!promises -> $promise {
+                given $promise.result {
+                    when Supply { .done }
+                    when Parcel { $_[0].quit( $_[1] ) }
+                }
+            }
             $!exit_promise.result;
         } );
     }

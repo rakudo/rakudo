@@ -20,7 +20,7 @@ my class Capture { # declared in BOOTSTRAP
         }
         if $!hash {
             $WHICH ~= '|';
-            $WHICH ~= ( $_ ~ '(' ~ $!hash{nqp::unbox_s($_)}.WHICH ~ ')' )
+            $WHICH ~= ( $_ ~ '(' ~ nqp::atkey($!hash, nqp::unbox_s($_)).WHICH ~ ')' )
               for self.hash.keys.sort;
         }
         $WHICH;

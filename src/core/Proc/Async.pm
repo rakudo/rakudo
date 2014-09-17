@@ -140,7 +140,6 @@ my class Proc::Async {
                     }
                     elsif seq < 0 {
                         $promise.keep;
-                        $!stdout_supply.done();
                     }
                     else {
                         $!stdout_supply.more(data);
@@ -158,7 +157,6 @@ my class Proc::Async {
                     }
                     elsif seq < 0 {
                         $promise.keep;
-                        $!stderr_supply.done();
                     }
                     else {
                         $!stderr_supply.more(data);

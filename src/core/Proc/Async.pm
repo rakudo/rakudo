@@ -135,11 +135,11 @@ my class Proc::Async {
                 $!stdout_type ?? 'stdout_chars' !! 'stdout_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
-                        $promise.break(False);
+                        $promise.break;
                         $!stdout_supply.quit(err);
                     }
                     elsif seq < 0 {
-                        $promise.keep(True);
+                        $promise.keep;
                         $!stdout_supply.done();
                     }
                     else {
@@ -153,11 +153,11 @@ my class Proc::Async {
                 $!stderr_type ?? 'stderr_chars' !! 'stderr_bytes',
                 -> Mu \seq, Mu \data, Mu \err {
                     if err {
-                        $promise.break(False);
+                        $promise.break;
                         $!stderr_supply.quit(err);
                     }
                     elsif seq < 0 {
-                        $promise.keep(True);
+                        $promise.keep;
                         $!stderr_supply.done();
                     }
                     else {

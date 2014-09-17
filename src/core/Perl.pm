@@ -24,7 +24,7 @@ class Perl does Systemic {
         )
     }
 
-    method KERNELnames { <darwin linux win32> }
+    method KERNELnames { <darwin linux freebsd win32> }
 }
 
 multi sub INITIALIZE_DYNAMIC('$*PERL') {

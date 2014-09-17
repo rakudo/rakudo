@@ -7,6 +7,7 @@ New in 2014.09
 + support for submethod DESTROY (MoarVM only)
 + optimizations to Str.lines, IO.lines, chomp, return, and interpreter startup
 + added experimental support for Proc::Async, MoarVM only for now
++ Promise.keep/break now default to True/False
 
 New in 2014.08
 + print file/line annotations for warnings also on moar and jvm

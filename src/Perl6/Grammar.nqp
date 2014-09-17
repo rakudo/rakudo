@@ -4553,7 +4553,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     token rxstopper { <stopper> }
 
     token metachar:sym<:my> {
-        ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')>
+        ':' <?before 'my'|'constant'|'state'|'our'|'temp'|'let'> <statement=.LANG('MAIN', 'statement')>
         <.LANG('MAIN', 'eat_terminator')>
     }
 

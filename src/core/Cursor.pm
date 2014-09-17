@@ -89,7 +89,10 @@ my class Cursor does NQPCursorRole {
                             }
                         }
                         else {
-                            for nqp::split('=', $name) -> $name {
+                            my Mu $names := nqp::split('=', $name);
+                            my $iter     := nqp::iterator($names);
+                            while $iter {
+                                my $name := nqp::shift($iter);
                                 my Mu $capval     := nqp::atkey($caplist, $name);
 #?if jvm
                                 my int $needs_list = nqp::isconcrete($capval) &&

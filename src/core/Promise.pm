@@ -54,7 +54,11 @@ my class Promise {
         $vow
     }
 
-    method keep(Promise:D: \result) {
+    proto method keep(|) { * }
+    multi method keep(Promise:D:) {
+        self.vow.keep(True)
+    }
+    multi method keep(Promise:D: \result) {
         self.vow.keep(result)
     }
     
@@ -68,15 +72,19 @@ my class Promise {
         $!result
     }
     
-    method break(Promise:D: $result) {
-        self.vow.break($result)
+    proto method break(|) { * }
+    multi method break(Promise:D:) {
+        self.vow.break(False)
+    }
+    multi method break(Promise:D: \result) {
+        self.vow.break(result)
     }
     
-    method !break($result) {
+    method !break(\result) {
         $!lock.protect({
-            $!result = nqp::istype($result, Exception)
-                ?? $result
-                !! X::AdHoc.new(payload => $result);
+            $!result = nqp::istype(result, Exception)
+                ?? result
+                !! X::AdHoc.new(payload => result);
             $!status = Broken;
             self!schedule_thens();
             $!cond.signal_all;

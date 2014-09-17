@@ -101,6 +101,32 @@ my class Proc::Async {
         self.stderr(:bin);
     }
 
+    method !capture(\callbacks,\std,\type,\supply) {
+
+        my $promise = Promise.new;
+        my $lock = Lock.new;
+        my int $last_seq = -1;
+        my int $moreing;
+
+        nqp::bindkey(callbacks,
+            std ~ ( type ?? '_chars' !! '_bytes' ),
+            -> Mu \seq, Mu \data, Mu \err {
+                if err {
+                    $promise.break;
+                    supply.quit(err);
+                }
+                elsif seq < 0 {
+                    $promise.keep;
+                }
+                else {
+#say "{std}: seq = {seq} with {data}   in {$*THREAD}" if std eq 'stdout';
+                    supply.more(data);
+                }
+            }
+        );
+        $promise;
+    }
+
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV) {
         X::Proc::Async::AlreadyStarted.new.throw if $!started;
         $!started = True;
@@ -129,40 +155,14 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'error', -> Mu \err {
             $!exit_promise.break(err);
         });
-        if $!stdout_supply {
-            @!promises.push: my $promise = Promise.new;
-            nqp::bindkey($callbacks,
-                $!stdout_type ?? 'stdout_chars' !! 'stdout_bytes',
-                -> Mu \seq, Mu \data, Mu \err {
-                    if err {
-                        $promise.break;
-                        $!stdout_supply.quit(err);
-                    }
-                    elsif seq < 0 {
-                        $promise.keep;
-                    }
-                    else {
-                        $!stdout_supply.more(data);
-                    }
-                });
-        }
-        if $!stderr_supply {
-            @!promises.push: my $promise = Promise.new;
-            nqp::bindkey($callbacks,
-                $!stderr_type ?? 'stderr_chars' !! 'stderr_bytes',
-                -> Mu \seq, Mu \data, Mu \err {
-                    if err {
-                        $promise.break;
-                        $!stderr_supply.quit(err);
-                    }
-                    elsif seq < 0 {
-                        $promise.keep;
-                    }
-                    else {
-                        $!stderr_supply.more(data);
-                    }
-                });
-        }
+
+        @!promises.push(
+          self!capture($callbacks,'stdout',$!stdout_type,$!stdout_supply)
+        ) if $!stdout_supply;
+        @!promises.push(
+          self!capture($callbacks,'stderr',$!stderr_type,$!stderr_supply)
+        ) if $!stderr_supply;
+
         nqp::bindkey($callbacks, 'buf_type', buf8.new);
         nqp::bindkey($callbacks, 'write', True) if $.w;
 

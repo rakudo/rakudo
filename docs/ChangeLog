@@ -4,15 +4,13 @@ New in 2014.09
 + Workaround OS X make bug for MoarVM
 + Make new LOLLY syntax the default
 + support for submethod DESTROY (MoarVM only)
-+ optimizations to Str.lines, IO.lines, chomp, return, and interpreter startup
++ optimizations to Str.words, Str.lines, IO.lines, chomp, and return
 + added experimental support for Proc::Async, MoarVM only for now
 + Promise.keep/break now default to True/False
 + support for S26-style declarative (#| and #=) comments
 + expectations are reported before result in test failures
 + bare 'say' is now a parse error
 + range *..* is now allowed (and means -Inf..Inf)
-+ performance of .words improved
-+ performance of .lines improved
 + AST.Str now prints the correct source for operand ASTs
 + 'π' implemented as synonym for 'pi'
 + support for :temp/:let declarators in regexes

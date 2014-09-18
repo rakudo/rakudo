@@ -1,13 +1,23 @@
 New in 2014.09
 + ./perl6 --profile for MoarVM, generates HTML profile output, including
   spesh/JIT info
-+ Reduced memory size of CORE.setting, improved startup time
 + Workaround OS X make bug for MoarVM
 + Make new LOLLY syntax the default
 + support for submethod DESTROY (MoarVM only)
 + optimizations to Str.lines, IO.lines, chomp, return, and interpreter startup
 + added experimental support for Proc::Async, MoarVM only for now
 + Promise.keep/break now default to True/False
++ support for S26-style declarative (#| and #=) comments
++ expectations are reported before result in test failures
++ bare 'say' is now a parse error
++ range *..* is now allowed (and means -Inf..Inf)
++ performance of .words improved
++ performance of .lines improved
++ AST.Str now prints the correct source for operand ASTs
++ 'π' implemented as synonym for 'pi'
++ support for :temp/:let declarators in regexes
++ Reduced memory size of CORE.setting, improved startup time
++ startup (on Moar) 15% faster than p5 w/ Moose
 
 New in 2014.08
 + print file/line annotations for warnings also on moar and jvm

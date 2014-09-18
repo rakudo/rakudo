@@ -44,53 +44,57 @@ my class IO::Socket::Async {
         $p
     }
 
+    my sub capture(\supply) {
+
+        my $lock = Lock.new;
+        my int $moreing;
+        my int $next_seq;
+        my @buffer; # should be Mu, as data can be Mu
+
+        -> Mu \seq, Mu \data, Mu \err {
+            if err {
+                supply.quit(err);
+            }
+            elsif seq < 0 {
+                supply.done();
+            }
+            else {
+                supply.more(data);
+            }
+        };
+    }
+
     method chars_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
         my $cancellation;
-        Supply.on_demand(-> $s {
+        Supply.on_demand( -> $supply {
             $cancellation := nqp::asyncreadchars(
-                $!VMIO,
-                $scheduler.queue,
-                -> Mu \seq, Mu \data, Mu \err {
-                    if err {
-                        $s.quit(err);
-                    }
-                    elsif seq < 0 {
-                        $s.done();
-                    }
-                    else {
-                        $s.more(data);
-                    }
-                },
-                SocketCancellation);
-        },
-        closing => {
-            $cancellation && nqp::cancel($cancellation)
-        });
+              $!VMIO,
+              $scheduler.queue,
+              capture($supply),
+              SocketCancellation
+            );
+          },
+          closing => {
+              $cancellation && nqp::cancel($cancellation)
+          },
+        );
     }
 
     method bytes_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
         my $cancellation;
-        Supply.on_demand(-> $s {
+        Supply.on_demand( -> $supply {
             $cancellation := nqp::asyncreadbytes(
-                $!VMIO,
-                $scheduler.queue,
-                -> Mu \seq, Mu \data, Mu \err {
-                    if err {
-                        $s.quit(err);
-                    }
-                    elsif seq < 0 {
-                        $s.done();
-                    }
-                    else {
-                        $s.more(data);
-                    }
-                },
-                nqp::decont($buf),
-                SocketCancellation);
-        },
-        closing => {
-            $cancellation && nqp::cancel($cancellation)
-        });
+              $!VMIO,
+              $scheduler.queue,
+              capture($supply),
+              nqp::decont($buf),
+              SocketCancellation,
+            );
+          },
+          closing => {
+              $cancellation && nqp::cancel($cancellation)
+          },
+        );
     }
 
     method close(IO::Socket::Async:D:) {

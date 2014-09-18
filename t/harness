@@ -146,10 +146,6 @@ sub all_in {
 }
 
 sub fudge {
-    # XXX Temporary, please remove any time after 2014-09 release.
-    # (Also remove all the #!LOLLY fudges at the same time.)
-    $ENV{LOLLY} = '1';
-
     my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.parrot');
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;

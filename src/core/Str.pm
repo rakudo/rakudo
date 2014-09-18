@@ -751,6 +751,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         nqp::p6parcel($rpa, Nil);
     }
+    multi method lines(Str:D: :$count!) {
+        return self.lines if !$count;
+
+        my str $ns   = nqp::unbox_s(self);
+        my int $left = nqp::chars($ns);
+        my int $lines;
+        my int $pos;
+        my int $chars;
+        my int $nextpos;
+
+        while ($chars = $left - $pos) > 0 {
+            $nextpos =
+              nqp::findcclass(nqp::const::CCLASS_NEWLINE,$ns,$pos,$chars);
+            $lines = $lines + 1;
+            $pos   = $nextpos + 1 + nqp::eqat($ns, $CRLF, $nextpos);
+        }
+        nqp::box_i($lines, Int);
+    }
     multi method lines(Str:D: Whatever $) { self.lines }
     multi method lines(Str:D: $limit) {
         return self.lines if $limit == Inf;

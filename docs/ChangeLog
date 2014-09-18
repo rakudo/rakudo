@@ -18,6 +18,7 @@ New in 2014.09
 + support for :temp/:let declarators in regexes
 + Reduced memory size of CORE.setting, improved startup time
 + startup (on Moar) 15% faster than p5 w/ Moose
++ fix issue with $*EXECUTABLE pointing to an non-existing interpreter on parrot
 
 New in 2014.08
 + print file/line annotations for warnings also on moar and jvm

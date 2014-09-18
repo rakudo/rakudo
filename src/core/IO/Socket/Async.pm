@@ -59,7 +59,32 @@ my class IO::Socket::Async {
                 supply.done();
             }
             else {
-                supply.more(data);
+                # cannot simply return out of here, so we need a flag
+                my int $in_charge;
+
+                $lock.protect( {
+#say "seq = {seq} with {data}   in {$*THREAD}";
+                    @buffer[ seq - $next_seq ] := data;
+                    $in_charge = $moreing = 1 unless $moreing;
+                } );
+
+                if $in_charge {
+                    my int $done;
+                    while @buffer.exists_pos($done) {
+#say "moreing { $next_seq + $done }: {@buffer[$done]}";
+                        supply.more( @buffer[$done] );
+                        $done = $done + 1;
+                    }
+
+                    $lock.protect( {
+                        if $done {
+#say "discarding from $next_seq for $done";
+                            @buffer.splice(0,$done);
+                            $next_seq = $next_seq + $done;
+                        }
+                        $moreing = 0;
+                    } );
+                }
             }
         };
     }

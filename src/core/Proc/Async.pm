@@ -273,15 +273,8 @@ my class Proc::Async {
         True;
     }
 
-    proto method kill(|) { * }
-    multi method kill(Proc::Async:D: Int $signal) {
+    method kill(Proc::Async:D: $signal = "HUP") {
         X::Proc::Async::MustBeStarted.new(:method<kill>).throw if !$!started;
-
-        nqp::killprocasync($!process_handle, $signal);
-    }
-    multi method kill(Proc::Async:D: $signal = "HUP") {
-        X::Proc::Async::MustBeStarted.new(:method<kill>).throw if !$!started;
-
         nqp::killprocasync($!process_handle, $*KERNEL.signal($signal));
     }
 }

@@ -106,24 +106,24 @@ class Kernel does Systemic {
 
     has %!signals_by_Str;
     proto method signal (|) { * }
-    multi method signal(Kernel:D: Str:D $signal) {
+    multi method signal(Kernel:D: Str:D $signal --> Int) {
         once {
             %!signals_by_Str =
-              @.signals.pairs.grep(*.value.defined).map({~$_.value => .key});
+              @.signals.pairs.grep(*.value.defined).map({~$_.value => +.key});
         }
         %!signals_by_Str{$signal} // %!signals_by_Str{"SIG$signal"};
     }
 
     has %!signals_by_Signal;
-    multi method signal(Kernel:D: Signal:D $signal) {
+    multi method signal(Kernel:D: Signal:D $signal --> Int) {
         once {
             %!signals_by_Signal =
-              @.signals.pairs.grep(*.value.defined).map({~$_.value.WHICH => .key});
+              @.signals.pairs.grep(*.value.defined).map({~$_.value.WHICH => +.key});
         }
         %!signals_by_Signal{$signal.WHICH};
     }
 
-    multi method signal(Kernel:D: Int:D $signal) { $signal }
+    multi method signal(Kernel:D: Int:D $signal --> Int) { $signal }
 #?endif
 }
 

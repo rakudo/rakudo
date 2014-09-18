@@ -417,6 +417,77 @@ my role Supply {
         }
     }
 
+    method lines(Supply:D $self: :$chomp = True ) {
+
+        on -> $res {
+            $self => do {
+                my str $text;
+                my int $left;
+                my int $pos;
+                my int $chars;
+                my int $nextpos;
+                my int $cr;
+                my int $crlf;
+
+                {
+                    more => -> \val {
+                        $text = $text ~ nqp::unbox_s(val);
+                        $left = nqp::chars($text);
+                        $pos  = 0;
+
+                        while $pos < $left {
+                            $nextpos = nqp::findcclass(
+                              nqp::const::CCLASS_NEWLINE,$text,$pos,$left
+                            );
+
+                            # no trailing line delimiter, so go buffer
+                            last unless nqp::iscclass(
+                              nqp::const::CCLASS_NEWLINE, $text, $nextpos
+                            );
+
+                            # potentially broken CRLF, so go buffer
+                            $cr = nqp::ordat($text, $nextpos) == 13;  # CR
+                            last if $cr == 1 and $nextpos + 1 == $left;
+
+                            $crlf = $cr
+                              && nqp::ordat($text, $nextpos + 1) == 10; # LF
+
+                            if $chomp {
+                                $res.more( ($chars = $nextpos - $pos)
+                                  ?? nqp::box_s(
+                                       nqp::substr($text,$pos,$chars), Str)
+                                  !! ''
+                                );
+                                $pos = $pos + $chars + 1 + $crlf;
+                            }
+                            else {
+                                $chars = $nextpos - $pos + 1 + $crlf;
+                                $res.more( nqp::box_s(
+                                  nqp::substr($text, $pos, $chars), Str)
+                                );
+                                $pos = $pos + $chars;
+                            }
+                        }
+                        $text = $pos < $left
+                          ?? nqp::substr($text,$pos)
+                          !! '';
+                    },
+                    done => {
+                        if $text {
+                            $chars = nqp::chars($text);
+                            $res.more( $chomp
+                              && nqp::ordat($text, $chars - 1) == 13    # CR
+                              ?? nqp::box_s(nqp::substr($text,0,$chars - 1),Str)
+                              !! nqp::box_s($text, Str)
+                            );
+                        }
+                        $res.done;
+                    }
+                }
+            }
+        }
+    }
+
     method elems(Supply:D $self: $seconds? ) {
 
         on -> $res {

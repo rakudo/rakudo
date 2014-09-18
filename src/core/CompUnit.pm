@@ -134,7 +134,8 @@ class CompUnit {
           if $.has-precomp;
         die "Cannot pre-compile over an existing file: $out"
           if !$force and $out.IO.e;
-        my $lle = %*COMPILING<%?OPTIONS><ll-exception>
+        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
+        my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'
           !! '';
         my Bool $result = ?shell(

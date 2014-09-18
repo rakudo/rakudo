@@ -623,6 +623,7 @@ S17-supply/grab.t        # conc
 S17-supply/grep.t        # conc
 S17-supply/interval.t    # conc
 S17-supply/last.t        # conc
+S17-supply/lines.t       # conc
 S17-supply/list.t        # conc
 S17-supply/map.t         # conc
 S17-supply/max.t         # conc

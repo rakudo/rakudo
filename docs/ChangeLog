@@ -5,6 +5,7 @@ New in 2014.09
 + Make new LOLLY syntax the default
 + support for submethod DESTROY (MoarVM only)
 + optimizations to Str.words, Str.lines, IO.lines, chomp, and return
++ Str.lines and IO.lines take :eager for still faster performance
 + added experimental support for Proc::Async, MoarVM only for now
 + Promise.keep/break now default to True/False
 + support for S26-style declarative (#| and #=) comments

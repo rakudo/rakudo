@@ -143,6 +143,20 @@ my class IO::Handle does IO::FileTestable {
         }
         nqp::p6parcel($rpa, Nil);
     }
+    multi method lines(IO::Handle:D: :$count!) {
+        return self.lines if !$count;
+
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
+
+        until nqp::eoffh($!PIO) {
+            nqp::p6box_s(nqp::readlinefh($!PIO));
+            $!ins = $!ins + 1;
+        }
+        nqp::box_i($!ins, Int);
+    }
     multi method lines(IO::Handle:D: Whatever $) { self.lines }
     multi method lines(IO::Handle:D: $limit) {
         return self.lines if $limit == Inf;

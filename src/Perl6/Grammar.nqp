@@ -3025,7 +3025,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     unless $ok {
                         my $trap := %deftrap{$name};
                         $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
-                            if $trap && nqp::eqat($/.CURSOR.orig, '<', $/.CURSOR.pos);
+                            if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
                         if $trap == 1 {        # probably misused P5ism
                             $<longname>.CURSOR.sorryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
                         }

@@ -7256,7 +7256,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
             }
         }
         else {
-            $past := QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $past );
+            $past := QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $past, QAST::IVal.new( :value(1), :named('autoderef') ) );
         }
         $past
     }

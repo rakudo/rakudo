@@ -996,6 +996,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         nqp::p6parcel($rpa, Nil);
     }
+    multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
+        my @list := self.words(:eager);
+        return @list == 1 ?? @list[0] !! @list;
+    }
     multi method words(Str:D: :$count!) {
         return self.words if !$count;
 

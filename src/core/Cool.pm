@@ -193,7 +193,10 @@ my class Cool { # declared in BOOTSTRAP
     multi method comb(Regex $matcher, $limit = Inf) { self.Str.comb($matcher, $limit) }
 
     proto method lines(|) {*}
-    multi method lines(Cool:D:) { self.Str.lines() }
+    multi method lines(Cool:D: |c) { self.Str.lines(|c) }
+
+    proto method words(|) {*}
+    multi method words(Cool:D: |c) { self.Str.words(|c) }
 
     proto method subst(|) {
         $/ := nqp::getlexdyn('$/');

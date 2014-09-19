@@ -421,64 +421,65 @@ my role Supply {
 
         on -> $res {
             $self => do {
-                my str $text;
+                my str $str;
+                my int $chars;
                 my int $left;
                 my int $pos;
-                my int $chars;
                 my int $nextpos;
+                my int $found;
                 my int $cr;
                 my int $crlf;
 
                 {
                     more => -> \val {
-                        $text = $text ~ nqp::unbox_s(val);
-                        $left = nqp::chars($text);
-                        $pos  = 0;
+                        $str   = $str ~ nqp::unbox_s(val);
+                        $chars = nqp::chars($str);
+                        $pos   = 0;
 
-                        while ($chars = $left - $pos) > 0 {
+                        while ($left = $chars - $pos) > 0 {
                             $nextpos = nqp::findcclass(
-                              nqp::const::CCLASS_NEWLINE,$text,$pos,$chars
+                              nqp::const::CCLASS_NEWLINE, $str, $pos, $left
                             );
 
                             # no trailing line delimiter, so go buffer
                             last unless nqp::iscclass(
-                              nqp::const::CCLASS_NEWLINE, $text, $nextpos
+                              nqp::const::CCLASS_NEWLINE, $str, $nextpos
                             );
 
                             # potentially broken CRLF, so go buffer
-                            $cr = nqp::ordat($text, $nextpos) == 13;    # CR
-                            last if $cr == 1 and $nextpos + 1 == $left;
+                            $cr = nqp::ordat($str, $nextpos) == 13;    # CR
+                            last if $cr == 1 and $nextpos + 1 == $chars;
 
                             $crlf = $cr
-                              && nqp::ordat($text, $nextpos + 1) == 10; # LF
+                              && nqp::ordat($str, $nextpos + 1) == 10; # LF
 
                             if $chomp {
-                                $res.more( ($chars = $nextpos - $pos)
+                                $res.more( ($found = $nextpos - $pos)
                                   ?? nqp::box_s(
-                                       nqp::substr($text,$pos,$chars), Str)
+                                       nqp::substr($str, $pos, $found), Str)
                                   !! ''
                                 );
-                                $pos = $pos + $chars + 1 + $crlf;
+                                $pos = $nextpos + 1 + $crlf;
                             }
                             else {
-                                $chars = $nextpos - $pos + 1 + $crlf;
+                                $found = $nextpos - $pos + 1 + $crlf;
                                 $res.more( nqp::box_s(
-                                  nqp::substr($text, $pos, $chars), Str)
+                                  nqp::substr($str, $pos, $found), Str)
                                 );
-                                $pos = $pos + $chars;
+                                $pos = $pos + $found;
                             }
                         }
-                        $text = $pos < $left
-                          ?? nqp::substr($text,$pos)
+                        $str = $pos < $chars
+                          ?? nqp::substr($str,$pos)
                           !! '';
                     },
                     done => {
-                        if $text {
-                            $chars = nqp::chars($text);
+                        if $str {
+                            $chars = nqp::chars($str);
                             $res.more( $chomp
-                              && nqp::ordat($text, $chars - 1) == 13    # CR
-                              ?? nqp::box_s(nqp::substr($text,0,$chars - 1),Str)
-                              !! nqp::box_s($text, Str)
+                              && nqp::ordat($str, $chars - 1) == 13    # CR
+                              ?? nqp::box_s(nqp::substr($str,0,$chars - 1),Str)
+                              !! nqp::box_s($str, Str)
                             );
                         }
                         $res.done;

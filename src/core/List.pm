@@ -229,12 +229,12 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method push(List:D: \value) {
-        if nqp::iscont(value) || !(nqp::istype(value, Iterable) || nqp::istype(value, Parcel)) {
+        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
             fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
             nqp::istype(value, self.of)
-                ?? nqp::push($!items, my $ = value)
+                ?? nqp::push($!items, nqp::assign(nqp::p6scalarfromdesc(nqp::null), value))
                 !! X::TypeCheck.new(
                       operation => '.push',
                       expected  => self.of,
@@ -618,7 +618,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method sink() {
-        self.gimme(*, :sink) if self.defined;
+        self.gimme(*, :sink) if self.DEFINITE && $!nextiter.DEFINITE;
         Nil;
     }
 

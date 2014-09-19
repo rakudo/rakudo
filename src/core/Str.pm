@@ -955,29 +955,115 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 
-    method words(Str:D: $limit = *) {
-        my Mu $rpa := nqp::list();
-        my str $str  = nqp::unbox_s(self);
-        my int $end  = nqp::chars($str);
-        my int $word;
-        my int $pos = 0;
-        my int $lim = nqp::istype($limit, Whatever) ?? 0x7fffffff !! $limit;
-        my int $newwhite;
-        my int $oldwhite = 1; # outside string counts as whitespace
-        nqp::setelems($rpa,$end div 6);
-        nqp::setelems($rpa,0);
-        while $pos < $end {
-            $newwhite = nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos);
-            if $oldwhite != $newwhite {
-                if $oldwhite   { $word = $pos }
-                elsif $lim > 0 { $lim = $lim - 1; nqp::push($rpa, nqp::substr($str, $word, $pos - $word)) }
-                else           { last }
-                $oldwhite = $newwhite;
-            }
-            $pos = $pos + 1;
+    multi method words(Str:D:) {
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str);
+        my int $pos   = nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+        my int $left;
+        my int $nextpos;
+
+        gather while ($left = $chars - $pos) > 0 {
+            $nextpos = nqp::findcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+            take nqp::box_s(nqp::substr( $str, $pos, $nextpos - $pos ), Str);
+            last unless $left = $chars - $nextpos;
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
         }
-        nqp::push($rpa, nqp::substr($str, $word, $end - $word)) unless $newwhite || $lim < 1;
-        nqp::elems($rpa) == 1 ?? nqp::atpos($rpa,0) !! nqp::p6parcel($rpa, Nil);
+    }
+    multi method words(Str:D: :$eager!) {
+        return self.words if !$eager;
+
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str);
+        my int $pos   = nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+        my int $left;
+        my int $nextpos;
+        my Mu $rpa := nqp::list();
+
+        while ($left = $chars - $pos) > 0 {
+            $nextpos = nqp::findcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+            nqp::push($rpa,
+              nqp::box_s(nqp::substr( $str, $pos, $nextpos - $pos ), Str));
+            last unless $left = $chars - $nextpos;
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+        }
+        nqp::p6parcel($rpa, Nil);
+    }
+    multi method words(Str:D: :$count!) {
+        return self.words if !$count;
+
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str);
+        my int $pos   = nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+        my int $left;
+        my int $nextpos;
+        my int $words;
+
+        while ($left = $chars - $pos) > 0 {
+            $nextpos = nqp::findcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+            $words = $words + 1;
+            last unless $left = $chars - $nextpos;
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+        }
+        nqp::box_i($words, Int);
+    }
+    multi method words(Str:D: Whatever $, :$eager) { self.words(:$eager) }
+    multi method words(Str:D: $limit) {
+        return self.words if $limit == Inf;
+
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str);
+        my int $pos   = nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+        my int $left;
+        my int $nextpos;
+        my int $count = $limit + 1;
+
+        gather while ($count = $count - 1) and ($left = $chars - $pos) > 0 {
+            $nextpos = nqp::findcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+            take nqp::box_s(nqp::substr( $str, $pos, $nextpos - $pos ), Str);
+            last unless $left = $chars - $nextpos;
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+        }
+    }
+    multi method words(Str:D: $limit, :$eager!) {
+        return self.words(:$eager) if $limit == Inf;
+        return self.words($limit)  if !$eager;
+
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str);
+        my int $pos   = nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+        my int $left;
+        my int $nextpos;
+        my int $count = $limit + 1;
+        my Mu $rpa := nqp::list();
+
+        while ($count = $count - 1) and ($left = $chars - $pos) > 0 {
+            $nextpos = nqp::findcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+            nqp::push($rpa,
+              nqp::box_s(nqp::substr( $str, $pos, $nextpos - $pos ), Str));
+            last unless $left = $chars - $nextpos;
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+        }
+        nqp::p6parcel($rpa, Nil);
     }
 
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;

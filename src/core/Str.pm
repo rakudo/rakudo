@@ -765,7 +765,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         nqp::box_i($lines, Int);
     }
-    multi method lines(Str:D: Whatever $) { self.lines }
+    multi method lines(Str:D: Whatever $, :$eager) { self.lines(:$eager) }
     multi method lines(Str:D: $limit) {
         return self.lines if $limit == Inf;
 
@@ -787,8 +787,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
     multi method lines(Str:D: $limit, :$eager! ) {  # can probably go after GLR
-        return self.lines         if $limit == Inf;
-        return self.lines($limit) if !$eager;
+        return self.lines(:$eager) if $limit == Inf;
+        return self.lines($limit)  if !$eager;
 
         my str $str   = nqp::unbox_s(self);
         my int $chars = nqp::chars($str);
@@ -973,7 +973,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
         }
     }
-    multi method words(Str:D: :$eager!) {
+    multi method words(Str:D: :$eager!) {  # can probably go after GLR
         return self.words if !$eager;
 
         my str $str   = nqp::unbox_s(self);
@@ -1044,7 +1044,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
         }
     }
-    multi method words(Str:D: $limit, :$eager!) {
+    multi method words(Str:D: $limit, :$eager!) {  # can probably go after GLR
         return self.words(:$eager) if $limit == Inf;
         return self.words($limit)  if !$eager;
 

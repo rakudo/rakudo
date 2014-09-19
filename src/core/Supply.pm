@@ -489,6 +489,53 @@ my role Supply {
         }
     }
 
+    method words(Supply:D $self:) {
+
+        on -> $res {
+            $self => do {
+                my str $str;
+                my int $chars;
+                my int $left;
+                my int $pos;
+                my int $nextpos;
+                my int $found;
+                my int $cr;
+                my int $crlf;
+
+                {
+                    more => -> \val {
+                        $str   = $str ~ nqp::unbox_s(val);
+                        $chars = nqp::chars($str);
+                        $pos   = nqp::findnotcclass(
+                          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+                        while ($left = $chars - $pos) > 0 {
+                            $nextpos = nqp::findcclass(
+                              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
+                            );
+
+                            last unless $left = $chars - $nextpos; # broken word
+
+                            $res.more( nqp::box_s(
+                              nqp::substr( $str, $pos, $nextpos - $pos ), Str)
+                            );
+
+                            $pos = nqp::findnotcclass(
+                              nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
+                        }
+                        $str = $pos < $chars
+                          ?? nqp::substr($str,$pos)
+                          !! '';
+                    },
+                    done => {
+                        $res.more( nqp::box_s($str, Str) ) if $str;
+                        $res.done;
+                    }
+                }
+            }
+        }
+    }
+
     method elems(Supply:D $self: $seconds? ) {
 
         on -> $res {

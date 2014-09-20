@@ -101,14 +101,23 @@ my class Int does Real { # declared in BOOTSTRAP
             when int {   # probably need to check Kernel/compiler for this
                 Range.new(-9223372036854775808, 9223372036854775807);
             }
+            when uint {   # probably need to check Kernel/compiler for this
+                Range.new( 0, 18446744073709551615 );
+            }
 
-            when int64 { Range.new(-9223372036854775808, 9223372036854775807) }
-            when int32 { Range.new(         -2147483648, 2147483647         ) }
-            when int16 { Range.new(              -32768, 32767              ) }
-            when int8  { Range.new(                -128, 127                ) }
-            when Int   { Range.new(                -Inf, Inf                ) }
+            when int64  { Range.new(-9223372036854775808, 9223372036854775807) }
+            when int32  { Range.new(         -2147483648, 2147483647         ) }
+            when int16  { Range.new(              -32768, 32767              ) }
+            when int8   { Range.new(                -128, 127                ) }
 
-            default    {
+            when uint64 { Range.new( 0, 18446744073709551615 ) }
+            when uint32 { Range.new( 0, 4294967295           ) }
+            when uint16 { Range.new( 0, 65535                ) }
+            when uint8  { Range.new( 0, 255                  ) }
+
+            when Int    { Range.new( -Inf, Inf ) }
+
+            default {
                 fail "Unknown integer type: {self.^name}";
             }
         }

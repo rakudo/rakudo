@@ -95,6 +95,24 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     method narrow(Int:D:) { self }
+
+    method Range(Int:U:) {
+        given self {
+            when int {   # probably need to check Kernel/compiler for this
+                Range.new(-9223372036854775808, 9223372036854775807);
+            }
+
+            when int64 { Range.new(-9223372036854775808, 9223372036854775807) }
+            when int32 { Range.new(         -2147483648, 2147483647         ) }
+            when int16 { Range.new(              -32768, 32767              ) }
+            when int8  { Range.new(                -128, 127                ) }
+            when Int   { Range.new(                -Inf, Inf                ) }
+
+            default    {
+                fail "Unknown integer type: {self.^name}";
+            }
+        }
+    }
 }
 
 multi prefix:<++>(Int:D $a is rw) {

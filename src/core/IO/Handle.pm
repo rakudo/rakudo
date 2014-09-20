@@ -115,10 +115,14 @@ my class IO::Handle does IO::FileTestable {
 
         gather until nqp::eoffh($!PIO) {
 
+#?if moar
+            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+#?endif
+#?if !moar
             my Buf $buf := Buf.new;
             nqp::readfh($!PIO, $buf, 65536);
-
             $str = $str ~ nqp::unbox_s($buf.decode);
+#?endif
             $chars = nqp::chars($str);
             $pos   = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
@@ -135,7 +139,7 @@ my class IO::Handle does IO::FileTestable {
                   nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
             }
 
-            $str = nqp::substr($str,$pos) if $pos < $chars;
+            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
     }
     multi method words(IO::Handle:D: :$eager!) { # can probably go after GLR
@@ -155,10 +159,14 @@ my class IO::Handle does IO::FileTestable {
 
         until nqp::eoffh($!PIO) {
 
+#?if moar
+            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+#?endif
+#?if !moar
             my Buf $buf := Buf.new;
             nqp::readfh($!PIO, $buf, 65536);
-
             $str   = $str ~ nqp::unbox_s($buf.decode);
+#?endif
             $chars = nqp::chars($str);
             $pos   = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
@@ -175,7 +183,7 @@ my class IO::Handle does IO::FileTestable {
                   nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
             }
 
-            $str = nqp::substr($str,$pos) if $pos < $chars;
+            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
         nqp::p6parcel($rpa, Nil);
     }
@@ -196,10 +204,14 @@ my class IO::Handle does IO::FileTestable {
 
         until nqp::eoffh($!PIO) {
 
+#?if moar
+            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+#?endif
+#?if !moar
             my Buf $buf := Buf.new;
             nqp::readfh($!PIO, $buf, 65536);
-
             $str   = $str ~ nqp::unbox_s($buf.decode);
+#?endif
             $chars = nqp::chars($str);
             $pos   = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
@@ -215,7 +227,7 @@ my class IO::Handle does IO::FileTestable {
                   nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
             }
 
-            $str = nqp::substr($str,$pos) if $pos < $chars;
+            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
         nqp::box_i($found, Int);
     }
@@ -237,10 +249,14 @@ my class IO::Handle does IO::FileTestable {
 
         until nqp::eoffh($!PIO) {
 
+#?if moar
+            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+#?endif
+#?if !moar
             my Buf $buf := Buf.new;
             nqp::readfh($!PIO, $buf, 65536);
-
             $str   = $str ~ nqp::unbox_s($buf.decode);
+#?endif
             $chars = nqp::chars($str);
             $pos   = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
@@ -258,7 +274,7 @@ my class IO::Handle does IO::FileTestable {
                   nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
             }
 
-            $str = nqp::substr($str,$pos) if $pos < $chars;
+            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
         nqp::p6parcel($rpa, Nil);
     }

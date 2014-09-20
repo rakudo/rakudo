@@ -250,11 +250,6 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method min (|) { * }
-    multi method min(Any:U:) {
-        fail "Can only determine min of Numeric types"
-          unless self ~~ Numeric;
-        -Inf;
-    }
     multi method min(Any:D:) {
         my $min;
         for self { 
@@ -272,11 +267,6 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method max (|) { * }
-    multi method max(Any:U:) {
-        fail "Can only determine max of Numeric types"
-          unless self ~~ Numeric;
-        Inf;
-    }
     multi method max(Any:D:) {
         my $max;
         for self { 
@@ -294,11 +284,6 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method minmax (|) { * }
-    multi method minmax(Any:U:) {
-        fail "Can only determine min/max of Numeric types"
-          unless self ~~ Numeric;
-        Range.new(-Inf,Inf);
-    }
     multi method minmax(Any:D: $by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 

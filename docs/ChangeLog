@@ -1,5 +1,6 @@
 New in 2014.10
 + Implemented Supply.lines/words
++ Implemented IO::Handle.words
 + Fixed ordering issue with IO::Socket::Async
 + Str.words is now lazy by default
 + Str.words no longer returns the word if there is only one word: this behaviour

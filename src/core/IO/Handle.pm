@@ -336,34 +336,11 @@ my class IO::Handle does IO::FileTestable {
         }
         nqp::box_i($!ins, Int);
     }
-    multi method lines(IO::Handle:D: Whatever $) { self.lines }
-    multi method lines(IO::Handle:D: $limit) {
-        return self.lines if $limit == Inf;
-
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
-
-        my int $count = $limit + 1;
-        if $.chomp {
-            gather while $count = $count - 1 {
-                last if nqp::eoffh($!PIO);
-                take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
-                $!ins = $!ins + 1;
-            }
-        }
-        else {
-            gather while $count = $count - 1 {
-                last if nqp::eoffh($!PIO);
-                take nqp::p6box_s(nqp::readlinefh($!PIO));
-                $!ins = $!ins + 1;
-            }
-        }
+    multi method lines(IO::Handle:D: Whatever $, :$eager) {
+        self.lines(:$eager);
     }
-    multi method lines(IO::Handle:D: $limit, :$eager!) { # can probably go after GLR
-        return self.lines         if $limit == Inf;
-        return self.lines($limit) if !$eager;
+    multi method lines(IO::Handle:D: $limit, :$eager) {
+        return self.lines(:$eager) if $limit == Inf;
 
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));

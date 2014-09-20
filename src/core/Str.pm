@@ -765,30 +765,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         nqp::box_i($lines, Int);
     }
-    multi method lines(Str:D: Whatever $, :$eager) { self.lines(:$eager) }
-    multi method lines(Str:D: $limit) {
-        return self.lines if $limit == Inf;
-
-        my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str);
-        my int $left;
-        my int $pos;
-        my int $nextpos;
-        my int $found;
-        my int $count = $limit + 1;
-
-        gather while ($count = $count - 1) and ($left = $chars - $pos) > 0 {
-            $nextpos =
-              nqp::findcclass(nqp::const::CCLASS_NEWLINE, $str, $pos, $left);
-            take ($found = $nextpos - $pos)
-              ?? nqp::box_s(nqp::substr( $str, $pos, $found ), Str)
-              !! '';
-            $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
-        }
+    multi method lines(Str:D: Whatever $, :$eager) {
+        self.lines(:$eager);
     }
-    multi method lines(Str:D: $limit, :$eager! ) {  # can probably go after GLR
+    multi method lines(Str:D: $limit, :$eager ) {
         return self.lines(:$eager) if $limit == Inf;
-        return self.lines($limit)  if !$eager;
 
         my str $str   = nqp::unbox_s(self);
         my int $chars = nqp::chars($str);
@@ -1022,31 +1003,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         nqp::box_i($words, Int);
     }
-    multi method words(Str:D: Whatever $, :$eager) { self.words(:$eager) }
-    multi method words(Str:D: $limit) {
-        return self.words if $limit == Inf;
-
-        my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str);
-        my int $pos   = nqp::findnotcclass(
-          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
-        my int $left;
-        my int $nextpos;
-        my int $count = $limit + 1;
-
-        gather while ($count = $count - 1) and ($left = $chars - $pos) > 0 {
-            $nextpos = nqp::findcclass(
-              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
-            take nqp::box_s(nqp::substr( $str, $pos, $nextpos - $pos ), Str);
-            last unless $left = $chars - $nextpos;
-
-            $pos = nqp::findnotcclass(
-              nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
-        }
+    multi method words(Str:D: Whatever $, :$eager) {
+        self.words(:$eager);
     }
-    multi method words(Str:D: $limit, :$eager!) {  # can probably go after GLR
+    multi method words(Str:D: $limit, :$eager) {
         return self.words(:$eager) if $limit == Inf;
-        return self.words($limit)  if !$eager;
 
         my str $str   = nqp::unbox_s(self);
         my int $chars = nqp::chars($str);

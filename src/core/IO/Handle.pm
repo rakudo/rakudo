@@ -100,6 +100,169 @@ my class IO::Handle does IO::FileTestable {
         $c;
     }
 
+    proto method words (|) { * }
+    multi method words(IO::Handle:D:) {
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
+
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+
+        gather until nqp::eoffh($!PIO) {
+
+            my Buf $buf := Buf.new;
+            nqp::readfh($!PIO, $buf, 65536);
+
+            $str = $str ~ nqp::unbox_s($buf.decode);
+            $chars = nqp::chars($str);
+            $pos   = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+            while ($left = $chars - $pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                last unless $left = $chars - $nextpos; # broken word
+
+                take
+                  nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str);
+
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+            }
+
+            $str = nqp::substr($str,$pos) if $pos < $chars;
+        }
+    }
+    multi method words(IO::Handle:D: :$eager!) { # can probably go after GLR
+        return self.words if !$eager;
+
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
+
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+        my Mu $rpa := nqp::list();
+
+        until nqp::eoffh($!PIO) {
+
+            my Buf $buf := Buf.new;
+            nqp::readfh($!PIO, $buf, 65536);
+
+            $str   = $str ~ nqp::unbox_s($buf.decode);
+            $chars = nqp::chars($str);
+            $pos   = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+            while ($left = $chars - $pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                last unless $left = $chars - $nextpos; # broken word
+
+                nqp::push($rpa,
+                  nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str) );
+
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+            }
+
+            $str = nqp::substr($str,$pos) if $pos < $chars;
+        }
+        nqp::p6parcel($rpa, Nil);
+    }
+    multi method words(IO::Handle:D: :$count!) {
+        return self.words if !$count;
+
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
+
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+        my int $found;
+
+        until nqp::eoffh($!PIO) {
+
+            my Buf $buf := Buf.new;
+            nqp::readfh($!PIO, $buf, 65536);
+
+            $str   = $str ~ nqp::unbox_s($buf.decode);
+            $chars = nqp::chars($str);
+            $pos   = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+            while ($left = $chars - $pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                last unless $left = $chars - $nextpos; # broken word
+
+                $found = $found + 1;
+
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+            }
+
+            $str = nqp::substr($str,$pos) if $pos < $chars;
+        }
+        nqp::box_i($found, Int);
+    }
+    multi method words(IO::Handle:D: $limit, :$eager) {
+        return self.words(:$eager) if $limit == Inf or $limit ~~ Whatever;
+
+        unless nqp::defined($!PIO) {
+            self.open($!path, :chomp($.chomp));
+        }
+        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
+
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+        my int $count = $limit;
+        my Mu $rpa := nqp::list();
+
+        until nqp::eoffh($!PIO) {
+
+            my Buf $buf := Buf.new;
+            nqp::readfh($!PIO, $buf, 65536);
+
+            $str   = $str ~ nqp::unbox_s($buf.decode);
+            $chars = nqp::chars($str);
+            $pos   = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+            while $count and ($left = $chars - $pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                last unless $left = $chars - $nextpos; # broken word
+
+                nqp::push($rpa,
+                  nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str) );
+                $count = $count - 1;
+
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+            }
+
+            $str = nqp::substr($str,$pos) if $pos < $chars;
+        }
+        nqp::p6parcel($rpa, Nil);
+    }
+
     proto method lines (|) { * }
     multi method lines(IO::Handle:D:) {
         unless nqp::defined($!PIO) {

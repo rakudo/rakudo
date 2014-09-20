@@ -997,4 +997,21 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
       !! result;
 } #SLICE_MORE
 
+proto sub dd (|) { * }
+multi sub dd (\a) {
+    note "{a.VAR.name} = {a.perl}";
+}
+multi sub dd (\a,\b) {
+    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}";
+}
+multi sub dd (\a,\b,\c) {
+    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}, {c.VAR.name} = {c.perl}";
+}
+multi sub dd (\a,\b,\c,\d) {
+    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}, {c.VAR.name} = {c.perl}, {d.VAR.name} = {d.perl}";
+}
+multi sub dd (\a,\b,\c,\d,\e) {
+    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}, {c.VAR.name} = {c.perl}, {d.VAR.name} = {d.perl}, {e.VAR.name} = {e.perl}";
+}
+
 # vim: ft=perl6 expandtab sw=4

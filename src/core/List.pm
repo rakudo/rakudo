@@ -405,11 +405,11 @@ my class List does Positional { # declared in BOOTSTRAP
         # for sorting.
         if ($by.?count // 2) < 2 {
             my $list = self.map($by).eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $list.at_pos($a) cmp $list.at_pos($b) || $a <=> $b });
         }
         else {
             my $list = self.eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $by($list[$a],$list[$b]) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $by($list.at_pos($a), $list.at_pos($b)) || $a <=> $b });
         }
         self[$index];
     }

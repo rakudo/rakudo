@@ -103,7 +103,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         # get the list of rvalues to store and lhs containers
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
-        my $rhs := nqp::p6list($args, List, Bool::True);   # XXX this might need to be Seq
+        my $rhs := nqp::p6list($args, List, Bool::True);
 
         # first pass -- scan lhs containers and pick out
         # scalar versus list assignment.  This also reifies

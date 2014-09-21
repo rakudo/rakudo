@@ -546,10 +546,9 @@ multi sub sort(*@values)      {
         !! @values.sort;
 }
 
-proto sub item(|) is pure { * }
-multi sub item(Iterable \x) { my $ = x }
-multi sub item(Parcel \x) { my $ = x }
-multi sub item(*@a) { my $ = @a }
+proto sub item(|) is pure   { * }
+multi sub item(\x)    { my $ = x }
+multi sub item(*@a)   { my $ = nqp::p6parcel(nqp::p6argvmarray(), nqp::null()) }
 multi sub item(Mu $a) { $a }
 
 my $default= [];       # so that we can check missing parameters

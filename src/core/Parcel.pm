@@ -35,7 +35,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     }
 
     method elems() { nqp::elems($!storage) }
-    method item()  { my $v = self; }
+    method item()  { my $ = self }
     method flat()  { nqp::p6list(nqp::clone($!storage), List, Bool::True) }
     method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
     method lol()   { nqp::p6list(nqp::clone($!storage), LoL, Mu) }

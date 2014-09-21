@@ -13,7 +13,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method catdir(*@dirs) {
         return "" unless @dirs;
-        return self!canon-cat( "\\", |@dirs ) if @dirs[0] eq "";
+        return self!canon-cat( "\\", @dirs ) if @dirs[0] eq "";
         self!canon-cat(|@dirs);
     }
 

@@ -43,8 +43,11 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
             '$!descriptor',
           ).set_default(nqp::decont($default));
         CATCH {
-            $v.throw( 'X::Comp::Trait::NotOnNative',
-              :type<is>, :subtype<default> ); # can't find out native type yet
+            $default ~~ Whatever
+              ?? $v.throw( 'X::Comp::NYI',
+                :feature<is default(*) on natives> )
+              !! $v.throw( 'X::Comp::Trait::NotOnNative',
+                :type<is>, :subtype<default> ); # can't find out native type yet
         }
     }
 

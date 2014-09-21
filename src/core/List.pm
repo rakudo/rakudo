@@ -385,10 +385,13 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method sort($by = &infix:<cmp>) {
         fail 'Cannot .sort an infinite list' if self.infinite; #MMD?
-        # We defer to Parrot's ResizablePMCArray.sort method here.
+
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as
-        # a slice into self.
+        # a slice into self. This is for historical reasons: on
+        # Parrot we delegate to RPA.sort. The JVM implementation
+        # uses a Java collection sort. MoarVM has its sort algorithm
+        # implemented in NQP.
 
         # nothing to do here
         my $elems := self.elems;

@@ -250,7 +250,7 @@ only sub infix:<<"\x227D">>($a, $b --> Bool) {
 }
 
 sub set(*@args --> Set) { Set.new(@args) }
-sub bag(*@args --> Bag) { Bag.new(|@args) }
-sub mix(*@args --> Mix) { Mix.new(|@args) }
+sub bag(*@args --> Bag) { Bag.new(@args) }
+sub mix(*@args --> Mix) { Mix.new(@args) }
 
 # vim: ft=perl6 expandtab sw=4

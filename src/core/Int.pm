@@ -98,11 +98,13 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Range(Int:U:) {
         given self {
-            when int {   # probably need to check Kernel/compiler for this
-                Range.new(-9223372036854775808, 9223372036854775807);
+            when int {
+                my int $a = 0x1ffffffff;
+                $a == 8589934591 ??  int64.Range !!  int32.Range;
             }
-            when uint {   # probably need to check Kernel/compiler for this
-                Range.new( 0, 18446744073709551615 );
+            when uint {
+                my uint $a = 0x1ffffffff;
+                $a == 8589934591 ?? uint64.Range !! uint32.Range;
             }
 
             when int64  { Range.new(-9223372036854775808, 9223372036854775807) }

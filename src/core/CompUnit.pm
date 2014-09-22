@@ -45,7 +45,8 @@ class CompUnit {
         return Nil unless $has-source or $has-precomp;
 
         $global.protect( { %instances{$path} //= self.bless(
-          :$path,
+          :path($path.path),
+          :lock(Lock.new),
           :$name,
           :$extension,
           :$precomp-ext,
@@ -54,21 +55,6 @@ class CompUnit {
           :$has-precomp,
           :!is-loaded,
         ) } );
-    }
-
-    method BUILD(
-      :$path,
-      :$!name,
-      :$!extension,
-      :$!precomp-ext,
-      :$!from,
-      :$!has-source,
-      :$!has-precomp,
-      :$!is-loaded,
-    ) {
-        $!lock = Lock.new;
-        $!path = $path.path;
-        self
     }
 
     multi method WHICH(CompUnit:D:) { $!WHICH //= "{self.^name}|$!path" }

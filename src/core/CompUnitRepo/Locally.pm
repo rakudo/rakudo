@@ -7,13 +7,7 @@ role CompUnitRepo::Locally {
 
     method new( $path ) {
         return Nil unless $path.IO.e;
-        %instances{$path} //= self.bless(:$path)
-    }
-
-    method BUILD(:$path) {
-        $!lock  = Lock.new;
-        $!path  = $path.path;
-        self
+        %instances{$path} //= self.bless(:path($path.path), :lock(Lock.new));
     }
 
     multi method WHICH (CompUnitRepo::Locally:D:) {

@@ -43,8 +43,9 @@ sub gist(|) {
 }
 
 sub prompt($msg) {
-    print $msg;
-    $*OUT.flush();
+    my $out := $*OUT;
+    $out.print($msg);
+    $out.flush();
     $*IN.get;
 }
 

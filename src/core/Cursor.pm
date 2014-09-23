@@ -12,13 +12,15 @@ my class Cursor does NQPCursorRole {
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
         $match := nqp::create(Match);
         nqp::bindattr($match, Match, '$!orig', nqp::findmethod(self, 'orig')(self));
-        nqp::bindattr_i($match, Match, '$!from', nqp::getattr_i(self, Cursor, '$!from'));
-        nqp::bindattr_i($match, Match, '$!to', nqp::getattr_i(self, Cursor, '$!pos'));
+        my int $from = nqp::getattr_i(self, Cursor, '$!from');
+        my int $to   = nqp::getattr_i(self, Cursor, '$!pos');
+        nqp::bindattr_i($match, Match, '$!from', $from);
+        nqp::bindattr_i($match, Match, '$!to', $to);
         nqp::bindattr($match, Match, '$!made', nqp::getattr(self, Cursor, '$!made'));
         nqp::bindattr($match, Match, '$!CURSOR', self);
         my Mu $list;
         my Mu $hash := nqp::hash();
-        if $match.Bool {
+        if $to >= $from {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Cursor, '$!regexsub');
@@ -40,7 +42,7 @@ my class Cursor does NQPCursorRole {
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(
                                         nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                        +$name, [])
+                                        nqp::bind(my int $, $name), [])
                                 !! nqp::bindkey($hash, $name, []);
                         }
                     }
@@ -51,13 +53,13 @@ my class Cursor does NQPCursorRole {
             my Mu $cs := nqp::getattr(self, Cursor, '$!cstack');
             if !nqp::isnull($cs) && nqp::istrue($cs) {
                 my int $cselems = nqp::elems($cs);
-                my int $csi = 0;
+                my int $csi     = 0;
                 while $csi < $cselems {
-                    my $subcur   := nqp::atpos($cs, $csi);
-                    my $submatch := $subcur.MATCH;
-                    my $name     := nqp::getattr($subcur, $?CLASS, '$!name');
+                    my Mu $subcur   := nqp::atpos($cs, $csi);
+                    my Mu $submatch := $subcur.MATCH;
+                    my Mu $name     := nqp::getattr($subcur, $?CLASS, '$!name');
                     if !nqp::isnull($name) && nqp::defined($name) {
-                        if $name ne '' && nqp::ordat($name, 0) == 36 && ($name eq '$!from' || $name eq '$!to') {
+                        if $name ne '' && nqp::eqat($name, '$', 0) && ($name eq '$!from' || $name eq '$!to') {
                             nqp::bindattr_i($match, Match, $name, $submatch.from);
                         }
                         elsif nqp::index($name, '=') < 0 {
@@ -72,15 +74,15 @@ my class Cursor does NQPCursorRole {
 #?endif
                             if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                 $list := nqp::list() unless nqp::isconcrete($list);
-#?if jvm
-                                my int $pos = +nqp::p6box_s($name);
-#?endif
-#?if !jvm
-                                my int $pos = +$name;
-#?endif
                                 $needs_list
-                                    ?? nqp::atpos($list, $pos).push($submatch)
-                                    !! nqp::bindpos($list, $pos, $submatch);
+#?if parrot
+                                    ?? nqp::atpos($list, +$name).push($submatch)
+                                    !! nqp::bindpos($list, +$name, $submatch);
+#?endif
+#?if !parrot
+                                    ?? nqp::atpos($list, nqp::bind(my int $, nqp::unbox_s($name))).push($submatch)
+                                    !! nqp::bindpos($list, nqp::bind(my int $, nqp::unbox_s($name)), $submatch);
+#?endif
                             }
                             else {
                                 $needs_list
@@ -92,8 +94,13 @@ my class Cursor does NQPCursorRole {
                             my Mu $names := nqp::split('=', $name);
                             my $iter     := nqp::iterator($names);
                             while $iter {
-                                my $name := nqp::shift($iter);
-                                my Mu $capval     := nqp::atkey($caplist, $name);
+#?if parrot
+                                my Mu $name   := nqp::shift($iter);
+#?endif
+#?if !parrot
+                                my str $name   = nqp::unbox_s(nqp::shift($iter));
+#?endif
+                                my Mu $capval := nqp::atkey($caplist, $name);
 #?if jvm
                                 my int $needs_list = nqp::isconcrete($capval) &&
                                     ((nqp::isint($capval) && nqp::isge_i($capval, 2)) ||
@@ -104,15 +111,15 @@ my class Cursor does NQPCursorRole {
 #?endif
                                 if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                     $list := nqp::list() unless nqp::isconcrete($list);
-#?if jvm
-                                    my int $pos = +nqp::p6box_s($name);
-#?endif
-#?if !jvm
-                                    my int $pos = +$name;
-#?endif
                                     $needs_list
-                                        ?? nqp::atpos($list, $pos).push($submatch)
-                                        !! nqp::bindpos($list, $pos, $submatch);
+#?if parrot
+                                        ?? nqp::atpos($list, +$name).push($submatch)
+                                        !! nqp::bindpos($list, +$name, $submatch);
+#?endif
+#?if !parrot
+                                        ?? nqp::atpos($list, nqp::bind(my int $, $name)).push($submatch)
+                                        !! nqp::bindpos($list, nqp::bind(my int $, $name), $submatch);
+#?endif
                                 }
                                 else {
                                     $needs_list

@@ -2100,6 +2100,11 @@ class Perl6::World is HLL::World {
             $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
             $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT')
         }
+
+        # Checks if the name starts with GLOBAL.
+        method is_declared_in_global() {
+            @!components > 1 && !nqp::istype(@!components[0], QAST::Node) && @!components[0] eq 'GLOBAL'
+        }
     }
     
     # Takes a longname and turns it into an object representing the

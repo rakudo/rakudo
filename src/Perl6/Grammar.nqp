@@ -2105,8 +2105,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my @name := $longname ??
                         $longname.type_name_parts('package name', :decl(1)) !!
                         [];
+                    my $target_package := $longname && $longname.is_declared_in_global()
+                        ?? $*GLOBALish
+                        !! $*OUTERPACKAGE;
                     if @name && $*SCOPE ne 'anon' {
-                        if @name && $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
+                        if @name && $*W.already_declared($*SCOPE, $target_package, $outer, @name) {
                             $*PACKAGE := $*W.find_symbol(@name);
                             $exists := 1;
                         }
@@ -2138,7 +2141,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         
                         # Install it in the symbol table if needed.
                         if @name {
-                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $target_package, $outer, $*PACKAGE);
                         }
                     }
                     
@@ -2153,7 +2156,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         }
                         else {
                             $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()), :repr($*REPR));
-                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $target_package, $outer, $group);
                         }
 
                         # Construct role meta-object with group.

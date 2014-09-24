@@ -2103,7 +2103,10 @@ class Perl6::World is HLL::World {
 
         # Checks if the name starts with GLOBAL.
         method is_declared_in_global() {
-            @!components > 1 && !nqp::istype(@!components[0], QAST::Node) && @!components[0] eq 'GLOBAL'
+            @!components > 1
+              && !nqp::istype(@!components[0], QAST::Node)
+              && @!components[0]   # need this to fix crash on OS X
+              && @!components[0] eq 'GLOBAL';
         }
     }
     

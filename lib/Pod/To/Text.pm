@@ -12,7 +12,6 @@ if %*ENV<POD_TO_TEXT_ANSI> {
 }
 
 sub pod2text($pod) is export {
-    my @declarators;
     given $pod {
         when Pod::Heading      { heading2text($pod)             }
         when Pod::Block::Code  { code2text($pod)                }

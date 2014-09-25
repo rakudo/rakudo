@@ -1,5 +1,5 @@
 my role  IO { ... }
-my class IO::Handle { ... }
+my class IO::Path { ... }
 
 my class SprintfHandler {
     method mine($x) { nqp::reprname($x) eq "P6opaque"; }
@@ -207,12 +207,14 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.subst($matcher, $replacement, |%adverbs);
     }
 
+    proto method IO(|) { * }
+    multi method IO(|c) { IO::Path.new(self) }
+
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
-    method IO() { IO::Handle.new(:path(self.Stringy)) }
-    method path() { self.Stringy.path }
+    method path() { self.Stringy.IO }
     method trim         () { self.Stringy.trim          };
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };

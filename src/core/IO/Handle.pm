@@ -1,3 +1,5 @@
+my class IO::Path { ... }
+
 my class IO::Handle does IO::FileTestable {
     has $!PIO;
     has int $.ins;
@@ -7,7 +9,7 @@ my class IO::Handle does IO::FileTestable {
 
     proto method open(|) { * }
     multi method open($path? is copy, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
-            :enc(:$encoding) = 'utf8') {
+            :$enc = 'utf8') {
         $path //= $!path;
         my $is_std_handle = $path eq "-";
         $r = $w = True if $rw;
@@ -15,8 +17,7 @@ my class IO::Handle does IO::FileTestable {
         $!isDir = Bool::True if !$is_std_handle &&
             nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_EXISTS))
             && nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_ISDIR));
-        fail (X::IO::Directory.new(:$path, :trying<open( :w )>))
-            if $w && $!isDir;
+        fail (X::IO::Directory.new(:$path, :trying<open>)) if $!isDir;
 #?if parrot
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
@@ -59,7 +60,7 @@ my class IO::Handle does IO::FileTestable {
 #?endif
         $!path = $path;
         $!chomp = $chomp;
-        nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding)) unless $bin;
+        nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
         self;
     }
 
@@ -101,7 +102,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     proto method words (|) { * }
-    multi method words(IO::Handle:D:) {
+    multi method words(IO::Handle:D: :$close) {
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
         }
@@ -113,37 +114,42 @@ my class IO::Handle does IO::FileTestable {
         my int $left;
         my int $nextpos;
 
-        gather until nqp::eoffh($!PIO) {
+        gather {
+            until nqp::eoffh($!PIO) {
 
 #?if moar
-            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+                # optimize for ASCII
+                $str   = $str ~ nqp::readcharsfh($!PIO, 65536);
 #?endif
 #?if !moar
-            my Buf $buf := Buf.new;
-            nqp::readfh($!PIO, $buf, 65536);
-            $str = $str ~ nqp::unbox_s($buf.decode);
+                my Buf $buf := Buf.new;
+                nqp::readfh($!PIO, $buf, 65536);
+                $str = $str ~ nqp::unbox_s($buf.decode);
 #?endif
-            $chars = nqp::chars($str);
-            $pos   = nqp::findnotcclass(
-              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+                $chars = nqp::chars($str);
+                $pos   = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
 
-            while ($left = $chars - $pos) > 0 {
-                $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
-                last unless $left = $chars - $nextpos; # broken word
+                while ($left = $chars - $pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                    last unless $left = $chars - $nextpos; # broken word
 
-                take
-                  nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str);
+                    take
+                      nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str);
 
-                $pos = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+                    $pos = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+                }
+
+                $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
             }
-
-            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+            self.close if $close;
         }
     }
-    multi method words(IO::Handle:D: :$eager!) { # can probably go after GLR
-        return self.words if !$eager;
+    # can probably go after GLR
+    multi method words(IO::Handle:D: :$eager!, :$close) {
+        return self.words(:$close) if !$eager;
 
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
@@ -185,10 +191,11 @@ my class IO::Handle does IO::FileTestable {
 
             $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
+        self.close if $close;
         nqp::p6parcel($rpa, Nil);
     }
-    multi method words(IO::Handle:D: :$count!) {
-        return self.words if !$count;
+    multi method words(IO::Handle:D: :$count!, :$close) {
+        return self.words(:$close) if !$count;
 
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
@@ -229,10 +236,12 @@ my class IO::Handle does IO::FileTestable {
 
             $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
+        self.close if $close;
         nqp::box_i($found, Int);
     }
-    multi method words(IO::Handle:D: $limit, :$eager) {
-        return self.words(:$eager) if $limit == Inf or $limit ~~ Whatever;
+    multi method words(IO::Handle:D: $limit, :$eager, :$close) {
+        return self.words(:$eager,:$close)
+          if $limit == Inf or $limit ~~ Whatever;
 
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
@@ -276,30 +285,38 @@ my class IO::Handle does IO::FileTestable {
 
             $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
+        self.close if $close;
         nqp::p6parcel($rpa, Nil);
     }
 
     proto method lines (|) { * }
-    multi method lines(IO::Handle:D:) {
+    multi method lines(IO::Handle:D: :$close) {
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
         }
         fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
 
         if $.chomp {
-            gather until nqp::eoffh($!PIO) {
-                take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
-                $!ins = $!ins + 1;
+            gather {
+                until nqp::eoffh($!PIO) {
+                    take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
+                    $!ins = $!ins + 1;
+                }
+                self.close if $close;
             }
         }
         else {
-            gather until nqp::eoffh($!PIO) {
-                take nqp::p6box_s(nqp::readlinefh($!PIO));
-                $!ins = $!ins + 1;
+            gather {
+                until nqp::eoffh($!PIO) {
+                    take nqp::p6box_s(nqp::readlinefh($!PIO));
+                    $!ins = $!ins + 1;
+                }
+                self.close if $close;
             }
         }
     }
-    multi method lines(IO::Handle:D: :$eager!) { # can probably go after GLR
+    # can probably go after GLR
+    multi method lines(IO::Handle:D: :$eager!, :$close) {
         return self.lines if !$eager;
 
         unless nqp::defined($!PIO) {
@@ -320,10 +337,11 @@ my class IO::Handle does IO::FileTestable {
                 $!ins = $!ins + 1;
             }
         }
+        self.close if $close;
         nqp::p6parcel($rpa, Nil);
     }
-    multi method lines(IO::Handle:D: :$count!) {
-        return self.lines if !$count;
+    multi method lines(IO::Handle:D: :$count!, :$close) {
+        return self.lines(:$close) if !$count;
 
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
@@ -336,11 +354,9 @@ my class IO::Handle does IO::FileTestable {
         }
         nqp::box_i($!ins, Int);
     }
-    multi method lines(IO::Handle:D: Whatever $, :$eager) {
-        self.lines(:$eager);
-    }
-    multi method lines(IO::Handle:D: $limit, :$eager) {
-        return self.lines(:$eager) if $limit == Inf;
+    multi method lines(IO::Handle:D: $limit, :$eager, :$close) {
+        return self.lines(:$eager, :$close)
+          if $limit == Inf or $limit ~~ Whatever;
 
         unless nqp::defined($!PIO) {
             self.open($!path, :chomp($.chomp));
@@ -363,6 +379,7 @@ my class IO::Handle does IO::FileTestable {
                 $!ins = $!ins + 1;
             }
         }
+        self.close if $close;
         nqp::p6parcel($rpa, Nil);
     }
 
@@ -449,9 +466,9 @@ my class IO::Handle does IO::FileTestable {
 
     proto method spurt(|) { * }
     multi method spurt(Cool $contents,
-                    :encoding(:$enc) = 'utf8',
+                    :$enc = 'utf8',
                     :$createonly, :$append) {
-        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
+        fail("File '" ~ self.path ~ "' already exists, but :createonly was specified")
             if $createonly && self.e;
         fail (X::IO::Directory.new(:$!path, :trying<spurt>, :use<mkdir>))
             if self.d();
@@ -494,7 +511,7 @@ my class IO::Handle does IO::FileTestable {
         self.path.absolute.chmod($mode)
     }
 
-    method IO { self }
+    method IO { IO::Path.new($!path) }
 
     method path {  IO::Path.new($!path)  }
 

@@ -19,11 +19,11 @@ my class IO::Path is Cool does IO::FileTestable {
             if defined $dir;
     }
 
-    multi method new(:$basename!, :$directory = '.', :$volume = '') {
+    multi method new(IO::Path: :$basename!, :$directory = '.', :$volume = '') {
         self.bless: path=>$.SPEC.join($volume, $directory, $basename);
     }
 
-    multi method new(Str:D $path) {
+    multi method new(IO::Path: $path as Str) {
         self.bless(:$path)
     }
 
@@ -70,11 +70,12 @@ my class IO::Path is Cool does IO::FileTestable {
         self.new(:$.volume, :$.directory, basename=> $.basename.pred)
     }
 
-    method IO(IO::Path:D: *%opts) {
-        IO::Handle.new(:$!path, |%opts);
+    method IO(IO::Path:D: |c) {
+        IO::Path.new($!path, |c);
     }
-    method open(IO::Path:D: *%opts) {
-        open($!path, |%opts);
+    method open(IO::Path:D: |c) {
+        my $handle = IO::Handle.new(:path($!path));
+        $handle && $handle.open(|c);
     }
 
 #?if moar
@@ -211,6 +212,41 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
     }
 
+    proto method slurp() { * }
+    multi method slurp(IO::Path:D: |c) {
+        my $handle = self.open(|c);
+        $handle && do {
+            my $slurp := $handle.slurp(|c);
+            $handle.close;  # can't use LEAVE in settings :-(
+            $slurp;
+        }
+    }
+
+    proto method spurt(|) { * }
+    multi method spurt(IO::Path:D: $what, :$enc = 'utf8', :$append, :$createonly, |c) {
+        if $createonly and self.e {
+            fail("File '$!path' already exists, and :createonly was specified");
+        }
+        my $mode = $append ?? :a !! :w;
+        my $handle = self.open(:$enc, |$mode, |c);
+        $handle && do {
+            my $spurt := $handle.spurt($what, :$enc, |c);
+            $handle.close;  # can't use LEAVE in settings :-(
+            $spurt;
+        }
+    }
+
+    proto method lines() { * }
+    multi method lines(IO::Path:D: |c) {
+        my $handle = self.open(|c);
+        $handle && $handle.lines(:close, |c);
+    }
+
+    proto method words() { * }
+    multi method words(IO::Path:D: |c) {
+        my $handle = self.open(|c);
+        $handle && $handle.words(:close, |c);
+    }
 }
 
 my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }

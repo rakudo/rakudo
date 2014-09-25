@@ -82,8 +82,9 @@ sub rmdir($path as Str) {
 }
 
 proto sub open(|) { * }
-multi sub open($path, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
-    IO::Handle.new.open($path, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp, :$encoding);
+multi sub open($path, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp = True, :$enc = 'utf8') {
+    my $handle = IO::Handle.new;
+    $handle.open($path,:$r,:$w,:$rw,:$a,:$p,:$bin,:$chomp,:$enc) && $handle;
 }
 
 proto sub lines(|) { * }
@@ -109,42 +110,24 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|) { * }
-multi sub slurp($filename, :$bin = False, :$enc = 'utf8') {
-    $filename.IO.slurp(:$bin, :$enc);
+multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
+    my $result := $io.slurp(:$bin, :$enc, |c);
+    $result // $result.throw;
 }
-
-multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc) {
-    $io.slurp(:$bin, :$enc);
+multi sub slurp($path, :$bin = False, :$enc = 'utf8', |c) {
+    my $result := $path.IO.slurp(:$bin, :$enc, |c);
+    $result // $result.throw;
 }
 
 proto sub spurt(|) { * }
-multi sub spurt(IO::Handle $fh,
-                Cool $contents,
-                :encoding(:$enc) = 'utf8',
-                :$createonly,
-                :$append) {
-    $fh.spurt($contents, :$enc, :$createonly, :$append);
-}
-multi sub spurt(IO::Handle $fh,
-                Blob $contents,
-                :$createonly,
-                :$append) {
-    $fh.spurt($contents, :$createonly, :$append);
+multi sub spurt(IO::Handle $fh, $what, :$enc = 'utf8', |c ) {
+    my $result := $fh.spurt($what, :$enc, |c);
+    $result // $result.throw;
 }
 
-multi sub spurt(Cool $filename,
-                Cool $contents,
-                :encoding(:$enc) = 'utf8',
-                :$createonly,
-                :$append) {
-    $filename.IO.spurt($contents, :$enc, :$createonly, :$append);
-}
-
-multi sub spurt(Cool $filename,
-                Blob $contents,
-                :$createonly,
-                :$append) {
-    $filename.IO.spurt($contents, :$createonly, :$append);
+multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
+    my $result := $path.IO.spurt($what, :$enc, |c);
+    $result // $result.throw;
 }
 
 {

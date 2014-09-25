@@ -28,6 +28,9 @@ my class IO::Spec {
 #?endif
     my $SPEC := IO::Spec.WHO{ $submodule // 'Unix' };
 
+    # temporary non-lazy initialization of $*SPEC
+    PROCESS::<$SPEC> = $SPEC;
+
     method FSTYPE ($OS = $*DISTRO.name)   { %module{$OS} // 'Unix' }
 
     method MODULE 

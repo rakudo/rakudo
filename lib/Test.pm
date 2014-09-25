@@ -291,7 +291,7 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
 
 sub throws_like($code, $ex_type, $reason?, *%matcher) is export {
     subtest {
-        plan 2 + %matcher.keys;
+        plan 2 + %matcher.keys.elems;
         my $msg;
         if $code ~~ Callable {
             $msg = 'code dies';

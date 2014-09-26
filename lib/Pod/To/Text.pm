@@ -129,7 +129,7 @@ sub formatting2text($pod) {
     my $contents=$pod.contents;
     my $sth = $pod.contents.subst(/['doc' | 'file']\:/,"");
     if $contents ~~ /doc/ {
-      $path = @*INC[1].candidates($sth).path;
+      $path = @*INC.>>.candidates($sth).path;
     } else {
       $path = $sth;
     }

@@ -121,21 +121,21 @@ my %formats =
 ;
 
 sub formatting2text($pod) {
-  my $text = $pod.contents>>.&pod2text.join;
-  if $pod.type ~~ %formats {
-    return colored($text, %formats{$pod.type});
-  } elsif $pod.type ~~ 'P' {
-    my $path;
-    my $contents=$pod.contents;
-    my $sth = $pod.contents.subst(/['doc' | 'file']\:/,"");
-    if $contents ~~ /doc/ {
-      $path = @*INC.>>.candidates($sth).path;
-    } else {
-      $path = $sth;
+    my $text = $pod.contents>>.&pod2text.join;
+    if $pod.type ~~ %formats {
+        return colored($text, %formats{$pod.type});
+    } elsif $pod.type ~~ 'P' {
+        my $path;
+        my $contents=$pod.contents;
+        my $sth = $pod.contents.subst(/['doc' | 'file']\:/,"");
+        if $contents ~~ /doc/ {
+            $path = @*INC.>>.candidates($sth).path;
+        } else {
+            $path = $sth;
+        }
+        return qqx {$*EXECUTABLE_NAME --doc $path};
     }
-    return qqx {$*EXECUTABLE_NAME --doc $path};
-  }
-  $text
+    $text
 }
 
 sub twine2text($twine) {

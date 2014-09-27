@@ -114,7 +114,7 @@ class Kernel does Systemic {
             %!signals_by_Str =
               @.signals.pairs.grep(*.value.defined).map({~$_.value => +.key});
         }
-        %!signals_by_Str{$signal} // %!signals_by_Str{"SIG$signal"};
+        %!signals_by_Str{$signal} // %!signals_by_Str{"SIG$signal"} // Int;
     }
 
     has %!signals_by_Signal;
@@ -123,7 +123,7 @@ class Kernel does Systemic {
             %!signals_by_Signal =
               @.signals.pairs.grep(*.value.defined).map({~$_.value.WHICH => +.key});
         }
-        %!signals_by_Signal{$signal.WHICH};
+        %!signals_by_Signal{$signal.WHICH} // Int;
     }
 
     multi method signal(Kernel:D: Int:D $signal --> Int) { $signal }

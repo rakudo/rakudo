@@ -94,8 +94,14 @@ class Kernel does Systemic {
     has @!signals;  # Signal
     method signals (Kernel:D:) {
         once {
-            my @names = "",qx/kill -l/.words;
-            @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
+            my @names;
+            if self.name eq 'win32' {
+                # These are the ones libuv emulates on Windows.
+                @names = "", <INT BREAK HUP WINCH>;
+            } else {
+                @names = "",qx/kill -l/.words;
+                @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
+            }
 
             for Signal.^enum_value_list -> $signal {
                 my $name = $signal.key.substr(3);

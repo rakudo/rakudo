@@ -18,6 +18,9 @@ class Kernel does Systemic {
                 when any <linux macosx freebsd> { 
                     qx/uname -s/.chomp.lc;
                 }
+                when 'mswin32' {
+                    'win32'
+                }
                 default {
                     "unknown";
                 }

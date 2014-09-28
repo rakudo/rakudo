@@ -1,6 +1,4 @@
-my class IO::Spec { ... }
-
-my class IO::Spec::Unix {
+my class IO::Spec::Unix is IO::Spec {
 
     method canonpath( $path is copy, :$parent --> Str) {
         return '' if $path eq '';

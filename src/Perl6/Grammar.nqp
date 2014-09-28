@@ -139,7 +139,7 @@ role STD {
 
     role herestop {
         token starter { <!> }
-        token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ \v? }
+        token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ [\r\n | \v]? }
     }
 
     method heredoc () {

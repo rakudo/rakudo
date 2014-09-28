@@ -193,6 +193,8 @@ only sub infix:<<"\x2285">>($a, $b --> Bool) {
 }
 
 only sub infix:<(.)>(**@p) {
+    return bag() unless @p;
+
     my $baghash = @p[0] ~~ BagHash
       ?? BagHash.new-fp(@p.shift.pairs)
       !! @p.shift.BagHash;

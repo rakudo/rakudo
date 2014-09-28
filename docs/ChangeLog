@@ -1,4 +1,6 @@
 New in 2014.10
++ unstrict mode now default with -e
++ use strict / no strict implemented
 + Implemented Supply.lines/words
 + Implemented IO::Handle.words
 + Fixed ordering issue with IO::Socket::Async

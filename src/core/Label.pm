@@ -8,7 +8,7 @@ my class Label {
         # XXX Register in &?BLOCK.labels when we have &?BLOCK.
         my $obj  := nqp::create(self);
         nqp::bindattr($obj, Label, '$!name',      $name);
-        nqp::bindattr($obj, Label, '$!file',     ~nqp::getlexdyn('$?FILES'));
+        nqp::bindattr($obj, Label, '$!file',      nqp::p6box_s(nqp::getlexdyn('$?FILES')));
         nqp::bindattr($obj, Label, '$!line',      $line);
         nqp::bindattr($obj, Label, '$!prematch',  nqp::p6box_s($prematch));
         nqp::bindattr($obj, Label, '$!postmatch', nqp::p6box_s($postmatch));

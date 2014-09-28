@@ -68,7 +68,6 @@ Language Features
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
-2 **    'no strict;' (moritz,FROGGS)
 3 ***   domain specific languages -- slang and grammar tweaks (FROGGS)
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.) (FROGGS)
 3 ?     Parse and execute simple Perl 5 code (FROGGS)

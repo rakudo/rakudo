@@ -284,11 +284,16 @@ role STD {
             my $name := $varast.name;
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
-                    my @suggestions := $*W.suggest_lexicals($name);
-                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name(), suggestions => @suggestions);
+                    if !$*STRICT {
+                        $*W.auto_declare_var($var);
+                    }
+                    else {
+                        my @suggestions := $*W.suggest_lexicals($name);
+                        $*W.throw($var, ['X', 'Undeclared'], symbol => $name, suggestions => @suggestions);
+                    }
                 }
                 else {
-                    $var.CURSOR.add_mystery($varast.name, $var.to, 'var');
+                    $var.CURSOR.add_mystery($name, $var.to, 'var');
                 }
             }
             else {
@@ -939,6 +944,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*MYSTERY;                             # names we assume may be post-declared functions
         :my $*BORG;                                # who gets blamed for a missing block
         :my $*CCSTATE := '';
+        :my $*STRICT;
         
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -1061,7 +1067,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
                 $*MAIN := $*W.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
             }
-            
+            if $have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
+                $*STRICT := $*W.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
+            }
+            else {
+                $*STRICT := nqp::getlexdyn('$?FILES') ne '-e';
+            }
+
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
             unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
@@ -1069,6 +1081,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
                 $*W.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
+                $*W.install_lexical_symbol($*UNIT, '$*STRICT', $*STRICT);
                 $*DECLARAND := $*W.stub_code_object('Block');
             }
             my $M := %*COMPILING<%?OPTIONS><M>;
@@ -1140,8 +1153,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statementlist($*statement_level = 0) {
-        :my %*LANG := self.shallow_copy(nqp::getlexdyn('%*LANG'));
-        :my %*HOW  := self.shallow_copy(nqp::getlexdyn('%*HOW'));
+        :my %*LANG   := self.shallow_copy(nqp::getlexdyn('%*LANG'));
+        :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));
+        :my $*STRICT := nqp::getlexdyn('$*STRICT');
         :dba('statement list')
         ''
         [
@@ -1437,6 +1451,30 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    token statement_control:sym<6> {
+        <?{ $*begin_compunit }> <sym> <?[;]> <.ws> <!!{ $*STRICT := 0; 1 }>
+    }
+
+    token statement_control:sym<no> {
+        :my $longname;
+        <sym> <.ws>
+        [
+        | <module_name>
+            {
+                $longname := $<module_name><longname>;
+
+                if $longname.Str eq 'strict' {
+                    # Turn on lax mode.
+                    $*STRICT := 0;
+                }
+                else {
+                    nqp::die("Unknown pragma '$longname'");
+                }
+            }
+        ]
+        <.ws>
+    }
+
     token statement_control:sym<use> {
         :my $longname;
         :my $*IN_DECL := 'use';
@@ -1452,7 +1490,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $/.CURSOR.import_EXPORTHOW($module);
                     } ]?
                     [ <?{ ~$<version><vnum>[0] eq '6' }> {
-                        $*MAIN := 'MAIN';
+                        $*MAIN   := 'MAIN';
+                        $*STRICT := 1 if $*begin_compunit;
                     } ]?
         | <module_name>
             {
@@ -1468,6 +1507,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # This is an approximation; need to pay attention to argument
                     # list really.
                     $*SOFT := 1;
+                    $longname := "";
+                }
+                elsif $longname.Str eq 'strict' {
+                    # Turn off lax mode.
+                    $*STRICT  := 1;
                     $longname := "";
                 }
                 elsif $longname.Str eq 'FORBID_PIR' ||

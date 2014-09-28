@@ -71,6 +71,7 @@ S02-names/is_dynamic.t
 S02-names/name.t
 S02-names/our.t
 S02-names/pseudo.t
+S02-names/strict.t
 S02-names/symbolic-deref.t
 S02-names-vars/contextual.t
 S02-names-vars/fmt.t

@@ -71,7 +71,9 @@ my class IO::Spec::Unix is IO::Spec {
         $dirname  = '.'  if $dirname eq ''  && $basename ne '';
         # shell dirname '' produces '.', but we don't because it's probably user error
 
-        return (:volume(''), :$dirname, :$basename );
+        # temporary, for the transition period
+        (:volume(''), :$dirname, :$basename, :directory($dirname));
+#        (:volume(''), :$dirname, :$basename);
     }
 
 

@@ -67,7 +67,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         $basename = '\\' if $dirname eq any('/', '\\') && $basename eq '';
         $dirname  = '.'  if $dirname eq ''             && $basename ne '';
 
-        return (:$volume, :$dirname, :$basename);
+        # temporary, for the transition period
+        (:$volume, :$dirname, :$basename, :directory($dirname));
+#        (:$volume, :$dirname, :$basename);
     }
 
     method join ($volume, $dirname is copy, $file is copy) { 

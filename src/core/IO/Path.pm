@@ -37,8 +37,12 @@ my class IO::Path is Cool does IO::FileTestable {
     method basename(IO::Path:D:) {
         self.parts<basename>
     }
+    method dirname(IO::Path:D:) {
+        self.parts<dirname>
+    }
     method directory(IO::Path:D:) {
-        self.parts<directory>
+        DEPRECATED("dirname");
+        self.parts<dirname>
     }
     method volume(IO::Path:D:) {
         self.parts<volume>

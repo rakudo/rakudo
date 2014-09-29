@@ -56,37 +56,37 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             ( [ .* <$slash> ]? )
             (.*)
              /;
-        my ($volume, $directory, $basename) = (~$0, ~$1, ~$2);
-        $directory ~~ s/ <?after .> <$slash>+ $//;
+        my ($volume, $dirname, $basename) = (~$0, ~$1, ~$2);
+        $dirname ~~ s/ <?after .> <$slash>+ $//;
 
 
-        if all($directory, $basename) eq '' && $volume ne '' {
-            $directory = $volume ~~ /^<$driveletter>/
+        if all($dirname, $basename) eq '' && $volume ne '' {
+            $dirname = $volume ~~ /^<$driveletter>/
                      ?? '.' !! '\\';
         }
-        $basename = '\\'  if $directory eq any('/', '\\') && $basename eq '';
-        $directory = '.'  if $directory eq ''             && $basename ne '';
+        $basename = '\\' if $dirname eq any('/', '\\') && $basename eq '';
+        $dirname  = '.'  if $dirname eq ''             && $basename ne '';
 
-        return (:$volume, :$directory, :$basename);
+        return (:$volume, :$dirname, :$basename);
     }
 
-    method join ($volume, $directory is copy, $file is copy) { 
-        $directory = '' if $directory eq '.' && $file.chars;
-        if $directory.match( /^<$slash>$/ ) && $file.match( /^<$slash>$/ ) {
-            $file = '';
-            $directory = '' if $volume.chars > 2; #i.e. UNC path
+    method join ($volume, $dirname is copy, $file is copy) { 
+        $dirname = '' if $dirname eq '.' && $file.chars;
+        if $dirname.match( /^<$slash>$/ ) && $file.match( /^<$slash>$/ ) {
+            $file    = '';
+            $dirname = '' if $volume.chars > 2; #i.e. UNC path
         }
-        self.catpath($volume, $directory, $file);
+        self.catpath($volume, $dirname, $file);
     }
 
     method splitpath($path as Str, :$nofile = False) { 
 
-        my ($volume,$directory,$file) = ('','','');
+        my ($volume,$dirname,$file) = ('','','');
         if ( $nofile ) {
             $path ~~ 
                 /^ (<$volume_rx>?) (.*) /;
-            $volume    = ~$0;
-            $directory = ~$1;
+            $volume  = ~$0;
+            $dirname = ~$1;
         }
         else {
             $path ~~ 
@@ -94,27 +94,27 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
                 ( [ .* <$slash> [ '.' ** 1..2 $]? ]? )
                 (.*)
                  /;
-            $volume    = ~$0;
-            $directory = ~$1;
-            $file      = ~$2;
+            $volume  = ~$0;
+            $dirname = ~$1;
+            $file    = ~$2;
         }
 
-        return ($volume,$directory,$file);
+        return ($volume,$dirname,$file);
     }
 
-    method catpath($volume is copy, $directory, $file) {
+    method catpath($volume is copy, $dirname, $file) {
 
         # Make sure the glue separator is present
         # unless it's a relative path like A:foo.txt
-        if $volume.chars and $directory.chars
+        if $volume.chars and $dirname.chars
            and $volume !~~ /^<$driveletter>/
            and $volume !~~ /<$slash> $/
-           and $directory !~~ /^ <$slash>/
+           and $dirname !~~ /^ <$slash>/
             { $volume ~= '\\' }
-        if $file.chars and $directory.chars
-           and $directory !~~ /<$slash> $/
-            { $volume ~ $directory ~ '\\' ~ $file; }
-        else     { $volume ~ $directory     ~    $file; }
+        if $file.chars and $dirname.chars
+           and $dirname !~~ /<$slash> $/
+            { $volume ~ $dirname ~ '\\' ~ $file; }
+        else     { $volume ~ $dirname     ~    $file; }
     }
 
     method rel2abs ($path is copy, $base? is copy) {

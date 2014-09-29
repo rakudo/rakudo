@@ -18,7 +18,6 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
         $result.subst(/ <[\\\/]> ** 2..*/, '/');
     }
 
-
     method is-absolute ($file) {
         so $file ~~ / ^ [<[A..Z a..z]> ':']?  <[\\/]>/; # C:/test
     }

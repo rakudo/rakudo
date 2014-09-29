@@ -45,54 +45,54 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method splitpath( $path, :$nofile = False ) {
-        my ( $directory, $file ) = ( '', '' );
+        my ( $dirname, $file ) = ( '', '' );
 
         if $nofile {
-            $directory = $path;
+            $dirname = $path;
         }
         else {
-            $path      ~~ m/^ ( [ .* \/ [ '.'**1..2 $ ]? ]? ) (<-[\/]>*) /; 
-            $directory = ~$0;
-            $file      = ~$1;
+            $path ~~ m/^ ( [ .* \/ [ '.'**1..2 $ ]? ]? ) (<-[\/]>*) /; 
+            $dirname = ~$0;
+            $file    = ~$1;
         }
 
-        return ( '', $directory, $file );
+        return ( '', $dirname, $file );
     }
 
     method split (Cool:D $path is copy ) {
         $path  ~~ s/<?after .> '/'+ $ //;
 
         $path  ~~ m/^ ( [ .* \/ ]? ) (<-[\/]>*) /;
-        my ($directory, $basename) = ~$0, ~$1;
+        my ($dirname, $basename) = ~$0, ~$1;
 
-        $directory ~~ s/<?after .> '/'+ $ //; #/
+        $dirname ~~ s/<?after .> '/'+ $ //; #/
 
-        $basename = '/'   if $directory eq '/' && $basename eq '';
-        $directory = '.'  if $directory eq ''  && $basename ne '';
+        $basename = '/'  if $dirname eq '/' && $basename eq '';
+        $dirname  = '.'  if $dirname eq ''  && $basename ne '';
         # shell dirname '' produces '.', but we don't because it's probably user error
 
-        return (:volume(''), :$directory, :$basename );
+        return (:volume(''), :$dirname, :$basename );
     }
 
 
-    method join ($volume, $directory is copy, $file) {
-        $directory = '' if all($directory, $file) eq '/'
-                or $directory eq '.' && $file.chars;
-        self.catpath($volume, $directory, $file);
+    method join ($volume, $dirname is copy, $file) {
+        $dirname = '' if all($dirname, $file) eq '/'
+                or $dirname eq '.' && $file.chars;
+        self.catpath($volume, $dirname, $file);
     }
 
-    method catpath( $volume, $directory is copy, $file ) {
-        if $directory               ne ''
+    method catpath( $volume, $dirname is copy, $file ) {
+        if $dirname               ne ''
         && $file                    ne ''
-        && $directory.substr( *-1 ) ne '/'
+        && $dirname.substr( *-1 ) ne '/'
         && $file.substr( 0, 1 )     ne '/' {
-            $directory ~= "/$file"
+            $dirname ~= "/$file"
         }
         else {
-            $directory ~= $file
+            $dirname ~= $file
         }
 
-        return $directory
+        return $dirname
     }
 
     method catdir( *@parts ) { self.canonpath( (@parts, '').join('/') ) }

@@ -98,6 +98,7 @@ class CompUnit {
             if $candi {
                 %chosen<pm>   :=
                   $candi<provides>{$module_name}<pm><file>;
+                %chosen<pm>   := ~%chosen<pm> if %chosen<pm>.DEFINITE;
                 %chosen<load> :=
                   $candi<provides>{$module_name}{$!precomp-ext}<file>;
                 %chosen<key>  := %chosen<pm> // %chosen<load>;

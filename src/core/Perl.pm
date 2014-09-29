@@ -13,18 +13,18 @@ class Perl does Systemic {
     method DISTROnames {
         (
 #?if parrot
-        <macosx linux freebsd mswin32 mingw msys cygwin solaris haiku openbsd>
+        <macosx linux freebsd mswin32 mingw msys cygwin solaris haiku openbsd netbsd>
 #?endif
 #?if jvm
         <macosx linux mswin32>
 #?endif
 #?if moar
-        <macosx linux freebsd mswin32>
+        <macosx linux freebsd mswin32 openbsd netbsd>
 #?endif
         )
     }
 
-    method KERNELnames { <darwin linux freebsd win32> }
+    method KERNELnames { <darwin linux freebsd openbsd netbsd win32> }
 }
 
 multi sub INITIALIZE_DYNAMIC('$*PERL') {

@@ -15,7 +15,7 @@ class Kernel does Systemic {
         $!name //= do {
             given $*DISTRO.name {
                 # needs adapting, also $*PERL.KERNELnames in src/core/Perl.pm
-                when any <linux macosx freebsd> { 
+                when any <linux macosx freebsd openbsd netbsd> {
                     qx/uname -s/.chomp.lc;
                 }
                 when 'mswin32' {
@@ -31,8 +31,11 @@ class Kernel does Systemic {
     method version {
         $!version //= Version.new( do {
             given $*DISTRO.name {
-                when 'linux' { # needs adapting
+                when any <linux openbsd netbsd> { # needs adapting
                     qx/uname -v/.chomp;
+                }
+                when 'freebsd' {
+                    qx/uname -K/.chomp;
                 }
                 when 'macosx' {
                     my $unamev = qx/uname -v/;
@@ -50,8 +53,11 @@ class Kernel does Systemic {
     method release {
         $!release //= do {
             given $*DISTRO.name {
-                when any <linux macosx> { # needs adapting
+                when any <linux macosx freebsd> { # needs adapting
                     qx/uname -v/.chomp;
+                }
+                when any <openbsd netbsd> { # needs adapting
+                    qx/uname -r/.chomp;
                 }
                 default {
                     "unknown";
@@ -63,7 +69,7 @@ class Kernel does Systemic {
     method hardware {
         $!hardware //= do {
             given $*DISTRO.name {
-                when any <linux macosx> { # needs adapting
+                when any <linux macosx freebsd openbsd netbsd> { # needs adapting
                     qx/uname -m/.chomp;
                 }
                 default {
@@ -76,7 +82,7 @@ class Kernel does Systemic {
     method arch {
         $!arch //= do {
             given $*DISTRO.name {
-                when any <linux macosx> { # needs adapting
+                when any <linux macosx freebsd openbsd netbsd> { # needs adapting
                     qx/uname -p/.chomp;
                 }
                 default {
@@ -87,7 +93,7 @@ class Kernel does Systemic {
     }
 
     method bits {
-        $!bits //= $.hardware ~~ m/_64|w/ ?? 64 !! 32;  # naive approach
+        $!bits //= $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32;  # naive approach
     }
 
 #?if moar

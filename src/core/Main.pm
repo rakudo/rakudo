@@ -68,21 +68,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
     my sub gen-usage () {
         my @help-msgs;
 
-        my sub strip_path_prefix($name) {
-            my ($vol, $dir, $base) = IO::Spec.splitpath($name);
-            $dir = IO::Spec.canonpath($dir);
-            for IO::Spec.path() -> $elem {
-                if IO::Spec.catpath($vol, $elem, $base).IO.x {
-                    return $base if IO::Spec.canonpath($elem) eq $dir;
-                    # Shadowed command found in earlier PATH element
-                    return $name;
-                }
-            }
-            # Not in PATH
-            return $name;
-        }
-
-        my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! strip_path_prefix($*PROGRAM_NAME);
+        my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! ~$*PROGRAM.relative;
         for $m.candidates -> $sub {
             my (@required-named, @optional-named, @positional, $docs);
             for $sub.signature.params -> $param {
@@ -136,7 +122,11 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
     my ($p, $n) = process-cmd-args(@*ARGS).lol;
 
     # Generate default $?USAGE message
-    my $?USAGE = gen-usage();
+    my $usage;
+    my $?USAGE := Proxy.new(
+        FETCH => -> | { $usage || ($usage = gen-usage()) },
+        STORE => -> | { }
+    );
 
     # Get a list of candidates that match according to the dispatcher
     my @matching_candidates = $m.cando(Capture.new(list => $p, hash => $n));

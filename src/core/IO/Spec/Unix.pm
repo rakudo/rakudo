@@ -40,7 +40,7 @@ my class IO::Spec::Unix is IO::Spec {
             my @ = $PATH.split( ':' ).map: { $_ || '.' };
         }
         else {
-            ();
+            my @;
         }
     }
 

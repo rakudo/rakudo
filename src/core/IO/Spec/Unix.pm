@@ -17,8 +17,8 @@ my class IO::Spec::Unix is IO::Spec {
         $path
     }
 
-    method curdir {  '.' }
-    method updir  { '..' }
+    method curdir  {  '.' }
+    method updir   { '..' }
     method rootdir { '/' }
     method devnull { '/dev/null' }
 
@@ -36,27 +36,22 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method path {
-        return () unless %*ENV{'PATH'};
-        my @path = %*ENV{'PATH'}.split( ':' );
-        for @path {
-            $_ = '.' if $_ eq ''
+        if %*ENV<PATH> -> $PATH {
+            my @ = $PATH.split( ':' ).map: { $_ || '.' };
         }
-        return @path
+        else {
+            ();
+        }
     }
 
     method splitpath( $path, :$nofile = False ) {
-        my ( $dirname, $file ) = ( '', '' );
-
         if $nofile {
-            $dirname = $path;
+            ( '', $path, '' );
         }
         else {
             $path ~~ m/^ ( [ .* \/ [ '.'**1..2 $ ]? ]? ) (<-[\/]>*) /; 
-            $dirname = ~$0;
-            $file    = ~$1;
+            ( '', ~$0, ~$1 );
         }
-
-        return ( '', $dirname, $file );
     }
 
     method split (Cool:D $path is copy ) {
@@ -67,8 +62,12 @@ my class IO::Spec::Unix is IO::Spec {
 
         $dirname ~~ s/<?after .> '/'+ $ //; #/
 
-        $basename = '/'  if $dirname eq '/' && $basename eq '';
-        $dirname  = '.'  if $dirname eq ''  && $basename ne '';
+        if $basename eq '' {
+            $basename = '/'  if $dirname eq '/';
+        }
+        else {
+            $dirname = '.'  if $dirname eq '';
+        }
         # shell dirname '' produces '.', but we don't because it's probably user error
 
         # temporary, for the transition period
@@ -77,28 +76,26 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
 
-    method join ($volume, $dirname is copy, $file) {
-        $dirname = '' if all($dirname, $file) eq '/'
-                or $dirname eq '.' && $file.chars;
-        self.catpath($volume, $dirname, $file);
+    method join ($, $dirname, $file) {
+        self.catpath(
+          '',
+          ($dirname eq '/' && $file eq '/' or $dirname eq '.' && $file.chars)
+            ?? '' !! $dirname,
+          $file,
+        );
     }
 
-    method catpath( $volume, $dirname is copy, $file ) {
-        if $dirname               ne ''
-        && $file                    ne ''
-        && $dirname.substr( *-1 ) ne '/'
-        && $file.substr( 0, 1 )     ne '/' {
-            $dirname ~= "/$file"
-        }
-        else {
-            $dirname ~= $file
-        }
-
-        return $dirname
+    method catpath( $, $dirname, $file ) {
+        $dirname ne ''
+          && $file ne ''
+          && $dirname.substr( *-1 ) ne '/'
+          && $file.substr( 0, 1 )   ne '/'
+          ?? $dirname ~ '/' ~ $file
+          !! $dirname ~ $file
     }
 
     method catdir( *@parts ) { self.canonpath( (@parts, '').join('/') ) }
-    method splitdir( $path ) { $path.split( /\// )  }
+    method splitdir( $path ) { $path.split( '/' )  }
     method catfile( |c )     { self.catdir(|c) }
 
     method abs2rel( $path is copy, $base is copy = Str ) {

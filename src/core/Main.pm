@@ -68,7 +68,21 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
     my sub gen-usage () {
         my @help-msgs;
 
-        my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! ~$*PROGRAM.relative;
+        my sub strip_path_prefix($name) {
+            my ($vol, $dir, $base) = IO::Spec.splitpath($name);
+            $dir = IO::Spec.canonpath($dir);
+            for IO::Spec.path() -> $elem {
+                if IO::Spec.catpath($vol, $elem, $base).IO.x {
+                    return $base if IO::Spec.canonpath($elem) eq $dir;
+                    # Shadowed command found in earlier PATH element
+                    return $name;
+                }
+            }
+            # Not in PATH
+            return $name;
+        }
+
+        my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! strip_path_prefix($*PROGRAM_NAME);
         for $m.candidates -> $sub {
             my (@required-named, @optional-named, @positional, $docs);
             for $sub.signature.params -> $param {

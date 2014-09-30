@@ -36,11 +36,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method path {
-       my @path = split(';', %*ENV<PATH> // %*ENV<Path> // '');
-       @path».=subst(:global, q/"/, '');
-       @path = grep *.chars, @path;
-       unshift @path, ".";
-       return @path;
+       (".",
+         split(';', %*ENV<PATH> // %*ENV<Path> // '').map( {
+           .subst(:global, q/"/, '') } ).grep: *.chars );
    }
 
     method is-absolute ($path) {
@@ -83,12 +81,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method splitpath($path as Str, :$nofile = False) { 
 
-        my ($volume,$dirname,$file) = ('','','');
-        if ( $nofile ) {
-            $path ~~ 
-                /^ (<$volume_rx>?) (.*) /;
-            $volume  = ~$0;
-            $dirname = ~$1;
+        if $nofile {
+            $path ~~ /^ (<$volume_rx>?) (.*) /;
+            (~$0, ~$1, '');
         }
         else {
             $path ~~ 
@@ -96,12 +91,8 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
                 ( [ .* <$slash> [ '.' ** 1..2 $]? ]? )
                 (.*)
                  /;
-            $volume  = ~$0;
-            $dirname = ~$1;
-            $file    = ~$2;
+            (~$0, ~$1, ~$2);
         }
-
-        return ($volume,$dirname,$file);
     }
 
     method catpath($volume is copy, $dirname, $file) {

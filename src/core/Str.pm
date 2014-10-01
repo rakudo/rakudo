@@ -1082,16 +1082,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my class LSM {
         has Str $!source;
         has @!substitutions;
+        has $!squash;
+        has $!complement;
 
         has int $!index;
         has int $!next_match;
+        has $!prev_substitution;
         has $!next_substitution;
         has $!substitution_length;
+        has $!prev_result;
+        has $!match_obj;
+        has $!last_match_obj;
 
         has str $.unsubstituted_text;
         has str $.substituted_text;
-
-        submethod BUILD(:$!source) { }
+        
+        submethod BUILD(:$!source, :$!squash, :$!complement) { }
 
         method add_substitution($key, $value) {
             push @!substitutions, $key => $value;
@@ -1104,6 +1110,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $!next_match = $pos;
                 $!substitution_length = $length;
                 $!next_substitution = $substitution;
+                $!match_obj = $!last_match_obj;
             }
         }
 
@@ -1111,6 +1118,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         multi method triage_substitution($_ where { nqp::istype(.key,Regex) }) {
             my $m := $!source.match(.key, :continue($!index));
             return unless $m;
+            $!last_match_obj = $/;
             self.compare_substitution($_, $m.from, $m.to - $m.from);
             True
         }
@@ -1129,11 +1137,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
         proto method increment_index(|) {*}
         multi method increment_index(Regex $s) {
             $!source.substr($!index) ~~ $s;
+            $!last_match_obj = $/;
             $!index = $!next_match + $/.chars;
         }
 
         multi method increment_index(Cool $s) {
             $!index = $!next_match + nqp::chars($s.Str);
+        }
+
+        method get_next_substitution_result {
+            my $result = $!complement ?? @!substitutions[0].value !! $!next_substitution.value;
+            my $cds := nqp::getlexcaller('$CALLER_DOLLAR_SLASH');
+            try $cds = $!match_obj;
+            my $orig-result = $result = ($result ~~ Callable ?? $result() !! $result).Str;
+            if $!prev_result
+                && $!prev_result eq $result
+                && $!unsubstituted_text eq ''
+                && $!squash {
+                $result = '';
+            }
+            $!prev_result = $orig-result;
+            nqp::unbox_s($result)
         }
 
         method next_substitution() {
@@ -1145,17 +1169,43 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
                 = $!source.substr($!index, $!next_match - $!index);
             if defined $!next_substitution {
-                my $result = $!next_substitution.value;
-                $!substituted_text
-                    = nqp::unbox_s((nqp::istype($result,Callable) ?? $result() !! $result).Str);
-                self.increment_index($!next_substitution.key);
+                if $!complement {
+                    my $oldidx = $!index;
+                    my $result = self.get_next_substitution_result;
+                    if $!unsubstituted_text {
+                        self.increment_index($!next_substitution.key);
+                        $!substituted_text = $!source.substr($oldidx + $!unsubstituted_text.chars, 
+                            $!index - $oldidx - $!unsubstituted_text.chars);
+                        $!unsubstituted_text = $!squash ?? $result
+                            !! $result x $!unsubstituted_text.chars;
+                    }
+                    else {
+                        self.increment_index($!next_substitution.key);
+                        $!substituted_text = '';
+                        $!unsubstituted_text = $!source.substr($oldidx, $!index - $oldidx);
+                    }
+                }
+                else {
+                    $!substituted_text = self.get_next_substitution_result;
+                    self.increment_index($!next_substitution.key);
+                }
             }
+            else {
+                $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index, 
+                    = $!source.substr($!index, $!next_match - $!index);
+                if defined $!next_substitution {
+                    $!substituted_text = self.get_next_substitution_result;
+                    self.increment_index($!next_substitution.key);
+                }
+            }
+
+            $!prev_substitution = $!next_substitution;
 
             return $!next_match < $!source.chars && @!substitutions;
         }
     }
 
-    method trans(Str:D: *@changes) {
+    method trans(Str:D: *@changes, :complement(:$c), :squash(:$s), :delete(:$d)) {
         my sub expand($s) {
             return $s.list
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
@@ -1164,7 +1214,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             };
         }
 
-        my $lsm = LSM.new(:source(self));
+        my $CALLER_DOLLAR_SLASH := nqp::getlexcaller('$/');
+        my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
         for (@changes) -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
               unless nqp::istype($p,Pair);
@@ -1180,7 +1231,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             else {
                 my @from = expand $p.key;
                 my @to = expand $p.value;
-                for @from Z (@to ?? @to xx ceiling(@from / @to) !! '' xx @from) -> $f, $t {
+                if @to {
+                    my $padding = $d ?? '' !! @to[@to - 1];
+                    @to = @to, $padding xx @from - @to;
+                }
+                else {
+                    @to = '' xx @from
+                }
+                for @from Z @to -> $f, $t {
                     $lsm.add_substitution($f, $t);
                 }
             }

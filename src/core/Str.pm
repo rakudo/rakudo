@@ -1083,11 +1083,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has Str $!source;
         has @!substitutions;
         has $!squash;
-        has $!complement;
 
         has int $!index;
         has int $!next_match;
-        has $!prev_substitution;
         has $!next_substitution;
         has $!substitution_length;
         has $!prev_result;
@@ -1097,7 +1095,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has str $.unsubstituted_text;
         has str $.substituted_text;
         
-        submethod BUILD(:$!source, :$!squash, :$!complement) { }
+        submethod BUILD(:$!source, :$!squash) { }
 
         method add_substitution($key, $value) {
             push @!substitutions, $key => $value;
@@ -1190,16 +1188,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     self.increment_index($!next_substitution.key);
                 }
             }
-            else {
-                $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index, 
-                    = $!source.substr($!index, $!next_match - $!index);
-                if defined $!next_substitution {
-                    $!substituted_text = self.get_next_substitution_result;
-                    self.increment_index($!next_substitution.key);
-                }
-            }
-
-            $!prev_substitution = $!next_substitution;
 
             return $!next_match < $!source.chars && @!substitutions;
         }

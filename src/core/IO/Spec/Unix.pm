@@ -37,10 +37,10 @@ my class IO::Spec::Unix is IO::Spec {
 
     method path {
         if %*ENV<PATH> -> $PATH {
-            my @ = $PATH.split( ':' ).map: { $_ || '.' };
+            $PATH.split( ':' ).map: { $_ || '.' };
         }
         else {
-            my @;
+            ();
         }
     }
 

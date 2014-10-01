@@ -6,6 +6,7 @@ my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
 my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
+my class X::Numeric::Confused { ... }
 my class X::NYI { ... }
 
 my $?TABSTOP = 8;
@@ -1381,7 +1382,11 @@ sub trim-leading (Str:D $s) returns Str:D { $s.trim-leading }
 sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-sub unbase(Int:D $base, Str:D $str) {
+proto sub unbase (|) { * }
+multi sub unbase(Int:D $base, Cool:D $num) is hidden_from_backtrace {
+    X::Numeric::Confused.new(:what($num)).throw;
+}
+multi sub unbase(Int:D $base, Str:D $str) is hidden_from_backtrace {
     my Str $prefix = $str.substr(0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
@@ -1392,8 +1397,9 @@ sub unbase(Int:D $base, Str:D $str) {
         ":{$base}<$str>".Numeric;
     }
 }
+
 # for :16[1, 2, 3]
-sub unbase_bracket($base, @a) {
+sub unbase_bracket($base, @a) is hidden_from_backtrace {
     my $v = 0;
     my $denom = 1;
     my Bool $seen-dot = False;

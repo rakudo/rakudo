@@ -1470,6 +1470,13 @@ my class X::Numeric::DivideByZero is Exception {
     }
 }
 
+my class X::Numeric::Confused is Exception {
+    has $.what;
+    method message() {
+        "You have confused the number $.what with the textual representation \"$.what\"";
+    }
+}
+
 my class X::PseudoPackage::InDeclaration does X::Comp {
     has $.pseudo-package;
     has $.action;

@@ -1083,9 +1083,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has Str $!source;
         has @!substitutions;
         has $!squash;
+        has $!complement;
 
         has int $!index;
         has int $!next_match;
+        has $!first_substitution; # need this one for :c with arrays
         has $!next_substitution;
         has $!substitution_length;
         has $!prev_result;
@@ -1095,7 +1097,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has str $.unsubstituted_text;
         has str $.substituted_text;
         
-        submethod BUILD(:$!source, :$!squash) { }
+        submethod BUILD(:$!source, :$!squash, :$!complement) { }
 
         method add_substitution($key, $value) {
             push @!substitutions, $key => $value;
@@ -1144,7 +1146,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         method get_next_substitution_result {
-            my $result = $!complement ?? @!substitutions[0].value !! $!next_substitution.value;
+            my $result = $!complement ?? $!first_substitution.value !! $!next_substitution.value;
             my $cds := nqp::getlexcaller('$CALLER_DOLLAR_SLASH');
             try $cds = $!match_obj;
             my $orig-result = $result = ($result ~~ Callable ?? $result() !! $result).Str;
@@ -1160,6 +1162,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         method next_substitution() {
             $!next_match = $!source.chars;
+            $!first_substitution //= @!substitutions[0];
 
             # triage_substitution has a side effect!
             @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }

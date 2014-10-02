@@ -1,6 +1,3 @@
-# XXX this file stolen from Rakudo's JVM backend; will uncomemnt/adapt it as
-# we go about the porting.
-
 # Operand read/write/literal flags.
 my $MVM_operand_literal     := 0;
 my $MVM_operand_read_reg    := 1;

@@ -1473,7 +1473,8 @@ my class X::Numeric::DivideByZero is Exception {
 my class X::Numeric::Confused is Exception {
     has $.what;
     method message() {
-        "You have confused the number $.what with the textual representation \"$.what\"";
+        "You have confused the number $.what with the textual representation \"$.what\";\n"
+            ~ "if you wanted to render the number in the given base, use \$number.base(\$radix)";
     }
 }
 

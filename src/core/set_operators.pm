@@ -107,13 +107,8 @@ only sub infix:<(-)>(**@p) {
 only sub infix:<<"\x2216">>(|p) {
     infix:<(-)>(|p);
 }
-
-proto sub infix:<(^)>($, $ --> Setty) {*}
-multi sub infix:<(^)>(Any $a, Any $b --> Setty) {
-    $a.Set(:view) (^) $b.Set(:view);
-}
-multi sub infix:<(^)>(Set $a, Set $b --> Setty) {
-    ($a (-) $b) (|) ($b (-) $a);
+only sub infix:<(^)>(**@p) {
+    Set.new(BagHash.new(@p.map(*.Set(:view).keys)).pairs.map({.key if .value == 1}));
 }
 # U+2296 CIRCLED MINUS
 only sub infix:<<"\x2296">>($a, $b --> Setty) {

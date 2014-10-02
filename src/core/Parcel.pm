@@ -3,7 +3,11 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     #    has Mu $!storage;        # VM's array of Parcel's elements
     #    has Str $!WHICH;
 
-    submethod BUILD() { $!storage := nqp::list() }
+    multi method new(|) {
+        my Mu $args := nqp::p6argvmarray();
+        nqp::shift($args);
+        nqp::p6parcel($args, Nil)
+    }
 
     multi method Bool(Parcel:D:)           { nqp::p6bool($!storage) }
     multi method Numeric(Parcel:D:)        { nqp::elems($!storage) }

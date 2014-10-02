@@ -5,16 +5,16 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
       Perl5 => <pm5 pm>,
       NQP   => <nqp>,
       JVM   => ();
-    my Str $slash := IO::Spec.rootdir;
 
     # global cache of files seen
     my %seen;
 
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) {
-        my $base := $file.path.is-absolute ?? $file !! $!path ~ $slash ~ $file;
-        return { files => { $file => $base }, ver => Version.new('0') } if $base.IO.f;
-        ();
+        my $base := $file.IO;
+        $base.f
+         ?? { files => { $file => $base.path }, ver => Version.new('0') }
+         !! ();
     }
 
     method candidates(
@@ -28,12 +28,13 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         # sorry, cannot handle this one
         return () unless %extensions{$from}:exists;
 
+        my $slash := $*SPEC.rootdir;
         my $base := $!path ~ $slash ~ $name.subst(:g, "::", $slash) ~ '.';
         if %seen{$base} -> $found {
             return $found;
         }
 
-        state Str $precomp-ext = $*VM.precomp-ext;
+        state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
 
         # have extensions to check
         if %extensions{$from} -> @extensions {

@@ -4,8 +4,11 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
 
     method BUILD(:$path) {
         $!WHICH = self.^name ~ '|' ~ $path;
-        $!path = $path.path unless $!path;
-        %!dists{$path} = "$path/MANIFEST".IO.e ?? from-json( slurp "$path/MANIFEST" ) !! {};
+        $!path = $path.IO unless $!path;
+        my $manifest = $!path.child("MANIFEST");
+        %!dists{$path} = $manifest.e
+          ?? from-json($manifest.slurp)
+          !! {};
         %!dists{$path}<file-count> //= 0;
         %!dists{$path}<dist-count> //= 0;
         %!dists{$path}<dists>      //= [ ];

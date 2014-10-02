@@ -26,10 +26,7 @@ my class IO::Spec {
 #?if moar
     $submodule = %module{ nqp::p6box_s(nqp::atkey(nqp::backendconfig(), 'osname')) };
 #?endif
-    my $SPEC := IO::Spec.WHO{ $submodule // 'Unix' };
-
-    # temporary non-lazy initialization of $*SPEC
-    PROCESS::<$SPEC> = $SPEC;
+    my $SPEC := ::('IO::Spec::' ~ ($submodule // 'Unix') );
 
     method FSTYPE ($OS = $*DISTRO.name)   { %module{$OS} // 'Unix' }
 
@@ -64,6 +61,9 @@ my class IO::Spec {
     method abs2rel( |c )               { $SPEC.abs2rel( |c )               }
     method rel2abs( |c )               { $SPEC.rel2abs( |c )               }
 }
+
+# temporary non-lazy initialization of $*SPEC
+PROCESS::<$SPEC> = IO::Spec.MODULE;
 
 nqp::gethllsym('perl6', 'ModuleLoader').register_absolute_path_func(
     sub ($path) { return IO::Spec.rel2abs($path); }

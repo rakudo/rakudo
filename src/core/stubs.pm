@@ -34,7 +34,10 @@ sub DYNAMIC(\name) is rw {
             $x := nqp::atkey(PROCESS.WHO, $pkgname);
         }
         else {
+#my $last = now;
+#say "initializing {name}";
             $x := INITIALIZE_DYNAMIC(name);
+#say "    done at {now - $last}";
             fail $x if nqp::istype($x, Exception);
         }
     }

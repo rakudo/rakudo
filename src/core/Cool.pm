@@ -1,5 +1,5 @@
-my role  IO { ... }
-my class IO::Path { ... }
+my role  IO         { ... }
+my class IO::Path   { ... }
 
 my class SprintfHandler {
     method mine($x) { nqp::reprname($x) eq "P6opaque"; }

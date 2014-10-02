@@ -33,12 +33,26 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 
     # Paths might have a volume, so we use Win32 splitpath and catpath instead
-    method splitpath (|c)     { IO::Spec::Win32.splitpath(|c) }
-    method catpath (|c)       { IO::Spec::Win32.catpath(|c).subst(:global, '\\', '/')  }
-    method split ($path)      { IO::Spec::Win32.split($path).map:
-                                  { (.key => .value.subst(:global, '\\', '/')) }  }
-    method join (|c)          { IO::Spec::Win32.join(|c).subst(:global, '\\', '/')     }
-
+    method abs2rel(|c) {
+        IO::Spec::Win32.abs2rel(|c).subst(:global, '\\', '/');
+    }
+    method rel2abs(|c) {
+        IO::Spec::Win32.rel2abs(|c).subst(:global, '\\', '/');
+    }
+    method splitpath(|c) {
+        IO::Spec::Win32.splitpath(|c)>>.subst(:global, '\\', '/');
+    }
+    method catpath(|c) {
+        IO::Spec::Win32.catpath(|c).subst(:global, '\\', '/');
+    }
+    method split($path) {
+        IO::Spec::Win32.split($path).map(
+          { (.key => .value.subst(:global, '\\', '/')) }
+        );
+    }
+    method join(|c) {
+        IO::Spec::Win32.join(|c).subst(:global, '\\', '/');
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

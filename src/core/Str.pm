@@ -1,7 +1,6 @@
 my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
-my class IO::Path         { ... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
 my class X::Str::Trans::IllegalKey { ... }

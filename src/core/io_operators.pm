@@ -50,35 +50,7 @@ sub prompt($msg) {
 }
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-    $path.path.contents(:$test)
-}
-
-sub unlink($path as Str) {
-    my $abspath = IO::Spec.rel2abs($path);
-    nqp::unlink($abspath);
-    return True;
-    CATCH {
-        default {
-            X::IO::Unlink.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
-}
-
-sub rmdir($path as Str) {
-    my $abspath = IO::Spec.rel2abs($path);
-    nqp::rmdir($abspath);
-    return True;
-    CATCH {
-        default {
-            X::IO::Rmdir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+    $path.IO.dir(:$test)
 }
 
 proto sub open(|) { * }
@@ -124,37 +96,13 @@ multi sub spurt(IO::Handle $fh, $what, :$enc = 'utf8', |c ) {
     my $result := $fh.spurt($what, :$enc, |c);
     $result // $result.throw;
 }
-
 multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
     my $result := $path.IO.spurt($what, :$enc, |c);
     $result // $result.throw;
 }
 
 {
-    proto sub cwd(|) { * }
-    multi sub cwd() {
-        return nqp::p6box_s(
-            nqp::cwd()
-        );
-        CATCH {
-            default {
-                X::IO::Cwd.new(
-                    os-error => .Str,
-                ).throw;
-            }
-        }
-    }
-    PROCESS::<&cwd> := &cwd;
-}
-
-proto sub cwd(|) { * }
-multi sub cwd() {
-    $*CWD
-} 
-
-{
-    proto sub chdir(|) { * }
-    multi sub chdir($path as Str) {
+    sub chdir($path as Str) {
         nqp::chdir(nqp::unbox_s($path));
         $*CWD = IO::Path.new(cwd());
         return True;
@@ -195,91 +143,65 @@ multi sub chdir($path as Str) {
     }
 }
 
-proto sub mkdir(|) { * }
-multi sub mkdir($path as Str, $mode = 0o777) {
-    my $abspath = IO::Spec.rel2abs($path);
-    nqp::mkdir($abspath, $mode);
-    return True;
-    CATCH {
-        default {
-            X::IO::Mkdir.new(
-                :$path,
-                :$mode,
-                os-error => .Str,
-            ).throw;
-        }
-    }
-}
-
 PROCESS::<$OUT> = open('-', :w);
 PROCESS::<$IN>  = open('-');
 PROCESS::<$ERR> = IO::Handle.new;
 nqp::bindattr(nqp::decont(PROCESS::<$ERR>),
   IO::Handle, '$!PIO', nqp::getstderr());
 
-sub rename(Cool $from as Str, Cool $to as Str) {
-    my $absfrom = IO::Spec.rel2abs($from);
-    my $absto = IO::Spec.rel2abs($to);
-    nqp::rename(nqp::unbox_s($absfrom), nqp::unbox_s($absto));
-    return True;
-    CATCH {
-        default {
-            if .Str ~~ /'rename failed: '(.*)/ {
-                X::IO::Rename.new(
-                    :$from,
-                    :$to,
-                    os-error => $0.Str,
-                ).throw;
-            } else {
-                die "Unexpected error: $_";
-            }
-        }
-    }
+sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) );
 }
-sub copy(Cool $from as Str, Cool $to as Str) {
-    my $absfrom = IO::Spec.rel2abs($from);
-    my $absto = IO::Spec.rel2abs($to);
-    nqp::copy(nqp::unbox_s($absfrom), nqp::unbox_s($absto));
-    return True;
-    CATCH {
-        default {
-            X::IO::Copy.new(
-                :$from,
-                :$to,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
+    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink );
 }
-sub symlink(Cool $target as Str, Cool $name as Str) {
-    my $abstarget = IO::Spec.rel2abs($target);
-    nqp::symlink(nqp::unbox_s($abstarget), nqp::unbox_s($name));
-    return True;
-    CATCH {
-        default {
-            X::IO::Symlink.new(
-                :$target,
-                :$name,
-                os-error => .Str,
-            ).throw;
-        }
-    }
-}
-sub link(Cool $target as Str, Cool $name as Str) {
-    my $abstarget = IO::Spec.rel2abs($target);
-    nqp::link(nqp::unbox_s($abstarget), nqp::unbox_s($name));
-    return True;
-    CATCH {
-        default {
-            X::IO::Link.new(
-                :$target,
-                :$name,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir );
 }
 
-sub chmod($mode, $filename) { $filename.path.absolute.chmod($mode); $filename }
+proto sub mkdir(|) { * }
+multi sub mkdir(Int $mode, *@dirnames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    @dirnames.grep( *.IO(:$SPEC,:$CWD).mkdir($mode) );
+}
+multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();
+}
+
+sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    my $result := $from.IO(:$SPEC,:$CWD).rename($to,:$SPEC,:$CWD);
+    $result // $result.throw;
+}
+sub copy($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    my $result := $from.IO(:$SPEC,:$CWD).copy($to,:$SPEC,:$CWD);
+    $result // $result.throw;
+}
+sub symlink($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    my $result := $target.IO(:$SPEC,:$CWD).symlink($name,:$SPEC,:$CWD);
+    $result // $result.throw;
+}
+sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    my $result := $target.IO(:$SPEC,:$CWD).link($name,:$SPEC,:$CWD);
+    $result // $result.throw;
+}
+
+# deprecations
+{
+    sub cwd() {
+        return nqp::p6box_s(nqp::cwd());
+        CATCH { default {
+            fail X::IO::Cwd.new( os-error => .Str,);
+        } }
+    }
+#    PROCESS::<&cwd> := Deprecation.obsolete(
+#      :name('&*cwd'),
+#      :value(&cwd),
+#      :instead('chdir'),
+#    );
+}
+
+sub cwd() {
+    DEPRECATED('$*CWD');
+    $*CWD;
+} 
 
 # vim: ft=perl6 expandtab sw=4

@@ -5,13 +5,14 @@ role CompUnitRepo::Locally {
 
     my %instances;
 
-    method new( $path ) {
-        return Nil unless $path.IO.e;
-        %instances{$path} //= self.bless(:path($path.path), :lock(Lock.new));
+    method new($dir) {
+        my $path := $dir.IO;
+        return Nil unless $path.d and $path.r;
+        %instances{$path} //= self.bless(:$path, :lock(Lock.new));
     }
 
     multi method WHICH (CompUnitRepo::Locally:D:) {
-        $!WHICH = self.^name ~ '|' ~ $!path;
+        $!WHICH //= self.^name ~ '|' ~ $!path;
     }
     method Str   { self.DEFINITE ?? $!path.Str !! Nil }
     method gist  { self.DEFINITE

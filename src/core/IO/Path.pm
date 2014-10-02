@@ -1,191 +1,290 @@
 my class IO::Path is Cool does IO::FileTestable {
-    method SPEC { IO::Spec.MODULE };
+    has IO::Spec $.SPEC;
+    has Str $.CWD;
     has Str $.path;
-
-    method dir() {
-        die "IO::Path.dir is deprecated in favor of .directory";
-    }
+    has Bool $.is-absolute;
+    has Str $!abspath;  # should be native for faster file tests, but segfaults
+    has %!parts;
 
     multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
-        self.cleanup.parts eqv other.cleanup.parts
+        nqp::p6bool(nqp::iseq_s($!path, nqp::unbox_s(other.path)));
     }
 
-    multi method ACCEPTS(IO::Path:D: Mu \other) {
-        self.cleanup.parts eqv IO::Path.new(|other).cleanup.parts
+    multi method ACCEPTS(IO::Path:D: Mu \that) {
+        nqp::p6bool(nqp::iseq_s($!path,nqp::unbox_s(IO::Path.new(|that).path)));
     }
 
-    submethod BUILD(:$!path!, :$dir) {
-        die "Named paramter :dir in IO::Path.new deprecated in favor of :directory"
-            if defined $dir;
+    submethod BUILD(:$!path! as Str, :$!SPEC!, :$!CWD! as Str) { }
+
+    multi method new(IO::Path: $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+        self.bless(:$path, :$SPEC, :$CWD);
+    }
+    multi method new(IO::Path:
+      :$basename!,
+      :$dirname = '.',
+      :$volume  = '',
+      :$SPEC    = $*SPEC,
+      :$CWD     = $*CWD,
+    ) {
+        self.bless(:path($SPEC.join($volume,$dirname,$basename)),:$SPEC,:$CWD);
+    }
+    multi method new(IO::Path:
+      :$basename,
+      :$directory!,
+      :$volume = '',
+      :$SPEC   = $*SPEC,
+      :$CWD    = $*CWD,
+    ) {
+        DEPRECATED(':dirname', :what<IO::Path.new with :directory>);
+        self.bless(
+          :path($SPEC.join($volume,$directory,$basename)), :$SPEC, :$CWD);
     }
 
-    multi method new(IO::Path: :$basename!, :$directory = '.', :$volume = '') {
-        self.bless: path=>$.SPEC.join($volume, $directory, $basename);
+    method abspath() {
+        $!abspath //= $!path.substr(0,1) eq '-'
+          ?? ''
+          !! $!SPEC.rel2abs($!path,$!CWD);
+    }
+    method is-absolute() {
+        $!is-absolute //= $!SPEC.is-absolute($!path);
+    }
+    method is-relative() {
+        !( $!is-absolute //= $!SPEC.is-absolute($!path) );
     }
 
-    multi method new(IO::Path: $path as Str) {
-        self.bless(:$path)
+    method parts                  {
+        %!parts ||= $!SPEC.split($!path);
     }
+    method volume(IO::Path:D:)   { %.parts<volume>   }
+    method dirname(IO::Path:D:)  { %.parts<dirname>  }
+    method basename(IO::Path:D:) { %.parts<basename> }
 
-    method path(IO::Path:D:) {
-        self;
-    }
+    # core can't do 'basename handles <Numeric Bridge Int>'
+    method Numeric(IO::Path:D:) { self.basename.Numeric }
+    method Bridge (IO::Path:D:) { self.basename.Bridge  }
+    method Int    (IO::Path:D:) { self.basename.Int     }
 
-    method parts {
-        $.SPEC.split($!path).hash
-    }
-    method basename(IO::Path:D:) {
-        self.parts<basename>
-    }
-    method dirname(IO::Path:D:) {
-        self.parts<dirname>
-    }
-    method directory(IO::Path:D:) {
-        DEPRECATED("dirname");
-        self.parts<dirname>
-    }
-    method volume(IO::Path:D:) {
-        self.parts<volume>
-    }
-
-    multi method Str(IO::Path:D:) {
-         $!path;
-    }
+    multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
-        "{self.^name}<{ $!path }>";
+        "q|$.abspath|.IO";
     }
     multi method perl(IO::Path:D:) {
-         "IO::Path.new(path => " ~ $.Str.perl ~ ")";
-    }
-    multi method Numeric(IO::Path:D:) {
-        self.basename.Numeric;
-    }
-    method Bridge(IO::Path:D:) {
-        self.basename.Bridge;
-    }
-    method Int(IO::Path:D:) {
-        self.basename.Int;
+        ($.is-absolute
+          ?? "q|$.abspath|.IO(:SPEC({$!SPEC.^name}))"
+          !! "q|$.path|.IO(:SPEC({$!SPEC.^name}),:CWD<$!CWD>)"
+        ).subst(:global, '\\', '\\\\');
     }
 
     method succ(IO::Path:D:) {
-        self.new(:$.volume, :$.directory, basename=> $.basename.succ)
+        self.bless(
+          :path($!SPEC.join($.volume,$.dirname,$.basename.succ)),
+          :$!SPEC,
+          :$!CWD,
+        );
     }
     method pred(IO::Path:D:) {
-        self.new(:$.volume, :$.directory, basename=> $.basename.pred)
+        self.bless(
+          :path($!SPEC.join($.volume,$.dirname,$.basename.pred)),
+          :$!SPEC,
+          :$!CWD,
+        );
     }
 
     method IO(IO::Path:D: |c) {
-        IO::Path.new($!path, |c);
+        $?CLASS.new($!path, :$!SPEC, :$!CWD, |c);
     }
+
     method open(IO::Path:D: |c) {
-        my $handle = IO::Handle.new(:path($!path));
+        my $handle = IO::Handle.new(:path($.abspath));
         $handle && $handle.open(|c);
     }
 
 #?if moar
     method watch(IO::Path:D:) {
-        IO::Notification.watch_path($!path);
+        IO::Notification.watch_path($.abspath);
     }
 #?endif
 
-    method is-absolute(IO::Path:D:) {
-        $.SPEC.is-absolute($!path);
-    }
-    method is-relative(IO::Path:D:) {
-        ! $.SPEC.is-absolute($!path);
-    }
-    method absolute (IO::Path:D: $base = ~$*CWD) {
-        return self.new($.SPEC.rel2abs($!path, $base));
-    }
-    method relative (IO::Path:D: $relative_to_directory = ~$*CWD) {
-        return self.new($.SPEC.abs2rel($!path, $relative_to_directory));
+    proto method absolute(|) { * }
+    multi method absolute (IO::Path:D:) { $.abspath }
+    multi method absolute (IO::Path:D: $CWD) {
+        self.is-absolute
+          ?? $.abspath
+          !! $!SPEC.rel2abs($!path, $CWD);
     }
 
-    method cleanup (IO::Path:D: :$parent) {
-        return self.new($.SPEC.canonpath($!path, :$parent));
+    method relative (IO::Path:D: $CWD = $*CWD) {
+        $!SPEC.abs2rel($.abspath, $CWD);
+    }
+
+    method cleanup (IO::Path:D:) {
+        self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
     method resolve (IO::Path:D:) {
         # NYI: requires readlink()
         X::NYI.new(feature=>'IO::Path.resolve').fail;
     }
 
-    method parent(IO::Path:D:) {
+    method parent(IO::Path:D:) {    # XXX needs work
+        my $curdir := $!SPEC.curdir;
+        my $updir  := $!SPEC.updir;
+
         if self.is-absolute {
-            return self.new($.SPEC.join($.volume, $.directory, ''));
+            return self.bless(
+              :path($!SPEC.join($.volume, $.dirname, '')),
+              :$!SPEC,
+              :$!CWD,
+            );
         }
-        elsif all($.basename, $.directory) eq $.SPEC.curdir {
-            return self.new(:$.volume, directory=>$.SPEC.curdir,
-                             basename=>$.SPEC.updir);
+        elsif $.dirname eq $curdir and $.basename eq $curdir {
+            return self.bless(
+              :path($!SPEC.join($.volume,$curdir,$updir)),
+              :$!SPEC,
+              :$!CWD,
+            );
         }
-        elsif $.basename eq $.SPEC.updir && $.directory eq $.SPEC.curdir 
-           or !grep({$_ ne $.SPEC.updir}, $.SPEC.splitdir($.directory)) {  
-            return self.new(    # If all updirs, then add one more
-                :$.volume,
-                directory => $.SPEC.catdir($.directory, $.SPEC.updir),
-                :$.basename );
+        elsif $.dirname eq $curdir && $.basename eq $updir
+           or !grep({$_ ne $updir}, $!SPEC.splitdir($.dirname)) {
+            return self.bless(    # If all updirs, then add one more
+              :path($!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$.basename)),
+              :$!SPEC,
+              :$!CWD,
+            );
         }
         else {
-            return self.new( $.SPEC.join($.volume, $.directory, '') );
+            return self.bless(
+              :path($!SPEC.join($.volume, $.dirname, '')),
+              :$!SPEC,
+              :$!CWD,
+            );
         }
     }
 
-    method child (IO::Path:D: $childname) {
-        self.new: path => $.SPEC.catfile($!path, $childname);
+    method child (IO::Path:D: $child) {
+        self.bless(:path($!SPEC.catfile($!path,$child)), :$!SPEC, :$!CWD);
     }
 
-    method copy(IO::Path:D: $dest, :$createonly = False) {
-        my $absdest = IO::Spec.rel2abs($dest);
-        if $createonly and $absdest.e {
-            fail(X::IO::Copy.new(from => $!path, to => $dest,
-                    os-error => "Destination file $dest exists and :createonly passed to copy."));
+    proto method rename(|) { * }
+    multi method rename(IO::Path:D: IO::Path:D $to, :$createonly) {
+        if $createonly and $to.e {
+            fail X::IO::Rename.new(
+              :from(nqp::box_s($!path,Str)),
+              :$to,
+              :os-error(':createonly specified and destination exists'),
+            );
         }
-        try {
-            nqp::copy(nqp::unbox_s(IO::Spec.rel2abs($!path)), nqp::unbox_s(~$absdest));
-        }
-        $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
+        nqp::rename($!path, nqp::unbox_s($to.path));
+        CATCH { default {
+            fail X::IO::Rename.new(
+              :from(nqp::box_s($!path,Str)), :$to, :os-error(.Str) );
+        } }
+        True;
+    }
+    multi method rename(IO::Path:D: $to, :$CWD = $*CWD, |c) {
+        self.rename($to.IO(:$!SPEC,:$CWD),|c);
     }
 
-    method chmod(IO::Path:D: Int $mode) {
-        nqp::chmod(nqp::unbox_s(IO::Spec.rel2abs($!path)), nqp::unbox_i($mode.Int));
-        return True;
-        CATCH {
-            default {
-                X::IO::Chmod.new(
-                    :$!path,
-                    :$mode,
-                    os-error => .Str,
-                ).throw;
-            }
+    proto method copy(|) { * }
+    multi method copy(IO::Path:D: IO::Path:D $to, :$createonly) {
+        if $createonly and $to.e {
+            fail X::IO::Copy.new(
+              :from(nqp::box_s($!path,Str)),
+              :$to,
+              :os-error(':createonly specified and destination exists'),
+            );
         }
+        nqp::copy($!path, nqp::unbox_s($to.path));
+        CATCH { default {
+            fail X::IO::Copy.new(
+              :from(nqp::box_s($!path,Str)), :$to, :os-error(.Str) );
+        } }
+        True;
+    }
+    multi method copy(IO::Path:D: $to, :$CWD  = $*CWD, |c) {
+        self.copy($to.IO(:$!SPEC,:$CWD),|c);
     }
 
-    method contents(IO::Path:D: Mu :$test = { $_ ne '.' && $_ ne '..' }) {
+    method chmod(IO::Path:D: $mode as Int) {
+        nqp::chmod($!path, nqp::unbox_i($mode));
+        CATCH { default {
+            fail X::IO::Chmod.new(
+              :path(nqp::box_s($!path,Str)), :$mode, :os-error(.Str) );
+        } }
+        True;
+    }
+    method unlink(IO::Path:D:) {
+        nqp::unlink($!path);
+        CATCH { default {
+            fail X::IO::Unlink.new( :$!path, os-error => .Str );
+        } }
+        True;
+    }
 
-        CATCH {
-            default {
-                X::IO::Dir.new(
-                    :$!path,
-                    os-error => .Str,
-                ).throw;
-            }
-        }
+    method symlink(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
+        $name = $name.IO(:$!SPEC,:$CWD).path;
+        nqp::symlink(nqp::unbox_s($name), $!path);
+        CATCH { default {
+            fail X::IO::Symlink.new(:from($!path), :$name, os-error => .Str);
+        } }
+        True;
+    }
+
+    method link(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
+        $name = $name.IO(:$!SPEC,:$CWD).path;
+        nqp::link(nqp::unbox_s($name), $!path);
+        CATCH { default {
+            fail X::IO::Link.new(:from($!path), :$name, os-error => .Str);
+        } }
+        True;
+    }
+
+    method mkdir(IO::Path:D: $mode = 0o777) {
+        nqp::mkdir($!path, $mode);
+        CATCH { default {
+            fail X::IO::Mkdir.new(:$!path, :$mode, os-error => .Str);
+        } }
+        True;
+    }
+
+    method rmdir(IO::Path:D:) {
+        nqp::rmdir($!path);
+        CATCH { default {
+            fail X::IO::Rmdir.new(:$!path, os-error => .Str);
+        } }
+        True;
+    }
+
+    method contents(IO::Path:D: |c) {
+        DEPRECATED('dir');
+        self.dir(|c);
+    }
+
+    method dir(IO::Path:D:   # XXX needs looking at
+        Mu :$test = $*SPEC.curupdir,
+        :$absolute,
+        :$CWD = $*CWD,
+    ) {
+
+        CATCH { default {
+            fail X::IO::Dir.new(
+              :path(nqp::box_s($!path,Str)), :os-error(.Str) );
+        } }
+        my $cwd_chars = $CWD.chars;
+
 #?if parrot
-        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s(self.absolute.Str));
+        my Mu $RSA := pir::new__PS('OS').readdir($!path);
         my int $elems = nqp::elems($RSA);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
               nqp::atpos_s($RSA, $i),
               pir::find_encoding__Is('utf8')));
             if $file ~~ $test {
-                take self.child($file);
+                take self.child($file);   # XXX needs looking at
             }
         }
 #?endif
-#?if jvm
-        my $cwd_chars = $*CWD.chars;
-#?endif
 #?if !parrot
-        my Mu $dirh := nqp::opendir(self.absolute.Str);
+        my Mu $dirh := nqp::opendir($!path);
         my $next = 1;
         gather {
             take $_.path if $_ ~~ $test for ".", "..";
@@ -251,11 +350,24 @@ my class IO::Path is Cool does IO::FileTestable {
         my $handle = self.open(|c);
         $handle && $handle.words(:close, |c);
     }
+
+    method directory() {
+        DEPRECATED("dirname");
+        self.dirname;
+    }
 }
 
-my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
-my class IO::Path::Win32  is IO::Path { method SPEC { IO::Spec::Win32  };  }
-my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
-my class IO::Path::QNX    is IO::Path { method SPEC { IO::Spec::QNX    };  }
+my class IO::Path::Cygwin is IO::Path {
+    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Cygwin) ) }
+}
+my class IO::Path::QNX is IO::Path {
+    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::QNX) ) }
+}
+my class IO::Path::Unix is IO::Path {
+    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Unix) ) }
+}
+my class IO::Path::Win32 is IO::Path {
+    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Win32) ) }
+}
 
 # vim: ft=perl6 expandtab sw=4

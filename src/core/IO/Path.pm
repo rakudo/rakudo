@@ -267,28 +267,34 @@ my class IO::Path is Cool does IO::FileTestable {
 
         CATCH { default {
             fail X::IO::Dir.new(
-              :path(nqp::box_s($!path,Str)), :os-error(.Str) );
+              :path(nqp::box_s($.abspath,Str)), :os-error(.Str) );
         } }
         my $cwd_chars = $CWD.chars;
 
+        my str $cwd = nqp::cwd();
+        nqp::chdir(nqp::unbox_s($.abspath));
+
 #?if parrot
-        my Mu $RSA := pir::new__PS('OS').readdir($!path);
+        my Mu $RSA := pir::new__PS('OS').readdir($!abspath);
         my int $elems = nqp::elems($RSA);
-        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-            my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-              nqp::atpos_s($RSA, $i),
-              pir::find_encoding__Is('utf8')));
-            if $file ~~ $test {
-                take self.child($file);   # XXX needs looking at
+        gather {
+            loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+                my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+                  nqp::atpos_s($RSA, $i),
+                  pir::find_encoding__Is('utf8')));
+                if $file ~~ $test {
+                    take self.child($file);   # XXX needs looking at
+                }
             }
+            nqp::chdir($cwd);
         }
 #?endif
 #?if !parrot
-        my Mu $dirh := nqp::opendir($!path);
+
+        my Mu $dirh := nqp::opendir($!abspath);
         my $next = 1;
         gather {
-            take $_.path if $_ ~~ $test for ".", "..";
-            my $SPEC = $.SPEC;
+            take $_.IO(:$!SPEC,:$*CWD) if $_ ~~ $test for ".", "..";
             loop {
                 my str $elem = nqp::nextfiledir($dirh);
                 if nqp::isnull_s($elem) || nqp::chars($elem) == 0 {
@@ -297,20 +303,15 @@ my class IO::Path is Cool does IO::FileTestable {
                 }
                 elsif $elem ne '.' | '..' {
 #?endif
-#?if jvm
-                    # jvm's nextfiledir gives us absolute paths back, moar does not.
-                    $elem = nqp::substr($elem, $cwd_chars + 1) if self.is-relative;
-#?endif
 #?if moar
-                    $elem = $SPEC.catfile($!path, $elem) if $!path ne '.';
+                    $elem = $!SPEC.catfile($!abspath, $elem); # moar = relative
 #?endif
 #?if !parrot
-                    if nqp::substr($elem, 0, 2) eq "./" | ".\\" {
-                        $elem = nqp::substr($elem, 2);
-                    }
-                    take IO::Path.new($elem) if $test.ACCEPTS($elem);
+                    $elem = nqp::substr($elem, $cwd_chars + 1) if !$absolute;
+                    take $elem.IO(:$!SPEC,:$CWD) if $test.ACCEPTS($elem);
                 }
             }
+            nqp::chdir($cwd);
         }
 #?endif
     }

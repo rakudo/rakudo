@@ -49,8 +49,8 @@ sub prompt($msg) {
     $*IN.get;
 }
 
-sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-    $path.IO.dir(:$test)
+sub dir(Cool $path = '.', |c) {
+    $path.IO.dir(|c)
 }
 
 proto sub open(|) { * }

@@ -66,7 +66,7 @@ my class IO::Path is Cool does IO::FileTestable {
 
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
-        "q|$.abspath|.IO";
+        qq|"$.abspath".IO|;
     }
     multi method perl(IO::Path:D:) {
         ($.is-absolute

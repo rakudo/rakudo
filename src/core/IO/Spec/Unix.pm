@@ -17,7 +17,7 @@ my class IO::Spec::Unix is IO::Spec {
         $path
     }
 
-    method slash    {  '/' }
+    method dir-sep  {  '/' }
     method curdir   {  '.' }
     method updir    { '..' }
     method curupdir { none('.','..') }

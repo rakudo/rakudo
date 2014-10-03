@@ -249,8 +249,8 @@ class Perl6::Pod {
         # from every row, also remove trailing \n
         my $w := -1; # the longest leading whitespace
         for @rows -> $row {
-            next if $row ~~ /^^\s*$$/;
-            my $match := $row ~~ /^^\s+/;
+            next if $row ~~ /^\s*$/;
+            my $match := $row ~~ /^\s+/;
             next unless $match;
             my $n := $match.to;
             if $n < $w || $w == -1 {
@@ -259,7 +259,7 @@ class Perl6::Pod {
         }
         my $i := 0;
         while $i < +@rows {
-            unless @rows[$i] ~~ /^^\s*$$/ {
+            unless @rows[$i] ~~ /^\s*$/ {
                 if $w != -1 {
                     @rows[$i] := nqp::substr(@rows[$i], $w);
                 }

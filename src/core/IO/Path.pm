@@ -35,7 +35,7 @@ my class IO::Path is Cool does IO::FileTestable {
       :$SPEC   = $*SPEC,
       :$CWD    = $*CWD,
     ) {
-        DEPRECATED(':dirname', :what<IO::Path.new with :directory>);
+#        DEPRECATED(':dirname', :what<IO::Path.new with :directory>); # after 2014.10
         self.bless(
           :path($SPEC.join($volume,$directory,$basename)), :$SPEC, :$CWD);
     }
@@ -255,7 +255,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method contents(IO::Path:D: |c) {
-        DEPRECATED('dir');
+#        DEPRECATED('dir');   # after 2014.10
         self.dir(|c);
     }
 
@@ -352,7 +352,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method directory() {
-        DEPRECATED("dirname");
+#        DEPRECATED("dirname");   # after 2014.10
         self.dirname;
     }
 }

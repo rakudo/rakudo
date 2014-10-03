@@ -307,7 +307,8 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if moar
                     $elem = $!SPEC.catfile($!abspath, $elem); # moar = relative
-                    $elem = nqp::substr($elem, $cwd_chars + 1) if !$absolute;
+                    $elem = nqp::substr($elem, $cwd_chars + 1)
+                      if !$absolute and !$.is-absolute;
                     take $elem.IO(:$!SPEC,:$CWD) if $test.ACCEPTS($elem);
                 }
             }

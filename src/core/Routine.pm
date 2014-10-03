@@ -151,7 +151,7 @@ multi sub trait_mod:<is>(Routine $r, :$cached!) {
         my $key := c.gist;
         %cache{$key}:exists
           ?? %cache{$key}
-          !! (%cache{$key} = callsame);
+          !! (%cache{$key} := callsame);
     });
 }
 

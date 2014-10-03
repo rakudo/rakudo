@@ -150,13 +150,28 @@ nqp::bindattr(nqp::decont(PROCESS::<$ERR>),
   IO::Handle, '$!PIO', nqp::getstderr());
 
 sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
+    my @ok;
+    for @filenames -> $file {
+        @ok.push($file) if $file.IO(:$SPEC,:$CWD).chmod($mode);
+    }
+    @ok;
+#    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
 }
 sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
-    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink ).eager;
+    my @ok;
+    for @filenames -> $file {
+        @ok.push($file) if $file.IO(:$SPEC,:$CWD).unlink;
+    }
+    @ok;
+#    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink ).eager;
 }
 sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
+    my @ok;
+    for @filenames -> $file {
+        @ok.push($file) if $file.IO(:$SPEC,:$CWD).rmdir;
+    }
+    @ok;
+#    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
 }
 
 proto sub mkdir(|) { * }

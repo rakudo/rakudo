@@ -271,8 +271,10 @@ my class IO::Path is Cool does IO::FileTestable {
         } }
         my $cwd_chars = $CWD.chars;
 
+#?if !jvm
         my str $cwd = nqp::cwd();
         nqp::chdir(nqp::unbox_s($.abspath));
+#?endif
 
 #?if parrot
         my Mu $RSA := pir::new__PS('OS').readdir($!abspath);
@@ -291,7 +293,7 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if !parrot
 
-        my Mu $dirh := nqp::opendir($!abspath);
+        my Mu $dirh := nqp::opendir(nqp::unbox_s($.abspath));
         my $next = 1;
         gather {
             take $_.IO(:$!SPEC,:$*CWD) if $_ ~~ $test for ".", "..";
@@ -305,13 +307,18 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if moar
                     $elem = $!SPEC.catfile($!abspath, $elem); # moar = relative
-#?endif
-#?if !parrot
                     $elem = nqp::substr($elem, $cwd_chars + 1) if !$absolute;
                     take $elem.IO(:$!SPEC,:$CWD) if $test.ACCEPTS($elem);
                 }
             }
             nqp::chdir($cwd);
+        }
+#?endif
+#?if jvm
+                    $elem = nqp::substr($elem, $cwd_chars + 1) if !$absolute;
+                    take $elem.IO(:$!SPEC,:$CWD) if $test.ACCEPTS($elem);
+                }
+            }
         }
 #?endif
     }

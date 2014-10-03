@@ -188,15 +188,15 @@ my class IO::Path is Cool does IO::FileTestable {
     multi method copy(IO::Path:D: IO::Path:D $to, :$createonly) {
         if $createonly and $to.e {
             fail X::IO::Copy.new(
-              :from(nqp::box_s($!path,Str)),
+              :from(self),
               :$to,
               :os-error(':createonly specified and destination exists'),
             );
         }
-        nqp::copy($!path, nqp::unbox_s($to.path));
+        nqp::copy($.abspath, nqp::unbox_s($to.abspath));
         CATCH { default {
             fail X::IO::Copy.new(
-              :from(nqp::box_s($!path,Str)), :$to, :os-error(.Str) );
+              :from(self), :$to, :os-error(.Str) );
         } }
         True;
     }

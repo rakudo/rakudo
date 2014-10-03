@@ -28,7 +28,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         # sorry, cannot handle this one
         return () unless %extensions{$from}:exists;
 
-        my $slash := $*SPEC.rootdir;
+        my $slash := $*SPEC.slash;
         my $base := $!path ~ $slash ~ $name.subst(:g, "::", $slash) ~ '.';
         if %seen{$base} -> $found {
             return $found;

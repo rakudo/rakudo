@@ -17,10 +17,11 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         self!canon-cat(|@dirs);
     }
 
-    method splitdir($dir)        { $dir.split($slash)  }
-    method catfile(|c)           { self.catdir(|c)     }
-    method devnull               { 'nul'               }
-    method rootdir               { '\\'                }
+    method slash          { '\\' }
+    method splitdir($dir) { $dir.split($slash)  }
+    method catfile(|c)    { self.catdir(|c)     }
+    method devnull        { 'nul'               }
+    method rootdir        { '\\'                }
 
     method tmpdir {
         first( { .defined && .IO.d && .IO.w },

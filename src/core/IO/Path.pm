@@ -168,15 +168,15 @@ my class IO::Path is Cool does IO::FileTestable {
     multi method rename(IO::Path:D: IO::Path:D $to, :$createonly) {
         if $createonly and $to.e {
             fail X::IO::Rename.new(
-              :from(nqp::box_s($!path,Str)),
+              :from($.abspath),
               :$to,
               :os-error(':createonly specified and destination exists'),
             );
         }
-        nqp::rename($!path, nqp::unbox_s($to.path));
+        nqp::rename($.abspath, nqp::unbox_s($to.abspath));
         CATCH { default {
             fail X::IO::Rename.new(
-              :from(nqp::box_s($!path,Str)), :$to, :os-error(.Str) );
+              :from($!abspath), :$to($to.abspath), :os-error(.Str) );
         } }
         True;
     }
@@ -188,7 +188,7 @@ my class IO::Path is Cool does IO::FileTestable {
     multi method copy(IO::Path:D: IO::Path:D $to, :$createonly) {
         if $createonly and $to.e {
             fail X::IO::Copy.new(
-              :from(self),
+              :from($.abspath),
               :$to,
               :os-error(':createonly specified and destination exists'),
             );
@@ -196,7 +196,7 @@ my class IO::Path is Cool does IO::FileTestable {
         nqp::copy($.abspath, nqp::unbox_s($to.abspath));
         CATCH { default {
             fail X::IO::Copy.new(
-              :from(self), :$to, :os-error(.Str) );
+              :from($!abspath), :$to, :os-error(.Str) );
         } }
         True;
     }
@@ -205,51 +205,51 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method chmod(IO::Path:D: $mode as Int) {
-        nqp::chmod($!path, nqp::unbox_i($mode));
+        nqp::chmod($.abspath, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
-              :path(nqp::box_s($!path,Str)), :$mode, :os-error(.Str) );
+              :path($!abspath), :$mode, :os-error(.Str) );
         } }
         True;
     }
     method unlink(IO::Path:D:) {
-        nqp::unlink($!path);
+        nqp::unlink($.abspath);
         CATCH { default {
-            fail X::IO::Unlink.new( :$!path, os-error => .Str );
+            fail X::IO::Unlink.new( :path($!abspath), os-error => .Str );
         } }
         True;
     }
 
     method symlink(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
         $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::symlink(nqp::unbox_s($name), $!path);
+        nqp::symlink(nqp::unbox_s($name), $.abspath);
         CATCH { default {
-            fail X::IO::Symlink.new(:from($!path), :$name, os-error => .Str);
+            fail X::IO::Symlink.new(:target($!abspath), :$name, os-error => .Str);
         } }
         True;
     }
 
     method link(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
         $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::link(nqp::unbox_s($name), $!path);
+        nqp::link(nqp::unbox_s($name), $.abspath);
         CATCH { default {
-            fail X::IO::Link.new(:from($!path), :$name, os-error => .Str);
+            fail X::IO::Link.new(:target($!abspath), :$name, os-error => .Str);
         } }
         True;
     }
 
     method mkdir(IO::Path:D: $mode = 0o777) {
-        nqp::mkdir($!path, $mode);
+        nqp::mkdir($.abspath, $mode);
         CATCH { default {
-            fail X::IO::Mkdir.new(:$!path, :$mode, os-error => .Str);
+            fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
         } }
         True;
     }
 
     method rmdir(IO::Path:D:) {
-        nqp::rmdir($!path);
+        nqp::rmdir($.abspath);
         CATCH { default {
-            fail X::IO::Rmdir.new(:$!path, os-error => .Str);
+            fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
         } }
         True;
     }

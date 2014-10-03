@@ -45,7 +45,7 @@ my class Instant is Cool does Real {
         'Instant:' ~ $.x
     }
     multi method perl(Instant:D:) {
-        "Instant.new(x => $.x.perl())";
+        "Instant.new($.x.perl())";
     }
     method Bridge(Instant:D:) { $.x.Bridge }
     method Num   (Instant:D:) { $.x.Num    }

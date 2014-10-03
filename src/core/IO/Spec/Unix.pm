@@ -17,10 +17,11 @@ my class IO::Spec::Unix is IO::Spec {
         $path
     }
 
-    method curdir  {  '.' }
-    method updir   { '..' }
-    method rootdir { '/' }
-    method devnull { '/dev/null' }
+    method curdir   {  '.' }
+    method updir    { '..' }
+    method curupdir { none('.','..') }
+    method rootdir  { '/' }
+    method devnull  { '/dev/null' }
 
     method tmpdir {
         self.canonpath: first( { .defined && .IO.d && .IO.w },
@@ -28,8 +29,6 @@ my class IO::Spec::Unix is IO::Spec {
                 '/tmp') 
             || self.curdir;
     }
-
-    method no-parent-or-current-test { none('.', '..')  }
 
     method is-absolute( $file ) {
         substr( $file, 0, 1 ) eq '/';
@@ -153,6 +152,11 @@ my class IO::Spec::Unix is IO::Spec {
             $base = self.rel2abs( $base, $cwd ) unless $base eq $cwd;
         }
         self.catdir( self.canonpath($base), $path );
+    }
+
+    method no-parent-or-current-test {
+        DEPRECATED('curupdir');
+        none('.', '..');
     }
 }
 

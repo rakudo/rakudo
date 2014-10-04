@@ -25,10 +25,13 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method basename(\path) {
         my str $str = nqp::unbox_s(path);
-        my int $index = nqp::rindex($str,'\\');
-        nqp::p6bool($index == -1)
+        my int $indexf = nqp::rindex($str,'/');
+        my int $indexb = nqp::rindex($str,'\\');
+        nqp::p6bool($indexf == -1 && $indexb == -1)
           ?? path
-          !! path.substr( nqp::box_i($index + 1,Int) );
+          !! $indexf > $indexb
+             ?? path.substr( nqp::box_i($indexf + 1,Int) )
+             !! path.substr( nqp::box_i($indexb + 1,Int) );
     }
 
     method tmpdir {

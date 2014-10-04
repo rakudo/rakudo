@@ -271,56 +271,59 @@ my class IO::Path is Cool does IO::FileTestable {
         } }
         my $cwd_chars = $CWD.chars;
 
-#?if !jvm
+#?if moar
         my str $cwd = nqp::cwd();
         nqp::chdir(nqp::unbox_s($.abspath));
 #?endif
+        my $abspath-sep := $.abspath ~ $!SPEC.dir-sep;
 
 #?if parrot
-        my Mu $RSA := pir::new__PS('OS').readdir($!abspath);
+        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($.abspath));
         my int $elems = nqp::elems($RSA);
-        gather {
+        gather
             loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-                my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+                my Str $elem = nqp::p6box_s(pir::trans_encoding__Ssi(
                   nqp::atpos_s($RSA, $i),
                   pir::find_encoding__Is('utf8')));
-                if $file ~~ $test {
-                    take self.child($file);   # XXX needs looking at
-                }
-            }
-            nqp::chdir($cwd);
-        }
 #?endif
 #?if !parrot
-
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.abspath));
-        my $next = 1;
         gather {
-            take $_.IO(:$!SPEC,:$*CWD) if $_ ~~ $test for ".", "..";
+#?endif
+#?if jvm
+            for <. ..> -> $elem {
+                if $test.ACCEPTS($elem) {
+                    $absolute
+                      ?? take ($abspath-sep ~ $elem).IO(:$!SPEC,:$CWD)
+                      !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1).IO(:$!SPEC,:$CWD);
+                }
+            }
+#?endif
+#?if !parrot
             loop {
-                my str $elem = nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) || nqp::chars($elem) == 0 {
+                my str $str_elem = nqp::nextfiledir($dirh);
+                if nqp::isnull_s($str_elem) || nqp::chars($str_elem) == 0 {
                     nqp::closedir($dirh);
                     last;
                 }
-                elsif $elem ne '.' | '..' {
-#?endif
-#?if moar
-                    $elem = $!SPEC.catfile($!abspath, $elem); # moar = relative
-                    $elem = nqp::substr($elem, $cwd_chars + 1)
-                      if !$absolute and !$.is-absolute;
-                    take $elem.IO(:$!SPEC,:$CWD) if $test.ACCEPTS($elem);
-                }
-            }
-            nqp::chdir($cwd);
-        }
+                my Str $elem = nqp::box_s($str_elem,Str);
 #?endif
 #?if jvm
-                    $elem = nqp::substr($elem, $cwd_chars + 1)
-                      if !$absolute and !$.is-absolute;
-                    take $elem.IO(:$!SPEC,:$CWD) if $test.ACCEPTS($elem);
+                if $test.ACCEPTS($!SPEC.basename($elem)) {
+#?endif
+#?if !jvm
+                if $test.ACCEPTS($elem) {
+                    $elem = $abspath-sep ~ $elem; # make absolute
+#?endif
+                    !$absolute && !$.is-absolute
+                      ?? take $elem.substr($cwd_chars + 1).IO(:$!SPEC,:$CWD)
+                      !! take $elem.IO(:$!SPEC,:$CWD);
                 }
+#?if moar
+                nqp::chdir($cwd);
+#?endif
             }
+#?if !parrot
         }
 #?endif
     }

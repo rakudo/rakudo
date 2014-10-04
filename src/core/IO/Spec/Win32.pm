@@ -23,6 +23,14 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     method devnull        { 'nul'               }
     method rootdir        { '\\'                }
 
+    method basename(\path) {
+        my str $str = nqp::unbox_s(path);
+        my int $index = nqp::rindex($str,'\\');
+        nqp::p6bool($index == -1)
+          ?? path
+          !! path.substr( nqp::box_i($index + 1,Int) );
+    }
+
     method tmpdir {
         first( { .defined && .IO.d && .IO.w },
             %*ENV<TMPDIR>,

@@ -69,11 +69,12 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
         my @help-msgs;
 
         my sub strip_path_prefix($name) {
-            my ($vol, $dir, $base) = IO::Spec.splitpath($name);
-            $dir = IO::Spec.canonpath($dir);
-            for IO::Spec.path() -> $elem {
-                if IO::Spec.catpath($vol, $elem, $base).IO.x {
-                    return $base if IO::Spec.canonpath($elem) eq $dir;
+            my $SPEC := $*SPEC;
+            my ($vol, $dir, $base) = $SPEC.splitpath($name);
+            $dir = $SPEC.canonpath($dir);
+            for $SPEC.path() -> $elem {
+                if $SPEC.catpath($vol, $elem, $base).IO.x {
+                    return $base if $SPEC.canonpath($elem) eq $dir;
                     # Shadowed command found in earlier PATH element
                     return $name;
                 }

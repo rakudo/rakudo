@@ -1091,6 +1091,9 @@ BEGIN {
             }
             nqp::bindattr_i($attr, Attribute, '$!positional_delegate', $positional_delegate);
             nqp::bindattr_i($attr, Attribute, '$!associative_delegate', $associative_delegate);
+            if nqp::existskey(%other, 'build') {
+                $attr.set_build(%other<build>);
+            }
             $attr
         }));
     Attribute.HOW.add_method(Attribute, 'name', nqp::getstaticcode(sub ($self) {

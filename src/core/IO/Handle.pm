@@ -8,8 +8,7 @@ my class IO::Handle does IO {
     has $.chomp = Bool::True;
     has Bool $!isDir;
 
-    proto method open(|) { * }
-    multi method open(
+    method open(
       :$r is copy,
       :$w is copy,
       :$rw,
@@ -40,6 +39,7 @@ my class IO::Handle does IO {
                     die "Don't know how to open '$_' especially";
                 }
             }
+            nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
             return self;
         }
 

@@ -164,7 +164,11 @@ my class IO::Path is Cool does IO::FileTestable {
         self.bless(:path($!SPEC.catfile($!path,$child)), :$!SPEC, :$!CWD);
     }
 
-    method chdir(IO::Path:D: $path is copy as Str, :$test = 'r') {  # <r>
+    proto method chdir(|) { * }
+    multi method chdir(IO::Path:U: $path, :$test = 'r') {
+        $*CWD.chdir($path,:$test);
+    }
+    multi method chdir(IO::Path:D: $path is copy as Str, :$test = 'r') {
         if !$!SPEC.is-absolute($path) {
             my ($volume,$dirs) = $!SPEC.splitpath(self, :nofile);
             my @dirs = $!SPEC.splitdir($dirs);

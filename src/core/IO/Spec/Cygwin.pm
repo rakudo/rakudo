@@ -23,13 +23,15 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 
     method tmpdir {
-        self.canonpath: first( { .defined && .IO.d && .IO.w },
-             %*ENV<TMPDIR>,
-             "/tmp",
-             %*ENV<TMP>,
-             %*ENV<TEMP>,
-             'C:/temp') 
-          || self.curdir;
+        my %ENV := $%ENV;
+        my $io;
+        first( { .defined && ($io = .IO).all: <d r w x> },
+          %ENV<TMPDIR>,
+          "/tmp",
+          %ENV<TMP>,
+          %ENV<TEMP>,
+          'C:/temp',
+        ) ?? $io !! IO::Path.new(".");
     }
 
     # Paths might have a volume, so we use Win32 splitpath and catpath instead

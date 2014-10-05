@@ -35,16 +35,18 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method tmpdir {
-        first( { .defined && .IO.d && .IO.w },
-            %*ENV<TMPDIR>,
-            %*ENV<TEMP>,
-            %*ENV<TMP>,
-            'SYS:/temp',
-            'C:\system\temp',
-            'C:/temp',
-            '/tmp',
-            '/')
-          || self.curdir;
+        my %ENV := $%ENV;
+        my $io;
+        first( { .defined && ($io = .IO).all: <d r w x> },
+          %ENV<TMPDIR>,
+          %ENV<TEMP>,
+          %ENV<TMP>,
+          'SYS:/temp',
+          'C:\system\temp',
+          'C:/temp',
+          '/tmp',
+          '/',
+        ) ?? $io !! IO::Path.new(".");
     }
 
     method path {

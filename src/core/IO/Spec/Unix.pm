@@ -41,10 +41,11 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method tmpdir {
-        self.canonpath: first( { .defined && .IO.d && .IO.w },
-                %*ENV<TMPDIR>,
-                '/tmp') 
-            || self.curdir;
+        my $io;
+        first( { .defined && ($io = .IO).all: <d r w x> },
+          %*ENV<TMPDIR>,
+          '/tmp',
+        ) ?? $io !! IO::Path.new(".");
     }
 
     method is-absolute( $file ) {

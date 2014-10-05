@@ -1,8 +1,12 @@
 New in 2014.10
 + unstrict mode now default with -e
-+ use strict / no strict implemented
++ use strict / no strict implemented (but -Mstrict does not work)
 + Implemented Supply.lines/words
 + Implemented IO::Handle.words
++ Updated chdir() to spec
++ Implemented indir( $dir,:test<r w x>,{...} )
++ Implemented tmpdir($dir) and homedir($dir)
++ Implemented IO::Path.all: "foo".IO.all(<f r w>) is True for r/w file
 + Fixed ordering issue with IO::Socket::Async
 + Str.words is now lazy by default
 + Str.words no longer returns the word if there is only one word: this behaviour

@@ -7,6 +7,7 @@ New in 2014.10
 + Implemented indir( $dir,:test<r w x>,{...} )
 + Implemented tmpdir($dir) and homedir($dir)
 + Implemented IO::Path.all: "foo".IO.all(<f r w>) is True for r/w file
++ IO::Path.modified|accessed|changed now return Instant, according to spec
 + Fixed ordering issue with IO::Socket::Async
 + Str.words is now lazy by default
 + Str.words no longer returns the word if there is only one word: this behaviour

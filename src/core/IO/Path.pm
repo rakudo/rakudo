@@ -420,9 +420,9 @@ my class IO::Path is Cool {
         return False if !@tests or !$.e;
 
         my str $sabspath = nqp::unbox_s($!abspath);
-        my int $b = 1;
+        my int $b = 1;  # is result boolean?
         state %t =
-          e => { ($b=1) && nqp::unbox_i($!e) },
+          e => { $b=1 }, # if we get here, it exists
           d => { ($b=1) && nqp::stat($sabspath,nqp::const::STAT_ISDIR) },
           f => { ($b=1) && nqp::stat($sabspath,nqp::const::STAT_ISREG) },
           s => { %t.at_key("f")()
@@ -434,7 +434,7 @@ my class IO::Path is Cool {
           z => { %t.at_key("f")()
               && nqp::stat($sabspath,nqp::const::STAT_FILESIZE) == 0 },
 
-          "!e" => { nqp::bitxor_i(%t.at_key("e")(),1) },
+          "!e" => { $b=1; 0 }, # if we get here, it exists
           "!d" => { nqp::bitxor_i(%t.at_key("d")(),1) },
           "!f" => { nqp::bitxor_i(%t.at_key("f")(),1) },
           "!l" => { nqp::bitxor_i(%t.at_key("l")(),1) },

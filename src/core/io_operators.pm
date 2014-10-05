@@ -55,8 +55,9 @@ sub dir(Cool $path = '.', |c) {
 
 proto sub open(|) { * }
 multi sub open($path, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp = True, :$enc = 'utf8') {
-    my $handle = IO::Handle.new;
-    $handle.open($path,:$r,:$w,:$rw,:$a,:$p,:$bin,:$chomp,:$enc) && $handle;
+    my $handle = IO::Handle.new(:path($path.IO));
+    $handle // $handle.throw;
+    $handle.open(:$r,:$w,:$rw,:$a,:$p,:$bin,:$chomp,:$enc);
 }
 
 proto sub lines(|) { * }
@@ -155,11 +156,12 @@ sub homedir($path as Str, :$test = <r w x>) {
     $*HOME = $newHOME;
 }
 
-PROCESS::<$OUT> = open('-', :w);
-PROCESS::<$IN>  = open('-');
-PROCESS::<$ERR> = IO::Handle.new;
-nqp::bindattr(nqp::decont(PROCESS::<$ERR>),
-  IO::Handle, '$!PIO', nqp::getstderr());
+PROCESS::<$IN> =
+  IO::Handle.new(:path(IO::Special.new(:what(<< <STDIN>  >>)))).open;
+PROCESS::<$OUT> =
+  IO::Handle.new(:path(IO::Special.new(:what(<< <STDOUT> >>)))).open;
+PROCESS::<$ERR> =
+  IO::Handle.new(:path(IO::Special.new(:what(<< <STDERR> >>)))).open;
 
 sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     my @ok;

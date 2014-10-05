@@ -79,8 +79,7 @@ MAIN: {
     }
     else {
         for my $l (sort keys %letter_to_backend) {
-            # TODO: needs .exe/.bat magic on windows?
-            if (-x "$prefix/bin/nqp-$l") {
+            if (-x "$prefix/bin/nqp-$l" || -x "$prefix/bin/nqp-$l.exe" || -x "$prefix/bin/nqp-$l.bat") {
                 my $b = $letter_to_backend{$l};
                 print "Found $prefix/bin/nqp-$l (backend $b)\n";
                 $backends{$b} = 1;

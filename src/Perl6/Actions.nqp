@@ -2177,7 +2177,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
             # Create meta-attribute and add it.
-            my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
+            my $metaattr := $*W.resolve_mo($/, $*PKGDECL ~ '-attr');
             my $attr := $*W.pkg_add_attribute($/, $*PACKAGE, $metaattr,
                 hash(
                     name => $attrname,
@@ -3223,7 +3223,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $type_obj;
         my sub make_type_obj($base_type) {
-            $type_obj := $*W.pkg_create_mo($/, %*HOW<enum>, :$name, :$base_type);
+            $type_obj := $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'enum'), :$name, :$base_type);
             # Add roles (which will provide the enum-related methods).
             $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
             if istype($type_obj, $*W.find_symbol(['Numeric'])) {
@@ -3370,8 +3370,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Create the meta-object.
         my $longname := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
         my $subset := $<longname> ??
-            $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($longname.name())) !!
-            $*W.create_subset(%*HOW<subset>, $refinee, $refinement);
+            $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement, :name($longname.name())) !!
+            $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement);
 
         # Apply traits.
         for $<trait> {
@@ -5655,7 +5655,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $str_longname eq '::' {
                     $/.CURSOR.panic("Cannot use :: as a type name");
                 }
-                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(nqp::substr($str_longname, 2)));
+                make $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name(nqp::substr($str_longname, 2)));
             }
         }
         else {

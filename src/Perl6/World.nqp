@@ -517,7 +517,7 @@ class Perl6::World is HLL::World {
                 $cur_pkg := ($cur_pkg.WHO){$part};
             }
             else {
-                my $new_pkg := self.pkg_create_mo($/, %*HOW<package>, :name($part));
+                my $new_pkg := self.pkg_create_mo($/, self.resolve_mo($/, 'package'), :name($part));
                 self.pkg_compose($new_pkg);
                 if $create_scope eq 'my' || $cur_lex {
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
@@ -1662,6 +1662,11 @@ class Perl6::World is HLL::World {
     method colonpair_nibble_to_str($/, $nibble) {
         self.nibble_to_str($/, $nibble.ast,
             -> { "Colon pair value '$nibble' too complex to use in name" })
+    }
+
+    # Takes a declarator name and locates the applicable meta-object for it.
+    method resolve_mo($/, $declarator) {
+        %*HOW{$declarator}
     }
 
     # Creates a meta-object for a package, adds it to the root objects and

@@ -2262,7 +2262,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
                         }
-                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, |%args);
+                        $*PACKAGE := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL), |%args);
                         
                         # Install it in the symbol table if needed.
                         if @name {
@@ -2280,7 +2280,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $group := $*PACKAGE;
                         }
                         else {
-                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()), :repr($*REPR));
+                            $group := $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'role-group'), :name($longname.name()), :repr($*REPR));
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $target_package, $outer, $group);
                         }
 
@@ -2291,7 +2291,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             return 0 if nqp::elems(@params) == 0;
                             return nqp::elems(@params) > 1 || !@params[0]<optional>;
                         }
-                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, :name($longname.name()),
+                        $*PACKAGE := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL), :name($longname.name()),
                             :repr($*REPR), :group($group), :signatured(needs_args($<signature>)));
                     }
                 }
@@ -2334,9 +2334,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '$?CLASS',
-                            $*W.pkg_create_mo($/, %*HOW<generic>, :name('$?CLASS')));
+                            $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('$?CLASS')));
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
-                            $*W.pkg_create_mo($/, %*HOW<generic>, :name('::?CLASS')));
+                            $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('::?CLASS')));
                     }
                 }
                 

@@ -299,7 +299,14 @@ my class IO::Handle does IO::FileTestable {
         if $.chomp {
             gather {
                 until nqp::eoffh($!PIO) {
+#?if parrot
+                    my Mu $line := nqp::readlinefh($!PIO);
+                    last unless $line.DEFINITE;
+                    take nqp::p6box_s($line).chomp;
+#?endif
+#?if !parrot
                     take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
+#?endif
                     $!ins = $!ins + 1;
                 }
                 self.close if $close;
@@ -308,7 +315,14 @@ my class IO::Handle does IO::FileTestable {
         else {
             gather {
                 until nqp::eoffh($!PIO) {
+#?if parrot
+                    my Mu $line := nqp::readlinefh($!PIO);
+                    last unless $line.DEFINITE;
+                    take nqp::p6box_s($line);
+#?endif
+#?if !parrot
                     take nqp::p6box_s(nqp::readlinefh($!PIO));
+#?endif
                     $!ins = $!ins + 1;
                 }
                 self.close if $close;

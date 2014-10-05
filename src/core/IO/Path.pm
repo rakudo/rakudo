@@ -164,6 +164,51 @@ my class IO::Path is Cool does IO::FileTestable {
         self.bless(:path($!SPEC.catfile($!path,$child)), :$!SPEC, :$!CWD);
     }
 
+    method chdir(IO::Path:D: $path is copy as Str, :$test = 'r') {  # <r>
+        if !$!SPEC.is-absolute($path) {
+            my ($volume,$dirs) = $!SPEC.splitpath(self, :nofile);
+            my @dirs = $!SPEC.splitdir($dirs);
+            @dirs.shift; # the first is always empty for absolute dirs
+            for $!SPEC.splitdir($path) -> $dir {
+                if $dir eq '..' {
+                    @dirs.pop if @dirs;
+                }
+                elsif $dir ne '.' {
+                    @dirs.push: $dir;
+                }
+            }
+            @dirs.push('') if !@dirs;  # need at least the rootdir
+            $path = join($!SPEC.dir-sep, $volume, @dirs);
+        }
+        my $dir = IO::Path.new($path,:$!SPEC,:CWD(self));
+
+        # basic sanity
+        unless $dir.d {
+            fail X::IO::Chdir.new(
+              :$path,
+              :os-error( $dir.e
+                ?? "is not a directory"
+                !! "does not exist"),
+            );
+        }
+
+        # TEMPORARY until .all is implemented
+        if $test eq 'r' {
+            return $dir if $dir.r;
+        } 
+        elsif $test eq 'r w' {
+            return $dir if $dir.r and $dir.w;
+        }
+        elsif $test eq 'r w x' {
+            return $dir if $dir.r and $dir.w and $dir.x;
+        }
+
+        fail X::IO::Chdir.new(
+          :$path,
+          :os-error("did not pass 'd $test' test"),
+        );
+    }
+
     proto method rename(|) { * }
     multi method rename(IO::Path:D: IO::Path:D $to, :$createonly) {
         if $createonly and $to.e {

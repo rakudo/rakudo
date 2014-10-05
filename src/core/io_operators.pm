@@ -120,6 +120,7 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
 
 sub chdir($path as Str, :$test = 'r') {
     $*CWD = $*CWD.chdir($path,:$test);
+    True;
 }
 
 sub indir($path as Str, $what, :$test = <r w>) {

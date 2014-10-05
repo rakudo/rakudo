@@ -10,7 +10,6 @@ class CompUnit {
     has Bool     $.has-precomp;
     has Bool     $.is-loaded;
 
-    my $slash := IO::Spec.rootdir;
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';
     my %instances;
@@ -26,16 +25,9 @@ class CompUnit {
 
         # set name / extension if not already given
         if !$name or !$extension.defined {
-            my $file;
-            for $path.rindex($slash) -> $i {
-                $file = $i.defined ?? $path.substr($i+1) !! $path;
-            }
-
-            # no $slash in char class
-            if $file ~~ m/ (<-[\\/.]>+) . (<-[.]>+) $/ {
-                $name      ||= ~$0;
-                $extension ||= ~$1;
-            }
+            my IO::Spec $SPEC := $*SPEC;
+            $name      ||= $SPEC.basename($path);
+            $extension ||= $SPEC.extension($name);
         }
 
         # sanity test

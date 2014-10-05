@@ -1,64 +1,97 @@
 my class IO::Path { ... }
+my class IO::Special { ... }
 
-my class IO::Handle does IO::FileTestable {
+my class IO::Handle does IO {
+    has $.path;
     has $!PIO;
     has int $.ins;
     has $.chomp = Bool::True;
-    has $.path;
     has Bool $!isDir;
 
     proto method open(|) { * }
-    multi method open($path? is copy, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
-            :$enc = 'utf8') {
-        $path //= $!path;
-        my $is_std_handle = $path eq "-";
+    multi method open(
+      :$r is copy,
+      :$w is copy,
+      :$rw,
+      :$a,
+      :$p,
+      :$bin,
+      :$chomp = True,
+      :$enc   = 'utf8',
+    ) {
+
+        if $!path eq '-' {
+            $!path =
+              IO::Special.new(:what( $w ?? << <STDOUT> >> !! << <STDIN> >> ));
+        }
+
+        if $!path ~~ IO::Special {
+            given $!path.what {
+                when << <STDIN> >> {
+                    $!PIO := nqp::getstdin();
+                }
+                when << <STDOUT> >> {
+                    $!PIO := nqp::getstdout();
+                }
+                when << <STDERR> >> {
+                    $!PIO := nqp::getstderr();
+                }
+                default {
+                    die "Don't know how to open '$_' especially";
+                }
+            }
+            return self;
+        }
+
+        fail (X::IO::Directory.new(:$!path, :trying<open>)) if $!path.d;
+
+        $!isDir = $!path.d // False;  # TEMPORARY
         $r = $w = True if $rw;
-        my $abspath = !$is_std_handle && defined($*CWD) ?? $*SPEC.rel2abs($path) !! $path;
-        $!isDir = Bool::True if !$is_std_handle &&
-            nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_EXISTS))
-            && nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_ISDIR));
-        fail (X::IO::Directory.new(:$path, :trying<open>)) if $!isDir;
+
 #?if parrot
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
-        nqp::bindattr(self, IO::Handle, '$!PIO',
-             $is_std_handle
-                ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
-                !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
-        );
+        $!PIO := nqp::open(nqp::unbox_s($!path.abspath), nqp::unbox_s($mode));
 #?endif
 #?if !parrot
         if $p {
             #~ my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp');
 
-            my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
-            my Mu $hash-without         := nqp::hash();
+            my Mu $hash-with-containers :=
+              nqp::getattr(%*ENV, EnumMap, '$!storage');
+            my Mu $hash-without := nqp::hash();
             my Mu $enviter := nqp::iterator($hash-with-containers);
+
             my $envelem;
             while $enviter {
                 $envelem := nqp::shift($enviter);
-                nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
+                nqp::bindkey(
+                  $hash-without,
+                  nqp::iterkey_s($envelem),
+                  nqp::decont(nqp::iterval($envelem)),
+                );
             }
 
-            my $errpath = '';
-            nqp::bindattr(self, IO::Handle, '$!PIO',
-                 $is_std_handle
-                    ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
-                    !! nqp::openpipe(nqp::unbox_s($abspath.Str), nqp::unbox_s($*CWD.Str), $hash-without, nqp::unbox_s($errpath))
+            my str $errpath;
+            $!PIO := nqp::openpipe(
+              nqp::unbox_s($!path.abspath),
+              nqp::unbox_s($*CWD.Str),
+              $hash-without,
+              $errpath,
             );
         }
+
         else {
             my $mode =  $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
             # TODO: catch error, and fail()
-            nqp::bindattr(self, IO::Handle, '$!PIO',
-                 $is_std_handle
-                    ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
-                    !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
+            $!PIO := nqp::open(
+              nqp::unbox_s($!path.abspath),
+              nqp::unbox_s($mode),
             );
         }
 #?endif
-        $!path = $path;
+
         $!chomp = $chomp;
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
         self;
@@ -588,6 +621,19 @@ my class IO::Handle does IO::FileTestable {
     submethod DESTROY() {
         self.close;
     }
+
+    # setting cannot do "handles", so it's done by hand here
+    method e() { $!path.e }
+    method d() { $!path.d }
+    method f() { $!path.f }
+    method s() { $!path.s }
+    method l() { $!path.l }
+    method r() { $!path.r }
+    method w() { $!path.w }
+    method x() { $!path.x }
+    method modified() { $!path.modified }
+    method accessed() { $!path.accessed }
+    method changed()  { $!path.changed  }
 
 #?if moar
     method watch(IO::Handle:D:) {

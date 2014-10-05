@@ -652,6 +652,7 @@ S17-supply/zip.t         # conc
 S17-supply/zip-latest.t  # conc
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
+S19-command-line/repl.t
 S19-command-line-options/03-dash-p.t
 S22-package-format/local.t
 S22-package-format/parse-spec.t

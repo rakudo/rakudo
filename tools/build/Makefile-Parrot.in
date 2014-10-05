@@ -211,7 +211,7 @@ P_CORE_SOURCES = \
   src/core/IO/FileTestable.pm \
   src/core/IO/Handle.pm \
   src/core/IO/Path.pm \
-  src/core/IO/Path/Special.pm \
+  src/core/IO/Special.pm \
   src/core/io_operators.pm \
   src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \

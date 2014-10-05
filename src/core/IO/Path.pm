@@ -1,9 +1,12 @@
-my class IO::Path is Cool does IO::FileTestable {
+my class Instant { ... }
+
+my class IO::Path is Cool {
     has IO::Spec $.SPEC;
-    has Str $.CWD;
-    has Str $.path;
-    has Bool $.is-absolute;
-    has Str $!abspath;  # should be native for faster file tests, but segfaults
+    has Str      $.CWD;
+    has Str      $.path;
+    has Bool $!is-absolute;
+    has Str  $!abspath;  # should be native for faster file tests, but segfaults
+    has Bool $!e;
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
@@ -411,6 +414,83 @@ my class IO::Path is Cool does IO::FileTestable {
     multi method words(IO::Path:D: |c) {
         my $handle = self.open(|c);
         $handle && $handle.words(:close, |c);
+    }
+
+    method e() {
+        $!e //= nqp::p6bool(
+          nqp::stat(nqp::unbox_s($.abspath),nqp::const::STAT_EXISTS)
+        );
+    }
+
+    method d() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<d>) if !$.e;
+        nqp::p6bool(
+          nqp::stat(nqp::unbox_s($!abspath),nqp::const::STAT_ISDIR)
+        );
+    }
+
+    method f() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<f>) if !$.e;
+        nqp::p6bool(
+          nqp::stat(nqp::unbox_s($!abspath), nqp::const::STAT_ISREG)
+        );
+    }
+
+    method s() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<s>) if !$.e;
+        fail X::IO::NotAFile.new(:path(self.Str),:trying<s>)     if !$.f;
+        nqp::p6box_i(
+          nqp::stat(nqp::unbox_s($!abspath), nqp::const::STAT_FILESIZE)
+        );
+    }
+
+    method l() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<l>) if !$.e;
+        nqp::p6bool(nqp::fileislink(nqp::unbox_s($!abspath)));
+    }
+
+    method r() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<r>) if !$.e;
+        nqp::p6bool(nqp::filereadable(nqp::unbox_s($!abspath)));
+    }
+
+    method w() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<w>) if !$.e;
+        nqp::p6bool(nqp::filewritable(nqp::unbox_s($!abspath)));
+    }
+
+    method x() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<x>) if !$.e;
+        nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($!abspath)));
+    }
+
+    method z() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<z>) if !$.e;
+        fail X::IO::NotAFile.new(:path(self.Str),:trying<z>)     if !$.f;
+        nqp::p6box_i(
+          nqp::stat(nqp::unbox_s($!abspath), nqp::const::STAT_FILESIZE)
+        ) == 0;
+    }
+
+    method modified() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<modified>) if !$.e;
+        Instant.new( nqp::p6box_i(
+          nqp::stat(nqp::unbox_s($!abspath), nqp::const::STAT_MODIFYTIME)
+        ));
+    }
+
+    method accessed() {
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<accessed>) if !$.e;
+        Instant.new( nqp::p6box_i(
+          nqp::stat(nqp::unbox_s($!abspath), nqp::const::STAT_ACCESSTIME)
+        ));
+    }
+
+    method changed() { 
+        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<changed>) if !$.e;
+        Instant.new( nqp::p6box_i(
+          nqp::stat(nqp::unbox_s($!abspath), nqp::const::STAT_CHANGETIME)
+        ));
     }
 
     method directory() {

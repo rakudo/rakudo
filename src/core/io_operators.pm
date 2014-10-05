@@ -123,7 +123,6 @@ sub chdir($path as Str, :$test = 'r') {
     $newCWD // $newCWD.throw;
 
     $*CWD = $newCWD;
-    True;
 }
 
 sub indir($path as Str, $what, :$test = <r w>) {
@@ -134,6 +133,20 @@ sub indir($path as Str, $what, :$test = <r w>) {
         my $*CWD = $newCWD;  # temp doesn't work in core settings :-(
         $what();
     }
+}
+
+sub tmpdir($path as Str, :$test = 'r w x') {
+    my $newTMPDIR := $*TMPDIR.chdir($path,:$test);
+    $newTMPDIR // $newTMPDIR.throw;
+
+    $*TMPDIR = $newTMPDIR;
+}
+
+sub homedir($path as Str, :$test = 'r w x') {
+    my $newHOME := $*HOME.chdir($path,:$test);
+    $newHOME // $newHOME.throw;
+
+    $*HOME = $newHOME;
 }
 
 PROCESS::<$OUT> = open('-', :w);

@@ -119,13 +119,19 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
 }
 
 sub chdir($path as Str, :$test = 'r') {
-    $*CWD = $*CWD.chdir($path,:$test);
+    my $newCWD := $*CWD.chdir($path,:$test);
+    $newCWD // $newCWD.throw;
+
+    $*CWD = $newCWD;
     True;
 }
 
 sub indir($path as Str, $what, :$test = <r w>) {
-    if $*CWD.chdir($path,$test) -> $newCWD {
-        my $*CWD = $newCWD;
+    my $newCWD := $*CWD.chdir($path,:$test);
+    $newCWD // $newCWD.throw;
+    
+    {
+        my $*CWD = $newCWD;  # temp doesn't work in core settings :-(
         $what();
     }
 }

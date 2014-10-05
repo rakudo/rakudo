@@ -301,7 +301,7 @@ my class IO::Handle does IO::FileTestable {
                 until nqp::eoffh($!PIO) {
 #?if parrot
                     my Mu $line := nqp::readlinefh($!PIO);
-                    last unless $line.DEFINITE;
+                    last if nqp::eoffh($!PIO);
                     take nqp::p6box_s($line).chomp;
 #?endif
 #?if !parrot
@@ -317,7 +317,7 @@ my class IO::Handle does IO::FileTestable {
                 until nqp::eoffh($!PIO) {
 #?if parrot
                     my Mu $line := nqp::readlinefh($!PIO);
-                    last unless $line.DEFINITE;
+                    last if nqp::eoffh($!PIO);
                     take nqp::p6box_s($line);
 #?endif
 #?if !parrot
@@ -341,13 +341,27 @@ my class IO::Handle does IO::FileTestable {
         my Mu $rpa := nqp::list();
         if $.chomp {
             until nqp::eoffh($!PIO) {
+#?if parrot
+                my Mu $line := nqp::readlinefh($!PIO);
+                last if nqp::eoffh($!PIO);
+                nqp::push($rpa, nqp::p6box_s($line).chomp);
+#?endif
+#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
+#?endif
                 $!ins = $!ins + 1;
             }
         }
         else {
             until nqp::eoffh($!PIO) {
+#?if parrot
+                my Mu $line := nqp::readlinefh($!PIO);
+                last if nqp::eoffh($!PIO);
+                nqp::push($rpa, nqp::p6box_s($line));
+#?endif
+#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
+#?endif
                 $!ins = $!ins + 1;
             }
         }
@@ -363,7 +377,10 @@ my class IO::Handle does IO::FileTestable {
         fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
 
         until nqp::eoffh($!PIO) {
-            nqp::p6box_s(nqp::readlinefh($!PIO));
+            nqp::readlinefh($!PIO);
+#?if parrot
+            last if nqp::eoffh($!PIO);
+#?endif
             $!ins = $!ins + 1;
         }
         nqp::box_i($!ins, Int);
@@ -382,14 +399,27 @@ my class IO::Handle does IO::FileTestable {
         if $.chomp {
             while $count = $count - 1 {
                 last if nqp::eoffh($!PIO);
+#?if parrot
+                my Mu $line := nqp::readlinefh($!PIO);
+                last if nqp::eoffh($!PIO);
+                nqp::push($rpa, nqp::p6box_s($line).chomp);
+#?endif
+#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
+#?endif
                 $!ins = $!ins + 1;
             }
         }
         else {
             while $count = $count - 1 {
+#?if parrot
+                my Mu $line := nqp::readlinefh($!PIO);
                 last if nqp::eoffh($!PIO);
+                nqp::push($rpa, nqp::p6box_s($line));
+#?endif
+#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
+#?endif
                 $!ins = $!ins + 1;
             }
         }

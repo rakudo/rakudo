@@ -121,7 +121,7 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
 sub chdir($path as Str, :$test = 'r') {
 
     if $*CWD !~~ IO::Path {   # canary until 2014.10
-        warn "\$*CWD is a {$*CWD.^name}, no an IO::Path!!!";
+        warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
         $*CWD = $*CWD.IO;
     }
 

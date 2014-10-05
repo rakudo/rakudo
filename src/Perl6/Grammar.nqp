@@ -1167,7 +1167,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
                 elsif $key eq 'DECLARE' {
                     my %DECLARE := $*W.stash_hash($_.value);
-                    $/.CURSOR.NYI('EXPORTHOW::DECLARE');
+                    for %DECLARE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        if nqp::existskey(%*HOW, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
+                                declarator => $pdecl, directive => $key);
+                        }
+                        %*HOW{$pdecl}    := $meta;
+                        %*HOWUSE{$pdecl} := nqp::hash('DECLARE', $meta);
+                        self.add_package_declarator($pdecl);
+                    }
                 }
                 elsif $key eq 'COMPOSE' {
                     my %COMPOSE := $*W.stash_hash($_.value);
@@ -1186,6 +1196,39 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
             }
+        }
+    }
+
+    method add_package_declarator(str $pdecl) {
+        # Compute name of grammar/action entry.
+        my $canname := 'package_declarator:sym<' ~ $pdecl ~ '>';
+
+        # Add to grammar if needed.
+        unless nqp::can(self, $canname) {
+            my role PackageDeclarator[$meth_name, $declarator] {
+                token ::($meth_name) {
+                    :my $*OUTERPACKAGE := $*PACKAGE;
+                    :my $*PKGDECL := $declarator;
+                    :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+                    $<sym>=[$declarator] <.end_keyword> <package_def>
+                }
+            }
+            self.HOW.mixin(self, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
+
+            # This also becomes the current MAIN. Also place it in %?LANG.
+            %*LANG<MAIN> := self.WHAT;
+            $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
+        }
+
+        # Add action method if needed.
+        unless nqp::can($*ACTIONS, $canname) {
+            my role PackageDeclaratorAction[$meth] {
+                method ::($meth)($/) {
+                    make $<package_def>.ast;
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
         }
     }
 

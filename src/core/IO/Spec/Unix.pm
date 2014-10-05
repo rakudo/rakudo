@@ -32,6 +32,14 @@ my class IO::Spec::Unix is IO::Spec {
           !! path.substr( nqp::box_i($index + 1,Int) );
     }
 
+    method extension(\path) {
+        my str $str = nqp::unbox_s(path);
+        my int $index = nqp::rindex($str,'.');
+        nqp::p6bool($index == -1)
+          ?? ''
+          !! path.substr( nqp::box_i($index + 1,Int) );
+    }
+
     method tmpdir {
         self.canonpath: first( { .defined && .IO.d && .IO.w },
                 %*ENV<TMPDIR>,

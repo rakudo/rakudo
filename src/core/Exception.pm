@@ -1561,4 +1561,26 @@ my class X::HyperWhatever::Multiple is Exception {
     }
 }
 
+my class X::EXPORTHOW::InvalidDirective does X::Comp {
+    has $.directive;
+    method message() {
+        "Unknown EXPORTHOW directive '$.directive' encountered during import"
+    }
+}
+
+my class X::EXPORTHOW::NothingToSupersede does X::Comp {
+    has $.declarator;
+    method message() {
+        "There is no package declarator '$.declarator' to supersede"
+    }
+}
+
+my class X::EXPORTHOW::Conflict does X::Comp {
+    has $.declarator;
+    has $.directive;
+    method message() {
+        "'EXPORTHOW::{$.directive}::{$.declarator}' conflicts with an existing meta-object imported into this lexical scope"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

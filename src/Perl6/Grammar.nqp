@@ -336,6 +336,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # compile the setting, but it still wants some kinda package. We just
         # fudge in knowhow for that.
         my %*HOW;
+        my %*HOWUSE;
         %*HOW<knowhow> := nqp::knowhow();
         %*HOW<package> := nqp::knowhow();
         
@@ -1089,7 +1090,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 for nqp::islist($M) ?? $M !! [$M] -> $longname {
                     my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
                     do_import($/, $module, $longname);
-                    $/.CURSOR.import_EXPORTHOW($module);
+                    $/.CURSOR.import_EXPORTHOW($/, $module);
                 }
             }
         }
@@ -1143,11 +1144,47 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*W.CHECK(); }
     }
     
-    method import_EXPORTHOW($UNIT) {    
-        # See if we've exported any HOWs.
+    method import_EXPORTHOW($/, $UNIT) {    
         if nqp::existskey($UNIT, 'EXPORTHOW') {
             for $*W.stash_hash($UNIT<EXPORTHOW>) {
-                %*HOW{$_.key} := nqp::decont($_.value);
+                my str $key := $_.key;
+                if $key eq 'SUPERSEDE' {
+                    my %SUPERSEDE := $*W.stash_hash($_.value);
+                    for %SUPERSEDE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        unless nqp::existskey(%*HOW, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::NothingToSupersede',
+                                declarator => $pdecl);
+                        }
+                        if nqp::existskey(%*HOWUSE, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
+                                declarator => $pdecl, directive => $key);
+                        }
+                        %*HOW{$pdecl}    := $meta;
+                        %*HOWUSE{$pdecl} := nqp::hash('SUPERSEDE', $meta);
+                    }
+                }
+                elsif $key eq 'DECLARE' {
+                    my %DECLARE := $*W.stash_hash($_.value);
+                    $/.CURSOR.NYI('EXPORTHOW::DECLARE');
+                }
+                elsif $key eq 'COMPOSE' {
+                    my %COMPOSE := $*W.stash_hash($_.value);
+                    $/.CURSOR.NYI('EXPORTHOW::COMPOSE');
+                }
+                else {
+                    if $key eq nqp::lc($key) {
+                        # Support legacy API, which behaves like an unchecked
+                        # supersede.
+                        # XXX Can give deprecation warning in the future, remove
+                        # before 6.0.0.
+                        %*HOW{$key} := nqp::decont($_.value);
+                    }
+                    else {
+                        $/.CURSOR.typed_panic('X::EXPORTHOW::InvalidDirective', directive => $key);
+                    }
+                }
             }
         }
     }
@@ -1155,6 +1192,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statementlist($*statement_level = 0) {
         :my %*LANG   := self.shallow_copy(nqp::getlexdyn('%*LANG'));
         :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));
+        :my %*HOWUSE := nqp::hash();
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
         :dba('statement list')
         ''
@@ -1487,7 +1525,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <version> [ <?{ ~$<version><vnum>[0] eq '5' }> {
                         my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
                         do_import($/, $module, 'Perl5');
-                        $/.CURSOR.import_EXPORTHOW($module);
+                        $/.CURSOR.import_EXPORTHOW($/, $module);
                     } ]?
                     [ <?{ ~$<version><vnum>[0] eq '6' }> {
                         $*MAIN   := 'MAIN';
@@ -1532,7 +1570,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $*W.find_symbol(['List']), '$!items');
                     my $module  := $*W.load_module($/, $name, %cp, $*GLOBALish);
                     do_import($/, $module, $name, $arglist);
-                    $/.CURSOR.import_EXPORTHOW($module);
+                    $/.CURSOR.import_EXPORTHOW($/, $module);
                 }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
@@ -1542,7 +1580,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             my %cp     := $lnd.colonpairs_hash('use');
                             my $module := $*W.load_module($/, $name, %cp, $*GLOBALish);
                             do_import($/, $module, $name);
-                            $/.CURSOR.import_EXPORTHOW($module);
+                            $/.CURSOR.import_EXPORTHOW($/, $module);
                         }
                     }
                 }

@@ -98,8 +98,9 @@ my class IO::Path is Cool {
     }
 
     method open(IO::Path:D: |c) {
-        my $handle = IO::Handle.new(:path($.abspath));
-        $handle && $handle.open(|c);
+        my $handle = IO::Handle.new(:path(self));
+        $handle // $handle.throw;
+        $handle.open(|c);
     }
 
 #?if moar

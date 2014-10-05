@@ -36,7 +36,7 @@ multi sub INITIALIZE_DYNAMIC('$*PROGRAM') {
 }
 
 multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
-    PROCESS::<$TMPDIR> := IO::Spec.tmpdir.path;
+    PROCESS::<$TMPDIR> = IO::Path.new($*SPEC.tmpdir);
 }
 
 {

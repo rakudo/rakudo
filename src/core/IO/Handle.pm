@@ -13,7 +13,7 @@ my class IO::Handle does IO::FileTestable {
         $path //= $!path;
         my $is_std_handle = $path eq "-";
         $r = $w = True if $rw;
-        my $abspath = !$is_std_handle && defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
+        my $abspath = !$is_std_handle && defined($*CWD) ?? $*SPEC.rel2abs($path) !! $path;
         $!isDir = Bool::True if !$is_std_handle &&
             nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_EXISTS))
             && nqp::p6bool(nqp::stat($abspath.Str, nqp::const::STAT_ISDIR));
@@ -515,8 +515,8 @@ my class IO::Handle does IO::FileTestable {
     method copy($dest) {
         warn "IO::Handle.copy is deprecated.  Please use IO::Path.copy instead.";
         try {
-            nqp::copy(nqp::unbox_s(IO::Spec.rel2abs(~$!path)), 
-                      nqp::unbox_s(IO::Spec.rel2abs(~$dest)));
+            nqp::copy(nqp::unbox_s($*SPEC.rel2abs(~$!path)), 
+                      nqp::unbox_s($*SPEC.rel2abs(~$dest)));
         }
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }

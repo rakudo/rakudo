@@ -141,14 +141,14 @@ sub indir($path as Str, $what, :$test = <r w>) {
     }
 }
 
-sub tmpdir($path as Str, :$test = 'r w x') {
+sub tmpdir($path as Str, :$test = <r w x>) {
     my $newTMPDIR := $*TMPDIR.chdir($path,:$test);
     $newTMPDIR // $newTMPDIR.throw;
 
     $*TMPDIR = $newTMPDIR;
 }
 
-sub homedir($path as Str, :$test = 'r w x') {
+sub homedir($path as Str, :$test = <r w x>) {
     my $newHOME := $*HOME.chdir($path,:$test);
     $newHOME // $newHOME.throw;
 

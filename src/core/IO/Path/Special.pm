@@ -1,5 +1,9 @@
-class IO::Path::Special is IO::Path {
+class IO::Special {
     has Str $.what;
+
+    submethod BUILD(:$!what!) { }
+
+    method IO { self }
 
     method e() { True }
     method d() { False }

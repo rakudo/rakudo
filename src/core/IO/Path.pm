@@ -416,6 +416,43 @@ my class IO::Path is Cool {
         $handle && $handle.words(:close, |c);
     }
 
+    method all(*@tests) {
+        return False if !@tests or !$.e;
+
+        my str $sabspath = nqp::unbox_s($!abspath);
+        my int $b = 1;
+        state %t =
+          e => { ($b=1) && nqp::unbox_i($!e) },
+          d => { ($b=1) && nqp::stat($sabspath,nqp::const::STAT_ISDIR) },
+          f => { ($b=1) && nqp::stat($sabspath,nqp::const::STAT_ISREG) },
+          s => { %t.at_key("f")()
+              && ($b=0) || nqp::stat($sabspath,nqp::const::STAT_FILESIZE) },
+          l => { ($b=1) && nqp::fileislink($sabspath) },
+          r => { ($b=1) && nqp::filereadable($sabspath) },
+          w => { ($b=1) && nqp::filewritable($sabspath) },
+          x => { ($b=1) && nqp::fileexecutable($sabspath) },
+          z => { %t.at_key("f")()
+              && nqp::stat($sabspath,nqp::const::STAT_FILESIZE) == 0 },
+
+          "!e" => { nqp::bitxor_i(%t.at_key("e")(),1) },
+          "!d" => { nqp::bitxor_i(%t.at_key("d")(),1) },
+          "!f" => { nqp::bitxor_i(%t.at_key("f")(),1) },
+          "!l" => { nqp::bitxor_i(%t.at_key("l")(),1) },
+          "!r" => { nqp::bitxor_i(%t.at_key("r")(),1) },
+          "!w" => { nqp::bitxor_i(%t.at_key("w")(),1) },
+          "!x" => { nqp::bitxor_i(%t.at_key("x")(),1) },
+          "!z" => { nqp::bitxor_i(%t.at_key("z")(),1) },
+        ;
+
+        my int $result = 1;
+        for @tests -> $t {
+            die "Unknown test $t" unless %t.exists_key($t);
+            last unless $result = $result && %t.at_key($t)();
+        }
+
+        $b ?? nqp::p6bool($result) !! nqp::box_i($result,Int);
+    }
+
     method e() {
         $!e //= nqp::p6bool(
           nqp::stat(nqp::unbox_s($.abspath),nqp::const::STAT_EXISTS)

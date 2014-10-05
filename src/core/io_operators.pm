@@ -118,28 +118,14 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-proto sub chdir(|) { * }
-multi sub chdir(IO::Path:D $path) { chdir $path.Str }
-multi sub chdir($path as Str) {
-    my $newpath = IO::Path.new(IO::Spec.canonpath($path));
-    if $newpath.is-relative {
-        my $tmp = $*CWD;
-        for IO::Spec.splitdir($newpath) -> $segment {
-            given $segment {
-                when '..' { $tmp .= parent; }
-                when '.' { }
-                default { $tmp .= child($segment); }
-            }
-        }
-        $newpath = $tmp;
-    }
-    if $newpath.d {
-        $*CWD = $newpath; 
-    } else {
-        X::IO::Chdir.new(
-            path => $newpath,
-            os-error => 'Directory does not exist'
-        ).throw;
+sub chdir($path as Str, :$test = 'r') {
+    $*CWD = $*CWD.chdir($path,:$test);
+}
+
+sub indir($path as Str, $what, :$test = <r w>) {
+    if $*CWD.chdir($path,$test) -> $newCWD {
+        my $*CWD = $newCWD;
+        $what();
     }
 }
 

@@ -1071,7 +1071,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*STRICT := $*W.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
             }
             else {
-                $*STRICT := nqp::getlexdyn('$?FILES') ne '-e';
+                my $FILES := nqp::getlexdyn('$?FILES');
+                $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
             }
 
             # Install unless we've no setting, in which case we've likely no

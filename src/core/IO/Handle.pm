@@ -7,7 +7,7 @@ my class IO::Handle does IO {
     has int $.ins;
     has $.chomp = Bool::True;
 
-    method open(
+    method open(IO::Handle:D:
       :$r is copy,
       :$w is copy,
       :$rw,
@@ -94,18 +94,18 @@ my class IO::Handle does IO {
         self;
     }
 
-    method close() {
+    method close(IO::Handle:D:) {
         # TODO:b catch errors
         nqp::closefh($!PIO) if nqp::defined($!PIO);
         $!PIO := Mu;
-        Bool::True;
+        True;
     }
 
-    method eof() {
+    method eof(IO::Handle:D:) {
         nqp::p6bool(nqp::eoffh($!PIO));
     }
 
-    method get() {
+    method get(IO::Handle:D:) {
         return Str if self.eof;
 
         my Str $x = nqp::p6box_s(nqp::readlinefh($!PIO));
@@ -118,7 +118,7 @@ my class IO::Handle does IO {
         $x;
     }
     
-    method getc() {
+    method getc(IO::Handle:D:) {
         my $c = nqp::p6box_s(nqp::getcfh($!PIO));
         fail if $c eq '';
         $c;
@@ -428,9 +428,7 @@ my class IO::Handle does IO {
     }
 
     method tell(IO::Handle:D:) returns Int {
-        nqp::p6box_i(
-            nqp::tellfh($!PIO)
-        );
+        nqp::p6box_i(nqp::tellfh($!PIO));
     }
 
     method write(IO::Handle:D: Blob:D $buf) {
@@ -438,11 +436,11 @@ my class IO::Handle does IO {
         True;
     }
 
-    method opened() {
+    method opened(IO::Handle:D:) {
         nqp::p6bool(nqp::istrue($!PIO));
     }
 
-    method t() {
+    method t(IO::Handle:D:) {
         self.opened && nqp::p6bool($!PIO.isatty)
     }
 
@@ -464,7 +462,7 @@ my class IO::Handle does IO {
         self.print: "\n";
     }
     
-    method slurp(:$bin, :$enc) {
+    method slurp(IO::Handle:D: :$bin, :$enc) {
         DEPRECATED("IO::Path.slurp");
 
         if $bin {
@@ -484,72 +482,67 @@ my class IO::Handle does IO {
     }
 
     proto method spurt(|) { * }
-    multi method spurt(Cool $contents) {
+    multi method spurt(IO::Handle:D: Cool $contents) {
         DEPRECATED("IO::Path.spurt");
         self.print($contents);
     }
     
-    multi method spurt(Blob $contents) {
+    multi method spurt(IO::Handle:D: Blob $contents) {
         DEPRECATED("IO::Path.spurt");
         self.write($contents);
     }
 
     # not spec'd
-    method copy($dest) {
+    method copy(IO::Handle:D: $dest) {
         DEPRECATED("IO::Path.copy");
         $!path.copy($dest);
     }
 
-    method chmod(Int $mode) {
-        self.path.absolute.chmod($mode)
-    }
+    method chmod(IO::Handle:D: Int $mode) { $!path.chmod($mode) }
+    method IO(IO::Handle:D: |c)           { $!path.IO(|c) }
+    method path(IO::Handle:D:)            { $!path.IO }
+    multi method Str(IO::Handle:D:)       { $!path }
 
-    method IO { $!path.IO }
-
-    method path { $!path.IO }
-
-    multi method Str (IO::Handle:D:) { $!path }
-
-    multi method gist (IO::Handle:D:) {
+    multi method gist(IO::Handle:D:) {
         self.opened
             ?? "IO::Handle<$!path>(opened, at line {$.ins} / octet {$.tell})"
             !! "IO::Handle<$!path>(closed)"
     }
 
-    multi method perl (IO::Handle:D:) {
+    multi method perl(IO::Handle:D:) {
         "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl})"
     }
 
 
-    method flush() {
+    method flush(IO::Handle:D:) {
         fail("File handle not open, so cannot flush")
             unless nqp::defined($!PIO);
         nqp::flushfh($!PIO);
         True;
     }
 
-    method encoding($enc?) {
+    method encoding(IO::Handle:D: $enc?) {
         $enc.defined
             ?? nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc))
             !! $!PIO.encoding
     }
 
-    submethod DESTROY() {
+    submethod DESTROY(IO::Handle:D:) {
         self.close;
     }
 
     # setting cannot do "handles", so it's done by hand here
-    method e() { $!path.e }
-    method d() { $!path.d }
-    method f() { $!path.f }
-    method s() { $!path.s }
-    method l() { $!path.l }
-    method r() { $!path.r }
-    method w() { $!path.w }
-    method x() { $!path.x }
-    method modified() { $!path.modified }
-    method accessed() { $!path.accessed }
-    method changed()  { $!path.changed  }
+    method e(IO::Handle:D:) { $!path.e }
+    method d(IO::Handle:D:) { $!path.d }
+    method f(IO::Handle:D:) { $!path.f }
+    method s(IO::Handle:D:) { $!path.s }
+    method l(IO::Handle:D:) { $!path.l }
+    method r(IO::Handle:D:) { $!path.r }
+    method w(IO::Handle:D:) { $!path.w }
+    method x(IO::Handle:D:) { $!path.x }
+    method modified(IO::Handle:D:) { $!path.modified }
+    method accessed(IO::Handle:D:) { $!path.accessed }
+    method changed(IO::Handle:D:)  { $!path.changed  }
 
 #?if moar
     method watch(IO::Handle:D:) {

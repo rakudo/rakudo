@@ -6,7 +6,6 @@ my class IO::Handle does IO {
     has $!PIO;
     has int $.ins;
     has $.chomp = Bool::True;
-    has Bool $!isDir;
 
     method open(
       :$r is copy,
@@ -44,8 +43,6 @@ my class IO::Handle does IO {
         }
 
         fail (X::IO::Directory.new(:$!path, :trying<open>)) if $!path.d;
-
-        $!isDir = $!path.d // False;  # TEMPORARY
         $r = $w = True if $rw;
 
 #?if parrot
@@ -547,7 +544,7 @@ my class IO::Handle does IO {
     }
 
     multi method perl (IO::Handle:D:) {
-        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl}, Directory => {$!isDir.Bool})"
+        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl})"
     }
 
 

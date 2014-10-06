@@ -212,7 +212,7 @@ my class IO::Path is Cool {
         }
 #?endif
 #?if !parrot
-        return $dir if $dir.all($test);
+        return $dir if $dir.all(|$test);
 #?endif
 
         fail X::IO::Chdir.new(

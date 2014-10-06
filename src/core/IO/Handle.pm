@@ -485,36 +485,14 @@ my class IO::Handle does IO {
     }
 
     proto method spurt(|) { * }
-    multi method spurt(Cool $contents,
-                    :$enc = 'utf8',
-                    :$createonly, :$append) {
-        fail("File '" ~ self.path ~ "' already exists, but :createonly was specified")
-            if $createonly && self.e;
-        fail (X::IO::Directory.new(:$!path, :trying<spurt>, :use<mkdir>))
-            if self.d();
-        if self.opened {
-            self.encoding($enc);
-        } else {
-            my $mode = $append ?? :a !! :w;
-            self.open(:$enc, |$mode);
-        }
+    multi method spurt(Cool $contents) {
+        DEPRECATED("IO::Path.slurp");
         self.print($contents);
-        self.close;
     }
     
-    multi method spurt(Blob $contents,
-                    :$createonly,
-                    :$append) {
-        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
-                if $createonly && self.e;
-        fail (X::IO::Directory.new(:$!path, :trying<spurt>, :use<mkdir>))
-            if self.d();
-        unless self.opened {
-            my $mode = $append ?? :a !! :w;
-            self.open(:bin, |$mode);
-        }
+    multi method spurt(Blob $contents) {
+        DEPRECATED("IO::Path.slurp");
         self.write($contents);
-        self.close;
     }
 
     # not spec'd
@@ -531,11 +509,11 @@ my class IO::Handle does IO {
         self.path.absolute.chmod($mode)
     }
 
-    method IO { IO::Path.new($!path) }
+    method IO { $!path.IO }
 
-    method path {  IO::Path.new($!path)  }
+    method path { $!path.IO }
 
-    multi method Str (IO::Handle:D:) {  $!path  }
+    multi method Str (IO::Handle:D:) { $!path }
 
     multi method gist (IO::Handle:D:) {
         self.opened

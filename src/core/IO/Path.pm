@@ -391,18 +391,27 @@ my class IO::Path is Cool {
         }
     }
 
-    proto method spurt(|) { * }
-    multi method spurt(IO::Path:D: $what, :$enc = 'utf8', :$append, :$createonly, |c) {
-        if $createonly and self.e {
+    method !spurt($what, :$enc, :$append, :$createonly, :$bin, |c) {
+        if $createonly and $.e {
             fail("File '$!path' already exists, and :createonly was specified");
         }
         my $mode = $append ?? :a !! :w;
-        my $handle = self.open(:$enc, |$mode, |c);
-        $handle && do {
-            my $spurt := $handle.spurt($what, :$enc, |c);
-            $handle.close;  # can't use LEAVE in settings :-(
-            $spurt;
-        }
+        my $handle = self.open(:enc($enc // 'utf8'), :$bin, |$mode, |c);
+        $handle // $handle.throw;
+
+        my $spurt := $bin
+          ?? $handle.write($what)
+          !! $handle.print($what);
+        $handle.close;  # can't use LEAVE in settings :-(
+        $spurt;
+    }
+
+    proto method spurt(|) { * }
+    multi method spurt(IO::Path:D: Blob $what, :$bin, |c) {
+        self!spurt($what, :bin, |c );
+    }
+    multi method spurt(IO::Path:D: Cool $what, :$bin, |c) {
+        self!spurt($what, :!bin, |c );
     }
 
     proto method lines() { * }

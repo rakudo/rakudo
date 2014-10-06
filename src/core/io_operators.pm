@@ -84,6 +84,7 @@ multi sub close($fh) {
 
 proto sub slurp(|) { * }
 multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
+    DEPRECATED('slurp($path,...)',:what<slurp($handle,...)>);
     my $result := $io.slurp(:$bin, :$enc, |c);
     $result // $result.throw;
 }

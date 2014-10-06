@@ -464,45 +464,40 @@ my class IO::Handle does IO {
         self.print: "\n";
     }
     
-    method slurp(:$bin, :enc($encoding)) {
-        self.encoding($encoding) if $encoding.defined;
+    method slurp(:$bin, :$enc) {
+        DEPRECATED("IO::Path.slurp");
 
         if $bin {
-            my $Buf = buf8.new();
+            my $Buf := buf8.new();
             loop {
-                my $current  = self.read(10_000);
-                $Buf ~= $current;
-                last if $current.bytes == 0;
+                my $buf := buf8.new();
+                nqp::readfh($!PIO,$buf,65536);
+                last if $buf.bytes == 0;
+                $Buf := $Buf ~ $buf;
             }
-            self.close;
             $Buf;
         }
         else {
-            my $contents = nqp::p6box_s(nqp::readallfh($!PIO));
-            self.close();
-            $contents
+            self.encoding($enc) if $enc.defined;
+            nqp::p6box_s(nqp::readallfh($!PIO));
         } 
     }
 
     proto method spurt(|) { * }
     multi method spurt(Cool $contents) {
-        DEPRECATED("IO::Path.slurp");
+        DEPRECATED("IO::Path.spurt");
         self.print($contents);
     }
     
     multi method spurt(Blob $contents) {
-        DEPRECATED("IO::Path.slurp");
+        DEPRECATED("IO::Path.spurt");
         self.write($contents);
     }
 
     # not spec'd
     method copy($dest) {
-        warn "IO::Handle.copy is deprecated.  Please use IO::Path.copy instead.";
-        try {
-            nqp::copy(nqp::unbox_s($*SPEC.rel2abs(~$!path)), 
-                      nqp::unbox_s($*SPEC.rel2abs(~$dest)));
-        }
-        $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
+        DEPRECATED("IO::Path.copy");
+        $!path.copy($dest);
     }
 
     method chmod(Int $mode) {

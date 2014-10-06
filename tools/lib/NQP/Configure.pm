@@ -20,7 +20,7 @@ our $bat = $^O eq 'MSWin32' ? '.bat' : '';
 our @required_parrot_files = qw(
     @bindir@/parrot@exe@
     @bindir@/pbc_to_exe@exe@
-    @bindir@/ops2c@exe@
+    @bindir@/@ops2c@@exe@
     @libdir@@versiondir@/tools/build/pmc2c.pl
     @srcdir@@versiondir@/pmc
     @includedir@@versiondir@/pmc
@@ -139,6 +139,7 @@ END
         last if %config;
     }
     unlink('parrot-config.pir');
+    $config{'parrot::ops2c'} = 'ops2c' unless exists $config{'parrot::ops2c'};
     return %config;
 }
 

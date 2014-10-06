@@ -109,11 +109,8 @@ my class IO::Handle does IO {
     }
 
     method get() {
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<get>)) if $!isDir;
         return Str if self.eof;
+
         my Str $x = nqp::p6box_s(nqp::readlinefh($!PIO));
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
@@ -125,10 +122,6 @@ my class IO::Handle does IO {
     }
     
     method getc() {
-        unless $!PIO {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<getc>)) if $!isDir;
         my $c = nqp::p6box_s(nqp::getcfh($!PIO));
         fail if $c eq '';
         $c;
@@ -136,11 +129,6 @@ my class IO::Handle does IO {
 
     proto method words (|) { * }
     multi method words(IO::Handle:D: :$close) {
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
-
         my str $str;
         my int $chars;
         my int $pos;
@@ -184,11 +172,6 @@ my class IO::Handle does IO {
     multi method words(IO::Handle:D: :$eager!, :$close) {
         return self.words(:$close) if !$eager;
 
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
-
         my str $str;
         my int $chars;
         my int $pos;
@@ -230,11 +213,6 @@ my class IO::Handle does IO {
     multi method words(IO::Handle:D: :$count!, :$close) {
         return self.words(:$close) if !$count;
 
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
-
         my str $str;
         my int $chars;
         my int $pos;
@@ -275,11 +253,6 @@ my class IO::Handle does IO {
     multi method words(IO::Handle:D: $limit, :$eager, :$close) {
         return self.words(:$eager,:$close)
           if $limit == Inf or $limit ~~ Whatever;
-
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<words>)) if $!isDir;
 
         my str $str;
         my int $chars;
@@ -324,10 +297,6 @@ my class IO::Handle does IO {
 
     proto method lines (|) { * }
     multi method lines(IO::Handle:D: :$close) {
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
 
         if $.chomp {
             gather {
@@ -366,11 +335,6 @@ my class IO::Handle does IO {
     multi method lines(IO::Handle:D: :$eager!, :$close) {
         return self.lines if !$eager;
 
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
-
         my Mu $rpa := nqp::list();
         if $.chomp {
             until nqp::eoffh($!PIO) {
@@ -404,11 +368,6 @@ my class IO::Handle does IO {
     multi method lines(IO::Handle:D: :$count!, :$close) {
         return self.lines(:$close) if !$count;
 
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
-
         until nqp::eoffh($!PIO) {
             nqp::readlinefh($!PIO);
 #?if parrot
@@ -421,11 +380,6 @@ my class IO::Handle does IO {
     multi method lines(IO::Handle:D: $limit, :$eager, :$close) {
         return self.lines(:$eager, :$close)
           if $limit == Inf or $limit ~~ Whatever;
-
-        unless nqp::defined($!PIO) {
-            self.open($!path, :chomp($.chomp));
-        }
-        fail (X::IO::Directory.new(:$!path, :trying<lines>)) if $!isDir;
 
         my Mu $rpa := nqp::list();
         my int $count = $limit + 1;
@@ -461,7 +415,6 @@ my class IO::Handle does IO {
     }
 
     method read(IO::Handle:D: Cool:D $bytes as Int) {
-        fail (X::IO::Directory.new(:$!path, :trying<read>)) if $!isDir;
         my $buf := buf8.new();
         nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
         $buf;
@@ -484,7 +437,6 @@ my class IO::Handle does IO {
     }
 
     method write(IO::Handle:D: Blob:D $buf) {
-        fail (X::IO::Directory.new(:$!path, :trying<write>)) if $!isDir;
         nqp::writefh($!PIO, nqp::decont($buf));
         True;
     }
@@ -500,18 +452,15 @@ my class IO::Handle does IO {
 
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D \x) {
-        fail (X::IO::Directory.new(:$!path, :trying<print>)) if $!isDir;
         nqp::printfh($!PIO, nqp::unbox_s(x));
         Bool::True
     }
     multi method print(IO::Handle:D: *@list) {
-        fail (X::IO::Directory.new(:$!path, :trying<print>)) if $!isDir;
         nqp::printfh($!PIO, nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }
 
     multi method say(IO::Handle:D: |) {
-        fail (X::IO::Directory.new(:$!path, :trying<say>)) if $!isDir;
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;
@@ -519,9 +468,6 @@ my class IO::Handle does IO {
     }
     
     method slurp(:$bin, :enc($encoding)) {
-        self.open(:r, :$bin) unless self.opened;
-        fail (X::IO::Directory.new(:$!path, :trying<slurp>, :use<dir>))
-            if $!isDir;
         self.encoding($encoding) if $encoding.defined;
 
         if $bin {

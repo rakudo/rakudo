@@ -42,12 +42,16 @@ my class IO::Spec {
         IO::Spec.WHO{%module{$OS} // 'Unix'};
     }
 
+    method tmpdir() { # people seem to expect IO::Spec.tmpdir to return a Str
+        DEPRECATED('$*TMPDIR');
+        $*SPEC.tmpdir.path;
+    }
+
     method canonpath( |c )             { $SPEC.canonpath( |c )             }
     method curdir                      { $SPEC.curdir()                    }
     method updir                       { $SPEC.updir()                     }
     method rootdir                     { $SPEC.rootdir()                   }
     method devnull                     { $SPEC.devnull()                   }
-    method tmpdir                      { $SPEC.tmpdir()                    }
     method is-absolute( |c )           { $SPEC.is-absolute( |c )           }
     method no-parent-or-current-test   { $SPEC.no-parent-or-current-test   }
     method path                        { $SPEC.path()                      }

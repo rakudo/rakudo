@@ -427,8 +427,12 @@ my class IO::Path is Cool {
     }
 
     method all(*@tests) {
-        return False if !@tests or !$.e;
+#?if parrot
+die "IO::Path.all doesn't work on parrot";
+#?endif
 
+#?if !parrot
+        return False if !@tests or !$.e;
         my str $sabspath = nqp::unbox_s($!abspath);
         my int $b = 1;  # is result boolean?
         state %t =
@@ -461,6 +465,7 @@ my class IO::Path is Cool {
         }
 
         $b ?? nqp::p6bool($result) !! nqp::box_i($result,Int);
+#?endif
     }
 
     method e() {

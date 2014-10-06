@@ -25,7 +25,17 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     method tmpdir {
         my %ENV := $%ENV;
         my $io;
-        first( { .defined && ($io = .IO).all: <d r w x> },
+        first( {
+#?if parrot
+            if .defined {
+                $io = .IO;
+                $io.d && $io.r && $io.w && $io.x;
+            }
+#?endif
+#?if !parrot
+            .defined && ($io = .IO).all: <d r w x>;
+#?endif
+        },
           %ENV<TMPDIR>,
           "/tmp",
           %ENV<TMP>,

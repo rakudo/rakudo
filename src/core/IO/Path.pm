@@ -386,12 +386,27 @@ my class IO::Path is Cool {
     }
 
     proto method slurp() { * }
-    multi method slurp(IO::Path:D: |c) {
-        my $handle = self.open(|c);
-        $handle && do {
-            my $slurp := $handle.slurp(|c);
-            $handle.close;  # can't use LEAVE in settings :-(
-            $slurp;
+    multi method slurp(IO::Path:D: :$bin, :$enc) {
+        my $handle = self.open;
+        $handle // $handle.throw;
+
+        my Mu $PIO := nqp::getattr(nqp::decont($handle),IO::Handle,'$!PIO');
+        if $bin {
+            my $Buf := buf8.new();
+            loop {
+                my $buf := buf8.new();
+                nqp::readfh($PIO,$buf,65536);
+                last if $buf.bytes == 0;
+                $Buf := $Buf ~ $buf;
+            }
+            $handle.close;
+            $Buf;
+        }
+        else {
+            $handle.encoding($enc) if $enc.defined;
+            my $slurped := nqp::p6box_s(nqp::readallfh($PIO));
+            $handle.close;
+            $slurped;
         }
     }
 

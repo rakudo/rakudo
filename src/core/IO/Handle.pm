@@ -25,20 +25,20 @@ my class IO::Handle does IO {
         }
 
         if $!path ~~ IO::Special {
-            given $!path.what {
-                when << <STDIN> >> {
-                    $!PIO := nqp::getstdin();
-                }
-                when << <STDOUT> >> {
-                    $!PIO := nqp::getstdout();
-                }
-                when << <STDERR> >> {
-                    $!PIO := nqp::getstderr();
-                }
-                default {
-                    die "Don't know how to open '$_' especially";
-                }
+            my $what := $!path.what;
+            if $what eq '<STDIN>' {
+                $!PIO := nqp::getstdin();
             }
+            elsif $what eq '<STDOUT>' {
+                $!PIO := nqp::getstdout();
+            }
+            elsif $what eq '<STDERR>' {
+                $!PIO := nqp::getstderr();
+            }
+            else {
+                die "Don't know how to open '$_' especially";
+            }
+            $!chomp = $chomp;
             nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
             return self;
         }

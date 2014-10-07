@@ -96,6 +96,32 @@ sub METAOP_ZIP(\op, &reduce) {
     }
 }
 
+sub METAOP_CONTAINER_COMPARE(\op, &reduce) {
+    -> |lol {
+        my $arity = lol.elems;
+        my $rop = $arity == 2 ?? op !! &reduce(op);
+        my @lol = eager for ^lol.elems -> $i {
+            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+
+            if nqp::iscont(elem) { (elem,).list.item }
+            else                 { (elem,).flat.item }
+        }
+        my $result = True;
+        loop {
+            my \z = @lol.map: { last unless .gimme(1); .shift }
+            if z.elems == 0 {
+                @lol.map: { $result = False if .gimme(1) }
+                last;
+            }
+            if z.elems < $arity || !$rop(|z) {
+                $result = False;
+                last;
+            }
+        }
+        $result;
+    }
+}
+
 sub METAOP_REDUCE_LEFT(\op, :$triangle) {
     my $x := $triangle ??
         (sub (*@values) {

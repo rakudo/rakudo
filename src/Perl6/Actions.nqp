@@ -5386,11 +5386,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; }
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; }
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; }
+            elsif $metasym eq 'C' { $helper := '&METAOP_CONTAINER_COMPARE'; }
 
             my $metapast := QAST::Op.new( :op<call>, :name($helper), $basepast );
             $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
                                          :scope<lexical>))
-                if $metasym eq 'X' || $metasym eq 'Z';
+                if $metasym eq 'X' || $metasym eq 'Z' || $metasym eq 'C';
             $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
         }
         

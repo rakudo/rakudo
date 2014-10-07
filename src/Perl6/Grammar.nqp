@@ -4010,6 +4010,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix_prefix_meta_operator:sym<S> { <sym> <infixish('S')> {} <O=.copyO($<infixish>)> }
     token infix_prefix_meta_operator:sym<X> { <sym> <infixish('X')> <O('%list_infix')> }
     token infix_prefix_meta_operator:sym<Z> { <sym> <infixish('Z')> <O('%list_infix')> }
+    token infix_prefix_meta_operator:sym<C> { <sym> <infixish('C')> <O('%list_infix')> }
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
     token infix:sym<:=> {

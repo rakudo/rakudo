@@ -462,8 +462,8 @@ my class IO::Handle does IO {
         self.print: "\n";
     }
     
-    method slurp(IO::Handle:D: :$bin, :$enc) {
-        DEPRECATED("IO::Path.slurp");
+    method slurp(IO::Handle:D: :$bin, :$enc, :$nodepr) {
+        DEPRECATED("IO::Path.slurp") unless $nodepr;
 
         if $bin {
             my $Buf := buf8.new();

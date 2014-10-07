@@ -1079,6 +1079,10 @@ my class X::Syntax::Regex::SolitaryQuantifier does X::Syntax {
     method message { 'Quantifier quantifies nothing' }
 }
 
+my class X::Syntax::Term::MissingInitializer does X::Syntax {
+    method message { 'Term definition requires an initializer' }
+}
+
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     method message() {
         "Can only use : as invocant marker in a signature after the first parameter"

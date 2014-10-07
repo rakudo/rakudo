@@ -124,7 +124,7 @@ my class IO::Spec {
 PROCESS::<$SPEC> = IO::Spec.select;
 
 nqp::gethllsym('perl6', 'ModuleLoader').register_absolute_path_func(
-    sub ($path) { return IO::Spec.rel2abs($path); }
+    sub ($path) { return $*SPEC.rel2abs($path); }
 );
 
 # vim: ft=perl6 expandtab sw=4

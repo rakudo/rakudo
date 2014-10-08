@@ -1666,7 +1666,16 @@ class Perl6::World is HLL::World {
 
     # Takes a declarator name and locates the applicable meta-object for it.
     method resolve_mo($/, $declarator) {
-        %*HOW{$declarator}
+        my %HOW := %*HOW;
+        if nqp::existskey(%HOW, $declarator) {
+            nqp::atkey(%HOW, $declarator)
+        }
+        elsif $declarator ~~ /'-attr'$/ {
+            self.find_symbol(['Attribute'])
+        }
+        else {
+            $/.CURSOR.panic("Cannot resolve meta-object for $declarator")
+        }
     }
 
     # Creates a meta-object for a package, adds it to the root objects and

@@ -2326,17 +2326,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 unless $curpad.symbol('$?PACKAGE') {
                     $*W.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
                     $*W.install_lexical_symbol($curpad, '::?PACKAGE', $*PACKAGE);
-                    if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
-                        $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
-                        $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
-                    }
-                    elsif $*PKGDECL eq 'role' {
+                    if $*PKGDECL eq 'role' {
                         $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '$?CLASS',
                             $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('$?CLASS')));
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
                             $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('::?CLASS')));
+                    }
+                    elsif $*PKGDECL ne 'package' && $*PKGDECL ne 'module' {
+                        $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
                     }
                 }
                 

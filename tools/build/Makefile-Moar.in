@@ -23,6 +23,7 @@ PERL6_OPS_MOAR = blib/Perl6/Ops.moarvm
 PERL6_A_MOAR   = blib/Perl6/Actions.moarvm
 PERL6_O_MOAR   = blib/Perl6/Optimizer.moarvm
 PERL6_P_MOAR   = blib/Perl6/Pod.moarvm
+PERL6_CLI_MOAR = blib/Perl6/CommandLine.moarvm
 PERL6_C_MOAR   = blib/Perl6/Compiler.moarvm
 PERL6_M_MOAR   = blib/Perl6/Metamodel.moarvm
 PERL6_B_MOAR   = blib/Perl6/BOOTSTRAP.moarvm
@@ -38,8 +39,8 @@ M_PERL6_CONT_SRC = src/vm/moar/ops/container.c
 
 M_PERL6_LANG_OUTPUT = \
     $(PERL6_ML_MOAR) $(PERL6_W_MOAR) $(PERL6_G_MOAR) $(PERL6_OPS_MOAR) \
-    $(PERL6_A_MOAR) $(PERL6_O_MOAR) $(PERL6_P_MOAR) $(PERL6_C_MOAR) \
-    $(PERL6_M_MOAR) $(PERL6_B_MOAR)
+    $(PERL6_A_MOAR) $(PERL6_O_MOAR) $(PERL6_P_MOAR) $(PERL6_CLI_MOAR) \
+	$(PERL6_C_MOAR) $(PERL6_M_MOAR) $(PERL6_B_MOAR)
 
 M_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES)
 
@@ -125,7 +126,11 @@ $(PERL6_O_MOAR): src/Perl6/Optimizer.nqp $(PERL6_OPS_MOAR)
 	$(M_NQP) --target=mbc --output=$(PERL6_O_MOAR) --encoding=utf8 \
 	    src/gen/m-Perl6-Optimizer.nqp
 
-$(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
+$(PERL6_CLI_MOAR): src/Perl6/CommandLine.nqp $(PERL6_O_MOAR)
+	$(M_NQP) --target=mbc --output=$(PERL6_CLI_MOAR) --encoding=utf8 \
+	    src/Perl6/CommandLine.nqp
+
+$(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_CLI_MOAR)
 	$(M_NQP) --target=mbc --output=$(PERL6_C_MOAR) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 

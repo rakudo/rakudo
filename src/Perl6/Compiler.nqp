@@ -1,8 +1,12 @@
 use NQPP6QRegex;
 use QRegex;
 use Perl6::Optimizer;
+use Perl6::CommandLine;
 
 class Perl6::Compiler is HLL::Compiler {
+    has %!cli-options;
+    has @!cli-arguments;
+
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';
@@ -49,6 +53,33 @@ class Perl6::Compiler is HLL::Compiler {
             nqp::say(~$ex)
         }
         CATCH { nqp::say(~$ex) }
+    }
+
+    method process_args(@args) {
+        # First argument is the program name.
+        self.compiler_progname(@args.shift);
+
+        my $p := Perl6::CommandLine::Parser.new(self.commandline_options);
+        $p.add-stopper('-e');
+        $p.stop-after-first-arg;
+        my $res;
+        try {
+            $res := $p.parse(@args);
+            CATCH {
+                nqp::say($_);
+                self.usage;
+                nqp::exit(1);
+            }
+        }
+        if $res {
+            %!cli-options   := $res.options();
+            @!cli-arguments := $res.arguments();
+        }
+        else {
+            %!cli-options   := nqp::hash();
+            @!cli-arguments := [];
+        }
+        $res;
     }
     
     method usage($name?) {

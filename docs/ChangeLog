@@ -13,6 +13,7 @@ New in 2014.10
 + Str.words no longer returns the word if there is only one word: this behaviour
   was unspecced and apparently used internally only.  This old behaviour is
   still available by specifying the :autoderef named parameter.
++ method .exists/.delete have been removed after 1+ year of deprecation
 
 New in 2014.09
 + ./perl6 --profile for MoarVM, generates HTML profile output, including

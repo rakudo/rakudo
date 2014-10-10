@@ -376,9 +376,6 @@ my class Any { # declared in BOOTSTRAP
     method Mix()     {     Mix.new-fp(self.list) }
     method MixHash() { MixHash.new-fp(self.list) }
 
-    method KeySet() { DEPRECATED("'SetHash'"); self.SetHash }
-    method KeyBag() { DEPRECATED("'BagHash'"); self.BagHash }
-
     method Supply() { self.list.Supply }
 }
 Metamodel::ClassHOW.exclude_parent(Any);

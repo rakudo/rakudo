@@ -31,91 +31,91 @@ my class IO::Spec {
     }
 
     method MODULE(IO::Spec:U:) {
-       DEPRECATED('$*SPEC');
+#       DEPRECATED('$*SPEC');
        $*SPEC;
     }
 
     method FSTYPE(IO::Spec:U: $OS?) {
-        DEPRECATED('$*SPEC.select');
+#        DEPRECATED('$*SPEC.select');
         self.select($OS);
     }
 
     method os (Str $OS?) {
-       DEPRECATED('$*SPEC.select');
+#       DEPRECATED('$*SPEC.select');
        self.select($OS);
     }
 
     method tmpdir() { # people seem to expect IO::Spec.tmpdir to return a Str
-        DEPRECATED('$*TMPDIR');
+#        DEPRECATED('$*TMPDIR');
         $*SPEC.tmpdir.path;
     }
 
     method canonpath(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.canonpath');
+#        DEPRECATED('$*SPEC.canonpath');
         $*SPEC.canonpath( |c );
     }
     method curdir(IO::Spec:U:) {
-        DEPRECATED('$*SPEC.curdir');
+#        DEPRECATED('$*SPEC.curdir');
         $*SPEC.curdir();
     }
     method updir(IO::Spec:U:) {
-        DEPRECATED('$*SPEC.updir');
+#        DEPRECATED('$*SPEC.updir');
         $*SPEC.updir();
     }
     method rootdir(IO::Spec:U:) {
-        DEPRECATED('$*SPEC.rootdir');
+#        DEPRECATED('$*SPEC.rootdir');
         $*SPEC.rootdir();
     }
     method devnull(IO::Spec:U:) {
-        DEPRECATED('$*SPEC.devnull');
+#        DEPRECATED('$*SPEC.devnull');
         $*SPEC.devnull();
     }
     method is-absolute(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.is-absolute');
+#        DEPRECATED('$*SPEC.is-absolute');
         $*SPEC.is-absolute( |c );
     }
     method no-parent-or-current-test(IO::Spec:U:) {
-        DEPRECATED('$*SPEC.curupdir');
+#        DEPRECATED('$*SPEC.curupdir');
         $*SPEC.curupdir;
     }
     method path(IO::Spec:U:) {
-        DEPRECATED('$*SPEC.path');
+#        DEPRECATED('$*SPEC.path');
         $*SPEC.path();
     }
     method split(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.split');
+#        DEPRECATED('$*SPEC.split');
         $*SPEC.split( |c );
     }
     method join(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.join');
+#        DEPRECATED('$*SPEC.join');
         $*SPEC.join( |c );
     }
     method splitpath(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.splitpath');
+#        DEPRECATED('$*SPEC.splitpath');
         $*SPEC.splitpath( |c );
     }
     method catpath(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.catpath');
+#        DEPRECATED('$*SPEC.catpath');
         $*SPEC.catpath( |c );
     }
     method catfile(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.catfile');
+#        DEPRECATED('$*SPEC.catfile');
         $*SPEC.catfile( |c );
     }
     method splitdir(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.splitdir');
+#        DEPRECATED('$*SPEC.splitdir');
         $*SPEC.splitdir( |c );
     }
     method catdir(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.catdir');
+#        DEPRECATED('$*SPEC.catdir');
         $*SPEC.catdir( |c );
     }
     method abs2rel(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.abs2rel');
+#        DEPRECATED('$*SPEC.abs2rel');
         $*SPEC.abs2rel( |c );
     }
     method rel2abs(IO::Spec:U: |c ) {
-        DEPRECATED('$*SPEC.rel2abs');
+#        DEPRECATED('$*SPEC.rel2abs');
         $*SPEC.rel2abs( |c );
     }
 }

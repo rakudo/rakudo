@@ -106,10 +106,6 @@ my class List does Positional { # declared in BOOTSTRAP
         $!nextiter.defined ?? Inf !! $n
     }
 
-    method exists (\pos) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :exists adverb with postcircumfix:<[ ]>");
-        self.exists_pos(pos);
-    }
     method exists_pos(\pos) {
         return False if !self.DEFINITE || pos < 0;
         self.gimme(pos + 1);

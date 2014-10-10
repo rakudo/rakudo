@@ -14,10 +14,6 @@ my class Any { # declared in BOOTSTRAP
 
     # primitives
     method infinite()   { Nil }
-    method exists (Any:U: $key) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :exists adverb");
-        False;
-    }
 
     method exists_key($key) { False }
     proto method exists_pos(|) { * }

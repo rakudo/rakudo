@@ -10,10 +10,6 @@ my role Setty does QuantHash {
     method total(--> Int) { %!elems.elems }
     method minpairs(--> List) { self.pairs }
     method maxpairs(--> List) { self.pairs }
-    method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :exists adverb with postcircumfix:<{ }>');
-        self.exists_key($k);
-    }
     method exists_key($k --> Bool) {
         so ( %!elems && nqp::existskey(%!elems, nqp::unbox_s($k.WHICH)) );
     }

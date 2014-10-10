@@ -401,10 +401,6 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::unbox_s($key_which),
                 bindval)
         }
-        method exists (TKey \key) {  # is DEPRECATED doesn't work in settings
-            DEPRECATED('the :exists adverb with postcircumfix:<{ }>');
-            self.exists_key(key);
-        }
         method exists_key(TKey \key) {
             nqp::defined($!keys)
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))

@@ -27,16 +27,6 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         so self.keys.any.match($topic);
     }
     
-    proto method exists(|) {*}
-    multi method exists (EnumMap:U:) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :exists adverb with postcircumfix:<{ }>');
-        self.exists_key;
-    }
-    multi method exists (EnumMap:D: \key) { # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :exists adverb with postcircumfix:<{ }>');
-        self.exists_key(key);
-    }
-
     proto method exists_key(|) {*}
     multi method exists_key(EnumMap:U:) { False }
     multi method exists_key(EnumMap:D: Str:D \key) {

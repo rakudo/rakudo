@@ -40,7 +40,7 @@ sub INVOKE_KV(&block, $key, $value?) {
 }
 
 sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
-    my Num $until = $wait ?? nqp::time_n() + $wait !! Nil;
+    my Num $until = $wait ?? nqp::time_n() + $wait_time !! Nil;
 
     my constant $WINNER_KIND_DONE = 0;
     my constant $WINNER_KIND_MORE = 1;
@@ -114,7 +114,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
         }
 
         # we have to wait
-        if $until && $nqp::time_n() >= $until {  # we're done waiting
+        if $until && nqp::time_n() >= $until {  # we're done waiting
             $action = $wait;
             last CHECK;
         }

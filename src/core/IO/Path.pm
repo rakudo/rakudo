@@ -38,7 +38,7 @@ my class IO::Path is Cool {
       :$SPEC   = $*SPEC,
       :$CWD    = $*CWD,
     ) {
-#        DEPRECATED(':dirname', :what<IO::Path.new with :directory>); # after 2014.10
+        DEPRECATED(':dirname', :what<IO::Path.new with :directory>);
         self.bless(
           :path($SPEC.join($volume,$directory,$basename)), :$SPEC, :$CWD);
     }
@@ -312,7 +312,7 @@ my class IO::Path is Cool {
     }
 
     method contents(IO::Path:D: |c) {
-#        DEPRECATED('dir');   # after 2014.10
+        DEPRECATED('dir');
         self.dir(|c);
     }
 
@@ -565,7 +565,7 @@ die "IO::Path.all doesn't work on parrot";
     }
 
     method directory() {
-#        DEPRECATED("dirname");   # after 2014.10
+        DEPRECATED("dirname");
         self.dirname;
     }
 }

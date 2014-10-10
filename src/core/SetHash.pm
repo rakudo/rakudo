@@ -16,10 +16,6 @@ my class SetHash does Setty {
           });
     }
 
-    method delete($k) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
-        self.delete_key($k);
-    }
     method delete_key($k --> Bool) {
         my $key   := $k.WHICH;
         return False unless %!elems.exists_key($key);

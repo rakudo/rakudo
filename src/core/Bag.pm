@@ -22,10 +22,6 @@ my class Bag does Baggy {
         @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 
-    method delete ($a --> Int) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
-        self.delete_key($a);
-    }
     method delete_key($a --> Int) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
     }

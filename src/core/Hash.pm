@@ -128,16 +128,6 @@ my class Hash { # declared in BOOTSTRAP
         nqp::isnull($d) ?? Mu !! so $d.dynamic;
     }
 
-    proto method delete(|) { * }
-    multi method delete(Hash:U:) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
-        self.delete_key;
-    }
-    multi method delete($key as Str) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
-        self.delete_key($key);
-    }
-
     proto method delete_key(|) { * }
     multi method delete_key(Hash:U:) { Nil }
     multi method delete_key(Str:D \key) {

@@ -16,10 +16,6 @@ my class Set does Setty {
         so %!elems.exists_key($k.WHICH);
     }
 
-    method delete ($a --> Bool) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
-        self.delete_key($a);
-    }
     method delete_key($k --> Bool) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
     }

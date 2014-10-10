@@ -20,10 +20,6 @@ my class Mix does Mixy {
           !! 0;
     }
 
-    method delete ($a --> Real) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED('the :delete adverb with postcircumfix:<{ }>');
-        self.delete_key($a);
-    }
     method delete_key($a --> Real) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
     }

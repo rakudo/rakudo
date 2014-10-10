@@ -20,10 +20,6 @@ my class Any { # declared in BOOTSTRAP
     multi method exists_pos(Any:U: $pos) { False }
     multi method exists_pos(Any:D: $pos) { $pos == 0 }
 
-    method delete (Any:U: $key) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :delete adverb");
-        Nil;
-    }
     proto method delete_key(|) { * }
     multi method delete_key(Any:U: $key) { Nil }
     multi method delete_key(Any:D: $key) {

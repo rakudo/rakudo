@@ -88,10 +88,6 @@ class Array { # declared in BOOTSTRAP
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
     
-    method delete (\pos) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :delete adverb with postcircumfix:<[ ]>");
-        self.delete_pos(pos);
-    }
     method delete_pos(\pos, :$SINK) {
         fail X::Subscript::FromEnd.new(index => pos, type => self.WHAT) if pos < 0;
 

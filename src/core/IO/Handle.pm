@@ -482,13 +482,13 @@ my class IO::Handle does IO {
     }
 
     proto method spurt(|) { * }
-    multi method spurt(IO::Handle:D: Cool $contents) {
-        DEPRECATED("IO::Path.spurt");
+    multi method spurt(IO::Handle:D: Cool $contents, :$nodepr) {
+        DEPRECATED("IO::Path.spurt") unless $nodepr;
         self.print($contents);
     }
     
-    multi method spurt(IO::Handle:D: Blob $contents) {
-        DEPRECATED("IO::Path.spurt");
+    multi method spurt(IO::Handle:D: Blob $contents, :$nodepr) {
+        DEPRECATED("IO::Path.spurt") unless $nodepr;
         self.write($contents);
     }
 

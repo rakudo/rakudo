@@ -96,7 +96,7 @@ multi sub slurp($path, :$bin = False, :$enc = 'utf8', |c) {
 proto sub spurt(|) { * }
 multi sub spurt(IO::Handle $fh, $what, :$enc = 'utf8', |c ) {
     DEPRECATED('spurt($path,...)',:what<spurt($handle,...)>);
-    my $result := $fh.spurt($what, :$enc, |c);
+    my $result := $fh.spurt($what, :$enc, :nodepr, |c);
     $result // $result.throw;
 }
 multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {

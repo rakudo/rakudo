@@ -104,11 +104,6 @@ my class Cool { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::tclc(nqp::unbox_s(self.Str)))
     }
 
-    method ucfirst() { # is DEPRECATED doesn't work in settings
-        DEPRECATED("'tc'");
-        self.tc;
-    }
-
     method wordcase()   { self.Str.wordcase }
 
     method chomp() {
@@ -229,11 +224,6 @@ my class Cool { # declared in BOOTSTRAP
     method Rat()  { self.Numeric.Rat }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
-
-sub ucfirst(Cool $s) { # is DEPRECATED doesn't work in settings
-    DEPRECATED("'tc'");
-    $s.tc;
-}
 
 sub chop(Cool $s)                  { $s.chop }
 sub chomp(Cool $s)                 { $s.chomp }

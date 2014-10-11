@@ -64,7 +64,7 @@ sub ANON_ENUM(*@args) {
     my %res;
     for @args {
         if .^isa(Enum) {
-            %res{.key} = .value;
+            %res{.key} = $prev = .value;
         }
         else {
             %res{$_} = $prev.=succ;

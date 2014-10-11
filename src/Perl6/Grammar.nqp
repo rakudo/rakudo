@@ -921,7 +921,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token version {
-        'v' <?[\d]> {} $<vstr>=[<vnum>+ % '.' '+'?]
+        <?before v\d+> 'v' $<vstr>=[<vnum>+ % '.' '+'?]
         <!before '-'|\'> # cheat because of LTM fail
     }
 

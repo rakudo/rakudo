@@ -1078,13 +1078,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my $key = .key;
             return unless $!source.substr($!index) ~~ $key;
             self.compare_substitution($_, $!index + $/.from, $/.to - $/.from);
+            True
         }
 
         multi method triage_substitution($_ where { .key ~~ Cool }) {
-            return unless defined index($!source, .key, $!index);
-            self.compare_substitution($_,
-                                      index($!source, .key, $!index),
-                                      .key.chars);
+            my $pos := index($!source, .key, $!index);
+            return unless defined $pos;
+            self.compare_substitution($_, $pos, .key.chars);
+            True
         }
 
         multi method triage_substitution($_) {
@@ -1104,9 +1105,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method next_substitution() {
             $!next_match = $!source.chars;
 
-            for @!substitutions {
-                self.triage_substitution($_);
-            }
+            # triage_substitution has a side effect!
+            @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index, 
                 = $!source.substr($!index, $!next_match - $!index);
@@ -1117,7 +1117,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 self.increment_index($!next_substitution.key);
             }
 
-            return $!next_match < $!source.chars;
+            return $!next_match < $!source.chars && @!substitutions;
         }
     }
 

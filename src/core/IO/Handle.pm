@@ -343,7 +343,6 @@ my class IO::Handle does IO {
 #?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
 #?endif
-                $!ins = $!ins + 1;
             }
         }
         else {
@@ -356,9 +355,9 @@ my class IO::Handle does IO {
 #?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
 #?endif
-                $!ins = $!ins + 1;
             }
         }
+        $!ins = nqp::elems($rpa);
         self.close if $close;
         nqp::p6parcel($rpa, Nil);
     }
@@ -391,7 +390,6 @@ my class IO::Handle does IO {
 #?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
 #?endif
-                $!ins = $!ins + 1;
             }
         }
         else {
@@ -404,9 +402,9 @@ my class IO::Handle does IO {
 #?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
 #?endif
-                $!ins = $!ins + 1;
             }
         }
+        $!ins = nqp::elems($rpa);
         self.close if $close;
         nqp::p6parcel($rpa, Nil);
     }

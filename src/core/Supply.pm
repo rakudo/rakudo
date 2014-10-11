@@ -739,7 +739,7 @@ my role Supply {
             @s => do {
                 {
                 more => -> $val, $index {
-                    if $uninitialised > 0 && not @values[$index]:exists {
+                    if $uninitialised > 0 && not @values.exists_pos($index) {
                         --$uninitialised;
                     }
                     @values[$index] = $val;

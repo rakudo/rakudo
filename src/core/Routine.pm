@@ -149,7 +149,7 @@ multi sub trait_mod:<is>(Routine $r, :$cached!) {
       if $r.onlystar; # disable optimization
     $r.wrap(-> |c {
         my $key := c.gist;
-        %cache{$key}:exists
+        %cache.exists_key($key)
           ?? %cache{$key}
           !! (%cache{$key} := callsame);
     });

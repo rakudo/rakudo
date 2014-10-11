@@ -94,7 +94,7 @@ class CompUnitRepo {
                     if $type ~~ Failure {
 
                         # it's a short-id
-                        if %id2class{$class}:exists {
+                        if %id2class.exists_key($class) {
                             $class = %id2class{$class}
                         }
 

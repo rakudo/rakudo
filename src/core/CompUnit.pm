@@ -130,6 +130,9 @@ class CompUnit {
 multi postcircumfix:<{ }> (CompUnit \c, "provides" ) {
     my % = (
       c.name => {
+        pm => {
+          file => c.path
+        },
         c.key => {
           file => c.has-precomp ?? c.precomp-path !! c.path
         }

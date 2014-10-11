@@ -1160,7 +1160,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::push_s($ret, nqp::unbox_s($lsm.unsubstituted_text));
             nqp::push_s($ret, nqp::unbox_s($lsm.substituted_text));
         }
-        nqp::push_s(nqp::unbox_s($lsm.unsubstituted_text));
+        nqp::push_s($ret, nqp::unbox_s($lsm.unsubstituted_text));
         return nqp::join('', $ret);
     }
     proto method indent($) {*}

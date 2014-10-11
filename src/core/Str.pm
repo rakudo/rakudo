@@ -1075,9 +1075,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         proto method triage_substitution(|) {*}
         multi method triage_substitution($_ where { .key ~~ Regex }) {
-            my $key = .key;
-            return unless $!source.substr($!index) ~~ $key;
-            self.compare_substitution($_, $!index + $/.from, $/.to - $/.from);
+            my $m := $!source.match(.key, :continue($!index));
+            return unless $m;
+            self.compare_substitution($_, $m.from, $m.to - $m.from);
             True
         }
 

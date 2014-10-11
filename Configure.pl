@@ -39,6 +39,7 @@ MAIN: {
                'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
+               'git-depth=s',
     ) or do {
         print_help();
         exit(1);
@@ -353,6 +354,8 @@ General Options:
                        --parrot-make-option='--jobs=4'
         --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
+        --git-depth=<number>
+                       Use the --depth option for git clone with parameter number
     --makefile-timing  Enable timing of individual makefile commands
 
 Configure.pl also reads options from 'config.default' in the current directory.

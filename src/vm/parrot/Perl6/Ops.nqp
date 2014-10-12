@@ -1,6 +1,12 @@
-my $ops := nqp::getcomp('QAST').operations;
+# Register a de-sugar from one QAST tree to another.
+sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
+    nqp::getcomp('QAST').operations.add_hll_op('perl6', $name, :$inlinable, -> $qastcomp, $op {
+        $qastcomp.as_post($desugar($op));
+    });
+}
 
 # Perl 6 opcode specific mappings.
+my $ops := nqp::getcomp('QAST').operations;
 $ops.add_hll_pirop_mapping('perl6', 'p6box_i', 'perl6_box_int', 'Pi', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6box_n', 'perl6_box_num', 'Pn', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6box_s', 'perl6_box_str', 'Ps', :inlinable(1));

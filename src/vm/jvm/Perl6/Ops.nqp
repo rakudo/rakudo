@@ -1,5 +1,3 @@
-my $ops := nqp::getcomp('QAST').operations;
-
 # Type containing Perl 6 specific ops.
 my $TYPE_P6OPS := 'Lorg/perl6/rakudo/RakOps;';
 
@@ -27,7 +25,15 @@ my $RT_VOID := -1;
 # Instruction constants.
 my $ALOAD_1     := JAST::Instruction.new( :op('aload_1') );
 
+# Register a de-sugar from one QAST tree to another.
+sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
+    nqp::getcomp('QAST').operations.add_hll_op('perl6', $name, :$inlinable, -> $qastcomp, $op {
+        $qastcomp.as_jast($desugar($op));
+    });
+}
+
 # Perl 6 opcode specific mappings.
+my $ops := nqp::getcomp('QAST').operations;
 $ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6box_n', $TYPE_P6OPS, 'p6box_n', [$RT_NUM], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6box_s', $TYPE_P6OPS, 'p6box_s', [$RT_STR], $RT_OBJ, :tc);

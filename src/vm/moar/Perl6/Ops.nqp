@@ -127,12 +127,18 @@ MAST::ExtOpRegistry.register_extop('p6invokeunder',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 
+# Register a de-sugar from one QAST tree to another.
+sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
+    nqp::getcomp('QAST').operations.add_hll_op('perl6', $name, :$inlinable, -> $qastcomp, $op {
+        $qastcomp.as_mast($desugar($op));
+    });
+}
+
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
 $ops.add_hll_moarop_mapping('perl6', 'p6box_i', 'p6box_i');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_n', 'p6box_n');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
-#$ops.map_classlib_hll_op('perl6', 'p6bigint', $TYPE_P6OPS, 'p6bigint', [$RT_NUM], $RT_OBJ, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6parcel', 'p6parcel');
 $ops.add_hll_moarop_mapping('perl6', 'p6listiter', 'p6listiter');
 $ops.add_hll_moarop_mapping('perl6', 'p6list', 'p6list');

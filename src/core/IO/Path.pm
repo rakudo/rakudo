@@ -438,46 +438,37 @@ my class IO::Path is Cool {
         $handle && $handle.words(:close, |c);
     }
 
+    my %t =
+      e => -> $p { True }, # if we get here, it exists
+      d => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISDIR)) },
+      f => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISREG)) },
+      s => -> $p { %t.at_key("f")($p) && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
+      l => -> $p { nqp::p6bool(nqp::fileislink(nqp::unbox_s($p))) },
+      r => -> $p { nqp::p6bool(nqp::filereadable(nqp::unbox_s($p))) },
+      w => -> $p { nqp::p6bool(nqp::filewritable(nqp::unbox_s($p))) },
+      x => -> $p { nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($p))) },
+      z => -> $p { %t.at_key("f")($p) && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
+
+      "!e" => -> $p { False }, # if we get here, it exists
+      "!d" => -> $p { !%t.at_key("d")($p) },
+      "!f" => -> $p { !%t.at_key("f")($p) },
+      "!l" => -> $p { !%t.at_key("l")($p) },
+      "!r" => -> $p { !%t.at_key("r")($p) },
+      "!w" => -> $p { !%t.at_key("w")($p) },
+      "!x" => -> $p { !%t.at_key("x")($p) },
+      "!z" => -> $p { !%t.at_key("z")($p) },
+    ;
+
     method all(*@tests) {
-#?if parrot
-die "IO::Path.all doesn't work on parrot";
-#?endif
-
-#?if !parrot
         return False if !@tests or !$.e;
-        my str $sabspath = nqp::unbox_s($!abspath);
-        my int $b = 1;  # is result boolean?
-        state %t =
-          e => { $b=1 }, # if we get here, it exists
-          d => { ($b=1) && nqp::stat($sabspath,nqp::const::STAT_ISDIR) },
-          f => { ($b=1) && nqp::stat($sabspath,nqp::const::STAT_ISREG) },
-          s => { %t.at_key("f")()
-              && ($b=0) || nqp::stat($sabspath,nqp::const::STAT_FILESIZE) },
-          l => { ($b=1) && nqp::fileislink($sabspath) },
-          r => { ($b=1) && nqp::filereadable($sabspath) },
-          w => { ($b=1) && nqp::filewritable($sabspath) },
-          x => { ($b=1) && nqp::fileexecutable($sabspath) },
-          z => { %t.at_key("f")()
-              && nqp::stat($sabspath,nqp::const::STAT_FILESIZE) == 0 },
 
-          "!e" => { $b=1; 0 }, # if we get here, it exists
-          "!d" => { nqp::bitxor_i(%t.at_key("d")(),1) },
-          "!f" => { nqp::bitxor_i(%t.at_key("f")(),1) },
-          "!l" => { nqp::bitxor_i(%t.at_key("l")(),1) },
-          "!r" => { nqp::bitxor_i(%t.at_key("r")(),1) },
-          "!w" => { nqp::bitxor_i(%t.at_key("w")(),1) },
-          "!x" => { nqp::bitxor_i(%t.at_key("x")(),1) },
-          "!z" => { nqp::bitxor_i(%t.at_key("z")(),1) },
-        ;
-
-        my int $result = 1;
+        my $result = True;
         for @tests -> $t {
             die "Unknown test $t" unless %t.exists_key($t);
-            last unless $result = $result && %t.at_key($t)();
+            last unless $result = $result && %t.at_key($t)($!abspath);
         }
 
-        $b ?? nqp::p6bool($result) !! nqp::box_i($result,Int);
-#?endif
+        $result;
     }
 
     method e() {

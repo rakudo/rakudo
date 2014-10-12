@@ -301,12 +301,13 @@ my class IO::Handle does IO {
 #?if parrot
                     my Mu $line := nqp::readlinefh($!PIO);
                     last if nqp::eoffh($!PIO);
+                    $!ins = $!ins + 1;
                     take nqp::p6box_s($line).chomp;
 #?endif
 #?if !parrot
+                    $!ins = $!ins + 1;
                     take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
 #?endif
-                    $!ins = $!ins + 1;
                 }
                 self.close if $close;
             }
@@ -317,12 +318,13 @@ my class IO::Handle does IO {
 #?if parrot
                     my Mu $line := nqp::readlinefh($!PIO);
                     last if nqp::eoffh($!PIO);
+                    $!ins = $!ins + 1;
                     take nqp::p6box_s($line);
 #?endif
 #?if !parrot
+                    $!ins = $!ins + 1;
                     take nqp::p6box_s(nqp::readlinefh($!PIO));
 #?endif
-                    $!ins = $!ins + 1;
                 }
                 self.close if $close;
             }

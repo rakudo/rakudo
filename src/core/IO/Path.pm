@@ -23,15 +23,6 @@ my class IO::Path is Cool {
         self.bless(:$path, :$SPEC, :$CWD);
     }
     multi method new(IO::Path:
-      :$basename!,
-      :$dirname = '.',
-      :$volume  = '',
-      :$SPEC    = $*SPEC,
-      :$CWD     = $*CWD,
-    ) {
-        self.bless(:path($SPEC.join($volume,$dirname,$basename)),:$SPEC,:$CWD);
-    }
-    multi method new(IO::Path:
       :$basename,
       :$directory!,
       :$volume = '',
@@ -41,6 +32,15 @@ my class IO::Path is Cool {
 #        DEPRECATED(':dirname', :what<IO::Path.new with :directory>);
         self.bless(
           :path($SPEC.join($volume,$directory,$basename)), :$SPEC, :$CWD);
+    }
+    multi method new(IO::Path:
+      :$basename!,
+      :$dirname = '.',
+      :$volume  = '',
+      :$SPEC    = $*SPEC,
+      :$CWD     = $*CWD,
+    ) {
+        self.bless(:path($SPEC.join($volume,$dirname,$basename)),:$SPEC,:$CWD);
     }
 
     method abspath() {

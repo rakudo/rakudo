@@ -1549,8 +1549,10 @@ my class X::Caller::NotDynamic is Exception {
     %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher) is hidden_from_backtrace {
             X::Multi::NoMatch.new(:$dispatcher).throw
         };
-    my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
-    nqp::bindcurhllsym('P6EX', $parrot_c_ex);
+    %c_ex{'X::Role::Initialization'} := sub ($role) is hidden_from_backtrace {
+            X::Role::Initialization.new(:$role).throw
+        }
+    nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));
     
     0;
 }

@@ -20,9 +20,8 @@ multi infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
-    my @attrs = $role.^attributes().grep: { .has_accessor };
-    X::Role::Initialization.new(:$role).throw unless @attrs == 1;
-    obj.HOW.mixin(obj, $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
+    my \mixedin = obj.HOW.mixin(obj, $role, :need-mixin-attribute);
+    mixedin.BUILD_LEAST_DERIVED({ mixedin.^mixin_attribute.Str.substr(2) => $value });
 }
 multi infix:<does>(Mu:U \obj, Mu:U \role) is rw {
     X::Does::TypeObject.new().throw
@@ -46,15 +45,15 @@ multi infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
-    my @attrs = $role.^attributes().grep: { .has_accessor };
-    X::Role::Initialization.new(:$role).throw unless @attrs == 1;
+    my \mixedin = obj.HOW.mixin(obj.clone(), $role, :need-mixin-attribute);
+    my \attr = mixedin.^mixin_attribute;
     my $mixin-value := $value;
-    unless nqp::istype($value, @attrs[0].type) {
-        if @attrs[0].type.HOW.HOW.name(@attrs[0].type.HOW) eq 'Perl6::Metamodel::EnumHOW' {
-            $mixin-value := @attrs[0].type.($value);
+    unless nqp::istype($value, attr.type) {
+        if attr.type.HOW.^name eq 'Perl6::Metamodel::EnumHOW' {
+            $mixin-value := attr.type.($value);
         }
     }
-    obj.HOW.mixin(obj.clone(), $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $mixin-value });
+    mixedin.BUILD_LEAST_DERIVED({ attr.Str.substr(2) => $mixin-value });
 }
 multi infix:<but>(Mu:U \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!

@@ -43,15 +43,10 @@ my class IO::Spec::Unix is IO::Spec {
     method tmpdir {
         my $io;
         first( {
-#?if parrot
             if .defined {
                 $io = .IO;
                 $io.d && $io.r && $io.w && $io.x;
             }
-#?endif
-#?if !parrot
-            .defined && ($io = .IO).all: <d r w x>;  
-#?endif
     },
           %*ENV<TMPDIR>,
           '/tmp',

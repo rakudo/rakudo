@@ -198,7 +198,6 @@ my class IO::Path is Cool {
             );
         }
 
-#?if parrot
         if $test eq 'r' {
             return $dir if $dir.r;
         } 
@@ -208,10 +207,6 @@ my class IO::Path is Cool {
         elsif $test eq 'r w x' {
             return $dir if $dir.r and $dir.w and $dir.x;
         }
-#?endif
-#?if !parrot
-        return $dir if $dir.all(|$test);
-#?endif
 
         fail X::IO::Chdir.new(
           :$path,

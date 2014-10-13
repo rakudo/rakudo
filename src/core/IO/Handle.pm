@@ -6,6 +6,7 @@ my class IO::Handle does IO {
     has $!PIO;
     has int $.ins;
     has $.chomp = Bool::True;
+    has $.nl    = "\n";
 
     method open(IO::Handle:D:
       :$r is copy,
@@ -16,6 +17,7 @@ my class IO::Handle does IO {
       :$bin,
       :$chomp = True,
       :$enc   = 'utf8',
+      :$nl    = "\n",
     ) {
 
         if $!path eq '-' {
@@ -90,6 +92,7 @@ my class IO::Handle does IO {
 #?endif
 
         $!chomp = $chomp;
+        nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
         self;
     }

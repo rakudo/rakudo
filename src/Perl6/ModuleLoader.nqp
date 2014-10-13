@@ -38,7 +38,14 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     method search_path() {
         # See if we have an @*INC set up, and if so just use that.
         my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
-        if !nqp::isnull($PROCESS) && nqp::existskey($PROCESS.WHO, '@INC') {
+        if !nqp::isnull($PROCESS) {
+            if !nqp::existskey($PROCESS.WHO, '@INC') {
+                my &DYNAMIC :=
+                  nqp::ctxlexpad(%settings_loaded{'CORE'})<&DYNAMIC>;
+                if !nqp::isnull(&DYNAMIC) {
+                    &DYNAMIC('@*INC');
+                }
+            }
             my $INC := ($PROCESS.WHO)<@INC>;
             if nqp::defined($INC) {
                 my @INC := $INC.FLATTENABLE_LIST();

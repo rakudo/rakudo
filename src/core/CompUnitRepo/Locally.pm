@@ -6,21 +6,21 @@ role CompUnitRepo::Locally {
     my %instances;
 
     method new($dir) {
-        my $path := $dir.IO;
+        my $path := $*SPEC.rel2abs($dir).IO;
         return Nil unless $path.d and $path.r;
-        %instances{$path} //= self.bless(:$path, :lock(Lock.new));
+        %instances{$path.abspath} //= self.bless(:$path, :lock(Lock.new));
     }
 
     multi method WHICH (CompUnitRepo::Locally:D:) {
-        $!WHICH //= self.^name ~ '|' ~ $!path;
+        $!WHICH //= self.^name ~ '|' ~ $!path.abspath;
     }
-    method Str   { self.DEFINITE ?? $!path.Str !! Nil }
+    method Str   { self.DEFINITE ?? $!path.abspath !! Nil }
     method gist  { self.DEFINITE
-      ?? "{self.short-id}:{$!path.Str}"
+      ?? "{self.short-id}:{$!path.abspath}"
       !! self.^name;
     }
     method perl  { self.DEFINITE
-      ?? "CompUnitRepo.new('{self.short-id}:{$!path.Str}')"
+      ?? "CompUnitRepo.new('{self.short-id}:{$!path.abspath}')"
       !! self.^name;
     }
 

@@ -29,7 +29,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         return () unless %extensions.exists_key($from);
 
         my $dir-sep := $*SPEC.dir-sep;
-        my $base := $!path ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
+        my $base := $!path.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
         if %seen{$base} -> $found {
             return $found;
         }

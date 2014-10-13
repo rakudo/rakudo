@@ -107,29 +107,21 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method get() {
-#?if parrot
+        my Mu $io       := nqp::getattr(self, $?CLASS, '$!PIO');
         my str $encoding = nqp::unbox_s(NORMALIZE_ENCODING($!encoding));
+        nqp::setencoding($io, $encoding);
+#?if parrot
         my str $sep = pir::trans_encoding__SSI(
             nqp::unbox_s($!input-line-separator),
             pir::find_encoding__IS($encoding));
-        my int $sep-len = nqp::chars($sep);
-        
-        my Mu $PIO := nqp::getattr(self, $?CLASS, '$!PIO');
-        $PIO.encoding($encoding);
-        
-        my str $line = $PIO.readline($sep);
 #?endif
 #?if !parrot
         my str $sep = nqp::unbox_s($!input-line-separator);
-        my int $sep-len = nqp::chars($sep);
-        
-        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
-        nqp::setencoding($io, nqp::unbox_s($!encoding));
-        nqp::setinputlinesep($io, $sep);
-        my Str $line = nqp::p6box_s(nqp::readlinefh($io));
 #?endif
-
-        my int $len  = nqp::chars($line);
+        nqp::setinputlinesep($io, $sep);
+        my int $sep-len = nqp::chars($sep);
+        my str $line    = nqp::readlinefh($io);
+        my int $len     = nqp::chars($line);
         
         if $len == 0 { Str }
         else {

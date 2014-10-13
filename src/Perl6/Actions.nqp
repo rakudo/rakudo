@@ -5,6 +5,26 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
+register_op_desugar('p6callmethodhow', -> $qast {
+    $qast   := $qast.shallow_clone();
+    my $inv := $qast.shift;
+    my $tmp := QAST::Node.unique('how_invocant');
+    $qast.op('callmethod');
+    $qast.unshift(QAST::Var.new( :name($tmp), :scope('local') ));
+    $qast.unshift(QAST::Op.new(
+        :op('how'),
+        QAST::Var.new( :name($tmp), :scope('local') )
+    ));
+    QAST::Stmts.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+            $inv
+        ),
+        QAST::Op.new( :op('hllize'), $qast )
+    )
+});
+
 role STDActions {
     method quibble($/) {
         make $<nibble>.ast;
@@ -3989,9 +4009,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift($*W.add_string_constant($past.name))
-            if $past.name ne '';
-        $past.name('dispatch:<' ~ ~$<sym> ~ '>');
+        if $<sym> eq '.^' {
+            $past.op('p6callmethodhow');
+        }
+        else {
+            $past.unshift($*W.add_string_constant($past.name))
+                if $past.name ne '';
+            $past.name('dispatch:<' ~ ~$<sym> ~ '>');
+        }
         make $past;
     }
 
@@ -6784,6 +6809,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %curried{'&infix:<^..^>'} := 1;
         %curried{'&infix:<xx>'}   := 1;
         %curried{'callmethod'}    := 2;
+        %curried{'p6callmethodhow'}      := 2;
         %curried{'&postcircumfix:<[ ]>'} := 2;
         %curried{'&postcircumfix:<{ }>'} := 2;
     }

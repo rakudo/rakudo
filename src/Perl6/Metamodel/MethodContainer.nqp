@@ -11,8 +11,7 @@ role Perl6::Metamodel::MethodContainer {
 
     # Add a method.
     method add_method($obj, $name, $code_obj) {
-
-        # We may get Parrot subs in here during BOOTSTRAP; the try is to cope
+        # We may get VM-level subs in here during BOOTSTRAP; the try is to cope
         # with them.
         my $method_type := "Method";
         try { $method_type := $code_obj.HOW.name($code_obj) };

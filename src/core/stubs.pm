@@ -24,24 +24,24 @@ my class Mix { ... }
 my class MixHash { ... }
 
 sub DYNAMIC(\name) is rw {
-    my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));
-    if nqp::isnull($x) {
+    my Mu \x := nqp::getlexdyn(nqp::unbox_s(name));
+    if nqp::isnull(x) {
         my str $pkgname = nqp::replace(nqp::unbox_s(name), 1, 1, '');
         if nqp::existskey(GLOBAL.WHO, $pkgname) {
-            $x := nqp::atkey(GLOBAL.WHO, $pkgname);
+            x := nqp::atkey(GLOBAL.WHO, $pkgname);
         }
         elsif nqp::existskey(PROCESS.WHO, $pkgname) {
-            $x := nqp::atkey(PROCESS.WHO, $pkgname);
+            x := nqp::atkey(PROCESS.WHO, $pkgname);
         }
         else {
 #my $last = now;
 #say "initializing {name}";
-            $x := INITIALIZE_DYNAMIC(name);
+            x := INITIALIZE_DYNAMIC(name);
 #say "    done at {now - $last}";
-            fail $x if nqp::istype($x, Exception);
+            fail x if nqp::istype(x, Exception);
         }
     }
-    $x
+    x
 }
 
 # prime the automagic dynamic variable initializers

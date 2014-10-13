@@ -121,4 +121,23 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method candidates($obj) { nqp::clone(@!candidates) }
+
+    method lookup($obj, $name) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.lookup($c, $name);
+    }
+
+    method methods($obj, *@pos, *%name) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.methods($c, |@pos, |%name);
+    }
+
+    method attributes($obj, *@pos, *%name) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.attributes($c, |@pos, |%name);
+    }
+
+    method !get_default_candidate($obj) {
+        @!candidates[0]
+    }
 }

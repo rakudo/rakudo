@@ -81,6 +81,23 @@ role Perl6::Metamodel::MethodContainer {
     method declares_method($obj, $name) {
         %!methods{$name} || %!submethods{$name} ?? 1 !! 0
     }
+    
+    # Looks up a method with the provided name, for introspection purposes.
+    method lookup($obj, $name) {
+        for self.mro($obj) {
+            my %meth := $_.HOW.method_table($obj);
+            if nqp::existskey(%meth, $name) {
+                return %meth{$name};
+            }
+            if nqp::can($_.HOW, 'submethod_table') {
+                my %submeth := $_.HOW.submethod_table($obj);
+                if nqp::existskey(%submeth, $name) {
+                    return %submeth{$name};
+                }
+            }
+        }
+        nqp::null()
+    }
 
     # Caches or updates a cached value.
     method cache($obj, str $key, $value_generator) {

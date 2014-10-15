@@ -19,6 +19,8 @@ class Deprecation {
     has $.name;         # name of code that is deprecated
     has $.alternative;  # alternative for code that is deprecated
     has %.callsites;    # places where called (file -> line -> count)
+    has Version $.from;    # release version from which deprecated
+    has Version $.removed; # release version when will be removed
 
     multi method WHICH (Deprecation:D:) {
         ($!file||"",$!type||"",$!package||"",$!name).join(':');
@@ -47,6 +49,11 @@ class Deprecation {
         for %.callsites.kv -> $file, $lines {
             $message ~=
               "  $file, line{ 's' if +$lines > 1 } {$lines.keys.sort.join(',')}\n";
+            $message ~=
+              "Deprecated since v$.from, will be removed {$.removed
+                ?? 'with release v' ~ $.removed ~ '!'
+                !! 'at some time in the future'
+              }\n" if $.from;
         }
         $message ~= "Please use $.alternative instead.\n";
         $message;
@@ -56,7 +63,17 @@ class Deprecation {
     method obsolete (|c) { Obsolete.new(|c) }
 }
 
-sub DEPRECATED ($alternative, :$up = 1, :$what ) {
+sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
+
+    # not deprecated yet
+    state $version = $*VM.version;
+    my Version $vfrom;
+    my Version $vremoved;
+    if $from {
+        $vfrom = Version.new($from);
+        return if $version cmp $vfrom ~~ Less;
+    }
+    $vremoved = Version.new($removed) if $removed;
 
     my $bt = Backtrace.new;
     my $deprecated = $bt[ my $index = $bt.next-interesting-index(2, :named) ];
@@ -66,7 +83,11 @@ sub DEPRECATED ($alternative, :$up = 1, :$what ) {
 
     # get object, existing or new
     my $dep = $what
-      ?? Deprecation.new( :name($what), :$alternative )
+      ?? Deprecation.new(
+        :name($what),
+        :$alternative,
+        :from($vfrom),
+        :removed($vremoved) )
       !! Deprecation.new(
         file    => $deprecated.file,
         type    => $deprecated.subtype.tc,
@@ -74,7 +95,10 @@ sub DEPRECATED ($alternative, :$up = 1, :$what ) {
             $deprecated.package.HOW.name($deprecated)
         } // 'unknown',
         name    => $deprecated.subname,
-        :$alternative );
+        :$alternative,
+        :from($vfrom),
+        :removed($vremoved),
+    );
     $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
 
     # update callsite

@@ -25,23 +25,23 @@ class Compiler does Systemic {
 }
 
 multi postcircumfix:<{ }> (Compiler $d, "name" )   {
-    DEPRECATED('$*PERL.compiler.name', :what('$*PERL<compiler><name>') );
+    DEPRECATED('$*PERL.compiler.name', |<2014.06 2015.06>, :what('$*PERL<compiler><name>') );
     $d.name
 }
 multi postcircumfix:<{ }> (Compiler $d, "ver" )   {
-    DEPRECATED('$*PERL.compiler.version', :what('$*PERL<compiler><ver>') );
+    DEPRECATED('$*PERL.compiler.version', |<2014.06 2015.06>, :what('$*PERL<compiler><ver>') );
     $d.version
 }
 multi postcircumfix:<{ }> (Compiler $d, "release-number" )   {
-    DEPRECATED('$*PERL.compiler.release', :what('$*PERL<compiler><release-number>') );
+    DEPRECATED('$*PERL.compiler.release', |<2014.06 2015.06>, :what('$*PERL<compiler><release-number>') );
     $d.release
 }
 multi postcircumfix:<{ }> (Compiler $d, "build-date" )   {
-    DEPRECATED('$*PERL.compiler.build-date', :what('$*PERL<compiler><build-date>') );
+    DEPRECATED('$*PERL.compiler.build-date', |<2014.06 2015.06>, :what('$*PERL<compiler><build-date>') );
     $d.build-date
 }
 multi postcircumfix:<{ }> (Compiler $d, "codename" )   {
-    DEPRECATED('$*PERL.compiler.codename', :what('$*PERL<compiler><codename>') );
+    DEPRECATED('$*PERL.compiler.codename', |<2014.06 2015.06>, :what('$*PERL<compiler><codename>') );
     $d.build-date
 }
 

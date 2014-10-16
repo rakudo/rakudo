@@ -466,7 +466,7 @@ my class IO::Handle does IO {
     }
     
     method slurp(IO::Handle:D: :$bin, :$enc, :$nodepr) {
-#        DEPRECATED("IO::Path.slurp") unless $nodepr;
+        DEPRECATED("IO::Path.slurp", |<2014.10 2015.10>) unless $nodepr;
 
         if $bin {
             my $Buf := buf8.new();
@@ -486,18 +486,18 @@ my class IO::Handle does IO {
 
     proto method spurt(|) { * }
     multi method spurt(IO::Handle:D: Cool $contents, :$nodepr) {
-#        DEPRECATED("IO::Path.spurt") unless $nodepr;
+        DEPRECATED("IO::Path.spurt", |<2014.10 2015.10>) unless $nodepr;
         self.print($contents);
     }
     
     multi method spurt(IO::Handle:D: Blob $contents, :$nodepr) {
-#        DEPRECATED("IO::Path.spurt") unless $nodepr;
+        DEPRECATED("IO::Path.spurt", |<2014.10 2015.10>) unless $nodepr;
         self.write($contents);
     }
 
     # not spec'd
     method copy(IO::Handle:D: $dest) {
-#        DEPRECATED("IO::Path.copy");
+        DEPRECATED("IO::Path.copy", |<2014.10 2015.10>);
         $!path.copy($dest);
     }
 

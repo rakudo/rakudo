@@ -72,6 +72,8 @@ multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
 multi sub INITIALIZE_DYNAMIC('$*OS') {
     PROCESS::<$OS> := Deprecation.obsolete(
       :name('$*OS'),
+      :from<2014.09>,
+      :removed<2015.09>,
       :value($*DISTRO.name),
       :instead('$*DISTRO.name'),
     );
@@ -80,6 +82,8 @@ multi sub INITIALIZE_DYNAMIC('$*OS') {
 multi sub INITIALIZE_DYNAMIC('$*OSVER') {
     PROCESS::<$OSVER> := Deprecation.obsolete(
       :name('$*OSVER'),
+      :from<2014.09>,
+      :removed<2015.09>,
       :value($*DISTRO.version),
       :instead('$*DISTRO.version'),
     );

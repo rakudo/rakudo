@@ -1,8 +1,8 @@
 ## Order enumeration, for cmp and <=>
 my enum Order (:Less(-1), :Same(0), :More(1));
 
-only Increase () { DEPRECATED("Less"); Less }
-only Decrease  (){ DEPRECATED("More"); More }
+only Increase () { DEPRECATED("Less", |<2013.11 2014.11>); Less }
+only Decrease  (){ DEPRECATED("More", |<2013.11 2014.11>); More }
 
 sub ORDER(int $i) {
     $i == 0 ?? Same !! $i <  0 ?? Less !! More

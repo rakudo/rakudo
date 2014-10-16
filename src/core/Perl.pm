@@ -31,7 +31,7 @@ multi sub INITIALIZE_DYNAMIC('$*PERL') {
     PROCESS::<$PERL> := Perl.new;
 }
 multi postcircumfix:<{ }> (Perl $d, "name" )   {
-    DEPRECATED('$*PERL.name', :what('$*PERL<name>') );
+    DEPRECATED('$*PERL.name', |<2014.06 2015.06>, :what('$*PERL<name>') );
     $d.name
 }
 multi postcircumfix:<{ }> (Perl $d, "compiler" )   {

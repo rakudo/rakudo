@@ -88,6 +88,7 @@ my class Hash { # declared in BOOTSTRAP
                 my Mu $x := $items.shift;
                 DEPRECATED(
                   self.VAR.name ~ ' = %(itemized hash)',
+                  |<2014.07 2015.07>,
                   :what(self.VAR.name ~ ' = itemized hash')
                 ) if nqp::iscont($x);
                 for $x.list { self.STORE_AT_KEY(.key, .value) }

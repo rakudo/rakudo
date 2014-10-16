@@ -4,7 +4,7 @@ my class Pod::Block {
 
     submethod BUILD(:$content = Any, :%!config, :@!contents) {
         if $content.defined {
-            DEPRECATED("Pod::Block.new(:contents)", :up(5), :what('Pod::Block.new(:content)'));
+            DEPRECATED("Pod::Block.new(:contents)", |<2014.09 2015.09>, :up(5), :what('Pod::Block.new(:content)'));
             @!contents.push: $content.list;
         }
     }
@@ -40,7 +40,7 @@ my class Pod::Block {
     }
 
     method content { # is DEPRECATED doesn't work in settings
-        DEPRECATED("Pod::Block.contents");
+        DEPRECATED("Pod::Block.contents", |<2014.09 2015.09>);
         @.contents
     }
 }
@@ -128,7 +128,7 @@ class Pod::Raw {
     has @.contents;
 
     method content { # is DEPRECATED doesn't work in settings
-        DEPRECATED("Pod::Raw.contents");
+        DEPRECATED("Pod::Raw.contents", |<2014.09 2015.09>);
         @.contents
     }
 }

@@ -1,4 +1,4 @@
-class Perl6::CommandLine::Result {
+class Perl6::CommandLine::Result is HLL::CommandLine::Result {
     has %!delim-opts;
     has %!options;
     has @!arguments;
@@ -100,7 +100,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             token TOP {
                 :my $*STOPPED := 0;
                 <option>* % <.ws>
-                [ 
+                [
                     <.ws>
                     <argument>* % <.ws>
                     <.ws>?
@@ -119,10 +119,10 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
 
             token delim-opts {
                 $<delim> = [ '+' '+'+ ]
-                $<opt-key> = \w+ 
+                $<opt-key> = \w+
                 $<opt-value> = [ <!before $<delim> > . ]+?
-                $<delim> 
-                '/' 
+                $<delim>
+                '/'
                 $<opt-key>
             }
 
@@ -302,29 +302,26 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             method error-out($msg) {
                 my $stderr := nqp::getstderr();
                 nqp::sayfh($stderr, $msg);
-                #nqp::exit(0);
+                nqp::exit(0);
             }
         }
 
-        my %*opt-to-aliases := nqp::clone(%!opt-to-aliases);
-        my %*aliases-to-types := nqp::clone(%!aliases-to-types);
-
         my $args := nqp::join("\x0", @args);
+
+        my %*opt-to-aliases := %!opt-to-aliases;
+        my %*aliases-to-types := %!aliases-to-types;
 
         my $result;
         my $*STOPPED := 0;
         try {
-            $result := CLIParser.parse($args, :actions(CLIActions.new)).ast;
+            my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
+            $result := CLIParser.parse($args, :$actions).ast;
             CATCH {
                 nqp::say($_);
                 nqp::exit(255);
             }
         }
+
         $result;
     }
 }
-
-
-
-
-

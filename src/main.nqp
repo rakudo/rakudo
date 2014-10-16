@@ -24,8 +24,8 @@ my @clo := $comp.commandline_options();
 @clo.push('doc=s?');
 @clo.push('optimize=s?');
 @clo.push('c');
-@clo.push('I=s');
-@clo.push('M=s');
+@clo.push('I=S');
+@clo.push('M=S');
 
 # Bump up recursion limit, for VMs that have one.
 $comp.recursion_limit(100000);

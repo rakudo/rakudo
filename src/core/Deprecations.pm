@@ -5,11 +5,13 @@ class Obsolete is Str {
     has $!name;
     has $!value;
     has $!instead;
+    has $!from;
+    has $!removed;
 
-    submethod BUILD (:$!name, :$!value, :$!instead) {}
+    submethod BUILD (:$!name, :$!value, :$!instead, :$!from, :$!removed) { }
 
-    method Str  { DEPRECATED( $!instead, :up(2), :what($!name) ); $!value }
-    method gist { DEPRECATED( $!instead, :up(2), :what($!name) ); $!value }
+    method Str  { DEPRECATED( $!instead, $!from, $!removed, :up(2), :what($!name) ); $!value }
+    method gist { DEPRECATED( $!instead, $!from, $!removed, :up(2), :what($!name) ); $!value }
 }
 
 class Deprecation {

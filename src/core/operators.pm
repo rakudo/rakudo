@@ -105,8 +105,8 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
         my $value;
         my $code;
         my $stop;
-        while @left {
-            $value = @left.shift;
+        for @left -> $v {
+            $value := $v;
             if $value ~~ Code { $code = $value; last }
             if $end_code_arity != 0 {
                 $end_tail.push($value);

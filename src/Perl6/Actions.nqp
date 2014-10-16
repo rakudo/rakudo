@@ -5239,6 +5239,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $nil   := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
         my $false := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'False'])) );
         my $true  := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'True'])) );
+        my $topic := QAST::Var.new( :name('$_'), :scope<lexical> );
         
         # Need a state variable to track the state.
         my %cont;
@@ -5269,9 +5270,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         :op('if'),
                         QAST::Var.new( :name($state), :scope('lexical') ),
                         $false,
-                        QAST::Op.new( :op('callmethod'), :name('Bool'), $lhs )
+                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $lhs )
                     ) !!
-                    QAST::Op.new( :op('callmethod'), :name('Bool'), $lhs ))
+                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $lhs ))
             ),
             QAST::Op.new(
                 :op('bind'),
@@ -5280,10 +5281,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Op.new(
                         :op('if'),
                         QAST::Var.new( :name($state), :scope('lexical') ),
-                        QAST::Op.new( :op('callmethod'), :name('Bool'), $rhs ),
+                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $rhs ),
                         $false
                     ) !!
-                    QAST::Op.new( :op('callmethod'), :name('Bool'), $rhs ))
+                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $rhs ))
             )
         );
         

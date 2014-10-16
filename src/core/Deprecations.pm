@@ -71,7 +71,7 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
     my Version $vremoved;
     if $from {
         $vfrom = Version.new($from);
-        return if $version cmp $vfrom ~~ Less;
+        return if $version cmp $vfrom ~~ Less | Same; # can be better?
     }
     $vremoved = Version.new($removed) if $removed;
 

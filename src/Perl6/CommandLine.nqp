@@ -110,7 +110,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             token option {
                 <!{ $*STOPPED }>
                 [
-                    [ '--' <.ws> { $*STOPPED := 1 } ]
+                    [ '--' <.ws>+ { $*STOPPED := 1 } ]
                 ||  <delim-opts>
                 ||  <longopt>
                 ||  <shopts>
@@ -127,6 +127,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             }
 
             token longopt {
+                <!{ $*STOPPED }>
                 [ '--' || ':' ]
                 [ $<negated> = '/' ]?
                 $<optname> = @*longopts
@@ -134,10 +135,11 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                     <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 'b' }>
                 ||  <.optvalsep> <value>
                 ]
-                { for @*stoppers { if $_ eq $<optname> { $*STOPPED := 1 } } }
+                { for @*stoppers { if $_ eq '--' ~ $<optname> { $*STOPPED := 1 } } }
             }
 
             token shopts {
+                <!{ $*STOPPED }>
                 '-'
                 [ $<negated> = '/' ]?
                 [ $<boolshopts> = @*boolshopts ]*
@@ -146,7 +148,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                     <.optvalsep>?
                     <value>
                 ]?
-                { for @*stoppers { if $_ eq $<strshopt> { $*STOPPED := 1 } } }
+                { for @*stoppers { if $_ eq '-' ~ $<strshopt> { $*STOPPED := 1 } } }
             }
 
             token optvalsep {
@@ -185,12 +187,12 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                     for @a {
                         my %opt := $_.ast;
                         for %opt {
-                            my $key := nqp::iterkey_s($_);
-                            my $value := nqp::iterval($_);
+                            my $key := ~(nqp::iterkey_s($_));
+                            my $value := ~(nqp::iterval($_));
                             my $delimited := $key eq 'DELIMITED-OPTION';
                             if %*only-once{$key} && $result.options{$key} {
                                 self.error-out("===SORRY!===" ~
-                                    "Option " ~ $key ~ " can only be supplied once.");
+                                    "\nOption " ~ $key ~ " can only be supplied once.");
                             }
                             elsif $delimited {
                                 $key := $value[0];
@@ -203,7 +205,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                 if $<argument> {
                     my @a := make $<argument>;
                     for @a {
-                        $result.add-argument(make $_.ast);
+                        $result.add-argument(~(make $_.ast));
                     }
                 }
                 my %delim-opts;
@@ -277,7 +279,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
 
             method longopt($/) {
                 my $value := $<value> ?? make $<value>.ast !! 1;
-                $value := $value // 1;
+                $value := ~($value // 1);
                 my $key := $<optname>.Str;
 
                 if $<negated> && self.type-for-opt($key) ne 'b' {
@@ -300,8 +302,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             }
 
             method error-out($msg) {
-                my $stderr := nqp::getstderr();
-                nqp::sayfh($stderr, $msg);
+                nqp::say($msg);
                 nqp::exit(0);
             }
         }
@@ -310,9 +311,12 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
 
         my %*opt-to-aliases := %!opt-to-aliases;
         my %*aliases-to-types := %!aliases-to-types;
+        my @*stoppers;
+        for %!stopper {
+            nqp::push(@*stoppers, nqp::iterkey_s($_));
+        }
 
         my $result;
-        my $*STOPPED := 0;
         try {
             my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
             $result := CLIParser.parse($args, :$actions).ast;

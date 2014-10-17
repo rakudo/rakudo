@@ -68,7 +68,7 @@ class Deprecation {
 sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
 
     # not deprecated yet
-    state $version = $*VM.version;
+    state $version = $*PERL.compiler.version;
     my Version $vfrom;
     my Version $vremoved;
     if $from {

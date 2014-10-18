@@ -105,7 +105,7 @@ my class Proc::Async {
 
         my $promise = Promise.new;
         my $lock = Lock.new;
-        my int $moreing;
+        my int $emitting;
         my int $next_seq;
         my @buffer; # should be Mu, as data can be Mu
 
@@ -131,14 +131,14 @@ my class Proc::Async {
                     $lock.protect( {
 #say "seq = {seq} with {data}   in {$*THREAD}" if std eq 'stdout';
                         @buffer[ seq - $next_seq ] := data;
-                        $in_charge = $moreing = 1 unless $moreing;
+                        $in_charge = $emitting = 1 unless $emitting;
                     } );
 
                     if $in_charge {
                         my int $done;
                         while @buffer.exists_pos($done) {
-#say "moreing { $next_seq + $done }: {@buffer[$done]}" if std eq 'stdout';
-                            supply.more( @buffer[$done] );
+#say "emitting { $next_seq + $done }: {@buffer[$done]}" if std eq 'stdout';
+                            supply.emit( @buffer[$done] );
                             $done = $done + 1;
                         }
 
@@ -148,7 +148,7 @@ my class Proc::Async {
                                 @buffer.splice(0,$done);
                                 $next_seq = $next_seq + $done;
                             }
-                            $moreing = 0;
+                            $emitting = 0;
                         } );
                     }
                 }

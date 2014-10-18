@@ -47,7 +47,7 @@ my class IO::Socket::Async {
     my sub capture(\supply) {
 
         my $lock = Lock.new;
-        my int $moreing;
+        my int $emitting;
         my int $next_seq;
         my @buffer; # should be Mu, as data can be Mu
 
@@ -65,14 +65,14 @@ my class IO::Socket::Async {
                 $lock.protect( {
 #say "seq = {seq} with {data}   in {$*THREAD}";
                     @buffer[ seq - $next_seq ] := data;
-                    $in_charge = $moreing = 1 unless $moreing;
+                    $in_charge = $emitting = 1 unless $emitting;
                 } );
 
                 if $in_charge {
                     my int $done;
                     while @buffer.exists_pos($done) {
-#say "moreing { $next_seq + $done }: {@buffer[$done]}";
-                        supply.more( @buffer[$done] );
+#say "emitting { $next_seq + $done }: {@buffer[$done]}";
+                        supply.emit( @buffer[$done] );
                         $done = $done + 1;
                     }
 
@@ -82,7 +82,7 @@ my class IO::Socket::Async {
                             @buffer.splice(0,$done);
                             $next_seq = $next_seq + $done;
                         }
-                        $moreing = 0;
+                        $emitting = 0;
                     } );
                 }
             }
@@ -160,7 +160,7 @@ my class IO::Socket::Async {
                     else {
                         my $client_socket := nqp::create(self);
                         nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
-                        $s.more($client_socket);
+                        $s.emit($client_socket);
                     }
                 },
                 $host, $port, SocketCancellation);

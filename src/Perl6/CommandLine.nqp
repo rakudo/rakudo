@@ -317,15 +317,14 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
         }
 
         my $result;
-        try {
-            my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
-            $result := CLIParser.parse($args, :$actions).ast;
-            CATCH {
-                nqp::say($_);
-                nqp::exit(255);
-            }
-        }
+        my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
+        $result := CLIParser.parse($args, :$actions).ast;
 
-        $result;
+        if nqp::istype($result, Perl6::CommandLine::Result) {
+            $result;
+        }
+        else {
+            nqp::die("Failed parsing command line.");
+        }
     }
 }

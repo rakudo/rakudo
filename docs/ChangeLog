@@ -17,6 +17,7 @@ New in 2014.10
 + performance improvements in Str.trans and tr///
 + fixed Str.trans and tr/// for anchored regexes
 + Bool.pick/roll (without parameter) now ~20x faster
++ Supply.more has been deprecated in favour of Supply.emit (as per spec)
 
 New in 2014.09
 + ./perl6 --profile for MoarVM, generates HTML profile output, including

@@ -30,13 +30,14 @@ PERL6_OPS_JAR = blib/Perl6/Ops.jar
 PERL6_A_JAR   = blib/Perl6/Actions.jar
 PERL6_O_JAR   = blib/Perl6/Optimizer.jar
 PERL6_P_JAR   = blib/Perl6/Pod.jar
+PERL6_CLI_JAR = blib/Perl6/CommandLine.jar
 PERL6_C_JAR   = blib/Perl6/Compiler.jar
 PERL6_M_JAR   = blib/Perl6/Metamodel.jar
 PERL6_B_JAR   = blib/Perl6/BOOTSTRAP.jar
 SETTING_JAR   = CORE.setting.jar
 
 PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
-  $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
+  $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_CLI_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
 
 J_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES) \
   src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp \
@@ -269,7 +270,11 @@ $(PERL6_O_JAR): src/Perl6/Optimizer.nqp $(PERL6_OPS_JAR)
 	$(J_NQP) --target=jar --output=$(PERL6_O_JAR) --encoding=utf8 \
 	    $(J_BUILD_DIR)/Perl6-Optimizer.nqp
 
-$(PERL6_C_JAR): src/Perl6/Compiler.nqp $(PERL6_O_JAR)
+$(PERL6_CLI_JAR): src/Perl6/CommandLine.nqp $(PERL6_O_JAR)
+	$(J_NQP) --target=jar --output=$(PERL6_CLI_JAR) --encoding=utf8 \
+	    src/Perl6/CommandLine.nqp
+
+$(PERL6_C_JAR): src/Perl6/Compiler.nqp $(PERL6_CLI_JAR)
 	$(J_NQP) --target=jar --output=$(PERL6_C_JAR) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 

@@ -61,6 +61,8 @@ PERL6_O       = src/gen/perl6-optimizer.pir
 PERL6_O_PBC   = blib/Perl6/Optimizer.pbc
 PERL6_P       = src/gen/perl6-pod.pir
 PERL6_P_PBC   = blib/Perl6/Pod.pbc
+PERL6_CLI     = src/gen/perl6-commandline.pir
+PERL6_CLI_PBC = blib/Perl6/CommandLine.pbc
 PERL6_C       = src/gen/perl6-compiler.pir
 PERL6_C_PBC   = blib/Perl6/Compiler.pbc
 PERL6_M       = src/gen/perl6-metamodel.pir
@@ -329,6 +331,7 @@ p-install: p-all
 	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
 	$(CP) $(PERL6_O_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Optimizer.pbc
 	$(CP) $(PERL6_P_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Pod.pbc
+	$(CP) $(PERL6_CLI_PBC)        $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/CommandLine.pbc
 	$(CP) $(PERL6_C_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Compiler.pbc
 	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(CP) $(PERL6_B_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/BOOTSTRAP.pbc
@@ -379,7 +382,7 @@ $(PERL6_DEBUG_EXE): $(PERL6_DEBUG_PBC)
 	$(PBC_TO_EXE) -o$(PERL6_DEBUG_EXE) $(PERL6_DEBUG_PBC)
 
 # the complete compiler
-$(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
+$(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_CLI_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl > $(P_BUILD_DIR)/main-version.nqp
 	$(NQP_EXE) $(P_GEN_CAT) src/main.nqp $(P_BUILD_DIR)/main-version.nqp > $(P_BUILD_DIR)/main.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=src/gen/perl6.pir \
@@ -423,6 +426,11 @@ $(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/Pod.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
+
+$(PERL6_CLI_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/CommandLine.nqp
+	$(NQP_EXE) --target=pir --output=$(PERL6_CLI) --encoding=utf8 \
+	    src/Perl6/CommandLine.nqp
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_CLI_PBC) $(PERL6_CLI)
 
 $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_C) --encoding=utf8 \

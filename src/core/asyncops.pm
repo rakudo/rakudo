@@ -39,11 +39,11 @@ sub INVOKE_KV(&block, $key, $value?) {
     die "Couldn't figure out how to invoke {&block.signature().perl}";
 }
 
-sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
+sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
     my Num $until = $wait ?? nqp::time_n() + $wait_time !! Nil;
 
-    my constant $WINNER_KIND_DONE = 0;
-    my constant $WINNER_KIND_MORE = 1;
+    my constant $EARLIEST_KIND_DONE = 0;
+    my constant $EARLIEST_KIND_MORE = 1;
 
     my @todo;
 #       |-- [ ordinal, kind, contestant, block, alternate_block? ]
@@ -51,8 +51,8 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     # sanity check and transmogrify possibly multiple channels into things to do
     while +@other {
         my $kind = @other.shift;
-        if $kind != $WINNER_KIND_DONE && $kind != $WINNER_KIND_MORE {
-            die "Got a {$kind.WHAT.perl}, but expected $WINNER_KIND_DONE or $WINNER_KIND_MORE";
+        if $kind != $EARLIEST_KIND_DONE && $kind != $EARLIEST_KIND_MORE {
+            die "Got a {$kind.WHAT.perl}, but expected $EARLIEST_KIND_DONE or $EARLIEST_KIND_MORE";
         }
 
         my @contestant;
@@ -72,7 +72,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     if !@todo {
         for @winner {
             when Channel {
-                @todo.push: [ +@todo, $WINNER_KIND_MORE, $_, $wild_more, $wild_done ];
+                @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more, $wild_done ];
             }
             default {
                 die "Got a {$_.WHAT.perl}, but expected a Channel";
@@ -92,14 +92,14 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
             my $kind       := $todo[1];
             my $contestant := $todo[2];
 
-            if $kind == $WINNER_KIND_DONE {
+            if $kind == $EARLIEST_KIND_DONE {
                 if $contestant.closed {
                     $action = { INVOKE_KV($todo[3], $todo[0]) };
                     last CHECK;
                 }
             }
 
-            else { # $kind == $WINNER_KIND_MORE
+            else { # $kind == $EARLIEST_KIND_MORE
 
                 if (my $value := $contestant.poll) !~~ Nil {
                     $action = { INVOKE_KV($todo[3], $todo[0], $value) };
@@ -125,6 +125,11 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
 
     # must do action outside above loop to make any "last" in block find the right loop
     $action();
+}
+
+sub WINNER(|c) {
+    DEPRECATED('earliest', |<2014.10 2015.10>, :what<winner>);
+    EARLIEST(|c);
 }
 
 # vim: ft=perl6 expandtab sw=4

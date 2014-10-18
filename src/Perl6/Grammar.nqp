@@ -2413,7 +2413,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    rule term:sym<winner> { <sym><.end_keyword> <xblock> }
+    rule term:sym<winner>   { <sym><.end_keyword> <xblock> }   # DEPRECATED
+    rule term:sym<earliest> { <sym><.end_keyword> <xblock> }
     rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
     rule statement_control:sym<more>   { <sym><.end_keyword> <xblock(1)> }
     rule statement_control:sym<done>   { <sym><.end_keyword> <xblock(1)> }

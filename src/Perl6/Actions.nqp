@@ -1235,14 +1235,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make when_handler_helper($<block>.ast);
     }
 
-    method term:sym<winner>($/) {
+    method term:sym<winner>($/) { self.term:sym<earliest>($/,'&WINNER') }
+    method term:sym<earliest>($/, $name = '&EARLIEST') {
         my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
         my $wild_done;
         my $wild_more;
         my $wait;
         my $wait_time;
 
-        my $past := QAST::Op.new( :op('call'), :name('&WINNER'), :node($/) );
+        my $past := QAST::Op.new( :op('call'), :$name, :node($/) );
         if $<xblock> {
             if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
                 $past.push( QAST::Op.new(

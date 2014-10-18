@@ -20,7 +20,7 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
     Supply.merge( @signals.map(-> $sig {
         my $s = Supply.new;
         nqp::signal($scheduler.queue,
-            -> $signum { $s.more(@known_signals[$signum] // $signum) },
+            -> $signum { $s.emit(@known_signals[$signum] // $signum) },
             nqp::unbox_i(%sigmap{$sig}),
             SignalCancellation);
         $s

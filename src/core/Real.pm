@@ -38,8 +38,18 @@ my role Real does Numeric {
     method acotanh() { self.Bridge.acotanh }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
-    # cannot use '0.5' here, because Rat isn't initialized yet
-    method round($scale as Real = 1) { (self / $scale + 1/2).floor * $scale }
+
+    proto method round(|) { * }
+    multi method round(Real:D:) {
+        (self + 1/2).floor; # Rat NYI here, so no .5
+    }
+    multi method round(Real:D: 1) {
+        (self + 1/2).floor;
+    }
+    multi method round(Real:D: $scale as Real) {
+        (self / $scale + 1/2).floor * $scale;
+    }
+
     method unpolar(Real $angle) {
         Complex.new(self * $angle.cos, self * $angle.sin);
     }

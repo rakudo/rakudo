@@ -17,29 +17,12 @@ my class Bool { # declared in BOOTSTRAP
     method value() { self.Numeric }
 
     proto method pick(|) { * }
-    multi method pick(Bool:U:) {
-       nqp::p6bool(nqp::rand_n(2e0) >= 1);
-    }
-    multi method pick(Bool:U: 0) { () }
-    multi method pick(Bool:U: 1) {
-       nqp::p6bool(nqp::rand_n(2e0) >= 1);
-    }
-    multi method pick(Bool:U: $n) {
-       nqp::rand_n(2e0) >= 1
-         ?? (Bool::True,Bool::False)
-         !! (Bool::False,Bool::True);
-    }
+    multi method pick(Bool:U:)    { nqp::p6bool(nqp::rand_n(2e0) >= 1) }
+    multi method pick(Bool:U: $n) { (Bool::True,Bool::False).pick($n) }
 
     proto method roll(|) { * }
-    multi method roll(Bool:U:) {
-       nqp::p6bool(nqp::rand_n(2e0) >= 1);
-    }
-    multi method roll(Bool:U: 1) {
-       nqp::p6bool(nqp::rand_n(2e0) >= 1);
-    }
-    multi method roll(Bool:U: $n) {
-       (nqp::p6bool(nqp::rand_n(2e0) >= 1)) xx $n;
-    }
+    multi method roll(Bool:U:)    { nqp::p6bool(nqp::rand_n(2e0) >= 1) }
+    multi method roll(Bool:U: $n) { (Bool::True,Bool::False).roll($n) }
 
     multi method ACCEPTS(Bool:D: Mu \topic ) { self }
 

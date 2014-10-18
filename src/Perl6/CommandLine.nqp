@@ -84,7 +84,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                 else {
                     nqp::push(@*longopts, $opt);
                 }
-                %*only-once{$opt} := 1 if $type eq 's';
+                %*only-once{$opt} := 1 if nqp::substr($type, 0, 1) eq 's';
                 %!opt-to-aliases{$opt} := $aliasgroup;
                 %!aliases-to-types{$aliasgroup} := $type;
             }
@@ -133,7 +133,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                 $<optname> = @*longopts
                 [
                     <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 'b' }>
-                ||  <.optvalsep> <value>
+                ||  <.optvalsep> <!after '-'> <value>
                 ]
                 { for @*stoppers { if $_ eq '--' ~ $<optname> { $*STOPPED := 1 } } }
             }

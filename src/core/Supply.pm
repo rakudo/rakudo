@@ -6,7 +6,7 @@
 my class SupplyOperations { ... }
 
 my class Tap {
-    has &.more;
+    has &.emit;
     has &.done;
     has &.quit;
     has &.closing;
@@ -21,12 +21,12 @@ my role Supply {
     has $!been_tapped;
     has @!paused;
 
-    method tap(Supply:D: &more = -> $ { }, :&done,:&quit={die $_},:&closing) {
-        my $tap = Tap.new(:&more, :&done, :&quit, :&closing, :supply(self));
+    method tap(Supply:D: &emit = -> $ { }, :&done,:&quit={die $_},:&closing) {
+        my $tap = Tap.new(:&emit, :&done, :&quit, :&closing, :supply(self));
         $!tappers_lock.protect({
             @!tappers.push($tap);
             if @!paused -> \todo {
-                $tap.more().($_) for todo;
+                $tap.emit().($_) for todo;
                 @!paused = ();
             }
             $!been_tapped = True;
@@ -52,14 +52,19 @@ my role Supply {
         @tappers
     }
 
-    method more(Supply:D: \msg) {
+    method emit(Supply:D: \msg) {
         if self.tappers -> \tappers {
-            .more().(msg) for tappers;
+            .emit().(msg) for tappers;
         }
         elsif !$!been_tapped {
             $!tappers_lock.protect({ @!paused.push: msg });
         }
         Nil;
+    }
+
+    method more(Supply:D: \msg) {
+        DEPRECATED('emit', |<2014.10 2015.10>);
+        self.emit(msg);
     }
 
     method done(Supply:D:) {
@@ -197,7 +202,7 @@ my role Supply {
 
     method do(Supply:D $self: &side_effect) {
         on -> $res {
-            $self => -> \val { side_effect(val); $res.more(val) }
+            $self => -> \val { side_effect(val); $res.emit(val) }
         }
     }
 
@@ -217,12 +222,12 @@ my role Supply {
                               if $index.defined {
                                   if $now > @seen[$index][1] {  # expired
                                       @seen[$index][1] = $now+$expires;
-                                      $res.more(val);
+                                      $res.emit(val);
                                   }
                               }
                               else {
                                   @seen.push: [$target, $now+$expires];
-                                  $res.more(val);
+                                  $res.emit(val);
                               }
                           }
                           !! -> \val {
@@ -232,12 +237,12 @@ my role Supply {
                               if $index.defined {
                                   if $now > @seen[$index][1] {  # expired
                                       @seen[$index][1] = $now+$expires;
-                                      $res.more(val);
+                                      $res.emit(val);
                                   }
                               }
                               else {
                                   @seen.push: [val, $now+$expires];
-                                  $res.more(val);
+                                  $res.emit(val);
                               }
                           };
                     }
@@ -250,7 +255,7 @@ my role Supply {
                               $target = nqp::unbox_s(&as(val).WHICH);
                               if !nqp::existskey($seen,$target) ||
                                 $now > nqp::atkey($seen,$target) { #expired
-                                  $res.more(val);
+                                  $res.emit(val);
                                   nqp::bindkey($seen,$target,$now+$expires);
                               }
                           }
@@ -259,7 +264,7 @@ my role Supply {
                               $target = nqp::unbox_s(val.WHICH);
                               if !nqp::existskey($seen,$target) ||
                                 $now > nqp::atkey($seen,$target) { #expired
-                                  $res.more(val);
+                                  $res.emit(val);
                                   nqp::bindkey($seen,$target,$now+$expires);
                               }
                           };
@@ -274,13 +279,13 @@ my role Supply {
                               $target = &as(val);
                               if @seen.first({ &with($target,$_) } ) =:= Nil {
                                   @seen.push($target);
-                                  $res.more(val);
+                                  $res.emit(val);
                               }
                           }
                           !! -> \val {
                               if @seen.first({ &with(val,$_) } ) =:= Nil {
                                   @seen.push(val);
-                                  $res.more(val);
+                                  $res.emit(val);
                               }
                           };
                     }
@@ -292,14 +297,14 @@ my role Supply {
                               $target = nqp::unbox_s(&as(val).WHICH);
                               unless nqp::existskey($seen, $target) {
                                   nqp::bindkey($seen, $target, 1);
-                                  $res.more(val);
+                                  $res.emit(val);
                               }
                           }
                           !! -> \val {
                               $target = nqp::unbox_s(val.WHICH);
                               unless nqp::existskey($seen, $target) {
                                   nqp::bindkey($seen, $target, 1);
-                                  $res.more(val);
+                                  $res.emit(val);
                               }
                           };
                     }
@@ -320,13 +325,13 @@ my role Supply {
                       $target = &as(val);
                       unless &with($target,$last) {
                           $last = $target;
-                          $res.more(val);
+                          $res.emit(val);
                       }
                   }
                   !! -> \val {
                       unless &with(val,$last) {
                           $last = val;
-                          $res.more(val);
+                          $res.emit(val);
                       }
                   };
             }
@@ -343,12 +348,12 @@ my role Supply {
             $self => do {
                 my @batched;
                 sub flush {
-                    $res.more( [@batched] );
+                    $res.emit( [@batched] );
                     @batched.splice( 0, +@batched - $overlap );
                 }
 
                 {
-                    more => -> \val {
+                    emit => -> \val {
                         @batched.push: val;
                         flush if @batched.elems == $elems;
                     },
@@ -370,12 +375,12 @@ my role Supply {
                 my @batched;
                 my $last_time;
                 sub flush {
-                    $res.more([@batched]);
+                    $res.emit([@batched]);
                     @batched = ();
                 }
 
                 {
-                    more => do {
+                    emit => do {
                         if $seconds {
                             $last_time = time div $seconds;
 
@@ -431,7 +436,7 @@ my role Supply {
                 my int $crlf;
 
                 {
-                    more => -> \val {
+                    emit => -> \val {
                         $str   = $str ~ nqp::unbox_s(val);
                         $chars = nqp::chars($str);
                         $pos   = 0;
@@ -454,7 +459,7 @@ my role Supply {
                               && nqp::ordat($str, $nextpos + 1) == 10; # LF
 
                             if $chomp {
-                                $res.more( ($found = $nextpos - $pos)
+                                $res.emit( ($found = $nextpos - $pos)
                                   ?? nqp::box_s(
                                        nqp::substr($str, $pos, $found), Str)
                                   !! ''
@@ -463,7 +468,7 @@ my role Supply {
                             }
                             else {
                                 $found = $nextpos - $pos + 1 + $crlf;
-                                $res.more( nqp::box_s(
+                                $res.emit( nqp::box_s(
                                   nqp::substr($str, $pos, $found), Str)
                                 );
                                 $pos = $pos + $found;
@@ -476,7 +481,7 @@ my role Supply {
                     done => {
                         if $str {
                             $chars = nqp::chars($str);
-                            $res.more( $chomp
+                            $res.emit( $chomp
                               && nqp::ordat($str, $chars - 1) == 13    # CR
                               ?? nqp::box_s(nqp::substr($str,0,$chars - 1),Str)
                               !! nqp::box_s($str, Str)
@@ -503,7 +508,7 @@ my role Supply {
                 my int $crlf;
 
                 {
-                    more => -> \val {
+                    emit => -> \val {
                         $str   = $str ~ nqp::unbox_s(val);
                         $chars = nqp::chars($str);
                         $pos   = nqp::findnotcclass(
@@ -516,7 +521,7 @@ my role Supply {
 
                             last unless $left = $chars - $nextpos; # broken word
 
-                            $res.more( nqp::box_s(
+                            $res.emit( nqp::box_s(
                               nqp::substr( $str, $pos, $nextpos - $pos ), Str)
                             );
 
@@ -528,7 +533,7 @@ my role Supply {
                           !! '';
                     },
                     done => {
-                        $res.more( nqp::box_s($str, Str) ) if $str;
+                        $res.emit( nqp::box_s($str, Str) ) if $str;
                         $res.done;
                     }
                 }
@@ -545,7 +550,7 @@ my role Supply {
                 my $last_elems;
 
                 {
-                    more => do {
+                    emit => do {
                         if $seconds {
                             $last_time  = time div $seconds;
                             $last_elems = $elems;
@@ -553,17 +558,17 @@ my role Supply {
                                   $last_elems = ++$elems;
                                   my $this_time = time div $seconds;
                                   if $this_time != $last_time {
-                                      $res.more($elems);
+                                      $res.emit($elems);
                                       $last_time = $this_time;
                                   }
                             }
                         }
                         else {
-                            -> \val { $res.more(++$elems) }
+                            -> \val { $res.emit(++$elems) }
                         }
                     },
                     done => {
-                        $res.more($elems) if $seconds and $elems != $last_elems;
+                        $res.emit($elems) if $seconds and $elems != $last_elems;
                         $res.done;
                     }
                 }
@@ -576,14 +581,14 @@ my role Supply {
             $self => do {
                 my @seen;
                 {
-                    more => $number == 1
+                    emit => $number == 1
                       ?? -> \val { @seen[0] = val }
                       !! -> \val {
                           @seen.shift if +@seen == $number;
                           @seen.push: val;
                       },
                     done => {
-                        $res.more($_) for @seen;
+                        $res.emit($_) for @seen;
                         $res.done;
                     }
                 }
@@ -597,9 +602,9 @@ my role Supply {
             $self => do {
                 my $min;
                 {
-                    more => -> \val {
+                    emit => -> \val {
                         if val.defined and !$min.defined || cmp(val,$min) < 0 {
-                            $res.more( $min = val );
+                            $res.emit( $min = val );
                         }
                     },
                     done => { $res.done }
@@ -614,9 +619,9 @@ my role Supply {
             $self => do {
                 my $max;
                 {
-                    more => -> \val {
+                    emit => -> \val {
                         if val.defined and !$max.defined || cmp(val,$max) > 0 {
-                            $res.more( $max = val );
+                            $res.emit( $max = val );
                         }
                     },
                     done => { $res.done }
@@ -632,16 +637,16 @@ my role Supply {
                 my $min;
                 my $max;
                 {
-                    more => -> \val {
+                    emit => -> \val {
                         if val.defined {
                             if !$min.defined {
-                                $res.more( Range.new($min = val, $max = val) );
+                                $res.emit( Range.new($min = val, $max = val) );
                             }
                             elsif cmp(val,$min) < 0 {
-                                $res.more( Range.new( $min = val, $max ) );
+                                $res.emit( Range.new( $min = val, $max ) );
                             }
                             elsif cmp(val,$max) > 0 {
-                                $res.more( Range.new( $min, $max = val ) );
+                                $res.emit( Range.new( $min, $max = val ) );
                             }
                         }
                     },
@@ -657,9 +662,9 @@ my role Supply {
                 my $notfirst;
                 my $reduced;
                 {
-                    more => -> \val {
+                    emit => -> \val {
                         $reduced = $notfirst ?? with($reduced,val) !! val;
-                        $res.more($reduced);
+                        $res.emit($reduced);
                         once $notfirst = True;
                     },
                     done => { $res.done }
@@ -673,9 +678,9 @@ my role Supply {
             $self => do {
                 my @seen;
                 {
-                    more => -> \val { @seen.push: val },
+                    emit => -> \val { @seen.push: val },
                     done => {
-                        $res.more($_) for when_done(@seen);
+                        $res.emit($_) for when_done(@seen);
                         $res.done;
                     }
                 }
@@ -695,7 +700,7 @@ my role Supply {
         my $dones = 0;
         on -> $res {
             @s => {
-                more => -> \val { $res.more(val) },
+                emit => -> \val { $res.emit(val) },
                 done => { $res.done() if ++$dones == +@s }
             },
         }
@@ -712,7 +717,7 @@ my role Supply {
             @s => -> $val, $index {
                 @values[$index].push($val);
                 if all(@values) {
-                    $res.more( [[&with]] @values>>.shift );
+                    $res.emit( [[&with]] @values>>.shift );
                 }
             }
         }
@@ -725,8 +730,8 @@ my role Supply {
 
         my @values;
 
-        my $uninitialised = +@s; # how many supplies have yet to more until we
-                                 # can start more-ing, too?
+        my $uninitialised = +@s; # how many supplies have yet to emit until we
+                                 # can start emitting, too?
 
         if $initial {
             @values = @$initial;
@@ -738,13 +743,13 @@ my role Supply {
         on -> $res {
             @s => do {
                 {
-                more => -> $val, $index {
+                emit => -> $val, $index {
                     if $uninitialised > 0 && not @values.exists_pos($index) {
                         --$uninitialised;
                     }
                     @values[$index] = $val;
                     unless $uninitialised {
-                        $res.more( [[&with]] @values );
+                        $res.emit( [[&with]] @values );
                     }
                 },
                 done => { $res.done() if ++$dones == +@s }
@@ -756,16 +761,16 @@ my role Supply {
 
 # The on meta-combinator provides a mechanism for implementing thread-safe
 # combinators on Supplies. It subscribes to a bunch of sources, but will
-# only let one of the specified callbacks to handle their more/done/quit run
+# only let one of the specified callbacks to handle their emit/done/quit run
 # at a time. A little bit actor-like.
 my class X::Supply::On::BadSetup is Exception {
     method message() {
         "on requires a callable that returns a list of pairs with Supply keys"
     }
 }
-my class X::Supply::On::NoMore is Exception {
+my class X::Supply::On::NoEmit is Exception {
     method message() {
-        "on requires that more be specified for each supply"
+        "on requires that emit be specified for each supply"
     }
 }
 sub on(&setup) {
@@ -776,20 +781,22 @@ sub on(&setup) {
         submethod BUILD(:&!setup) { }
 
         method !add_source(
-          $source, $lock, $index, :&more, :&done is copy, :&quit is copy
+          $source, $lock, $index, :&done is copy, :&quit is copy,
+          :&emit is copy, :&more   # more deprecated, emit must be changeable
         ) {
+            DEPRECATED('emit => {...}', |<2014.10 2015.10>) if &more;
             $!live ||= True if $source.live;
-            &more // X::Supply::On::NoMore.new.throw;
+            &emit //= &more // X::Supply::On::NoEmit.new.throw;
             &done //= { self.done };
             &quit //= -> $ex { self.quit($ex) };
 
-            my &tap_more = &more.arity == 2
+            my &tap_emit = &emit.arity == 2
               ?? -> \val {
-                  $lock.protect({ more(val,$index) });
+                  $lock.protect({ emit(val,$index) });
                   CATCH { default { self.quit($_) } }
               }
               !!  -> \val {
-                  $lock.protect({ more(val) });
+                  $lock.protect({ emit(val) });
                   CATCH { default { self.quit($_) } }
               };
 
@@ -813,7 +820,7 @@ sub on(&setup) {
                   CATCH { default { self.quit($_) } }
               };
 
-            $source.tap( &tap_more, done => &tap_done, quit => &tap_quit );
+            $source.tap( &tap_emit, done => &tap_done, quit => &tap_quit );
         }
         
         method live { $!live }
@@ -832,7 +839,7 @@ sub on(&setup) {
                         @to_close.push(self!add_source($source, $lock, $index, |$what));
                     }
                     when Callable {
-                        @to_close.push(self!add_source($source, $lock, $index, more => $what));
+                        @to_close.push(self!add_source($source, $lock, $index, emit => $what));
                     }
                     default {
                         X::Supply::On::BadSetup.new.throw;
@@ -862,9 +869,9 @@ sub on(&setup) {
             $sub
         }
 
-        method more(\msg) {
+        method emit(\msg) {
             for self.tappers {
-                .more().(msg)
+                .emit().(msg)
             }
             Nil;
         }

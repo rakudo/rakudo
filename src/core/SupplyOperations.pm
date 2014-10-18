@@ -4,7 +4,7 @@
 
 my class X::Supply::Migrate::Needs is Exception {
     method message() {
-        ".migrate needs Supplies to be more'd"
+        ".migrate needs Supplies to be emitted"
     }
 }
 
@@ -13,9 +13,9 @@ my class SupplyOperations is repr('Uninstantiable') {
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.
     my role PrivatePublishing {
-        method !more(\msg) {
+        method !emit(\msg) {
             for self.tappers {
-                .more().(msg)
+                .emit().(msg)
             }
             Nil;
         }
@@ -55,7 +55,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                     {
                         my $s = Supply.new;
                         $s.tap(
-                            -> \val { $sub.more().(val) },
+                            -> \val { $sub.emit().(val) },
                             done => { if !$closed && $sub.done -> $t { $t() } },
                             quit => -> $ex { if !$closed && $sub.quit -> $t { $t($ex) } }
                         );
@@ -84,7 +84,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                     {
                         for @!values -> \val {
                             last if $closed;
-                            $sub.more().(val);
+                            $sub.emit().(val);
                         }
                         if !$closed && $sub.done -> $l { $l() }
                     },
@@ -111,7 +111,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $cancellation = $!scheduler.cue(
                     {
                         state $i = 0;
-                        $sub.more().($i++);
+                        $sub.emit().($i++);
                     },
                     :every($!interval), :in($!delay)
                 );
@@ -132,7 +132,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
-                      $tap.more().(val.flat)
+                      $tap.emit().(val.flat)
                   },
                   done => { if $tap.done { $tap.done().() } },
                   quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
@@ -156,10 +156,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $source_tap = $!source.tap( $!test.DEFINITE
                   ?? $!test ~~ Callable
                     ?? $!test ~~ Regex
-                       ?? -> \val { $tap.more().(val) if val.match($!test) }
-                       !! -> \val { $tap.more().(val) if $!test(val) }
-                    !! -> \val { $tap.more().(val) if val ~~ $!test }
-                  !! -> \val { $tap.more().(val) if val ~~ $!test },
+                       ?? -> \val { $tap.emit().(val) if val.match($!test) }
+                       !! -> \val { $tap.emit().(val) if $!test(val) }
+                    !! -> \val { $tap.emit().(val) if val ~~ $!test }
+                  !! -> \val { $tap.emit().(val) if val ~~ $!test },
                   done => { if $tap.done { $tap.done().() } },
                   quit => -> $ex { if $tap.quit { $tap.quit().($ex) } }
                 );
@@ -181,7 +181,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
-                      $tap.more().(&!mapper(val))
+                      $tap.emit().(&!mapper(val))
                   },
                   done => { if $tap.done { $tap.done().() } },
                   quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
@@ -203,7 +203,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( -> \val {
-                      $!scheduler.cue: { $tap.more().(val) }
+                      $!scheduler.cue: { $tap.emit().(val) }
                   },
                   done => { $!scheduler.cue: { if $tap.done { $tap.done().() } } },
                   quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
@@ -225,7 +225,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $sub = self.Supply::tap(|c);
                 Promise.start({ &!startee($!value) }).then({
                     if .status == Kept {
-                        self!more(.result);
+                        self!emit(.result);
                         self!done();
                     }
                     else {
@@ -271,7 +271,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                                     $!lock.protect({
                                         $!last_cancellation = Nil;
                                     });
-                                    $tap.more().(val);
+                                    $tap.emit().(val);
                                 });
                         });
                     },
@@ -300,7 +300,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap(
                     -> \val {
-                        $!scheduler.cue( { $tap.more().(val) }, :in($time) );
+                        $!scheduler.cue( { $tap.emit().(val) }, :in($time) );
                     },
                     done => {
                         $!scheduler.cue( { if $tap.done { $tap.done().() } }, :in($time) );
@@ -335,7 +335,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                         $!lock.protect({
                             $!current.close() if $!current;
                             $!current = inner_supply.tap(-> \val {
-                                $tap.more().(val);
+                                $tap.emit().(val);
                             });
                         });
                     },
@@ -356,7 +356,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod find_supply ($key) {
                 %!mapping{ $key.WHICH } //= do {
                     my $s = Supply.new;
-                    self!more($key => $s);
+                    self!emit($key => $s);
                     $s;
                 };
             }
@@ -368,11 +368,11 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $source_tap = $!source.tap( $multi
                   ?? -> \val {
                       for @(mapper(val)) -> $key {
-                          self.find_supply($key).more(val);
+                          self.find_supply($key).emit(val);
                       }
                   }
                   !! -> \val {
-                      self.find_supply( mapper(val) ).more(val);
+                      self.find_supply( mapper(val) ).emit(val);
                   },
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) });

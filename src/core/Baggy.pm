@@ -91,27 +91,31 @@ my role Baggy does QuantHash {
     }
 
     sub ROLLPICKGRAB ($self, $count, @pairs is rw, :$keep) is hidden_from_backtrace {
-        my $total = $self.total;
-        my $todo  = $count ~~ Num
+        my int $total = $self.total;
+        my int $todo  = $count ~~ Num
           ?? $total min $count
-          !! ($count ~~ Whatever ?? ( $keep ?? Inf !! $total ) !! $count);
+          !! ($count ~~ Whatever ?? ( $keep ?? 0x7ffffff !! $total ) !! $count);
+        $todo = $todo + 1;
 
-        map {
-            my $rand = $total.rand.Int;
-            my $seen = 0;
-            my $selected;
-            for @pairs -> $pair {
-                next if ( $seen += $pair.value ) <= $rand;
+        my Int $rand;
+        my Int $seen;
 
-                $selected = $pair.key;
-                last if $keep;
+        gather {
+            while $todo = $todo - 1 {
+                $rand = nqp::rand_I($total,Int);
+                $seen = 0;
+                for @pairs -> $pair {
+                    next if ( $seen += $pair.value ) <= $rand;
 
-                $pair.value--;
-                $total--;
-                last;
+                    take $pair.key;
+                    last if $keep;
+
+                    $pair.value--;
+                    $total = $total - 1;
+                    last;
+                }
             }
-            $selected;
-        }, 1 .. $todo;
+        }
     }
 
     proto method classify-list(|) { * }

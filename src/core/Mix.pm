@@ -31,9 +31,9 @@ my class Mix does Mixy {
     }
 
     method Mix { self }
-    method MixHash { MixHash.new-fp(%!elems.values) }
-    method Bag     {     Bag.new-fp(%!elems.values) }
-    method BagHash { BagHash.new-fp(%!elems.values) }
+    method MixHash { MixHash.new-from-pairs(%!elems.values) }
+    method Bag     {     Bag.new-from-pairs(%!elems.values) }
+    method BagHash { BagHash.new-from-pairs(%!elems.values) }
 }
 
 # vim: ft=perl6 expandtab sw=4

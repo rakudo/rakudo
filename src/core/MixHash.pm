@@ -37,12 +37,12 @@ my class MixHash does Mixy {
             $mix;
         }
         else {
-            Mix.new-fp(%!elems.values);
+            Mix.new-from-pairs(%!elems.values);
         }
     }           
     method MixHash { self }
-    method Bag     { Bag.new-fp(%!elems.values) }
-    method BagHash { BagHash.new-fp(%!elems.values) }
+    method Bag     { Bag.new-from-pairs(%!elems.values) }
+    method BagHash { BagHash.new-from-pairs(%!elems.values) }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -26,7 +26,7 @@ my role Setty does QuantHash {
         %e{$_.WHICH} = $_ for @args;
         self.bless(:elems(%e));
     }
-    method new-fp(*@pairs --> Setty) {
+    method new-from-pairs(*@pairs --> Setty) {
         my %e;
         for @pairs {
             when Pair {

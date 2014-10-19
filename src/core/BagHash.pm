@@ -40,12 +40,12 @@ my class BagHash does Baggy {
             $bag;
         }
         else {
-            Bag.new-fp(%!elems.values);
+            Bag.new-from-pairs(%!elems.values);
         }
     }           
     method BagHash { self }
-    method Mix     { Mix.new-fp(%!elems.values) }
-    method MixHash { MixHash.new-fp(%!elems.values) }
+    method Mix     { Mix.new-from-pairs(%!elems.values) }
+    method MixHash { MixHash.new-from-pairs(%!elems.values) }
 }
 
 # vim: ft=perl6 expandtab sw=4

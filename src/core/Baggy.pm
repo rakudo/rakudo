@@ -23,7 +23,7 @@ my role Baggy does QuantHash {
         -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
         self.bless(:elems(%e));
     }
-    method new-fp(*@pairs --> Baggy) {
+    method new-from-pairs(*@pairs --> Baggy) {
         my %e;
         for @pairs {
             when Pair {

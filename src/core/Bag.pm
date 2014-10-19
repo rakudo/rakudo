@@ -33,9 +33,9 @@ my class Bag does Baggy {
     }
 
     method Bag     { self }
-    method BagHash { BagHash.new-fp(%!elems.values) }
-    method Mix     {     Mix.new-fp(%!elems.values) }
-    method MixHash { MixHash.new-fp(%!elems.values) }
+    method BagHash { BagHash.new-from-pairs(%!elems.values) }
+    method Mix     {     Mix.new-from-pairs(%!elems.values) }
+    method MixHash { MixHash.new-from-pairs(%!elems.values) }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -53,7 +53,7 @@ only sub infix:<(&)>(**@p) {
 
     if @p.grep(Baggy) {
         my $baghash = @p[0] ~~ BagHash
-          ?? BagHash.new-fp(@p.shift.pairs)
+          ?? BagHash.new-from-pairs(@p.shift.pairs)
           !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
@@ -83,7 +83,7 @@ only sub infix:<(-)>(**@p) {
 
     if @p[0] ~~ Baggy {
         my $baghash = @p[0] ~~ BagHash
-          ?? BagHash.new-fp(@p.shift.pairs)
+          ?? BagHash.new-from-pairs(@p.shift.pairs)
           !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_} < $baghash{$_}
@@ -191,7 +191,7 @@ only sub infix:<(.)>(**@p) {
     return bag() unless @p;
 
     my $baghash = @p[0] ~~ BagHash
-      ?? BagHash.new-fp(@p.shift.pairs)
+      ?? BagHash.new-from-pairs(@p.shift.pairs)
       !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {
         $bag{$_}
@@ -210,7 +210,7 @@ only sub infix:<(+)>(**@p) {
     return bag() unless @p;
 
     my $baghash = @p[0] ~~ BagHash
-      ?? BagHash.new-fp(@p.shift.pairs)
+      ?? BagHash.new-from-pairs(@p.shift.pairs)
       !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {
         $baghash{$_} += $bag{$_} for $bag.keys;

@@ -2,7 +2,7 @@ my role Mixy does Baggy  {
     method default(--> Real) { 0 }
     method total(--> Real) { [+] self.values }
 
-    method new-fp(*@pairs --> Mixy) {
+    method new-from-pairs(*@pairs --> Mixy) {
         my %e;
         for @pairs {
             when Pair {

@@ -369,12 +369,12 @@ my class Any { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() { nqp::hash() }
 
-    method Set()     {     Set.new-fp(self.list) }
-    method SetHash() { SetHash.new-fp(self.list) }
-    method Bag()     {     Bag.new-fp(self.list) }
-    method BagHash() { BagHash.new-fp(self.list) }
-    method Mix()     {     Mix.new-fp(self.list) }
-    method MixHash() { MixHash.new-fp(self.list) }
+    method Set()     {     Set.new-from-pairs(self.list) }
+    method SetHash() { SetHash.new-from-pairs(self.list) }
+    method Bag()     {     Bag.new-from-pairs(self.list) }
+    method BagHash() { BagHash.new-from-pairs(self.list) }
+    method Mix()     {     Mix.new-from-pairs(self.list) }
+    method MixHash() { MixHash.new-from-pairs(self.list) }
 
     method Supply() { self.list.Supply }
 }

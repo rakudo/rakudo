@@ -19,10 +19,10 @@ my class Set does Setty {
     method delete_key($k --> Bool) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
     }
-    method grab ($count = 1) {
+    method grab ($count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    method grabpairs ($count = 1) {
+    method grabpairs ($count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

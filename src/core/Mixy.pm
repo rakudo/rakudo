@@ -29,11 +29,11 @@ my role Mixy does Baggy  {
         ~ ')';
     }
 
-    method grab ($count = 1) {
+    method grab ($count?) {
         fail ".grab is not supported on a {self.^name}";
     }
 
-    method pick ($count = 1) {
+    method pick ($count?) {
         fail ".pick is not supported on a {self.^name}";
     }
 
@@ -47,7 +47,6 @@ my role Mixy does Baggy  {
         sub roll-one ($ignore?){
             my $rand = $total.rand;
             my $seen = 0;
-            my $roll;
             for @pairs -> $pair {
                 return $pair.key if ( $seen += $pair.value ) > $rand;
             }

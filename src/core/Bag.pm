@@ -25,10 +25,10 @@ my class Bag does Baggy {
     method delete_key($a --> Int) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
     }
-    method grab($count = 1 --> Int) is hidden_from_backtrace {
+    method grab($count? --> Int) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    method grabpairs($count = 1 --> Int) is hidden_from_backtrace {
+    method grabpairs($count? --> Int) is hidden_from_backtrace {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

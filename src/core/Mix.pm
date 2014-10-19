@@ -23,10 +23,10 @@ my class Mix does Mixy {
     method delete_key($a --> Real) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
     }
-    method grab($count = 1 --> Real) is hidden_from_backtrace {
+    method grab($count? --> Real) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    method grabpairs($count = 1 --> Real) is hidden_from_backtrace {
+    method grabpairs($count? --> Real) is hidden_from_backtrace {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

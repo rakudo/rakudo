@@ -19,7 +19,7 @@ my class IO::Path is Cool {
 
     submethod BUILD(:$!path! as Str, :$!SPEC!, :$!CWD! as Str) { }
 
-    method new-fap($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    method new-from-absolute-path($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         method !fap() {
             $!is-absolute = True;
             $!abspath := $path;

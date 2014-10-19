@@ -54,12 +54,14 @@ my class Cool { # declared in BOOTSTRAP
     multi method exp(Cool:D: )      { self.Numeric.exp          }
     multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }
 
+    proto method round(|) { * }
+    multi method round()      { self.Numeric.round()      }
+    multi method round($base) { self.Numeric.round($base) }
 
     method roots(Cool $n)   { self.Numeric.roots($n)    }
     method log10()          { self.Numeric.log10        }
     method unpolar($n)      { self.Numeric.unpolar($n.Numeric) }
 
-    method round($base = 1) { self.Numeric.round($base) }
     method floor()          { self.Numeric.floor        }
     method ceiling()        { self.Numeric.ceiling      }
     method truncate()       { self.Numeric.truncate     }

@@ -71,9 +71,10 @@
     }
 #?endif
 
-    my $prefix := $*VM.prefix ~ '/languages/perl6';
-    if "$prefix/share/libraries.json".IO.e {
-        my $config = "$prefix/share/libraries.json".IO.e ?? from-json( slurp "$prefix/share/libraries.json" ) !! [];
+    my $prefix  := $*VM.prefix ~ '/languages/perl6';
+    my $abspath := "$prefix/share/libraries.json";
+    if IO::Path.new-from-absolute-path($abspath).e {
+        my $config = from-json( slurp $abspath );
 
         for $config.list -> @group {
             for @group>>.kv -> $class, $props {

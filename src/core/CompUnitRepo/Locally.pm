@@ -6,7 +6,7 @@ role CompUnitRepo::Locally {
     my %instances;
 
     method new($dir) {
-        my $path := $*SPEC.rel2abs($dir).IO;
+        my $path := IO::Path.new-from-absolute-path($*SPEC.rel2abs($dir));
         return Nil unless $path.d and $path.r;
         %instances{$path.abspath} //= self.bless(:$path, :lock(Lock.new));
     }

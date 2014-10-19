@@ -196,7 +196,7 @@ my class IO::Path is Cool {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = IO::Path.new($path,:$!SPEC,:CWD(self));
+        my $dir = IO::Path.new-from-absolute-path($path,:$!SPEC,:CWD(self));
 
         # basic sanity
         unless $dir.d {
@@ -354,7 +354,7 @@ my class IO::Path is Cool {
             for <. ..> -> $elem {
                 if $test.ACCEPTS($elem) {
                     $absolute
-                      ?? take ($abspath-sep ~ $elem).IO(:$!SPEC,:$CWD)
+                      ?? take IO::Path.new-from-absolute-path($abspath-sep ~ $elem,:$!SPEC,:$CWD)
                       !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1).IO(:$!SPEC,:$CWD);
                 }
             }
@@ -377,7 +377,7 @@ my class IO::Path is Cool {
 #?endif
                     !$absolute && !$.is-absolute
                       ?? take $elem.substr($cwd_chars + 1).IO(:$!SPEC,:$CWD)
-                      !! take $elem.IO(:$!SPEC,:$CWD);
+                      !! take IO::Path.new-from-absolute-path($elem,:$!SPEC,:$CWD);
                 }
 #?if moar
                 nqp::chdir($cwd);

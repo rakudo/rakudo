@@ -42,10 +42,10 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
                 my $path = $base ~ $extension;
                 return %seen{$base} = CompUnit.new(
                   $path, :$name, :$extension, :has-source
-                ) if $path.IO.f;
+                ) if IO::Path.new-from-absolute-path($path).f;
                 return %seen{$base} = CompUnit.new(
                   $path, :$name, :$extension, :!has-source, :has-precomp
-                ) if ($path ~ '.' ~ $precomp-ext).IO.f;
+                ) if IO::Path.new-from-absolute-path($path ~ '.' ~ $precomp-ext).f;
             }
         }
 
@@ -53,7 +53,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         elsif $base ~ $precomp-ext -> $path {
             return %seen{$base} = CompUnit.new(
               $path, :$name, :extension(''), :!has-source, :has-precomp
-            ) if $path.IO.f;
+            ) if IO::Path.new-from-absolute-path($path).f;
         }
 
         # alas

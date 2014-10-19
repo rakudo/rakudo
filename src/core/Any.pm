@@ -59,8 +59,6 @@ my class Any { # declared in BOOTSTRAP
     method uniq(|c) { self.list.uniq(|c) }
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }
-    method pick($n = 1) { self.list.pick($n) }
-    method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
     method values() { self.list }
@@ -70,6 +68,14 @@ my class Any { # declared in BOOTSTRAP
     method reduce(&with) { self.list.reduce(&with) }
     method combinations(|c) { self.list.combinations(|c) }
     method permutations(|c) { self.list.permutations(|c) }
+
+    proto method pick(|) { * }
+    multi method pick()   { self.list.pick     }
+    multi method pick($n) { self.list.pick($n) }
+
+    proto method roll(|) { * }
+    multi method roll()   { self.list.roll     }
+    multi method roll($n) { self.list.roll($n) }
 
     proto method classify(|) { * }
     multi method classify($test)   {

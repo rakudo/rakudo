@@ -69,8 +69,14 @@ my role Setty does QuantHash {
     method grabpairs($count = 1) {
         (%!elems{ %!elems.keys.pick($count) }:delete).map( { ($_=>True) } );
     }
-    method pick($count = 1) { %!elems.values.pick($count) }
-    method roll($count = 1) { %!elems.values.roll($count) }
+
+    proto method pick(|) { * }
+    multi method pick()       { %!elems.values.pick()       }
+    multi method pick($count) { %!elems.values.pick($count) }
+
+    proto method roll(|) { * }
+    multi method roll()       { %!elems.values.roll()       }
+    multi method roll($count) { %!elems.values.roll($count) }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

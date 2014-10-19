@@ -158,8 +158,14 @@ my class List does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method pick($n is copy = 1) {
-        fail "Cannot .pick from infinite list" if self.infinite; #MMD?
+    proto method pick(|) { * }
+    multi method pick() {
+        fail "Cannot .pick from infinite list" if self.infinite;
+        my $elems = self.elems;
+        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+    }
+    multi method pick($n is copy) {
+        fail "Cannot .pick from infinite list" if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
@@ -313,9 +319,15 @@ my class List does Positional { # declared in BOOTSTRAP
         Nil;
     }
 
-    method roll($n is copy = 1) {
-        my $elems = self.gimme(*);
-        fail 'Cannot .roll from an infinite list' if $!nextiter.defined;
+    proto method roll(|) { * }
+    multi method roll() {
+        fail "Cannot .roll from infinite list" if self.infinite;
+        my $elems = self.elems;
+        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+    }
+    multi method roll($n is copy) {
+        fail "Cannot .roll from infinite list" if self.infinite;
+        my $elems = self.elems;
         return unless $elems;
         $n = Inf if nqp::istype($n, Whatever);
         return self.at_pos($elems.rand.floor) if $n == 1;

@@ -29,15 +29,15 @@ my role Mixy does Baggy  {
         ~ ')';
     }
 
-    method grab ($count?) {
+    multi method grab(Mixy:D: $count?) {
         fail ".grab is not supported on a {self.^name}";
     }
 
-    method pick ($count?) {
+    multi method pick(Mixy:D: $count?) {
         fail ".pick is not supported on a {self.^name}";
     }
 
-    method roll ($count = 1) {
+    multi method roll($count = 1) {
         my $total = [+] self.values.grep: * > 0;
         my $rolls = $count ~~ Num
           ?? $total min $count !! $count ~~ Whatever ?? Inf !! $count;

@@ -22,13 +22,13 @@ my class Bag does Baggy {
         @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 
-    method delete_key($a --> Int) is hidden_from_backtrace {
+    method delete_key($a) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
     }
-    method grab($count? --> Int) is hidden_from_backtrace {
+    multi method grab(Bag:D: $count?) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    method grabpairs($count? --> Int) is hidden_from_backtrace {
+    multi method grabpairs(Bag:D: $count?) is hidden_from_backtrace {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

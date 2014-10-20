@@ -72,37 +72,96 @@ my role Baggy does QuantHash {
     method list() { self.pairs }
     method pairs() { %!elems.values.map: { (.key => .value) } }
 
-    method grab ($count = 1) {
-        my @grab = ROLLPICKGRAB(self, $count, %!elems.values);
-        %!elems{ @grab.map({.WHICH}).grep: { %!elems{$_} && %!elems{$_}.value == 0 } }:delete;
-        @grab;
+    proto method grabpairs (|) { * }
+    multi method grabpairs(Baggy:D:) {
+        %!elems.delete_key(%!elems.keys.pick);
     }
-    method grabpairs($count = 1) {
-        (%!elems{ %!elems.keys.pick($count) }:delete).list;
-    }
-    method pick ($count = 1) {
-        ROLLPICKGRAB(self, $count, %!elems.values.map: { (.key => .value) });
-    }
-    method pickpairs ($count = 1) {
-        (%!elems{ %!elems.keys.pick($count) }).list;
-    }
-    method roll ($count = 1) {
-        ROLLPICKGRAB(self, $count, %!elems.values, :keep);
+    multi method grabpairs(Baggy:D: $count) {
+        if $count ~~ Whatever || $count == Inf {
+            my @grabbed = %!elems{%!elems.keys.pick(%!elems.elems)};
+            %!elems = ();
+            @grabbed;
+        }
+        else {
+            %!elems{ %!elems.keys.pick($count) }:delete;
+        }
     }
 
-    sub ROLLPICKGRAB ($self, $count, @pairs is rw, :$keep) is hidden_from_backtrace {
-        my int $total = $self.total;
-        my int $todo  = $count ~~ Num
-          ?? $total min $count
-          !! ($count ~~ Whatever ?? ( $keep ?? 0x7ffffff !! $total ) !! $count);
-        $todo = $todo + 1;
+    proto method pickpairs(|) { * }
+    multi method pickpairs(Baggy:D:) {
+        %!elems.at_key(%!elems.keys.pick);
+    }
+    multi method pickpairs(Baggy:D: $count) {
+        %!elems{ %!elems.keys.pick(
+          $count ~~ Whatever || $count == Inf ?? %!elems.elems !! $count
+        ) };
+    }
 
+    proto method grab(|) { * }
+    multi method grab(Baggy:D:) {
+        my \grabbed := ROLLPICKGRAB1(self,%!elems.values);
+        %!elems.delete_key(grabbed.WHICH)
+          if %!elems.at_key(grabbed.WHICH).value-- == 1;
+        grabbed;
+    }
+    multi method grab(Baggy:D: $count) {
+        if $count ~~ Whatever || $count == Inf {
+            my @grabbed = ROLLPICKGRABN(self,self.total,%!elems.values);
+            %!elems = ();
+            @grabbed;
+        }
+        else {
+            my @grabbed = ROLLPICKGRABN(self,$count,%!elems.values);
+            for @grabbed {
+                if %!elems.at_key(.WHICH) -> $pair {
+                    %!elems.delete_key(.WHICH) unless $pair.value;
+                }
+            }
+            @grabbed;
+        }
+    }
+
+    proto method pick(|) { * }
+    multi method pick(Baggy:D:) {
+        ROLLPICKGRAB1(self,%!elems.values);
+    }
+    multi method pick(Baggy:D: $count) {
+        ROLLPICKGRABN(self,
+          $count ~~ Whatever || $count == Inf ?? self.total !! $count,
+          %!elems.values.map: { (.key => .value) }
+        );
+    }
+
+    proto method roll(|) { * }
+    multi method roll(Baggy:D:) {
+        ROLLPICKGRAB1(self,%!elems.values);
+    }
+    multi method roll(Baggy:D: $count) {
+        $count ~~ Whatever || $count == Inf
+          ?? ROLLPICKGRABW(self,%!elems.values)
+          !! ROLLPICKGRABN(self,$count, %!elems.values, :keep);
+    }
+
+    sub ROLLPICKGRAB1($self,@pairs) is hidden_from_backtrace { # one time
+        my Int $rand = $self.total.rand.Int;
+        my Int $seen = 0;
+        for @pairs -> $pair {
+            return $pair.key if ( $seen += $pair.value ) > $rand;
+        }
+        Nil;
+    }
+
+    sub ROLLPICKGRABN(                                        # N times
+      $self, $count, @pairs is rw, :$keep
+    ) is hidden_from_backtrace {
+        my Int $total = $self.total;
         my Int $rand;
         my Int $seen;
+        my int $todo = ($keep ?? $count !! ($total min $count)) + 1;
 
         gather {
             while $todo = $todo - 1 {
-                $rand = nqp::rand_I($total,Int);
+                $rand = $total.rand.Int;
                 $seen = 0;
                 for @pairs -> $pair {
                     next if ( $seen += $pair.value ) <= $rand;
@@ -112,6 +171,24 @@ my role Baggy does QuantHash {
 
                     $pair.value--;
                     $total = $total - 1;
+                    last;
+                }
+            }
+        }
+    }
+
+    sub ROLLPICKGRABW($self,@pairs) is hidden_from_backtrace { # keep going
+        my Int $total = $self.total;
+        my Int $rand;
+        my Int $seen;
+
+        gather {
+            loop {
+                $rand = $total.rand.Int;
+                $seen = 0;
+                for @pairs -> $pair {
+                    next if ( $seen += $pair.value ) <= $rand;
+                    take $pair.key;
                     last;
                 }
             }

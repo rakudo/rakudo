@@ -52,6 +52,10 @@ To automatically download and build a fresh Parrot and NQP, run:
 
 It is recommended to first install the libicu-dev and libreadline-dev packages.
 
+Rakudo requires parrot to built with ICU support. Please refer to the Parrot
+documentation (for example
+https://github.com/parrot/parrot/blob/master/README.pod) for more details.
+
 ### Configuring Rakudo to run on the JVM
 
 Note that to run Rakudo on JVM, JDK 1.7 must be installed. To automatically

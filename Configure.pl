@@ -195,6 +195,10 @@ MAIN: {
             if @errors;
         }
 
+        unless ($impls{parrot}{config}{'parrot::has_icu'}) {
+            push @errors, 'Your parrot was built without Support for ICU.';
+        }
+
         $errors{parrot}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
         unless (@errors) {

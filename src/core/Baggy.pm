@@ -159,20 +159,18 @@ my role Baggy does QuantHash {
         my Int $seen;
         my int $todo = ($keep ?? $count !! ($total min $count)) + 1;
 
-        gather {
-            while $todo = $todo - 1 {
-                $rand = $total.rand.Int;
-                $seen = 0;
-                for @pairs -> $pair {
-                    next if ( $seen += $pair.value ) <= $rand;
+        gather while $todo = $todo - 1 {
+            $rand = $total.rand.Int;
+            $seen = 0;
+            for @pairs -> $pair {
+                next if ( $seen += $pair.value ) <= $rand;
 
-                    take $pair.key;
-                    last if $keep;
+                take $pair.key;
+                last if $keep;
 
-                    $pair.value--;
-                    $total = $total - 1;
-                    last;
-                }
+                $pair.value--;
+                $total = $total - 1;
+                last;
             }
         }
     }
@@ -182,15 +180,13 @@ my role Baggy does QuantHash {
         my Int $rand;
         my Int $seen;
 
-        gather {
-            loop {
-                $rand = $total.rand.Int;
-                $seen = 0;
-                for @pairs -> $pair {
-                    next if ( $seen += $pair.value ) <= $rand;
-                    take $pair.key;
-                    last;
-                }
+        gather loop {
+            $rand = $total.rand.Int;
+            $seen = 0;
+            for @pairs -> $pair {
+                next if ( $seen += $pair.value ) <= $rand;
+                take $pair.key;
+                last;
             }
         }
     }

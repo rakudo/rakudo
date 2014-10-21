@@ -352,8 +352,13 @@ my class List does Positional { # declared in BOOTSTRAP
     method rotate(Int $n is copy = 1) {
         self.gimme(*);
         fail 'Cannot .rotate an infinite list' if $!nextiter.defined;
+        my $items = nqp::p6box_i(nqp::elems($!items));
+        return self if !$items;
+
+        $n %= $items;
+        return self if $n == 0;
+
         my Mu $res := nqp::clone($!items);
-        $n %= nqp::p6box_i(nqp::elems($!items));
         if $n > 0 {
             nqp::push($res, nqp::shift($res)) while $n--;
         }

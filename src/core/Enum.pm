@@ -35,6 +35,9 @@ my class Enum does Associative {
             $.key.perl ~ ' => ' ~ $.value.perl;
         }
     }
+    multi method gist(Enum:D:) {
+        self.key.gist ~ ' => ' ~ self.value.gist
+    }
 
     method fmt($format = "%s\t%s") {
         sprintf($format, $.key, $.value);

@@ -440,7 +440,16 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method gist(|) { * }
     multi method gist(Mu:U:) { '(' ~ self.HOW.name(self) ~ ')' }
-    multi method gist(Mu:D:) { self.perl }
+    multi method gist(Mu:D:) {
+        my @attrs;
+        for self.^attributes().grep: { .has_accessor } -> $attr {
+            my $name := $attr.Str.substr(2);
+            @attrs.push: $name
+                        ~ ' => '
+                        ~ self."$name"().gist
+        }
+        self.HOW.name(self) ~ '(' ~  @attrs.join(', ') ~ ')';
+    }
 
     proto method perl(|) { * }
     multi method perl(Mu:U:) { self.HOW.name(self) }

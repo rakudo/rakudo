@@ -159,20 +159,37 @@ my role Baggy does QuantHash {
         my Int $seen;
         my int $todo = ($keep ?? $count !! ($total min $count)) + 1;
 
+#?if jvm
+        map {
+            my $selected is default(Nil);
+#?endif
+#?if !jvm
         gather while $todo = $todo - 1 {
+#?endif
             $rand = $total.rand.Int;
             $seen = 0;
             for @pairs -> $pair {
                 next if ( $seen += $pair.value ) <= $rand;
 
+#?if jvm
+                $selected = $pair.key;
+#?endif
+#?if !jvm
                 take $pair.key;
+#?endif
                 last if $keep;
 
                 $pair.value--;
                 $total = $total - 1;
                 last;
             }
+#?if jvm
+            $selected;
+        }, 2..$todo;
+#?endif
+#?if !jvm
         }
+#?endif
     }
 
     sub ROLLPICKGRABW($self,@pairs) is hidden_from_backtrace { # keep going
@@ -180,15 +197,32 @@ my role Baggy does QuantHash {
         my Int $rand;
         my Int $seen;
 
+#?if jvm
+        map {
+            my $selected is default(Nil);
+#?endif
+#?if !jvm
         gather loop {
+#?endif
             $rand = $total.rand.Int;
             $seen = 0;
             for @pairs -> $pair {
                 next if ( $seen += $pair.value ) <= $rand;
+#?if jvm
+                $selected = $pair.key;
+#?endif
+#?if !jvm
                 take $pair.key;
+#?endif
                 last;
             }
+#?if jvm
+            $selected;
+        }, *;
+#?endif
+#?if !jvm
         }
+#?endif
     }
 
     proto method classify-list(|) { * }

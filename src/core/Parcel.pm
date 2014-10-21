@@ -54,8 +54,13 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     }
 
     method rotate (Int $n is copy = 1) {
+        my $elems := nqp::p6box_i(nqp::elems($!storage));
+        return self if !$elems;
+
+        $n %= $elems;
+        return self if $n == 0;
+
         my Mu $storage := nqp::clone($!storage);
-        $n %= nqp::p6box_i(nqp::elems($!storage));
         if $n > 0 {
             nqp::push($storage, nqp::shift($storage)) while $n--;
         }

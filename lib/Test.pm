@@ -311,7 +311,7 @@ sub throws_like($code, $ex_type, $reason?, *%matcher) is export {
                     for %matcher.kv -> $k, $v {
                         my $got = $_."$k"();
                         my $ok = $got ~~ $v,;
-                        ok $ok, ".$k matches {$v.defined ?? $v !! $v.gist}";
+                        ok $ok, ".$k matches $v.gist()";
                         unless $ok {
                             diag "Expected: $v";
                             diag "Got:      $got";

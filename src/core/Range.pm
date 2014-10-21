@@ -143,6 +143,9 @@ my class Range is Iterable is Cool does Positional {
           ~ ('^' if $.excludes_max)
           ~ $.max.perl
     }
+    multi method gist(Range:D:) {
+        self.perl;
+    }
 
     proto method roll(|) { * }
     multi method roll(Range:D: Whatever) {

@@ -1124,14 +1124,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method trans(Str:D: *@changes) {
         my sub expand($s) {
             return $s.list if $s ~~ Iterable|Positional;
-            gather for $s.comb(/ (\w) '..' (\w) | . /, :match) {
-                if .[0] {
-                    take $_ for ~.[0] .. ~.[1];
-                    0;
-                } else {
-                    take ~$_;
-                }
-            }
+            $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
+                .[0] ?? ~.[0] .. ~.[1] !! ~$_
+            };
         }
 
         my $lsm = LSM.new(:source(self));

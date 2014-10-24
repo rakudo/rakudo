@@ -74,7 +74,7 @@ my class IO::Handle does IO {
 
             my str $errpath;
             $!PIO := nqp::openpipe(
-              nqp::unbox_s($!path.abspath),
+              nqp::unbox_s($!path.Str),
               nqp::unbox_s($*CWD.Str),
               $hash-without,
               $errpath,
@@ -102,6 +102,13 @@ my class IO::Handle does IO {
         nqp::closefh($!PIO) if nqp::defined($!PIO);
         $!PIO := Mu;
         True;
+    }
+
+    method close-pipe(IO::Handle:D:) {
+        my $ps = Proc::Status.new;
+        $ps.status( nqp::closefhi($!PIO) ) if nqp::defined($!PIO);
+        $!PIO := Mu;
+        $ps;
     }
 
     method eof(IO::Handle:D:) {

@@ -133,7 +133,8 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                 $<optname> = @*longopts
                 [
                     <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 'b' }>
-                ||  <.optvalsep> <!after '-'> <value>
+                ||  <.optvalsep> <!before '-'> <value>
+                || <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 's?' }>
                 ]
                 { for @*stoppers { if $_ eq '--' ~ $<optname> { $*STOPPED := 1 } } }
             }
@@ -320,11 +321,26 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
         my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
         $result := CLIParser.parse($args, :$actions).ast;
 
-        if nqp::istype($result, Perl6::CommandLine::Result) {
-            $result;
+        nqp::say("parsed successfully.");
+        my $i := 0;
+        
+        while $i < nqp::elems($result.arguments) {
+            nqp::say("argument " ~ $result.arguments[$i]);
+            $i := $i + 1;
         }
-        else {
-            nqp::die("Failed parsing command line.");
+        for $result.options {
+            my $key := nqp::iterkey_s($_);
+            my $val := nqp::iterval($_);
+            nqp::say("option " ~ $key);
+            if nqp::islist($val) {
+                for $val {
+                    nqp::say("  value " ~ $val);
+                }
+            }
+            else {
+                nqp::say("  value " ~ $val);
+            }
         }
+        $result;
     }
 }

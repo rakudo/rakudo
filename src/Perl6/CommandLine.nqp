@@ -100,11 +100,8 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             token TOP {
                 :my $*STOPPED := 0;
                 <option>* % <.ws>
-                [
-                    <.ws>
-                    <argument>* % <.ws>
-                    <.ws>?
-                ]?
+                <.ws>?
+                <argument>* % <.ws>
             }
 
             token option {
@@ -321,26 +318,6 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
         my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
         $result := CLIParser.parse($args, :$actions).ast;
 
-        nqp::say("parsed successfully.");
-        my $i := 0;
-        
-        while $i < nqp::elems($result.arguments) {
-            nqp::say("argument " ~ $result.arguments[$i]);
-            $i := $i + 1;
-        }
-        for $result.options {
-            my $key := nqp::iterkey_s($_);
-            my $val := nqp::iterval($_);
-            nqp::say("option " ~ $key);
-            if nqp::islist($val) {
-                for $val {
-                    nqp::say("  value " ~ $val);
-                }
-            }
-            else {
-                nqp::say("  value " ~ $val);
-            }
-        }
         $result;
     }
 }

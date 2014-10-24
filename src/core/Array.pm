@@ -231,7 +231,7 @@ class Array { # declared in BOOTSTRAP
             'Array['
               ~ TValue.perl
               ~ '].new('
-              ~ self.map({.perl}).join(', ')
+              ~ self.map({ ($_ // TValue).perl}).join(', ')
               ~ ')';
         }
         # XXX some methods to come here...

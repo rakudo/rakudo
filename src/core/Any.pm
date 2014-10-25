@@ -102,6 +102,11 @@ my class Any { # declared in BOOTSTRAP
     multi method map($block, :$label) is rw {
         MapIter.new(self, $block, Bool::True, :$label).list
     }
+    proto method for (|) { * }
+    multi method for(Whatever) is rw { self }
+    multi method for($block, :$label) is rw {
+        MapIter.new(self, $block, Bool::True, :$label).list
+    }
     method flatmap($block) is rw { flatmap($block, self) }
     method duckmap($block) is rw { duckmap($block, self) }
     method deepmap($block) is rw { deepmap($block, self) }

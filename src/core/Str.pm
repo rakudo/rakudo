@@ -1165,7 +1165,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $!first_substitution //= @!substitutions[0];
 
             # triage_substitution has a side effect!
-            @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }
+            @!substitutions = @!substitutions.grep: { self.triage_substitution($_) }
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
                 = $!source.substr($!index, $!next_match - $!index);

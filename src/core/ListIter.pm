@@ -23,7 +23,6 @@ my class ListIter { # declared in BOOTSTRAP
                 nqp::setelems($rpa, $count);
                 nqp::setelems($rpa, 0);
             }
-            my Mu $x;
             my int $index;
             my $want_types := $flattens
                 ?? nqp::list(Iterable, Parcel)
@@ -34,7 +33,7 @@ my class ListIter { # declared in BOOTSTRAP
                 $index = nqp::p6arrfindtypes($!rest, $want_types, 0, $max);
                 nqp::p6shiftpush($rpa, $!rest, $index);
                 if $!rest && (nqp::elems($rpa) < $count) {
-                    $x := nqp::shift($!rest);
+                    my Mu $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
                         SEQ(nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
                         $x := $x.iterator.reify(

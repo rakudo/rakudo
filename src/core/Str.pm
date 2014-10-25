@@ -1174,7 +1174,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $!first_substitution //= @!substitutions[0];
 
             # triage_substitution has a side effect!
-            @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }
+            @!substitutions = @!substitutions.grep: { self.triage_substitution($_) }
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
                 = substr($!source,$!index, $!next_match - $!index);
@@ -1184,7 +1184,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     my $result = self.get_next_substitution_result;
                     if $!unsubstituted_text {
                         self.increment_index($!next_substitution.key);
-                        $!substituted_text = $!source.substr($oldidx + $!unsubstituted_text.chars, 
+                        $!substituted_text = $!source.substr($oldidx + $!unsubstituted_text.chars,
                             $!index - $oldidx - $!unsubstituted_text.chars);
                         $!unsubstituted_text = $!squash ?? $result
                             !! $result x $!unsubstituted_text.chars;
@@ -1205,7 +1205,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-<<<<<<< HEAD
     proto method trans(|) { * }
     multi method trans(Pair:D \what, *%n) {
         my $from = what.key;

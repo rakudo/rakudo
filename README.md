@@ -40,7 +40,7 @@ any administrator privileges for carrying out this step.
 
 ### Configuring Rakudo to run on MoarVM
 
-To automatically download and build a fresh MoarMV and NQP, run:
+To automatically download and build a fresh MoarVM and NQP, run:
 
     perl Configure.pl --gen-moar --gen-nqp --backends=moar
 

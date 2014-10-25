@@ -271,6 +271,7 @@ P_CORE_SOURCES = \
   src/core/CompUnitRepo/Local/Installation.pm \
   src/core/Argfiles.pm \
   src/core/Inc.pm \
+  src/core/Opts.pm \
   src/core/Process.pm \
   src/core/StrDistance.pm \
   src/core/Slang.pm \

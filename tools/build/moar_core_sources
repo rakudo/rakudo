@@ -148,6 +148,7 @@ src/core/CompUnitRepo/Locally.pm
 src/core/CompUnitRepo/Local/File.pm
 src/core/CompUnitRepo/Local/Installation.pm
 src/core/Argfiles.pm
+src/core/Opts.pm
 src/core/Inc.pm
 src/core/Process.pm
 src/core/StrDistance.pm

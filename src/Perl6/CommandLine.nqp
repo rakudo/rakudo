@@ -1,46 +1,3 @@
-class Perl6::CommandLine::Result is HLL::CommandLine::Result {
-    has %!delim-opts;
-    has %!options;
-    has @!arguments;
-
-    method options() {
-        %!options
-    }
-
-    method arguments() {
-        @!arguments
-    }
-
-    method delim-opts() {
-        %!delim-opts;
-    }
-
-    method add-argument($x) {
-        nqp::push(@!arguments, $x);
-    }
-
-    method init() {
-        @!arguments := [];
-        %!options := nqp::hash();
-        %!delim-opts := nqp::hash;
-    }
-
-    method add-option($name, $value, :$delimited) {
-        # how I miss p6's Hash.push
-        my %opts := $delimited ?? %!delim-opts !! %!options;
-
-        if nqp::existskey(%opts, $name) {
-            if nqp::islist(%opts{$name}) {
-                nqp::push(%opts{$name}, $value);
-            } else {
-                %opts{$name} := [ %opts{$name}, $value ];
-            }
-        } else {
-            %opts{$name} := $value;
-        }
-    }
-}
-
 class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
     has %!opt-to-aliases;
     has %!aliases-to-types;
@@ -117,7 +74,9 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             token delim-opts {
                 $<delim> = [ '+' '+'+ ]
                 $<opt-key> = \w+
+                <.ws>
                 $<opt-value> = [ <!before $<delim> > . ]+?
+                <.ws>
                 $<delim>
                 '/'
                 $<opt-key>
@@ -127,11 +86,16 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                 <!{ $*STOPPED }>
                 [ '--' || ':' ]
                 [ $<negated> = '/' ]?
-                $<optname> = @*longopts
                 [
-                    <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 'b' }>
-                ||  <.optvalsep> <!before '-'> <value>
-                || <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 's?' }>
+                    $<optname> = @*longopts
+                    [
+                        <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 'b' }>
+                    || <?{ %*aliases-to-types{%*opt-to-aliases{$<optname>}} eq 's?' }>
+                        [ '=' <value> ]?
+                    ||  <.optvalsep> <!before '-'> <value>
+                    ]
+                ||
+                    $<optname> = <-[\x0]>+ { nqp::die("Illegal option --" ~ $<optname> ~ ".") }
                 ]
                 { for @*stoppers { if $_ eq '--' ~ $<optname> { $*STOPPED := 1 } } }
             }
@@ -140,12 +104,16 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                 <!{ $*STOPPED }>
                 '-'
                 [ $<negated> = '/' ]?
-                [ $<boolshopts> = @*boolshopts ]*
                 [
-                    $<strshopt> = @*stringshopts
-                    <.optvalsep>?
-                    <value>
-                ]?
+                    [ $<boolshopts> = @*boolshopts ]*
+                    [
+                        $<strshopt> = @*stringshopts
+                        <.optvalsep>?
+                        <value>
+                    ]?
+                ||
+                    $<optname> = <-[\x0]>+ { nqp::die("Illegal option -" ~ $<optname> ~ ".") }
+                ]
                 { for @*stoppers { if $_ eq '-' ~ $<strshopt> { $*STOPPED := 1 } } }
             }
 
@@ -154,7 +122,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             }
 
             token value {
-                <-[\x0]>+
+                <-[\x0]>*
             }
 
             token argument {
@@ -178,25 +146,23 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
             }
 
             method TOP($/) {
-                my $result := Perl6::CommandLine::Result.new;
+                my $result := HLL::CommandLine::Result.new;
                 $result.init;
                 if $<option> {
                     my @a := make $<option>;
                     for @a {
                         my %opt := $_.ast;
                         for %opt {
-                            my $key := ~(nqp::iterkey_s($_));
-                            my $value := ~(nqp::iterval($_));
-                            my $delimited := $key eq 'DELIMITED-OPTION';
+                            my $key := nqp::iterkey_s($_);
+                            my $value := nqp::iterval($_);
+                            my $delimited := $key eq 'DELIMITED-OPTIONS';
                             if %*only-once{$key} && $result.options{$key} {
                                 self.error-out("===SORRY!===" ~
                                     "\nOption " ~ $key ~ " can only be supplied once.");
                             }
-                            elsif $delimited {
-                                $key := $value[0];
-                                $value := $value[1];
+                            else {
+                                $result.add-option($key, $value);
                             }
-                            $result.add-option($key, $value, :$delimited);
                         }
                     }
                 }
@@ -206,7 +172,6 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                         $result.add-argument(~(make $_.ast));
                     }
                 }
-                my %delim-opts;
                 make $result;
             }
 
@@ -239,7 +204,23 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                     for %a {
                         my $key := nqp::iterkey_s($_);
                         my $value := nqp::iterval($_);
-                        %opts<DELIMITED-OPTION> := [$key, $value];
+                        if nqp::ishash(%opts<DELIMITED-OPTIONS>) {
+                            if nqp::existskey(%opts<DELIMITED-OPTIONS>, $key) {
+                                if nqp::islist(%opts<DELIMITED-OPTIONS>{$key}) {
+                                    nqp::push(%opts<DELIMITED-OPTIONS>{$key}, ~$value);
+                                }
+                                else {
+                                    my $cur-val := %opts<DELIMITED-OPTIONS>{$key};
+                                    %opts<DELIMITED-OPTIONS>{$key} := [$cur-val, ~$value];
+                                }
+                            }
+                            else {
+                                %opts<DELIMITED-OPTIONS>{$key} := ~$value;
+                            }
+                        }
+                        else {
+                            %opts<DELIMITED-OPTIONS> := nqp::hash($key, ~$value);
+                        }
                     }
                 }
                 make %opts;
@@ -277,8 +258,9 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
 
             method longopt($/) {
                 my $value := $<value> ?? make $<value>.ast !! 1;
-                $value := ~($value // 1);
                 my $key := $<optname>.Str;
+                # This is kind of silly special-casing, but it's least invasive here.
+                $value := $key eq 'doc' ?? 'Text' !! ~$value;
 
                 if $<negated> && self.type-for-opt($key) ne 'b' {
                     self.error-out("===SORRY!===" ~
@@ -317,6 +299,28 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
         my $result;
         my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
         $result := CLIParser.parse($args, :$actions).ast;
+
+#        for $result.options {
+#            my $key := nqp::iterkey_s($_);
+#            my $val := nqp::iterval($_);
+#            if nqp::islist($val) {
+#                for $val {
+#                    nqp::say("  " ~ $key ~ ": " ~ $_);
+#                }
+#            }
+#            elsif nqp::ishash($val) {
+#                for $val {
+#                    nqp::say("  " ~ $key ~ ": " ~ nqp::iterkey_s($_) ~ " => " ~ nqp::iterval($_));
+#                }
+#            }
+#            else {
+#                nqp::say("  " ~ $key ~ ": " ~ $val);
+#            }
+#        }
+#        nqp::say("args: ");
+#        for $result.arguments {
+#            nqp::say("  " ~ $_);
+#        }
 
         $result;
     }

@@ -26,6 +26,7 @@ my @clo := $comp.commandline_options();
 @clo.push('c');
 @clo.push('I=S');
 @clo.push('M=S');
+@clo.push('E=d-e');
 
 # Bump up recursion limit, for VMs that have one.
 $comp.recursion_limit(100000);

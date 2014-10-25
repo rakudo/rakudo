@@ -185,7 +185,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                         if nqp::substr(self.type-for-opt($key), 0, 1) eq 'd' {
                             self.warn-deprecated($key, 1);
                         }
-                        %opts{$key} := $value;
+                        %opts{$key} := ~$value;
                     }
                 }
                 if $<shopts> {
@@ -196,7 +196,7 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                         if nqp::substr(self.type-for-opt($key), 0, 1) eq 'd' {
                             self.warn-deprecated($key, 0);
                         }
-                        %opts{$key} := $value;
+                        %opts{$key} := ~$value;
                     }
                 }
                 if $<delim-opts> {
@@ -299,28 +299,6 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
         my $result;
         my $actions := CLIActions.new(:aliases-to-types(%!aliases-to-types), :opt-to-aliases(%!opt-to-aliases));
         $result := CLIParser.parse($args, :$actions).ast;
-
-#        for $result.options {
-#            my $key := nqp::iterkey_s($_);
-#            my $val := nqp::iterval($_);
-#            if nqp::islist($val) {
-#                for $val {
-#                    nqp::say("  " ~ $key ~ ": " ~ $_);
-#                }
-#            }
-#            elsif nqp::ishash($val) {
-#                for $val {
-#                    nqp::say("  " ~ $key ~ ": " ~ nqp::iterkey_s($_) ~ " => " ~ nqp::iterval($_));
-#                }
-#            }
-#            else {
-#                nqp::say("  " ~ $key ~ ": " ~ $val);
-#            }
-#        }
-#        nqp::say("args: ");
-#        for $result.arguments {
-#            nqp::say("  " ~ $_);
-#        }
 
         $result;
     }

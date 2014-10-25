@@ -243,13 +243,16 @@ class Perl6::CommandLine::Parser is HLL::CommandLine::Parser {
                         "\nGrouped short options cannot be negated.");
                 }
 
-
                 for $<boolshopts> {
                     %opts{$_} := $<negated> ?? 0 !! 1;
                 }
 
                 my $value := '';
                 if $<strshopt> && $<value> {
+                    if $<negated> {
+                        self.error-out("===SORRY!===" ~
+                            "\nOptions that take a string value cannot be negated.");
+                    }
                     $value := make $<value>;
                     %opts{$<strshopt>.Str} := $value;
                 }

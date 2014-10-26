@@ -14,7 +14,7 @@ class CompUnit {
     my $default-from = 'Perl6';
     my %instances;
 
-    method new(
+    method new(CompUnit:U:
       $path,
       :$name is copy,
       :$extension is copy,
@@ -49,14 +49,11 @@ class CompUnit {
         ) } );
     }
 
-    multi method WHICH(CompUnit:D:) { $!WHICH //= "{self.^name}|$!path" }
-    method Str(--> Str)   { self.DEFINITE ?? $!path.Str !! Nil }
-    method gist(--> Str)  {
-        self.DEFINITE ?? "{self.name}:{$!path.Str}" !! self.^name;
-    }
-    method perl(--> Str)  { self.DEFINITE ?? nextsame() !! self.^name }
+    multi method WHICH(CompUnit:D:) { $!WHICH //= "{self.^name}|$!path.abspath()" }
+    multi method Str(CompUnit:D: --> Str)  { $!path.abspath }
+    multi method gist(CompUnit:D: --> Str) { "{self.name}:{$!path.abspath}" }
 
-    method key(--> Str) {
+    method key(CompUnit:D: --> Str) {
         $!has-precomp ?? $!precomp-ext !! $!extension;
     }
 
@@ -73,7 +70,7 @@ class CompUnit {
     }
 
     # do the actual work
-    method load(
+    method load(CompUnit:D:
       $module_name,
       %opts,
       *@GLOBALish is rw,
@@ -106,9 +103,9 @@ class CompUnit {
         } );
     }
 
-    method precomp-path(--> Str) { "$!path.$!precomp-ext" }
+    method precomp-path(CompUnit:D: --> Str) { "$!path.$!precomp-ext" }
 
-    method precomp($out = self.precomp-path, :$force --> Bool) {
+    method precomp(CompUnit:D: $out = self.precomp-path, :$force --> Bool) {
         die "Cannot pre-compile an already pre-compiled file: $!path"
           if $.has-precomp;
         die "Cannot pre-compile over an existing file: $out"
@@ -127,7 +124,7 @@ class CompUnit {
 }
 
 # TEMPORARY ACCESS TO COMPUNIT INTERNALS UNTIL WE CAN LOAD DIRECTLY
-multi postcircumfix:<{ }> (CompUnit \c, "provides" ) {
+multi postcircumfix:<{ }> (CompUnit:D \c, "provides" ) {
     my % = (
       c.name => {
         pm => {
@@ -139,9 +136,9 @@ multi postcircumfix:<{ }> (CompUnit \c, "provides" ) {
       }
     );
 }
-multi postcircumfix:<{ }> (CompUnit \c, "key" ) {
+multi postcircumfix:<{ }> (CompUnit:D \c, "key" ) {
     c.key;
 }
-multi postcircumfix:<{ }> (CompUnit \c, "ver" ) {
+multi postcircumfix:<{ }> (CompUnit:D \c, "ver" ) {
     Version.new('0');
 }

@@ -56,7 +56,6 @@ my class Any { # declared in BOOTSTRAP
     method Parcel() { self.list.Parcel }
     method elems() { self.list.elems }
     method end()   { self.list.end }
-    method uniq(|c) { self.list.uniq(|c) }
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }
     method reverse() { self.list.reverse }
@@ -68,6 +67,12 @@ my class Any { # declared in BOOTSTRAP
     method reduce(&with) { self.list.reduce(&with) }
     method combinations(|c) { self.list.combinations(|c) }
     method permutations(|c) { self.list.permutations(|c) }
+
+    method unique(|c) { self.list.unique(|c) }
+    method uniq(|c) {
+        DEPRECATED('unique', |<2014.11 2015.11>);
+        self.unique(|c);
+    }
 
     proto method pick(|) { * }
     multi method pick()   { self.list.pick     }

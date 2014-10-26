@@ -206,7 +206,12 @@ my role Supply {
         }
     }
 
-    method uniq(Supply:D $self: :&as, :&with, :$expires) {
+    method uniq(Supply:D: |c) {
+        DEPRECATED('unique', |<2014.11 2015.11>);
+        self.unique(|c);
+    }
+
+    method unique(Supply:D $self: :&as, :&with, :$expires) {
         on -> $res {
             $self => do {
                 if $expires {

@@ -458,8 +458,13 @@ my class List does Positional { # declared in BOOTSTRAP
         $tpos >= +$tseq;
     }
 
-    proto method uniq(|) {*}
-    multi method uniq() {
+    method uniq(|c) {
+        DEPRECATED('uniq', |<2014.11 2015.11>);
+        self.unique(|c);
+    }
+
+    proto method unique(|) {*}
+    multi method unique() {
         my $seen := nqp::hash();
         my str $target;
         gather map {
@@ -473,7 +478,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }, @.list;
     }
-    multi method uniq( :&as!, :&with! ) {
+    multi method unique( :&as!, :&with! ) {
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
         gather map {
@@ -487,7 +492,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }, @.list;
     }
-    multi method uniq( :&as! ) {
+    multi method unique( :&as! ) {
         my $seen := nqp::hash();
         my str $target;
         gather map {
@@ -501,7 +506,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }, @.list;
     }
-    multi method uniq( :&with! ) {
+    multi method unique( :&with! ) {
         nextwith() if &with === &[===]; # use optimized version
 
         my @seen;  # should be Mu, but doesn't work in settings :-(

@@ -1,3 +1,7 @@
+New in 2014.11
++ method 'for' as an alias for 'map'. Map will stop flattening the list eventually, 'for' remains as it is now.
++ method 'unique' as a successor for 'uniq'
+
 New in 2014.10
 + unstrict mode now default with -e
 + use strict / no strict implemented (but -Mstrict does not work)

@@ -2,16 +2,15 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
 
-    method BUILD(:$path) {
-        $!WHICH = self.^name ~ '|' ~ $path;
-        $!path = $path.IO unless $!path;
-        my $manifest = $!path.child("MANIFEST");
-        %!dists{$path} = $manifest.e
+    method BUILD(:$!IO, :$!lock, :$!WHICH) {
+        my $manifest := $!IO.child("MANIFEST");
+        my $abspath  := $!IO.abspath;
+        %!dists{$abspath} = $manifest.e
           ?? from-json($manifest.slurp)
           !! {};
-        %!dists{$path}<file-count> //= 0;
-        %!dists{$path}<dist-count> //= 0;
-        %!dists{$path}<dists>      //= [ ];
+        %!dists{$abspath}<file-count> //= 0;
+        %!dists{$abspath}<dist-count> //= 0;
+        %!dists{$abspath}<dists>      //= [ ];
     }
 
     method writeable-path {

@@ -1,26 +1,33 @@
 role CompUnitRepo::Locally {
     has Lock     $!lock;
-    has IO::Path $.path;
-    has Str      $!WHICH;
+    has IO::Path $.IO;
+    has Str      $.WHICH;
 
     my %instances;
 
     method new(CompUnitRepo::Locally: $dir) {
-        my $path := IO::Path.new-from-absolute-path($*SPEC.rel2abs($dir));
-        return Nil unless $path.d and $path.r;
-        %instances{$path.abspath} //= self.bless(:$path, :lock(Lock.new));
+        my $abspath := $*SPEC.rel2abs($dir);
+        my $IO      := IO::Path.new-from-absolute-path($abspath);
+        return Nil unless $IO.d and $IO.r;
+
+        %instances{$abspath} //=
+          self.bless(:$IO,:lock(Lock.new),:WHICH(self.^name ~ '|' ~ $abspath));
     }
 
-    multi method WHICH (CompUnitRepo::Locally:D:) {
-        $!WHICH //= self.^name ~ '|' ~ $!path.abspath;
-    }
-    method Str(CompUnitRepo::Locally:D:) { $!path.abspath }
+    method Str(CompUnitRepo::Locally:D:) { $!IO.abspath }
     method gist(CompUnitRepo::Locally:D:) {
-      "{self.short-id}:{$!path.abspath}"
+      "{self.short-id}:{$!IO.abspath}"
     }
     method perl(CompUnitRepo::Locally:D:) {
-      "CompUnitRepo.new('{self.short-id}:{$!path.abspath}')"
+      "CompUnitRepo.new('{self.short-id}:{$!IO.abspath}')"
     }
+
+    method path(CompUnitRepo::Locally:D:) {
+        DEPRECATED( 'IO', |<2014.11 2015.11> );
+        $!IO;
+    }
+
+    multi method WHICH(CompUnitRepo::Locally:D:) { $!WHICH }
 
     # stubs
     method install(CompUnitRepo::Locally:D: $source, $from? )             {...}

@@ -27,9 +27,9 @@ class Perl does Systemic {
     method KERNELnames { <darwin linux freebsd openbsd netbsd win32> }
 }
 
-multi sub INITIALIZE_DYNAMIC('$*PERL') {
+#multi sub INITIALIZE_DYNAMIC('$*PERL') {
     PROCESS::<$PERL> := Perl.new;
-}
+#}
 multi postcircumfix:<{ }> (Perl $d, "name" )   {
     DEPRECATED('$*PERL.name', |<2014.06 2015.06>, :what('$*PERL<name>') );
     $d.name

@@ -14,11 +14,11 @@ role CompUnitRepo::Locally {
           self.bless(:$IO,:lock(Lock.new),:WHICH(self.^name ~ '|' ~ $abspath));
     }
 
-    method Str(CompUnitRepo::Locally:D:) { $!IO.abspath }
-    method gist(CompUnitRepo::Locally:D:) {
+    multi method Str(CompUnitRepo::Locally:D:) { $!IO.abspath }
+    multi method gist(CompUnitRepo::Locally:D:) {
       "{self.short-id}:{$!IO.abspath}"
     }
-    method perl(CompUnitRepo::Locally:D:) {
+    multi method perl(CompUnitRepo::Locally:D:) {
       "CompUnitRepo.new('{self.short-id}:{$!IO.abspath}')"
     }
 

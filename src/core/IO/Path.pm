@@ -354,8 +354,8 @@ my class IO::Path is Cool {
             for <. ..> -> $elem {
                 if $test.ACCEPTS($elem) {
                     $absolute
-                      ?? take IO::Path.new-from-absolute-path($abspath-sep ~ $elem,:$!SPEC,:$CWD)
-                      !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1).IO(:$!SPEC,:$CWD);
+                      ?? take $abspath-sep ~ $elem
+                      !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1);
                 }
             }
 #?endif
@@ -376,8 +376,8 @@ my class IO::Path is Cool {
                     $elem = $abspath-sep ~ $elem; # make absolute
 #?endif
                     !$absolute && !$.is-absolute
-                      ?? take $elem.substr($cwd_chars + 1).IO(:$!SPEC,:$CWD)
-                      !! take IO::Path.new-from-absolute-path($elem,:$!SPEC,:$CWD);
+                      ?? take $elem.substr($cwd_chars + 1)
+                      !! take $elem;
                 }
 #?if moar
                 nqp::chdir($cwd);

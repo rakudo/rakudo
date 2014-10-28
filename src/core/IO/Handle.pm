@@ -106,7 +106,7 @@ my class IO::Handle does IO {
 
     method close-pipe(IO::Handle:D:) {
         my $ps = Proc::Status.new;
-        $ps.status( nqp::closefhi($!PIO) ) if nqp::defined($!PIO);
+        $ps.status( nqp::closefh_i($!PIO) ) if nqp::defined($!PIO);
         $!PIO := Mu;
         $ps;
     }

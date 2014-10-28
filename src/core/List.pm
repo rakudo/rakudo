@@ -459,7 +459,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method uniq(|c) {
-        DEPRECATED('uniq', |<2014.11 2015.11>);
+        DEPRECATED('unique', |<2014.11 2015.11>);
         self.unique(|c);
     }
 

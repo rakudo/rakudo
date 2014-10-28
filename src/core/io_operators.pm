@@ -49,7 +49,14 @@ sub prompt($msg) {
     $*IN.get;
 }
 
-sub dir(Cool $path = '.', |c) {
+proto sub dir(|) { * }
+multi sub dir(*%_) {
+    $*SPEC.curdir.IO.dir(:!absolute, |%_)
+}
+multi sub dir(IO::Path:D $path, |c) {
+    $path.dir(|c)
+}
+multi sub dir(Cool $path, |c) {
     $path.IO.dir(|c)
 }
 

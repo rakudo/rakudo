@@ -16,7 +16,7 @@ class Perl does Systemic {
         <macosx linux freebsd mswin32 mingw msys cygwin solaris haiku openbsd netbsd>
 #?endif
 #?if jvm
-        <macosx linux mswin32>
+        <macosx linux freebsd mswin32 openbsd netbsd>
 #?endif
 #?if moar
         <macosx linux freebsd mswin32 openbsd netbsd>

@@ -319,9 +319,10 @@ my class IO::Path is Cool {
         self.dir(|c);
     }
 
-    method dir(IO::Path:D:   # XXX needs looking at
+    method dir(IO::Path:D:
         Mu :$test = $*SPEC.curupdir,
         :$absolute,
+        :$Str,
         :$CWD = $*CWD,
     ) {
 
@@ -353,9 +354,13 @@ my class IO::Path is Cool {
 #?if jvm
             for <. ..> -> $elem {
                 if $test.ACCEPTS($elem) {
-                    $absolute
-                      ?? take $abspath-sep ~ $elem
-                      !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1);
+                    $Str
+                      ?? $absolute
+                        ?? take $abspath-sep ~ $elem
+                        !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1)
+                      !! $absolute
+                        ?? take IO::Path.new-from-absolute-path($abspath-sep ~ $elem,:$!SPEC,:$CWD)
+                        !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1).IO(:$!SPEC,:$CWD);
                 }
             }
 #?endif
@@ -375,9 +380,13 @@ my class IO::Path is Cool {
                 if $test.ACCEPTS($elem) {
                     $elem = $abspath-sep ~ $elem; # make absolute
 #?endif
-                    !$absolute && !$.is-absolute
-                      ?? take $elem.substr($cwd_chars + 1)
-                      !! take $elem;
+                    $Str
+                      ?? !$absolute && !$.is-absolute
+                        ?? take $elem.substr($cwd_chars + 1)
+                        !! take $elem
+                      !! !$absolute && !$.is-absolute
+                        ?? take $elem.substr($cwd_chars + 1).IO(:$!SPEC,:$CWD)
+                        !! take IO::Path.new-from-absolute-path($elem,:$!SPEC,:$CWD);
                 }
 #?if moar
                 nqp::chdir($cwd);

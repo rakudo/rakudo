@@ -213,9 +213,14 @@ multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
 }
 
 sub exit($status = 0) {
+    state $exit;
+    $exit = $status;
+
+    return if $++;  # already exiting
+
     THE_END();
-    nqp::exit(nqp::unbox_i($status.Int));
-    $status;
+    nqp::exit(nqp::unbox_i($exit.Int));
+    $exit;
 }
 
 sub THE_END {

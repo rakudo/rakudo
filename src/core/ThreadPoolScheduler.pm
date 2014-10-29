@@ -76,7 +76,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!queue
     }
 
-    method cue(&code, :$at, :$in, :$every, :$times = 1, :&catch ) {
+    method cue(&code, :$at, :$in, :$every, :$times = 1, :&stop, :&catch ) {
         my class TimerCancellation is repr('AsyncTask') { }
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
@@ -87,14 +87,39 @@ my class ThreadPoolScheduler does Scheduler {
 
         # need repeating
         if $every {
-            my $handle := nqp::timer($!queue,
-                &catch
-                  ?? -> { code(); CATCH { default { catch($_) } } }
-                  !! &code,
-                ($delay * 1000).Int, ($every * 1000).Int,
-                TimerCancellation);
-            self!maybe_new_thread() if !$!started_any;
-            return Cancellation.new(async_handles => [$handle]);
+
+            # we have a stopper
+            if &stop {
+                my $cancellation;
+                my $handle := nqp::timer($!queue,
+                    &catch
+                      ?? -> {
+                          code();
+                          $cancellation.cancel if stop();
+                          CATCH { default { catch($_) } };
+                      }
+                      !! -> {
+                          code();
+                          $cancellation.cancel if stop();
+                      },
+                    ($delay * 1000).Int, ($every * 1000).Int,
+                    TimerCancellation);
+                self!maybe_new_thread() if !$!started_any;
+                return
+                  $cancellation = Cancellation.new(async_handles => [$handle]);
+            }
+
+            # no stopper
+            else {
+                my $handle := nqp::timer($!queue,
+                    &catch
+                      ?? -> { code(); CATCH { default { catch($_) } } }
+                      !! &code,
+                    ($delay * 1000).Int, ($every * 1000).Int,
+                    TimerCancellation);
+                self!maybe_new_thread() if !$!started_any;
+                return Cancellation.new(async_handles => [$handle]);
+            }
         }
 
         # only after waiting a bit or more than once

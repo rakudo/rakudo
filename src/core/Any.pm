@@ -443,6 +443,9 @@ multi postfix:<-->(Mu:U \a is rw) { a = -1; 0 }
 
 # builtins
 proto infix:<min>(|) is pure { * }
+multi infix:<min>(Mu:D \a, Mu:U) { a }
+multi infix:<min>(Mu:U, Mu:D \b) { b }
+multi infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
 multi infix:<min>(*@args) { @args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
@@ -452,6 +455,9 @@ multi infix:<min>(*@args) { @args.min }
 sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
 
 proto infix:<max>(|) is pure { * }
+multi infix:<max>(Mu:D \a, Mu:U) { a }
+multi infix:<max>(Mu:U, Mu:D \b) { b }
+multi infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
 multi infix:<max>(*@args) { @args.max }
 #proto sub max(|) { * }
 #multi sub max(*@args) { @args.max() }

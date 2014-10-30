@@ -7,6 +7,11 @@ my class IO::Handle does IO {
     has int $.ins;
     has $.chomp = Bool::True;
     has $.nl    = "\n";
+    has int $!pipe;
+
+    method pipe(IO::Handle:D: |c) {
+        self.open(:p, |c);
+    }
 
     method open(IO::Handle:D:
       :$r is copy,
@@ -48,6 +53,7 @@ my class IO::Handle does IO {
         $r = $w = True if $rw;
 
 #?if parrot
+        $!pipe = $p ?? 1 : 0;
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
@@ -55,6 +61,7 @@ my class IO::Handle does IO {
 #?endif
 #?if !parrot
         if $p {
+            $!pipe = 1;
             #~ my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp');
 
             my Mu $hash-with-containers :=
@@ -99,16 +106,17 @@ my class IO::Handle does IO {
 
     method close(IO::Handle:D:) {
         # TODO:b catch errors
-        nqp::closefh($!PIO) if nqp::defined($!PIO);
-        $!PIO := Mu;
-        True;
-    }
-
-    method close-pipe(IO::Handle:D:) {
-        my $ps = Proc::Status.new;
-        $ps.status( nqp::closefh_i($!PIO) ) if nqp::defined($!PIO);
-        $!PIO := Mu;
-        $ps;
+        if $!pipe {
+            my $ps = Proc::Status.new;
+            $ps.status( nqp::closefh_i($!PIO) ) if nqp::defined($!PIO);
+            $!PIO := Mu;
+            $ps;
+        }
+        else {
+            nqp::closefh($!PIO) if nqp::defined($!PIO);
+            $!PIO := Mu;
+            True;
+        }
     }
 
     method eof(IO::Handle:D:) {

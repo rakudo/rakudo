@@ -4676,6 +4676,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     method throw_unspace($char) { self.typed_sorry('X::Syntax::Regex::Unspace', :$char) }
     method throw_regex_not_terminated() { self.typed_sorry('X::Syntax::Regex::Unterminated') }
     method throw_spaces_in_bare_range() { self.typed_sorry('X::Syntax::Regex::SpacesInBareRange') }
+    method throw_solitary_quantifier() { self.typed_sorry('X::Syntax::Regex::SolitaryQuantifier') }
     
     token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
 
@@ -4712,6 +4713,10 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> <.SIGOK> }
 
     token metachar:sym<"> { <?["]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
+
+    token metachar:sym<quantifier> {
+        <!rxstopper> <quantifier> <.throw_solitary_quantifier>
+    }
     
     token assertion:sym<{ }> {
         <?[{]> <codeblock>

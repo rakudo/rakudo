@@ -149,7 +149,7 @@ my role Supply {
         # Use a Channel to handle any asynchrony.
         my $c = self.Channel;
         map sub ($) {
-            winner $c {
+            earliest $c {
                 more * { $_ }
                 done * { last }
             }

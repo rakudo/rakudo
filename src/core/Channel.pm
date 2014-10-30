@@ -89,7 +89,7 @@ my class Channel {
 
     method list($self:) {
         map {
-            winner $self {
+            earliest $self {
               more * { $_ }
               done * { last }
             }

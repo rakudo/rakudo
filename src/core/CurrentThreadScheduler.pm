@@ -1,6 +1,7 @@
 # Scheduler that always does things immediately, on the current thread.
 
 my class CurrentThreadScheduler does Scheduler {
+
     method handle_uncaught($exception) {
         $exception.throw
     }
@@ -20,6 +21,7 @@ my class CurrentThreadScheduler does Scheduler {
 
         code() for 1 .. $times;
         CATCH { default { catch($_) } };
+        class { method cancel() {} }
     }
 
     method loads() { 0 }

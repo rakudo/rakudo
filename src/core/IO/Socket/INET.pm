@@ -126,7 +126,7 @@ my class IO::Socket::INET does IO::Socket {
         if $len == 0 { Str }
         else {
             ++$!ins;
-            $len >= $sep-len && nqp::substr($line, $len - $sep-len) eq $sep
+            $len >= $sep-len && nqp::eqat($line, $sep, $len - $sep-len)
                 ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
                 !! nqp::p6box_s($line);
         }

@@ -111,6 +111,12 @@ my class IO::Path is Cool {
         $handle.open(|c);
     }
 
+    method pipe(IO::Path:D: |c) {
+        my $handle = IO::Handle.new(:path(self));
+        $handle // $handle.throw;
+        $handle.pipe(|c);
+    }
+
 #?if moar
     method watch(IO::Path:D:) {
         IO::Notification.watch_path($.abspath);

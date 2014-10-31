@@ -28,6 +28,13 @@ sub MAKE-ABSOLUTE-PATH($path,$abspath) {
     }
 }
 
+sub MAKE-BASENAME($abspath) {
+    my int $index = nqp::rindex(nqp::unbox_s($abspath),'/');
+    nqp::p6bool($index == -1)
+      ?? $abspath
+      !! $abspath.substr( nqp::box_i($index + 1,Int) );
+}
+
 sub FILETEST-E($abspath) {
     nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_EXISTS) );
 }
@@ -80,3 +87,112 @@ sub FILETEST-CHANGED($abspath) {
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
     ));
 }
+
+#?if moar
+sub MAKE-DIR-LIST($abspath, Mu :$test) {
+
+    CATCH { default {
+        fail X::IO::Dir.new(
+          :path(nqp::box_s($abspath,Str)), :os-error(.Str) );
+    } }
+
+    my str $cwd = nqp::cwd();
+    nqp::chdir(nqp::unbox_s($abspath.chop));
+    my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath));
+    nqp::chdir($cwd);
+
+    if $test {
+        gather { loop {
+            my str $elem_s = nqp::nextfiledir($dirh);
+            if nqp::isnull_s($elem_s) || nqp::chars($elem_s) == 0 {
+                nqp::closedir($dirh);
+                last;
+            }
+            my Str $elem = nqp::box_s($elem_s,Str);
+            take $abspath ~ $elem if $test.ACCEPTS($elem);
+        } }
+    }
+    else {
+        my str $abspath_s = $abspath;
+        gather { loop {
+            my str $elem_s = nqp::nextfiledir($dirh);
+            if nqp::isnull_s($elem_s) || nqp::chars($elem_s) == 0 {
+                nqp::closedir($dirh);
+                last;
+            }
+            take nqp::box_s(nqp::concat($abspath_s,$elem_s),Str)
+              if nqp::isne_s($elem_s,'.') && nqp::isne_s($elem_s,'..');
+        } }
+    }
+}
+#?endif
+
+#?if jvm
+sub MAKE-DIR-LIST($abspath, Mu :$test) {
+
+    CATCH { default {
+        fail X::IO::Dir.new(
+          :path(nqp::box_s($abspath,Str)), :os-error(.Str) );
+    } }
+
+    my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath.chop));
+    gather {
+        if $test {
+            for <. ..> -> $elem {
+                take $abspath ~ $elem if $test.ACCEPTS($elem);
+            }
+            loop {
+                my str $elem_s = nqp::nextfiledir($dirh);
+                if nqp::isnull_s($elem_s) || nqp::chars($elem_s) == 0 {
+                    nqp::closedir($dirh);
+                    last;
+                }
+                my Str $elem = nqp::box_s($elem_s,Str);
+                take $elem if $test.ACCEPTS(MAKE-BASENAME($elem));
+            }
+        }
+        else {
+            loop {
+                my str $elem_s = nqp::nextfiledir($dirh);
+                if nqp::isnull_s($elem_s) || nqp::chars($elem_s) == 0 {
+                    nqp::closedir($dirh);
+                    last;
+                }
+                take nqp::box_s($elem_s,Str);
+            }
+        }
+    }
+}
+#?endif
+
+#?if parrot
+sub MAKE-DIR-LIST($abspath, Mu :$test) {
+
+    CATCH { default {
+        fail X::IO::Dir.new(
+          :path(nqp::box_s($abspath,Str)), :os-error(.Str) );
+    } }
+
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($abspath));
+    my int $elems = nqp::elems($RSA);
+
+    if $test {
+        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+            my Str $elem = nqp::p6box_s(pir::trans_encoding__Ssi(
+              nqp::atpos_s($RSA, $i),
+              pir::find_encoding__Is('utf8')));
+            take $abspath ~ $elem if $test.ACCEPTS($elem);
+        }
+    }
+    else {
+        my str $abspath_s = nqp::unbox_s($abspath);
+        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+            my str $elem_s = pir::trans_encoding__Ssi(
+              nqp::atpos_s($RSA, $i),
+              pir::find_encoding__Is('utf8'));
+            take nqp::box_s(nqp::concat($abspath_s,$elem_s),Str)
+              if nqp::isne_s($elem_s,'.') && nqp::isne_s($elem_s,'..');
+        }
+    }
+}
+#?endif

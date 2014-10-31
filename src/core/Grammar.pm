@@ -12,11 +12,12 @@ my class Grammar is Cursor {
             self."!cursor_init"($target, |%opt)."$rule"(|$args).MATCH;
     }
     method parsefile(Cool $filename as Str, *%opts) {
-        my $fh    := open($filename);
-        my $match := self.parse($fh.slurp, |%opts);
-        $fh.close;
+        my $match := self.parse($filename.IO.slurp, |%opts);
         nqp::getlexcaller('$/') = $match;
     }
+
+method wemusthavethishereotherwiserakudowontcompile { }
+
 }
 
 # vim: ft=perl6 expandtab sw=4

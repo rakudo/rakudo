@@ -152,36 +152,36 @@ my class Cursor does NQPCursorRole {
     }
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
-    # If it can't match against pattern $var (or any element of $var if it is an array)
+    # If it can't match against pattern var (or any element of var if it is an array)
     # it will increment $pos and try again. Therefor it is important to only match
     # against the current position.
     # $i is case insensitive flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE($var, $i = 0, $s = 0, $a = 0) {
-        if nqp::isconcrete($var) {
+    method INTERPOLATE(\var, $i = 0, $s = 0, $a = 0) {
+        if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
-            return $var(self) if $var ~~ Callable;
+            return (var)(self) if var ~~ Callable;
             my $maxlen := -1;
             my $cur := self.'!cursor_start_cur'();
             my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
             my $tgt := $cur.target;
             my $eos := nqp::chars($tgt);
-            my Mu $nfa := QRegex::NFA.new;
             my $fate   := 0;
             my $count  := 0;
             my $start  := 1;
             my Mu $alts := nqp::list();
             my Mu $order := nqp::list();
 
-            if nqp::istype($var, Positional) {
+            if nqp::istype(var, Positional) and !nqp::iscont(var) {
                 if $s {
                     # The order matters for sequential matching, therefor no NFA involved.
-                    $order := $var.list;
+                    nqp::push($order,$_) for var.list;
                 }
                 else {
-                    # prepare to run the NFA if $var is array-ish.
-                    for $var.list -> $topic {
+                    my Mu $nfa := QRegex::NFA.new;
+                    # prepare to run the NFA if var is array-ish.
+                    for var.list -> $topic {
                         nqp::push($alts, $topic);
                         if $a {
                             # We are in a regex assertion, the strings we get will be treated as
@@ -220,11 +220,13 @@ my class Cursor does NQPCursorRole {
                 }
             }
             else {
-                # Use the $var as it is if it's not array-ish.
-                $order := $var;
+                # Use the var as it is if it's not array-ish.
+                nqp::push($order, var);
             }
 
-            for $order -> $topic {
+            my int $omax = nqp::elems($order);
+            loop (my int $o = 0; $o < $omax; $o = $o + 1) {
+                my Mu $topic := nqp::atpos($order,$o);
                 my $match;
                 my $len;
                 

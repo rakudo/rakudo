@@ -53,7 +53,7 @@ my class IO::Handle does IO {
         $r = $w = True if $rw;
 
 #?if parrot
-        $!pipe = $p ?? 1 : 0;
+        $!pipe = $p ?? 1 !! 0;
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()

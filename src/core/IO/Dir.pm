@@ -8,6 +8,11 @@ my class IO::Dir does IO {
         if $resolve {   # should really be .resolve, but we don't have that yet
             self!parts;
 
+            # handle //unc/ on win
+            @!parts.unshift( @!parts.splice(0,3).join('/') )
+              if @!parts.at_pos(0) eq ''
+              and @!parts.at_pos(1) eq '';
+
             # front part cleanup
             @!parts.splice(1,1) while %nul.exists_key(@!parts.at_pos(1)); 
 
@@ -47,8 +52,32 @@ my class IO::Dir does IO {
           !! self.new(:abspath( @!parts[0 .. *-($levels + 2)].join('/') ~ '/'));
     }
 
+    method chdir($path) {
+        if $path.ord == 47 {              # quick way for first char "/"
+            self.new($path,:resolve);
+        }
+        elsif $path.substr(1,1) eq ':' {  # assume C: something
+            if $path.substr(2,1) eq "/" { #  assume C:/ like prefix
+                self.new($path,:resolve);
+            }
+            elsif $!abspath.substr(0,2) ne $path.substr(0,2) {
+                die "Can not change relative dir from different roots";
+            }
+            else {
+                self.new($!abspath ~ $path.substr(2),:resolve);
+            }
+        }
+        else {                            # assume relative path
+            self.new($!abspath ~ $path,:resolve);
+        }
+    }
+
+    method open(|c) {
+        fail (X::IO::Directory.new(:$!abspath, :trying<open>));
+    }
+
     method Str  { $!abspath }
     method gist { "q|$!abspath|.IO" }
     method perl { "q|$!abspath|.IO" }
-    method d { True }
+    method d    { True }
 }

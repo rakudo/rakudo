@@ -1,17 +1,18 @@
+# A class for directories that we know exist
 my class IO::Dir does IO {
-    has $.abspath;  # assumes we have a trailing slash *ALWAYS*
+    has $!abspath;  # assumes we have a trailing slash *ALWAYS*
     has @!parts;
 
     my %nul = '..' => 1, '.' => 1, '' => 1;
 
-    submethod BUILD(:$!abspath,:$resolve) {
-        if $resolve {   # should really be .resolve, but we don't have that yet
+    submethod BUILD(:$!abspath,:$check) {
+        if $check {   # should really be .resolve, but we don't have that yet
             self!parts;
 
             # handle //unc/ on win
             @!parts.unshift( @!parts.splice(0,3).join('/') )
-              if @!parts.at_pos(0) eq ''
-              and @!parts.at_pos(1) eq '';
+              if @!parts.at_pos(1) eq ''    # //
+              and @!parts.at_pos(0) eq '';  # and no C: like stuff
 
             # front part cleanup
             @!parts.splice(1,1) while %nul.exists_key(@!parts.at_pos(1)); 
@@ -32,6 +33,7 @@ my class IO::Dir does IO {
             }
             @!parts.push("");
             $!abspath = @!parts.join('/');
+            fail "$!abspath is not a directory" unless FILETEST-D($!abspath);
         }
     }
 
@@ -41,7 +43,7 @@ my class IO::Dir does IO {
 
     method child($child) {
         $child
-          ?? self.new(:abspath($!abspath ~ $child ~ '/'))
+          ?? self.new(:abspath($!abspath ~ $child ~ '/'),:check)
           !! self;
     }
 
@@ -53,23 +55,7 @@ my class IO::Dir does IO {
     }
 
     method chdir($path) {
-        if $path.ord == 47 {              # quick way for first char "/"
-            self.new($path,:resolve);
-        }
-        elsif $path.substr(1,1) eq ':' {  # assume C: something
-            if $path.substr(2,1) eq "/" { #  assume C:/ like prefix
-                self.new($path,:resolve);
-            }
-            elsif $!abspath.substr(0,2) ne $path.substr(0,2) {
-                die "Can not change relative dir from different roots";
-            }
-            else {
-                self.new($!abspath ~ $path.substr(2),:resolve);
-            }
-        }
-        else {                            # assume relative path
-            self.new($!abspath ~ $path,:resolve);
-        }
+        self.new( MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
     }
 
     method open(|c) {
@@ -79,5 +65,19 @@ my class IO::Dir does IO {
     method Str  { $!abspath }
     method gist { "q|$!abspath|.IO" }
     method perl { "q|$!abspath|.IO" }
-    method d    { True }
+
+    method e   { True }
+    method d   { True }
+    method f   { False }
+    method s   { 0 }
+    method l   { False }
+    method r   { FILETEST-R(  $!abspath) }
+    method w   { FILETEST-W(  $!abspath) }
+    method rw  { FILETEST-RW( $!abspath) }
+    method x   { FILETEST-X(  $!abspath) }
+    method rwx { FILETEST-RWX($!abspath) }
+    method z   { True }
+    method modified { FILETEST-MODIFIED($!abspath) }
+    method accessed { FILETEST-ACCESSED($!abspath) }
+    method changed  { FILETEST-CHANGED( $!abspath) }
 }

@@ -1,4 +1,7 @@
-my class Instant { ... }
+my class Instant  { ... }
+my class IO::Dir  { ... }
+my class IO::Path { ... }
+
 my role IO {
     method umask { state $ = :8( qx/umask/.chomp ) }
 }
@@ -43,6 +46,35 @@ sub MAKE-EXTENSION($basename) {
     nqp::p6bool($index == -1)
       ?? ''
       !! nqp::box_s(nqp::substr($basename_s,$index + 1),Str);
+}
+
+my %CLEAN-PARTS-NUL = '..' => 1, '.' => 1, '' => 1;
+sub MAKE-CLEAN-PARTS($abspath) {
+    my @parts = $abspath.split('/');
+
+    # handle //unc/ on win
+    @parts.unshift( @parts.splice(0,3).join('/') )
+      if @parts.at_pos(1) eq ''    # //
+      and @parts.at_pos(0) eq '';  # and no C: like stuff
+
+    # front part cleanup
+    @parts.splice(1,1) while %CLEAN-PARTS-NUL.exists_key(@parts.at_pos(1)); 
+
+    # back part cleanup
+    my Int $checks = @parts.end;
+    while $checks > 1 {
+        if @parts.at_pos($checks) -> $part {
+            $part eq '..'
+              ?? @parts.splice(--$checks, 2)
+              !! $part eq '.'
+                ?? @parts.splice($checks--, 1)
+                !! $checks--;
+        }
+        else {
+            @parts.splice($checks--, 1);
+        }
+    }
+    @parts.push("");
 }
 
 sub FILETEST-E($abspath) {
@@ -98,8 +130,40 @@ sub FILETEST-CHANGED($abspath) {
     ));
 }
 
+sub DIR-GATHER($abspath,$test,$absolute) {
+    my $index := $abspath.chars;
+    gather {
+        for MAKE-DIR-LIST($abspath,$test) -> $elem {
+            take FILETEST-D($elem)
+              ?? IO::Dir.new(:abspath($elem ~ '/'))
+              !! IO::Path.new($absolute ?? $elem !! $elem.substr($index));
+        }
+    }
+}
+
+sub DIR-GATHER-ABSOLUTE-STR($abspath,$test) {
+    gather {
+        for MAKE-DIR-LIST($abspath,$test) -> $elem {
+            take FILETEST-D($elem)
+              ?? $elem ~ '/'
+              !! $elem;
+        }
+    }
+}
+
+sub DIR-GATHER-RELATIVE-STR($abspath,$test) {
+    my $index := $abspath.chars;
+    gather {
+        for MAKE-DIR-LIST($abspath,$test) -> $elem {
+            take FILETEST-D($elem)
+              ?? $elem.substr($index) ~ '/'
+              !! $elem.substr($index);
+        }
+    }
+}
+
 #?if moar
-sub MAKE-DIR-LIST($abspath, Mu :$test) {
+sub MAKE-DIR-LIST($abspath, Mu $test) {
 
     CATCH { default {
         fail X::IO::Dir.new(
@@ -138,7 +202,7 @@ sub MAKE-DIR-LIST($abspath, Mu :$test) {
 #?endif
 
 #?if jvm
-sub MAKE-DIR-LIST($abspath, Mu :$test) {
+sub MAKE-DIR-LIST($abspath, Mu $test) {
 
     CATCH { default {
         fail X::IO::Dir.new(
@@ -176,7 +240,7 @@ sub MAKE-DIR-LIST($abspath, Mu :$test) {
 #?endif
 
 #?if parrot
-sub MAKE-DIR-LIST($abspath, Mu :$test) {
+sub MAKE-DIR-LIST($abspath, Mu $test) {
 
     CATCH { default {
         fail X::IO::Dir.new(

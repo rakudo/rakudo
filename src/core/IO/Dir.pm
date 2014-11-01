@@ -66,7 +66,7 @@ my class IO::Dir does IO {
     }
 
     method volume(IO::Dir:D:)   { self!parts; @!parts[0] }
-    method dirname(IO::Dir:D:)  { $!abspath.chop }
+    method dirname(IO::Dir:D:)  { self!parts; @!parts[1 .. *-2].join('/') }
     method basename(IO::Dir:D:) { MAKE-BASENAME($!abspath.chop) }
 
     method Numeric(IO::Dir:D:) { self.basename.Numeric }
@@ -77,8 +77,8 @@ my class IO::Dir does IO {
     method gist(IO::Dir:D:) { "q|$!abspath|.IO" }
     method perl(IO::Dir:D:) { "q|$!abspath|.IO" }
 
-#    method succ(IO::Dir:D:) { MAKE-SUCC($!abspath.chop) ~ '/' }
-#    method pred(IO::Dir:D:) { MAKE-PRED($!abspath.chop) ~ '/' }
+    method succ(IO::Dir:D:) { my $p = $!abspath.chop; ++$p ~ '/' }
+    method pred(IO::Dir:D:) { my $p = $!abspath.chop; --$p ~ '/' }
 
     method e(IO::Dir:D:)   { True }
     method d(IO::Dir:D:)   { True }

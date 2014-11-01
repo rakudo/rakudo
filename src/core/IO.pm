@@ -3,6 +3,7 @@ my role IO {
     method umask { state $ = :8( qx/umask/.chomp ) }
 }
 
+#===============================================================================
 # Primitives that may live in a role someday, if we figure out how to do that
 # in a sensible and performant way.  Until then, these global subs with slightly
 # obfuscated names, will have to do.  They should also provide excellent
@@ -29,10 +30,19 @@ sub MAKE-ABSOLUTE-PATH($path,$abspath) {
 }
 
 sub MAKE-BASENAME($abspath) {
-    my int $index = nqp::rindex(nqp::unbox_s($abspath),'/');
+    my str $abspath_s = nqp::unbox_s($abspath);
+    my int $index     = nqp::rindex($abspath_s,'/');
     nqp::p6bool($index == -1)
       ?? $abspath
-      !! $abspath.substr( nqp::box_i($index + 1,Int) );
+      !! nqp::box_s(nqp::substr($abspath_s,$index + 1),Str);
+}
+
+sub MAKE-EXTENSION($basename) {
+    my str $basename_s = nqp::unbox_s($basename);
+    my int $index      = nqp::rindex($basename_s,'.');
+    nqp::p6bool($index == -1)
+      ?? ''
+      !! nqp::box_s(nqp::substr($basename_s,$index + 1),Str);
 }
 
 sub FILETEST-E($abspath) {

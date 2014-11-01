@@ -7,31 +7,7 @@ my class IO::Dir does IO {
 
     submethod BUILD(:$!abspath,:$check) {
         if $check {   # should really be .resolve, but we don't have that yet
-            self!parts;
-
-            # handle //unc/ on win
-            @!parts.unshift( @!parts.splice(0,3).join('/') )
-              if @!parts.at_pos(1) eq ''    # //
-              and @!parts.at_pos(0) eq '';  # and no C: like stuff
-
-            # front part cleanup
-            @!parts.splice(1,1) while %nul.exists_key(@!parts.at_pos(1)); 
-
-            # back part cleanup
-            my Int $checks = @!parts.end;
-            while $checks > 1 {
-                if @!parts.at_pos($checks) -> $part {
-                    $part eq '..'
-                      ?? @!parts.splice(--$checks, 2)
-                      !! $part eq '.'
-                        ?? @!parts.splice($checks--, 1)
-                        !! $checks--;
-                }
-                else {
-                    @!parts.splice($checks--, 1);
-                }
-            }
-            @!parts.push("");
+            @!parts = MAKE-CLEAN-PARTS($!abspath);
             $!abspath = @!parts.join('/');
             fail "$!abspath is not a directory" unless FILETEST-D($!abspath);
         }
@@ -74,7 +50,7 @@ my class IO::Dir does IO {
     method Int(IO::Dir:D:)     { self.basename.Int }
 
     method Str(IO::Dir:D:)  { $!abspath }
-    method gist(IO::Dir:D:) { "q|$!abspath|.IO" }
+    method gist(IO::Dir:D:) { qq|"$!abspath".IO| }
     method perl(IO::Dir:D:) { "q|$!abspath|.IO" }
 
     method succ(IO::Dir:D:) { my $p = $!abspath.chop; ++$p ~ '/' }

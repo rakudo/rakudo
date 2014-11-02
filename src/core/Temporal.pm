@@ -340,7 +340,7 @@ my class DateTime does Dateish {
 
         given $unit {
             when 'second' | 'seconds' {
-                return DateTime.new(self.Instant + $amount);
+                return self.new(self.Instant + $amount);
             }
 
             when 'minute' | 'minutes' { $minute += $amount; proceed }
@@ -455,7 +455,7 @@ my class DateTime does Dateish {
     }
 
     multi method perl(DateTime:D:) {
-        sprintf 'DateTime.new(%s)', join ', ', map { "{.key} => {.value}" }, do
+        sprintf '%s.new(%s)', self.^name, join ', ', map { "{.key} => {.value}" }, do
             :$.year, :$.month, :$.day, :$.hour, :$.minute,
             second => $.second.perl,
             (timezone => $.timezone.perl
@@ -503,9 +503,9 @@ my class Date does Dateish {
     multi method new() {
         my $n = self.today;
         if $n.month == 12 && $n.day >= 24 {
-            Date.new($n.year + 1, 12, 24);
+            self.new($n.year + 1, 12, 24);
         } else {
-            Date.new($n.year, 12, 24);
+            self.new($n.year, 12, 24);
         }
     }
 
@@ -568,17 +568,17 @@ my class Date does Dateish {
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
                 $month = ($month - 1) % 12 + 1;
-                $date = Date.new(:$year, :$month, :$!day);
+                $date = self.new(:$year, :$month, :$!day);
                 succeed;
             }
 
             when 'year' | 'years' {
                 my $year = $!year + $amount;
-                $date = Date.new(:$year, :$!month, :$!day);
+                $date = self.new(:$year, :$!month, :$!day);
                 succeed;
             }
 
-            $date = Date.new-from-daycount(self.daycount + $day-delta);
+            $date = self.new-from-daycount(self.daycount + $day-delta);
         }
 
         $date;
@@ -594,10 +594,10 @@ my class Date does Dateish {
     }
 
     method succ() {
-        Date.new-from-daycount($!daycount + 1);
+        self.new-from-daycount($!daycount + 1);
     }
     method pred() {
-        Date.new-from-daycount($!daycount - 1);
+        self.new-from-daycount($!daycount - 1);
     }
 
     multi method gist(Date:D:) {
@@ -609,7 +609,7 @@ my class Date does Dateish {
     }
 
     multi method perl(Date:D:) {
-        "Date.new($.year.perl(), $.month.perl(), $.day.perl())";
+        self.^name ~ ".new($.year.perl(), $.month.perl(), $.day.perl())";
     }
 
     multi method ACCEPTS(Date:D: DateTime:D $dt) {

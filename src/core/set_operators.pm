@@ -123,13 +123,22 @@ only sub infix:<<"\x2296">>($a, $b --> Setty) {
 #     $a == $b and so $a.keys.all (elem) $b
 # }
 
-proto sub infix:<<(<=)>>($, $ --> Bool) {*}
-multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
-    $a.Set(:view) (<=) $b.Set(:view);
+### Set Comparison Operators
+#
+# Note that these are implemented according to subroutine signature
+# combinatorics because of the performance implications of junctions
+
+only sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
+    my ($c,$d);
+    if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
+    elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
+    else {
+        $c = $a.Set(:view); $d = $b.Set(:view);
+        return so $c <= $d and [&&] $c.keys X(elem) $d;
+    }
+    return [&&] $c.keys.map({ $c{$_} <= $d{$_} });
 }
-multi sub infix:<<(<=)>>(Setty $a, Setty $b --> Bool) {
-    $a <= $b and so $a.keys.all (elem) $b
-}
+
 # U+2286 SUBSET OF OR EQUAL TO
 only sub infix:<<"\x2286">>($a, $b --> Bool) {
     $a (<=) $b;
@@ -139,13 +148,18 @@ only sub infix:<<"\x2288">>($a, $b --> Bool) {
     $a !(<=) $b;
 }
 
-proto sub infix:<<(<)>>($, $ --> Bool) {*}
-multi sub infix:<<(<)>>(Any $a, Any $b --> Bool) {
-    $a.Set(:view) (<) $b.Set(:view);
+
+only sub infix:<<(<)>>(Any $a, Any $b --> Bool) {
+    my ($c,$d);
+    if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
+    elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
+    else {
+        $c = $a.Set(:view); $d = $b.Set(:view);
+        return so $c < $d and [&&] $c.keys X(elem) $d;
+    }
+    return [&&] $c.keys.map({ $c{$_} < $d{$_} });
 }
-multi sub infix:<<(<)>>(Setty $a, Setty $b --> Bool) {
-    $a < $b and so $a.keys.all (elem) $b;
-}
+
 # U+2282 SUBSET OF
 only sub infix:<<"\x2282">>($a, $b --> Bool) {
     $a (<) $b;
@@ -155,13 +169,17 @@ only sub infix:<<"\x2284">>($a, $b --> Bool) {
     $a !(<) $b;
 }
 
-proto sub infix:<<(>=)>>($, $ --> Bool) {*}
-multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool) {
-    $a.Set(:view) (>=) $b.Set(:view);
+only sub infix:<<(>=)>>(Any $a, Any $b --> Bool) {
+    my ($c,$d);
+    if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
+    elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
+    else {
+        $c = $a.Set(:view); $d = $b.Set(:view);
+        return so $c >= $d and [&&] $d.keys X(elem) $c;
+    }
+    return [&&] $d.keys.map({ $c{$_} >= $d{$_} });
 }
-multi sub infix:<<(>=)>>(Setty $a, Setty $b --> Bool) {
-    $a >= $b and so $b.keys.all (elem) $a;
-}
+
 # U+2287 SUPERSET OF OR EQUAL TO
 only sub infix:<<"\x2287">>($a, $b --> Bool) {
     $a (>=) $b;
@@ -171,13 +189,17 @@ only sub infix:<<"\x2289">>($a, $b --> Bool) {
     $a !(>=) $b;
 }
 
-proto sub infix:<<(>)>>($, $ --> Bool) {*}
-multi sub infix:<<(>)>>(Any $a, Any $b --> Bool) {
-    $a.Set(:view) (>) $b.Set(:view);
+only sub infix:<<(>)>>(Any $a, Any $b --> Bool) {
+    my ($c,$d);
+    if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
+    elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
+    else {
+        $c = $a.Set(:view); $d = $b.Set(:view);
+        return so $c > $d and [&&] $d.keys X(elem) $c;
+    }
+    return [&&] $d.keys.map({ $c{$_} > $d{$_} });
 }
-multi sub infix:<<(>)>>(Setty $a, Setty $b --> Bool) {
-    $a > $b and so $b.keys.all (elem) $a;
-}
+
 # U+2283 SUPERSET OF
 only sub infix:<<"\x2283">>($a, $b --> Bool) {
     $a (>) $b;
@@ -227,7 +249,7 @@ multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool) {
     $a.Bag(:view) (<+) $b.Bag(:view);
 }
 multi sub infix:<<(<+)>>(Baggy $a, Baggy $b --> Bool) {
-    so all $a.keys.map({ $a{$_} <= $b{$_} })
+    so all $a.keys.map({ $a{$_} <= $b{$_} });
 }
 # U+227C PRECEDES OR EQUAL TO
 only sub infix:<<"\x227C">>($a, $b --> Bool) {

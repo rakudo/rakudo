@@ -2356,7 +2356,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
             }
-            
+            :!s
             { nqp::push(@*PACKAGES, $*PACKAGE); }
             [
             || <?[{]> 
@@ -2392,7 +2392,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || <.panic("Unable to parse $*PKGDECL definition")>
             ]
             { nqp::pop(@*PACKAGES); }
-        ] || { $/.CURSOR.malformed($*PKGDECL) }
+        ]:!s || { $/.CURSOR.malformed($*PKGDECL) }
     }
 
     token declarator {

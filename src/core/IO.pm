@@ -304,7 +304,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
     my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath));
     nqp::chdir($cwd);
 
-    if $test {
+    if $test.defined {
         gather { loop {
             my str $elem_s = nqp::nextfiledir($dirh);
             if nqp::isnull_s($elem_s) || nqp::chars($elem_s) == 0 {
@@ -340,7 +340,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
 
     my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath.chop));
     gather {
-        if $test {
+        if $test.defined {
             for <. ..> -> $elem {
                 take $abspath ~ $elem if $test.ACCEPTS($elem);
             }
@@ -379,7 +379,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
     my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($abspath));
     my int $elems = nqp::elems($RSA);
 
-    if $test {
+    if $test.defined {
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my Str $elem = nqp::p6box_s(pir::trans_encoding__Ssi(
               nqp::atpos_s($RSA, $i),

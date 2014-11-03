@@ -1,9 +1,5 @@
 # A class for directories that we know exist
-my class IO::Dir does IO {
-    has $!abspath;  # assumes we have a trailing slash *ALWAYS*
-    has @!parts;
-
-    my %nul = '..' => 1, '.' => 1, '' => 1;
+my class IO::Dir does IO::Local {
 
     submethod BUILD(:$!abspath,:$check) {
         if $check {   # should really be .resolve, but we don't have that yet
@@ -11,10 +7,6 @@ my class IO::Dir does IO {
             $!abspath = @!parts.join('/');
             fail "$!abspath is not a directory" unless FILETEST-D($!abspath);
         }
-    }
-
-    method !parts() {
-        @!parts = $!abspath.split('/') unless @!parts;
     }
 
     method child(IO::Dir:D: $child) {
@@ -30,44 +22,23 @@ my class IO::Dir does IO {
           !! self.new(:abspath( @!parts[0 .. *-($levels + 2)].join('/') ~ '/'));
     }
 
-    method chdir(IO::Dir:D: $path) {
-        self.new( MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
+    method chdir(IO::Dir:D: $path as Str, :$test = 'r') {
+        my $new := self.new( MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
+        $new // $new.throw;
+        my $result := $new.all($test);
+        $result // $result.throw;
+        $new;
     }
 
-    method open(IO::Dir:D: |c) {
-        fail (X::IO::Directory.new(:$!abspath, :trying<open>));
-    }
-    method pipe(IO::Dir:D: |c) {
-        fail (X::IO::Directory.new(:$!abspath, :trying<pipe>));
-    }
+    method rmdir(IO::Dir:D:) { REMOVE-DIR($!abspath) }
 
-    method volume(IO::Dir:D:)   { self!parts; @!parts[0] }
-    method dirname(IO::Dir:D:)  { self!parts; @!parts[1 .. *-2].join('/') }
-    method basename(IO::Dir:D:) { MAKE-BASENAME($!abspath.chop) }
-
-    method Numeric(IO::Dir:D:) { self.basename.Numeric }
-    method Bridge(IO::Dir:D:)  { self.basename.Bridge }
-    method Int(IO::Dir:D:)     { self.basename.Int }
-
-    method Str(IO::Dir:D:)  { $!abspath }
-    method gist(IO::Dir:D:) { qq|"$!abspath".IO| }
-    method perl(IO::Dir:D:) { "q|$!abspath|.IO" }
-
-    method succ(IO::Dir:D:) { my $p = $!abspath.chop; ++$p ~ '/' }
-    method pred(IO::Dir:D:) { my $p = $!abspath.chop; --$p ~ '/' }
-
-    method e(IO::Dir:D:)   { True }
-    method d(IO::Dir:D:)   { True }
-    method f(IO::Dir:D:)   { False }
-    method s(IO::Dir:D:)   { 0 }
-    method l(IO::Dir:D:)   { False }
-    method r(IO::Dir:D:)   { FILETEST-R(  $!abspath) }
-    method w(IO::Dir:D:)   { FILETEST-W(  $!abspath) }
-    method rw(IO::Dir:D:)  { FILETEST-RW( $!abspath) }
-    method x(IO::Dir:D:)   { FILETEST-X(  $!abspath) }
-    method rwx(IO::Dir:D:) { FILETEST-RWX($!abspath) }
-    method z(IO::Dir:D:)   { True }
-    method modified(IO::Dir:D:) { FILETEST-MODIFIED($!abspath) }
-    method accessed(IO::Dir:D:) { FILETEST-ACCESSED($!abspath) }
-    method changed(IO::Dir:D:)  { FILETEST-CHANGED( $!abspath) }
+    method basename(IO::Dir:D:)  { MAKE-BASENAME($!abspath.chop) }
+    method extension(IO::Dir:D:) { MAKE-EXT(MAKE-BASENAME($!abspath.chop))}
+    method succ(IO::Dir:D:) { $!abspath.chop.succ ~ '/' }
+    method pred(IO::Dir:D:) { $!abspath.chop.pred ~ '/' }
+    method d(IO::Dir:D:) { True }
+    method f(IO::Dir:D:) { False }
+    method s(IO::Dir:D:) { Nil }
+    method l(IO::Dir:D:) { False }
+    method z(IO::Dir:D:) { Nil }
 }

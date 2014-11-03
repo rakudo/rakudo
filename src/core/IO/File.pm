@@ -1,5 +1,5 @@
 # A class for file(path)s that we know exist
-my class IO::File does IO::Local {
+my class IO::File is Cool does IO::Local {
 
     submethod BUILD(:$!abspath) { }
 

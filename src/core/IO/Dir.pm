@@ -1,5 +1,5 @@
 # A class for directories that we know exist
-my class IO::Dir does IO::Local {
+my class IO::Dir is Cool does IO::Local {
 
     submethod BUILD(:$!abspath,:$check) {
         if $check {   # should really be .resolve, but we don't have that yet

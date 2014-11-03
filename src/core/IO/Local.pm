@@ -18,12 +18,12 @@ my role IO::Local {
     method !parts() { @!parts = $!abspath.split('/') unless @!parts }
     method volume(IO::Local:D:)    {
 #        self!parts;  # runtime failure
-        @!parts = $!abspath.split('/') unless @!parts;
+        @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
         @!parts[0];
     }
     method dirname(IO::Local:D:)   {
         #self!parts;  # runtime failure
-        @!parts = $!abspath.split('/') unless @!parts;
+        @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
         @!parts[1 .. *-2].join('/');
     }
     method basename(IO::Local:D:)  { MAKE-BASENAME($!abspath) }

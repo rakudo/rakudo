@@ -150,7 +150,7 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
 $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC)
-	$(M_RUN_PERL6) --target=mbc --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
+	$(M_RUN_PERL6) --target=mbc --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
 $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 	$(RM_F) $(M_RUNNER)

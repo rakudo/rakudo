@@ -32,6 +32,10 @@ my class IO::Dir is Cool does IO::Local {
 
     method rmdir(IO::Dir:D:) { REMOVE-DIR($!abspath) }
 
+    method dirname(IO::Local:D:)   {
+        self!parts;
+        '/' ~ @!parts[1 .. *-3].join('/');
+    }
     method basename(IO::Dir:D:)  { MAKE-BASENAME($!abspath.chop) }
     method extension(IO::Dir:D:) { MAKE-EXT(MAKE-BASENAME($!abspath.chop))}
     method succ(IO::Dir:D:) { $!abspath.chop.succ ~ '/' }

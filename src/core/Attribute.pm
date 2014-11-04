@@ -15,8 +15,8 @@ my class Attribute { # declared in BOOTSTRAP
     method compose(Mu $package) {
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {
-            my $name      := self.name;
-            my $meth_name := nqp::substr(nqp::unbox_s($name), 2);
+            my str $name   = nqp::unbox_s(self.name);
+            my $meth_name := nqp::substr($name, 2);
             unless $package.HOW.declares_method($package, $meth_name) {
                 my $dcpkg := nqp::decont($package);
                 my $meth;
@@ -28,7 +28,7 @@ my class Attribute { # declared in BOOTSTRAP
                             nqp::getattr(
                                 nqp::decont($self),
                                 $dcpkg,
-                                nqp::unbox_s($name))
+                                $name)
                         }
                         !!
                         nqp::die("Cannot create rw-accessors for natively typed attribute '$name'");
@@ -40,7 +40,7 @@ my class Attribute { # declared in BOOTSTRAP
                             nqp::getattr(
                                 nqp::decont($self),
                                 $dcpkg,
-                                nqp::unbox_s($name))
+                                $name)
                         }
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 1))
@@ -50,7 +50,7 @@ my class Attribute { # declared in BOOTSTRAP
                                 nqp::getattr_i(
                                     nqp::decont($self),
                                     $dcpkg,
-                                    nqp::unbox_s($name))
+                                    $name)
                             );
                         }
                         !!
@@ -61,7 +61,7 @@ my class Attribute { # declared in BOOTSTRAP
                                 nqp::getattr_n(
                                     nqp::decont($self),
                                     $dcpkg,
-                                    nqp::unbox_s($name))
+                                    $name)
                             );
                         }
                         !!
@@ -70,7 +70,7 @@ my class Attribute { # declared in BOOTSTRAP
                                 nqp::getattr_s(
                                     nqp::decont($self),
                                     $dcpkg,
-                                    nqp::unbox_s($name))
+                                    $name)
                             );
                         }
 

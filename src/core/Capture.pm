@@ -26,15 +26,25 @@ my class Capture { # declared in BOOTSTRAP
         $WHICH;
     }
 
-    method at_key(Capture:D: $key is copy) {
+    multi method at_key(Capture:D: $key is copy) {
         $key = $key.Str;
         nqp::existskey($!hash, nqp::unbox_s($key))
           ?? nqp::atkey($!hash, nqp::unbox_s($key))
           !! Any
     }
+    multi method at_key(Capture:D: Str $key) {
+        nqp::existskey($!hash, nqp::unbox_s($key))
+          ?? nqp::atkey($!hash, nqp::unbox_s($key))
+          !! Any
+    }
 
-    method at_pos(Capture:D: $pos is copy) {
+    multi method at_pos(Capture:D: $pos is copy) {
         $pos = $pos.Int;
+        nqp::existspos($!list, nqp::unbox_i($pos))
+          ?? nqp::atpos($!list, nqp::unbox_i($pos))
+          !! Any
+    }
+    multi method at_pos(Capture:D: Int $pos) {
         nqp::existspos($!list, nqp::unbox_i($pos))
           ?? nqp::atpos($!list, nqp::unbox_i($pos))
           !! Any

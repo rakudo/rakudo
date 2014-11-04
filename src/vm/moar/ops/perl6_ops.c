@@ -188,19 +188,28 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
 
 /* Boxing to Perl 6 types. */
 static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins, MVMObject *type) {
-    MVMSpeshFacts *tfacts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[0]);
+    MVMSpeshFacts *tfacts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE | MVM_SPESH_FACT_DECONTED;
     tfacts->type   = type;
 }
 
 static void p6box_i_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Int);
+#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
+    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
+#endif
 }
 static void p6box_n_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Num);
+#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
+    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
+#endif
 }
 static void p6box_s_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Str);
+#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
+    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
+#endif
 }
 static void p6parcel_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, Parcel);

@@ -324,7 +324,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
                 last;
             }
             take nqp::box_s(nqp::concat($abspath_s,$elem_s),Str)
-              if nqp::ordfirst($elem_s) != 46;  # fast /^\/.
+              if nqp::isne_s($elem_s,'.') && nqp::isne_s($elem_s,'..');
         } }
     }
 }
@@ -361,8 +361,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
                     nqp::closedir($dirh);
                     last;
                 }
-                my $elem = nqp::box_s($elem_s,Str);
-                take $elem if MAKE-BASENAME($elem).ord != 46;  # fast /^\./
+                take nqp::box_s($elem_s,Str);
             }
         }
     }
@@ -395,7 +394,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
               nqp::atpos_s($RSA, $i),
               pir::find_encoding__Is('utf8'));
             take nqp::box_s(nqp::concat($abspath_s,$elem_s),Str)
-              if nqp::ordfirst($elem_s) != 46;  # fast /^\/.
+              if nqp::isne_s($elem_s,'.') && nqp::isne_s($elem_s,'..');
         }
     }
 }

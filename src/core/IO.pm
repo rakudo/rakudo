@@ -92,6 +92,17 @@ sub REMOVE-ROOT(Str $r, Str $p) {
     $i ?? nqp::box_s(nqp::substr($path,$i),Str) !! $p;
 }
 
+sub CHANGE-DIRECTORY($path,$base,&test) {
+
+    my $abspath = MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($path,$base)).join('/');
+    FILETEST-E($abspath) && FILETEST-D($abspath) && test($abspath)
+      ?? IO::Path.new-from-absolute-path($abspath.chop)
+      !! fail X::IO::Chdir.new(
+           :$path,
+           :os-error( "does not exist, is not a dir or no access" ),
+         );
+}
+
 sub COPY-FILE(Str $from, Str $to, :$createonly) {
     if $createonly and FILETEST-E($to) {
         fail X::IO::Copy.new(

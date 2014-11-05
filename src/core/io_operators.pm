@@ -135,21 +135,20 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir($path as Str, :$test = 'r') {
+sub chdir($path as Str) {
 
     if $*CWD !~~ IO::Path {   # canary until 2014.10
         warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
         $*CWD = $*CWD.IO;
     }
 
-    my $newCWD := $*CWD.chdir($path,:$test);
+    my $newCWD = CHANGE-DIRECTORY($path,$*CWD ~ '/',&FILETEST-X);
     $newCWD // $newCWD.throw;
-
     $*CWD = $newCWD;
 }
 
 sub indir($path as Str, $what, :$test = <r w>) {
-    my $newCWD := $*CWD.chdir($path,:$test);
+    my $newCWD := CHANGE-DIRECTORY($path,$*CWD ~ '/',&FILETEST-RWX);
     $newCWD // $newCWD.throw;
     
     {
@@ -158,17 +157,15 @@ sub indir($path as Str, $what, :$test = <r w>) {
     }
 }
 
-sub tmpdir($path as Str, :$test = <r w x>) {
-    my $newTMPDIR := $*TMPDIR.chdir($path,:$test);
+sub tmpdir($path as Str) {
+    my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR ~ '/',&FILETEST-RWX);
     $newTMPDIR // $newTMPDIR.throw;
-
     $*TMPDIR = $newTMPDIR;
 }
 
 sub homedir($path as Str, :$test = <r w x>) {
-    my $newHOME := $*HOME.chdir($path,:$test);
+    my $newHOME := CHANGE-DIRECTORY($path,$*HOME ~ '/',&FILETEST-RWX);
     $newHOME // $newHOME.throw;
-
     $*HOME = $newHOME;
 }
 

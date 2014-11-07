@@ -248,8 +248,9 @@ $(PERL6_P_JAR): src/Perl6/Pod.nqp
 	    src/Perl6/Pod.nqp
 
 $(PERL6_A_JAR): src/Perl6/Actions.nqp $(PERL6_P_JAR) $(PERL6_OPS_JAR)
+	$(J_NQP) $(J_GEN_CAT) src/Perl6/Actions.nqp > $(J_BUILD_DIR)/Perl6-Actions.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_A_JAR) --encoding=utf8 \
-	    src/Perl6/Actions.nqp
+	    $(J_BUILD_DIR)/Perl6-Actions.nqp
 
 $(PERL6_G_JAR): src/Perl6/Grammar.nqp $(PERL6_W_JAR) $(PERL6_A_JAR) $(PERL6_P_JAR)
 	$(J_NQP) --target=jar --output=$(PERL6_G_JAR) --encoding=utf8 \

@@ -401,8 +401,9 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.nqp $
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
 $(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_PBC) $(PERL6_OPS_PBC)
+	$(NQP_EXE) $(P_GEN_CAT) src/Perl6/Actions.nqp > $(P_BUILD_DIR)/Perl6-Actions.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
-	    src/Perl6/Actions.nqp
+	    $(P_BUILD_DIR)/Perl6-Actions.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
 $(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_OPS_PBC) src/Perl6/Optimizer.nqp

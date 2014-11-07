@@ -99,7 +99,7 @@ multi sub close($fh) {
 proto sub slurp(|) { * }
 multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
     DEPRECATED('slurp($path,...)',|<2014.10 2015.10>,:what<slurp($handle,...)>);
-    my $result := $io.slurp(:$bin, :$enc, :nodepr, |c);
+    my $result := $io.slurp-rest(:$bin, :$enc, |c);
     $result // $result.throw;
 }
 multi sub slurp($path, :$bin = False, :$enc = 'utf8', |c) {
@@ -150,7 +150,7 @@ sub chdir($path as Str) {
 sub indir($path as Str, $what, :$test = <r w>) {
     my $newCWD := CHANGE-DIRECTORY($path,$*CWD ~ '/',&FILETEST-RWX);
     $newCWD // $newCWD.throw;
-    
+
     {
         my $*CWD = $newCWD;  # temp doesn't work in core settings :-(
         $what();
@@ -244,6 +244,6 @@ sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
 sub cwd() {
     DEPRECATED('$*CWD', |<2014.10 2015.10>);
     $*CWD;
-} 
+}
 
 # vim: ft=perl6 expandtab sw=4

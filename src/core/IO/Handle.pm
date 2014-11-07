@@ -135,7 +135,7 @@ my class IO::Handle does IO {
         $!ins = $!ins + 1;
         $x;
     }
-    
+
     method getc(IO::Handle:D:) {
         my $c = nqp::p6box_s(nqp::getcfh($!PIO));
         fail if $c eq '';
@@ -479,10 +479,13 @@ my class IO::Handle does IO {
         self.print: nqp::shift($args).gist while $args;
         self.print: "\n";
     }
-    
-    method slurp(IO::Handle:D: :$bin, :$enc, :$nodepr) {
-        DEPRECATED("IO::Path.slurp", |<2014.10 2015.10>) unless $nodepr;
 
+    method slurp(IO::Handle:D: |c) {
+        DEPRECATED('$handle.slurp-rest', |<2014.10 2015.10>);
+        self.slurp-rest(|c);
+    }
+
+    method slurp-rest(IO::Handle:D: :$bin, :$enc) {
         if $bin {
             my $Buf := buf8.new();
             loop {
@@ -496,7 +499,7 @@ my class IO::Handle does IO {
         else {
             self.encoding($enc) if $enc.defined;
             nqp::p6box_s(nqp::readallfh($!PIO));
-        } 
+        }
     }
 
     proto method spurt(|) { * }
@@ -504,7 +507,7 @@ my class IO::Handle does IO {
         DEPRECATED("IO::Path.spurt", |<2014.10 2015.10>) unless $nodepr;
         self.print($contents);
     }
-    
+
     multi method spurt(IO::Handle:D: Blob $contents, :$nodepr) {
         DEPRECATED("IO::Path.spurt", |<2014.10 2015.10>) unless $nodepr;
         self.write($contents);

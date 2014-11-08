@@ -25,7 +25,8 @@ compiled code.
   -v, --version        display version information
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
-  --profile            print profile information to standard error
+  --profile            print profile information to standard error (Parrot)
+                       write profile information as HTML file (MoarVM)
 
 Note that only boolean single-letter options may be bundled
 

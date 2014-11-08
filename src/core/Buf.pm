@@ -60,7 +60,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
-    multi method Stringy(Blob:D:) { self }
+    multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
 
     method Numeric(Blob:D:) { self.elems }
     method Int(Blob:D:)     { self.elems }
@@ -225,6 +225,7 @@ my class utf8 does Blob[uint8] is repr('VMArray') {
     }
     method encoding() { 'utf-8' }
     multi method Str(utf8:D:) { self.decode }
+    multi method Stringy(utf8:D:) { self.decode }
 }
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
@@ -236,6 +237,7 @@ my class utf16 does Blob[uint16] is repr('VMArray') {
     }
     method encoding() { 'utf-16' }
     multi method Str(utf16:D:) { self.decode }
+    multi method Stringy(utf16:D:) { self.decode }
 }
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
@@ -247,6 +249,7 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
     }
     method encoding() { 'utf-32' }
     multi method Str(utf32:D:) { self.decode }
+    multi method Stringy(utf32:D:) { self.decode }
 }
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {

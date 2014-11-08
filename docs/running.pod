@@ -29,7 +29,7 @@ compiled code.
 
 Note that only boolean single-letter options may be bundled
 
-Output from C<--profile> can be visualized by C<kcachegrind>.
+Output from C<--profile> can be visualized by C<kcachegrind> for the Parrot backend.
 
 Supported stages for --target are:
 

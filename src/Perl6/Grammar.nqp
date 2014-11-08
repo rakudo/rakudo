@@ -3093,10 +3093,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $pos := $/.CURSOR.pos }
         <args(1)>
         {
-            self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1));
-            if nqp::ishash($*BORG) && $*BORG<block> {
-                unless $*BORG<name> {
-                    $*BORG<name> := ~$<identifier>;
+            if !$<args><invocant> {
+                self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1));
+                if nqp::ishash($*BORG) && $*BORG<block> {
+                    unless $*BORG<name> {
+                        $*BORG<name> := ~$<identifier>;
+                    }
                 }
             }
         }

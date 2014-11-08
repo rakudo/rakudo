@@ -4099,17 +4099,29 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method methodop($/) {
         my $past := $<args> ?? $<args>.ast !! QAST::Op.new( :node($/) );
         $past.op('callmethod');
+        my $name;
         if $<longname> {
             # May just be .foo, but could also be .Foo::bar. Also handle the
             # macro-ish cases.
             my @parts := $*W.dissect_longname($<longname>).components();
-            my $name := @parts.pop;
+            $name := @parts.pop;
             if +@parts {
                 $past.unshift($*W.symbol_lookup(@parts, $/));
                 $past.unshift($*W.add_string_constant($name));
                 $past.name('dispatch:<::>');
+                make $past;
+                return;
             }
-            elsif $name eq 'WHAT' {
+        }
+        elsif $<identifier> {
+            $name := ~$<identifier>;
+        }
+        else {
+            $name := '';
+        }
+
+        if $name ne '' {
+            if $name eq 'WHAT' {
                 whine_if_args($/, $past, $name);
                 $past.op('what');
             }
@@ -4268,6 +4280,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 return @argument_asts;
             });
+        }
+        elsif $<args><invocant> {
+            my $past := self.methodop($/);       # invocant was already removed from args
+            $past.unshift($<args><invocant>); # (and was stored here)
+            # say($past.dump);
+            $past.node($/);
+            make $past;
         }
         else {
             my $past := capture_or_parcel($<args>.ast, ~$<identifier>);

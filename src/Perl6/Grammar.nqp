@@ -946,6 +946,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*BORG;                                # who gets blamed for a missing block
         :my $*CCSTATE := '';
         :my $*STRICT;
+        :my $*INVOCANT_OK := 0;
+        :my $*INVOCANT;
         
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -3089,9 +3091,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $pos;
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <![:]>
         { $pos := $/.CURSOR.pos }
-        <args>
-        { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
+        <args(1)>
         {
+            self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1));
             if nqp::ishash($*BORG) && $*BORG<block> {
                 unless $*BORG<name> {
                     $*BORG<name> := ~$<identifier>;
@@ -3137,33 +3139,36 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <?{ $*W.is_type($*longname.components()) }>
                 <?[[]> :dba('type parameter') '[' ~ ']' <arglist>
             ]?
-        || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
-                        unless nqp::index($<longname>.Str, '::') >= 0 }
-           {
-                my $name := ~$<longname>;
-                if nqp::ishash($*BORG) && $*BORG<block> {
-                    unless $*BORG<name> {
-                        $*BORG<name> := $*BORG<name> // $name;
-                    }
-                }
-                if %deftrap{$name} {
-                    my $al := $<args><arglist>;
-                    my int $ok := 0;
-                    $ok := 1 unless $al<EXPR> eq '';
-                    $ok := 1 if $<args><semiarglist>;
-                    unless $ok {
-                        my $trap := %deftrap{$name};
-                        $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
-                            if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
-                        if $trap == 1 {        # probably misused P5ism
-                            $<longname>.CURSOR.sorryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
-                        }
-                        elsif $trap == 2 {        # probably misused P6ism
-                            $<longname>.CURSOR.sorry("The '$name' listop may not be called without arguments (please use () or whitespace to clarify)");
+        || <args(1)>
+            {
+                if !$<args><invocant> {
+                    self.add_mystery($<longname>, $<args>.from, 'termish')
+                                unless nqp::index($<longname>.Str, '::') >= 0;
+                    my $name := ~$<longname>;
+                    if nqp::ishash($*BORG) && $*BORG<block> {
+                        unless $*BORG<name> {
+                            $*BORG<name> := $*BORG<name> // $name;
                         }
                     }
+                    if %deftrap{$name} {
+                        my $al := $<args><arglist>;
+                        my int $ok := 0;
+                        $ok := 1 unless $al<EXPR> eq '';
+                        $ok := 1 if $<args><semiarglist>;
+                        unless $ok {
+                            my $trap := %deftrap{$name};
+                            $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
+                                if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
+                            if $trap == 1 {        # probably misused P5ism
+                                $<longname>.CURSOR.sorryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
+                            }
+                            elsif $trap == 2 {        # probably misused P6ism
+                                $<longname>.CURSOR.sorry("The '$name' listop may not be called without arguments (please use () or whitespace to clarify)");
+                            }
+                        }
+                    }
                 }
-           }
+            }
         ]
     }
 
@@ -3176,7 +3181,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?{ $*IN_PROTO }> || <.panic: '{*} may only appear in proto'> ]
     }
 
-    token args {
+    token args($*INVOCANT_OK = 0) {
+        :my $*INVOCANT;
         :my $*GOAL := '';
         :my $*FAKE_INFIX_FOUND := 0;
         :dba('argument list')
@@ -4036,6 +4042,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? <sym> <O('%comma, :fiddly<0>')>
         # TODO: should be <.worry>, not <.panic>
         [ <?before \h*'...'> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
+        { $*INVOCANT_OK := 0 }
+    }
+    token infix:sym<:>    {
+        <.unsp>? <sym> <?before \s | <.terminator> >
+        <O('%comma, :fiddly<0>')>
+        [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
+        { $*INVOCANT_OK := 0; }
     }
 
     token infix:sym<Z>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }

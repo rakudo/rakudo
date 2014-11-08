@@ -4326,6 +4326,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $past := self.make_indirect_lookup($*longname.components())
         }
+        elsif $<args><invocant> {
+            $past := self.methodop($/);       # invocant was already removed from args
+            $past.unshift($<args><invocant>); # (and was stored here)
+            # say($past.dump);
+        }
         elsif $<args> {
             # If we have args, it's a call. Look it up dynamically
             # and make the call.
@@ -4512,6 +4517,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $past := QAST::Op.new( :op('call'), :node($/) );
         }
+        $/<invocant> := $*INVOCANT if $*INVOCANT;
         make $past;
     }
 
@@ -4571,9 +4577,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Make first pass over arguments, finding any duplicate named
             # arguments.
             my $expr := $<EXPR>.ast;
-            my @args := nqp::istype($expr, QAST::Op) && $expr.name eq '&infix:<,>'
-                ?? $expr.list
-                !! [$expr];
+            my @args;
+            if nqp::istype($expr, QAST::Op) {
+                if $expr.name eq '&infix:<,>' {
+                    @args := $expr.list;
+                }
+                elsif $expr.name eq '&infix:<:>' {
+                    $*INVOCANT := $expr.list[0];
+                    my $expr2 := $expr.list[1];
+                    if $expr2 {
+                        if nqp::istype($expr2, QAST::Op) && $expr2.name eq '&infix:<,>' {
+                            @args := $expr2.list;
+                        }
+                        else {
+                            @args := [$expr2];
+                        }
+                    }
+                }
+                else {
+                    @args := [$expr];
+                }
+            }
+            else {
+                @args := [$expr];
+            }
+
             # but first, look for any chained adverb pairs
             my $*WAS_SKIPPED := 0;
             try {

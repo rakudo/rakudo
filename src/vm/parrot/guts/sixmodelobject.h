@@ -383,7 +383,7 @@ struct SixModel_REPROps {
     INTVAL (*elems) (PARROT_INTERP, STable *st, void *data);
     
     /* Gets the storage specification for this representation. */
-    storage_spec (*get_storage_spec) (PARROT_INTERP, STable *st);
+    void (*get_storage_spec) (PARROT_INTERP, STable *st, storage_spec *spec);
     
     /* Handles an object changing its type. The representation is responsible
      * for doing any changes to the underlying data structure, and may reject

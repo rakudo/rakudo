@@ -32,6 +32,7 @@ static PMC *build_sig_object(PARROT_INTERP, ARGIN_NULLOK(PMC *signature), ARGIN(
 {
     PMC *sig_obj;
     va_list args;
+    UNUSED(signature);
 
     va_start(args, sig);
     /* sigh, Parrot_pcc_build_sig_object_from_varargs does not have a signature arg */
@@ -970,7 +971,8 @@ inline op perl6_type_check_return_value(invar PMC, invar PMC) :base_core {
         if (!STABLE(decont_value)->type_check(interp, decont_value, rtype)) {
             /* Straight type check failed, but it's possible we're returning
              * an Int that can unbox into an int or similar. */
-            storage_spec spec = REPR(rtype)->get_storage_spec(interp, STABLE(rtype));
+            storage_spec spec;
+            REPR(rtype)->get_storage_spec(interp, STABLE(rtype), &spec);
             if (!spec.inlineable ||
                 !STABLE(rtype)->type_check(interp, rtype, STABLE(decont_value)->WHAT)) {
                 PMC * const thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Return");

@@ -106,6 +106,8 @@ create_box(PARROT_INTERP, Rakudo_BindVal bv) {
         case BIND_VAL_STR:
             REPR(boxed)->box_funcs->set_str(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.s);
             break;
+        default:
+            break;
     }
     return boxed;
 }
@@ -303,6 +305,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 
 /* Returns an appropriate failure mode (junction fail or normal fail). */
 static INTVAL junc_or_fail(PARROT_INTERP, PMC *value) {
+    UNUSED(interp);
     if (value->vtable->base_type == smo_id && STABLE(value)->WHAT == Rakudo_types_junction_get())
         return BIND_RESULT_JUNCTION;
     else
@@ -319,6 +322,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     PMC            *decont_value = NULL;
     INTVAL          desired_native;
     Rakudo_BindVal  bv;
+    UNUSED(signature);
     
     /* Check if boxed/unboxed expections are met. */
     desired_native = param->flags & SIG_ELEM_NATIVE_VALUE;
@@ -338,7 +342,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     else if (orig_bv.val.o->vtable->base_type == smo_id) {
         storage_spec spec;
         decont_value = Rakudo_cont_decontainerize(interp, orig_bv.val.o);
-        spec = REPR(decont_value)->get_storage_spec(interp, STABLE(decont_value));
+        REPR(decont_value)->get_storage_spec(interp, STABLE(decont_value), &spec);
         switch (desired_native) {
             case SIG_ELEM_NATIVE_INT_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_INT) {
@@ -561,6 +565,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 case BIND_VAL_STR:
                     VTABLE_set_string_keyed_str(interp, lexpad, param->variable_name, bv.val.s);
                     break;
+                default:
+                    break;
             }
         }
         
@@ -644,6 +650,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 case BIND_VAL_STR:
                     VTABLE_push_string(interp, cappy, bv.val.s);
                     break;
+                default:
+                    break;
             }
             Parrot_pcc_invoke_from_sig_object(interp, accepts_meth, cappy);
             cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
@@ -713,6 +721,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
 static PMC *
 Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexpad) {
     PMC *cur_lex;
+    UNUSED(lexpad);
 
     /* Is the "get default from outer" flag set? */
     if (param->flags & SIG_ELEM_DEFAULT_FROM_OUTER) {
@@ -753,33 +762,31 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
 
 
 /* Extracts bind value information for a positional parameter. */
-static Rakudo_BindVal
-get_positional_bind_val(PARROT_INTERP, struct Pcc_cell *pc_positionals, PMC *capture, INTVAL cur_pos_arg) {
-    Rakudo_BindVal cur_bv;
+static void
+get_positional_bind_val(PARROT_INTERP, struct Pcc_cell *pc_positionals, PMC *capture, INTVAL cur_pos_arg, Rakudo_BindVal *cur_bv) {
     if (pc_positionals) {
         switch (pc_positionals[cur_pos_arg].type) {
             case BIND_VAL_INT:
-                cur_bv.type = BIND_VAL_INT;
-                cur_bv.val.i = pc_positionals[cur_pos_arg].u.i;
+                cur_bv->type = BIND_VAL_INT;
+                cur_bv->val.i = pc_positionals[cur_pos_arg].u.i;
                 break;
             case BIND_VAL_NUM:
-                cur_bv.type = BIND_VAL_NUM;
-                cur_bv.val.n = pc_positionals[cur_pos_arg].u.n;
+                cur_bv->type = BIND_VAL_NUM;
+                cur_bv->val.n = pc_positionals[cur_pos_arg].u.n;
                 break;
             case BIND_VAL_STR:
-                cur_bv.type = BIND_VAL_STR;
-                cur_bv.val.s = pc_positionals[cur_pos_arg].u.s;
+                cur_bv->type = BIND_VAL_STR;
+                cur_bv->val.s = pc_positionals[cur_pos_arg].u.s;
                 break;
             default:
-                cur_bv.type = BIND_VAL_OBJ;
-                cur_bv.val.o = pc_positionals[cur_pos_arg].u.p;
+                cur_bv->type = BIND_VAL_OBJ;
+                cur_bv->val.o = pc_positionals[cur_pos_arg].u.p;
         }
     }
     else {
-        cur_bv.type = BIND_VAL_OBJ;
-        cur_bv.val.o = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
+        cur_bv->type = BIND_VAL_OBJ;
+        cur_bv->val.o = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
     }
-    return cur_bv;
 }
 
 
@@ -880,7 +887,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 VTABLE_set_attr_keyed(interp, capsnap, captype, LIST_str, pos_args);
                 VTABLE_set_attr_keyed(interp, capsnap, captype, HASH_str, named_args);
                 for (k = cur_pos_arg; k < num_pos_args; k++) {
-                    cur_bv = get_positional_bind_val(interp, pc_positionals, capture, k);
+                    get_positional_bind_val(interp, pc_positionals, capture, k, &cur_bv);
                     VTABLE_push_pmc(interp, pos_args, cur_bv.type == BIND_VAL_OBJ ?
                         cur_bv.val.o :
                         create_box(interp, cur_bv));
@@ -944,7 +951,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                  * store it. */
                 PMC *temp = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
                 while (cur_pos_arg < num_pos_args) {
-                    cur_bv = get_positional_bind_val(interp, pc_positionals, capture, cur_pos_arg);
+                    get_positional_bind_val(interp, pc_positionals, capture, cur_pos_arg, &cur_bv);
                     VTABLE_push_pmc(interp, temp, cur_bv.type == BIND_VAL_OBJ ?
                         cur_bv.val.o :
                         create_box(interp, cur_bv));
@@ -967,7 +974,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 /* Do we have a value?. */
                 if (cur_pos_arg < num_pos_args) {
                     /* Easy - just bind that. */
-                    cur_bv = get_positional_bind_val(interp, pc_positionals, capture, cur_pos_arg);
+                    get_positional_bind_val(interp, pc_positionals, capture, cur_pos_arg, &cur_bv);
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
                             cur_bv, no_nom_type_check, error);
                     if (bind_fail)
@@ -1144,7 +1151,8 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
                     /* We got an object; if we aren't sure we can unbox, we can't
                     * be sure about the dispatch. */
                     PMC *arg = pc_positionals[cur_pos_arg].u.p;
-                    storage_spec spec = REPR(arg)->get_storage_spec(interp, STABLE(arg));
+                    storage_spec spec;
+                    REPR(arg)->get_storage_spec(interp, STABLE(arg), &spec);
                     switch (param->flags & SIG_ELEM_NATIVE_VALUE) {
                         case SIG_ELEM_NATIVE_INT_VALUE:
                             if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_INT))

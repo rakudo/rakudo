@@ -25,6 +25,7 @@ static STRING * type_name(PARROT_INTERP, PMC *obj) {
 }
 
 static PMC * rakudo_scalar_fetch(PARROT_INTERP, PMC *cont) {
+    UNUSED(interp);
     return ((Rakudo_Scalar *)PMC_data(cont))->value;
 }
 
@@ -90,37 +91,51 @@ static void rakudo_scalar_store_unchecked(PARROT_INTERP, PMC *cont, PMC *value) 
 }
 
 static void rakudo_scalar_gc_mark_data(PARROT_INTERP, STable *st) {
+    UNUSED(interp);
+    UNUSED(st);
     /* No data to mark. */
 }
 
 static void rakudo_scalar_gc_free_data(PARROT_INTERP, STable *st) {
+    UNUSED(interp);
+    UNUSED(st);
     /* No data to free. */
 }
 
 static void rakudo_scalar_serialize(PARROT_INTERP, STable *st, SerializationWriter *writer) {
+    UNUSED(interp);
+    UNUSED(st);
+    UNUSED(writer);
     /* No data to serialize. */
 }
     
 static void rakudo_scalar_deserialize(PARROT_INTERP, STable *st, SerializationReader *reader) {
+    UNUSED(interp);
+    UNUSED(st);
+    UNUSED(reader);
     /* No data to deserialize. */
 }
 
 static ContainerSpec *rakudo_scalar_spec = NULL;
 
 static void rakudo_scalar_set_container_spec(PARROT_INTERP, STable *st) {
+    UNUSED(interp);
     st->container_data = NULL;
     st->container_spec = rakudo_scalar_spec;
 }
     
 static void rakudo_scalar_configure_container_spec(PARROT_INTERP, STable *st, PMC *config) {
+    UNUSED(interp);
+    UNUSED(st);
+    UNUSED(config);
     /* Nothing to configure here. */
 }
 
 /* Sets up the container specification for Rakudo's container handling. */
 void Rakudo_cont_register(PARROT_INTERP) {
-    ContainerConfigurer *cc = mem_sys_allocate(sizeof(ContainerConfigurer));
+    ContainerConfigurer *cc = (ContainerConfigurer *)mem_sys_allocate(sizeof(ContainerConfigurer));
     
-    rakudo_scalar_spec = mem_sys_allocate(sizeof(ContainerSpec));
+    rakudo_scalar_spec = (ContainerSpec *)mem_sys_allocate(sizeof(ContainerSpec));
     rakudo_scalar_spec->name = Parrot_str_new_constant(interp, "rakudo_scalar");
     rakudo_scalar_spec->fetch = rakudo_scalar_fetch;
     rakudo_scalar_spec->store = rakudo_scalar_store;
@@ -184,6 +199,7 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
 
 /* Checks if the thing we have is a rw scalar. */
 INTVAL Rakudo_cont_is_rw_scalar(PARROT_INTERP, PMC *check) {
+    UNUSED(interp);
     if (IS_CONCRETE(check) && STABLE(check)->WHAT == scalar_type) {
         Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(check);
         if (!PMC_IS_NULL(scalar->descriptor))

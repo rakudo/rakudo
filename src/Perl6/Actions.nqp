@@ -3314,6 +3314,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # scoped &postfix:<++> or so.
         my $cur_value := nqp::box_i(-1, $*W.find_symbol(['Int']));
         my @redecl;
+        my $block := $*W.cur_lexpad();
         for @values {
             # If it's a pair, take that as the value; also find
             # key.
@@ -3362,9 +3363,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $cur_key    := nqp::unbox_s($cur_key);
             $*W.install_package_symbol($type_obj, $cur_key, $val_obj);
             if $*SCOPE ne 'anon' {
-                if $*W.is_lexical($cur_key) {
+                if $block.symbol($cur_key) {
                     nqp::push(@redecl, $cur_key);
-                    $*W.install_lexical_symbol($*W.cur_lexpad(), $cur_key,
+                    $*W.install_lexical_symbol($block, $cur_key,
                         $*W.find_symbol(['Failure']).new(
                             $*W.find_symbol(['X', 'PoisonedAlias']).new(
                                 :alias($cur_key), :package-type<enum>, :package-name($name)
@@ -3373,7 +3374,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
                 else {
-                    $*W.install_lexical_symbol($*W.cur_lexpad(), $cur_key, $val_obj);
+                    $*W.install_lexical_symbol($block, $cur_key, $val_obj);
                 }
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
@@ -3398,7 +3399,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
 
         $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
-            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
+            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $block, $type_obj);
 
         # Document it
         Perl6::Pod::document($/, $type_obj, $*POD_BLOCK, :leading);

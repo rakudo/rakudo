@@ -139,7 +139,7 @@ END
         last if %config;
     }
     unlink('parrot-config.pir');
-    $config{'parrot::ops2c'} = 'ops2c' unless exists $config{'parrot::ops2c'};
+    $config{'parrot::ops2c'} ||= 'ops2c';
     return %config;
 }
 

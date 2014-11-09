@@ -3313,6 +3313,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # XXX Should not assume integers, and should use lexically
         # scoped &postfix:<++> or so.
         my $cur_value := nqp::box_i(-1, $*W.find_symbol(['Int']));
+        my @redecl;
         for @values {
             # If it's a pair, take that as the value; also find
             # key.
@@ -3358,14 +3359,41 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Create and install value.
             my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value);
-            $*W.install_package_symbol($type_obj, nqp::unbox_s($cur_key), $val_obj);
+            $cur_key    := nqp::unbox_s($cur_key);
+            $*W.install_package_symbol($type_obj, $cur_key, $val_obj);
             if $*SCOPE ne 'anon' {
-                $*W.install_lexical_symbol($*W.cur_lexpad(), nqp::unbox_s($cur_key), $val_obj);
+                if $*W.is_lexical($cur_key) {
+                    nqp::push(@redecl, $cur_key);
+                    $*W.install_lexical_symbol($*W.cur_lexpad(), $cur_key,
+                        $*W.find_symbol(['Failure']).new(
+                            $*W.find_symbol(['X', 'PoisonedAlias']).new(
+                                :alias($cur_key), :package-type<enum>, :package-name($name)
+                            )
+                        )
+                    );
+                }
+                else {
+                    $*W.install_lexical_symbol($*W.cur_lexpad(), $cur_key, $val_obj);
+                }
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*W.install_package_symbol($*PACKAGE, nqp::unbox_s($cur_key), $val_obj);
+                $*W.install_package_symbol($*PACKAGE, $cur_key, $val_obj);
             }
         }
+
+        if +@redecl -> $amount {
+            if $amount > 2 {
+                @redecl[$amount - 2] := @redecl[$amount - 2] ~ ' and ' ~ nqp::pop(@redecl);
+                $/.CURSOR.typed_worry('X::Redeclaration', symbol => nqp::join(', ', @redecl));
+            }
+            elsif $amount > 1 {
+                $/.CURSOR.typed_worry('X::Redeclaration', symbol => nqp::join(' and ', @redecl));
+            }
+            else {
+                $/.CURSOR.typed_worry('X::Redeclaration', symbol => @redecl[0]);
+            }
+        }
+
         # create a type object even for empty enums
         make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
 

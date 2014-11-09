@@ -7,11 +7,11 @@ my class Block { # declared in BOOTSTRAP
             nqp::bindattr(self, Block, '$!phasers', nqp::hash());
         nqp::existskey($!phasers, nqp::unbox_s($name)) ||
             nqp::bindkey($!phasers, nqp::unbox_s($name), nqp::list());
-        if $name eq any(<LEAVE KEEP UNDO>) {
+        if $name eq 'LEAVE' | 'KEEP' | 'UNDO') {
             nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
             self.add_phaser('!LEAVE-ORDER', &block);
         }
-        elsif $name eq any(<NEXT !LEAVE-ORDER POST>) {
+        elsif $name eq 'NEXT' | '!LEAVE-ORDER' | 'POST') {
             nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
         }
         else {

@@ -27,11 +27,11 @@ sub DYNAMIC(\name) is rw {
     my Mu \x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull(x) {
         my str $pkgname = nqp::replace(nqp::unbox_s(name), 1, 1, '');
-        if nqp::existskey(GLOBAL.WHO, $pkgname) {
-            x := nqp::atkey(GLOBAL.WHO, $pkgname);
+        if nqp::existskey((my \globalwho := GLOBAL.WHO), $pkgname) {
+            x := nqp::atkey(globalwho, $pkgname);
         }
-        elsif nqp::existskey(PROCESS.WHO, $pkgname) {
-            x := nqp::atkey(PROCESS.WHO, $pkgname);
+        elsif nqp::existskey((my \processwho := PROCESS.WHO), $pkgname) {
+            x := nqp::atkey(processwho, $pkgname);
         }
         else {
 #my $last = now;

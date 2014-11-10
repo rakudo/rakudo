@@ -3452,7 +3452,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <rx_adverbs>
         <sibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['qq'])>
-        <.old_rx_mods>?
+        [ <?{ $<sibble><infixish> }> || <.old_rx_mods>? ]
     }
 
     token tribble ($l, $lang2 = $l, @lang2tweaks?) {

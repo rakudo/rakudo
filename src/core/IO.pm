@@ -82,14 +82,14 @@ sub REMOVE-ROOT(Str $r, Str $p) {
     my str $path  = nqp::unbox_s($p);
     my int $chars = nqp::chars($root);
 
-    return $p if $chars > nqp::chars($path);  # makes no sense
+    return $p if $chars >= nqp::chars($path);  # makes no sense
 
     my int $i;
     while $i < $chars && nqp::ordat($root,$i) == nqp::ordat($path,$i) {
         $i = $i + 1;
     }
 
-    $i ?? nqp::box_s(nqp::substr($path,$i),Str) !! $p;
+    $i == $chars ?? nqp::box_s(nqp::substr($path,$i),Str) !! $p;
 }
 
 sub CHANGE-DIRECTORY($path,$base,&test) {

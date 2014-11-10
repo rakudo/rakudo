@@ -100,7 +100,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 $d.provides{ $/.ast }{ $<ext> } = {
                     :file($file-id),
-                    :time(try $file.IO.modified),
+                    :time(try $file.IO.modified.Num),
                     :$!cver
                 }
             }

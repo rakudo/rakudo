@@ -48,7 +48,7 @@ sub MAKE-EXT(Str $basename) {
       !! nqp::box_s(nqp::substr($basename_s,$offset + 1),Str);
 }
 
-my %CLEAN-PARTS-NUL = '..' => 1, '.' => 1, '' => 1;
+my %CLEAN-PARTS-NUL = 'Str|..' => 1, 'Str|.' => 1, 'Str|' => 1;
 sub MAKE-CLEAN-PARTS(Str $abspath) {
     my @parts = $abspath.split('/');
 
@@ -58,14 +58,46 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
       and @parts.at_pos(0) eq '';  # and no C: like stuff
 
     # front part cleanup
-    @parts.splice(1,1) while %CLEAN-PARTS-NUL.exists_key(@parts.at_pos(1)); 
+    @parts.splice(1,1)
+      while %CLEAN-PARTS-NUL.exists_key(@parts.at_pos(1).WHICH);
+
+    # recursive ".." and "." handling
+    sub updirs($index is copy) {
+
+        # the end
+        if $index == 1 {
+            @parts.splice(1,1);
+            return 1;
+        }
+
+        # something to check
+        elsif @parts.at_pos($index - 1) -> $part {
+            if $part.ord == 46 { # fast $part.substr(0,1) eq '.'
+                if $part eq '..' {
+                    return updirs($index - 1);
+                }
+                elsif $part eq '.' {
+                    @parts.splice($index,1);
+                    return updirs($index - 1);
+                }
+            }
+            @parts.splice(--$index,2);
+            return $index;
+        }
+
+        # nul, just ignore
+        else {
+            @parts.splice($index,1);
+            return updirs($index);
+        }
+    }
 
     # back part cleanup
     my Int $checks = @parts.end;
     while $checks > 1 {
         if @parts.at_pos($checks) -> $part {
             $part eq '..'
-              ?? @parts.splice(--$checks, 2)
+              ?? $checks = updirs($checks)
               !! $part eq '.'
                 ?? @parts.splice($checks--, 1)
                 !! $checks--;
@@ -74,6 +106,8 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
             @parts.splice($checks--, 1);
         }
     }
+
+    # need / at the end
     @parts.push("");
 }
 

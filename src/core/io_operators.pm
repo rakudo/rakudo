@@ -50,14 +50,27 @@ sub prompt($msg) {
 }
 
 proto sub dir(|) { * }
-multi sub dir(*%_) {
-    $*SPEC.curdir.IO.dir(:!absolute, |%_)
+multi sub dir(Mu :$test, :$absolute) {
+    DIR-GATHER($*CWD ~ '/', $test);
 }
-multi sub dir(IO::Path:D $path, |c) {
-    $path.dir(|c)
+multi sub dir(:$Str!,Mu :$test, :$absolute) {
+    $Str
+      ?? DIR-GATHER-STR($*CWD ~ '/',$test)
+      !! DIR-GATHER($*CWD ~ '/', $test);
 }
-multi sub dir(Cool $path, |c) {
-    $path.IO.dir(|c)
+multi sub dir($dir as Str, :$CWD = $*CWD, Mu :$test, :$absolute) {
+    DIR-GATHER(
+      MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD ~ '/')).join('/'), $test,
+    );
+}
+multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
+    $Str
+      ?? DIR-GATHER-STR(
+           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD ~ '/')).join('/'),
+           $test)
+      !! DIR-GATHER(
+           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD ~ '/')).join('/'),
+           $test);
 }
 
 proto sub open(|) { * }

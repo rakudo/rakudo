@@ -51,25 +51,25 @@ sub prompt($msg) {
 
 proto sub dir(|) { * }
 multi sub dir(Mu :$test, :$absolute) {
-    DIR-GATHER($*CWD ~ '/', $test);
+    DIR-GATHER($*CWD.Str, $test);
 }
 multi sub dir(:$Str!,Mu :$test, :$absolute) {
     $Str
-      ?? DIR-GATHER-STR($*CWD ~ '/',$test)
-      !! DIR-GATHER($*CWD ~ '/', $test);
+      ?? DIR-GATHER-STR($*CWD.Str,$test)
+      !! DIR-GATHER($*CWD.Str, $test);
 }
 multi sub dir($dir as Str, :$CWD = $*CWD, Mu :$test, :$absolute) {
     DIR-GATHER(
-      MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD ~ '/')).join('/'), $test,
+      MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD.Str)).join('/'), $test,
     );
 }
 multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
     $Str
       ?? DIR-GATHER-STR(
-           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD ~ '/')).join('/'),
+           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD.Str)).join('/'),
            $test)
       !! DIR-GATHER(
-           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD ~ '/')).join('/'),
+           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD.Str)).join('/'),
            $test);
 }
 
@@ -150,18 +150,18 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
 
 sub chdir($path as Str) {
 
-    if $*CWD !~~ IO::Path {   # canary until 2014.10
-        warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
+    if $*CWD !~~ IO::Dir {   # canary until 2014.10
+        warn "\$*CWD is a {$*CWD.^name}, not an IO::Dir!!!";
         $*CWD = $*CWD.IO;
     }
 
-    my $newCWD = CHANGE-DIRECTORY($path,$*CWD ~ '/',&FILETEST-X);
+    my $newCWD = CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-X);
     $newCWD // $newCWD.throw;
     $*CWD = $newCWD;
 }
 
 sub indir($path as Str, $what, :$test = <r w>) {
-    my $newCWD := CHANGE-DIRECTORY($path,$*CWD ~ '/',&FILETEST-RWX);
+    my $newCWD := CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-RWX);
     $newCWD // $newCWD.throw;
 
     {
@@ -171,13 +171,13 @@ sub indir($path as Str, $what, :$test = <r w>) {
 }
 
 sub tmpdir($path as Str) {
-    my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR ~ '/',&FILETEST-RWX);
+    my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR.Str,&FILETEST-RWX);
     $newTMPDIR // $newTMPDIR.throw;
     $*TMPDIR = $newTMPDIR;
 }
 
 sub homedir($path as Str, :$test = <r w x>) {
-    my $newHOME := CHANGE-DIRECTORY($path,$*HOME ~ '/',&FILETEST-RWX);
+    my $newHOME := CHANGE-DIRECTORY($path,$*HOME.Str,&FILETEST-RWX);
     $newHOME // $newHOME.throw;
     $*HOME = $newHOME;
 }
@@ -256,7 +256,7 @@ sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
 
 sub cwd() {
     DEPRECATED('$*CWD', |<2014.10 2015.10>);
-    $*CWD;
+    $*CWD.chop;
 }
 
 # vim: ft=perl6 expandtab sw=4

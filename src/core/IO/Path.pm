@@ -56,7 +56,7 @@ my class IO::Path is Cool {
     method abspath() {
         $!abspath //= $!path.substr(0,1) eq '-'
           ?? ''
-          !! $!SPEC.rel2abs($!path,$!CWD);
+          !! $!SPEC.rel2abs($!path,$!CWD.chop);
     }
     method is-absolute() {
         $!is-absolute //= $!SPEC.is-absolute($!path);
@@ -84,7 +84,7 @@ my class IO::Path is Cool {
     multi method perl(IO::Path:D:) {
         ($.is-absolute
           ?? "q|$.abspath|.IO(:SPEC({$!SPEC.^name}))"
-          !! "q|$.path|.IO(:SPEC({$!SPEC.^name}),:CWD<$!CWD>)"
+          !! "q|$.path|.IO(:SPEC({$!SPEC.^name}),:CWD<$!CWD.chop()>)"
         ).subst(:global, '\\', '\\\\');
     }
 
@@ -128,11 +128,11 @@ my class IO::Path is Cool {
     multi method absolute (IO::Path:D: $CWD) {
         self.is-absolute
           ?? $.abspath
-          !! $!SPEC.rel2abs($!path, $CWD);
+          !! $!SPEC.rel2abs($!path, $CWD.chop);
     }
 
     method relative (IO::Path:D: $CWD = $*CWD) {
-        $!SPEC.abs2rel($.abspath, $CWD);
+        $!SPEC.abs2rel($.abspath, $CWD.chop);
     }
 
     method cleanup (IO::Path:D:) {
@@ -323,7 +323,7 @@ my class IO::Path is Cool {
             fail X::IO::Dir.new(
               :path(nqp::box_s($.abspath,Str)), :os-error(.Str) );
         } }
-        my $cwd_chars = $CWD.chars;
+        my $cwd_chars = $CWD.chars - 1;
 
 #?if moar
         my str $cwd = nqp::cwd();

@@ -197,7 +197,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'write', True) if $.w;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
-            $args-without, $*CWD.Str, $hash-without, $callbacks);
+            $args-without, $*CWD.chop, $hash-without, $callbacks);
 
         Promise.allof( $!exit_promise, @!promises ).then( {
             for @!promises -> $promise {

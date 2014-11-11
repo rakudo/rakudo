@@ -82,7 +82,7 @@ my class IO::Handle does IO {
             my str $errpath;
             $!PIO := nqp::openpipe(
               nqp::unbox_s($!path.Str),
-              nqp::unbox_s($*CWD.Str),
+              nqp::unbox_s($*CWD.chop),
               $hash-without,
               $errpath,
             );

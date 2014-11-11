@@ -10,9 +10,10 @@ my role IO::Local {
     }
 
     method absolute(IO::Local:D:) { $!abspath }
+    method chop(IO::Local:D:)     { $!abspath.chop }
 
     proto method relative(|) { * }
-    multi method relative(IO::Local:D:) { REMOVE-ROOT($*CWD ~ '/',$!abspath) }
+    multi method relative(IO::Local:D:) { REMOVE-ROOT($*CWD.Str,$!abspath) }
     multi method relative(IO::Local:D: $root) { REMOVE-ROOT($root,$!abspath) }
 
     method !parts() { @!parts = $!abspath.split('/') unless @!parts }
@@ -56,13 +57,13 @@ my role IO::Local {
     method changed(IO::Local:D:)  { FILETEST-CHANGED( $!abspath) }
 
     method rename(IO::Local:D: $to as Str, :$createonly) {
-        RENAME-PATH($!abspath,MAKE-ABSOLUTE-PATH($to,$*CWD ~ '/'),:$createonly);
+        RENAME-PATH($!abspath,MAKE-ABSOLUTE-PATH($to,$*CWD),:$createonly);
     }
     method chmod(IO::Local:D: $mode as Int) {
         CHMOD-PATH($!abspath, $mode);
     }
     method symlink(IO::Local:D: $name as Str) {
-        SYMLINK-PATH($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD ~ '/'));
+        SYMLINK-PATH($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD));
     }
 
 #?if moar

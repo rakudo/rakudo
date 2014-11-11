@@ -121,7 +121,7 @@ my class IO::Spec::Unix is IO::Spec {
     method catfile( |c )     { self.catdir(|c) }
 
     method abs2rel( $path is copy, $base is copy = Str ) {
-        $base = $*CWD unless $base.defined && $base.chars;
+        $base = $*CWD.chop unless $base.defined && $base.chars;
 
         if self.is-absolute($path) || self.is-absolute($base) {
             $path = self.rel2abs( $path );
@@ -170,7 +170,7 @@ my class IO::Spec::Unix is IO::Spec {
     method rel2abs( $path, $base? is copy) {
         return self.canonpath($path) if self.is-absolute($path);
 
-        my $cwd := $*CWD;
+        my $cwd := $*CWD.chop;
         if !self.is-absolute( $base //= $cwd ) {
             $base = self.rel2abs( $base, $cwd ) unless $base eq $cwd;
         }

@@ -245,7 +245,7 @@ sub run(*@args ($, *@)) {
         nqp::push($args-without, nqp::decont(~$_));
     }
     try {
-        $status.status( nqp::p6box_i( nqp::spawn($args-without, $*CWD.Str, $hash-without) ) );
+        $status.status( nqp::p6box_i( nqp::spawn($args-without, $*CWD.chop, $hash-without) ) );
     }
     $status
 }
@@ -261,7 +261,7 @@ sub shell($cmd) {
         nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
     }
     try {
-        $status.status( nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash-without)) );
+        $status.status( nqp::p6box_i(nqp::shell($cmd, $*CWD.chop, $hash-without)) );
     }
     $status
 }
@@ -271,7 +271,7 @@ constant NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
 #?if parrot    
-    nqp::chdir($*CWD);
+    nqp::chdir($*CWD.chop);
     my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
     fail "Unable to execute '$cmd'" unless $pio;
     $pio.encoding('utf8');
@@ -288,7 +288,7 @@ sub QX($cmd) {
         $envelem := nqp::shift($enviter);
         nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
     }
-    my Mu $pio := nqp::openpipe(nqp::unbox_s($cmd), $*CWD.Str, $hash-without, '');
+    my Mu $pio := nqp::openpipe(nqp::unbox_s($cmd), $*CWD.chop, $hash-without, '');
     fail "Unable to execute '$cmd'" unless $pio;
     my $result = nqp::p6box_s(nqp::readallfh($pio));
     nqp::closefh($pio);

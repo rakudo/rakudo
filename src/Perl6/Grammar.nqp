@@ -1342,6 +1342,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <lambda>
             <.newpad>
             :my $*SCOPE := 'my';
+            :my $*GOAL := '{';
             <signature>
             <blockoid>
         | <?[{]>

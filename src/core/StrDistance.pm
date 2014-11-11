@@ -31,4 +31,8 @@ my class StrDistance is Cool {
             @d[*-1][*-1];
         }
     }
+
+    method ACCEPTS(StrDistance:D:, Mu \other) {
+        self
+    }
 }

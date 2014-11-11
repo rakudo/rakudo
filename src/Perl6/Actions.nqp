@@ -5047,14 +5047,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 )
             );
         }
-        # Transliteration shuffles values around itself and returns the
-        # Right Thing regardless of whether we're in a smart-match or
-        # implicitely against $_, so we just do the RHS here.
-        elsif $rhs.ann('is_trans') {
-            $sm_call := QAST::Stmt.new(
-                $rhs
-            );
-        }
         else {
             # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
             $sm_call := QAST::Op.new(
@@ -6006,7 +5998,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             )
         );
 
-        $past.annotate('is_trans', 1);
         $past
     }
 

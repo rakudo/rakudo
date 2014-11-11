@@ -1632,7 +1632,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             ]
         ]
-        [ <?{ $*MAIN ne $OLD_MAIN }> <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)> || <?> ]
+        [ <?{ $*MAIN ne $OLD_MAIN }>
+          <.eat_terminator>
+          <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
+        || <?> ]
         <.ws>
     }
 

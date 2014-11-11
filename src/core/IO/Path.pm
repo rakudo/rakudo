@@ -183,10 +183,10 @@ my class IO::Path is Cool {
     }
 
     proto method chdir(|) { * }
-    multi method chdir(IO::Path:U: $path, :$test = 'r') {
-        $*CWD.chdir($path,:$test);
+    multi method chdir(IO::Path:U: $path) {
+        $*CWD.chdir($path);
     }
-    multi method chdir(IO::Path:D: $path is copy as Str, :$test = 'r') {
+    multi method chdir(IO::Path:D: $path is copy as Str) {
         if !$!SPEC.is-absolute($path) {
             my ($volume,$dirs) = $!SPEC.splitpath(self, :nofile);
             my @dirs = $!SPEC.splitdir($dirs);
@@ -205,29 +205,16 @@ my class IO::Path is Cool {
         my $dir = IO::Path.new-from-absolute-path($path,:$!SPEC,:CWD(self));
 
         # basic sanity
-        unless $dir.d {
+        unless $dir.d && $dir.x {
             fail X::IO::Chdir.new(
               :$path,
               :os-error( $dir.e
-                ?? "is not a directory"
+                ?? ($dir.d ?? "does not have access" !! "is not a directory")
                 !! "does not exist"),
             );
         }
 
-        if $test eq 'r' {
-            return $dir if $dir.r;
-        } 
-        elsif $test eq 'r w' {
-            return $dir if $dir.r and $dir.w;
-        }
-        elsif $test eq 'r w x' {
-            return $dir if $dir.r and $dir.w and $dir.x;
-        }
-
-        fail X::IO::Chdir.new(
-          :$path,
-          :os-error("did not pass 'd $test' test"),
-        );
+        $dir;
     }
 
     proto method rename(|) { * }

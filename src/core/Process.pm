@@ -15,7 +15,7 @@ multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE') {
         nqp::execname()
         // ($*VM.config<prefix> ~ '/bin/' ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
 #?endif
-    $EXECUTABLE := IO::Path.new-from-absolute-path($EXECUTABLE);
+    $EXECUTABLE := IO::File.new(:abspath($EXECUTABLE));
     PROCESS::<$EXECUTABLE_NAME> := $EXECUTABLE.basename;
     PROCESS::<$EXECUTABLE>      := $EXECUTABLE;
 }

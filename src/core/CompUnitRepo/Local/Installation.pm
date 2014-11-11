@@ -83,8 +83,8 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         my $ext = regex { [pm|pm6|pir|pbc|jar|moarvm] };
         my @provides;
         for %($d.provides).kv -> $k, $v is copy {
-            $v.=subst(/\.<$ext>$/, '.');
-            @provides.push: regex { $v <ext=.$ext> { make $k } }
+            $v.=subst(/ [pm|pm6]? \.<$ext>$/, '.');
+            @provides.push: regex { $v [ [pm|pm6] \. ]? <ext=.$ext> { make $k } }
         }
         
         # Initialize "provides" section.

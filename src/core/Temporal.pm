@@ -109,7 +109,7 @@ my role Dateish {
             1 .. self.days-in-month);
     }
 
-    method truncate-parts(Cool $unit, %parts? is copy) {
+    method truncate-parts(Cool:D $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
         X::DateTime::InvalidDeltaUnit.new(:$unit).throw
             unless $unit eq any(@UNITS);

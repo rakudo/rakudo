@@ -586,8 +586,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $x;
         $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
         $match
-            ?? self.match(:g, :$x, $pat)
-            !! self.match(:g, :$x, $pat).map: { .Str }
+            ?? self.match(:g, :$x, $pat).list
+            !! self.match(:g, :$x, $pat).list.map: { .Str }
     }
 
     method match($pat, 
@@ -657,12 +657,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         if $multi {
-            if nqp::istype($pat, Regex) {
-                try $caller_dollar_slash = +@matches
-                    ?? @matches[ +@matches - 1 ]
+            my $matchobj = +@matches
+                    ?? Match.new(:from(@matches[0].from), :to(@matches[@matches - 1].to),
+                        :orig(@matches[0].orig), :CURSOR(@matches[@matches - 1].CURSOR),
+                        :list(@matches), :multiple(True))
                     !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start_cur'().MATCH;
+            if nqp::istype($pat, Regex) {
+                try $caller_dollar_slash = $matchobj
             }
-            @matches
+            $matchobj
         }
         else {
             try $caller_dollar_slash = (@matches[0] // $cur.MATCH_SAVE);
@@ -675,7 +678,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
-        my @matches              = self.match($matcher, |%options);
+        my $match                = self.match($matcher, |%options);
+        my @matches              = nqp::istype($match, Match) && $match.multiple ?? $match.list !! $match;
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
 
         return self unless @matches;
@@ -686,7 +690,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         for @matches -> $m {
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
             $result ~= self.substr($prev, $m.from - $prev);
-
             my $real_replacement = ~($replacement ~~ Callable
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
                 !! $replacement);
@@ -695,6 +698,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $result ~= $real_replacement;
             $prev = $m.to;
         }
+
+        if nqp::istype($match, Match) && $match.multiple {
+            try $caller_dollar_slash = Match.new(:from(@matches[0].from), 
+                        :to(@matches[@matches - 1].to), :orig(@matches[0].orig), 
+                        :CURSOR(@matches[@matches - 1].CURSOR), :list(@matches), :multiple(True))
+        }
+
         my $last = @matches.pop;
         $result ~= self.substr($last.to);
         $result;
@@ -796,8 +806,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return ().list
           if $limit ~~ Numeric && $limit <= 0;
         my @matches = nqp::istype($limit, Whatever)
-          ?? self.match($pat, :g)
-          !! self.match($pat, :x(1..$limit-1), :g);
+          ?? self.match($pat, :g).list
+          !! self.match($pat, :x(1..$limit-1), :g).list;
 
         # add dummy for last
         push @matches, Match.new( :from(self.chars) );

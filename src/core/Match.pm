@@ -4,6 +4,7 @@ my class Match is Capture is Cool {
     has int $.to;
     has $.CURSOR;
     has $.made;
+    has $.multiple = False;
 
     method ast(Match:D:) { $!made }
 
@@ -11,7 +12,7 @@ my class Match is Capture is Cool {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
     }
     multi method Numeric(Match:D:) {
-        self.Str.Numeric
+        $.multiple ?? self.list.Numeric !! self.Str.Numeric 
     }
     multi method Bool(Match:D:) {
         $!to >= $!from

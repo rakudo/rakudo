@@ -2134,6 +2134,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token twigil:sym<*> { <sym> <?before \w> }
     token twigil:sym<?> { <sym> <?before \w> }
     token twigil:sym<=> { <sym> <?before \w> }
+    token twigil:sym<~> { <sym> <?before \w> <.NYI("Slangy variables")> }
 
     proto token package_declarator { <...> }
     token package_declarator:sym<package> {

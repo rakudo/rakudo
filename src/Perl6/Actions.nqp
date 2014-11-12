@@ -711,7 +711,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    # Should produce a LoL, with most uses converted to actually statementlist
+    # Produces a LoL from a semicolon list
     method semilist($/) {
         my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {

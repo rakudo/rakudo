@@ -104,6 +104,17 @@ my class IO::Handle does IO {
         self;
     }
 
+    method input-line-separator {
+        Proxy.new(
+          FETCH => {
+              $!nl
+          },
+          STORE => -> $, $nl is copy {
+            nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
+          }
+        );
+    }
+
     method close(IO::Handle:D:) {
         # TODO:b catch errors
         if $!pipe {

@@ -125,7 +125,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             if $ifrom == self.elems;
 
         $len = self.elems - $ifrom
-            if $len > self.elems;
+            if $ifrom + $len > self.elems;
 
         my int $llen = $len.Int;
         nqp::setelems($ret, $llen);

@@ -342,6 +342,9 @@ static void p6bool(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
 static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, STABLE(True)->WHAT);
+#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
+    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
+#endif
 }
 
 /* Creates a Scalar from the specified descriptor. */

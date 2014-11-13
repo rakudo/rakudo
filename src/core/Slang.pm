@@ -8,4 +8,7 @@ class Slang {
                ':actions('~$!actions.HOW.name($!actions)~')').join(', ')
             ~ ')'
     }
+    method parse (|c) {
+        $!grammar.parse(:$!actions, |c);
+    }
 }

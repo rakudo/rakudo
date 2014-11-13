@@ -1753,6 +1753,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := add_placeholder_parameter($/, $sigil, $desigilname,
                                 :named($twigil eq ':'), :full_name($past.name()));
         }
+        elsif $twigil eq '~' {
+            my $actionsname := $desigilname ~ '-actions';
+            $past := QAST::Op.new(
+                :op<callmethod>, :name<new>, :returns($*W.find_symbol(['Slang'])),
+                QAST::Var.new( :name<Slang>, :scope<lexical> ));
+            if nqp::existskey(%*LANG, $desigilname) {
+                my $wval := QAST::WVal.new( :value(%*LANG{$desigilname}) );
+                $wval.named('grammar');
+                $past.push($wval);
+            }
+            if nqp::existskey(%*LANG, $actionsname) {
+                my $wval := QAST::WVal.new( :value(%*LANG{$actionsname}) );
+                $wval.named('actions');
+                $past.push($wval);
+            }
+        }
         elsif $past.name() eq '@_' {
             if $*W.nearest_signatured_block_declares('@_') {
                 $past.scope('lexical');

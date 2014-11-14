@@ -76,7 +76,7 @@ multi sub pipe($path, :$chomp = True, :$enc = 'utf8', |c) {
 
 proto sub lines(|) { * }
 multi sub lines($what = $*ARGFILES, $limit = Inf, *%named) {
-    $limit == Inf || $limit ~~ Whatever
+    $limit == Inf || nqp::istype($limit,Whatever)
       ?? $what.lines(|%named)
       !! $what.lines($limit, |%named);
 }
@@ -137,7 +137,7 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
 
 sub chdir($path as Str, :$test = 'r') {
 
-    if $*CWD !~~ IO::Path {   # canary until 2014.10
+    if !nqp::istype($*CWD,IO::Path) {   # canary until 2014.10
         warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
         $*CWD = $*CWD.IO;
     }

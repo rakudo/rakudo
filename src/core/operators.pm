@@ -82,15 +82,15 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
     my @right := nqp::istype($right, Junction) || !$right.DEFINITE
       ?? [$right] !! $right.flat;
     my $endpoint = @right.shift;
-    my $infinite = $endpoint ~~ Whatever || $endpoint === Inf;
+    my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
     $endpoint = Bool::False if $infinite;
     my $tail := ().list;
     my $end_code_arity = 0;
     my $end_tail := ().list;
-    if $endpoint ~~ Code {
+    if nqp::istype($endpoint,Code) {
         $end_code_arity = $endpoint.arity;
         $end_code_arity = $endpoint.count if $end_code_arity == 0;
-        $end_code_arity = -Inf if $end_code_arity ~~ Inf;
+        $end_code_arity = -Inf if $end_code_arity == Inf;
     }
 
     my sub succpred($cmp) {
@@ -107,7 +107,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
         my $stop;
         for @left -> $v {
             $value := $v;
-            if $value ~~ Code { $code = $value; last }
+            if nqp::istype($value,Code) { $code = $value; last }
             if $end_code_arity != 0 {
                 $end_tail.push($value);
                 if +@$end_tail >= $end_code_arity {
@@ -128,10 +128,10 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 $c = $tail[2];
             }
             if $code.defined { }
-            elsif $tail.grep({ $_ ~~ Numeric}).elems != $tail.elems {
+            elsif $tail.grep(Numeric).elems != $tail.elems {
                 # non-numeric
                 if $tail.elems == 1 {
-                    if $a ~~ Stringy && $endpoint ~~ Stringy && $a.codes == 1 && $endpoint.codes == 1 {
+                    if nqp::istype($a,Stringy) && nqp::istype($endpoint,Stringy) && $a.codes == 1 && $endpoint.codes == 1 {
                         $code = $infinite ?? { $^x.ord.succ.chr } !! unisuccpred($a.ord cmp $endpoint.ord);
                     } else {
                         $code = $infinite ??  { $^x.succ } !! succpred($a cmp $endpoint);
@@ -144,7 +144,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             elsif $tail.elems == 3 {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
-                    if $ab != 0 || $a ~~ Numeric && $b ~~ Numeric && $c ~~ Numeric {
+                    if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) && nqp::istype($c,Numeric) {
                         $code = { $^x + $ab } 
                     }
                     else {
@@ -154,7 +154,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 elsif $a != 0 && $b != 0 && $c != 0 {
                     $ab = $b / $a;
                     if $ab == $c / $b {
-                        $ab = $ab.Int if $ab ~~ Rat && $ab.denominator == 1;
+                        $ab = $ab.Int if nqp::istype($ab,Rat) && $ab.denominator == 1;
                         $code = { $^x * $ab }
                     }
                 }
@@ -162,7 +162,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             }
             elsif $tail.elems == 2 {
                 my $ab = $b - $a;
-                if $ab != 0 || $a ~~ Numeric && $b ~~ Numeric { 
+                if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) { 
                     $code = { $^x + $ab } 
                 }
                 else {
@@ -170,7 +170,9 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 }
             }
             elsif $tail.elems == 1 {
-                $code = ($a cmp $endpoint > 0 && $endpoint !~~ Code)?? { $^x.pred } !! { $^x.succ }
+                $code = ($a cmp $endpoint > 0 && !nqp::istype($endpoint,Code))
+                  ?? { $^x.pred }
+                  !! { $^x.succ }
             }
             elsif $tail.elems == 0 {
                 $code = {()}
@@ -184,7 +186,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                     if $end_code_arity != 0 {
                         $end_tail.push($value);
                         if $end_tail.elems >= $end_code_arity {
-                            $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
+                            $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
                             last if $endpoint(|@$end_tail);
                         }
                     } else {

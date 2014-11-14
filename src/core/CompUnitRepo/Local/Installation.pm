@@ -139,7 +139,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {
                 my $dver = $dist<ver>
-                        ?? $dist<ver> ~~ Version
+                        ?? nqp::istype($dist<ver>,Version)
                             ?? $dist<ver>
                             !! Version.new( $dist<ver> )
                         !! Version.new('0');
@@ -164,7 +164,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {
                 my $dver = $dist<ver>
-                        ?? $dist<ver> ~~ Version
+                        ?? nqp::istype($dist<ver>,Version)
                             ?? $dist<ver>
                             !! Version.new( ~$dist<ver> )
                         !! Version.new('0');

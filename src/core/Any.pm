@@ -119,18 +119,18 @@ my class Any { # declared in BOOTSTRAP
     proto method tree(|) { * }
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) {
-        self ~~ Positional
+        nqp::istype(self,Positional)
             ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
             !! self
     }
     multi method tree(Any:D: Whatever ) { self.tree }
     multi method tree(Any:D: Cool $count as Int) {
-        self ~~ Positional && $count > 0
+        nqp::istype(self,Positional) && $count > 0
             ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
             !! self
     }
     multi method tree(Any:D: *@ [&first, *@rest]) {
-        self ~~ Positional
+        nqp::istype(self,Positional)
             ?? @rest ?? first MapIter.new(self.list, { .tree(|@rest) }, Mu).list
                      !! first self.list
             !! self
@@ -141,7 +141,7 @@ my class Any { # declared in BOOTSTRAP
     # auto-vivifying
     proto method push(|) { * }
     multi method push(Any:U \SELF: *@values) {
-        SELF = SELF ~~ Positional ?? SELF.new !! Array.new;
+        SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
         SELF.push(@values);
     }
 

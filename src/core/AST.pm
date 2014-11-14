@@ -24,7 +24,7 @@ my class AST {
                 got      => $_,
                 expected => AST,
                 action   => 'unquote evaluation',
-            ).throw unless $_ ~~ AST;
+            ).throw unless nqp::istype($_,AST);
             nqp::push($pasts, nqp::getattr(nqp::decont($_), AST, '$!past'))
         }
         $!past.evaluate_unquotes($pasts);

@@ -3,7 +3,7 @@
 sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
     my $positions = pos.flat;
 
-    if pos ~~ Range || ($positions.gimme(*) && $positions.infinite) {
+    if nqp::istype(pos,Range) || ($positions.gimme(*) && $positions.infinite) {
         my $list = SELF.list;
         $positions.map( {
             last if $_ >= $list.gimme( $_ + 1 );
@@ -12,7 +12,7 @@ sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
     }
     else {
         $positions.map( {
-            $_ ~~ Callable ?? $_(|(SELF.elems xx $_.count)) !! $_
+            nqp::istype($_,Callable) ?? $_(|(SELF.elems xx $_.count)) !! $_
         } ).eager.Parcel;
     }
 }

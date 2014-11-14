@@ -161,7 +161,10 @@ my class Any { # declared in BOOTSTRAP
     multi method grep(Callable:D $test) is rw {
         self.map({ $_ if $test($_) });
     }
-    multi method grep(Mu $test) is rw {
+    multi method grep(Mu:U $test) is rw {
+        self.map({ $_ if nqp::istype($_,$test) });
+    }
+    multi method grep(Mu:D $test) is rw {
         self.map({ $_ if $_ ~~ $test });
     }
 
@@ -177,7 +180,11 @@ my class Any { # declared in BOOTSTRAP
         my $index = -1;
         self.map: { $index++; +$index if $test($_) };
     }
-    multi method grep-index(Mu $test) {
+    multi method grep-index(Mu:U $test) {
+        my $index = -1;
+        self.map: { $index++; +$index if nqp::istype($_,$test) };
+    }
+    multi method grep-index(Mu:D $test) {
         my $index = -1;
         self.map: { $index++; +$index if $_ ~~ $test };
     }
@@ -194,7 +201,11 @@ my class Any { # declared in BOOTSTRAP
         self.map({ return-rw $_ if $test($_) });
         Nil;
     }
-    multi method first(Mu $test) is rw {
+    multi method first(Mu:U $test) is rw {
+        self.map({ return $_ if nqp::istype($_,$test) });
+        Nil;
+    }
+    multi method first(Mu:D $test) is rw {
         self.map({ return-rw $_ if $_ ~~ $test });
         Nil;
     }
@@ -213,7 +224,12 @@ my class Any { # declared in BOOTSTRAP
         self.map: { $index++; return $index if $test($_) };
         Nil;
     }
-    multi method first-index(Mu $test) {
+    multi method first-index(Mu:U $test) {
+        my $index = -1;
+        self.map: { $index++; return $index if nqp::istype($_,$test) };
+        Nil;
+    }
+    multi method first-index(Mu:D $test) {
         my $index = -1;
         self.map: { $index++; return $index if $_ ~~ $test };
         Nil;
@@ -233,7 +249,12 @@ my class Any { # declared in BOOTSTRAP
         self.reverse.map: { $index--; return $index if $test($_) };
         Nil;
     }
-    multi method last-index(Mu $test) {
+    multi method last-index(Mu:U $test) {
+        my $index = self.elems;
+        self.reverse.map: { $index--; return $index if nqp::istype($_,$test) };
+        Nil;
+    }
+    multi method last-index(Mu:D $test) {
         my $index = self.elems;
         self.reverse.map: { $index--; return $index if $_ ~~ $test };
         Nil;

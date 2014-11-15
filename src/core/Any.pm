@@ -242,27 +242,36 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.last-index' );
     }
     multi method last-index(Regex:D $test) {
-        my int $index = self.elems;
-        self.reverse.map: {
+        my $elems = self.elems;
+        return Inf if $elems == Inf;
+
+        my int $index = $elems;
+        while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Int) if .match($test);
-        };
+            return nqp::box_i($index,Int) if self.at_pos($index).match($test);
+        }
         Nil;
     }
     multi method last-index(Callable:D $test) {
-        my int $index = self.elems;
-        self.reverse.map: {
+        my $elems = self.elems;
+        return Inf if $elems == Inf;
+
+        my int $index = $elems;
+        while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Int) if $test($_);
-        };
+            return nqp::box_i($index,Int) if $test(self.at_pos($index));
+        }
         Nil;
     }
     multi method last-index(Mu $test) {
-        my int $index = self.elems;
-        self.reverse.map: {
+        my $elems = self.elems;
+        return Inf if $elems == Inf;
+
+        my int $index = $elems;
+        while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Int) if $_ ~~ $test;
-        };
+            return nqp::box_i($index,Int) if self.at_pos($index) ~~ $test;
+        }
         Nil;
     }
 

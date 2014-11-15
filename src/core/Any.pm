@@ -170,16 +170,25 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.grep-index' );
     }
     multi method grep-index(Regex:D $test) {
-        my $index = -1;
-        self.map: { $index++; +$index if .match($test) };
+        my int $index = -1;
+        self.map: {
+            $index = $index+1;
+            nqp::box_i($index,Int) if .match($test);
+        };
     }
     multi method grep-index(Callable:D $test) {
-        my $index = -1;
-        self.map: { $index++; +$index if $test($_) };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            nqp::box_i($index,Int) if $test($_);
+        };
     }
     multi method grep-index(Mu $test) {
-        my $index = -1;
-        self.map: { $index++; +$index if $_ ~~ $test };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            nqp::box_i($index,Int) if $_ ~~ $test;
+        };
     }
 
     proto method first(|) { * }
@@ -204,18 +213,27 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.first-index' );
     }
     multi method first-index(Regex:D $test) {
-        my $index = -1;
-        self.map: { $index++; return $index if .match($test) };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            return nqp::box_i($index,Int) if .match($test);
+        };
         Nil;
     }
     multi method first-index(Callable:D $test) {
-        my $index = -1;
-        self.map: { $index++; return $index if $test($_) };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            return nqp::box_i($index,Int) if $test($_);
+        };
         Nil;
     }
     multi method first-index(Mu $test) {
-        my $index = -1;
-        self.map: { $index++; return $index if $_ ~~ $test };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            return nqp::box_i($index,Int) if $_ ~~ $test;
+        };
         Nil;
     }
 
@@ -224,18 +242,27 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.last-index' );
     }
     multi method last-index(Regex:D $test) {
-        my $index = self.elems;
-        self.reverse.map: { $index--; return $index if .match($test) };
+        my int $index = self.elems;
+        self.reverse.map: {
+            $index = $index - 1;
+            return nqp::box_i($index,Int) if .match($test);
+        };
         Nil;
     }
     multi method last-index(Callable:D $test) {
-        my $index = self.elems;
-        self.reverse.map: { $index--; return $index if $test($_) };
+        my int $index = self.elems;
+        self.reverse.map: {
+            $index = $index - 1;
+            return nqp::box_i($index,Int) if $test($_);
+        };
         Nil;
     }
     multi method last-index(Mu $test) {
-        my $index = self.elems;
-        self.reverse.map: { $index--; return $index if $_ ~~ $test };
+        my int $index = self.elems;
+        self.reverse.map: {
+            $index = $index - 1;
+            return nqp::box_i($index,Int) if $_ ~~ $test;
+        };
         Nil;
     }
 

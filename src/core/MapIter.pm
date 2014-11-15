@@ -29,7 +29,7 @@ my class MapIter is Iterator {
     method reify($n = 1, :$sink) {
         unless nqp::isconcrete($!reified) {
             my $argc   := $!block.count;
-            $argc := 1 if $argc < 1 || $argc ~~ Inf;
+            $argc := 1 if $argc < 1 || $argc == Inf;
             my $block  := nqp::decont($!block);
             my Mu $rpa := nqp::list();
 

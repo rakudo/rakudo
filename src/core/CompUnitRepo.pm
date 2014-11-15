@@ -7,7 +7,7 @@ class CompUnitRepo {
 
     method files($file, :$name, :$auth, :$ver) {
         for @*INC {
-            if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+            if nqp::istype($_,Str) ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
                 if $cur.files($name, :$file,:$auth,:$ver).list -> @candi {
                     return @candi;
                 }
@@ -18,7 +18,7 @@ class CompUnitRepo {
 
     method candidates($name, :$file, :$auth, :$ver) {
         for @*INC {
-            if $_ ~~ Str ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+            if nqp::istype($_,Str) ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
                 if $cur.candidates($name, :$file,:$auth,:$ver).list -> @candi {
                     return @candi;
                 }
@@ -87,11 +87,11 @@ class CompUnitRepo {
                 }
 
                 # still don't have a type object
-                if $class ~~ Str {
+                if nqp::istype($class,Str) {
                     my $type = ::($class);
 
                     # alas, no a known class
-                    if $type ~~ Failure {
+                    if nqp::istype($type,Failure) {
 
                         # it's a short-id
                         if %id2class.exists_key($class) {

@@ -15,9 +15,6 @@ my class Grammar is Cursor {
         my $match := self.parse($filename.IO.slurp, |%opts);
         nqp::getlexcaller('$/') = $match;
     }
-
-method wemusthavethishereotherwiserakudowontcompile { }
-
 }
 
 # vim: ft=perl6 expandtab sw=4

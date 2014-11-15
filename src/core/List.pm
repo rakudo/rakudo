@@ -435,10 +435,10 @@ my class List does Positional { # declared in BOOTSTRAP
         my int $tpos = 0;
         while $spos < +$sseq {
             # if the next element is Whatever
-            if $sseq[$spos] ~~ Whatever {
+            if nqp::istype($sseq[$spos],Whatever) {
                 # skip over all of the Whatevers
                 $spos = $spos + 1
-                  while $spos <= +$sseq && $sseq[$spos] ~~ Whatever;
+                  while $spos <= +$sseq && nqp::istype($sseq[$spos],Whatever);
                 # if nothing left, we're done
                 return True if !($spos < +$sseq);
                 # find a target matching our new target

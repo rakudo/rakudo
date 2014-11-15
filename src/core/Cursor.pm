@@ -161,7 +161,7 @@ my class Cursor does NQPCursorRole {
     method INTERPOLATE(\var, $i = 0, $s = 0, $a = 0) {
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
-            return (var)(self) if var ~~ Callable;
+            return (var)(self) if nqp::istype(var,Callable);
             my $maxlen := -1;
             my $cur := self.'!cursor_start_cur'();
             my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
@@ -186,12 +186,13 @@ my class Cursor does NQPCursorRole {
                         if $a {
                             # We are in a regex assertion, the strings we get will be treated as
                             # regex rules.
-                            return $cur.'!cursor_start_cur'() if $topic ~~ Associative;
+                            return $cur.'!cursor_start_cur'()
+                              if nqp::istype($topic,Associative);
                             my $rx := MAKE_REGEX($topic, :$i);
                             my Mu $nfas := nqp::findmethod($rx, 'NFA')($rx);
                             $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
                         }
-                        elsif $topic ~~ Regex {
+                        elsif nqp::istype($topic,Regex) {
                             # A Regex already.
                             my Mu $nfas := nqp::findmethod($topic, 'NFA')($topic);
                             $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
@@ -233,12 +234,13 @@ my class Cursor does NQPCursorRole {
                 if $a {
                     # We are in a regex assertion, the strings we get will be treated as
                     # regex rules.
-                    return $cur.'!cursor_start_cur'() if $topic ~~ Associative;
+                    return $cur.'!cursor_start_cur'()
+                      if nqp::istype($topic,Associative);
                     my $rx := MAKE_REGEX($topic, :$i);
                     $match := (nqp::substr($tgt, $pos, $eos - $pos) ~~ $rx).Str;
                     $len   := nqp::chars( $match );
                 }
-                elsif $topic ~~ Regex {
+                elsif nqp::istype($topic,Regex) {
                     # A Regex already.
                     $match := nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic;
                     
@@ -272,7 +274,7 @@ my class Cursor does NQPCursorRole {
     }
 
     method DYNQUANT_LIMITS($mm) {
-        if $mm ~~ Range {
+        if nqp::istype($mm,Range) {
             die 'Range minimum in quantifier (**) cannot be +Inf' if $mm.min ==  Inf;
             die 'Range maximum in quantifier (**) cannot be -Inf' if $mm.max == -Inf;
             nqp::list_i($mm.min < 0 ?? 0 !! $mm.min.Int, $mm.max == Inf ?? -1 !! $mm.max.Int)
@@ -301,7 +303,7 @@ sub MAKE_REGEX($arg, :$i) {
     my role CachedCompiledRegex {
         has $.regex;
     }
-    if $arg ~~ Regex {
+    if nqp::istype($arg,Regex) {
         $arg
     }
     elsif nqp::istype($arg, CachedCompiledRegex) {

@@ -24,7 +24,7 @@ my class Backtrace::Frame {
     }
 
     method is-hidden(Backtrace::Frame:D:)  { $!code.?is_hidden_from_backtrace }
-    method is-routine(Backtrace::Frame:D:) { $!code ~~ Routine }
+    method is-routine(Backtrace::Frame:D:) { nqp::istype($!code,Routine) }
     method is-setting(Backtrace::Frame:D:) {
         $!file.chars > 12 && $!file.substr(*-12) eq 'CORE.setting'
     }

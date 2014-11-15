@@ -656,7 +656,7 @@ multi sub INITIALIZE_DYNAMIC('$*TZ') {
 }
 
 sub sleep($seconds = Inf --> Nil) {
-    if $seconds ~~ (Inf|Whatever) {
+    if $seconds == Inf || nqp::istype($seconds,Whatever) {
         nqp::sleep(1e16) while True;
     }
     elsif $seconds > 0 {

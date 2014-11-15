@@ -599,7 +599,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my %opts;
         if $p.defined { %opts<p> = $p }
         else { %opts<c> = $c // 0; }
-        my $patrx := $pat ~~ Code ?? $pat !! / "$pat": /;
+        my $patrx := nqp::istype($pat,Code) ?? $pat !! / "$pat": /;
         my $cur := $patrx(Cursor.'!cursor_init'(self, |%opts));
 
         %opts<ov> = $ov if $ov;
@@ -687,7 +687,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
             $result ~= self.substr($prev, $m.from - $prev);
 
-            my $real_replacement = ~($replacement ~~ Callable
+            my $real_replacement = ~(nqp::istype($replacement,Callable)
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
                 !! $replacement);
             $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
@@ -794,7 +794,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         return ().list
-          if $limit ~~ Numeric && $limit <= 0;
+          if nqp::istype($limit,Numeric) && $limit <= 0;
         my @matches = nqp::istype($limit, Whatever)
           ?? self.match($pat, :g)
           !! self.match($pat, :x(1..$limit-1), :g);
@@ -1074,14 +1074,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         proto method triage_substitution(|) {*}
-        multi method triage_substitution($_ where { .key ~~ Regex }) {
+        multi method triage_substitution($_ where { nqp::istype(.key,Regex) }) {
             my $m := $!source.match(.key, :continue($!index));
             return unless $m;
             self.compare_substitution($_, $m.from, $m.to - $m.from);
             True
         }
 
-        multi method triage_substitution($_ where { .key ~~ Cool }) {
+        multi method triage_substitution($_ where { nqp::istype(.key,Cool) }) {
             my $pos := index($!source, .key, $!index);
             return unless defined $pos;
             self.compare_substitution($_, $pos, .key.chars);
@@ -1113,7 +1113,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             if defined $!next_substitution {
                 my $result = $!next_substitution.value;
                 $!substituted_text
-                    = nqp::unbox_s(($result ~~ Callable ?? $result() !! $result).Str);
+                    = nqp::unbox_s((nqp::istype($result,Callable) ?? $result() !! $result).Str);
                 self.increment_index($!next_substitution.key);
             }
 
@@ -1123,7 +1123,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method trans(Str:D: *@changes) {
         my sub expand($s) {
-            return $s.list if $s ~~ Iterable|Positional;
+            return $s.list
+              if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
             $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
                 .[0] ?? ~.[0] .. ~.[1] !! ~$_
             };
@@ -1131,11 +1132,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         my $lsm = LSM.new(:source(self));
         for (@changes) -> $p {
-            X::Str::Trans::InvalidArg.new(got => $p).throw unless $p ~~ Pair;
-            if $p.key ~~ Regex {
+            X::Str::Trans::InvalidArg.new(got => $p).throw
+              unless nqp::istype($p,Pair);
+            if nqp::istype($p.key,Regex) {
                 $lsm.add_substitution($p.key, $p.value);
             }
-            elsif $p.value ~~ Callable {
+            elsif nqp::istype($p.value,Callable) {
                 my @from = expand $p.key;
                 for @from -> $f {
                     $lsm.add_substitution($f, $p.value);
@@ -1226,8 +1228,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return $obj if $common-prefix === Inf;
 
         # Set the actual outdent amount here
-        my Int $outdent = $steps ~~ Whatever ?? $common-prefix
-                                             !! -$steps;
+        my Int $outdent = nqp::istype($steps,Whatever)
+          ?? $common-prefix
+          !! -$steps;
 
         warn "Asked to remove $outdent spaces, but the shortest indent is $common-prefix spaces"
             if $outdent > $common-prefix;

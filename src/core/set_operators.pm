@@ -52,7 +52,7 @@ only sub infix:<(&)>(**@p) {
     return set() unless @p;
 
     if @p.grep(Baggy) {
-        my $baghash = @p[0] ~~ BagHash
+        my $baghash = nqp::istype(@p[0],BagHash)
           ?? BagHash.new-from-pairs(@p.shift.pairs)
           !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
@@ -64,7 +64,7 @@ only sub infix:<(&)>(**@p) {
         $baghash.Bag(:view);
     }
     else {
-        my $sethash = @p[0] ~~ SetHash
+        my $sethash = nqp::istype(@p[0],SetHash)
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
@@ -81,8 +81,8 @@ only sub infix:<<"\x2229">>(|p) {
 only sub infix:<(-)>(**@p) {
     return set() unless @p;
 
-    if @p[0] ~~ Baggy {
-        my $baghash = @p[0] ~~ BagHash
+    if nqp::istype(@p[0],Baggy) {
+        my $baghash = nqp::istype(@p[0],BagHash)
           ?? BagHash.new-from-pairs(@p.shift.pairs)
           !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
@@ -94,7 +94,7 @@ only sub infix:<(-)>(**@p) {
         $baghash.Bag(:view);
     }
     else {
-        my $sethash = @p[0] ~~ SetHash
+        my $sethash = nqp::istype(@p[0],SetHash)
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
@@ -190,7 +190,7 @@ only sub infix:<<"\x2285">>($a, $b --> Bool) {
 only sub infix:<(.)>(**@p) {
     return bag() unless @p;
 
-    my $baghash = @p[0] ~~ BagHash
+    my $baghash = nqp::istype(@p[0],BagHash)
       ?? BagHash.new-from-pairs(@p.shift.pairs)
       !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {
@@ -209,7 +209,7 @@ only sub infix:<<"\x228D">>(|p) {
 only sub infix:<(+)>(**@p) {
     return bag() unless @p;
 
-    my $baghash = @p[0] ~~ BagHash
+    my $baghash = nqp::istype(@p[0],BagHash)
       ?? BagHash.new-from-pairs(@p.shift.pairs)
       !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {

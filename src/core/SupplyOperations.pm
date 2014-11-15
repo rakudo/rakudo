@@ -154,8 +154,8 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
                 $source_tap = $!source.tap( $!test.DEFINITE
-                  ?? $!test ~~ Callable
-                    ?? $!test ~~ Regex
+                  ?? nqp::istype($!test,Callable)
+                    ?? nqp::istype($!test,Regex)
                        ?? -> \val { $tap.emit().(val) if val.match($!test) }
                        !! -> \val { $tap.emit().(val) if $!test(val) }
                     !! -> \val { $tap.emit().(val) if val ~~ $!test }
@@ -331,7 +331,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $source_tap = $!source.tap(
                     -> \inner_supply {
                         X::Supply::Migrate::Needs.new.throw
-                          unless inner_supply ~~ Supply;
+                          unless nqp::istype(inner_supply,Supply);
                         $!lock.protect({
                             $!current.close() if $!current;
                             $!current = inner_supply.tap(-> \val {

@@ -836,7 +836,7 @@ sub on(&setup) {
             my $lock    = Lock.new;
 
             sub add ($source, $what, $index?) {
-                unless $source ~~ Supply {
+                unless nqp::istype($source,Supply) {
                     X::Supply::On::BadSetup.new.throw;
                 }
                 given $what {
@@ -853,7 +853,7 @@ sub on(&setup) {
             }
 
             for @tappers -> $tap {
-                unless $tap ~~ Pair {
+                unless nqp::istype($tap,Pair) {
                     X::Supply::On::BadSetup.new.throw;
                 }
                 given $tap.key {

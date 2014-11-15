@@ -30,7 +30,7 @@ my class IO::Handle does IO {
               IO::Special.new(:what( $w ?? << <STDOUT> >> !! << <STDIN> >> ));
         }
 
-        if $!path ~~ IO::Special {
+        if nqp::istype($!path,IO::Special) {
             my $what := $!path.what;
             if $what eq '<STDIN>' {
                 $!PIO := nqp::getstdin();
@@ -91,6 +91,17 @@ my class IO::Handle does IO {
         nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
         self;
+    }
+
+    method input-line-separator {
+        Proxy.new(
+          FETCH => {
+              $!nl
+          },
+          STORE => -> $, $nl is copy {
+            nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
+          }
+        );
     }
 
     method close(IO::Handle:D:) {
@@ -256,7 +267,7 @@ my class IO::Handle does IO {
     }
     multi method words(IO::Handle:D: $limit, :$eager, :$close) {
         return self.words(:$eager,:$close)
-          if $limit == Inf or $limit ~~ Whatever;
+          if $limit == Inf or nqp::istype($limit,Whatever);
 
         my str $str;
         my int $chars;
@@ -384,7 +395,7 @@ my class IO::Handle does IO {
     }
     multi method lines(IO::Handle:D: $limit, :$eager, :$close) {
         return self.lines(:$eager, :$close)
-          if $limit == Inf or $limit ~~ Whatever;
+          if $limit == Inf or nqp::istype($limit,Whatever);
 
         my Mu $rpa := nqp::list();
         my int $count = $limit + 1;

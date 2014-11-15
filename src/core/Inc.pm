@@ -79,7 +79,7 @@
         for $config.list -> @group {
             for @group>>.kv -> $class, $props {
                 for $props.list -> $prop {
-                    if $prop ~~ Associative {
+                    if nqp::istype($prop,Associative) {
                         for $prop.value.flat -> $path {
                             if make-cur($class, $path) -> $cur {
                                 @INC.push: $cur;

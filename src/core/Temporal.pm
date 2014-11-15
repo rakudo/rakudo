@@ -109,7 +109,7 @@ my role Dateish {
             1 .. self.days-in-month);
     }
 
-    method truncate-parts(Cool $unit, %parts? is copy) {
+    method truncate-parts(Cool:D $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
         X::DateTime::InvalidDeltaUnit.new(:$unit).throw
             unless $unit eq any(@UNITS);
@@ -656,7 +656,7 @@ multi sub INITIALIZE_DYNAMIC('$*TZ') {
 }
 
 sub sleep($seconds = Inf --> Nil) {
-    if $seconds ~~ (Inf|Whatever) {
+    if $seconds == Inf || nqp::istype($seconds,Whatever) {
         nqp::sleep(1e16) while True;
     }
     elsif $seconds > 0 {

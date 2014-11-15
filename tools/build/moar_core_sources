@@ -145,4 +145,5 @@ src/core/Argfiles.pm
 src/core/Inc.pm
 src/core/Process.pm
 src/core/StrDistance.pm
+src/core/Slang.pm
 src/core/core_epilogue.pm

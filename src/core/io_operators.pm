@@ -76,7 +76,7 @@ multi sub pipe($path, :$chomp = True, :$enc = 'utf8', |c) {
 
 proto sub lines(|) { * }
 multi sub lines($what = $*ARGFILES, $limit = Inf, *%named) {
-    $limit == Inf || $limit ~~ Whatever
+    $limit == Inf || nqp::istype($limit,Whatever)
       ?? $what.lines(|%named)
       !! $what.lines($limit, |%named);
 }
@@ -135,20 +135,21 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir($path as Str) {
+sub chdir($path as Str, :$test = 'r') {
 
-    if $*CWD !~~ IO::Path {   # canary until 2014.10
+    if !nqp::istype($*CWD,IO::Path) {   # canary until 2014.10
         warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
         $*CWD = $*CWD.IO;
     }
 
-    my $newCWD = CHANGE-DIRECTORY($path,$*CWD ~ '/',&FILETEST-X);
+    my $newCWD := $*CWD.chdir($path,:$test);
     $newCWD // $newCWD.throw;
+
     $*CWD = $newCWD;
 }
 
 sub indir($path as Str, $what, :$test = <r w>) {
-    my $newCWD := CHANGE-DIRECTORY($path,$*CWD ~ '/',&FILETEST-RWX);
+    my $newCWD := $*CWD.chdir($path,:$test);
     $newCWD // $newCWD.throw;
 
     {
@@ -157,15 +158,17 @@ sub indir($path as Str, $what, :$test = <r w>) {
     }
 }
 
-sub tmpdir($path as Str) {
-    my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR ~ '/',&FILETEST-RWX);
+sub tmpdir($path as Str, :$test = <r w x>) {
+    my $newTMPDIR := $*TMPDIR.chdir($path,:$test);
     $newTMPDIR // $newTMPDIR.throw;
+
     $*TMPDIR = $newTMPDIR;
 }
 
 sub homedir($path as Str, :$test = <r w x>) {
-    my $newHOME := CHANGE-DIRECTORY($path,$*HOME ~ '/',&FILETEST-RWX);
+    my $newHOME := $*HOME.chdir($path,:$test);
     $newHOME // $newHOME.throw;
+
     $*HOME = $newHOME;
 }
 

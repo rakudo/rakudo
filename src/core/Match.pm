@@ -28,7 +28,7 @@ my class Match is Capture is Cool {
     method caps(Match:D:) {
         my @caps;
         for self.pairs -> $p {
-            if $p.value ~~ Array {
+            if nqp::istype($p.value,Array) {
                 @caps.push: $p.key => $_ for $p.value.list
             } else {
                 @caps.push: $p;

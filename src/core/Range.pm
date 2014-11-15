@@ -29,7 +29,8 @@ my class Range is Iterable is Cool does Positional {
         nqp::create(self).BUILD($min, $max.Real, $excludes_min, $excludes_max)
     }
     multi method new($min is copy, $max, :$excludes_min, :$excludes_max) {
-        $min = +$min if $min ~~ any(List|Match|Parcel);
+        $min = +$min
+          if nqp::istype($min,List) || nqp::istype($min,Match) || nqp::istype($min,Parcel);
         nqp::create(self).BUILD($min, $max, $excludes_min, $excludes_max)
     }
 
@@ -185,7 +186,7 @@ my class Range is Iterable is Cool does Positional {
     }
 
     multi method Numeric (Range:D:) {
-        nextsame unless $.max ~~ Numeric and $.min ~~ Numeric;
+        nextsame unless nqp::istype($.max,Numeric) && nqp::istype($.min,Numeric);
 
         my $diff := $.max - $.min - $.excludes_min;
 

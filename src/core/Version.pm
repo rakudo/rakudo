@@ -15,7 +15,7 @@ class Version {
     };
 
     multi method Str(Version:D:) {
-        @!parts.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') 
+        @!parts.map({ nqp::istype($_,Whatever) ?? '*' !! $_}).join('.') 
           ~ ($!plus ?? '+' !! '');
     }
     multi method gist(Version:D:) { 'v' ~ self.Str }
@@ -25,10 +25,10 @@ class Version {
     }
     multi method ACCEPTS(Version:D: Version:D $other) {
         for @!parts.kv -> $i, $v {
-            next if $v ~~ Whatever;
+            next if nqp::istype($v,Whatever);
             my $o = $other.parts[$i];
             return True unless defined $o;
-            next if $o ~~ Whatever;
+            next if nqp::istype($o,Whatever);
             return $.plus if $o after  $v;
             return False  if $o before $v;
         }

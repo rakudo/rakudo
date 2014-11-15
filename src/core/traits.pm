@@ -145,7 +145,7 @@ multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
 multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
-    my $new := $DEPRECATED ~~ Bool
+    my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
     $r.add_phaser( 'ENTER', -> { DEPRECATED($new) } );
@@ -271,22 +271,22 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
 multi trait_mod:<is>(Routine:D \r, :$export!) {
     my $to_export := r.multi ?? r.dispatcher !! r;
     my $exp_name  := '&' ~ r.name;
-    my @tags = 'ALL', ($export ~~ Pair ?? $export.key() !!
-                       $export ~~ Positional ?? @($export)>>.key !!
+    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
+                       nqp::istype($export,Positional) ?? @($export)>>.key !!
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.HOW.name(type);
-    my @tags = 'ALL', ($export ~~ Pair ?? $export.key !!
-                       $export ~~ Positional ?? @($export)>>.key !!
+    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
+                       nqp::istype($export,Positional) ?? @($export)>>.key !!
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, type);
 }
 # for constants
 multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
-    my @tags = 'ALL', ($export ~~ Pair ?? $export.key !!
-                    $export ~~ Positional ?? @($export)>>.key !!
+    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
+                    nqp::istype($export,Positional) ?? @($export)>>.key !!
                     'DEFAULT');
     EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
@@ -385,13 +385,13 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
         method apply_handles($attr: Mu $pkg) {
             sub applier($expr) {
                 if $expr.defined() {
-                    if $expr ~~ Str {
+                    if nqp::istype($expr,Str) {
                         self.add_delegator_method($pkg, $expr, $expr);
                     }
-                    elsif $expr ~~ Pair {
+                    elsif nqp::istype($expr,Pair) {
                         self.add_delegator_method($pkg, $expr.key, $expr.value);
                     }
-                    elsif $expr ~~ Positional {
+                    elsif nqp::istype($expr,Positional) {
                         for $expr.list {
                             applier($_);
                         }

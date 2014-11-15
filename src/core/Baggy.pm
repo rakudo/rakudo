@@ -77,7 +77,7 @@ my role Baggy does QuantHash {
         %!elems.delete_key(%!elems.keys.pick);
     }
     multi method grabpairs(Baggy:D: $count) {
-        if $count ~~ Whatever || $count == Inf {
+        if nqp::istype($count,Whatever) || $count == Inf {
             my @grabbed = %!elems{%!elems.keys.pick(%!elems.elems)};
             %!elems = ();
             @grabbed;
@@ -93,7 +93,9 @@ my role Baggy does QuantHash {
     }
     multi method pickpairs(Baggy:D: $count) {
         %!elems{ %!elems.keys.pick(
-          $count ~~ Whatever || $count == Inf ?? %!elems.elems !! $count
+          nqp::istype($count,Whatever) || $count == Inf
+            ?? %!elems.elems
+            !! $count
         ) };
     }
 
@@ -105,7 +107,7 @@ my role Baggy does QuantHash {
         grabbed;
     }
     multi method grab(Baggy:D: $count) {
-        if $count ~~ Whatever || $count == Inf {
+        if nqp::istype($count,Whatever) || $count == Inf {
             my @grabbed = ROLLPICKGRABN(self,self.total,%!elems.values);
             %!elems = ();
             @grabbed;
@@ -127,7 +129,7 @@ my role Baggy does QuantHash {
     }
     multi method pick(Baggy:D: $count) {
         ROLLPICKGRABN(self,
-          $count ~~ Whatever || $count == Inf ?? self.total !! $count,
+          nqp::istype($count,Whatever) || $count == Inf ?? self.total !! $count,
           %!elems.values.map: { (.key => .value) }
         );
     }
@@ -137,7 +139,7 @@ my role Baggy does QuantHash {
         ROLLPICKGRAB1(self,%!elems.values);
     }
     multi method roll(Baggy:D: $count) {
-        $count ~~ Whatever || $count == Inf
+        nqp::istype($count,Whatever) || $count == Inf
           ?? ROLLPICKGRABW(self,%!elems.values)
           !! ROLLPICKGRABN(self,$count, %!elems.values, :keep);
     }
@@ -231,7 +233,7 @@ my role Baggy does QuantHash {
         if @list {
 
             # multi-level classify
-            if test(@list[0]) ~~ List {
+            if nqp::istype(test(@list[0]),List) {
                 for @list -> $l {
                     my @keys  = test($l);
                     my $last := @keys.pop;
@@ -261,7 +263,7 @@ my role Baggy does QuantHash {
         if @list {
 
             # multi-level categorize
-            if test(@list[0])[0] ~~ List {
+            if nqp::istype(test(@list[0])[0],List) {
                 for @list -> $l {
                     for test($l) -> $k {
                         my @keys  = @($k);

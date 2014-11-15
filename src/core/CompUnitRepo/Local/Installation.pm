@@ -83,8 +83,8 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         my $ext = regex { [pm|pm6|pir|pbc|jar|moarvm] };
         my @provides;
         for %($d.provides).kv -> $k, $v is copy {
-            $v.=subst(/\.<$ext>$/, '.');
-            @provides.push: regex { $v <ext=.$ext> { make $k } }
+            $v.=subst(/ [pm|pm6]? \.<$ext>$/, '.');
+            @provides.push: regex { $v [ [pm|pm6] \. ]? <ext=.$ext> { make $k } }
         }
         
         # Initialize "provides" section.
@@ -100,7 +100,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 $d.provides{ $/.ast }{ $<ext> } = {
                     :file($file-id),
-                    :time(try $file.IO.modified),
+                    :time(try $file.IO.modified.Num),
                     :$!cver
                 }
             }
@@ -139,7 +139,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {
                 my $dver = $dist<ver>
-                        ?? $dist<ver> ~~ Version
+                        ?? nqp::istype($dist<ver>,Version)
                             ?? $dist<ver>
                             !! Version.new( $dist<ver> )
                         !! Version.new('0');
@@ -164,7 +164,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {
                 my $dver = $dist<ver>
-                        ?? $dist<ver> ~~ Version
+                        ?? nqp::istype($dist<ver>,Version)
                             ?? $dist<ver>
                             !! Version.new( ~$dist<ver> )
                         !! Version.new('0');

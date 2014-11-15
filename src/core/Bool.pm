@@ -47,12 +47,12 @@ multi prefix:<so>(Bool:D \a) { a }
 multi prefix:<so>(Mu \a) { a.Bool }
 
 proto prefix:<!>(Mu $) is pure { * }
-multi prefix:<!>(Bool \a) { nqp::p6bool(a ?? 0 !! 1) }
-multi prefix:<!>(Mu \a) { nqp::p6bool(a.Bool ?? 0 !! 1) }
+multi prefix:<!>(Bool \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
+multi prefix:<!>(Mu \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
 
 proto prefix:<not>(Mu $) is pure { * }
-multi prefix:<not>(Bool \a) { nqp::p6bool(a ?? 0 !! 1) }
-multi prefix:<not>(Mu \a) { nqp::p6bool(a.Bool ?? 0 !! 1) }
+multi prefix:<not>(Bool \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
+multi prefix:<not>(Mu \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
 
 proto prefix:<?^>(Mu $) is pure { * }
 multi prefix:<?^>(Mu \a) { not a }

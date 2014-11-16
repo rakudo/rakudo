@@ -7505,11 +7505,14 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                             $gref, QAST::SVal.new( :value($name) )),
                                          :name(~$<longname>) );
             } elsif $*W.regex_in_scope('&' ~ $name) {
+                my $coderef := $*W.find_symbol(['&' ~ $name]);
+                my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
+                $var.annotate('coderef',$coderef);
+                my $c := $var.ann('coderef');
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new(
-                                            QAST::SVal.new( :value('INDRULE') ),
-                                            QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
+                                         :node($/), QAST::NodeList.new($var),
                                          :name($name) );
+                # nqp::say($qast.dump);
             }
             else {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,

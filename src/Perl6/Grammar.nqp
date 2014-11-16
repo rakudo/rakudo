@@ -4739,7 +4739,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 
     token assertion:sym<?{ }> {
-        $<zw>=[ <[?!]> <?[{]> ] <codeblock>
+        '?' <?before '{'> <codeblock>
+    }
+
+    token assertion:sym<!{ }> {
+        '!' <?before '{'> <codeblock>
     }
 
     token assertion:sym<var> {

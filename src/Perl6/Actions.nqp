@@ -7480,9 +7480,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         my @parts := $*W.dissect_longname($<longname>).components();
         my $name  := @parts.pop();
         my $qast;
+        my $c := $/.CURSOR;
         if $<assertion> {
             if +@parts {
-                $/.CURSOR.panic("Can only alias to a short name (without '::')");
+                $c.panic("Can only alias to a short name (without '::')");
             }
             $qast := $<assertion>.ast;
             if $qast.rxtype eq 'subrule' {
@@ -7510,7 +7511,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                             QAST::SVal.new( :value('OTHERGRAMMAR') ), 
                                             $gref, QAST::SVal.new( :value($name) )),
                                          :name(~$<longname>) );
-            } elsif $*W.regex_in_scope('&' ~ $name) {
+            } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
+                # The lookbehind for . is because we do not yet call $~MAIN's methodop, and our recognizer for
+                # . <assertion>, which is a somewhat bogus recursion, comes from QRegex, not our own grammar.
                 my $coderef := $*W.find_symbol(['&' ~ $name]);
                 my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
                 $var.annotate('coderef',$coderef);

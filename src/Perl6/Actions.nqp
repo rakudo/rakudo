@@ -7456,13 +7456,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method assertion:sym<?{ }>($/) {
         make QAST::Regex.new( $<codeblock>.ast,
-                              :subtype<zerowidth>, :negate( False ),
+                              :subtype<zerowidth>, :negate( 0 ),
                               :rxtype<qastnode>, :node($/) );
     }
 
     method assertion:sym<!{ }>($/) {
         make QAST::Regex.new( $<codeblock>.ast,
-                              :subtype<zerowidth>, :negate( True ),
+                              :subtype<zerowidth>, :negate( 1 ),
                               :rxtype<qastnode>, :node($/) );
     }
 

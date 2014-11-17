@@ -188,7 +188,7 @@ my class Hash { # declared in BOOTSTRAP
         if @list {
 
             # multi-level classify
-            if test(@list[0]) ~~ List {
+            if nqp::istype(test(@list[0]),List) {
                 for @list -> $l {
                     my @keys  = test($l);
                     my $last := @keys.pop;
@@ -221,7 +221,7 @@ my class Hash { # declared in BOOTSTRAP
         if @list {
 
             # multi-level categorize
-            if test(@list[0])[0] ~~ List {
+            if nqp::istype(test(@list[0])[0],List) {
                 for @list -> $l {
                     for test($l) -> $k {
                         my @keys = @($k);

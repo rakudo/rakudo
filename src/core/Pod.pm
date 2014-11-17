@@ -16,16 +16,17 @@ my class Pod::Block {
         for <config name level caption type> {
             my $thing = $pod.?"$_"();
             if $thing {
-                %confs{$_} = $thing ~~ Iterable ?? $thing.perl
-                                                !! $thing.Str;
+                %confs{$_} = nqp::istype($thing,Iterable)
+                  ?? $thing.perl
+                  !! $thing.Str;
             }
         }
         @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
         for $pod.contents.list -> $c {
-            if $c ~~ Pod::Block {
+            if nqp::istype($c,Pod::Block) {
                 @chunks.push: pod-gist($c, $level + 2);
             }
-            elsif $c ~~ Positional {
+            elsif nqp::istype($c,Positional) {
                 @chunks.push: $c>>.Str.perl.indent($level + 2), "\n";
             }
             else {

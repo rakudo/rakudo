@@ -43,7 +43,7 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
             '$!descriptor',
           ).set_default(nqp::decont($default));
         CATCH {
-            $default ~~ Whatever
+            nqp::istype($default,Whatever)
               ?? $v.throw( 'X::Comp::NYI',
                 :feature<is default(*) on natives> )
               !! $v.throw( 'X::Comp::Trait::NotOnNative',
@@ -79,8 +79,8 @@ multi trait_mod:<is>(Variable:D $v, :$export!) {
         );
     }
     my $var  := $v.var;
-    my @tags = 'ALL', ($export ~~ Pair ?? $export.key() !!
-                       $export ~~ Positional ?? @($export)>>.key !!
+    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
+                       nqp::istype($export,Positional) ?? @($export)>>.key !!
                        'DEFAULT');
     EXPORT_SYMBOL($var.VAR.name, @tags, $var);
 }

@@ -119,18 +119,18 @@ my class Any { # declared in BOOTSTRAP
     proto method tree(|) { * }
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) {
-        self ~~ Positional
+        nqp::istype(self,Positional)
             ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
             !! self
     }
     multi method tree(Any:D: Whatever ) { self.tree }
     multi method tree(Any:D: Cool $count as Int) {
-        self ~~ Positional && $count > 0
+        nqp::istype(self,Positional) && $count > 0
             ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
             !! self
     }
     multi method tree(Any:D: *@ [&first, *@rest]) {
-        self ~~ Positional
+        nqp::istype(self,Positional)
             ?? @rest ?? first MapIter.new(self.list, { .tree(|@rest) }, Mu).list
                      !! first self.list
             !! self
@@ -141,7 +141,7 @@ my class Any { # declared in BOOTSTRAP
     # auto-vivifying
     proto method push(|) { * }
     multi method push(Any:U \SELF: *@values) {
-        SELF = SELF ~~ Positional ?? SELF.new !! Array.new;
+        SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
         SELF.push(@values);
     }
 
@@ -170,16 +170,25 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.grep-index' );
     }
     multi method grep-index(Regex:D $test) {
-        my $index = -1;
-        self.map: { $index++; +$index if .match($test) };
+        my int $index = -1;
+        self.map: {
+            $index = $index+1;
+            nqp::box_i($index,Int) if .match($test);
+        };
     }
     multi method grep-index(Callable:D $test) {
-        my $index = -1;
-        self.map: { $index++; +$index if $test($_) };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            nqp::box_i($index,Int) if $test($_);
+        };
     }
     multi method grep-index(Mu $test) {
-        my $index = -1;
-        self.map: { $index++; +$index if $_ ~~ $test };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            nqp::box_i($index,Int) if $_ ~~ $test;
+        };
     }
 
     proto method first(|) { * }
@@ -204,18 +213,27 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.first-index' );
     }
     multi method first-index(Regex:D $test) {
-        my $index = -1;
-        self.map: { $index++; return $index if .match($test) };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            return nqp::box_i($index,Int) if .match($test);
+        };
         Nil;
     }
     multi method first-index(Callable:D $test) {
-        my $index = -1;
-        self.map: { $index++; return $index if $test($_) };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            return nqp::box_i($index,Int) if $test($_);
+        };
         Nil;
     }
     multi method first-index(Mu $test) {
-        my $index = -1;
-        self.map: { $index++; return $index if $_ ~~ $test };
+        my int $index = -1;
+        self.map: {
+            $index = $index + 1;
+            return nqp::box_i($index,Int) if $_ ~~ $test;
+        };
         Nil;
     }
 
@@ -224,18 +242,36 @@ my class Any { # declared in BOOTSTRAP
         fail X::Match::Bool.new( type => '.last-index' );
     }
     multi method last-index(Regex:D $test) {
-        my $index = self.elems;
-        self.reverse.map: { $index--; return $index if .match($test) };
+        my $elems = self.elems;
+        return Inf if $elems == Inf;
+
+        my int $index = $elems;
+        while $index {
+            $index = $index - 1;
+            return nqp::box_i($index,Int) if self.at_pos($index).match($test);
+        }
         Nil;
     }
     multi method last-index(Callable:D $test) {
-        my $index = self.elems;
-        self.reverse.map: { $index--; return $index if $test($_) };
+        my $elems = self.elems;
+        return Inf if $elems == Inf;
+
+        my int $index = $elems;
+        while $index {
+            $index = $index - 1;
+            return nqp::box_i($index,Int) if $test(self.at_pos($index));
+        }
         Nil;
     }
     multi method last-index(Mu $test) {
-        my $index = self.elems;
-        self.reverse.map: { $index--; return $index if $_ ~~ $test };
+        my $elems = self.elems;
+        return Inf if $elems == Inf;
+
+        my int $index = $elems;
+        while $index {
+            $index = $index - 1;
+            return nqp::box_i($index,Int) if self.at_pos($index) ~~ $test;
+        }
         Nil;
     }
 

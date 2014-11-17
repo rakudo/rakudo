@@ -56,9 +56,9 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
         }
 
         my @contestant;
-        while @other[0] !~~ Block {
+        while !nqp::istype(@other[0],Block) {
             my $next := @other.shift;
-            if $next !~~ Channel {
+            if !nqp::istype($next,Channel) {
                 die "Got a {$next.WHAT.perl}, but expected a Channel";
             }
             push @contestant, $next;
@@ -101,7 +101,7 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
 
             else { # $kind == $EARLIEST_KIND_MORE
 
-                if (my $value := $contestant.poll) !~~ Nil {
+                if !nqp::istype((my $value := $contestant.poll),Nil) {
                     $action = { INVOKE_KV($todo[3], $todo[0], $value) };
                     last CHECK;
                 }

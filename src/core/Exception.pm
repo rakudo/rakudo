@@ -1046,7 +1046,7 @@ my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;
     method message() {
-        "Operators '$.left' and '$.right' are non-associative and require parenthesis";
+        "Operators '$.left' and '$.right' are non-associative and require parentheses";
     }
 }
 

@@ -834,9 +834,18 @@ my class X::Bind::ZenSlice is X::Bind::Slice {
 
 my class X::Subscript::FromEnd is Exception {
     has $.index;
+    has $.elems;
     has $.type;
     method message() {
-        "Index [{$.index}] is out of range; indices start at 0 for objects of type {$.type.^name}"
+        "Effective index [{$.index}] is out of range for a {$.type.^name} of $.elems elements (*{$.elems + $.index})";
+    }
+}
+
+my class X::Subscript::Negative is Exception {
+    has $.index;
+    has $.type;
+    method message() {
+        "Unsupported use of [{$.index}] subscript to access from end of {$.type.^name}; in Perl 6 please use [*{$.index}]";
     }
 }
 

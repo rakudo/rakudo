@@ -836,7 +836,7 @@ my class X::Subscript::FromEnd is Exception {
     has $.index;
     has $.type;
     method message() {
-        "Unsupported use of [{$.index}] subscript to access from end of {$.type.^name}; in Perl 6 please use [*{$.index}]"
+        "Index [{$.index}] is out of range; indices start at 0 for objects of type {$.type.^name}"
     }
 }
 

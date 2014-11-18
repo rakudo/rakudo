@@ -6,6 +6,7 @@ my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
 my class X::Match::Bool { ... }
 my class X::Subscript::FromEnd { ... }
+my class X::Subscript::Negative { ... }
 
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
@@ -630,8 +631,11 @@ sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) is hidden_from_backtrace {
 
 # internal 1 element hash/array access with adverbs
 sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
-    fail X::Subscript::FromEnd.new(index => $one, type => SELF.WHAT)
-      if $array && $one < 0;
+    if $array && $one < 0 {
+        fail $*whatever
+          ?? X::Subscript::FromEnd.new(index => $one, elems => SELF.elems, type => SELF.WHAT)
+          !! X::Subscript::Negative.new(index => $one, type => SELF.WHAT)
+    }
 
     my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
 

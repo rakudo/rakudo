@@ -5,7 +5,6 @@ my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
 my class X::Match::Bool { ... }
-my class X::Subscript::FromEnd { ... }
 my class X::Subscript::Negative { ... }
 
 my class Any { # declared in BOOTSTRAP
@@ -631,13 +630,16 @@ sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) is hidden_from_backtrace {
 
 # internal 1 element hash/array access with adverbs
 sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
-    if $array && $one < 0 {
-        fail $*whatever
-          ?? X::Subscript::FromEnd.new(index => $one, elems => SELF.elems, type => SELF.WHAT)
-          !! X::Subscript::Negative.new(index => $one, type => SELF.WHAT)
+    my $ex;
+    if $array {
+        if $one < 0 {
+            fail X::Subscript::Negative.new(index => $one, type => SELF.WHAT)
+        }
+        $ex := SELF.can( 'exists_pos' )[0] if %adv;
     }
-
-    my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
+    else {
+        $ex := SELF.can( 'exists_key' )[0] if %adv;
+    }
 
     my %a = %adv.clone;
     my @nogo;
@@ -813,7 +815,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
         elsif !%a {                           # :!delete
             $array ?? SELF.at_pos($one) !! SELF.at_key($one);
         }
-    };
+    }
 
     @nogo || %a
       ?? SLICE_HUH( SELF, @nogo, %a, %adv )

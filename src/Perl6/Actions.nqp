@@ -5622,8 +5622,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
         if $<semilist> {
+            my $c := $/.CURSOR;
             my $ast := $<semilist>.ast;
             $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+            for nqp::split(';', ~$<semilist>) {
+                my $ix := $_ ~~ / [ ^ | '..' ] \s* <( '-' \d+ )> \s* $ /;
+                if $ix {
+                    $c.obs("a negative " ~ $ix ~ " subscript to index from the end", "a function such as *" ~ $ix);
+                }
+            }
         }
         make $past;
     }

@@ -1877,7 +1877,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token coloncircumfix($front) {
         [
         | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
-        | <circumfix>
+        | {} <circumfix>
         ]
     }
 
@@ -4739,7 +4739,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 
     token assertion:sym<?{ }> {
-        $<zw>=[ <[?!]> <?[{]> ] <codeblock>
+        '?' <?before '{'> <codeblock>
+    }
+
+    token assertion:sym<!{ }> {
+        '!' <?before '{'> <codeblock>
     }
 
     token assertion:sym<var> {

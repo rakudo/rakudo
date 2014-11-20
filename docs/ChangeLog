@@ -1,4 +1,10 @@
 New in 2014.11
++ using a constant negative subscript now dies at compile time
++ better wording for runtime negative index failure
++ force calling method for <.foo> even if sub foo exists
++ fix tie-breaking issues with longest literal matching
++ make List.last-index non-lazy (as the whole list needs to be reified anyway)
++ introduce IO::Handle.slurp-rest for slurping rest from handle
 + method 'for' as an alias for 'map'. Map will stop flattening the list eventually, 'for' remains as it is now.
 + method 'unique' as a successor for 'uniq'
 + warn about clashing enum aliases, and also poison these aliases

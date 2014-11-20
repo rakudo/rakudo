@@ -5622,8 +5622,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
         if $<semilist> {
+            my $c := $/.CURSOR;
             my $ast := $<semilist>.ast;
             $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+            for nqp::split(';', ~$<semilist>) {
+                my $ix := $_ ~~ / [ ^ | '..' ] \s* <( '-' \d+ )> \s* $ /;
+                if $ix {
+                    $c.obs("a negative " ~ $ix ~ " subscript to index from the end", "a function such as *" ~ $ix);
+                }
+            }
         }
         make $past;
     }
@@ -7456,7 +7463,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method assertion:sym<?{ }>($/) {
         make QAST::Regex.new( $<codeblock>.ast,
-                              :subtype<zerowidth>, :negate( $<zw> eq '!' ),
+                              :subtype<zerowidth>, :negate( 0 ),
+                              :rxtype<qastnode>, :node($/) );
+    }
+
+    method assertion:sym<!{ }>($/) {
+        make QAST::Regex.new( $<codeblock>.ast,
+                              :subtype<zerowidth>, :negate( 1 ),
                               :rxtype<qastnode>, :node($/) );
     }
 
@@ -7474,9 +7487,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         my @parts := $*W.dissect_longname($<longname>).components();
         my $name  := @parts.pop();
         my $qast;
+        my $c := $/.CURSOR;
         if $<assertion> {
             if +@parts {
-                $/.CURSOR.panic("Can only alias to a short name (without '::')");
+                $c.panic("Can only alias to a short name (without '::')");
             }
             $qast := $<assertion>.ast;
             if $qast.rxtype eq 'subrule' {
@@ -7504,12 +7518,17 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                             QAST::SVal.new( :value('OTHERGRAMMAR') ), 
                                             $gref, QAST::SVal.new( :value($name) )),
                                          :name(~$<longname>) );
-            } elsif $*W.regex_in_scope('&' ~ $name) {
+            } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
+                # The lookbehind for . is because we do not yet call $~MAIN's methodop, and our recognizer for
+                # . <assertion>, which is a somewhat bogus recursion, comes from QRegex, not our own grammar.
+                my $coderef := $*W.find_symbol(['&' ~ $name]);
+                my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
+                $var.annotate('coderef',$coderef);
+                my $c := $var.ann('coderef');
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new(
-                                            QAST::SVal.new( :value('INDRULE') ),
-                                            QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
+                                         :node($/), QAST::NodeList.new($var),
                                          :name($name) );
+                # nqp::say($qast.dump);
             }
             else {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,

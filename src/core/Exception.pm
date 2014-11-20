@@ -832,11 +832,11 @@ my class X::Bind::ZenSlice is X::Bind::Slice {
     }
 }
 
-my class X::Subscript::FromEnd is Exception {
+my class X::Subscript::Negative is Exception {
     has $.index;
     has $.type;
     method message() {
-        "Unsupported use of [{$.index}] subscript to access from end of {$.type.^name}; in Perl 6 please use [*{$.index}]"
+        "Calculated index ({$.index}) is negative, but {$.type.^name} allows only 0-based indexing";
     }
 }
 
@@ -1046,7 +1046,7 @@ my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;
     method message() {
-        "Operators '$.left' and '$.right' are non-associative and require parenthesis";
+        "Operators '$.left' and '$.right' are non-associative and require parentheses";
     }
 }
 

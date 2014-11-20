@@ -341,20 +341,20 @@ General Options:
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
                        Download and build a copy of NQP
-        --gen-moar[=branch]
+    --gen-moar[=branch]
                        Download and build a copy of MoarVM to use
-        --moar-option='--option=value'
+    --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl
-        --gen-parrot[=branch]
+    --gen-parrot[=branch]
                        Download and build a copy of Parrot
-        --parrot-option='--option'
+    --parrot-option='--option'
                        Options to pass to Parrot's Configure.pl
-        --parrot-make-option='--option'
+    --parrot-make-option='--option'
                        Options to pass to Parrot's make, for example:
                        --parrot-make-option='--jobs=4'
-        --git-protocol={ssh,https,git}
+    --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
-        --git-depth=<number>
+    --git-depth=<number>
                        Use the --depth option for git clone with parameter number
     --makefile-timing  Enable timing of individual makefile commands
 

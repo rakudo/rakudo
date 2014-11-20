@@ -52,17 +52,8 @@ my class IO::Handle does IO {
         fail (X::IO::Directory.new(:$!path, :trying<open>)) if $!path.d;
         $r = $w = True if $rw;
 
-#?if parrot
-        $!pipe = $p ?? 1 !! 0;
-        my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
-                   ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
-        # TODO: catch error, and fail()
-        $!PIO := nqp::open(nqp::unbox_s($!path.abspath), nqp::unbox_s($mode));
-#?endif
-#?if !parrot
         if $p {
             $!pipe = 1;
-            #~ my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp');
 
             my Mu $hash-with-containers :=
               nqp::getattr(%*ENV, EnumMap, '$!storage');
@@ -87,7 +78,6 @@ my class IO::Handle does IO {
               $errpath,
             );
         }
-
         else {
             my $mode =  $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
             # TODO: catch error, and fail()
@@ -96,7 +86,6 @@ my class IO::Handle does IO {
               nqp::unbox_s($mode),
             );
         }
-#?endif
 
         $!chomp = $chomp;
         nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));

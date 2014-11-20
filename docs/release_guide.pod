@@ -14,8 +14,7 @@ end of this document.
 
 =head2 Planned future releases
 
-  2014-11-20   Rakudo #82  lizmat
-  2014-12-18   Rakudo #83 
+  2014-12-18   Rakudo #83  lizmat
   2015-01-22   Rakudo #84  Coke
   2015-02-19   Rakudo #85
 
@@ -303,6 +302,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2014-08-21   Rakudo #79 "Minsk"              (Coke)
   2014-09-18   Rakudo #80 "HongKong"           (masak)
   2014-10-23   Rakudo #81 "Linz"               (duff)
+  2014-11-20   Rakudo #82 "Helsinki"           (lizmat)
 
 =head1 COPYRIGHT
 

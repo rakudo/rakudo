@@ -10,11 +10,11 @@ my class IO::Path is Cool {
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
-        nqp::p6bool(nqp::iseq_s($!path, nqp::unbox_s(other.path)));
+        nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.path.abspath)));
     }
 
     multi method ACCEPTS(IO::Path:D: Mu \that) {
-        nqp::p6bool(nqp::iseq_s($!path,nqp::unbox_s(IO::Path.new(|that).path)));
+        nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
     }
 
     submethod BUILD(:$!path! as Str, :$!SPEC!, :$!CWD! as Str) { }

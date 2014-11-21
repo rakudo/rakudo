@@ -4475,6 +4475,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # it's a sigilless param or variable
                 $past := make_variable_from_parts($/, @name, '', '', @name[0]);
             }
+            elsif +@name && @name[0] eq 'EXPORT' {
+                my int $i := 1;
+                my int $m := +@name;
+                $past     := QAST::Var.new( :name<EXPORT>, :scope<lexical> );
+                while $i < $m {
+                    $past := QAST::Op.new( :op<callmethod>, :name<package_at_key>,
+                        QAST::Op.new( :op<who>, $past ),
+                        QAST::SVal.new(:value(@name[$i]))
+                    );
+                    $i := $i + 1
+                }
+            }
             else {
                 $past := instantiated_type(@name, $/);
             }

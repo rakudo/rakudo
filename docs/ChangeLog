@@ -1,3 +1,6 @@
+New in 2014.12
++ Increase/Decrease removed, were deprecated 1+ year
+
 New in 2014.11
 + using a constant negative subscript now dies at compile time
 + better wording for runtime negative index failure

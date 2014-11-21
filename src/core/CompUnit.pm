@@ -37,7 +37,7 @@ class CompUnit {
         return Nil unless $has-source or $has-precomp;
 
         $global.protect( { %instances{$path} //= self.bless(
-          :path($path.path),
+          :path(IO::Path.new-from-absolute-path($path)),
           :lock(Lock.new),
           :$name,
           :$extension,

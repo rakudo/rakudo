@@ -4859,6 +4859,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     $past.push($_);
                 }
+                # look for any chained adverb pairs
+                if $<pblock><blockoid><statementlist><statement>[0]<EXPR> -> $EXPR {
+                    my $*WAS_SKIPPED := 0;
+                    try {
+                        my @args;
+                        if $*FAKE_INFIX_FOUND {
+                            hunt_loose_adverbs_in_arglist($EXPR, @args);
+                        }
+                        for @args {
+                            $_[2].named('value');
+                            $past.push($_);
+                        }
+                    }
+                }
             }
         }
         else {

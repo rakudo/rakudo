@@ -44,7 +44,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
         IO::Spec::Win32.abs2rel(|c).subst(:global, '\\', '/');
     }
     method rel2abs(|c) {
-        IO::Spec::Win32.rel2abs(|c).subst(:global, '\\', '/');
+        IO::Spec::Win32.rel2abs(|c, :omit-volume).subst(:global, '\\', '/');
     }
     method splitpath(|c) {
         IO::Spec::Win32.splitpath(|c)>>.subst(:global, '\\', '/');

@@ -35,7 +35,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method tmpdir {
-        my %ENV := $%ENV;
+        my $ENV := %*ENV;
         my $io;
         first( {
             if .defined {
@@ -43,9 +43,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
                 $io.d && $io.r && $io.w && $io.x;
             }
         },
-          %ENV<TMPDIR>,
-          %ENV<TEMP>,
-          %ENV<TMP>,
+          $ENV<TMPDIR>,
+          $ENV<TEMP>,
+          $ENV<TMP>,
           'SYS:/temp',
           'C:\system\temp',
           'C:/temp',

@@ -4734,10 +4734,38 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method circumfix:sym<( )>($/) {
         my $past := $<semilist>.ast;
+        my @args;
+        # look for any chained adverb pairs
+        if $<semilist><statement>[0]<EXPR> -> $EXPR {
+            my $*WAS_SKIPPED := 0;
+            try {
+                if $*FAKE_INFIX_FOUND {
+                    hunt_loose_adverbs_in_arglist($EXPR, @args);
+                }
+            }
+        }
         my $size := +$past.list;
         if $size == 0 {
             $past := QAST::Stmts.new( :node($/) );
             $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>')));
+        }
+        elsif +@args {
+            if $size == 1
+            && nqp::istype($past[0],    QAST::Op)  && $past[0].op eq 'callmethod' && $past[0].name eq 'new'
+            && nqp::istype($past[0][0], QAST::Var) && $past[0][0].name eq 'Pair' {
+                $past := QAST::Stmts.new( :node($/),
+                    QAST::Op.new( :op('call'), :name('&infix:<,>'),
+                    $past[0], |@args)
+                )
+            }
+            else {
+                for @args {
+                    $past.push($_);
+                }
+            }
+        }
+        if +@args {
+            say($past.dump);
         }
         make $past;
     }

@@ -41,7 +41,7 @@ my class IO::Socket::INET does IO::Socket {
         fail "Nothing given for new socket to connect or bind to" unless %args<host> || %args<listen>;
 
         if %args<host>  {
-            my ($host, $port) = %args<family> && %args<family> == PIO::PF_INET6() 
+            my ($host, $port) = %args<family> && %args<family> == PIO::PF_INET6
                 ?? v6-split(%args<host>)
                 !! v4-split(%args<host>);
             if $port {
@@ -50,7 +50,7 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
         if %args<localhost> {
-            my ($peer, $port) = %args<family> && %args<family> == PIO::PF_INET6() 
+            my ($peer, $port) = %args<family> && %args<family> == PIO::PF_INET6
                 ?? v6-split(%args<localhost>)
                 !! v4-split(%args<localhost>);
             if $port {

@@ -35,7 +35,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method tmpdir {
-        my %ENV := $%ENV;
+        my $ENV := %*ENV;
         my $io;
         first( {
             if .defined {
@@ -43,9 +43,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
                 $io.d && $io.r && $io.w && $io.x;
             }
         },
-          %ENV<TMPDIR>,
-          %ENV<TEMP>,
-          %ENV<TMP>,
+          $ENV<TMPDIR>,
+          $ENV<TEMP>,
+          $ENV<TMP>,
           'SYS:/temp',
           'C:\system\temp',
           'C:/temp',
@@ -129,14 +129,14 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         else     { $volume ~ $dirname     ~    $file; }
     }
 
-    method rel2abs ($path is copy, $base? is copy) {
+    method rel2abs ($path is copy, $base? is copy, :$omit-volume) {
 
         my $is_abs = ($path ~~ /^ [<$driveletter> <$slash> | <$UNCpath>]/ && 2)
                   || ($path ~~ /^ <$slash> / && 1)
                   || 0;
 
         # Check for volume (should probably document the '2' thing...)
-        return self.canonpath( $path ) if $is_abs == 2;
+        return self.canonpath( $path ) if $is_abs == 2 || ($is_abs == 1 && $omit-volume);
 
         if $is_abs {
             # It's missing a volume, add one

@@ -6941,18 +6941,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Either a call that we're allowed to curry...
                 (($past.op eq 'call' || $past.op eq 'chain') &&
-                    (nqp::index($past.name, '&infix:') == 0 ||
-                     nqp::index($past.name, '&prefix:') == 0 ||
-                     nqp::index($past.name, '&postfix:') == 0 ||
+                    (nqp::eqat($past.name, '&infix:', 0) ||
+                     nqp::eqat($past.name, '&prefix:', 0) ||
+                     nqp::eqat($past.name, '&postfix:', 0) ||
                      (nqp::istype($past[0], QAST::Op) &&
-                        nqp::index($past[0].name, '&METAOP') == 0)) &&
+                        nqp::eqat($past[0].name, '&METAOP', 0))) &&
                     %curried{$past.name} // 2)
 
             # Or not a call and an op in the list of alloweds.
                 || ($past.op ne 'call' && %curried{$past.op} // 0)
 
             # or one of our new postcircumfix subs that used to be methods
-                || ($past.op eq 'call' && nqp::index($past.name, '&postcircumfix:') == 0 &&
+                || ($past.op eq 'call' && nqp::eqat($past.name, '&postcircumfix:', 0) &&
                     %curried{$past.name} // 0)
             );
         my int $i := 0;

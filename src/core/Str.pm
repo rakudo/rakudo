@@ -621,6 +621,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my $max = 0;
                 while @nlist {
                     my $n = shift @nlist;
+                    if $n ~~ Callable {
+                        $n = $n(+@src) + 1;
+                    }
                     fail "Attempt to retrieve negative match :nth($n)" if $n < 1;
                     if $n > $max { take @src[$n-1]; $max = $n; }
                 }

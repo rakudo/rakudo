@@ -1099,6 +1099,9 @@ class Perl6::Optimizer {
         elsif $optype eq 'call' && $op.name ne '' {
             my $opt_result := self.optimize_call($op);
             return $opt_result if $opt_result;
+        } elsif $optype eq 'call' && $op.name eq '' {
+            my $opt_result := self.optimize_nameless_call($op);
+            return $opt_result if $opt_result;
         }
         
         # If it's a private method call, we can sometimes resolve it at
@@ -1289,6 +1292,57 @@ class Perl6::Optimizer {
             }
         }
         return NQPMu;
+    }
+
+    method optimize_nameless_call($op) {
+        if +@($op) > 0 {
+            # if we know we're directly calling the result, we can be smarter
+            # about METAOPs
+            if nqp::istype((my $metaop := $op[0]), QAST::Op) && ($metaop.op eq 'call' || $metaop.op eq 'callstatic') {
+                if $metaop.name eq '&METAOP_ASSIGN' && $!symbols.is_from_core('&METAOP_ASSIGN') {
+                    if nqp::istype($metaop[0], QAST::Var) && nqp::istype($op[1], QAST::Var) {
+                        my str $sigil := nqp::substr($op[1].name, 0, 1);
+                        my str $assignop;
+
+                        if nqp::objprimspec($op[1].returns) {
+                            $assignop := 'bind';
+                        } elsif $sigil eq '$' {
+                            $assignop := 'assign';
+                        } else {
+                            # TODO support @ and % sigils
+                            # TODO check what else we need to "copy" from assign_op in Actions
+                            return NQPMu;
+                        }
+
+                        my $result_ast := QAST::Op.new( :op($assignop),
+                            $op[1],
+                            QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                QAST::Op.new( :op('defor'), :name('&infix:<//>'),
+                                    $op[1],
+                                    QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
+                                $op[2]));
+
+                        if $assignop eq 'bind' && nqp::objprimspec($op[1].returns) {
+                            $result_ast.returns($op[1].returns);
+                        }
+
+                        return $result_ast;
+                    }
+                } elsif $metaop.name eq '&METAOP_NEGATE' && $!symbols.is_from_core('&METAOP_NEGATE') {
+                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+                    return QAST::Op.new( :op('call'), :name('&prefix:<!>'),
+                            QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                $op[1],
+                                $op[2]) );
+                } elsif $metaop.name eq '&METAOP_REVERSE' && $!symbols.is_from_core('&METAOP_REVERSE') {
+                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+                    return QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                $op[2],
+                                $op[1]);
+                }
+            }
+        }
+        NQPMu;
     }
 
     method optimize_private_method_call($op) {

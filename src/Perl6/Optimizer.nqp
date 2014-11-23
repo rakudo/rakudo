@@ -1328,6 +1328,17 @@ class Perl6::Optimizer {
 
                         return $result_ast;
                     }
+                } elsif $metaop.name eq '&METAOP_NEGATE' && $!symbols.is_from_core('&METAOP_NEGATE') {
+                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+                    return QAST::Op.new( :op('call'), :name('&prefix:<!>'),
+                            QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                $op[1],
+                                $op[2]) );
+                } elsif $metaop.name eq '&METAOP_REVERSE' && $!symbols.is_from_core('&METAOP_REVERSE') {
+                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+                    return QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                $op[2],
+                                $op[1]);
                 }
             }
         }

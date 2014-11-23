@@ -4742,6 +4742,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $*FAKE_INFIX_FOUND {
                     hunt_loose_adverbs_in_arglist($EXPR, @args);
                 }
+                for @args {
+                    $_[2].named('value');
+                }
             }
         }
         my $size := +$past.list;
@@ -4763,9 +4766,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past.push($_);
                 }
             }
-        }
-        if +@args {
-            say($past.dump);
         }
         make $past;
     }

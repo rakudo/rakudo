@@ -1314,19 +1314,28 @@ class Perl6::Optimizer {
                             return NQPMu;
                         }
 
-                        my $result_ast := QAST::Op.new( :op($assignop),
-                            $op[1],
-                            QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                QAST::Op.new( :op('defor'), :name('&infix:<//>'),
-                                    $op[1],
-                                    QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
-                                $op[2]));
+                        # since the optimizer will only ever walk the first
+                        # branch of a Want node, we have to make sure to change
+                        # the node in place, since it's most likely shared with
+                        # the other branch.
+                        $op.op($assignop);
+                        my $target_var := $op[1];
+                        my $operand    := $op[2];
 
-                        if $assignop eq 'bind' && nqp::objprimspec($op[1].returns) {
-                            $result_ast.returns($op[1].returns);
+                        $op.pop;
+                        $op.pop;
+                        $op.pop;
+
+                        $op.push($target_var);
+                        $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                    QAST::Op.new( :op('defor'), :name('&infix:<//>'),
+                                        $target_var,
+                                        QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
+                                    $operand));
+
+                        if $assignop eq 'bind' && nqp::objprimspec($target_var.returns) {
+                            $op.returns($target_var.returns);
                         }
-
-                        return $result_ast;
                     }
                 } elsif $metaop.name eq '&METAOP_NEGATE' && $!symbols.is_from_core('&METAOP_NEGATE') {
                     return NQPMu unless nqp::istype($metaop[0], QAST::Var);

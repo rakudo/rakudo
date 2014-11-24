@@ -74,10 +74,64 @@ multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
 }
 
 proto sub open(|) { * }
-multi sub open($path, :$chomp = True, :$enc = 'utf8', |c) {
-    my $handle = IO::Handle.new(:path($path.IO));
-    $handle // $handle.throw;
-    $handle.open(:$chomp,:$enc,|c);
+multi sub open(
+ $path is copy,
+ :$r   is copy,
+ :$w   is copy,
+ :$rw,
+ :$a,
+ :$p,    # DEPRECATED
+ :$bin,
+ :$chomp = True,
+ :$enc   = 'utf8',
+ :$nl    = "\n",
+) {
+    my $PIO;
+
+    # we want a pipe
+    if $p {
+        DEPRECATED('pipe($path,...)',|<2014.12 2015.12>,:what(':p for pipe'));
+        return pipe($path,:$r,:$w,:$rw,:$a,:$bin,:$chomp,:$enc,:$nl);
+    }
+
+    # we want a special handle
+    elsif $path eq '-' {
+        $path =
+          IO::Special.new(:what( $w ?? << <STDOUT> >> !! << <STDIN> >> ));
+    }
+
+    # we got a special handle
+    if nqp::istype($path,IO::Special) {
+        my $what := $path.what;
+        if $what eq '<STDIN>' {
+            $PIO := nqp::getstdin();
+        }
+        elsif $what eq '<STDOUT>' {
+            $PIO := nqp::getstdout();
+        }
+        elsif $what eq '<STDERR>' {
+            $PIO := nqp::getstderr();
+        }
+        else {
+            die "Don't know how to open '$what' especially";
+        }
+    }
+
+    # want a normal handle
+    else {
+        my $abspath := MAKE-ABSOLUTE-PATH($path,$*CWD);
+        fail X::IO::Directory.new(:$path, :trying<open>)
+          if FILETEST-E($abspath) && FILETEST-D($abspath);
+
+        my $mode := $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
+        # TODO: catch error, and fail()
+        $PIO := nqp::open(nqp::unbox_s($abspath),nqp::unbox_s($mode));
+        $path = IO::File.new(:$abspath);
+    }
+
+    nqp::setencoding($PIO, NORMALIZE_ENCODING($enc)) unless $bin;
+    nqp::setinputlinesep($PIO, nqp::unbox_s($nl));
+    IO::Handle.new(:$path,:$PIO,:$chomp,:$nl);
 }
 
 proto sub pipe(|) { * }
@@ -116,7 +170,9 @@ multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
     $result // $result.throw;
 }
 multi sub slurp($path, :$bin = False, :$enc = 'utf8', |c) {
-    my $result := $path.IO.slurp(:$bin, :$enc, |c);
+    my $handle := open($path,:$bin,:$enc,|c);
+    $handle // $handle.throw;
+    my $result := $handle.slurp-rest(:$bin, :$enc, |c);
     $result // $result.throw;
 }
 

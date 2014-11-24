@@ -531,9 +531,8 @@ my class IO::Handle does IO {
     }
 
     multi method perl(IO::Handle:D:) {
-        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl}, nl => {$!nl.perl})"
+        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl}, nl => {$!nl.perl}, enc => {self.encoding.perl})"
     }
-
 
     method flush(IO::Handle:D:) {
         fail("File handle not open, so cannot flush")
@@ -542,10 +541,10 @@ my class IO::Handle does IO {
         True;
     }
 
-    method encoding(IO::Handle:D: $enc?) {
-        $enc.defined
-            ?? nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc))
-            !! $!PIO.encoding
+    proto method encoding(|) { * }
+    multi method encoding(IO::Handle:D:) { $!PIO.encoding }
+    multi method encoding(IO::Handle:D: $encoding) {
+        nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding));
     }
 
     submethod DESTROY(IO::Handle:D:) {

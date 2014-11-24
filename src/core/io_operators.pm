@@ -75,16 +75,17 @@ multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
 
 proto sub open(|) { * }
 multi sub open(
- $path is copy,
- :$r   is copy,
- :$w   is copy,
- :$rw,
- :$a,
- :$p,    # DEPRECATED
- :$bin,
- :$chomp = True,
- :$enc   = 'utf8',
- :$nl    = "\n",
+  $path is copy,
+  :$r   is copy,
+  :$w   is copy,
+  :$rw,
+  :$a,
+  :$p,    # DEPRECATED
+  :$bin,
+  :$enc   = 'utf8',
+  :$chomp = True,
+  :$nl    = "\n",
+  |c
 ) {
     my $PIO;
 
@@ -129,16 +130,47 @@ multi sub open(
         $path = IO::File.new(:$abspath);
     }
 
-    nqp::setencoding($PIO, NORMALIZE_ENCODING($enc)) unless $bin;
-    nqp::setinputlinesep($PIO, nqp::unbox_s($nl));
-    IO::Handle.new(:$path,:$PIO,:$chomp,:$nl);
+    nqp::setencoding($PIO,NORMALIZE_ENCODING($enc)) if !$bin && $enc;
+    nqp::setinputlinesep($PIO,nqp::unbox_s($nl));
+    IO::Handle.new(:$path,:$PIO,:$chomp,:$nl,|c);
 }
 
 proto sub pipe(|) { * }
-multi sub pipe($path, :$chomp = True, :$enc = 'utf8', |c) {
-    my $handle = IO::Handle.new(:path($path.IO));
-    $handle // $handle.throw;
-    $handle.pipe(:$chomp,:$enc,|c);
+multi sub pipe(
+  $path as Str,
+  :$bin,
+  :$enc   = 'utf8',
+  :$chomp = True,
+  :$nl    = "\n",
+  |c
+) {
+
+    my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
+    my Mu $hash-without := nqp::hash();
+    my Mu $enviter := nqp::iterator($hash-with-containers);
+
+    my $envelem;
+    while $enviter {
+        $envelem := nqp::shift($enviter);
+        nqp::bindkey(
+          $hash-without,
+          nqp::iterkey_s($envelem),
+          nqp::decont(nqp::iterval($envelem)),
+        );
+    }
+
+    my str $errpath;   # what is this good for?
+    # TODO: catch error, and fail()
+    my $PIO := nqp::openpipe(
+      nqp::unbox_s($path),
+      nqp::unbox_s($*CWD.chop),
+      $hash-without,
+      $errpath,
+    );
+
+    nqp::setencoding($PIO,NORMALIZE_ENCODING($enc)) if !$bin && $enc;
+    nqp::setinputlinesep($PIO,nqp::unbox_s($nl));
+    IO::Handle.new(:$path,:$PIO,:$chomp,:$nl,|c);
 }
 
 proto sub lines(|) { * }

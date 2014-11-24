@@ -26,12 +26,12 @@ my class FatRat is Cool does Rational[Int, Int] {
 }
 
 sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
-    my Int $gcd        := nu gcd de;
-    my Int $numerator   = nu div $gcd;
-    my Int $denominator = de div $gcd;
+    my Int $gcd         := nu gcd de;
+    my Int $numerator   := nu div $gcd;
+    my Int $denominator := de div $gcd;
     if $denominator < 0 {
-        $numerator   = -$numerator;
-        $denominator = -$denominator;
+        $numerator   := -$numerator;
+        $denominator := -$denominator;
     }
     if nqp::istype($t1, FatRat) || nqp::istype($t2, FatRat) {
         my $r := nqp::create(FatRat);

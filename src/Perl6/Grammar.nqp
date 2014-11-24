@@ -3519,7 +3519,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token circumfix:sym<SEQ( )> { :dba('statement list') 'SEQ(' ~ ')' <sequence> }
 
-    token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
+    token circumfix:sym<( )> {
+        :my $*FAKE_INFIX_FOUND := 0;
+        :dba('parenthesized expression')
+        '(' ~ ')' <semilist>
+    }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
     token circumfix:sym<ang> {
         :dba('quote words')
@@ -3532,7 +3536,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
     token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
-    token circumfix:sym<{ }> { <?[{]> <pblock(1)> {$*BORG<block> := $<pblock> if nqp::ishash($*BORG)} }
+    token circumfix:sym<{ }> {
+        :my $*FAKE_INFIX_FOUND := 0;
+        <?[{]> <pblock(1)>
+        {
+            $*BORG<block> := $<pblock> if nqp::ishash($*BORG)
+        }
+    }
 
     ## Operators
 

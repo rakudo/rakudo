@@ -29,27 +29,27 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
     my Int $gcd         := nu gcd de;
     my Int $numerator   := nu div $gcd;
     my Int $denominator := de div $gcd;
+    my $r;
     if $denominator < 0 {
         $numerator   := -$numerator;
         $denominator := -$denominator;
     }
     if nqp::istype($t1, FatRat) || nqp::istype($t2, FatRat) {
-        my $r := nqp::create(FatRat);
+        $r := nqp::create(FatRat);
         nqp::bindattr($r, FatRat, '$!numerator',   nqp::decont($numerator));
         nqp::bindattr($r, FatRat, '$!denominator', nqp::decont($denominator));
-        $r;
     } elsif $denominator < $UINT64_UPPER {
-        my $r := nqp::create(Rat);
+        $r := nqp::create(Rat);
         nqp::bindattr($r, Rat, '$!numerator',   nqp::decont($numerator));
         nqp::bindattr($r, Rat, '$!denominator', nqp::decont($denominator));
-        $r;
     } else {
-        nqp::p6box_n(nqp::div_In(
+        $r := nqp::p6box_n(nqp::div_In(
                 nqp::decont($numerator),
                 nqp::decont($denominator)
             )
         );
     }
+    $r;
 }
 
 multi prefix:<->(Rat:D \a) {

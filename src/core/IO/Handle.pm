@@ -3,10 +3,10 @@ my class IO::Special { ... }
 
 my class IO::Handle does IO {
     has $.path;
-    has $!PIO;
-    has int $.ins;
+    has $.PIO;
     has $.chomp = Bool::True;
     has $.nl    = "\n";
+    has int $.ins;
     has int $!pipe;
 
     method pipe(IO::Handle:D: |c) {
@@ -531,7 +531,7 @@ my class IO::Handle does IO {
     }
 
     multi method perl(IO::Handle:D:) {
-        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl})"
+        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl}, nl => {$!nl.perl})"
     }
 
 

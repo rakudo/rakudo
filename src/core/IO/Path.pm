@@ -103,7 +103,7 @@ my class IO::Path is Cool {
         );
     }
 
-    method IO(IO::Path:D: |c) { self }
+    method IO(IO::Path:D: |c) { IOU.new($.abspath,|c) }
 
     method open(IO::Path:D: |c) {
         my $handle = IO::Handle.new(:path(self));

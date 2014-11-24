@@ -1,6 +1,6 @@
 # A role for local file(path)s that we know exist
 my role IO::Local {
-    has $!abspath;
+    has $.abspath;
     has @!parts;
 
     multi method ACCEPTS(IO::Local:D: \other) {
@@ -35,9 +35,9 @@ my role IO::Local {
     method Bridge(IO::Local:D:)  { self.basename.Bridge }
     method Int(IO::Local:D:)     { self.basename.Int }
 
-    method Str(IO::Local:D:)  { $!abspath }
-    method gist(IO::Local:D:) { qq|"{ self.relative }".IO| }
-    method perl(IO::Local:D:) { "q|$!abspath|.IO" }
+    multi method Str(IO::Local:D:)  { $!abspath }
+    multi method gist(IO::Local:D:) { qq|"{ self.relative }".IO| }
+    multi method perl(IO::Local:D:) { "q|$!abspath|.IO" }
 
     method succ(IO::Local:D:) { $!abspath.succ }
     method pred(IO::Local:D:) { $!abspath.pred }

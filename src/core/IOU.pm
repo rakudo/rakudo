@@ -1,19 +1,70 @@
 # class for Unclassified IO objects
 my class IOU {
     has $!this;
-    has $!CWD;
+    has $.abspath;
     has $!that;
 
-    submethod BUILD(:$!this,:$!CWD) { }
+    submethod BUILD(:$!this,:$!abspath) { }
     method new($this, :$CWD = $*CWD) {
-        self!what($this,$CWD) // self.bless(:$this,:$CWD);
-    }
-    method that(IOU:D: $method) {
-        self.$!that //= self!what($!this,$!CWD) // Nil;
+        my $abspath := MAKE-ABSOLUTE-PATH($this,$CWD);
+        self!what($abspath)                # either the IO::Local object
+          // self.bless(:$this,:$abspath); # or a placeholder
     }
 
-    method !what(IOU: $this,$CWD) {
-        my $abspath := MAKE-ABSOLUTE-PATH($this,$CWD);
+    multi method ACCEPTS(IOU:D: \other) {
+        self!that
+          ?? $!that.ACCEPTS(other)
+          // nqp::p6bool(nqp::iseq_s(nqp::unbox_s($!this),nqp::unbox_s(~other)))
+          !! False;
+    }
+
+    method IO(IOU:D:)            { $!that // self }
+
+    multi method Str(IOU:D:)  { $!this }
+    multi method gist(IOU:D:) { qq|"$!this".IO| }
+    multi method perl(IOU:D:) { "q|$!this|.IO" }
+
+# Methods that we expect to work on an IOU of which the abspath did not exist
+# at creation time.  We try to create the object again, call the method if
+# succeeds, or fail.  Wish there were a less verbose way to do this.
+
+    method absolute(IOU:D:)    { self!that ?? $!that.absolute  !! self!fail }
+    method relative(IOU:D: |c) { self!that ?? $!that.relative  !! self!fail }
+    method chop(IOU:D:)        { self!that ?? $!that.chop      !! self!fail }
+    method volume(IOU:D:)      { self!that ?? $!that.volume    !! self!fail }
+    method dirname(IOU:D:)     { self!that ?? $!that.dirname   !! self!fail }
+    method basename(IOU:D:)    { self!that ?? $!that.basename  !! self!fail }
+    method extension(IOU:D:)   { self!that ?? $!that.extension !! self!fail }
+    method e(IOU:D:)           { self!that ?? $!that.e         !! self!fail }
+    method f(IOU:D:)           { self!that ?? $!that.f         !! self!fail }
+    method d(IOU:D:)           { self!that ?? $!that.d         !! self!fail }
+    method s(IOU:D:)           { self!that ?? $!that.s         !! self!fail }
+    method l(IOU:D:)           { self!that ?? $!that.l         !! self!fail }
+    method r(IOU:D:)           { self!that ?? $!that.r         !! self!fail }
+    method w(IOU:D:)           { self!that ?? $!that.w         !! self!fail }
+    method rw(IOU:D:)          { self!that ?? $!that.rw        !! self!fail }
+    method x(IOU:D:)           { self!that ?? $!that.x         !! self!fail }
+    method rwx(IOU:D:)         { self!that ?? $!that.rwx       !! self!fail }
+    method z(IOU:D:)           { self!that ?? $!that.z         !! self!fail }
+    method modified(IOU:D:)    { self!that ?? $!that.modified  !! self!fail }
+    method accessed(IOU:D:)    { self!that ?? $!that.accessed  !! self!fail }
+    method changed(IOU:D:)     { self!that ?? $!that.changed   !! self!fail }
+    method Numeric(IOU:D:)     { self!that ?? $!that.Numeric   !! self!fail }
+    method Bridge(IOU:D:)      { self!that ?? $!that.Bridge    !! self!fail }
+    method Int(IOU:D:)         { self!that ?? $!that.Int       !! self!fail }
+
+# private methods
+
+    method !that(IOU:D:) { $!that //= self!what($!abspath) }
+
+    method !fail() {
+        fail X::IO::DoesNotExist.new(
+          :path($!this),
+          :trying(nqp::getcodename(nqp::callercode())),
+        );
+    }
+
+    method !what(IOU: $abspath) {
         if FILETEST-E($abspath) {
             if FILETEST-F($abspath) {
                 return IO::File.new(:$abspath);
@@ -25,48 +76,8 @@ my class IOU {
                 return IO::Link.new(:$abspath);
             }
         }
-        Nil;
+        Mu;
     }
-
-    multi method ACCEPTS(IOU:D: \other) {
-        $!that.?ACCEPTS(other) // nqp::p6bool(
-          nqp::iseq_s(nqp::unbox_s($!this), nqp::unbox_s(~other))
-        );
-    }
-
-    method IOU(IOU:D:)           { self }
-    method Numeric(IO::Local:D:) { self.basename.Numeric }
-    method Bridge(IO::Local:D:)  { self.basename.Bridge }
-    method Int(IO::Local:D:)     { self.basename.Int }
-
-    multi method Str(IOU:D:)  { $!this }
-    multi method gist(IOU:D:) { qq|"$!this".IO| }
-    multi method perl(IOU:D:) { "q|$!this|.IO" }
-
-    # handles doesn't work in the settings, so we need to be verbose
-    method absolute(IOU:D:)    { $.that.abspath }
-    method relative(IOU:D: |c) { $.that.relative(|c) }
-    method chop(IOU:D:)        { $.that.chop }
-    method volume(IOU:D:)      { $.that.volume }
-    method dirname(IOU:D:)     { $.that.dirname }
-    method basename(IOU:D:)    { $.that.basename }
-    method extension(IOU:D:)   { $.that.extension }
-    method e(IOU:D:)           { $.that.e }
-    method d(IOU:D:)           { $.that.d }
-    method s(IOU:D:)           { $.that.s }
-    method l(IOU:D:)           { $.that.l }
-    method r(IOU:D:)           { $.that.r }
-    method w(IOU:D:)           { $.that.w }
-    method rw(IOU:D:)          { $.that.rw }
-    method x(IOU:D:)           { $.that.x  }
-    method rwx(IOU:D:)         { $.that.rwx }
-    method z(IOU:D:)           { $.that.z   }
-    method modified(IOU:D:)    { $.that.modified }
-    method accessed(IOU:D:)    { $.that.accessed }
-    method changed(IOU:D:)     { $.that.changed }
 }
-
-#multi method push(Any:U \SELF: *@values) {
-#SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
 
 # vim: ft=perl6 expandtab sw=4

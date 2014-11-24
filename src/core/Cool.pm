@@ -1,5 +1,5 @@
-my role  IO         { ... }
-my class IO::Path   { ... }
+my role  IO  { ... }
+my class IOU { ... }
 
 my class SprintfHandler {
     method mine($x) { nqp::reprname($x) eq "P6opaque"; }
@@ -205,7 +205,7 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method IO(|) { * }
-    multi method IO(|c) { IO::Path.new(self) }
+    multi method IO(|c) { IOU.new(self, |c) }
 
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };

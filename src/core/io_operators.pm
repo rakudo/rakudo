@@ -215,7 +215,7 @@ multi sub spurt(IO::Handle $fh, $what, :$enc = 'utf8', |c ) {
     $result // $result.throw;
 }
 multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
-    my $result := $path.IO.spurt($what, :$enc, |c);
+    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD), $what, :$enc, |c);
     $result // $result.throw;
 }
 

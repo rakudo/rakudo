@@ -15,5 +15,9 @@ my class IO::File is Cool does IO::Local {
         LINK-FILE($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD));
     }
 
+    method spurt(IO::File:D: $what, :$bin, |c) {
+        SPURT-PATH($!abspath, $what, :bin($what ~~ Blob), |c );
+    }
+
     method d(IO::File:D:) { False }
 }

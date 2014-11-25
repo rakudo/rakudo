@@ -76,8 +76,8 @@ multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
 proto sub open(|) { * }
 multi sub open(
   $path is copy,
-  :$r   is copy,
-  :$w   is copy,
+  :$r,
+  :$w,
   :$rw,
   :$a,
   :$p,    # DEPRECATED
@@ -124,7 +124,7 @@ multi sub open(
         fail X::IO::Directory.new(:$path, :trying<open>)
           if FILETEST-E($abspath) && FILETEST-D($abspath);
 
-        my $mode := $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
+        my $mode := ($rw || $w) ?? 'w' !! ($a ?? 'wa' !! 'r' );
         # TODO: catch error, and fail()
         $PIO := nqp::open(nqp::unbox_s($abspath),nqp::unbox_s($mode));
         $path = IO::File.new(:$abspath);

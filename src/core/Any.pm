@@ -333,8 +333,8 @@ my class Any { # declared in BOOTSTRAP
 
         my $min;
         my $max;
-        my $excludes_min = Bool::False;
-        my $excludes_max = Bool::False;
+        my $excludes-min = Bool::False;
+        my $excludes-max = Bool::False;
 
         for @.list {
             .defined or next;
@@ -342,27 +342,27 @@ my class Any { # declared in BOOTSTRAP
             if .isa(Range) {
                 if !$min.defined || $cmp($_.min, $min) < 0 {
                     $min = $_;
-                    $excludes_min = $_.excludes_min;
+                    $excludes-min = $_.excludes-min;
                 }
                 if !$max.defined || $cmp($_.max, $max) > 0 {
                     $max = $_;
-                    $excludes_max = $_.excludes_max;
+                    $excludes-max = $_.excludes-max;
                 }
             } else {
                 if !$min.defined || $cmp($_, $min) < 0 {
                     $min = $_;
-                    $excludes_min = Bool::False;
+                    $excludes-min = Bool::False;
                 }
                 if !$max.defined || $cmp($_, $max) > 0 {
                     $max = $_;
-                    $excludes_max = Bool::False;
+                    $excludes-max = Bool::False;
                 }
             }
         }
         Range.new($min // Inf,
                   $max // -Inf,
-                  :excludes_min($excludes_min),
-                  :excludes_max($excludes_max));
+                  :excludes-min($excludes-min),
+                  :excludes-max($excludes-max));
     }
 
     proto method at_pos(|) {*}

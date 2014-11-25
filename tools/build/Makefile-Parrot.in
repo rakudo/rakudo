@@ -202,6 +202,7 @@ P_CORE_SOURCES = \
   src/core/Cursor.pm \
   src/core/Grammar.pm \
   src/core/Regex.pm \
+  src/core/PIO.pm \
   src/core/IO.pm \
   src/core/IO/Local.pm \
   src/core/IO/Dir.pm \
@@ -213,6 +214,7 @@ P_CORE_SOURCES = \
   src/core/IO/Spec/Cygwin.pm \
   src/core/IO/Spec/QNX.pm \
   src/core/IO/Handle.pm \
+  src/core/IO/Pipe.pm \
   src/core/IO/Path.pm \
   src/core/IO/Special.pm \
   src/core/io_operators.pm \

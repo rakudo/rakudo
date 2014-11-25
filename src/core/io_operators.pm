@@ -87,7 +87,7 @@ multi sub open(
   :$nl    = "\n",
   |c
 ) {
-    my $PIO;
+    my Mu $PIO;
 
     # we want a pipe
     if $p {
@@ -161,7 +161,7 @@ multi sub pipe(
 
     my str $errpath;   # what is this good for?
     # TODO: catch error, and fail()
-    my $PIO := nqp::openpipe(
+    my Mu $PIO := nqp::openpipe(
       nqp::unbox_s($path),
       nqp::unbox_s($*CWD.chop),
       $hash-without,

@@ -9,8 +9,8 @@ my class IO::Handle does IO {
     has int $.ins;
     has int $!pipe;
 
-    submethod BUILD (:$!path,:$!PIO,:$!chomp,:$!nl) {
-        $!PIO := nqp::decont($!PIO);
+    submethod BUILD (:$!path,Mu :$PIO,:$!chomp,:$!nl) {
+        $!PIO := nqp::decont($PIO);
     }
 
     method pipe(IO::Handle:D: |c) {

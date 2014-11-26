@@ -1,3 +1,7 @@
-# placeholder file to facilitate switching between nom and newio branches
+class IO::Pipe does IO does PIO {
+
+
+
+}
 
 # vim: ft=perl6 expandtab sw=4

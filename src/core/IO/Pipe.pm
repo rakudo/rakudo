@@ -1,3 +1,4 @@
+A:
 class IO::Pipe does IO does PIO {
     has Str $.command;
 
@@ -8,8 +9,6 @@ class IO::Pipe does IO does PIO {
         self.encoding($bin ?? 'binary' !! $encoding // 'utf8');
         self.nl($nl // "\n");
     }
-
-
 }
 
 # vim: ft=perl6 expandtab sw=4

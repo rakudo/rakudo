@@ -54,8 +54,9 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
 
     # handle //unc/ on win
     @parts.unshift( @parts.splice(0,3).join('/') )
-      if @parts.at_pos(1) eq ''    # //
-      and @parts.at_pos(0) eq '';  # and no C: like stuff
+      if @parts.elems >= 3        # //unc
+      && @parts.at_pos(1) eq ''   # //
+      && @parts.at_pos(0) eq '';  # and no C: like stuff
 
     # front part cleanup
     @parts.splice(1,1)
@@ -107,8 +108,10 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
         }
     }
 
-    # need / at the end
-    @parts.push("");
+    # need (at least) / at the end
+    my $elems := @parts.elems;
+    @parts.push("") if $elems == 1 || @parts.at_pos($elems - 1) ne "";
+    @parts;
 }
 
 sub REMOVE-ROOT(Str $r, Str $p) {
@@ -360,7 +363,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
     } }
 
     my str $cwd = nqp::cwd();
-    nqp::chdir(nqp::unbox_s($abspath.chop));
+    nqp::chdir(nqp::unbox_s($abspath));
     my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath));
     nqp::chdir($cwd);
 
@@ -398,7 +401,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
           :path(nqp::box_s($abspath,Str)), :os-error(.Str) );
     } }
 
-    my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath.chop));
+    my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath));
     gather {
         if $test.defined {
             for <. ..> -> $elem {

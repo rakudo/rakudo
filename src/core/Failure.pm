@@ -4,15 +4,7 @@ my class Failure {
     has $.exception;
     has $!handled;
 
-    method new($ex) {
-        my $new = self.CREATE;
-        $new.BUILD($ex);
-    }
-
-    method BUILD($ex) {
-        $!exception = $ex;
-        self;
-    }
+    method new($exception) { self.bless(:$exception) }
 
     # TODO: should be Failure:D: multi just like method Bool,
     # but obscure problems prevent us from making Mu.defined

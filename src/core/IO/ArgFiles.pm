@@ -38,11 +38,9 @@ my class IO::ArgFiles is IO::Handle {
             $!io.close;
         }
         while $!args {
-            my $fn = $!args.shift;
-            my $file = open($fn);
-            @chunks.push: $file.slurp;
+            @chunks.push: slurp $!args.shift;
         }
-        return $*IN.slurp unless @chunks;
+        return $*IN.slurp-rest unless @chunks;
         @chunks.join;
     }
 }

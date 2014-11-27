@@ -601,7 +601,7 @@ S17-channel/earliest.t   # conc
 S17-lowlevel/thread.t    # conc
 S17-procasync/basic.t    # moar
 # S17-procasync/print.t    # moar
-S17-procasync/kill.t     # moar
+# S17-procasync/kill.t     # moar
 S17-promise/allof.t      # conc
 S17-promise/anyof.t      # conc
 S17-promise/basic.t      # conc

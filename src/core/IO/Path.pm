@@ -329,7 +329,9 @@ my class IO::Path is Cool {
         my str $cwd = nqp::cwd();
         nqp::chdir(nqp::unbox_s($.abspath));
 #?endif
-        my $abspath-sep := $.abspath ~ $!SPEC.dir-sep;
+        my $abspath-sep := $.abspath eq $!SPEC.dir-sep
+          ?? $!SPEC.dir-sep
+          !! $.abspath ~ $!SPEC.dir-sep;
 
 #?if parrot
         my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($.abspath));

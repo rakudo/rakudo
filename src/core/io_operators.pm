@@ -1,3 +1,5 @@
+my class IO::ArgFiles { ... }
+
 sub print(|) {
     my $args := nqp::p6argvmarray();
     my $out := $*OUT;
@@ -97,12 +99,16 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
+multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
+    my $result := $io.slurp(:$bin, :$enc, |c);
+    $result // $result.throw;
+}
+multi sub slurp(IO::Handle:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
     DEPRECATED('slurp($path,...)',|<2014.10 2015.10>,:what<slurp($handle,...)>);
     my $result := $io.slurp-rest(:$bin, :$enc, |c);
     $result // $result.throw;
 }
-multi sub slurp($path, :$bin = False, :$enc = 'utf8', |c) {
+multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
     my $result := $path.IO.slurp(:$bin, :$enc, |c);
     $result // $result.throw;
 }

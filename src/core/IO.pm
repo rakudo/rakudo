@@ -462,3 +462,5 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
     }
 }
 #?endif
+
+# vim: ft=perl6 expandtab sw=4

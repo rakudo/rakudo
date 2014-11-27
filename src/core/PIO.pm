@@ -1,6 +1,7 @@
 my role PIO {
     has $.PIO;
     has $.chomp;
+    has $.nl;
     has int $.ins;
 
     method close(PIO:D:) {
@@ -398,6 +399,12 @@ my role PIO {
     multi method encoding(PIO:D:) { $!PIO.encoding }
     multi method encoding(PIO:D: $encoding) {
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding));
+    }
+
+    proto method nl(|) { * }
+    multi method nl() { $!nl }
+    multi method nl($nl) {
+        nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
     }
 }
 

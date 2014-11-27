@@ -138,14 +138,7 @@ multi sub open(
 }
 
 proto sub pipe(|) { * }
-multi sub pipe(
-  $path as Str,
-  :$bin,
-  :$enc   = 'utf8',
-  :$chomp = True,
-  :$nl    = "\n",
-  |c
-) {
+multi sub pipe( $command as Str, :$bin, :$enc, :$encoding, :$chomp, :$nl, |c) {
 
     my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
     my Mu $hash-without := nqp::hash();
@@ -163,16 +156,14 @@ multi sub pipe(
 
     my str $errpath;   # what is this good for?
     # TODO: catch error, and fail()
-    my Mu $PIO := nqp::openpipe(
-      nqp::unbox_s($path),
+    my $PIO := nqp::openpipe(
+      nqp::unbox_s($command),
       nqp::unbox_s($*CWD.chop),
       $hash-without,
       $errpath,
     );
 
-    nqp::setencoding($PIO,NORMALIZE_ENCODING($enc)) if !$bin && $enc;
-    nqp::setinputlinesep($PIO,nqp::unbox_s($nl));
-    IO::Handle.new(:$path,:$PIO,:$chomp,:$nl,|c);
+    IO::Pipe.new(:$command,:$PIO,:$bin,:$encoding,:$chomp,:$nl,|c);
 }
 
 proto sub lines(|) { * }

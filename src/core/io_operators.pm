@@ -76,26 +76,15 @@ multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
 }
 
 proto sub open(|) { * }
-multi sub open(
-  $path is copy,
-  :$r,
-  :$w,
-  :$rw,
-  :$a,
-  :$p,    # DEPRECATED
-  :$bin,
-  :$enc   = 'utf8',
-  :$encoding = 'utf8',
-  :$chomp = True,
-  :$nl    = "\n",
-  |c
-) {
-    my Mu $PIO;
+multi sub open( $path is copy,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
+    DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
+      if $enc and !$nodepr;
 
     # we want a pipe
     if $p {
-        DEPRECATED('pipe($path,...)',|<2014.12 2015.12>,:what(':p for pipe'));
-        return pipe($path,:$bin,:$chomp,:$encoding,:$enc,:$nl);
+        DEPRECATED('pipe($path,...)',|<2014.12 2015.12>,:what(':p for pipe'))
+          if !$nodepr;
+        return pipe($path,:$enc,|c);
     }
 
     # we want a special handle
@@ -105,6 +94,7 @@ multi sub open(
     }
 
     # we got a special handle
+    my Mu $PIO;
     if nqp::istype($path,IO::Special) {
         my $what := $path.what;
         if $what eq '<STDIN>' {
@@ -133,15 +123,13 @@ multi sub open(
         $path = IO::File.new(:$abspath);
     }
 
-    nqp::setencoding($PIO,NORMALIZE_ENCODING($enc)) if !$bin && $enc;
-    nqp::setinputlinesep($PIO,nqp::unbox_s($nl));
-    IO::Handle.new(:$path,:$PIO,:$chomp,:$nl,|c);
+    IO::Handle.new(:$path,:$PIO,:$enc,|c);
 }
 
 proto sub pipe(|) { * }
-multi sub pipe( $command as Str,:$enc,|c) {
+multi sub pipe( $command as Str,:$enc,:$nodepr,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
-      if $enc;
+      if $enc and !$nodepr;
 
     my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
     my Mu $hash-without := nqp::hash();

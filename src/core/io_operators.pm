@@ -192,27 +192,31 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
-    my $result := $io.slurp(:$bin, :$enc, |c);
+multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES) {
+    my $result := $io.slurp;
     $result // $result.throw;
 }
-multi sub slurp(IO::Handle:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
+multi sub slurp(IO::Handle:D $io = $*ARGFILES, :$enc, |c) {
     DEPRECATED('slurp($path,...)',|<2014.10 2015.10>,:what<slurp($handle,...)>);
-    my $result := $io.slurp-rest(:$bin, :$enc, |c);
+    DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
+      if $enc;
+    my $result := $io.slurp-rest(:$enc,|c);
     $result // $result.throw;
 }
-multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
-    my $result := $path.IO.slurp(:$bin, :$enc, |c);
+multi sub slurp(Cool:D $path, :$enc, |c) {
+    DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
+      if $enc;
+    my $result := SLURP-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD),:$enc,|c);
     $result // $result.throw;
 }
 
 proto sub spurt(|) { * }
-multi sub spurt(IO::Handle $fh, $what,|c ) {
+multi sub spurt(IO::Handle:D $fh, $what,|c ) {
     DEPRECATED('spurt($path,...)',|<2014.10 2015.10>,:what<spurt($handle,...)>);
     my $result := $fh.spurt($what,:nodepr,|c);
     $result // $result.throw;
 }
-multi sub spurt(Cool $path,$what,:$enc,|c) {
+multi sub spurt(Cool:D $path,$what,:$enc,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
     my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD),$what,:$enc,|c);

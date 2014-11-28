@@ -8,7 +8,7 @@ my role PIO {
 
     method !set-PIO-attributes(Mu :$PIO,:$chomp,:$bin,:$encoding,:$nl,:$enc) {
         $!chomp = $chomp // True;
-        nqp::bind($!PIO, nqp::decont($PIO));
+        nqp::bind($!PIO, nqp::decont($PIO));  # := doesn't work
         self.encoding($bin ?? 'binary' !! $encoding // $enc // 'utf8');
         self.nl($nl // "\n");
     }
@@ -380,9 +380,9 @@ my role PIO {
 
     multi method say(PIO:D: |) {
         my Mu $args := nqp::p6argvmarray();
-        nqp::shift($args);
-        self.print: nqp::shift($args).gist while $args;
-        self.print: "\n";
+        nqp::shift($args);  # lose the object
+        nqp::printfh($!PIO, nqp::unbox_s(nqp::shift($args).gist)) while $args;
+        nqp::printfh($!PIO, nqp::unbox_s("\n"));
     }
 
     method slurp-rest(PIO:D: :$bin,:$encoding,:$enc) {

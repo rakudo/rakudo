@@ -2696,7 +2696,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token capterm {
         '\\'
         [
-        | '(' <capture>? ')'
+        | '(' <.ws> <capture>? ')'
         | <?before \S> <termish>
         | {} <.panic: "You can't backslash that">
         ]

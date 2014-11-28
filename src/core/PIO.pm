@@ -421,6 +421,8 @@ my role PIO {
     multi method nl($nl) {
         nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
     }
+
+    submethod DESTROY(PIO:D:) { self.close }
 }
 
 # vim: ft=perl6 expandtab sw=4

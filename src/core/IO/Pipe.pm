@@ -1,12 +1,10 @@
-A:
 class IO::Pipe does IO does PIO {
     has Str $.command;
 
-    method BUILD(:$!command,Mu :$PIO,:$chomp,:$bin,:$encoding,:$nl) {
-        $!chomp = $chomp // True;
-        nqp::bind($!PIO, nqp::decont($PIO));
-        self.encoding($bin ?? 'binary' !! $encoding // 'utf8');
-        self.nl($nl // "\n");
+    method BUILD(:$!command,|c) { self!set-PIO-attributes(|c) }
+
+    multi method seek(|c) {
+        fail "You cannot seek on an {self.^name}";
     }
 }
 

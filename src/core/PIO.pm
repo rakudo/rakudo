@@ -6,6 +6,13 @@ my role PIO {
     has $.nl;
     has int $.ins;
 
+    method !set-PIO-attributes(Mu :$PIO,:$chomp,:$bin,:$encoding,:$nl,:$enc) {
+        $!chomp = $chomp // True;
+        nqp::bind($!PIO, nqp::decont($PIO));
+        self.encoding($bin ?? 'binary' !! $encoding // $enc // 'utf8');
+        self.nl($nl // "\n");
+    }
+
     method close(PIO:D:) {
         # TODO:b catch errors
         nqp::closefh($!PIO) if nqp::defined($!PIO);

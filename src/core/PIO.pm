@@ -1,5 +1,5 @@
 my role PIO {
-    has $.PIO;
+    has $!PIO;
     has $.chomp;
     has $.nl;
     has int $.ins;

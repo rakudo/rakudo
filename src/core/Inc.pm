@@ -106,16 +106,27 @@
         # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
         try {
-            my $home := %*ENV<HOME> // %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
-            my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-            if CompUnitRepo::Local::File.new("$home/.perl6/$ver/lib") -> $cur {
-                @INC.push: $cur;
+            my $home;
+            if %*ENV<HOME> {
+                $home := %*ENV<HOME>;
             }
-            if CompUnitRepo::Local::Installation.new("$home/.perl6/$ver") -> $cur {
-                @INC.push: %CUSTOM_LIB<home> = $cur;
+            # concatenating values that do not exist will cause a warning
+            # so make sure they exist before trying
+            elsif %*ENV<HOMEDRIVE> && %*ENV<HOMEPATH> {
+                $home := %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
             }
-            else {
-                %CUSTOM_LIB<home> = "$home/.perl6/$ver";  # prime it
+            # it is not guaranteed that a user will have a home
+            if $home {
+                my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+                if CompUnitRepo::Local::File.new("$home/.perl6/$ver/lib") -> $cur {
+                    @INC.push: $cur;
+                }
+                if CompUnitRepo::Local::Installation.new("$home/.perl6/$ver") -> $cur {
+                    @INC.push: %CUSTOM_LIB<home> = $cur;
+                }
+                else {
+                    %CUSTOM_LIB<home> = "$home/.perl6/$ver";  # prime it
+                }
             }
         }
         if CompUnitRepo::Local::File.new("$prefix/lib") -> $cur {

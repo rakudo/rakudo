@@ -385,7 +385,7 @@ my role PIO {
         self.print: "\n";
     }
 
-    method slurp-rest(PIO:D: :$bin, :$enc) {
+    method slurp-rest(PIO:D: :$bin,:$encoding,:$enc) {
         if $bin {
             my $Buf := buf8.new();
             loop {
@@ -397,7 +397,8 @@ my role PIO {
             $Buf;
         }
         else {
-            self.encoding($enc) if $enc.defined;
+            self.encoding($bin ?? 'binary' !! $encoding // $enc // 'utf8')
+              if $bin.defined || $encoding.defined || $enc.defined;
             nqp::p6box_s(nqp::readallfh($!PIO));
         }
     }

@@ -204,6 +204,15 @@ sub LINK-FILE(Str $target, Str $name) {
     True;
 }
 
+sub SLURP-PATH(Str $path,:$encoding,:$bin,:$enc,|c) {
+    my $handle = open($path,:encoding($encoding // $enc // 'utf8'),:$bin,:r,|c);
+    $handle // $handle.throw;
+
+    my \slurped = $handle.slurp-rest(:$bin,:$encoding,:$enc);
+    $handle.close;
+    slurped;
+}
+
 sub SPURT-PATH(Str $path,$what,:$encoding,:$append,:$createonly,:$bin,:$enc,|c) {
     if $createonly and FILETEST-E($path) {
         fail("File '$path' already exists, and :createonly was specified");

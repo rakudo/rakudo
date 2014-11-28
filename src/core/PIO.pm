@@ -1,3 +1,5 @@
+enum SeekType (:SeekFromBeginning(0), :SeekFromCurrent(1), :SeekFromEnd(2));
+
 my role PIO {
     has $!PIO;
     has $.chomp;
@@ -327,13 +329,18 @@ my role PIO {
         $buf;
     }
 
-    # second arguemnt should probably be an enum
-    # valid values for $whence:
-    #   0 -- seek from beginning of file
-    #   1 -- seek relative to current position
-    #   2 -- seek from the end of the file
-    method seek(PIO:D: Int:D $offset, Int:D $whence) {
+    proto method seek(|) { * }
+    multi method seek(PIO:D: Int:D $offset, Int:D $whence) {
+        DEPRECATED(
+          SeekType.^enum_value_list[$whence],
+          |<2014.12 2015.12>,
+          :what("numerical seektype $whence"),
+        );
         nqp::seekfh($!PIO, $offset, $whence);
+        True;
+    }
+    multi method seek(PIO:D: Int:D $offset, SeekType:D $whence) {
+        nqp::seekfh($!PIO, $offset, +$whence);
         True;
     }
 

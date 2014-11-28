@@ -204,12 +204,13 @@ sub LINK-FILE(Str $target, Str $name) {
     True;
 }
 
-sub SPURT-PATH(Str $path, $what, :$enc, :$append, :$createonly, :$bin, |c) {
+sub SPURT-PATH(Str $path,$what,:$encoding,:$append,:$createonly,:$bin,:$enc,|c) {
     if $createonly and FILETEST-E($path) {
         fail("File '$path' already exists, and :createonly was specified");
     }
     my $mode = $append ?? :a !! :w;
-    my $handle = open($path, :enc($enc // 'utf8'), :$bin, |$mode, |c);
+    my $handle =
+      open($path,:encoding($encoding // $enc // 'utf8'),:$bin,|$mode,|c);
     $handle // $handle.throw;
 
     my $spurt := $bin

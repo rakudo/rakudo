@@ -85,6 +85,7 @@ multi sub open(
   :$p,    # DEPRECATED
   :$bin,
   :$enc   = 'utf8',
+  :$encoding = 'utf8',
   :$chomp = True,
   :$nl    = "\n",
   |c
@@ -94,7 +95,7 @@ multi sub open(
     # we want a pipe
     if $p {
         DEPRECATED('pipe($path,...)',|<2014.12 2015.12>,:what(':p for pipe'));
-        return pipe($path,:$r,:$w,:$rw,:$a,:$bin,:$chomp,:$enc,:$nl);
+        return pipe($path,:$bin,:$chomp,:$encoding,:$enc,:$nl);
     }
 
     # we want a special handle
@@ -138,7 +139,9 @@ multi sub open(
 }
 
 proto sub pipe(|) { * }
-multi sub pipe( $command as Str, :$bin, :$enc, :$encoding, :$chomp, :$nl, |c) {
+multi sub pipe( $command as Str,:$enc,|c) {
+    DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
+      if $enc;
 
     my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
     my Mu $hash-without := nqp::hash();
@@ -163,7 +166,7 @@ multi sub pipe( $command as Str, :$bin, :$enc, :$encoding, :$chomp, :$nl, |c) {
       $errpath,
     );
 
-    IO::Pipe.new(:$command,:$PIO,:$bin,:$encoding,:$chomp,:$nl,|c);
+    IO::Pipe.new(:$command,:$PIO,:$enc,|c);
 }
 
 proto sub lines(|) { * }
@@ -204,13 +207,15 @@ multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
 }
 
 proto sub spurt(|) { * }
-multi sub spurt(IO::Handle $fh, $what, :$enc = 'utf8', |c ) {
+multi sub spurt(IO::Handle $fh, $what,|c ) {
     DEPRECATED('spurt($path,...)',|<2014.10 2015.10>,:what<spurt($handle,...)>);
-    my $result := $fh.spurt($what, :$enc, :nodepr, |c);
+    my $result := $fh.spurt($what,:nodepr,|c);
     $result // $result.throw;
 }
-multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
-    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD), $what, :$enc, |c);
+multi sub spurt(Cool $path,$what,:$enc,|c) {
+    DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
+      if $enc;
+    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD),$what,:$enc,|c);
     $result // $result.throw;
 }
 

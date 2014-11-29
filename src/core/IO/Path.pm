@@ -105,17 +105,9 @@ my class IO::Path is Cool {
 
     method IO(IO::Path:D: |c) { IOU.new($.abspath,|c) }
 
-    method open(IO::Path:D: |c) {
-        my $handle = IO::Handle.new(:path(self));
-        $handle // $handle.throw;
-        $handle.open(|c);
-    }
+    method open(IO::Path:D: |c) { open(:$.abspath,|c) }
 
-    method pipe(IO::Path:D: |c) {
-        my $handle = IO::Handle.new(:path(self));
-        $handle // $handle.throw;
-        $handle.pipe(|c);
-    }
+    method pipe(IO::Path:D: |c) { pipe(:command($!path),|c) }
 
 #?if moar
     method watch(IO::Path:D:) {

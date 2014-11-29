@@ -106,16 +106,18 @@
         # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
         try {
-            my $home := %*ENV<HOME> // %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
-            my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-            if CompUnitRepo::Local::File.new("$home/.perl6/$ver/lib") -> $cur {
-                @INC.push: $cur;
-            }
-            if CompUnitRepo::Local::Installation.new("$home/.perl6/$ver") -> $cur {
-                @INC.push: %CUSTOM_LIB<home> = $cur;
-            }
-            else {
-                %CUSTOM_LIB<home> = "$home/.perl6/$ver";  # prime it
+            if %*ENV<HOME>
+              // (%*ENV<HOMEDRIVE> // '') ~ (%*ENV<HOMEPATH> // '') -> $home {
+                my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+                if CompUnitRepo::Local::File.new("$home/.perl6/$ver/lib") -> $cur {
+                    @INC.push: $cur;
+                }
+                if CompUnitRepo::Local::Installation.new("$home/.perl6/$ver") -> $cur {
+                    @INC.push: %CUSTOM_LIB<home> = $cur;
+                }
+                else {
+                    %CUSTOM_LIB<home> = "$home/.perl6/$ver";  # prime it
+                }
             }
         }
         if CompUnitRepo::Local::File.new("$prefix/lib") -> $cur {

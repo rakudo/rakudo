@@ -82,6 +82,7 @@ src/core/IO/Notification.pm
 src/core/IO/Handle.pm
 src/core/IO/Pipe.pm
 src/core/IO/Path.pm
+src/core/IO/Dup.pm
 src/core/IO/Special.pm
 src/core/io_operators.pm
 src/core/IO/ArgFiles.pm

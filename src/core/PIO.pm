@@ -27,14 +27,15 @@ my role PIO {
     method get(PIO:D:) {
         return Str if self.eof;
 
-        my Str $x := nqp::p6box_s(nqp::readlinefh($!PIO));
+        my \line = $!chomp
+          ?? nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
+          !! nqp::p6box_s(nqp::readlinefh($!PIO));
+
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
-        $x .= chomp if $.chomp;
-        return Str if self.eof && $x eq '';
-
+        return Str if self.eof && line eq '';
         $!ins = $!ins + 1;
-        $x;
+        line;
     }
 
     method getc(PIO:D:) {

@@ -253,8 +253,11 @@ MAIN: {
         $config{m_nqp} = $impls{moar}{bin};
         $config{m_nqp} =~ s{/}{\\}g if $^O eq 'MSWin32';
         my %nqp_config;
-        if ( $impls{moar}{config} ) {
+        if ( $impls{moar}{ok} ) {
             %nqp_config = %{ $impls{moar}{config} };
+        }
+        elsif ( $impls{moar}{config} ) {
+            push @errors, "The nqp-m binary is too old";
         }
         else {
             push @errors, "Unable to read configuration from NQP on MoarVM";

@@ -18,10 +18,10 @@ my class IOU {
           !! False;
     }
 
-    method IO(IOU:D:)            { $!that // self }
+    method IO(IOU:D:) { $!that // self }
 
-    method open(|c)  { open($!abspath,|c) }
-    method mkdir(|c) { mkdir($!abspath,|c) }
+    method open(IOU:D: |c)  { open($!abspath,|c) }
+    method mkdir(IOU:D: |c) { mkdir($!abspath,|c) }
 
     multi method Str(IOU:D:)  { $!this }
     multi method gist(IOU:D:) { qq|"$!this".IO| }

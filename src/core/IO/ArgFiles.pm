@@ -1,4 +1,4 @@
-my class IO::ArgFiles is IO::Handle {
+my class IO::ArgFiles {
     has $.args;
     has $.filename;
     has $!io;
@@ -43,6 +43,14 @@ my class IO::ArgFiles is IO::Handle {
         return $*IN.slurp-rest unless @chunks;
         @chunks.join;
     }
+}
+
+{
+    my @ARGS;
+    my Mu $argiter := nqp::getcurhllsym('$!ARGITER');
+    @ARGS.push(nqp::p6box_s(nqp::shift($argiter))) while $argiter;
+    nqp::bindkey(nqp::who(PROCESS), '@ARGS', @ARGS);
+    PROCESS::<$ARGFILES> = IO::ArgFiles.new(:args(@ARGS));
 }
 
 # vim: ft=perl6 expandtab sw=4

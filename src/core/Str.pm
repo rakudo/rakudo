@@ -1256,9 +1256,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
     }
 
-    method path(Str:D:) returns IO::Path:D {
+    method path(Str:D: |c) {
         DEPRECATED('IO', |<2014.11 2015.11>);
-        IO::Path.new(self)
+        IOU.new(self, |c);
     }
 
     method unival(Str:D:)  { unival(self.ord) };

@@ -49,7 +49,7 @@ class IO::Handle does IO does PIO {
 
 #?if moar
     method watch(IO::Handle:D:) {
-        IO::Notification.watch_path($!path);
+        IO::Notification.watch_path($!abspath);
     }
 #?endif
 }

@@ -76,7 +76,7 @@ multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
 }
 
 proto sub open(|) { * }
-multi sub open( $path is copy,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
+multi sub open( $path,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc and !$nodepr;
 
@@ -89,41 +89,18 @@ multi sub open( $path is copy,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
 
     # we want a special handle
     elsif $path eq '-' {
-        $path =
-          IO::Special.new(:what( $w ?? << <STDOUT> >> !! << <STDIN> >> ));
-    }
-
-    # we got a special handle
-    my Mu $PIO;
-    if nqp::istype($path,IO::Special) {
-        my $what := $path.what;
-        if $what eq '<STDIN>' {
-            $PIO := nqp::getstdin();
-        }
-        elsif $what eq '<STDOUT>' {
-            $PIO := nqp::getstdout();
-        }
-        elsif $what eq '<STDERR>' {
-            $PIO := nqp::getstderr();
-        }
-        else {
-            die "Don't know how to open '$what' especially";
-        }
+        return IO::Dup.new( :fileno( +?($w || $rw) ) );
     }
 
     # want a normal handle
-    else {
-        my $abspath := MAKE-ABSOLUTE-PATH($path,$*CWD);
-        fail X::IO::Directory.new(:$path, :trying<open>)
-          if FILETEST-E($abspath) && FILETEST-D($abspath);
+    my $abspath := MAKE-ABSOLUTE-PATH($path,$*CWD);
+    fail X::IO::Directory.new(:$path, :trying<open>)
+      if FILETEST-E($abspath) && FILETEST-D($abspath);
 
-        my $mode := ($rw || $w) ?? 'w' !! ($a ?? 'wa' !! 'r' );
-        # TODO: catch error, and fail()
-        $PIO := nqp::open(nqp::unbox_s($abspath),nqp::unbox_s($mode));
-        $path = IO::File.new(:$abspath);
-    }
-
-    IO::Handle.new(:$path,:$PIO,:$enc,|c);
+    my $mode := ($rw || $w) ?? 'w' !! ($a ?? 'wa' !! 'r' );
+    # TODO: catch error, and fail()
+    my Mu $PIO := nqp::open(nqp::unbox_s($abspath),nqp::unbox_s($mode));
+    IO::Handle.new(:$abspath,:$PIO,:$enc,|c);
 }
 
 proto sub pipe(|) { * }
@@ -262,12 +239,9 @@ sub homedir($path as Str, :$test = <r w x>) {
     $*HOME = $newHOME;
 }
 
-PROCESS::<$IN> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDIN>  >>)))).open;
-PROCESS::<$OUT> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDOUT> >>)))).open;
-PROCESS::<$ERR> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDERR> >>)))).open;
+PROCESS::<$IN>  = IO::Dup.new( :fileno(0) );
+PROCESS::<$OUT> = IO::Dup.new( :fileno(1) );
+PROCESS::<$ERR> = IO::Dup.new( :fileno(2) );
 
 sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     my @ok;

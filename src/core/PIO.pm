@@ -9,7 +9,7 @@ my role PIO {
     method !set-PIO-attributes(Mu :$PIO,:$chomp,:$bin,:$encoding,:$nl,:$enc) {
         $!chomp = $chomp // True;
         nqp::bindattr(self,$?CLASS,'$!PIO',nqp::decont($PIO)); # := doesn't work
-        self.encoding($bin ?? 'binary' !! $encoding // $enc // 'utf8');
+        self.encoding($encoding // $enc // 'utf8') unless $bin;
         self.nl($nl // "\n");
     }
 

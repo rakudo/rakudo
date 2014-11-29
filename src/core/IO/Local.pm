@@ -71,6 +71,11 @@ my role IO::Local {
         IO::Notification.watch_path($!abspath);
     }
 #?endif
+
+    method directory() {
+        DEPRECATED("dirname", |<2014.10 2015.10>);
+        self.dirname;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

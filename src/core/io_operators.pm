@@ -239,53 +239,46 @@ sub homedir($path as Str, :$test = <r w x>) {
     $*HOME = $newHOME;
 }
 
-sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).chmod($mode);
-    }
-    @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
+sub chmod($mode, *@filenames, :$CWD = $*CWD) {
+    @filenames.grep( { CHMOD-PATH(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
 }
-sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
-    my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).unlink;
-    }
-    @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink ).eager;
+sub unlink(*@filenames, :$CWD = $*CWD)       {
+    @filenames.grep( { UNLINK-PATH(MAKE-ABSOLUTE-PATH($_,$CWD)) } ).eager;
 }
-sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).rmdir;
-    }
-    @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
+sub rmdir(*@filenames, :$CWD = $*CWD) {
+    @filenames.grep( { REMOVE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD)) } ).eager;
 }
 
 proto sub mkdir(|) { * }
-multi sub mkdir(Int $mode, *@dirnames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_,$*CWD),$mode) } ).eager;
+multi sub mkdir(Int $mode, *@dirnames, :$CWD = $*CWD) {
+    @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
 }
-multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$*CWD),$mode) ?? ($path,) !! ();
+multi sub mkdir($path, $mode = 0o777, :$CWD = $*CWD) {
+    MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$CWD),$mode) ?? ($path,) !! ();
 }
 
-sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $from.IO(:$SPEC,:$CWD).rename($to,:$SPEC,:$CWD);
+sub rename($from, $to, :$CWD = $*CWD, |c) {
+    my $result := RENAME-PATH(
+      MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
+    );
     $result // $result.throw;
 }
-sub copy($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $from.IO(:$SPEC,:$CWD).copy($to,:$SPEC,:$CWD);
+sub copy($from, $to, :$CWD = $*CWD, |c) {
+    my $result := COPY-FILE(
+      MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
+    );
     $result // $result.throw;
 }
-sub symlink($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).symlink($name,:$SPEC,:$CWD);
+sub symlink($target, $name, :$CWD = $*CWD) {
+    my $result := SYMLINK-PATH(
+      MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
+    );
     $result // $result.throw;
 }
-sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).link($name,:$SPEC,:$CWD);
+sub link($target, $name, :$CWD = $*CWD) {
+    my $result := LINK-FILE(
+      MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
+    );
     $result // $result.throw;
 }
 

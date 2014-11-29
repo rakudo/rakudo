@@ -25,3 +25,5 @@ my class IO::Notification {
         $s
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

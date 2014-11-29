@@ -23,3 +23,5 @@ my class IO::File is Cool does IO::Local {
 
     method d(IO::File:D:) { False }
 }
+
+# vim: ft=perl6 expandtab sw=4

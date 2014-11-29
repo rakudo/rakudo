@@ -46,3 +46,5 @@ my class IO::Dir is Cool does IO::Local {
     method l(IO::Dir:D:) { False }
     method z(IO::Dir:D:) { Nil }
 }
+
+# vim: ft=perl6 expandtab sw=4

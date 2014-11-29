@@ -239,10 +239,6 @@ sub homedir($path as Str, :$test = <r w x>) {
     $*HOME = $newHOME;
 }
 
-PROCESS::<$IN>  = IO::Dup.new( :fileno(0) );
-PROCESS::<$OUT> = IO::Dup.new( :fileno(1) );
-PROCESS::<$ERR> = IO::Dup.new( :fileno(2) );
-
 sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     my @ok;
     for @filenames -> $file {

@@ -41,4 +41,8 @@ class IO::Dup does IO does PIO {
     method changed(IO::Dup:D:)  { Instant }
 }
 
+PROCESS::<$ERR> = IO::Dup.new( :fileno(2) );
+PROCESS::<$OUT> = IO::Dup.new( :fileno(1) );
+PROCESS::<$IN>  = IO::Dup.new( :fileno(0) );
+
 # vim: ft=perl6 expandtab sw=4

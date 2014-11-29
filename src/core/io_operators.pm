@@ -266,10 +266,10 @@ sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
 
 proto sub mkdir(|) { * }
 multi sub mkdir(Int $mode, *@dirnames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @dirnames.grep( *.IO(:$SPEC,:$CWD).mkdir($mode) ).eager;
+    @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_,$*CWD),$mode) } ).eager;
 }
 multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();
+    MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$*CWD),$mode) ?? ($path,) !! ();
 }
 
 sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD) {

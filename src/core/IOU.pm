@@ -20,6 +20,9 @@ my class IOU {
 
     method IO(IOU:D:)            { $!that // self }
 
+    method open(|c)  { open($!abspath,|c) }
+    method mkdir(|c) { mkdir($!abspath,|c) }
+
     multi method Str(IOU:D:)  { $!this }
     multi method gist(IOU:D:) { qq|"$!this".IO| }
     multi method perl(IOU:D:) { "q|$!this|.IO" }

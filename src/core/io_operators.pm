@@ -176,15 +176,15 @@ multi sub slurp(Cool:D $path, :$enc, |c) {
 }
 
 proto sub spurt(|) { * }
-multi sub spurt(IO::Handle:D $fh, $what,|c ) {
+multi sub spurt(IO::Handle:D $fh,\what,|c ) {
     DEPRECATED('spurt($path,...)',|<2014.10 2015.10>,:what<spurt($handle,...)>);
-    my $result := $fh.spurt($what,:nodepr,|c);
+    my $result := $fh.spurt(what,:nodepr,|c);
     $result // $result.throw;
 }
-multi sub spurt(Cool:D $path,$what,:$enc,|c) {
+multi sub spurt(Cool:D $path,\what,:$enc,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
-    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD),$what,:$enc,|c);
+    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD),what,:$enc,|c);
     $result // $result.throw;
 }
 

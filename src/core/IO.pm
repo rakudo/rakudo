@@ -213,7 +213,7 @@ sub SLURP-PATH(Str $path,:$encoding,:$bin,:$enc,|c) {
     slurped;
 }
 
-sub SPURT-PATH(Str $path,$what,:$encoding,:$append,:$createonly,:$bin,:$enc,|c) {
+sub SPURT-PATH(Str $path,\what,:$encoding,:$append,:$createonly,:$bin,:$enc,|c) {
     if $createonly and FILETEST-E($path) {
         fail("File '$path' already exists, and :createonly was specified");
     }
@@ -223,8 +223,8 @@ sub SPURT-PATH(Str $path,$what,:$encoding,:$append,:$createonly,:$bin,:$enc,|c) 
     $handle // $handle.throw;
 
     my $spurt := $bin
-      ?? $handle.write($what)
-      !! $handle.print($what);
+      ?? $handle.write(what)
+      !! $handle.print(what);
     $handle.close;  # can't use LEAVE in settings :-(
     $spurt;
 }

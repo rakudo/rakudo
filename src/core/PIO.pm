@@ -372,11 +372,11 @@ my role PIO {
     proto method print(|) { * }
     multi method print(PIO:D: Str:D \x) {
         nqp::printfh($!PIO, nqp::unbox_s(x));
-        Bool::True
+        Bool::True;
     }
     multi method print(PIO:D: *@list) {
         nqp::printfh($!PIO, nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
-        Bool::True
+        Bool::True;
     }
 
     multi method say(PIO:D: |) {
@@ -384,6 +384,7 @@ my role PIO {
         nqp::shift($args);  # lose the object
         nqp::printfh($!PIO, nqp::unbox_s(nqp::shift($args).gist)) while $args;
         nqp::printfh($!PIO, nqp::unbox_s("\n"));
+        Bool::True;
     }
 
     method slurp-rest(PIO:D: :$bin,:$encoding,:$enc) {

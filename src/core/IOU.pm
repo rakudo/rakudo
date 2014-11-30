@@ -20,9 +20,21 @@ my class IOU {
 
     method IO(IOU:D:) { $!that // self }
 
-    method open(IOU:D: |c)  { open($!abspath,|c) }
-    method mkdir(IOU:D: |c) { mkdir($!abspath,|c) }
-    method spurt(IOU:D: \what, |c) { spurt($!abspath,what,|c) }
+    method open(IOU:D: |c) {
+        my $handle = open($!abspath,|c);
+        $!that = IO::File.new(:$!abspath) if $handle;
+        $handle;
+    }
+    method mkdir(IOU:D: |c) {
+        my $result = mkdir($!abspath,|c);
+        $!that = IO::Dir.new(:$!abspath) if $result;
+        $result;
+    }
+    method spurt(IOU:D: \what, |c) {
+        my $result = spurt($!abspath,what,|c);
+        $!that = IO::File.new(:$!abspath) if $result;
+        $result;
+    }
 
     multi method Str(IOU:D:)  { $!this }
     multi method gist(IOU:D:) { qq|"$!this".IO| }

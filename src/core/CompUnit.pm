@@ -52,6 +52,11 @@ class CompUnit {
     multi method Str(CompUnit:D: --> Str)  { $!abspath }
     multi method gist(CompUnit:D: --> Str) { "$!name:$!abspath" }
 
+    method path(CompUnit:D:) {
+        DEPRECATED('abspath',|<2014.12 2015.12>);
+        $!abspath;
+    }
+
     method key(CompUnit:D: --> Str) {
         $!has-precomp ?? $!precomp-ext !! $!extension;
     }

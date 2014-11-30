@@ -1,21 +1,21 @@
 class CompUnit {
-    has Lock     $!lock;
-    has Str      $.from;
-    has Str      $.name;
-    has Str      $.extension;
-    has Str      $.precomp-ext;
-    has IO::Path $.path;
-    has Str      $!WHICH;
-    has Bool     $.has-source;
-    has Bool     $.has-precomp;
-    has Bool     $.is-loaded;
+    has Lock $!lock;
+    has Str  $.from;
+    has Str  $.name;
+    has Str  $.extension;
+    has Str  $.precomp-ext;
+    has Str  $.abspath;
+    has Str  $!WHICH;
+    has Bool $.has-source;
+    has Bool $.has-precomp;
+    has Bool $.is-loaded;
 
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';
     my %instances;
 
     method new(CompUnit:U:
-      $path,
+      $abspath,
       :$name is copy,
       :$extension is copy,
       :$from = $default-from,
@@ -26,18 +26,18 @@ class CompUnit {
         # set name / extension if not already given
         if !$name or !$extension.defined {
             my IO::Spec $SPEC := $*SPEC;
-            $name      ||= $SPEC.basename($path);
-            $extension ||= $SPEC.extension($name);
+            $name      ||= MAKE-BASENAME($abspath);
+            $extension ||= MAKE-EXT($name);
         }
 
         # sanity test
         my $precomp-ext = $*VM.precomp-ext;
-        $has-source  //= ?$path.IO.f;
-        $has-precomp //= ?"$path.$precomp-ext".IO.f;
+        $has-source  //= FILETEST-E($abspath);
+        $has-precomp //= FILETEST-E("$abspath.$precomp-ext");
         return Nil unless $has-source or $has-precomp;
 
-        $global.protect( { %instances{$path} //= self.bless(
-          :path(IO::Path.new-from-absolute-path($path)),
+        $global.protect( { %instances{$abspath} //= self.bless(
+          :$abspath,
           :lock(Lock.new),
           :$name,
           :$extension,
@@ -49,9 +49,9 @@ class CompUnit {
         ) } );
     }
 
-    multi method WHICH(CompUnit:D:) { $!WHICH //= "{self.^name}|$!path.abspath()" }
-    multi method Str(CompUnit:D: --> Str)  { $!path.abspath }
-    multi method gist(CompUnit:D: --> Str) { "{self.name}:{$!path.abspath}" }
+    multi method WHICH(CompUnit:D:) { $!WHICH //= "{self.^name}|$!abspath" }
+    multi method Str(CompUnit:D: --> Str)  { $!abspath }
+    multi method gist(CompUnit:D: --> Str) { "$!name:$!abspath" }
 
     method key(CompUnit:D: --> Str) {
         $!has-precomp ?? $!precomp-ext !! $!extension;
@@ -103,19 +103,19 @@ class CompUnit {
         } );
     }
 
-    method precomp-path(CompUnit:D: --> Str) { "$!path.$!precomp-ext" }
+    method precomp-path(CompUnit:D: --> Str) { "$!abspath.$!precomp-ext" }
 
     method precomp(CompUnit:D: $out = self.precomp-path, :$force --> Bool) {
-        die "Cannot pre-compile an already pre-compiled file: $!path"
+        die "Cannot pre-compile an already pre-compiled file: $!abspath"
           if $.has-precomp;
         die "Cannot pre-compile over an existing file: $out"
-          if !$force and $out.IO.e;
+          if !$force and FILETEST-E($out);
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'
           !! '';
         my Bool $result = ?shell(
-          "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path"
+          "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!abspath"
         );
 
         $!has-precomp = $result if $out eq self.precomp-path;
@@ -128,10 +128,10 @@ multi postcircumfix:<{ }> (CompUnit:D \c, "provides" ) {
     my % = (
       c.name => {
         pm => {
-          file => c.path
+          file => c.abspath
         },
         c.key => {
-          file => c.has-precomp ?? c.precomp-path !! c.path
+          file => c.has-precomp ?? c.precomp-path !! c.abspath
         }
       }
     );

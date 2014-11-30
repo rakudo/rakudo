@@ -28,8 +28,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         # sorry, cannot handle this one
         return () unless %extensions.exists_key($from);
 
-        my $dir-sep := $*SPEC.dir-sep;
-        my $base := $!IO.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
+        my $base := $!IO.abspath ~ "/" ~ $name.subst(:g, "::", "/") ~ '.';
         if %seen{$base} -> $found {
             return $found;
         }
@@ -39,21 +38,23 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         # have extensions to check
         if %extensions{$from} -> @extensions {
             for @extensions -> $extension {
-                my $path = $base ~ $extension;
+                my $abspath = $base ~ $extension;
                 return %seen{$base} = CompUnit.new(
-                  $path, :$name, :$extension, :has-source
-                ) if IO::Path.new-from-absolute-path($path).f;
+                  $abspath, :$name, :$extension, :has-source
+                ) if FILETEST-E($abspath) && FILETEST-F($abspath);
+
+                $abspath = $abspath ~ '.' ~ $precomp-ext;
                 return %seen{$base} = CompUnit.new(
-                  $path, :$name, :$extension, :!has-source, :has-precomp
-                ) if IO::Path.new-from-absolute-path($path ~ '.' ~ $precomp-ext).f;
+                  $abspath, :$name, :$extension, :!has-source, :has-precomp
+                ) if FILETEST-E($abspath) && FILETEST-F($abspath);
             }
         }
 
         # no extensions to check, just check compiled version
-        elsif $base ~ $precomp-ext -> $path {
+        elsif $base ~ $precomp-ext -> $abspath {
             return %seen{$base} = CompUnit.new(
-              $path, :$name, :extension(''), :!has-source, :has-precomp
-            ) if IO::Path.new-from-absolute-path($path).f;
+              $abspath, :$name, :extension(''), :!has-source, :has-precomp
+            ) if FILETEST-E($abspath) && FILETEST-F($abspath);
         }
 
         # alas

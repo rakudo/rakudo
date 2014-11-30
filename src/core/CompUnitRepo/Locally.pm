@@ -1,17 +1,16 @@
 role CompUnitRepo::Locally {
-    has Lock     $!lock;
-    has IO::Path $.IO;
-    has Str      $.WHICH;
+    has Lock    $!lock;
+    has IO::Dir $.IO;
+    has Str     $.WHICH;
 
     my %instances;
 
     method new(CompUnitRepo::Locally: $dir) {
-        my $abspath := $*SPEC.rel2abs($dir);
-        my $IO      := IO::Path.new-from-absolute-path($abspath);
-        return Nil unless $IO.d and $IO.r;
+        my $IO := CHANGE-DIRECTORY($dir,$*CWD,&FILETEST-R);
+        return Nil unless $IO;
 
-        %instances{$abspath} //=
-          self.bless(:$IO,:lock(Lock.new),:WHICH(self.^name ~ '|' ~ $abspath));
+        %instances{$IO.abspath} //=
+          self.bless(:$IO,:lock(Lock.new),:WHICH(self.^name ~ '|' ~ $IO.abspath));
     }
 
     multi method Str(CompUnitRepo::Locally:D:) { $!IO.abspath }
@@ -23,7 +22,7 @@ role CompUnitRepo::Locally {
     }
 
     method path(CompUnitRepo::Locally:D:) {
-        DEPRECATED( 'IO', |<2014.11 2015.11> );
+        DEPRECATED('IO', |<2014.11 2015.11>);
         $!IO;
     }
 

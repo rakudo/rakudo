@@ -11,7 +11,7 @@ my class IO::Dir is Cool does IO::Local {
 
     method child(IO::Dir:D: $child) {
         $child
-          ?? self.new(:abspath($!abspath ~ $child ~ '/'),:check)
+          ?? IOU.new($!abspath ~ $child,:check)
           !! self;
     }
 

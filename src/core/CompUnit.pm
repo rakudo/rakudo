@@ -25,7 +25,6 @@ class CompUnit {
 
         # set name / extension if not already given
         if !$name or !$extension.defined {
-            my IO::Spec $SPEC := $*SPEC;
             $name      ||= MAKE-BASENAME($abspath);
             $extension ||= MAKE-EXT($name);
         }

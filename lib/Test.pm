@@ -1,8 +1,5 @@
 module Test;
-# Copyright (C) 2007 - 2011 The Perl Foundation.
-
-## This is a temporary Test.pm to get us started until we get pugs's Test.pm
-## working. It's shamelessly stolen & adapted from MiniPerl6 in the pugs repo.
+# Copyright (C) 2007 - 2014 The Perl Foundation.
 
 # settable from outside
 my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;

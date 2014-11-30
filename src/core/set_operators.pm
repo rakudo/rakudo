@@ -124,9 +124,6 @@ only sub infix:<<"\x2296">>($a, $b --> Setty) {
 # }
 
 ### Set Comparison Operators
-#
-# Note that these are implemented according to subroutine signature
-# combinatorics because of the performance implications of junctions
 
 only sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
     my ($c,$d);

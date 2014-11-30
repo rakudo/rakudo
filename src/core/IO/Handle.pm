@@ -27,6 +27,12 @@ class IO::Handle does IO does PIO {
         DEPRECATED('$handle.slurp-rest', |<2014.10 2015.10>);
         self.slurp-rest(|c);
     }
+    method spurt(IO::Handle:D: \what) {
+        DEPRECATED(".IO.spurt or spurt(...)", |<2014.10 2015.10>);
+        what ~~ Blob
+          ?? self.write(what)
+          !! self.print(what);
+    }
 
 #    method seek(|c) {
 #        fail "You cannot seek on an {self.^name}";

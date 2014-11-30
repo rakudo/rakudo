@@ -22,6 +22,7 @@ my class IOU {
 
     method open(IOU:D: |c)  { open($!abspath,|c) }
     method mkdir(IOU:D: |c) { mkdir($!abspath,|c) }
+    method spurt(IOU:D: \what, |c) { spurt($!abspath,what,|c) }
 
     multi method Str(IOU:D:)  { $!this }
     multi method gist(IOU:D:) { qq|"$!this".IO| }

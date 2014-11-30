@@ -1,5 +1,5 @@
 module Test;
-# Copyright (C) 2007 - 2011 The Perl Foundation.
+# Copyright (C) 2007 - 2014 The Perl Foundation.
 
 # settable from outside
 my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;

@@ -5,9 +5,9 @@ my class IOU {
     has $!that;
 
     submethod BUILD(:$!this,:$!abspath) { }
-    method new($this, :$CWD = $*CWD) {
+    method new($this, :$CWD = $*CWD, |c) {
         my $abspath := MAKE-ABSOLUTE-PATH($this,$CWD);
-        self!what($abspath)                # either the IO::Local object
+        self!what($abspath,|c)             # either the IO::Local object
           // self.bless(:$this,:$abspath); # or a placeholder
     }
 
@@ -80,16 +80,16 @@ my class IOU {
         );
     }
 
-    method !what(IOU: $abspath) {
+    method !what(IOU: $abspath, |c) {
         if FILETEST-E($abspath) {
             if FILETEST-F($abspath) {
-                return IO::File.new(:$abspath);
+                return IO::File.new(:$abspath, |c);
             }
             elsif FILETEST-D($abspath) {
-                return IO::Dir.new(:$abspath);
+                return IO::Dir.new(:$abspath, |c);
             }
             elsif FILETEST-L($abspath) {
-                return IO::Link.new(:$abspath);
+                return IO::Link.new(:$abspath, |c);
             }
         }
         Mu;

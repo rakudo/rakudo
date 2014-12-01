@@ -125,7 +125,7 @@ only sub infix:<<"\x2296">>($a, $b --> Setty) {
 
 ### Set Comparison Operators
 
-only sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
+multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
     my ($c,$d);
     if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
     elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
@@ -134,6 +134,14 @@ only sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
         return so $c <= $d and [&&] $c.keys X(elem) $d;
     }
     return [&&] $c.keys.map({ $c{$_} <= $d{$_} });
+}
+
+multi sub infix:<<(<=)>>(Set $a, Set $b --> Bool) {
+    return so $a <= $b and [&&] $a.keys X(elem) $b;
+}
+
+multi sub infix:<<(<=)>>(QuantHash $a, QuantHash $b --> Bool) {
+    return [&&] $a.keys.map({ $a{$_} <= $b{$_} });
 }
 
 # U+2286 SUBSET OF OR EQUAL TO
@@ -146,7 +154,7 @@ only sub infix:<<"\x2288">>($a, $b --> Bool) {
 }
 
 
-only sub infix:<<(<)>>(Any $a, Any $b --> Bool) {
+multi sub infix:<<(<)>>(Any $a, Any $b --> Bool) {
     my ($c,$d);
     if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
     elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
@@ -155,6 +163,14 @@ only sub infix:<<(<)>>(Any $a, Any $b --> Bool) {
         return so $c < $d and [&&] $c.keys X(elem) $d;
     }
     return [&&] $c.keys.map({ $c{$_} < $d{$_} });
+}
+
+multi sub infix:<<(<)>>(Set $a, Set $b --> Bool) {
+    return so $a < $b and [&&] $a.keys X(elem) $b;
+}
+
+multi sub infix:<<(<)>>(QuantHash $a, QuantHash $b --> Bool) {
+    return [&&] $a.keys.map({ $a{$_} < $b{$_} });
 }
 
 # U+2282 SUBSET OF
@@ -166,7 +182,7 @@ only sub infix:<<"\x2284">>($a, $b --> Bool) {
     $a !(<) $b;
 }
 
-only sub infix:<<(>=)>>(Any $a, Any $b --> Bool) {
+multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool) {
     my ($c,$d);
     if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
     elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
@@ -175,6 +191,14 @@ only sub infix:<<(>=)>>(Any $a, Any $b --> Bool) {
         return so $c >= $d and [&&] $d.keys X(elem) $c;
     }
     return [&&] $d.keys.map({ $c{$_} >= $d{$_} });
+}
+
+multi sub infix:<<(>=)>>(Set $a, Set $b --> Bool) {
+    return so $a >= $b and [&&] $b.keys X(elem) $a;
+}
+
+multi sub infix:<<(>=)>>(QuantHash $a, QuantHash $b --> Bool) {
+    return [&&] $b.keys.map({ $a{$_} >= $b{$_} });
 }
 
 # U+2287 SUPERSET OF OR EQUAL TO
@@ -186,7 +210,7 @@ only sub infix:<<"\x2289">>($a, $b --> Bool) {
     $a !(>=) $b;
 }
 
-only sub infix:<<(>)>>(Any $a, Any $b --> Bool) {
+multi sub infix:<<(>)>>(Any $a, Any $b --> Bool) {
     my ($c,$d);
     if      $a ~~ Mix or $b ~~ Mix { $c = $a.Mix(:view); $d = $b.Mix(:view); }
     elsif   $a ~~ Bag or $b ~~ Bag { $c = $a.Bag(:view); $d = $b.Bag(:view); }
@@ -195,6 +219,14 @@ only sub infix:<<(>)>>(Any $a, Any $b --> Bool) {
         return so $c > $d and [&&] $d.keys X(elem) $c;
     }
     return [&&] $d.keys.map({ $c{$_} > $d{$_} });
+}
+
+multi sub infix:<<(>)>>(Set $a, Set $b --> Bool) {
+    return so $a >= $b and [&&] $b.keys X(elem) $a;
+}
+
+multi sub infix:<<(>)>>(QuantHash $a, QuantHash $b --> Bool) {
+    return [&&] $b.keys.map({ $a{$_} > $b{$_} });
 }
 
 # U+2283 SUPERSET OF

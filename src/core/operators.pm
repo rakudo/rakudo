@@ -214,19 +214,32 @@ sub VAR (Mu \x) { x.VAR }
 proto sub infix:<...>(|) { * }
 multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
 multi sub infix:<...>(**@lol) {
-    my @ret;
+    my @seq;
     my int $i = 0;
     my int $m = +@lol - 1;
+    my @tail = @lol[$m].list;
+    shift @tail;      # trailing elements of last list added back later
+    my $current_left;
+    my @seq_part;
     while $m > $i {
-        @ret := (@ret,
-            SEQUENCE(
-                @lol[$i],             # from-range, specifies steps
-                @lol[$i + 1].list[0], # to, we only need the endpoint (= first item)
-                :exclude_end( ($i = nqp::add_i($i, 1)) < $m ) # exlude the end unless we are at the end
-            )
-        ).flat;
+        $current_left = @lol[$i];
+        my $last;
+        my @left_tail;
+        if @seq { # no need to modify left part for first list
+            $last = pop @seq;
+            @left_tail = splice @lol[$i].list, 1, +@lol[$i].list;
+            $current_left = ($last, @left_tail);
+        }
+        @seq_part := SEQUENCE(
+            $current_left,        # from-range (adjusted if needed), specifies steps
+            @lol[$i + 1].list[0], # to, we only need the endpoint (= first item)
+            :exclude_end( False ) # never exclude end; we take care of that
+        );
+        @seq = unshift @seq_part, @seq;
+        $i = nqp::add_i($i, 1);
     }
-    @ret
+    push @seq, @tail if @tail;  # add back trailing elements of last list
+    @seq
 }
 
 proto sub infix:<...^>(|) { * }

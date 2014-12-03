@@ -17,14 +17,15 @@ class CompUnitRepo {
     }
 
     method candidates($name, :$file, :$auth, :$ver) {
+        my $list = List.new;
         for @*INC {
             if nqp::istype($_,Str) ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
                 if $cur.candidates($name, :$file,:$auth,:$ver).list -> @candi {
-                    return @candi;
+                    $list.push(@candi);
                 }
             }
         }
-        ();
+        $list;
     }
 
     method p6ml { $p6ml }

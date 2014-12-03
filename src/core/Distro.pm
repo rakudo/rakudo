@@ -65,6 +65,18 @@ multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
             }
             $auth := 'Apple Computer, Inc.'; # presumably
         }
+        elsif $name eq 'linux' {
+            if qx/lb_release -a/ ~~ m/
+                Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+
+                Description\: \s+ (<[\w\ ]>+) \s+ (<[\d\.]>+) \s+
+                Release\: \s+ (<[\d\.]>+)
+            / {
+                $auth    := ~$0;
+                $name    := ~$1;
+                $version := ~$2;
+                $release := ~$3;
+            }
+        }
         Distro.new( :$name, :$version, :$release, :$auth, :$path-sep )
     };
 }

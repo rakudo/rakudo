@@ -66,7 +66,7 @@ multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
             $auth := 'Apple Computer, Inc.'; # presumably
         }
         elsif $name eq 'linux' {
-            if qx/lb_release -a/ ~~ m/
+            if qx/lsb_release -a/ ~~ m/
                 Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+
                 Description\: \s+ (<[\w\ ]>+) \s+ (<[\d\.]>+) \s+
                 Release\: \s+ (<[\d\.]>+)

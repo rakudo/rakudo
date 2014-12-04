@@ -34,7 +34,9 @@ my role Supply {
         $tap
     }
 
-    method close(Supply:D: Tap $t) {
+    proto method close(|) { * }
+    multi method close(Supply:D:) { self.close($_) for self.tappers }
+    multi method close(Supply:D: Tap $t) {
         my $found;
         $!tappers_lock.protect({
             @!tappers .= grep( { $_ === $t ?? !($found = True) !! True } );

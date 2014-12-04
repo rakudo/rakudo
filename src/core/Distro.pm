@@ -65,6 +65,13 @@ multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
             }
             $auth := 'Apple Computer, Inc.'; # presumably
         }
+        elsif '/etc/os-release'.IO.e {
+            $_ := '/etc/os-release'.IO.slurp.subst(:g, /'"'/,'');
+            $auth    := ~$0 if m/^^ HOME_URL   \= (\N*) /;
+            $name    := ~$0 if m/^^ ID         \= (\N*) /;
+            $version := ~$0 if m/^^ VERSION    \= (\N*) /;
+            $release := ~$0 if m/^^ VERSION_ID \= (\N*) /;
+        }
         elsif $name eq 'linux' {
             if qx/lsb_release -a/ ~~ m/
                 Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+

@@ -71,6 +71,7 @@ my class IO::Path is Cool {
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
     method basename(IO::Path:D:) { %.parts<basename> }
+    method extension(IO::Path:D:) { MAKE-EXT(self.basename) }
 
     # core can't do 'basename handles <Numeric Bridge Int>'
     method Numeric(IO::Path:D:) { self.basename.Numeric }

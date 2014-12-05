@@ -32,7 +32,7 @@ only sub infix:<<"\x220C">>($a, $b --> Bool) {
 }
 
 only sub infix:<(|)>(**@p) {
-    if @p.grep(Mixy) { 
+    if @p.grep(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -60,7 +60,7 @@ only sub infix:<<"\x222A">>(|p) {
 only sub infix:<(&)>(**@p) {
     return set() unless @p;
 
-    if @p.grep(Mixy) { 
+    if @p.grep(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -100,7 +100,7 @@ only sub infix:<<"\x2229">>(|p) {
 only sub infix:<(-)>(**@p) {
     return set() unless @p;
 
-    if @p.grep(Mixy) { 
+    if @p.grep(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -219,7 +219,7 @@ only sub infix:<<"\x2285">>($a, $b --> Bool) {
 only sub infix:<(.)>(**@p) {
     return bag() unless @p;
 
-    if @p.grep(Mixy) { 
+    if @p.grep(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -251,13 +251,23 @@ only sub infix:<<"\x228D">>(|p) {
 only sub infix:<(+)>(**@p) {
     return bag() unless @p;
 
-    my $baghash = nqp::istype(@p[0],BagHash)
-      ?? BagHash.new-from-pairs(@p.shift.pairs)
-      !! @p.shift.BagHash;
-    for @p.map(*.Bag(:view)) -> $bag {
-        $baghash{$_} += $bag{$_} for $bag.keys;
+    if @p.grep(Mixy) {
+        my $mixhash = nqp::istype(@p[0], MixHash)
+            ?? MixHash.new-from-pairs(@p.shift.pairs)
+            !! @p.shift.MixHash;
+        for @p.map(*.Mix(:view)) -> $mix {
+            $mixhash{$_} += $mix{$_} for $mix.keys;
+        }
+        $mixhash.Mix(:view);
+    } elsif @p.grep(Baggy) {
+        my $baghash = nqp::istype(@p[0], BagHash)
+            ?? BagHash.new-from-pairs(@p.shift.pairs)
+            !! @p.shift.BagHash;
+        for @p.map(*.Bag(:view)) -> $bag {
+            $baghash{$_} += $bag{$_} for $bag.keys;
+        }
+        $baghash.Bag(:view);
     }
-    $baghash.Bag(:view);
 }
 # U+228E MULTISET UNION
 only sub infix:<<"\x228E">>(|p) {
@@ -266,9 +276,13 @@ only sub infix:<<"\x228E">>(|p) {
 
 proto sub infix:<<(<+)>>($, $ --> Bool) {*}
 multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool) {
-    $a.Bag(:view) (<+) $b.Bag(:view);
+    if $a ~~ Mixy or $b ~~ Mixy {
+        $a.Mix(:view) (<+) $b.Mix(:view);
+    } else {
+        $a.Bag(:view) (<+) $b.Bag(:view);
+    }
 }
-multi sub infix:<<(<+)>>(Baggy $a, Baggy $b --> Bool) {
+multi sub infix:<<(<+)>>(QuantHash $a, QuantHash $b --> Bool) {
     so all $a.keys.map({ $a{$_} <= $b{$_} })
 }
 # U+227C PRECEDES OR EQUAL TO
@@ -281,7 +295,11 @@ multi sub infix:<<(>+)>>(Baggy $a, Baggy $b --> Bool) {
     so all $b.keys.map({ $b{$_} <= $a{$_} });
 }
 multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool) {
-    $a.Bag(:view) (>+) $b.Bag(:view);
+    if $a ~~ Mixy or $b ~~ Mixy {
+        $a.Mix(:view) (>+) $b.Mix(:view);
+    } else {
+        $a.Bag(:view) (>+) $b.Bag(:view);
+    }
 }
 # U+227D SUCCEEDS OR EQUAL TO
 only sub infix:<<"\x227D">>($a, $b --> Bool) {

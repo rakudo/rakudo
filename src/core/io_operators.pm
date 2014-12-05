@@ -62,17 +62,23 @@ multi sub dir(:$Str!,Mu :$test, :$absolute) {
 }
 multi sub dir($dir as Str, :$CWD = $*CWD, Mu :$test, :$absolute) {
     DIR-GATHER(
-      MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD.Str)).join('/'), $test,
+      MAKE-CLEAN-PARTS(
+        MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD.Str)
+      ).join('/'), $test,
     );
 }
 multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
     $Str
       ?? DIR-GATHER-STR(
-           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD.Str)).join('/'),
-           $test)
+           MAKE-CLEAN-PARTS(
+             MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD.Str)
+           ).join('/'),$test
+         )
       !! DIR-GATHER(
-           MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($dir,$CWD.Str)).join('/'),
-           $test);
+           MAKE-CLEAN-PARTS(
+             MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD.Str)
+           ).join('/'),$test
+         );
 }
 
 proto sub open(|) { * }

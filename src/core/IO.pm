@@ -32,6 +32,37 @@ sub MAKE-ABSOLUTE-PATH($path,$abspath) {
     }
 }
 
+sub FORWARD-SLASH(Str \path)  { TRANSPOSE-ONE(path,'\\','/') }
+sub BACKWARD-SLASH(Str \path) { TRANSPOSE-ONE(path,'/','\\') }
+
+sub TRANSPOSE-ONE(Str \path,\original,\final) {  # 500x faster than .trans
+    my str $str   = nqp::unbox_s(path);
+    my int $chars = nqp::chars($str);
+    my int $ordinal = ord(original);
+    my int $from;
+    my int $to;
+    my $parts := nqp::list_s();
+
+    while $to < $chars {
+        if nqp::ordat($str,$to) == $ordinal {
+            nqp::push_s($parts, $to > $from
+              ?? nqp::substr($str,$from,$to - $from)
+              !! ''
+            );
+            $from = $to + 1;
+        }
+        $to = $to + 1;
+    }
+    nqp::push_s( $parts, $from < $chars
+      ?? nqp::substr($str,$from,$chars - $from)
+      !! ''
+    );
+
+    nqp::elems($parts)
+      ?? nqp::box_s(nqp::join(nqp::unbox_s(final),$parts),Str)
+      !! path;
+}
+
 sub MAKE-BASENAME(Str $abspath) {
     my str $abspath_s = nqp::unbox_s($abspath);
     my int $offset    = nqp::rindex($abspath_s,'/');

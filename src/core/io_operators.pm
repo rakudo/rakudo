@@ -157,11 +157,16 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES) {
+multi sub slurp() {
+    my $io := $*ARGFILES;
+    my $result := nqp::istype($io,IO::ArgFiles) ?? $io.slurp !! $io.slurp-rest;
+    $result // $result.throw;
+}
+multi sub slurp(IO::ArgFiles:D $io) {
     my $result := $io.slurp;
     $result // $result.throw;
 }
-multi sub slurp(IO::Handle:D $io = $*ARGFILES, :$enc, |c) {
+multi sub slurp(IO::Handle:D $io, :$enc, |c) {
     DEPRECATED('slurp($path,...)',|<2014.10 2015.10>,:what<slurp($handle,...)>);
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;

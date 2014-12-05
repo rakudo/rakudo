@@ -1,14 +1,15 @@
 # class for Unclassified IO objects
 my class IOU {
     has $!this;
+    has $!rest;
     has $.abspath;
     has $!that;
 
-    submethod BUILD(:$!this,:$!abspath) { }
+    submethod BUILD(:$!this,:$!rest,:$!abspath) { }
     method new($this, :$CWD = $*CWD, |c) {
         my $abspath := MAKE-ABSOLUTE-PATH($this,$CWD);
-        self!what($abspath,|c)             # either the IO::Local object
-          // self.bless(:$this,:$abspath); # or a placeholder
+        self!what($abspath,|c)                      # either a IO::Local object
+          // self.bless(:$this,:rest(c),:$abspath); # or a placeholder
     }
 
     multi method ACCEPTS(IOU:D: \other) {
@@ -45,7 +46,7 @@ my class IOU {
 # succeeds, or fail.  Wish there were a less verbose way to do this.
 
     method absolute(IOU:D:)    { self!that ?? $!that.absolute  !! self!fail }
-    method relative(IOU:D: |c) { self!that ?? $!that.relative  !! self!fail }
+    method relative(IOU:D: |c) { self!that ?? $!that.relative(|c) !! self!fail }
     method chop(IOU:D:)        { self!that ?? $!that.chop      !! self!fail }
     method volume(IOU:D:)      { self!that ?? $!that.volume    !! self!fail }
     method dirname(IOU:D:)     { self!that ?? $!that.dirname   !! self!fail }
@@ -71,7 +72,7 @@ my class IOU {
 
 # private methods
 
-    method !that(IOU:D:) { $!that //= self!what($!abspath) }
+    method !that(IOU:D:) { $!that //= self!what($!abspath,|$!rest) }
 
     method !fail() {
         fail X::IO::DoesNotExist.new(
@@ -81,6 +82,7 @@ my class IOU {
     }
 
     method !what(IOU: $abspath, |c) {
+
         if FILETEST-E($abspath) {
             if FILETEST-F($abspath) {
                 return IO::File.new(:$abspath, |c);

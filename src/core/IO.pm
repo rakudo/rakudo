@@ -415,19 +415,18 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
                 nqp::closedir($dirh);
                 last;
             }
-            my Str $elem = nqp::box_s($elem_s,Str);
+            my Str $elem = FORWARD-SLASH(nqp::box_s($elem_s,Str));
             take $abspath ~ $elem if $test.ACCEPTS($elem);
         } }
     }
     else {
-        my str $abspath_s = $abspath;
         gather { loop {
             my str $elem_s = nqp::nextfiledir($dirh);
             if nqp::isnull_s($elem_s) || nqp::chars($elem_s) == 0 {
                 nqp::closedir($dirh);
                 last;
             }
-            take nqp::box_s(nqp::concat($abspath_s,$elem_s),Str)
+            take $abspath ~ FORWARD-SLASH(nqp::box_s($elem_s,Str))
               if nqp::isne_s($elem_s,'.') && nqp::isne_s($elem_s,'..');
         } }
     }
@@ -454,7 +453,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
                     nqp::closedir($dirh);
                     last;
                 }
-                my Str $elem = nqp::box_s($elem_s,Str);
+                my Str $elem = FORWARD-SLASH(nqp::box_s($elem_s,Str));
                 take $elem if $test.ACCEPTS(MAKE-BASENAME($elem));
             }
         }
@@ -465,7 +464,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
                     nqp::closedir($dirh);
                     last;
                 }
-                take nqp::box_s($elem_s,Str);
+                take FORWARD-SLASH(nqp::box_s($elem_s,Str));
             }
         }
     }
@@ -485,19 +484,18 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
 
     if $test.defined {
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-            my Str $elem = nqp::p6box_s(pir::trans_encoding__Ssi(
+            my Str $elem = FORWARD-SLASH(nqp::p6box_s(pir::trans_encoding__Ssi(
               nqp::atpos_s($RSA, $i),
-              pir::find_encoding__Is('utf8')));
+              pir::find_encoding__Is('utf8'))));
             take $abspath ~ $elem if $test.ACCEPTS($elem);
         }
     }
     else {
-        my str $abspath_s = nqp::unbox_s($abspath);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my str $elem_s = pir::trans_encoding__Ssi(
               nqp::atpos_s($RSA, $i),
               pir::find_encoding__Is('utf8'));
-            take nqp::box_s(nqp::concat($abspath_s,$elem_s),Str)
+            take $abspath ~ FORWARD-SLASH(nqp::box_s($elem_s,Str))
               if nqp::isne_s($elem_s,'.') && nqp::isne_s($elem_s,'..');
         }
     }

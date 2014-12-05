@@ -244,7 +244,7 @@ sub tmpdir($path as Str) {
     $*TMPDIR = $newTMPDIR;
 }
 
-sub homedir($path as Str, :$test = <r w x>) {
+sub homedir($path as Str) {
     my $newHOME := CHANGE-DIRECTORY($path,$*HOME.Str,&FILETEST-RWX);
     $newHOME // $newHOME.throw;
     $*HOME = $newHOME;

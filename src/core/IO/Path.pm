@@ -121,11 +121,11 @@ my class IO::Path is Cool {
     multi method absolute (IO::Path:D: $CWD) {
         self.is-absolute
           ?? $.abspath
-          !! $!SPEC.rel2abs($!path, $CWD.chop);
+          !! $!SPEC.rel2abs($!path, $CWD);
     }
 
     method relative (IO::Path:D: $CWD = $*CWD) {
-        $!SPEC.abs2rel($.abspath, $CWD.chop);
+        $!SPEC.abs2rel($.abspath, $CWD);
     }
 
     method cleanup (IO::Path:D:) {

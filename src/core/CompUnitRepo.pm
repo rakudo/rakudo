@@ -8,7 +8,7 @@ class CompUnitRepo {
     method files($file, :$name, :$auth, :$ver) {
         for @*INC {
             if nqp::istype($_,Str) ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
-                if $cur.files($name, :$file,:$auth,:$ver).list -> @candi {
+                if $cur.files($file, :$name,:$auth,:$ver).list -> @candi {
                     return @candi;
                 }
             }

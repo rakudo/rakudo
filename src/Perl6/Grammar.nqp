@@ -2831,14 +2831,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '(' ~ ')' <signature>
         | <sigil> <twigil>?
           [
+          || <?{ $<sigil>.Str eq '&' }> <?identifier> {}
+             <name=.sublongname>
           || <name=.identifier>
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
-          ]?
-
-          [
-              <?{ ~$<sigil> eq '&' }>
-              ':(' ~ ')' <subsignature=.signature>
           ]?
         ]
     }

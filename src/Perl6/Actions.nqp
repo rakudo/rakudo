@@ -3698,6 +3698,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         my $subsig := ~$<subsignature>;
                         # 3 for :()
                         $name := nqp::substr($name, 0, nqp::chars($name) - nqp::chars($subsig) - 3);
+                        %*PARAM_INFO<variable_name> := $name;
                     }
                     self.declare_param($/, $name);
                 }

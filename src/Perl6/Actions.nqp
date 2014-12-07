@@ -3693,7 +3693,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
                 if $<name> {
-                    self.declare_param($/, ~$/);
+                    my $name := ~$/;
+                    if $<subsignature> {
+                        my $subsig := ~$<subsignature>;
+                        # 3 for :()
+                        $name := nqp::substr($name, 0, nqp::chars($name) - nqp::chars($subsig) - 3);
+                    }
+                    self.declare_param($/, $name);
                 }
             }
             elsif $twigil eq '!' {

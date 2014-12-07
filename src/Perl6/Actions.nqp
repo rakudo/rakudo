@@ -3751,6 +3751,37 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             %*PARAM_INFO<dummy> := $*PRECEDING_DECL;
         }
+
+        if $<name><sigterm> {
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            my $closure_signature := $<name><sigterm><fakesignature>.ast;
+            my $past := QAST::Block.new(
+                QAST::Stmts.new(
+                    QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
+                ),
+                QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('callmethod'), :name('ACCEPTS'),
+                        $closure_signature,
+                        QAST::Op.new(
+                            :op('callmethod'),
+                            :name('signature'),
+                            QAST::Var.new( :name('$_'), :scope('lexical') )
+                        )
+                    )
+                ),
+            );
+            ($*W.cur_lexpad())[0].push($past);
+            my $param := hash(
+                variable_name => '$_',
+                nominal_type => $*W.find_symbol(['Mu']));
+            my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($/, $param)]));
+            add_signature_binding_code($past, $sig, [$param]);
+            my $wrapper := $*W.create_code_object($past, 'Block', $sig);
+            %*PARAM_INFO<post_constraints>.push($wrapper);
+        }
     }
 
     method declare_param($/, $name) {

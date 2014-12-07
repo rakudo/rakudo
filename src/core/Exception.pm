@@ -209,7 +209,7 @@ do {
         if ($type == nqp::const::CONTROL_WARN) {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::getmessage($ex));
-            nqp::printfh($err, $msg ?? "$msg" !! "Warning");
+            nqp::printfh($err, $msg.chars ?? "$msg" !! "Warning");
 #?if parrot
             nqp::printfh($err, Backtrace.new($ex.backtrace, 0).nice(:oneline));
 #?endif

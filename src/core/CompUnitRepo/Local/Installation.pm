@@ -107,7 +107,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
                     mkdir "$path/bin" unless "$path/bin".IO.d;
-                    my $basename   = $file.IO.path.basename;
+                    my $basename   = $file.IO.basename;
                     my $withoutext = $basename;
                     $withoutext.=subst(/\.[exe|bat]$/, '');
                     for '', < -p -j -m > -> $be {

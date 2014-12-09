@@ -398,6 +398,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <name> <colonpair>*
     }
 
+    token subshortname {
+        <desigilname>
+    }
+
+    token sublongname {
+        <subshortname> <sigterm>?
+    }
+
     token defterm {     # XXX this is probably too general
         :dba('new term to be defined')
         <identifier>
@@ -2716,6 +2724,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <signature>
     }
 
+    token sigterm {
+        :dba('signature')
+        ':(' ~ ')' <fakesignature>
+    }
+
     token fakesignature {
         <.newpad>
         <signature>
@@ -2818,6 +2831,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '(' ~ ')' <signature>
         | <sigil> <twigil>?
           [
+          || <?{ $<sigil>.Str eq '&' }> <?identifier> {}
+             <name=.sublongname>
           || <name=.identifier>
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]

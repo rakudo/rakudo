@@ -3693,7 +3693,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
                 if $<name> {
-                    self.declare_param($/, ~$/);
+                    my $name := ~$/;
+                    if $<name><sigterm> {
+                        $name := nqp::substr($name, 0, nqp::chars($name) - nqp::chars(~$<name><sigterm>));
+                        %*PARAM_INFO<variable_name> := $name;
+                    }
+                    self.declare_param($/, $name);
                 }
             }
             elsif $twigil eq '!' {
@@ -3745,6 +3750,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $par_type := $*W.find_symbol(['Parameter']);
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             %*PARAM_INFO<dummy> := $*PRECEDING_DECL;
+        }
+
+        if $<name><sigterm> {
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            my $get_signature_past := QAST::Op.new(
+                :op('callmethod'),
+                :name('signature'),
+                QAST::Var.new( :name('$_'), :scope('lexical') )
+            );
+            my $closure_signature := $<name><sigterm><fakesignature>.ast;
+
+            my $where := make_where_block($/, $closure_signature, $get_signature_past);
+            %*PARAM_INFO<post_constraints>.push($where);
         }
     }
 
@@ -3825,7 +3845,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %*PARAM_INFO<post_constraints>.push($type);
                 }
                 else {
-                    $/.CURSOR.panic("Type " ~ ~$<typename><longname> ~
+                    $/.CURSOR.panic(~$<typename><longname> ~
                         " cannot be used as a nominal type on a parameter");
                 }
                 for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
@@ -6722,7 +6742,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block)
     }
 
-    sub make_where_block($/, $expr) {
+    sub make_where_block($/, $expr, $operand = QAST::Var.new( :name('$_'), :scope('lexical') ) ) {
         # If it's already a block, nothing to do at all.
         if $expr.ann('past_block') {
             return $expr.ann('code_object');
@@ -6738,7 +6758,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new(
                     :op('callmethod'), :name('ACCEPTS'),
                     $expr,
-                    QAST::Var.new( :name('$_'), :scope('lexical') )
+                    $operand,
                 )));
         ($*W.cur_lexpad())[0].push($past);
 

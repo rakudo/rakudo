@@ -90,8 +90,8 @@ my class IOU {
             elsif FILETEST-D($abspath) {
                 return IO::Dir.new(:$abspath, |c);
             }
-            elsif FILETEST-L($abspath) {
-                return IO::Link.new(:$abspath, |c);
+            else {
+                return IO::Local.new(:$abspath, |c);
             }
         }
         Mu;

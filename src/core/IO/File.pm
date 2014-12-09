@@ -1,7 +1,5 @@
 # A class for file(path)s that we know exist
-my class IO::File is Cool does IO::Local {
-
-    submethod BUILD(:$!abspath) { }
+my class IO::File is Cool does IO::Locally {
 
     method open(IO::File:D: |c) { open( $!abspath, |c ) }
 
@@ -21,6 +19,7 @@ my class IO::File is Cool does IO::Local {
         SPURT-PATH($!abspath, what, :bin(what ~~ Blob), |c );
     }
 
+    method f(IO::File:D:) { True }
     method d(IO::File:D:) { False }
 }
 

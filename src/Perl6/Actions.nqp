@@ -3756,31 +3756,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
-            my $closure_signature := $<name><sigterm><fakesignature>.ast;
-            my $past := QAST::Block.new(
-                QAST::Stmts.new(
-                    QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
-                ),
-                QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('callmethod'), :name('ACCEPTS'),
-                        $closure_signature,
-                        QAST::Op.new(
-                            :op('callmethod'),
-                            :name('signature'),
-                            QAST::Var.new( :name('$_'), :scope('lexical') )
-                        )
-                    )
-                ),
+            my $get_signature_past := QAST::Op.new(
+                :op('callmethod'),
+                :name('signature'),
+                QAST::Var.new( :name('$_'), :scope('lexical') )
             );
-            ($*W.cur_lexpad())[0].push($past);
-            my $param := hash(
-                variable_name => '$_',
-                nominal_type => $*W.find_symbol(['Mu']));
-            my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($/, $param)]));
-            add_signature_binding_code($past, $sig, [$param]);
-            my $wrapper := $*W.create_code_object($past, 'Block', $sig);
-            %*PARAM_INFO<post_constraints>.push($wrapper);
+            my $closure_signature := $<name><sigterm><fakesignature>.ast;
+
+            my $where := make_where_block($/, $closure_signature, $get_signature_past);
+            %*PARAM_INFO<post_constraints>.push($where);
         }
     }
 
@@ -6758,7 +6742,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block)
     }
 
-    sub make_where_block($/, $expr) {
+    sub make_where_block($/, $expr, $operand = QAST::Var.new( :name('$_'), :scope('lexical') ) ) {
         # If it's already a block, nothing to do at all.
         if $expr.ann('past_block') {
             return $expr.ann('code_object');
@@ -6774,7 +6758,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new(
                     :op('callmethod'), :name('ACCEPTS'),
                     $expr,
-                    QAST::Var.new( :name('$_'), :scope('lexical') )
+                    $operand,
                 )));
         ($*W.cur_lexpad())[0].push($past);
 

@@ -197,10 +197,10 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 }
             }
             elsif $badseq {
-                $value = (sub { fail X::Sequence::Deduction.new(:from($badseq)) })();
+                $value := (sub { fail X::Sequence::Deduction.new(:from($badseq)) })();
             }
             else {
-                $value = (sub { fail X::Sequence::Deduction.new() })();
+                $value := (sub { fail X::Sequence::Deduction.new() })();
             }
         }
         take $value unless $exclude_end;

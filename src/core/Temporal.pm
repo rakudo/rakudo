@@ -509,10 +509,10 @@ my class Date does Dateish {
         }
     }
 
-    multi method new(DateTime $dt) {
+    multi method new(Dateish $d) {
         self.bless(
-            :year($dt.year), :month($dt.month), :day($dt.day),
-            :daycount(self.daycount-from-ymd($dt.year,$dt.month,$dt.day))
+            :year($d.year), :month($d.month), :day($d.day),
+            :daycount(self.daycount-from-ymd($d.year,$d.month,$d.day))
         );
     }
 

@@ -3,7 +3,7 @@ my role IO::Locally {
     has $.abspath;
     has @!parts;
 
-    submethod BUILD(:$!abspath) { }
+    submethod BUILD(:$abspath) { $!abspath = $abspath }
 
     multi method ACCEPTS(IO::Locally:D: \other) {
         nqp::p6bool(

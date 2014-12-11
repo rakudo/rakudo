@@ -51,6 +51,10 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method Numeric(List:D:)  { self.elems }
     multi method Str(List:D:)      { self.join(' ') }
 
+    # Pretend we're a Match assuming we're a list of Matches
+    method to()         { self.elems ?? self[self.end].to !! Nil }
+    method from()       { self.elems ?? self[0].from !! Nil }
+
     method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);
     }

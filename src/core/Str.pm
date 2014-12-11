@@ -667,6 +667,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     ?? @matches[ +@matches - 1 ]
                     !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start_cur'().MATCH;
             }
+            $caller_dollar_slash = @matches;
             @matches
         }
         else {

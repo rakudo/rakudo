@@ -13,10 +13,9 @@ my role IO::Locally {
 
     method absolute(IO::Locally:D:) { $!abspath }
     method chop(IO::Locally:D:)     { $!abspath.chop }
-
-    proto method relative(|) { * }
-    multi method relative(IO::Locally:D:) { REMOVE-ROOT($*CWD.Str,$!abspath) }
-    multi method relative(IO::Locally:D: $root) { REMOVE-ROOT($root,$!abspath) }
+    method relative(IO::Locally:D: $root?) {
+        REMOVE-ROOT( $root // $*CWD.Str,$!abspath);
+    }
 
     method !parts() { @!parts = $!abspath.split('/') unless @!parts }
     method volume(IO::Locally:D:)    {

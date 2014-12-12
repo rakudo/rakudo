@@ -1,8 +1,7 @@
 # class for Unclassified IO objects
-my class IOU {
+my class IOU does IO::Locally {
     has $!this;
     has $!rest;
-    has $.abspath;
     has $!that;
 
     submethod BUILD(:$!this,:$!rest,:$!abspath) { }

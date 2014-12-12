@@ -104,7 +104,7 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
 
 # %h{}
 multi sub postcircumfix:<{ }>( \SELF ) is rw {
-    SELF;
+    SELF.list;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;

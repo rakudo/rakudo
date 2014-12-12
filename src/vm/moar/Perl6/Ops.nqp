@@ -178,7 +178,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     MAST::InstructionList.new(@ops, $cont_res.result_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6var', 'p6var');
-$ops.add_hll_moarop_mapping('perl6', 'p6reprname', 'p6reprname');
+$ops.add_hll_moarop_mapping('perl6', 'p6reprname', 'p6reprname', :decont(0));
 $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     my @ops;
     my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));

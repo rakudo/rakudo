@@ -152,4 +152,5 @@ src/core/Inc.pm
 src/core/Process.pm
 src/core/StrDistance.pm
 src/core/Slang.pm
+src/core/Metamodel/Primitives.pm
 src/core/core_epilogue.pm

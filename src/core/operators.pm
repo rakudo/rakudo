@@ -217,15 +217,25 @@ multi sub infix:<...>(**@lol) {
     my @ret;
     my int $i = 0;
     my int $m = +@lol - 1;
+    my @tail = @lol[$m].list.splice(1); # trailing elems of last list added back later
+    my $current_left;
     while $m > $i {
+        if @ret { # 1st elem of left part can be closure; take computed value instead
+            $current_left = (@ret.pop, @lol[$i].list.splice(1));
+        }
+        else { # no need to modify left part for first list
+            $current_left = @lol[$i];
+        }
         @ret := (@ret,
             SEQUENCE(
-                @lol[$i],             # from-range, specifies steps
+                $current_left,        # from-range (adjusted if needed), specifies steps
                 @lol[$i + 1].list[0], # to, we only need the endpoint (= first item)
-                :exclude_end( ($i = nqp::add_i($i, 1)) < $m ) # exlude the end unless we are at the end
+                :exclude_end( False ) # never exclude end; we take care of that
             )
         ).flat;
+        $i = nqp::add_i($i, 1);
     }
+    push @ret, @tail if @tail;  # add back trailing elements of last list
     @ret
 }
 

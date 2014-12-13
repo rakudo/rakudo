@@ -204,6 +204,11 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.subst($matcher, $replacement, |%adverbs);
     }
 
+    proto method subst-mutate(|c) {
+        $/ := nqp::getlexdyn('$/');
+        {*}
+    }
+
     proto method IO(|) { * }
     multi method IO(|c) { IO::Path.new(self) }
 

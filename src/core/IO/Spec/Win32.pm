@@ -7,7 +7,8 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     my $UNCpath     = regex { [<$slash> ** 2] <$notslash>+  <$slash>  [<$notslash>+ | $] }
     my $volume_rx   = regex { <$driveletter> | <$UNCpath> }
 
-    method canonpath ($path, :$parent) {
+    method canonpath ($patharg, :$parent) {
+        my $path = $patharg.Str;
         $path eq '' ?? '' !! self!canon-cat($path, :$parent);
     }
 

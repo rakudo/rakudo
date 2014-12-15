@@ -1,6 +1,7 @@
 my class IO::Spec::Cygwin is IO::Spec::Unix {
 
-    method canonpath (Cool:D $path is copy) {
+    method canonpath (Cool:D $patharg) {
+        my $path = $patharg.Str;
         $path.=subst(:g, '\\', '/');
 
         # Handle network path names beginning with double slash

@@ -1,13 +1,14 @@
 my class IO::Spec::Unix is IO::Spec {
 
-    method canonpath( $path is copy, :$parent --> Str) {
+    method canonpath( $patharg, :$parent --> Str) {
+        my $path = $patharg.Str;
         return '' if $path eq '';
 
         $path ~~ s:g { '//' '/'* }         = '/';     # xx////xx  -> xx/xx  
         $path ~~ s:g { '/.'+ ['/' | $] }   = '/';     # xx/././xx -> xx/xx  
         $path ~~ s { ^ './' <!before $> }  = '';      # ./xx      -> xx
         if $parent {
-            while $path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = '' { };
+            Nil while $path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = '';
             $path = '.' if $path eq '';
         }
         $path ~~ s { ^ '/..'+ ['/' | $] }  = '/';     # /../..(/xx) -> /(xx)

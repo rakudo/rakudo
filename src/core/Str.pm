@@ -676,6 +676,38 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
+    multi method subst-mutate($self is rw: $matcher, $replacement,
+                       :ii(:$samecase), :ss(:$samespace),
+                       :$SET_CALLER_DOLLAR_SLASH, *%options) {
+        my $global = %options<g> || %options<global>;
+        my $caller_dollar_slash := nqp::getlexcaller('$/');
+        my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
+        my @matches              = self.match($matcher, |%options);
+        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+
+        return Nil unless @matches;
+        return Nil if @matches == 1 && !@matches[0];
+
+        my $prev = 0;
+        my $result = '';
+        for @matches -> $m {
+            try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
+            $result ~= self.substr($prev, $m.from - $prev);
+
+            my $real_replacement = ~(nqp::istype($replacement,Callable)
+                ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
+                !! $replacement);
+            $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
+            $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
+            $result ~= $real_replacement;
+            $prev = $m.to;
+        }
+        my $last = @matches[@matches-1];
+        $result ~= self.substr($last.to);
+        $self = $result;
+        $global ?? (@matches,).list !! @matches[0];
+    }
+
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {

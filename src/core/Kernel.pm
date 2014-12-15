@@ -9,20 +9,21 @@ class Kernel does Systemic {
     has Str $!arch;
     has Int $!bits;
 
+    sub uname($opt) {
+        state $has_uname = "/bin/uname".IO.s || "/usr/bin/uname".IO.s;
+        $has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
+    }
+
     submethod BUILD (:$!auth = "unknown") {}
 
     method name {
         $!name //= do {
             given $*DISTRO.name {
-                # needs adapting, also $*PERL.KERNELnames in src/core/Perl.pm
-                when any <linux macosx freebsd openbsd netbsd> {
-                    qx/uname -s/.chomp.lc;
-                }
                 when 'mswin32' {
                     'win32'
                 }
                 default {
-                    "unknown";
+                    lc uname '-s';
                 }
             }
         }
@@ -31,20 +32,17 @@ class Kernel does Systemic {
     method version {
         $!version //= Version.new( do {
             given $*DISTRO.name {
-                when any <linux openbsd netbsd> { # needs adapting
-                    qx/uname -v/.chomp;
-                }
                 when 'freebsd' {
-                    qx/uname -K/.chomp;
+                    uname '-K';
                 }
                 when 'macosx' {
-                    my $unamev = qx/uname -v/;
+                    my $unamev = uname '-v';
                     $unamev ~~ m/^Darwin \s+ Kernel \s+ Version \s+ (<[\d\.]>+)/
                       ?? ~$0
                       !! $unamev.chomp;
                 }
                 default {
-                    "unknown";
+                    uname '-v';
                 }
             }
         } );
@@ -53,14 +51,11 @@ class Kernel does Systemic {
     method release {
         $!release //= do {
             given $*DISTRO.name {
-                when any <linux macosx freebsd> { # needs adapting
-                    qx/uname -v/.chomp;
-                }
                 when any <openbsd netbsd> { # needs adapting
-                    qx/uname -r/.chomp;
+                    uname '-r';
                 }
                 default {
-                    "unknown";
+                    uname '-v';
                 }
             }
         }
@@ -69,11 +64,8 @@ class Kernel does Systemic {
     method hardware {
         $!hardware //= do {
             given $*DISTRO.name {
-                when any <linux macosx freebsd openbsd netbsd> { # needs adapting
-                    qx/uname -m/.chomp;
-                }
                 default {
-                    "unknown";
+                    uname '-m';
                 }
             }
         }
@@ -82,11 +74,8 @@ class Kernel does Systemic {
     method arch {
         $!arch //= do {
             given $*DISTRO.name {
-                when any <linux macosx freebsd openbsd netbsd> { # needs adapting
-                    qx/uname -p/.chomp;
-                }
                 default {
-                    "unknown";
+                    uname '-p';
                 }
             }
         }

@@ -5126,21 +5126,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
 
-        # In case the rhs is a substitution, the result should say if it actually
-        # matched something. Calling ACCEPTS will always be True for this case.
-        if $rhs.ann('is_subst') {
-            $sm_call := QAST::Stmt.new(
-                $rhs,
-                QAST::Op.new(
-                    :op('callmethod'), :name('Bool'),
-                    QAST::Var.new( :name('$/'), :scope('lexical') )
-                )
-            );
-        }
         # Transliteration shuffles values around itself and returns the
         # Right Thing regardless of whether we're in a smart-match or
         # implicitely against $_, so we just do the RHS here.
-        elsif $rhs.ann('is_trans') {
+        if $rhs.ann('is_trans') {
             $sm_call := QAST::Stmt.new(
                 $rhs
             );
@@ -6117,10 +6106,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Quote needs to be closure-i-fied.
         my $closure := block_closure(make_thunk_ref($<sibble><right>.ast, $<sibble><right>));
 
-        # make $_ = $_.subst(...)
+        # make $/ = $_.subst-mutate(...)
         my $past := QAST::Op.new(
             :node($/),
-            :op('callmethod'), :name('subst'),
+            :op('callmethod'), :name('subst-mutate'),
             QAST::Var.new( :name('$_'), :scope('lexical') ),
             $rx_coderef, $closure
         );
@@ -6134,7 +6123,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :node($/),
             :op('call'),
             :name('&infix:<=>'),
-            QAST::Var.new(:name('$_'), :scope('lexical')),
+            QAST::Var.new(:name('$/'), :scope('lexical')),
             $past
         );
 

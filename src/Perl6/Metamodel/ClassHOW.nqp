@@ -145,7 +145,8 @@ class Perl6::Metamodel::ClassHOW
         }
 
         # If there's a FALLBACK method, register something to forward calls to it.
-        if self.find_method($obj, 'FALLBACK', :no_fallback) -> $FALLBACK {
+        my $FALLBACK := self.find_method($obj, 'FALLBACK', :no_fallback);
+        if !nqp::isnull($FALLBACK) && nqp::defined($FALLBACK) {
             self.add_fallback($obj,
                 sub ($obj, str $name) {
                     $name ne 'sink' && $name ne 'invoke' && $name ne 'postcircumfix:<( )>'

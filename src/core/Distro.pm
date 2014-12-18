@@ -44,8 +44,8 @@ multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
         my $version  := $config<osvers>;
         my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';
 #?endif
-        my Str $release;
-        my Str $auth := "unknown";
+        my Str $release := "unknown";
+        my Str $auth    := "unknown";
 
         # darwin specific info
         if $name eq 'darwin' {
@@ -61,7 +61,6 @@ multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
             else {
                 $name    := 'Mac OS X'; # we assume
                 $version := "unknown";
-                $release := "unknown";
             }
             $auth := 'Apple Computer, Inc.'; # presumably
         }

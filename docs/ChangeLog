@@ -1,12 +1,11 @@
 New in 2014.12
 + Increase/Decrease removed, were deprecated 1+ year
-+ method FALLBACK implemented
-+ $str ~~ s/// now returns a Match or list of Matche
-+ udpated List smart-matching to latest design
-+ $*DISTRO and $*KERNEL updated ($*DISTRO now actually reports the Linux
-  distribution)
++ Method FALLBACK implemented
++ $str ~~ s/// now returns a Match or list of Matches
++ Updated List smart-matching to latest design
++ $*DISTRO and $*KERNEL updated ($*DISTRO now actually report the Linux dist)
 + Configure.pl: Fixed check for outdated nqp-m; warn on missing --prefix
-+ optimizations of integer division and Rat construction
++ Optimizations of integer division and Rat construction
 
 New in 2014.11
 + using a constant negative subscript now dies at compile time

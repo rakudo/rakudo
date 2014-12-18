@@ -41,6 +41,13 @@ release name, etc.
 
 =item *
 
+Check if any DEPRECATED code needs to be removed because the end of the
+deprecation cycle is reached.  One way of doing this, is to grep on the
+YYYYMM of the release (e.g. 201412 for the 2014.12 release).  If you find
+any occurrences, remove the code and make sure the spectest is still ok.
+
+=item *
+
 Review the RT queue for tickets that might need resolving
 prior to the release, addressing them as needed.  "Tickets
 that need resolving" is left your discretion.  Any problem

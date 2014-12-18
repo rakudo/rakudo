@@ -1,4 +1,5 @@
 New in 2014.12
++ Flakiness on OS X has been fixed
 + Increase/Decrease removed, were deprecated 1+ year
 + Method FALLBACK implemented
 + $str ~~ s/// now returns a Match or list of Matches

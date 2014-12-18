@@ -73,10 +73,6 @@ my class Mu { # declared in BOOTSTRAP
     }
     
     method bless(*@autovivs, *%attrinit) {
-        if @autovivs && nqp::istype(@autovivs.at_pos(0), Whatever) {
-            DEPRECATED( "a call to bless without initial * parameter", |<2013.12 2014.12>);
-            @autovivs.shift;
-        }
         nqp::create(self).BUILDALL(@autovivs, %attrinit);
     }
     

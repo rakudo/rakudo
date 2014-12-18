@@ -320,8 +320,7 @@ E: mls@suse.de
 N: Moritz Lenz
 E: moritz@faui2k3.org
 U: moritz
-U: moritz_
-D: Test infrastructure, tests, various Rakudo features and built-ins
+D: Test infrastructure, tests, general Rakudo hacking
 
 N: Nicholas Clark
 U: nicholas

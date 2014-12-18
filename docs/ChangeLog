@@ -5,6 +5,7 @@ New in 2014.12
 + $str ~~ s/// now returns a Match or list of Matches
 + Updated List smart-matching to latest design
 + $*DISTRO and $*KERNEL updated ($*DISTRO now actually report the Linux dist)
++ Most, if not all, signals are now supported everywhere (MoarVM only)
 + Configure.pl: Fixed check for outdated nqp-m; warn on missing --prefix
 + Optimizations of integer division and Rat construction
 + Added Metamodel::Primitives, to open up more meta-programming possibilities

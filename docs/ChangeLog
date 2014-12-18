@@ -1,6 +1,6 @@
 New in 2014.12
 + Flakiness on OS X has been fixed
-+ Increase/Decrease removed, were deprecated 1+ year
++ Support for Increase/Decrease, bless(*,...) removed, were deprecated 1+ year
 + Method FALLBACK implemented
 + $str ~~ s/// now returns a Match or list of Matches
 + Updated List smart-matching to latest design
@@ -12,6 +12,9 @@ New in 2014.12
 + Support for closure parameter signatures
 + Implemented chained sequences
 + Implemented longest literal LTM tie-breaker
++ Calling "close" on a Supply will now close all of its taps
++ Added "extension" method to IO::Path
++ Fixed bare "slurp", it was broken in 2014.11 or before
 
 New in 2014.11
 + using a constant negative subscript now dies at compile time

@@ -9,7 +9,6 @@ New in 2014.12
 + Optimizations of integer division and Rat construction
 + Added Metamodel::Primitives, to open up more meta-programming possibilities
   (publishing method caches, completely custom meta-objects, etc.)
-+ {} zen slice now enforces hash context (so $/{} works, for example)
 + Support for closure parameter signatures
 + Implemented chained sequences
 + Implemented longest literal LTM tie-breaker

@@ -210,7 +210,7 @@ Upload the tarball to L<http://rakudo.org/downloads/rakudo>:
   $ scp rakudo-YYYY.MM.tar.gz rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
-masak, tadzik, moritz, PerlJam, Coke) on #perl6 to do it for you.
+masak, tadzik, moritz, PerlJam,  [Coke], lizmat, timotimo, fsergot)) on #perl6 to do it for you.
 
 =item 15.
 

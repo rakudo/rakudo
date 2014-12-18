@@ -7,6 +7,12 @@ New in 2014.12
 + $*DISTRO and $*KERNEL updated ($*DISTRO now actually report the Linux dist)
 + Configure.pl: Fixed check for outdated nqp-m; warn on missing --prefix
 + Optimizations of integer division and Rat construction
++ Added Metamodel::Primitives, to open up more meta-programming possibilities
+  (publishing method caches, completely custom meta-objects, etc.)
++ {} zen slice now enforces hash context (so $/{} works, for example)
++ Support for closure parameter signatures
++ Implemented chained sequences
++ Implemented longest literal LTM tie-breaker
 
 New in 2014.11
 + using a constant negative subscript now dies at compile time

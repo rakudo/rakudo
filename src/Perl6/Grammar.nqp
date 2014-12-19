@@ -3695,6 +3695,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]**0..1
         [
         | <OPER=postfix>
+        | '.' <![i]> <OPER=postfix>  ## postfix operator called as method, but not postfix:<i>
         | <OPER=postcircumfix>
         | <OPER=dotty>
         | <OPER=privop>

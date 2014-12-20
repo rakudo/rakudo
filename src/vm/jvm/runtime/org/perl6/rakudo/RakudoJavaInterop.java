@@ -40,120 +40,158 @@ public class RakudoJavaInterop extends BootJavaInterop {
     static class DispatchCallSite extends MutableCallSite {
 
         private final String methname;
+        private Object[] handleList;
+        private boolean forCtors;
+        private String declaringClass;
 
         final MethodHandle fallback;
 
-        private Object[] hlist;
         public static CallFrame scf;
 
-        public DispatchCallSite(String methname, MethodType type, Object[] hlist) {
+        public DispatchCallSite(String methname, MethodType type, Object[] handleList) {
             super(type);
             this.methname = methname;
-            this.hlist = hlist;
             this.fallback = FALLBACK.bindTo(this);
-            System.out.println("ok here");
+            this.handleList = handleList;
+            this.forCtors = false;
         }
 
-        Object fallback(Object intc, Object incf, Object incsd, Object... args) throws Throwable {
-            ThreadContext tc = (ThreadContext) intc;
-            CallFrame cf = (CallFrame) incf;
-            CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
-            Object[] argVals = new Object[args.length];
-            for(int i = 0; i < args.length; ++i) {
-                System.out.println("have HOW: " + ((SixModelObject)args[i]).st.HOW.toString());
-                System.out.println("have WHAT: " + ((SixModelObject)args[i]).st.WHAT.toString());
-                if( Ops.isnum((SixModelObject) args[i], tc) == 1 ) {
-                    argVals[i] = Ops.unbox_n((SixModelObject) args[i], tc);
+        public DispatchCallSite(String methname, MethodType type, String declaringClass) {
+            super(type);
+            this.methname = methname;
+            this.fallback = FALLBACK.bindTo(this);
+            this.forCtors = true;
+            this.declaringClass = declaringClass;
+        }
+
+        Object[] parseArgs(Object[] inArgs, ThreadContext tc) {
+            int offset = forCtors ? 1 : 0;
+            Object[] outArgs = new Object[inArgs.length - offset];
+            for(int i = offset; i < inArgs.length; ++i) {
+                if( Ops.isnum((SixModelObject) inArgs[i], tc) == 1 ) {
+                    outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
                 }
-                else if( Ops.isstr((SixModelObject) args[i], tc) == 1 ) {
-                    argVals[i] = Ops.unbox_s((SixModelObject) args[i], tc);
+                else if( Ops.isstr((SixModelObject) inArgs[i], tc) == 1 ) {
+                    outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
                 }
-                else if( Ops.isint((SixModelObject) args[i], tc) == 1 ) {
-                    argVals[i] = Ops.unbox_i((SixModelObject) args[i], tc);
+                else if( Ops.isint((SixModelObject) inArgs[i], tc) == 1 ) {
+                    outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
                 }
                 else {
-                    argVals[i] = RuntimeSupport.unboxJava(Ops.decont((SixModelObject) args[i], tc));
+                    outArgs[i - offset] = RuntimeSupport.unboxJava(Ops.decont((SixModelObject) inArgs[i], tc));
                 }
-                System.out.println("after smo2jo: " + argVals[i].getClass());
             }
+            return outArgs;
+        }
 
+        int findHandle(Object[] parsedArgs, ThreadContext tc) throws Throwable {
             int handlePos = -1;
-            OUTER: for( int i = 0; i < hlist.length; ++i ) {
-                Type[] argTypes = Type.getArgumentTypes(((MethodHandle)hlist[i]).type().toMethodDescriptorString());
-                if(argTypes.length != argVals.length) {
-                    System.out.println("skipping mh " + i);
+            OUTER: for( int i = 0; i < handleList.length; ++i ) {
+                Type[] argTypes;
+                if(forCtors) {
+                    argTypes = Type.getArgumentTypes(Type.getConstructorDescriptor((Constructor<?>) handleList[i]));
+                }
+                else {
+                    argTypes = Type.getArgumentTypes(((MethodHandle)handleList[i]).type().toMethodDescriptorString());
+                }
+                if(argTypes.length != parsedArgs.length) {
                     continue OUTER;
                 }
-                    INNER: for( int j = 1; j < argTypes.length; ++j ) {
-                    if( !argTypes[j].equals(Type.getType(argVals[j].getClass())) ) {
-                        switch (argTypes[j].getSort()) {
-                            case Type.BOOLEAN:
-                                if( argVals[j].getClass().equals(Long.class) ) {
-                                    argVals[j] = argVals[j] != null ? argVals[j] == 0 ? false : true : null;
-                                    continue INNER;
-                                }
-                            case Type.BYTE:
-                                if( argVals[j].getClass().equals(Long.class) ) {
-                                    argVals[j] = argVals[j] != null ? ((Long)argVals[j]).byteValue() : null;
-                                    continue INNER;
-                                }
-                            case Type.SHORT:
-                                if( argVals[j].getClass().equals(Long.class) ) {
-                                    argVals[j] = argVals[j] != null ? ((Long)argVals[j]).shortValue() : null;
-                                    continue INNER;
-                                }
-                            case Type.INT:
-                                if( argVals[j].getClass().equals(Long.class) ) {
-                                    argVals[j] = argVals[j] != null ? ((Long)argVals[j]).intValue() : null;
-                                    continue INNER;
-                                }
-                            case Type.LONG:
-                                if( argVals[j].getClass().equals(Long.class) )
-                                    continue INNER; 
-                            case Type.CHAR:
-                                if( argVals[j].getClass().equals(String.class) )
-                                    continue INNER;
-                            case Type.FLOAT:
-                                if( argVals[j].getClass().equals(Double.class) ) {
-                                    argVals[j] = argVals[j] != null ? ((Double)argVals[j]).floatValue() : null;
-                                    continue INNER;
-                                }
-                            case Type.DOUBLE:
-                                if( argVals[j].getClass().equals(Double.class) )
-                                    continue INNER;
-                            default:
-                        } // if we didn't continue INNER we failed to match types
-                        System.out.println("not equal: " + argTypes[j].toString() + " and " + Type.getType(argVals[j].getClass()));
-                        continue OUTER;
-                    }
+                INNER: for( int j = 0; j < parsedArgs.length; ++j ) {
+                    switch (argTypes[j].getSort()) {
+                        case Type.BOOLEAN:
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
+                                parsedArgs[j] = parsedArgs[j] != null ? parsedArgs[j] == 0 ? false : true : null;
+                                continue INNER;
+                            }
+                        case Type.BYTE:
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
+                                parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).byteValue() : null;
+                                continue INNER;
+                            }
+                        case Type.SHORT:
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
+                                parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).shortValue() : null;
+                                continue INNER;
+                            }
+                        case Type.INT:
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
+                                parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).intValue() : null;
+                                continue INNER;
+                            }
+                        case Type.LONG:
+                            if( parsedArgs[j].getClass().equals(Long.class) )
+                                continue INNER; 
+                        case Type.CHAR:
+                            if( parsedArgs[j].getClass().equals(String.class) )
+                                continue INNER;
+                        case Type.FLOAT:
+                            if( parsedArgs[j].getClass().equals(Double.class) ) {
+                                parsedArgs[j] = parsedArgs[j] != null ? ((Double)parsedArgs[j]).floatValue() : null;
+                                continue INNER;
+                            }
+                        case Type.DOUBLE:
+                            if( parsedArgs[j].getClass().equals(Double.class) )
+                                continue INNER;
+                        case Type.OBJECT:
+                            Class<?> argType = Class.forName(argTypes[j].getInternalName().replace('/', '.'), 
+                                false, tc.gc.byteClassLoader);
+                            if( argType.isAssignableFrom(parsedArgs[j].getClass()) ) {
+                                // we can coerce
+                                continue INNER;
+                            }
+                            break;
+                        default:
+                    } // if we didn't continue INNER we failed to match types
+                    continue OUTER;
                 }
                 handlePos = i;
                 break;
             }
             if( handlePos == -1 ) {
                 throw ExceptionHandling.dieInternal(tc,
-                    "Couldn't find a handle for a method with the supplied argument types.");
+                    "Couldn't find a constructor with the supplied argument types.");
+            }
+            else {
+                return handlePos;
+            }
+        }
+
+        Object fallback(Object intc, Object incf, Object incsd, Object[] args) throws Throwable {
+            ThreadContext tc = (ThreadContext) intc;
+            CallFrame cf = (CallFrame) incf;
+            CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
+            Object[] parsedArgs = parseArgs(args, tc);
+
+            if(forCtors) {
+                this.handleList = Class.forName(Type.getObjectType(((String) declaringClass).replace('/', '.')).getInternalName(),
+                    false, tc.gc.byteClassLoader).getConstructors();
             }
 
-            System.out.println("fine here");
-            MethodType objRetType = ((MethodHandle) hlist[handlePos]).type().changeReturnType(Object.class);
-            MethodHandle resHandle = ((MethodHandle) hlist[handlePos]).asType(objRetType);
+            int handlePos = findHandle(parsedArgs, tc);
 
             MethodHandle rfh;
             try {
-               rfh = MethodHandles.lookup().findVirtual(RakudoJavaInterop.class, "filterReturnValueMethod", 
+                rfh = MethodHandles.lookup().findStatic(RakudoJavaInterop.class, "filterReturnValueMethod", 
                     MethodType.fromMethodDescriptorString(
-                        "(Ljava/lang/Object;)Lorg/perl6/nqp/sixmodel/SixModelObject;", 
+                        "(Ljava/lang/Object;Lorg/perl6/nqp/runtime/ThreadContext;)Ljava/lang/Object;", 
                         tc.gc.byteClassLoader));
-               rfh = MethodHandles.insertArguments(rfh, 0, RakOps.key.getGC(tc).rakudoInterop);
             } catch (NoSuchMethodException|IllegalAccessException nsme) {
                 throw ExceptionHandling.dieInternal(tc,
                     "Couldn't find the method for filtering return values from Java.");
             }
-            System.out.println("still fine here");
 
-            MethodHandle rethandle = MethodHandles.filterReturnValue(resHandle, (MethodHandle) rfh);
-            return ((MethodHandle)rethandle).invokeWithArguments(argVals);
+            Object out;
+            if(forCtors) {
+                Object instance = ((Constructor) handleList[handlePos]).newInstance(parsedArgs);
+                out = rfh.invokeExact(instance, tc);
+            }
+            else {
+                Object retVal = ((MethodHandle) handleList[handlePos]).invokeWithArguments(parsedArgs);
+                out = rfh.invokeExact(retVal, tc);
+            }
+
+            return out;
         }
 
         private static final MethodHandle FALLBACK;
@@ -164,7 +202,6 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 FALLBACK = lookup.findVirtual(DispatchCallSite.class,
                         "fallback", MethodType.genericMethodType(3, true));
             } catch (ReflectiveOperationException e) {
-                System.out.println("dying here");
                 throw new LinkageError(e.getMessage(), e);
             }
         }
@@ -174,128 +211,106 @@ public class RakudoJavaInterop extends BootJavaInterop {
         super(gc);
     }
 
-    public SixModelObject filterReturnValueMethod(Object in) {
+    public static Object filterReturnValueMethod(Object in, ThreadContext tc) {
         Class<?> what = in.getClass();
-        System.out.println("we have a " + what.toString() + " here.");
+        GlobalExt gcx = RakOps.key.getGC(tc);
         Object out = null;
         if(what == void.class) {
-            System.out.println("void case");
             out = null;
         }
         else if(what == int.class || what == short.class || what == byte.class || what == boolean.class) {
-            System.out.println("int short etc case");
             out = new Long((int) in);
         }
         else if (what == long.class || what == double.class || what == String.class || what == SixModelObject.class) {
-            System.out.println("long double String case");
             out = in;
         }
         else if (what == float.class) {
-            System.out.println("float case");
             out = new Double((double) in);
         }
         else if (what == char.class) {
-            System.out.println("char case");
             out = String.valueOf((char) in);
         }
         else {
-            ThreadContext tc = currentTC();
-            GlobalExt gcx = RakOps.key.getGC(tc);
             STable stable = null;
             if(gcx.rakudoInterop.commonSTable != null) {
                 stable = gcx.rakudoInterop.commonSTable;
             }
-            if (what.isArray() && what.getComponentType().isPrimitive()) {
-                SixModelObject BOOTIntArray = Ops.bootintarray(tc);
-                out = BOOTIntArray.st.REPR.allocate(tc, BOOTIntArray.st); 
+            if (what.isArray()) {
+                SixModelObject ARRAY = tc.gc.BOOTArray;
+                out = ARRAY.st.REPR.allocate(tc, ARRAY.st); 
                 if(stable == null) {
-                    stable = BOOTIntArray.st;
+                    stable = ARRAY.st;
                 }
                 if(what.getComponentType().isPrimitive()) {
-                    if(what.getComponentType() == int.class 
-                            || what.getComponentType() == short.class 
-                            || what.getComponentType() == byte.class 
-                            || what.getComponentType() == boolean.class) {
+                    if(what.getComponentType() == long.class 
+                    || what.getComponentType() == int.class 
+                    || what.getComponentType() == short.class 
+                    || what.getComponentType() == byte.class 
+                    || what.getComponentType() == boolean.class) {
                         for(int i = 0; i < ((int[])in).length; ++i) {
-                            Ops.bindpos_i((SixModelObject) out, i, ((int[])in)[i], tc);
+                            SixModelObject cur = RakOps.p6box_i(((int[])in)[i], tc);
+                            Ops.bindpos((SixModelObject) out, i, cur, tc);
                         }
-                        out = Ops.hllizefor((SixModelObject) out, "perl6", tc);
                     }
-                    else if (what.getComponentType() == long.class 
-                            || what.getComponentType() == double.class 
-                            || what.getComponentType() == String.class 
-                            || what.getComponentType() == SixModelObject.class) {
-                        System.out.println("long double String case");
-                        out = in;
+                    else if (what.getComponentType() == String.class 
+                    || what.getComponentType() == char.class) {
+                        for(int i = 0; i < ((int[])in).length; ++i) {
+                            SixModelObject cur = RakOps.p6box_s(((String[])in)[i], tc);
+                            Ops.bindpos((SixModelObject) out, i, cur, tc);
+                        }
                     }
-                    else if (what.getComponentType() == float.class) {
-                        System.out.println("float case");
-                        out = new Double((double) in);
-                    }
-                    else if (what.getComponentType() == char.class) {
-                        System.out.println("char case");
-                        out = String.valueOf((char) in);
+                    else if (what.getComponentType() == float.class
+                    || what.getComponentType() == double.class) {
+                        for(int i = 0; i < ((int[])in).length; ++i) {
+                            SixModelObject cur = RakOps.p6box_n(((double[])in)[i], tc);
+                            Ops.bindpos((SixModelObject) out, i, cur, tc);
+                        }
                     }
                 }
                 else {
-                    System.out.println("we have a reference type array here, of type " + what.getComponentType().toString());
+                    for( int i = 0; i < ((Object[])in).length; ++i ) {
+                        // need to special-case String.class here
+                        SixModelObject cur;
+                        if( what.getComponentType().equals(String.class) ) {
+                            cur =  RakOps.p6box_s(((String[])in)[i], tc);
+                        }
+                        else {
+                            cur = RuntimeSupport.boxJava(((Object[])in)[i], 
+                                    gcx.rakudoInterop.getSTableForClass(what.getComponentType()));
+                        }
+                        Ops.bindpos((SixModelObject) out, i, cur, tc);
+                    }
                 }
+                out = RakOps.p6list((SixModelObject) out, gcx.List, gcx.Mu, tc);
             }
             else {
-                out = RuntimeSupport.boxJava(out, stable);
+                out = RuntimeSupport.boxJava(in, gcx.rakudoInterop.getSTableForClass(what));
             }
         }
 
         if (what == String.class || what == char.class)
-            Ops.return_s((String) out, currentTC().curFrame);
+            Ops.return_s((String) out, tc.curFrame);
         else if (what == float.class || what == double.class)
-            Ops.return_n(((Double)out).doubleValue(), currentTC().curFrame);
+            Ops.return_n(((Double)out).doubleValue(), tc.curFrame);
         else if (what != void.class && what.isPrimitive())
-            Ops.return_i(((Long)out).longValue(), currentTC().curFrame);
+            Ops.return_i(((Long)out).longValue(), tc.curFrame);
         else
-            Ops.return_o((SixModelObject) out, currentTC().curFrame);
+            Ops.return_o((SixModelObject) out, tc.curFrame);
 
- 
-        return Ops.result_o(currentTC().curFrame);
+        // the conditional is rather sketchy, but seems to be needed to 
+        // correctly return a new instance when we're called from 
+        // ConstructorDispatchCallSite, probably because of
+        // Perl 6' .new creating a new CallFrame or something..?
+        return Ops.result_o(tc.curFrame) != null ? Ops.result_o(tc.curFrame) : Ops.result_o(tc.curFrame.caller);
     }
 
     public static CallSite multiBootstrap(MethodHandles.Lookup lookup, String name, MethodType type, Object... hlist) {
-        System.out.println("have this: " + type.toString());
         DispatchCallSite cs = new DispatchCallSite(name, type, hlist);
         cs.setTarget(cs.fallback);
         return cs;
     }
 
-    protected void createAdaptorMultiDispatch(ClassContext cc, ArrayList<Method> mlist) {
-        // jnthn psch: The trick for multi-dispatch is to use the bootstrap method to install a call to something that will do the dispatch.
-        //       [...]
-        //       [the good] way is to code-gen something that uses invokedynamic
-        //       And put the real interesting logic inside there
-        //       Then we can start caching it and probably be way faster.
-        //
-        // so, what we want to do here is something like the following
-        //  generate a new method which takes the arguments from p6land and knows all the multi candidates with the same shortname 
-        //  this method: 
-        //      checks argumenttypes from p6land against argumenttypes for the different multis
-        //      dispatch to the one with matching argumenttypes
-        //  return that method
-        //
-        // maybe we should dynamically call something that handles the dispatch statically..?
-        //
-        //  what do we need for that? 
-        //      we have the Method as it exists in jvm-land, which means we can figure out the argtypes
-        //      we get the args as they come from p6land, which means we can compare types
-        //        is the one directly above actually true? we get an Object[] that contains SixModelObjects i think?
-        //
-        // jnthn psch: If just having the args as an array is helpful, I think there's an asVarArgsCollector or somehting in the 
-        //             MethodHandles combinator set
-        //
-        // [!] actually, just read the asm example properly until you understand it...
-
-        String name = "mmd+" + mlist.get(0).getName();
-        String desc = "method/" + name + "/([java/lang/Object;)Ljava/lang/Object;";
-        int arity = 1;
-        // from here copied from startCallout
+    protected MethodContext startVarArityCallout(ClassContext cc, String desc) {
         MethodContext mc = new MethodContext();
         mc.cc = cc;
         MethodVisitor mv = mc.mv = cc.cv.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "qb_"+(cc.nextCallout++),
@@ -324,15 +339,22 @@ public class RakudoJavaInterop extends BootJavaInterop {
         mv.visitVarInsn(Opcodes.ALOAD, 5); // cf
         mv.visitVarInsn(Opcodes.ALOAD, 3); // csd
         mv.visitVarInsn(Opcodes.ALOAD, 4); // args
-        emitInteger(mc, arity);
-        // ... because we need -1 for the desired arity
+        emitInteger(mc, 1);
         emitInteger(mc, -1);
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, TYPE_OPS.getInternalName(), "checkarity", Type.getMethodDescriptor(TYPE_CSD, TYPE_CF, TYPE_CSD, TYPE_AOBJ, Type.INT_TYPE, Type.INT_TYPE));
         mv.visitVarInsn(Opcodes.ASTORE, 3); // csd
         mv.visitVarInsn(Opcodes.ALOAD, 1); // tc
         mv.visitFieldInsn(Opcodes.GETFIELD, TYPE_TC.getInternalName(), "flatArgs", TYPE_AOBJ.getDescriptor());
         mv.visitVarInsn(Opcodes.ASTORE, 4); // args
-        // end copy from startCallout
+
+        return mc;
+    }
+
+    protected void createAdaptorMultiDispatch(ClassContext cc, ArrayList<Method> mlist) {
+        String name = "mmd+" + mlist.get(0).getName();
+        String desc = "method/" + name + "/([Ljava/lang/Object;)Ljava/lang/Object;";
+
+        MethodContext mc = startVarArityCallout(cc, desc);
 
         // what if this is the only static one?
         if (!Modifier.isStatic(mlist.get(0).getModifiers())) marshalOut(mc, mlist.get(0).getDeclaringClass(), 0);
@@ -348,42 +370,15 @@ public class RakudoJavaInterop extends BootJavaInterop {
                     Type.getMethodDescriptor(mlist.get(i)));
         }
 
-        mv.visitVarInsn(Opcodes.ALOAD, 1);
-        mv.visitVarInsn(Opcodes.ALOAD, 5);
-        mv.visitVarInsn(Opcodes.ALOAD, 3);
-        mv.visitVarInsn(Opcodes.ALOAD, 4);
-        mv.visitInvokeDynamicInsn(mlist.get(0).getName(), 
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 1);
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 5);
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 3);
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 4);
+        mc.mv.visitInvokeDynamicInsn(mlist.get(0).getName(), 
                 "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
                 disphandle, (Object[]) candhandles);
 
-        // this is endCallout(), might not be neccessary to copy
-        Label endTry = new Label();
-        Label handler = new Label();
-        Label notcontrol = new Label();
-
-        mv.visitLabel(endTry);
-        mv.visitVarInsn(Opcodes.ALOAD, 5); //cf
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_CF.getInternalName(), "leave", "()V");
-        mv.visitInsn(Opcodes.RETURN);
-
-        mv.visitLabel(handler);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitTypeInsn(Opcodes.INSTANCEOF, "org/perl6/nqp/runtime/ControlException");
-        mv.visitJumpInsn(Opcodes.IFEQ, notcontrol);
-        mv.visitVarInsn(Opcodes.ALOAD, 5); //cf
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_CF.getInternalName(), "leave", "()V");
-        mv.visitInsn(Opcodes.ATHROW);
-
-        mv.visitLabel(notcontrol);
-        mv.visitVarInsn(Opcodes.ALOAD, 1); // tc
-        mv.visitInsn(Opcodes.SWAP);
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/perl6/nqp/runtime/ExceptionHandling", "dieInternal",
-                Type.getMethodDescriptor(Type.getType(RuntimeException.class), TYPE_TC, Type.getType(Throwable.class)));
-        mv.visitInsn(Opcodes.ATHROW);
-
-        mc.mv.visitTryCatchBlock(mc.tryStart, endTry, handler, null);
-        mc.mv.visitMaxs(0,0);
-        mc.mv.visitEnd();
+        endCallout(mc);
     }
 
     @Override
@@ -394,6 +389,34 @@ public class RakudoJavaInterop extends BootJavaInterop {
             RakOps.p6box_s(name, tc));
 
         return mo;
+    }
+
+    public static CallSite constructorBootstrap(MethodHandles.Lookup lookup, String name, MethodType type, String declClass) {
+        DispatchCallSite cs = new DispatchCallSite(name, type, declClass);
+        cs.setTarget(cs.fallback);
+        return cs;
+    }
+
+    protected void createConstructorDispatchAdaptor(ClassContext cc, Constructor<?>[] ks) {
+        String desc = "method/mmd+new/([Ljava/lang/Object;)L" + ks[0].getDeclaringClass().getName().replace('.', '/') + ";";
+        String className = Type.getInternalName(ks[0].getDeclaringClass());
+        MethodContext mc = startVarArityCallout(cc, desc);
+
+        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "constructorBootstrap",
+                "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;)" +
+                "Ljava/lang/invoke/CallSite;");
+
+        preMarshalIn(mc, ks[0].getDeclaringClass(), 0);
+
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 1);
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 5);
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 3);
+        mc.mv.visitVarInsn(Opcodes.ALOAD, 4);
+        mc.mv.visitInvokeDynamicInsn("new", 
+                "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+                disphandle, className);
+
+        endCallout(mc);
     }
 
     @Override
@@ -433,10 +456,23 @@ public class RakudoJavaInterop extends BootJavaInterop {
         }
         for (Field f : target.getFields()) createAdaptorField(cc, f);
         for (Constructor<?> c : target.getConstructors()) createAdaptorConstructor(cc, c);
+        // what we actually want to do is grab all the methods we generated in
+        // the for() directly above and generate a varargs shortname
+        // &new()-equivalent, which dispatches among the generated
+        // adaptorConstructors - which aren't really constructors but static
+        // methods
+        createConstructorDispatchAdaptor(cc, target.getConstructors());
         createAdaptorSpecials(cc);
         compunitMethods(cc);
 
         finishClass(cc);
+        // debug
+        try {
+            java.nio.file.Files.write(new java.io.File(className.replace('/','_') + ".class").toPath(), cc.cv.toByteArray());
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+
         return cc;
     }
 
@@ -480,6 +516,11 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 names.put(shorten, null);
             }
             else {
+                // there's probably a better way to do this
+                if(shorten.equals("toString")) {
+                    if(!names.containsKey("Str")) names.put("Str", cr);
+                    if(!names.containsKey("gist")) names.put("gist", cr);
+                }
                 names.put(shorten, cr);
             }
             names.put(desc, cr);
@@ -492,8 +533,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         for (Iterator<Map.Entry<String, SixModelObject>> it = names.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<String, SixModelObject> ent = it.next();
-            if (ent.getValue() != null)
+            if (ent.getValue() != null) {
                 hash.bind_key_boxed(tc, ent.getKey(), ent.getValue());
+            }
             else
                 it.remove();
         }
@@ -505,4 +547,5 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         return hash;
     }
+
 }

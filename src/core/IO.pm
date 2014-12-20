@@ -306,6 +306,14 @@ sub FILETEST-RW(Str $abspath) {
 sub FILETEST-X(Str $abspath) {
     nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($abspath)));
 }
+sub FILETEST-RX(Str $abspath) {
+    my str $p = nqp::unbox_s($abspath);
+    nqp::p6bool(nqp::filereadable($p) && nqp::fileexecutable($p));
+}
+sub FILETEST-WX(Str $abspath) {
+    my str $p = nqp::unbox_s($abspath);
+    nqp::p6bool(nqp::filewritable($p) && nqp::fileexecutable($p));
+}
 sub FILETEST-RWX(Str $abspath) {
     my str $p = nqp::unbox_s($abspath);
     nqp::p6bool(

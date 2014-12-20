@@ -3,15 +3,10 @@ my class StrDistance is Cool {
     has Str $.after;
     has Int $!distance;
 
-    method Bool() {
-        $.before ne $.after
-    }
+    multi method Bool(StrDistance:D:)    { $.before ne $.after }
+    multi method Numeric(StrDistance:D:) { self.Int }
 
-    method Numeric() {
-        self.Int
-    }
-
-    method Int() {
+    multi method Int(StrDistance:D:) {
         $!distance //= do {
             my @s = *, $.before.comb;
             my @t = *, $.after.comb;

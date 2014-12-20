@@ -45,11 +45,11 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6list($args, self.WHAT, Mu);
     }
 
-    method Bool()       { self.gimme(1).Bool }
-    method Int()        { self.elems }
-    method end()        { self.elems - 1 }
-    multi method Numeric(List:D:)  { self.elems }
-    multi method Str(List:D:)      { self.join(' ') }
+    multi method Bool(List:D:)    { self.gimme(1).Bool }
+    multi method Int(List:D:)     { self.elems }
+    multi method end(List:D:)     { self.elems - 1 }
+    multi method Numeric(List:D:) { self.elems }
+    multi method Str(List:D:)     { self.join(' ') }
 
     # Pretend we're a Match assuming we're a list of Matches
     method to()         { self.elems ?? self[self.end].to !! Nil }

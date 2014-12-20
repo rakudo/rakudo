@@ -55,7 +55,8 @@ my class Any { # declared in BOOTSTRAP
     # derived from .list
     method Parcel() { self.list.Parcel }
     method elems() { self.list.elems }
-    method end()   { self.list.end }
+    proto method end(|) { * }
+    multi method end() { self.list.end }
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }
     method reverse() { self.list.reverse }

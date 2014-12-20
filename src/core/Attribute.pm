@@ -24,9 +24,9 @@ my class Attribute { # declared in BOOTSTRAP
                 if self.rw {
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
-                        method (Mu $self:) is rw {
+                        method (Mu \fles:) is rw {
                             nqp::getattr(
-                                nqp::decont($self),
+                                nqp::decont(fles),
                                 $dcpkg,
                                 $name)
                         }
@@ -36,19 +36,19 @@ my class Attribute { # declared in BOOTSTRAP
                     # ro accessor
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
-                        method (Mu $self:) {
+                        method (Mu \fles:) {
                             nqp::getattr(
-                                nqp::decont($self),
+                                nqp::decont(fles),
                                 $dcpkg,
                                 $name)
                         }
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 1))
                         ??
-                        method (Mu $self:) {
+                        method (Mu \fles:) {
                             nqp::p6box_i(
                                 nqp::getattr_i(
-                                    nqp::decont($self),
+                                    nqp::decont(fles),
                                     $dcpkg,
                                     $name)
                             );
@@ -56,19 +56,19 @@ my class Attribute { # declared in BOOTSTRAP
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 2))
                         ??
-                        method (Mu $self:) {
+                        method (Mu \fles:) {
                             nqp::p6box_n(
                                 nqp::getattr_n(
-                                    nqp::decont($self),
+                                    nqp::decont(fles),
                                     $dcpkg,
                                     $name)
                             );
                         }
                         !!
-                        method (Mu $self:) {
+                        method (Mu \fles:) {
                             nqp::p6box_s(
                                 nqp::getattr_s(
-                                    nqp::decont($self),
+                                    nqp::decont(fles),
                                     $dcpkg,
                                     $name)
                             );

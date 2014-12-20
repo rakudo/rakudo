@@ -115,7 +115,7 @@ my class Promise {
         }
     }
     
-    method Bool(Promise:D:) {
+    multi method Bool(Promise:D:) {
         so $!status == any(Broken, Kept)
     }
 

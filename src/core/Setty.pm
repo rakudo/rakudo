@@ -13,9 +13,9 @@ my role Setty does QuantHash {
     method exists_key($k --> Bool) {
         so ( %!elems && nqp::existskey(%!elems, nqp::unbox_s($k.WHICH)) );
     }
-    method Bool { %!elems.Bool }
+    multi method Bool(Setty:D:) { %!elems.Bool }
 
-    method hash(--> Hash) {
+    multi method hash(Setty:D: --> Hash) {
         my %e;
         %e{$_} = True for %!elems.values;
         %e;

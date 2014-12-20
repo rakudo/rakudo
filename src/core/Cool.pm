@@ -226,7 +226,8 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     multi method Real() { self.Numeric.Real }
-    method Int()  { self.Numeric.Int }
+    proto method Int(|) { * }
+    multi method Int()  { self.Numeric.Int }
     method Num()  { self.Numeric.Num }
     method Rat()  { self.Numeric.Rat }
 }

@@ -2397,6 +2397,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                                                 [];
         }
         my @params := %sig_info<parameters>;
+        for @params -> {
+            if $block.ann('also_uses') && $block.ann('also_uses'){$_<variable_name>} {
+                $*W.throw($/, ['X', 'Placeholder', 'NonPlaceholder'],
+                    placeholder   => $_<placeholder>,
+                    variable_name => $_<variable_name>,
+                    decl          => $*IN_DECL,
+                )
+            }
+        }
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);

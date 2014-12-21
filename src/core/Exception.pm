@@ -581,6 +581,17 @@ my class X::Placeholder::Block does X::Comp {
     }
 }
 
+my class X::Placeholder::NonPlaceholder does X::Comp {
+    has $.variable_name;
+    has $.placeholder;
+    has $.decl;
+    method message() {
+        my $decl = $!decl ?? ' ' ~ $!decl !! '';
+        "$!variable_name has already been used as a non-placeholder in the surrounding$decl block,\n" ~
+        "  so you will confuse the reader if you suddenly declare $!placeholder here"
+    }
+}
+
 my class X::Placeholder::Mainline is X::Placeholder::Block {
     method message() {
         "Cannot use placeholder parameter $.placeholder in the mainline"

@@ -344,6 +344,12 @@ multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
     });
 }
 
+multi trait_mod:<is>(Routine:D $r, :$hidden_from_USAGE!) {
+    $r.HOW.mixin($r, role {
+        method is_hidden_from_USAGE { True }
+    });
+}
+
 multi trait_mod:<is>(Routine:D $r, :$pure!) {
     $r.HOW.mixin($r, role {
         method IS_PURE { True }

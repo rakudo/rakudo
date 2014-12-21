@@ -85,6 +85,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
 
         my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! strip_path_prefix($*PROGRAM_NAME);
         for $m.candidates -> $sub {
+            next if $sub.?is_hidden_from_USAGE;
             my (@required-named, @optional-named, @positional, $docs);
             for $sub.signature.params -> $param {
                 my $argument;

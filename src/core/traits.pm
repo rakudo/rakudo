@@ -130,7 +130,7 @@ multi trait_mod:<is>(Routine:D $r, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => ' ' ~ lc( $r.^name ),
-      highexpect => ('rw parcel hidden_from_backtrace',
+      highexpect => ('rw parcel hidden_from_backtrace hidden_from_USAGE',
                      'pure default DEPRECATED inlinable',
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;

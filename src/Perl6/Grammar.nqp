@@ -464,7 +464,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <.unsp>
         ]*
         <?MARKER('ws')>
-        :my $stub := self.'!set_highexpect'($old_highexpect);
+        :my $stub := self.'!fresh_highexpect'();
     }
     
     token unsp {

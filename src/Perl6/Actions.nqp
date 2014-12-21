@@ -2397,15 +2397,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                                                 [];
         }
         my @params := %sig_info<parameters>;
-        for @params -> {
-            if $block.ann('also_uses') && $block.ann('also_uses'){$_<variable_name>} {
-                $*W.throw($/, ['X', 'Placeholder', 'NonPlaceholder'],
-                    placeholder   => $_<placeholder>,
-                    variable_name => $_<variable_name>,
-                    decl          => $*IN_DECL,
-                )
-            }
-        }
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
@@ -6635,6 +6626,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If we already declared this as a placeholder, we're done.
         my $name := ~$sigil ~ ~$ident;
+        if $block.ann('also_uses') && $block.ann('also_uses'){$name} {
+            $*W.throw($/, ['X', 'Placeholder', 'NonPlaceholder'],
+                placeholder   => $full_name,
+                variable_name => $name,
+                decl          => $block.ann('IN_DECL'),
+            )
+        }
         for @params {
             if $_<variable_name> eq $name {
                 return QAST::Var.new( :name($name), :scope('lexical') );

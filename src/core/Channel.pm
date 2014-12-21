@@ -1,9 +1,11 @@
 # A channel provides a thread-safe way to send a series of values from some
 # producer(s) to some consumer(s).
 my class X::Channel::SendOnClosed is Exception {
+    has $.channel;
     method message() { "Cannot send a message on a closed channel" }
 }
 my class X::Channel::ReceiveOnClosed is Exception {
+    has $.channel;
     method message() { "Cannot receive a message on a closed channel" }
 }
 my class Channel {
@@ -32,7 +34,7 @@ my class Channel {
     }
     
     method send(Channel:D: \item) {
-        X::Channel::SendOnClosed.new.throw if $!closed;
+        X::Channel::SendOnClosed.new(channel => self).throw if $!closed;
         nqp::push($!queue, nqp::decont(item));
     }
     
@@ -40,7 +42,7 @@ my class Channel {
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
             $!closed_promise_vow.keep(Nil);
-            X::Channel::ReceiveOnClosed.new.throw
+            X::Channel::ReceiveOnClosed.new(channel => self).throw
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
             $!closed_promise_vow.break(msg.error);

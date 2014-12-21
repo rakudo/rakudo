@@ -7,9 +7,12 @@ my class X::Promise::Combinator is Exception {
     method message() { "Can only use $!combinator to combine other Promise objects" }
 }
 my class X::Promise::CauseOnlyValidOnBroken is Exception {
-    method message() { "Can only call cause on a broken promise" }
+    has $.promise;
+    has $.status;
+    method message() { "Can only call cause on a broken promise (status: $.status)" }
 }
 my class X::Promise::Vowed is Exception {
+    has $.promise;
     method message() { "Access denied to keep/break this Promise; already vowed" }
 }
 my class Promise {
@@ -45,7 +48,7 @@ my class Promise {
         nqp::lock($!lock);
         if $!vow_taken {
             nqp::unlock($!lock);
-            X::Promise::Vowed.new.throw
+            X::Promise::Vowed.new(promise => self).throw
         }
         my $vow := nqp::create(Vow);
         nqp::bindattr($vow, Vow, '$!promise', self);
@@ -120,10 +123,14 @@ my class Promise {
     }
 
     method cause(Promise:D:) {
-        if $!status == Broken {
+        my $status = $!status;
+        if $status == Broken {
             $!result
         } else {
-            X::Promise::CauseOnlyValidOnBroken.new.throw
+            X::Promise::CauseOnlyValidOnBroken.new(
+                promise => self,
+                status  => $status,
+            ).throw
         }
     }
     

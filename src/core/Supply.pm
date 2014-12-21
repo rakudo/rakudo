@@ -4,6 +4,10 @@
 # to SupplyOperations.
 
 my class SupplyOperations { ... }
+my class X::Supply::Combinator is Exception {
+    has $.combinator;
+    method message() { "Can only use $!combinator to combine defined Supply objects" }
+}
 
 my class Tap {
     has &.emit;
@@ -699,9 +703,13 @@ my role Supply {
     method sort(Supply:D: &by = &infix:<cmp>) { self.grab( {.sort(&by)} ) }
 
     method merge(*@s) {
-
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
+
+        X::Supply::Combinator.new(
+           combinator => 'merge'
+        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+
         return @s[0]  if +@s == 1;          # nothing to be done
 
         my $dones = 0;
@@ -714,9 +722,13 @@ my role Supply {
     }
     
     method zip(*@s, :&with is copy = &[,]) {
-
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
+
+        X::Supply::Combinator.new(
+           combinator => 'zip'
+        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+
         return @s[0]  if +@s == 1;          # nothing to be done
 
         my @values = ( [] xx +@s );
@@ -733,6 +745,11 @@ my role Supply {
     method zip-latest(*@s, :&with is copy = &[,], :$initial ) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to do.
+
+        X::Supply::Combinator.new(
+           combinator => 'zip-latest'
+        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+
         return @s[0] if +@s == 1;           # nothing to do.
 
         my @values;

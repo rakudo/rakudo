@@ -4,7 +4,7 @@
 my enum PromiseStatus (:Planned(0), :Kept(1), :Broken(2));
 my class X::Promise::Combinator is Exception {
     has $.combinator;
-    method message() { "Can only use $!combinator to combine other Promise objects" }
+    method message() { "Can only use $!combinator to combine defined Promise objects" }
 }
 my class X::Promise::CauseOnlyValidOnBroken is Exception {
     has $.promise;
@@ -171,19 +171,15 @@ my class Promise {
         $p
     }
     
-    method anyof(Promise:U: *@promises) {
-        X::Promise::Combinator.new(combinator => 'anyof').throw
-            unless @promises >>~~>> Promise;
-        self!until_n_kept(@promises, 1)
-    }
-    
-    method allof(Promise:U: *@promises) {
-        X::Promise::Combinator.new(combinator => 'allof').throw
-            unless @promises >>~~>> Promise;
-        self!until_n_kept(@promises, @promises.elems)
-    }
+    method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1) }
+    method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p) }
 
-    method !until_n_kept(@promises, Int $n) {
+    method !until_n_kept(@promises, Int $N) is hidden_from_backtrace {
+        X::Promise::Combinator.new(
+          combinator => callframe(2).my<&?ROUTINE>.name  # skip <!> dispatcher
+        ).throw if NOT_ALL_DEFINED_TYPE(@promises,Promise);
+
+        my int $n  = $N;
         my int $c  = $n;
         my $lock  := nqp::create(Lock);
         my $p      = Promise.new;

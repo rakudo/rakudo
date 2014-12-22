@@ -13,7 +13,7 @@ my role IO {
 # optimizing targets.
 
 # create absolute path from forward slashed paths, abspath must be / terminated
-sub MAKE-ABSOLUTE-PATH($path,$abspath) {
+sub MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
     my str $spath    = nqp::unbox_s($path);
     my str $sabspath = nqp::unbox_s($abspath);
 

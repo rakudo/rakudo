@@ -99,7 +99,7 @@ multi sub open( $path,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
     }
 
     # want a normal handle
-    my $abspath := MAKE-ABSOLUTE-PATH($path,$*CWD);
+    my $abspath := MAKE-ABSOLUTE-PATH($path,$*CWD.Str);
     fail X::IO::Directory.new(:$path, :trying<open>)
       if FILETEST-E($abspath) && FILETEST-D($abspath);
 
@@ -182,7 +182,7 @@ multi sub slurp(IO::Handle:D $io, :$enc, |c) {
 multi sub slurp(Any:D $path as Str, :$enc, |c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
-    my $result := SLURP-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD),:$enc,|c);
+    my $result := SLURP-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),:$enc,|c);
     $result // $result.throw;
 }
 
@@ -195,7 +195,7 @@ multi sub spurt(IO::Handle:D $fh,\what,|c ) {
 multi sub spurt(Any:D $path as Str,\what,:$enc,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
-    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD),what,:$enc,|c);
+    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),what,:$enc,|c);
     $result // $result.throw;
 }
 
@@ -250,43 +250,43 @@ sub homedir($path as Str) {
     $*HOME = $newHOME;
 }
 
-sub chmod($mode, *@filenames, :$CWD = $*CWD) {
+sub chmod($mode, *@filenames, :$CWD as Str = $*CWD) {
     @filenames.grep( { CHMOD-PATH(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
 }
-sub unlink(*@filenames, :$CWD = $*CWD)       {
+sub unlink(*@filenames, :$CWD as Str = $*CWD)       {
     @filenames.grep( { UNLINK-PATH(MAKE-ABSOLUTE-PATH($_,$CWD)) } ).eager;
 }
-sub rmdir(*@filenames, :$CWD = $*CWD) {
+sub rmdir(*@filenames, :$CWD as Str = $*CWD) {
     @filenames.grep( { REMOVE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD)) } ).eager;
 }
 
 proto sub mkdir(|) { * }
-multi sub mkdir(Int $mode, *@dirnames, :$CWD = $*CWD) {
+multi sub mkdir(Int $mode, *@dirnames, :$CWD as Str = $*CWD) {
     @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
 }
-multi sub mkdir($path, $mode = 0o777, :$CWD = $*CWD) {
+multi sub mkdir($path, $mode = 0o777, :$CWD as Str = $*CWD) {
     MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$CWD),$mode) ?? ($path,) !! ();
 }
 
-sub rename($from, $to, :$CWD = $*CWD, |c) {
+sub rename($from, $to, :$CWD as Str = $*CWD, |c) {
     my $result := RENAME-PATH(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub copy($from, $to, :$CWD = $*CWD, |c) {
+sub copy($from, $to, :$CWD as Str = $*CWD, |c) {
     my $result := COPY-FILE(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub symlink($target, $name, :$CWD = $*CWD) {
+sub symlink($target, $name, :$CWD as Str = $*CWD) {
     my $result := SYMLINK-PATH(
       MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
     );
     $result // $result.throw;
 }
-sub link($target, $name, :$CWD = $*CWD) {
+sub link($target, $name, :$CWD as Str = $*CWD) {
     my $result := LINK-FILE(
       MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
     );

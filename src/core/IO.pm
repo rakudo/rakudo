@@ -339,52 +339,6 @@ sub FILETEST-CHANGED(Str $abspath) {
     ));
 }
 
-my %FILETEST-HASH =
-  e => -> $p { True },
-  d => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISDIR)) },
-  f => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISREG)) },
-  s => -> $p { %FILETEST-HASH.at_key("f")($p)
-    && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
-  l => -> $p { nqp::p6bool(nqp::fileislink(nqp::unbox_s($p))) },
-  r => -> $p { nqp::p6bool(nqp::filereadable(nqp::unbox_s($p))) },
-  w => -> $p { nqp::p6bool(nqp::filewritable(nqp::unbox_s($p))) },
-  x => -> $p { nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($p))) },
-  z => -> $p { %FILETEST-HASH.at_key("f")($p)
-    && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
-
-  "!e" => -> $p { False },
-  "!d" => -> $p { !%FILETEST-HASH.at_key("d")($p) },
-  "!f" => -> $p { !%FILETEST-HASH.at_key("f")($p) },
-  "!l" => -> $p { !%FILETEST-HASH.at_key("l")($p) },
-  "!r" => -> $p { !%FILETEST-HASH.at_key("r")($p) },
-  "!w" => -> $p { !%FILETEST-HASH.at_key("w")($p) },
-  "!x" => -> $p { !%FILETEST-HASH.at_key("x")($p) },
-  "!z" => -> $p { !%FILETEST-HASH.at_key("z")($p) },
-;
-
-sub FILETEST-ALL(Str $path, *@tests) {
-
-    # most common cases
-    if @tests.join -> $tests {
-        return FILETEST-R($path)   if $tests eq "r";
-        return FILETEST-RW($path)  if $tests eq "rw";
-        return FILETEST-RWX($path) if $tests eq "rwx";
-    }
-
-    # nothing to check
-    else {
-        return False;
-    }
-
-    my $result = True;
-    for @tests -> $t {
-        die "Unknown test $t" unless %FILETEST-HASH.exists_key($t);
-        last unless $result = $result && %FILETEST-HASH.at_key($t)($path);
-    }
-
-    $result;
-}
-
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {

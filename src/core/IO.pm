@@ -12,24 +12,32 @@ my role IO {
 # obfuscated names, will have to do.  They should also provide excellent
 # optimizing targets.
 
+# create absolute path from forward slashed paths, abspath must be / terminated
 sub MAKE-ABSOLUTE-PATH($path,$abspath) {
-    if $path.ord == 47 {              # 4x faster $path.substr(0,1) eq "/"
-        return $path;
+    my str $spath    = nqp::unbox_s($path);
+    my str $sabspath = nqp::unbox_s($abspath);
+
+    # simple /path
+    if nqp::ordfirst($spath) == 47 {       # "/"
+        return nqp::chars($sabspath) > 2   #      can have C:/
+          && nqp::ordat($sabspath,1) == 58 # ":", assume C: something
+          && nqp::ordat($sabspath,2) == 47 # "/", assume C:/ like prefix
+          ?? nqp::box_s(nqp::concat(nqp::substr($sabspath,0,2),$spath),Str)
+          !! $path;
     }
-    elsif $path.substr(1,1) eq ':' {  # assume C: something
-        if $path.substr(2,1) eq "/" { #  assume C:/ like prefix
-            return $path;
-        }
-        elsif $abspath.substr(0,2) ne $path.substr(0,2) {
-            die "Can not set relative dir from different roots";
-        }
-        else {
-            return $abspath ~ $path.substr(2);
-        }
+
+    # potential relative path
+    if nqp::chars($spath) > 2 && nqp::ordat($spath,1) == 58 { # ":", like C:...
+        return $path if nqp::ordat($spath,2) == 47;           # "/", like C:/...
+
+        die "Can not set relative dir from different roots"
+          if nqp::isne_s(nqp::substr($sabspath,0,2),nqp::substr($spath,0,2));
+
+        return nqp::box_s(nqp::concat($sabspath,nqp::substr($spath,2)),Str);
     }
-    else {                            # assume relative path
-        return $abspath ~ $path;
-    }
+
+    # assume relative path
+    nqp::box_s(nqp::concat($sabspath,$spath),Str);
 }
 
 sub FORWARD-SLASH(Str \path)  { TRANSPOSE-ONE(path,'\\','/') }

@@ -147,6 +147,12 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
         }
     }
 
+
+    # back part cleanup
+    @parts.pop
+      while $checks
+        && %CLEAN-PARTS-NUL.exists_key(@parts.at_pos($checks--).WHICH);
+
     # need (at least) / at the end
     my $elems := @parts.elems;
     @parts.push("") if $elems == 1 || @parts.at_pos($elems - 1) ne "";

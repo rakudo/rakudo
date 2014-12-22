@@ -4,7 +4,7 @@ use Test;
 
 my $e = \(X::AdHoc, message => 'Can not set relative dir from different roots');
 
-plan 39;
+plan 143;
 
 is TRANSPOSE-ONE('abcb','b','d'),'adcd', 'does TRANSPOSE-ONE work';
 
@@ -54,3 +54,61 @@ is MAKE-ABSOLUTE-PATH('//nm/',     '/'  ),   '//nm/',      'is //nm/      /     
 is MAKE-ABSOLUTE-PATH('//nm/a/b/c','/'  ),   '//nm/a/b/c', 'is //nm/a/b/c /     ok';
 is MAKE-ABSOLUTE-PATH('//nm/',     '//no/'), '//nm/',      'is //nm/      //no/ ok';
 is MAKE-ABSOLUTE-PATH('//nm/a/b/c','//no/'), '//nm/a/b/c', 'is //nm/a/b/c //no/ ok';
+
+for '', 'C:', '//nm' {
+    is MAKE-BASENAME("$_/"),            '',       "is $_/                   ok";
+    is MAKE-BASENAME("$_/foo"),         'foo',    "is $_/foo         foo    ok";
+    is MAKE-BASENAME("$_/foo/"),        '',       "is $_/foo/               ok";
+    is MAKE-BASENAME("$_/foo.pm"),      'foo.pm', "is $_/foo.pm      foo.pm ok";
+    is MAKE-BASENAME("$_/foo.pm/"),     '',       "is $_/foo.pm/            ok";
+    is MAKE-BASENAME("$_/bar/foo"),     'foo',    "is $_/bar/foo     foo    ok";
+    is MAKE-BASENAME("$_/bar/foo/"),    '',       "is $_/bar/foo/           ok";
+    is MAKE-BASENAME("$_/bar/foo.pm"),  'foo.pm', "is $_/bar/foo.pm  foo.pm ok";
+    is MAKE-BASENAME("$_/bar/foo.pm/"), '',       "is $_/bar/foo.pm/        ok";
+}
+
+is MAKE-EXT("foo"),        '',   "is foo           ok";
+is MAKE-EXT("foo.pm"),     'pm', "is foo.pm     pm ok";
+is MAKE-EXT("foo.bar.pm"), 'pm', "is foo.bar.pm pm ok";
+
+sub MCP(\path) { MAKE-CLEAN-PARTS(path).join('/') }
+for '', 'C:', '//nm' -> $volume {
+    for
+      '',
+      'foo/..',
+      'foo//..',
+      'foo/../',
+      'foo/..//',
+      'foo/../.',
+      'foo/../..',
+      'foo/../../',
+      'foo/./../..',
+      'foo/././..',
+    () {
+        is MCP("$volume/$_"), "$volume/", "is $volume/$_ $volume/ ok";
+    }
+
+    for
+      'foo',
+      'foo/',
+      'foo//',
+      'foo/.',
+      'foo/./',
+      'foo//./',
+      'foo/bar/..',
+      'foo/bar/../',
+      'foo/bar/../.',
+      'foo/bar/./..',
+      'foo/bar/./../',
+      'foo/bar/./..//',
+      'foo/bar/./../.',
+    () {
+        is MCP("$volume/$_"), "$volume/foo/", "is $volume/$_ $volume/foo/ ok";
+    }
+}
+
+is REMOVE-ROOT('/',       '/'),    '/',    'is /        /    /    ok';
+is REMOVE-ROOT('/',       '/foo'), 'foo',  'is /        /foo foo  ok';
+is REMOVE-ROOT('/foo',    '/foo'), '/foo', 'is /foo     /foo /foo ok';
+is REMOVE-ROOT('/foo/bar','/foo'), '/foo', 'is /foo/bar /foo /foo ok';
+is REMOVE-ROOT('/bar',    '/foo'), '/foo', 'is /bar     /foo /foo ok';

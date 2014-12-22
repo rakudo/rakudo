@@ -76,7 +76,7 @@ my class IOU does IO::Locally {
     method !fail() {
         fail X::IO::DoesNotExist.new(
           :path($!this),
-          :trying(nqp::getcodename(nqp::callercode())),
+          :trying(callframe(2).my<&?ROUTINE>.name ),  # skip <!> dispatcher
         );
     }
 

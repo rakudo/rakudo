@@ -6626,6 +6626,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If we already declared this as a placeholder, we're done.
         my $name := ~$sigil ~ ~$ident;
+        if $block.ann('also_uses') && $block.ann('also_uses'){$name} {
+            $*W.throw($/, ['X', 'Placeholder', 'NonPlaceholder'],
+                placeholder   => $full_name,
+                variable_name => $name,
+                decl          => $block.ann('IN_DECL'),
+            )
+        }
         for @params {
             if $_<variable_name> eq $name {
                 return QAST::Var.new( :name($name), :scope('lexical') );

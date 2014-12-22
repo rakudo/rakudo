@@ -464,7 +464,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <.unsp>
         ]*
         <?MARKER('ws')>
-        :my $stub := self.'!set_highexpect'($old_highexpect);
+        :my $stub := self.'!fresh_highexpect'();
     }
     
     token unsp {
@@ -3069,14 +3069,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto rule trait_mod { <...> }
-    rule trait_mod:sym<is>      { <sym> <longname><circumfix>**0..1 }
-    rule trait_mod:sym<hides>   { <sym> <typename> }
-    rule trait_mod:sym<does>    { <sym> <typename> }
-    rule trait_mod:sym<will>    { <sym> <identifier> <pblock> }
-    rule trait_mod:sym<of>      { <sym> <typename> }
-    rule trait_mod:sym<as>      { <sym> <typename> }
-    rule trait_mod:sym<returns> { <sym> <typename> }
-    rule trait_mod:sym<handles> { <sym> <term> }
+    rule trait_mod:sym<is>      { <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'>] }
+    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<does>    { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock> }
+    rule trait_mod:sym<of>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<as>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<returns> { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
 
 
     ## Terms

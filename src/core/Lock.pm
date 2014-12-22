@@ -15,11 +15,11 @@ my class Lock is repr('ReentrantMutex') {
         method signal_all() { nqp::condsignalall(self) }
     }
 
-    method lock() { nqp::lock(self) }
+    method lock(Lock:D:) { nqp::lock(self) }
 
-    method unlock() { nqp::unlock(self) }
+    method unlock(Lock:D:) { nqp::unlock(self) }
 
-    method protect(&code) {
+    method protect(Lock:D: &code) {
         nqp::lock(self);
         my \res := code();
         nqp::unlock(self);
@@ -27,7 +27,7 @@ my class Lock is repr('ReentrantMutex') {
         res
     }
 
-    method condition() {
+    method condition(Lock:D:) {
         nqp::getlockcondvar(self, ConditionVariable)
     }
 }

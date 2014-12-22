@@ -1,3 +1,8 @@
+New in 2015.01
++ Proper error handling for a placeholder that has already been used as
+  non-placeholder in the same scope
++ sub form of 'unique' introduced, 'uniq' deprecated
+
 New in 2014.12
 + Flakiness on OS X has been fixed
 + Support for Increase/Decrease, bless(*,...) removed, were deprecated 1+ year

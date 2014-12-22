@@ -582,7 +582,13 @@ multi categorize( $test, *@items ) { {}.categorize-list( $test, @items ) }
 #}
 
 proto uniq(|) { * }
-multi uniq(*@values, |c) { @values.uniq(|c) }
+multi uniq(*@values, |c) {
+    DEPRECATED('unique', |<2014.12 2015.11>);
+    @values.unique(|c)
+}
+
+proto unique(|) { * }
+multi unique(*@values, |c) { @values.unique(|c) }
 
 proto squish(|) { * }
 multi squish(*@values, |c) { @values.squish(|c) }

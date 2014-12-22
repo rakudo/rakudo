@@ -32,7 +32,7 @@ my class IO::Dir is Cool does IO::Locally {
 
     method rmdir(IO::Dir:D:) { REMOVE-DIR($!abspath) }
 
-    method dirname(IO::Local:D:)   {
+    method dirname(IO::Dir:D:)   {
         self!parts;
         '/' ~ @!parts[1 .. *-3].join('/');
     }

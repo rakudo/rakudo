@@ -127,7 +127,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
 
         # nul, just ignore
         else {
-            @parts.splice($index,1);
+            @parts.splice($index--,1);
             return updirs($index);
         }
     }

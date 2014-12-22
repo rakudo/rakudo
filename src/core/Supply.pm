@@ -153,13 +153,7 @@ my role Supply {
 
     method list(Supply:D:) {
         # Use a Channel to handle any asynchrony.
-        my $c = self.Channel;
-        map sub ($) {
-            earliest $c {
-                more * { $_ }
-                done * { last }
-            }
-        }, *;
+        self.Channel.list;
     }
 
     method on_demand(Supply:U: |c)       { SupplyOperations.on_demand(|c) }

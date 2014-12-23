@@ -69,8 +69,8 @@ my class SupplyOperations is repr('Uninstantiable') {
         OnDemandSupply.new(:&producer, :&closing, :$scheduler)
     }
 
-    method for(*@values, :$scheduler = CurrentThreadScheduler) {
-        my class ForSupply does Supply {
+    method from-list(*@values, :$scheduler = CurrentThreadScheduler) {
+        my class FromListSupply does Supply {
             has @!values;
             has $!scheduler;
 
@@ -93,7 +93,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        ForSupply.new(:@values, :$scheduler)
+        FromListSupply.new(:@values, :$scheduler)
     }
 
     method interval($interval, $delay = 0, :$scheduler = $*SCHEDULER) {

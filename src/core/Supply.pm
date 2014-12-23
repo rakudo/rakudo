@@ -153,17 +153,16 @@ my role Supply {
 
     method list(Supply:D:) {
         # Use a Channel to handle any asynchrony.
-        my $c = self.Channel;
-        map sub ($) {
-            earliest $c {
-                more * { $_ }
-                done * { last }
-            }
-        }, *;
+        self.Channel.list;
+    }
+
+    method for(Supply:U: |c) {
+        DEPRECATED('from-list',|<2015.01 2016.01>);
+        SupplyOperations.from-list(|c);
     }
 
     method on_demand(Supply:U: |c)       { SupplyOperations.on_demand(|c) }
-    method for(Supply:U: |c)             { SupplyOperations.for(|c) }
+    method from-list(Supply:U: |c)       { SupplyOperations.from-list(|c) }
     method interval(Supply:U: |c)        { SupplyOperations.interval(|c) }
     method flat(Supply:D: )              { SupplyOperations.flat(self) }
     method grep(Supply:D: Mu $test)      { SupplyOperations.grep(self, $test) }

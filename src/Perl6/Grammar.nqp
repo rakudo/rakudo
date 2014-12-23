@@ -3695,6 +3695,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]**0..1
         [
         | <OPER=postfix>
+        | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
         | <OPER=postcircumfix>
         | <OPER=dotty>
         | <OPER=privop>

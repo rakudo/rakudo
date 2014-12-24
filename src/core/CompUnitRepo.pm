@@ -51,77 +51,79 @@ class CompUnitRepo {
     method resolve_repossession_conflicts(@conflicts) {
         $p6ml.resolve_repossession_conflicts( nqp::findmethod(@conflicts, 'FLATTENABLE_LIST')(@conflicts) )
     }
-
-    # prime the short-id -> type lookup
-    my %id2class = (
-      file => CompUnitRepo::Local::File,
-      inst => CompUnitRepo::Local::Installation,
-    );
-
-    method parse-spec ($specs) {
-        my @found;
-        my $class = %id2class<file>;
-        
-        # for all possible specs
-        for $specs.split(/ \s* ',' \s* /) -> $spec {
-            my %options;
-
-            # something we understand
-            if $spec ~~ /^
-              [ 
-                $<type>=[ <.ident>+ % '::' ]
-                [ ':' $<n>=\w+
-                  <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
-                  { %options{$<n>} = ~$<v> }
-                ]*
-                ':'
-              ]?
-              $<path>=.+
-            $/ {
-
-                # a type (short-id or class name) was specified
-                if $<type> -> $this {
-                    for %id2class{ $class = ~$this }:v -> $type {
-                        $class = $type;
-                    }
-                }
-
-                # still don't have a type object
-                if nqp::istype($class,Str) {
-                    my $type = ::($class);
-
-                    # alas, no a known class
-                    if nqp::istype($type,Failure) {
-
-                        # it's a short-id
-                        if %id2class.exists_key($class) {
-                            $class = %id2class{$class}
-                        }
-
-                        # give up
-                        else {
-                            die $class ~~ m/\:/
-                              ?? "Must load class '$class' first"
-                              !! "Unknown short-id '$class'";
-                        }
-                    }
-
-                    # successfully converted string to type
-                    else {
-                        $class = $type;
-                        %id2class{$class.short-id} //= $class;
-                    }
-                }
-
-                # keep this one
-                @found.push: $($class, ~$<path>, %options);
-            }
-
-            # huh?
-            elsif $spec ~~ m/\w+/ {
-                die "Don't know what to do with '$spec'";
-            }
-        }
-        @found;
-    }
 }
+
+# prime the short-id -> type lookup
+my %CURLID2CLASS = (
+  file => CompUnitRepo::Local::File,
+  inst => CompUnitRepo::Local::Installation,
+);
+
+sub PARSE-INCLUDE-SPEC(Str $specs) {
+    my @found;
+    my $class = %CURLID2CLASS<file>;
+    
+    # for all possible specs
+    for $specs.split(/ \s* ',' \s* /) -> $spec {
+        my %options;
+
+        # something we understand
+        if $spec ~~ /^
+          [ 
+            $<type>=[ <.ident>+ % '::' ]
+            [ ':' $<n>=\w+
+              <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
+              { %options{$<n>} = ~$<v> }
+            ]*
+            ':'
+          ]?
+          $<path>=.+
+        $/ {
+
+            # a type (short-id or class name) was specified
+            if $<type> -> $this {
+                for %CURLID2CLASS{ $class = ~$this }:v -> $type {
+                    $class = $type;
+                }
+            }
+
+            # still don't have a type object
+            if nqp::istype($class,Str) {
+                my $type = ::($class);
+
+                # alas, no a known class
+                if nqp::istype($type,Failure) {
+
+                    # it's a short-id
+                    if %CURLID2CLASS.exists_key($class) {
+                        $class = %CURLID2CLASS{$class}
+                    }
+
+                    # give up
+                    else {
+                        die $class ~~ m/\:/
+                          ?? "Must load class '$class' first"
+                          !! "Unknown short-id '$class'";
+                    }
+                }
+
+                # successfully converted string to type
+                else {
+                    $class = $type;
+                    %CURLID2CLASS{$class.short-id} //= $class;
+                }
+            }
+
+            # keep this one
+            @found.push: $($class, ~$<path>, %options);
+        }
+
+        # huh?
+        elsif $spec ~~ m/\w+/ {
+            die "Don't know what to do with '$spec'";
+        }
+    }
+    @found;
+}
+
+# vim: ft=perl6 expandtab sw=4

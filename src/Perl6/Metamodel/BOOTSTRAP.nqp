@@ -479,7 +479,7 @@ my class Binder {
                     $capture := $oval.Capture;
                 }
                 else {
-                    if $error {
+                    if nqp::defined($error) {
                         $error[0] := "Could not turn argument into capture";
                     }
                     return $BIND_RESULT_FAIL;
@@ -780,7 +780,7 @@ my class Binder {
         }
         if $named_args {
             # Oh noes, unexpected named args.
-            if $error {
+            if nqp::defined($error) {
                 my int $num_extra := nqp::elems($named_args);
                 my @names;
                 for $named_args {

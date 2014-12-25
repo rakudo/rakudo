@@ -111,9 +111,9 @@ my class Binder {
     my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
 
     # Binding reuslt flags.
-    my $BIND_RESULT_OK       := 0;
-    my $BIND_RESULT_FAIL     := 1;
-    my $BIND_RESULT_JUNCTION := 2;
+    my int $BIND_RESULT_OK       := 0;
+    my int $BIND_RESULT_FAIL     := 1;
+    my int $BIND_RESULT_JUNCTION := 2;
 
     my $autothreader;
 

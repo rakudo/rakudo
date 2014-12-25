@@ -3758,6 +3758,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<opening>=[ '«' | '»' ]
         {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
+        <.can_meta($<infixish>, "hyper with")>
         {} <O=.copyO($<infixish>)>
     }
 
@@ -4041,14 +4042,36 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
-        || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
+        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
         || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
         ]
     }
-    token infix_prefix_meta_operator:sym<R> { <sym> <infixish('R')> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<S> { <sym> <infixish('S')> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<X> { <sym> <infixish('X')> <O('%list_infix')> }
-    token infix_prefix_meta_operator:sym<Z> { <sym> <infixish('Z')> <O('%list_infix')> }
+
+    token infix_prefix_meta_operator:sym<R> {
+        <sym> <infixish('R')> {}
+        <.can_meta($<infixish>, "reverse the args of")>
+        <O=.copyO($<infixish>)>
+    }
+
+    token infix_prefix_meta_operator:sym<S> {
+        <sym> <infixish('S')> {}
+        <.can_meta($<infixish>, "sequence the args of")>
+        <O=.copyO($<infixish>)>
+    }
+
+    token infix_prefix_meta_operator:sym<X> {
+        <sym> <infixish('X')> {}
+        <.can_meta($<infixish>, "cross with")>
+        <O('%list_infix')>
+
+    }
+
+    token infix_prefix_meta_operator:sym<Z> {
+        <sym> <infixish('Z')> {}
+        <.can_meta($<infixish>, "zip with")>
+        <O('%list_infix')>
+    }
+
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
     token infix:sym<:=> {

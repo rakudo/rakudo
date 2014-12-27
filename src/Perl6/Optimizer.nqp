@@ -1380,10 +1380,13 @@ class Perl6::Optimizer {
     }
 
     method optimize_for_range($op, $c2) {
+        my $block := $!symbols.Block;
+        unless nqp::defined($block) { return };
+
         my $callee  := $op[0][1];
         my $code    := $callee.ann('code_object');
         my $count   := $code.count;
-        my $phasers := nqp::getattr($code, $!symbols.Block, '$!phasers');
+        my $phasers := nqp::getattr($code, $block, '$!phasers');
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
             my $it_var     := QAST::Node.unique('range_it_');
             my $callee_var := QAST::Node.unique('range_callee_');

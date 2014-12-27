@@ -65,7 +65,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method gist(Blob:D:) {
-        'Buf:0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
+        self.^name ~ ':0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
     }
     multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';

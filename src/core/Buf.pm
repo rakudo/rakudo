@@ -32,22 +32,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::atpos_i(self, $i)
     }
 
-    multi method assign_pos(Blob:D: \pos, Mu \assignee) is rw {
-#?if !parrot
-        if nqp::istype(pos, Num) && nqp::isnanorinf(pos) {
-#?endif
-#?if parrot
-        if nqp::isnanorinf(pos) {
-#?endif
-            X::Item.new(aggregate => self, index => pos).throw;
-        }
-        my int $p = nqp::unbox_i(nqp::istype(pos, Int) ?? pos !! pos.Int);
-        nqp::bindpos_i(self, $p, assignee)
-    }
-    multi method assign_pos(Blob:D: int $pos, Mu \assignee) is rw {
-        nqp::bindpos_i(self, $pos, assignee)
-    }
-
     multi method Bool(Blob:D:) {
         nqp::p6bool(nqp::elems(self));
     }
@@ -254,6 +238,23 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     # TODO: override at_pos so we get mutability
+    #
+    multi method assign_pos(Buf:D: \pos, Mu \assignee) is rw {
+#?if !parrot
+        if nqp::istype(pos, Num) && nqp::isnanorinf(pos) {
+#?endif
+#?if parrot
+        if nqp::isnanorinf(pos) {
+#?endif
+            X::Item.new(aggregate => self, index => pos).throw;
+        }
+        my int $p = nqp::unbox_i(nqp::istype(pos, Int) ?? pos !! pos.Int);
+        nqp::bindpos_i(self, $p, assignee)
+    }
+    multi method assign_pos(Blob:D: int $pos, Mu \assignee) is rw {
+        nqp::bindpos_i(self, $pos, assignee)
+    }
+
 }
 
 constant buf8 = Buf[uint8];

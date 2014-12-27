@@ -111,9 +111,9 @@ my class Binder {
     my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
 
     # Binding reuslt flags.
-    my $BIND_RESULT_OK       := 0;
-    my $BIND_RESULT_FAIL     := 1;
-    my $BIND_RESULT_JUNCTION := 2;
+    my int $BIND_RESULT_OK       := 0;
+    my int $BIND_RESULT_FAIL     := 1;
+    my int $BIND_RESULT_JUNCTION := 2;
 
     my $autothreader;
 
@@ -479,7 +479,7 @@ my class Binder {
                     $capture := $oval.Capture;
                 }
                 else {
-                    if $error {
+                    if nqp::defined($error) {
                         $error[0] := "Could not turn argument into capture";
                     }
                     return $BIND_RESULT_FAIL;
@@ -780,7 +780,7 @@ my class Binder {
         }
         if $named_args {
             # Oh noes, unexpected named args.
-            if $error {
+            if nqp::defined($error) {
                 my int $num_extra := nqp::elems($named_args);
                 my @names;
                 for $named_args {

@@ -661,7 +661,6 @@ S19-command-line/repl.t
 S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S22-package-format/local.t
-S22-package-format/parse-spec.t
 S24-testing/0-compile.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t

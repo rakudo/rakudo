@@ -25,9 +25,9 @@ my class Routine { # declared in BOOTSTRAP
     method returns() { self.signature.returns }
     method onlystar() { nqp::p6bool($!onlystar) }
     
-    method assuming($r: *@curried_pos, *%curried_named) {
-        return sub CURRIED (*@pos, *%named) {
-            $r(|@curried_pos, |@pos, |%curried_named, |%named)
+    method assuming($r: |curried) {
+        return sub CURRIED (|direct) {
+            $r(|curried, |direct)
         }
     }
     

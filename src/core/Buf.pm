@@ -128,21 +128,16 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
             my $directive = $unit.substr(0, 1);
             my $amount = $unit.substr(1);
+            my $pa = $amount eq ''  ?? 1            !!
+                     $amount eq '*' ?? @bytes.elems !! +$amount;
 
             given $directive {
                 when 'a' | 'A' | 'Z' {
-                    my $asciistring;
-                    if $amount eq '*' {
-                        $amount = @bytes.elems;
-                    }
-                    for ^$amount {
-                        $asciistring ~= chr(shift @bytes);
-                    }
-                    @fields.push($asciistring);
+                    @fields.push: @bytes.splice(0, $pa).map(&chr).join;
                 }
                 when 'H' {
-                    my $hexstring;
-                    while @bytes {
+                    my str $hexstring = '';
+                    for ^$pa {
                         my $byte = shift @bytes;
                         $hexstring ~= ($byte +> 4).fmt('%x')
                                     ~ ($byte % 16).fmt('%x');
@@ -150,36 +145,38 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                     @fields.push($hexstring);
                 }
                 when 'x' {
-                    if $amount eq '*' {
-                        $amount = 0;
-                    }
-                    elsif $amount eq '' {
-                        $amount = 1;
-                    }
-                    splice @bytes, 0, $amount;
+                    splice @bytes, 0, $pa;
                 }
                 when 'C' {
-                    @fields.push: shift @bytes;
+                    @fields.push: @bytes.splice(0, $pa);
                 }
                 when 'S' | 'v' {
-                    @fields.push: shift(@bytes)
-                                 + (shift(@bytes) +< 0x08);
+                    for ^$pa {
+                        @fields.push: shift(@bytes)
+                                    + (shift(@bytes) +< 0x08);
+                    }
                 }
                 when 'L' | 'V' {
-                    @fields.push: shift(@bytes)
-                                 + (shift(@bytes) +< 0x08)
-                                 + (shift(@bytes) +< 0x10)
-                                 + (shift(@bytes) +< 0x18);
+                    for ^$pa {
+                        @fields.push: shift(@bytes)
+                                    + (shift(@bytes) +< 0x08)
+                                    + (shift(@bytes) +< 0x10)
+                                    + (shift(@bytes) +< 0x18);
+                    }
                 }
                 when 'n' {
-                    @fields.push: (shift(@bytes) +< 0x08)
-                                 + shift(@bytes);
+                    for ^$pa {
+                        @fields.push: (shift(@bytes) +< 0x08)
+                                    + shift(@bytes);
+                    }
                 }
                 when 'N' {
-                    @fields.push: (shift(@bytes) +< 0x18)
-                                 + (shift(@bytes) +< 0x10)
-                                 + (shift(@bytes) +< 0x08)
-                                 + shift(@bytes);
+                    for ^$pa {
+                        @fields.push: (shift(@bytes) +< 0x18)
+                                    + (shift(@bytes) +< 0x10)
+                                    + (shift(@bytes) +< 0x08)
+                                    + shift(@bytes);
+                    }
                 }
                 X::Buf::Pack.new(:$directive).throw;
             }

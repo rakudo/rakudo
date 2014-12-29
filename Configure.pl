@@ -176,7 +176,7 @@ MAIN: {
         my %nqp_config;
         if ($impls{parrot}{ok}) {
             %nqp_config = %{ $impls{parrot}{config} };
-            unless ($nqp_config{has_icu}) {
+            unless ($nqp_config{'parrot::has_icu'}) {
                 push @errors, 'Parrot without ICU is not supported anymore.';
             }
         }

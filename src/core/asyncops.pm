@@ -62,12 +62,12 @@ sub EARLIEST(@earliest, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time i
             if !nqp::istype($next,Channel) {
                 die "Got a {$next.WHAT.perl}, but expected a Channel";
             }
-            push @contestant, $next;
+            @contestant.push: $next;
         }
         my &block = @other.shift;
 
         for @contestant {
-            %distinct-channels{$_} = $_;
+            %distinct-channels{$_.WHICH} = $_;
             @todo.push: [ +@todo, $kind, $_, &block ];
         }
     }
@@ -76,7 +76,7 @@ sub EARLIEST(@earliest, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time i
     if !@todo {
         for @earliest {
             when Channel {
-                %distinct-channels{$_} = $_;
+                %distinct-channels{$_.WHICH} = $_;
                 @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more, $wild_done ];
             }
             default {

@@ -1104,6 +1104,11 @@ my class X::Syntax::Term::MissingInitializer does X::Syntax {
     method message { 'Term definition requires an initializer' }
 }
 
+my class X::Syntax::AddCategorial::MissingSeparator does X::Syntax {
+    has $.opname;
+    method message() { "Unable to identify both starter and stopper from $.opname\nPerhaps you forgot to separate them with whitespace?" }
+}
+
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     method message() {
         "Can only use : as invocant marker in a signature after the first parameter"

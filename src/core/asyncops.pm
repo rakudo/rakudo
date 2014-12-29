@@ -39,7 +39,7 @@ sub INVOKE_KV(&block, $key, $value?) {
     die "Couldn't figure out how to invoke {&block.signature().perl}";
 }
 
-sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
+sub EARLIEST(@earliest, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
     my Num $until = $wait ?? nqp::time_n() + $wait_time !! Nil;
 
     my constant $EARLIEST_KIND_DONE = 0;
@@ -72,9 +72,9 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
         }
     }
 
-    # transmogrify any winner spec if nothing to do so far
+    # transmogrify any earliest spec if nothing to do so far
     if !@todo {
-        for @winner {
+        for @earliest {
             when Channel {
                 %distinct-channels{$_} = $_;
                 @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more, $wild_done ];
@@ -86,7 +86,7 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
     }
 
     if !@todo {
-        die "Nothing todo for winner";
+        die "Nothing todo for earliest";
     }
 
     my $action;

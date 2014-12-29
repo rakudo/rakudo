@@ -47,6 +47,7 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
 
     my @todo;
 #       |-- [ ordinal, kind, contestant, block, alternate_block? ]
+    my %distinct-channels;
 
     # sanity check and transmogrify possibly multiple channels into things to do
     while +@other {
@@ -65,13 +66,17 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
         }
         my &block = @other.shift;
 
-        @todo.push: [ +@todo, $kind, $_, &block ] for @contestant;
+        for @contestant {
+            %distinct-channels{$_} = $_;
+            @todo.push: [ +@todo, $kind, $_, &block ];
+        }
     }
 
     # transmogrify any winner spec if nothing to do so far
     if !@todo {
         for @winner {
             when Channel {
+                %distinct-channels{$_} = $_;
                 @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more, $wild_done ];
             }
             default {
@@ -100,15 +105,32 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
             }
 
             else { # $kind == $EARLIEST_KIND_MORE
+                if +%distinct-channels == 1 && !$wait {
+                    try {
+                        my $value := $contestant.receive;
+                        $action = { INVOKE_KV($todo[3], $todo[0], $value) };
+                        last CHECK;
 
-                if !nqp::istype((my $value := $contestant.poll),Nil) {
-                    $action = { INVOKE_KV($todo[3], $todo[0], $value) };
-                    last CHECK;
+                        CATCH {
+                            when X::Channel::ReceiveOnClosed {
+                                if $todo[4] {
+                                    $action = { INVOKE_KV($todo[4], $todo[0]) };
+                                    last CHECK;
+                                }
+                            }
+                        }
+                    }
                 }
+                else {
+                    if !nqp::istype((my $value := $contestant.poll),Nil) {
+                        $action = { INVOKE_KV($todo[3], $todo[0], $value) };
+                        last CHECK;
+                    }
 
-                elsif $contestant.closed && $todo[4] {
-                    $action = { INVOKE_KV($todo[4], $todo[0]) };
-                    last CHECK;
+                    elsif $contestant.closed && $todo[4] {
+                        $action = { INVOKE_KV($todo[4], $todo[0]) };
+                        last CHECK;
+                    }
                 }
             }
         }

@@ -176,6 +176,9 @@ MAIN: {
         my %nqp_config;
         if ($impls{parrot}{ok}) {
             %nqp_config = %{ $impls{parrot}{config} };
+            unless ($nqp_config{'parrot::has_icu'}) {
+                push @errors, 'Parrot without ICU is not supported anymore.';
+            }
         }
         elsif ($impls{parrot}{config}) {
             push @errors, "The nqp-p binary is too old";

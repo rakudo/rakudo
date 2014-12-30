@@ -2838,6 +2838,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
           ]?
+
+          :dba('shape declaration')
+          :my $*IN_DECL := '';
+          [
+          | <?before '('>         <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
+          | <?before '['>         <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant a subsignature for unpacking'>
+               <postcircumfix>
+          | <?before <[ { < « ]>> <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant something else'>
+               <postcircumfix>
+          ]?
         ]
     }
 

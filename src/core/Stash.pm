@@ -19,7 +19,7 @@ my class Stash { # declared in BOOTSTRAP
                  -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
         }
     }
-    
+
     method package_at_key(Stash:D: str $key) {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!

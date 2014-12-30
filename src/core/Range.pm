@@ -8,7 +8,7 @@ my class Range is Iterable is Cool does Positional {
 
     proto method new(|) { * }
     # The order of "method new" declarations matters here, to ensure
-    # appropriate candidate tiebreaking when mixed type arguments 
+    # appropriate candidate tiebreaking when mixed type arguments
     # are present (e.g., Range,Whatever or Real,Range).
     multi method new(Range $min, $max, :$excludes_min, :$excludes_max) {
         X::Range::InvalidArg.new(:got($min)).throw;
@@ -80,7 +80,7 @@ my class Range is Iterable is Cool does Positional {
             return $value after $!max
                      ?? ()
                      !! SEQUENCE($value, $!max, :exclude_end($!excludes_max)).iterator.reify($n)
-        } 
+        }
         my $count;
         if nqp::istype($n, Whatever) {
             $count = self.infinite ?? 10 !! Inf;
@@ -94,12 +94,12 @@ my class Range is Iterable is Cool does Positional {
         my $realmax = nqp::istype($!min, Numeric) && !nqp::istype($!max, Callable) && !nqp::istype($!max, Whatever)
                       ?? $!max.Numeric
                       !! $!max;
-        
+
         # Pre-size the buffer, to avoid reallocations.
         my Mu $rpa := nqp::list();
         nqp::setelems($rpa, $count == Inf ?? 256 !! $count.Int);
         nqp::setelems($rpa, 0);
-        
+
         if nqp::istype($value, Int) && nqp::istype($!max, Int) && !nqp::isbig_I(nqp::decont $!max)
            || nqp::istype($value, Num) {
             # optimized for int/num ranges
@@ -121,7 +121,7 @@ my class Range is Iterable is Cool does Positional {
                     ($ncount = nqp::sub_n($ncount, 1e0))
                 ));
             $value = nqp::p6box_i($nvalue);
-        }    
+        }
         else {
           SEQ(nqp::push($rpa, $value++); $count--)
               while $count > 0 && ($value cmp $realmax) < $cmpstop;
@@ -137,7 +137,7 @@ my class Range is Iterable is Cool does Positional {
 
     method at_pos($pos) { self.flat.at_pos($pos) }
 
-    multi method perl(Range:D:) { 
+    multi method perl(Range:D:) {
         $.min.perl
           ~ ('^' if $.excludes_min)
           ~ '..'
@@ -198,20 +198,20 @@ my class Range is Iterable is Cool does Positional {
     }
 }
 
-sub infix:<..>($min, $max) { 
-    Range.new($min, $max) 
+sub infix:<..>($min, $max) {
+    Range.new($min, $max)
 }
-sub infix:<^..>($min, $max) { 
-    Range.new($min, $max, :excludes_min) 
+sub infix:<^..>($min, $max) {
+    Range.new($min, $max, :excludes_min)
 }
-sub infix:<..^>($min, $max) { 
-    Range.new($min, $max, :excludes_max) 
+sub infix:<..^>($min, $max) {
+    Range.new($min, $max, :excludes_max)
 }
 sub infix:<^..^>($min, $max) is pure {
-    Range.new($min, $max, :excludes_min, :excludes_max) 
+    Range.new($min, $max, :excludes_min, :excludes_max)
 }
 sub prefix:<^>($max) {
-    Range.new(0, $max.Numeric, :excludes_max) 
+    Range.new(0, $max.Numeric, :excludes_max)
 }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b) {

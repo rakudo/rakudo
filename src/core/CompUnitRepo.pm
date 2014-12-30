@@ -62,14 +62,14 @@ my %CURLID2CLASS = (
 sub PARSE-INCLUDE-SPEC(Str $specs) {
     my @found;
     my $class = %CURLID2CLASS<file>;
-    
+
     # for all possible specs
     for $specs.split(/ \s* ',' \s* /) -> $spec {
         my %options;
 
         # something we understand
         if $spec ~~ /^
-          [ 
+          [
             $<type>=[ <.ident>+ % '::' ]
             [ ':' $<n>=\w+
               <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>

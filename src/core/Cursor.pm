@@ -230,7 +230,7 @@ my class Cursor does NQPCursorRole {
                 my Mu $topic := nqp::atpos($order,$o);
                 my $match;
                 my $len;
-                
+
                 if $a {
                     # We are in a regex assertion, the strings we get will be treated as
                     # regex rules.
@@ -243,7 +243,7 @@ my class Cursor does NQPCursorRole {
                 elsif nqp::istype($topic,Regex) {
                     # A Regex already.
                     $match := nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic;
-                    
+
                     # In order to return the correct result we need to match from the
                     # current position only.
                     next if $match.from;
@@ -287,13 +287,13 @@ my class Cursor does NQPCursorRole {
 
     method OTHERGRAMMAR($grammar, $name, |) {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
-        $lang_cursor."$name"(); 
+        $lang_cursor."$name"();
     }
-    
+
     method INDRULE($rule, |c) {
         $rule(self, |c)
     }
-    
+
     method RECURSE() {
         nqp::getlexdyn('$?REGEX')(self)
     }

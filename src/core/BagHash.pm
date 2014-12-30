@@ -42,7 +42,7 @@ my class BagHash does Baggy {
         else {
             Bag.new-from-pairs(%!elems.values);
         }
-    }           
+    }
     method BagHash { self }
     method Mix     { Mix.new-from-pairs(%!elems.values) }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }

@@ -6,11 +6,11 @@ my class Proc::Status {
     has $.exit;
     has $.pid;
     has $.signal;
-    
+
     #~ method exit()   { $!exit   }
     #~ method pid()    { $!pid    }
     #~ method signal() { $!signal }
-    
+
     proto method status(|) { * }
     multi method status($new_status) {
         $!exit   = $new_status +> 8;

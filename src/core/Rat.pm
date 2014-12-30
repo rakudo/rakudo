@@ -1,5 +1,5 @@
 # XXX: should be Rational[Int, UInt64]
-my class Rat is Cool does Rational[Int, Int] { 
+my class Rat is Cool does Rational[Int, Int] {
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($.numerator, $.denominator); }
     multi method perl(Rat:D:) {

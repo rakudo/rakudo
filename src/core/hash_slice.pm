@@ -36,13 +36,13 @@ multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is rw {
 
 # %h<a b c>
 multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
-    nqp::iscont(key) 
-      ?? SELF.at_key(key) 
+    nqp::iscont(key)
+      ?? SELF.at_key(key)
       !! key.map({ SELF{$_} }).eager.Parcel;
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, Mu \ASSIGN) is rw {
     (nqp::iscont(key)
-      ?? SELF.at_key(key) 
+      ?? SELF.at_key(key)
       !! key.map({ SELF{$_} }).eager.Parcel) = ASSIGN
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {

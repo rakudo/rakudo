@@ -22,7 +22,7 @@ my class Variable {
 
 # "is" traits
 multi sub trait_mod:<is>(Variable:D $v, |c ) {
-    $v.throw( 'X::Comp::Trait::Unknown', 
+    $v.throw( 'X::Comp::Trait::Unknown',
       type      => 'is',
       subtype   => c.hash.keys[0],
       declaring => ' variable',
@@ -87,7 +87,7 @@ multi sub trait_mod:<is>(Variable:D $v, :$export!) {
 
 # "of" traits
 multi sub trait_mod:<of>(Variable:D $v, |c ) {
-    $v.throw( 'X::Comp::Trait::Unknown', 
+    $v.throw( 'X::Comp::Trait::Unknown',
       type      => 'of',
       subtype   => c.hash.keys[0],
       declaring => ' variable',

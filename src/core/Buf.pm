@@ -21,7 +21,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method new(*@values) {
         self.new(@values)
     }
-    
+
     multi method at_pos(Blob:D: $i) {
         nqp::atpos_i(self, $i.Int)
     }
@@ -48,11 +48,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method Numeric(Blob:D:) { self.elems }
     method Int(Blob:D:)     { self.elems }
-    
+
     method decode(Blob:D: $encoding = 'utf-8') {
         nqp::p6box_s(nqp::decode(self, NORMALIZE_ENCODING($encoding)))
     }
-    
+
     method list(Blob:D:) {
         my @l;
         my int $n = nqp::elems(self);
@@ -70,7 +70,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
     }
-    
+
     method subbuf(Blob:D: $from = 0, $len is copy = self.elems - $from) {
 
         if ($len < 0) {
@@ -121,7 +121,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         }
         $ret
     }
-    
+
     method unpack(Blob:D: $template) {
         my @bytes = self.list;
         my @fields;
@@ -188,7 +188,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     # XXX: the pack.t spectest file seems to require this method
     # not sure if it should be changed to list there...
     method contents(Blob:D:) { self.list }
-    
+
     method encoding() { Any }
 }
 

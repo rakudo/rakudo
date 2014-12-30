@@ -53,7 +53,7 @@ my role Dateish {
     }
 
     method day-of-month() { $.day }
-  
+
     method day-of-week($daycount = self.get-daycount) {
         ($daycount + 2) % 7 + 1
     }
@@ -102,8 +102,8 @@ my role Dateish {
                         range   => $range,
                ).throw;
     }
-  
-    method check-date { 
+
+    method check-date {
         self.check-value($.month, 'month', 1 .. 12);
         self.check-value($.day, "day of $.year/$.month",
             1 .. self.days-in-month);
@@ -164,7 +164,7 @@ my class DateTime does Dateish {
      has Int $.year;
      has Int $.month = 1;
      has Int $.day = 1;
- 
+
      has Int $.hour      = 0;
      has Int $.minute    = 0;
      has     $.second    = 0.0;
@@ -173,11 +173,11 @@ my class DateTime does Dateish {
        # Not an optimization but a necessity to ensure that
        # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
        # DST-induced ambiguity could ruin our day.
-    
+
      multi method new() {
         fail "Must provide arguments to DateTime.new()";
     }
- 
+
     multi method new(Int :$year!, :&formatter=&default-formatter, *%_) {
         my $dt = self.bless(:$year, :&formatter, |%_);
         $dt.check-date;
@@ -270,7 +270,7 @@ my class DateTime does Dateish {
             $timezone
                 and X::DateTime::TimezoneClash.new.throw;
             if $6 eq 'Z' {
-                $timezone = 0;                
+                $timezone = 0;
             } else {
                 $timezone = (($6[1]*60 + ($6[2][0] // 0)) * 60).Int;
                   # RAKUDO: .Int is needed to avoid to avoid the nasty '-0'.
@@ -616,7 +616,7 @@ my class Date does Dateish {
         return $dt.year == $.year && $dt.month == $.month && $dt.day == $.day;
     }
 }
- 
+
 multi sub infix:<+>(Date:D $d, Int:D $x) {
     Date.new-from-daycount($d.daycount + $x)
 }
@@ -685,23 +685,23 @@ sub sleep-till (Instant $till --> Bool) {
 }
 
 # =begin pod
-# 
+#
 # =head1 SEE ALSO
 # Perl 6 spec <S32-Temporal|http://design.perl6.org/S32/Temporal.html>.
 # The Perl 5 DateTime Project home page L<http://datetime.perl.org>.
 # Perl 5 perldoc L<doc:DateTime> and L<doc:Time::Local>.
-#  
+#
 # The best yet seen explanation of calendars, by Claus Tøndering
 # L<Calendar FAQ|http://www.tondering.dk/claus/calendar.html>.
 # Similar algorithms at L<http://www.hermetic.ch/cal_stud/jdn.htm>
 # and L<http://www.merlyn.demon.co.uk/daycount.htm>.
-#  
+#
 # <ISO 8601|http://en.wikipedia.org/wiki/ISO_8601>
 # <Time zones|http://en.wikipedia.org/wiki/List_of_time_zones>
-# 
+#
 # As per the recommendation, the strftime() method has bee moved into a
 # loadable module called DateTime::strftime.
-# 
+#
 # =end pod
 
 # vim: ft=perl6 expandtab sw=4

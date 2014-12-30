@@ -12,32 +12,32 @@ my class Channel {
     # The queue of events moving through the channel.
     my class Queue is repr('ConcBlockingQueue') { }
     has $!queue;
-    
+
     # Promise that is triggered when all values are received, or an error is
     # received and the channel is thus closed.
     has $!closed_promise;
-    
+
     # Closed promise's vow.
     has $!closed_promise_vow;
-    
+
     # Flag for if the channel is closed to senders.
     has $!closed;
-    
+
     # Magical objects for various ways a channel can end.
     my class CHANNEL_CLOSE { }
     my class CHANNEL_FAIL  { has $.error }
-    
+
     submethod BUILD() {
         $!queue := nqp::create(Queue);
         $!closed_promise = Promise.new;
         $!closed_promise_vow = $!closed_promise.vow;
     }
-    
+
     method send(Channel:D: \item) {
         X::Channel::SendOnClosed.new(channel => self).throw if $!closed;
         nqp::push($!queue, nqp::decont(item));
     }
-    
+
     method receive(Channel:D:) {
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
@@ -50,7 +50,7 @@ my class Channel {
         }
         msg
     }
-    
+
     method poll(Channel:D:) {
         my \msg := nqp::queuepoll($!queue);
         if nqp::isnull(msg) {
@@ -69,7 +69,7 @@ my class Channel {
             }
         }
     }
-    
+
     method !peek(Channel:D:) {
         my \msg := nqp::atpos($!queue, 0);
         if nqp::isnull(msg) {
@@ -105,14 +105,14 @@ my class Channel {
         nqp::push($!queue, CHANNEL_CLOSE);
         Nil
     }
-    
+
     method fail($error is copy) {
         $!closed = 1;
         $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
         nqp::push($!queue, CHANNEL_FAIL.new(:$error));
         Nil
     }
-    
+
     method closed() {
         self!peek();
         $!closed_promise

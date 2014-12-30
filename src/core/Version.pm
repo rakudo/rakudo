@@ -15,7 +15,7 @@ class Version {
     };
 
     multi method Str(Version:D:) {
-        @!parts.map({ nqp::istype($_,Whatever) ?? '*' !! $_}).join('.') 
+        @!parts.map({ nqp::istype($_,Whatever) ?? '*' !! $_}).join('.')
           ~ ($!plus ?? '+' !! '');
     }
     multi method gist(Version:D:) { 'v' ~ self.Str }

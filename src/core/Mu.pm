@@ -47,7 +47,7 @@ my class Mu { # declared in BOOTSTRAP
     method set_why($why) {
         self.HOW.set_why($why);
     }
-    
+
     proto method Bool(|) {*}
     multi method Bool() {
         self.defined
@@ -55,11 +55,11 @@ my class Mu { # declared in BOOTSTRAP
 
     method so()  { self.Bool }
     method not() { self ?? False !! True }
-    
+
     method defined() {
         nqp::p6bool(nqp::isconcrete(self))
     }
-    
+
     proto method new(|) { * }
     multi method new(*%) {
         nqp::invokewithcapture(nqp::findmethod(self, 'bless'), nqp::usecapture())
@@ -67,15 +67,15 @@ my class Mu { # declared in BOOTSTRAP
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
     }
-    
+
     method CREATE() {
         nqp::create(self)
     }
-    
+
     method bless(*@autovivs, *%attrinit) {
         nqp::create(self).BUILDALL(@autovivs, %attrinit);
     }
-    
+
     method BUILDALL(@autovivs, %attrinit) {
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
@@ -236,7 +236,7 @@ my class Mu { # declared in BOOTSTRAP
 #?endif
         self
     }
-    
+
     method BUILD_LEAST_DERIVED(%attrinit) {
         # Get the build plan for just this class. Need to do it a bit
         # differently on Parrot; it's not so 6model-y as other backends.
@@ -396,7 +396,7 @@ my class Mu { # declared in BOOTSTRAP
 #?endif
         self
     }
-    
+
     proto method Numeric(|) { * }
     multi method Numeric(Mu:U \v:) {
         warn "use of uninitialized value of type {self.HOW.name(self)} in numeric context";
@@ -407,7 +407,7 @@ my class Mu { # declared in BOOTSTRAP
         warn "use of uninitialized value of type {self.HOW.name(self)} in numeric context";
         0
     }
-    
+
     proto method Str(|) { * }
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! v.VAR.?name) // '';
@@ -425,9 +425,9 @@ my class Mu { # declared in BOOTSTRAP
         self.Str
     }
     multi method Stringy(Mu:D $:) { self.Str }
-    
+
     method item(Mu \item:) is rw { item }
-    
+
     proto method say(|) { * }
     multi method say(Obsolete:D:) { say(self.gist) }
     multi method say() { say(self) }
@@ -525,15 +525,15 @@ my class Mu { # declared in BOOTSTRAP
         }
         Bool::False
     }
-    
+
     method does(Mu \SELF: Mu $type) {
         nqp::p6bool(nqp::istype(SELF, $type.WHAT))
     }
-    
+
     method can(Mu \SELF: $name) {
         SELF.HOW.can(SELF, $name)
     }
-    
+
     method clone(*%twiddles) {
         my $cloned := nqp::clone(nqp::decont(self));
         for self.^attributes() -> $attr {
@@ -551,7 +551,7 @@ my class Mu { # declared in BOOTSTRAP
         }
         $cloned
     }
-    
+
     method Capture() {
         my %attrs;
         for self.^attributes -> $attr {
@@ -564,12 +564,12 @@ my class Mu { # declared in BOOTSTRAP
         }
         %attrs.Capture
     }
-    
+
     # XXX TODO: Handle positional case.
     method dispatch:<var>(Mu \SELF: $var, |c) is rw is hidden_from_backtrace {
         $var(SELF, |c)
     }
-    
+
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is rw {
         unless nqp::istype(SELF, $type) {
             X::Method::InvalidQualifier.new(
@@ -581,7 +581,7 @@ my class Mu { # declared in BOOTSTRAP
         }
         self.HOW.find_method_qualified(self, $type, $name)(SELF, |c)
     }
-    
+
     method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw is hidden_from_backtrace {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
@@ -593,22 +593,22 @@ my class Mu { # declared in BOOTSTRAP
               :private,
             ).throw;
     }
-    
+
     method dispatch:<.^>(Mu \SELF: $name, |c) is rw is hidden_from_backtrace {
         self.HOW."$name"(SELF, |c)
     }
-    
+
     method dispatch:<.=>(\mutate: $name, |c) is rw {
         $/ := nqp::getlexcaller('$/');
         mutate = mutate."$name"(|c)
     }
-    
+
     method dispatch:<.?>(Mu \SELF: $name, |c) is rw is hidden_from_backtrace {
         nqp::can(SELF, $name) ??
             SELF."$name"(|c) !!
             Nil
     }
-    
+
     method dispatch:<.+>(Mu \SELF: $name, |c) {
         my @result := SELF.dispatch:<.*>($name, |c);
         if @result.elems == 0 {
@@ -620,7 +620,7 @@ my class Mu { # declared in BOOTSTRAP
         }
         @result
     }
-    
+
     method dispatch:<.*>(Mu \SELF: $name, |c) {
         my @mro = SELF.HOW.mro(SELF);
         my int $mro_count = +@mro;
@@ -645,7 +645,7 @@ my class Mu { # declared in BOOTSTRAP
             ?? hyper( -> \obj { obj."$name"(|c) }, SELF )
             !! hyper( -> \obj { obj."$name"() }, SELF )
     }
-    
+
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
                 :$super, :$omit, :$include) {
         # First, build list of classes in the order we'll need them.
@@ -725,7 +725,7 @@ multi sub infix:<~~>(Mu \topic, Mu \matcher) {
 
 proto sub infix:<=:=>(Mu $?, Mu $?) { * }
 multi sub infix:<=:=>($?)      { Bool::True }
-multi sub infix:<=:=>(Mu \a, Mu \b) { 
+multi sub infix:<=:=>(Mu \a, Mu \b) {
     nqp::p6bool(nqp::eqaddr(a, b));
 }
 

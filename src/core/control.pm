@@ -22,14 +22,14 @@ sub RETURN-PARCEL(Mu \parcel) is rw {
             !! parcel)
 }
 
-my &return-rw := -> | { 
-    my $parcel := 
+my &return-rw := -> | {
+    my $parcel :=
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     nqp::p6routinereturn($parcel);
     $parcel
 };
 my &return := -> | {
-    my $parcel := 
+    my $parcel :=
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     nqp::p6routinereturn(nqp::p6recont_ro($parcel));
     $parcel
@@ -96,7 +96,7 @@ my &last := -> | {
     }
 };
 
-my &next := -> | { 
+my &next := -> | {
     my Mu $args := nqp::p6argvmarray();
     if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
         nqp::atpos($args, 0).next()
@@ -107,7 +107,7 @@ my &next := -> | {
     }
 };
 
-my &redo := -> | { 
+my &redo := -> | {
     my Mu $args := nqp::p6argvmarray();
     if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
         nqp::atpos($args, 0).redo()
@@ -270,9 +270,9 @@ constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
-#?if parrot    
+#?if parrot
     nqp::chdir($*CWD);
-    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
+    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');
     fail "Unable to execute '$cmd'" unless $pio;
     $pio.encoding('utf8');
     my $result = nqp::p6box_s($pio.readall());
@@ -293,7 +293,7 @@ sub QX($cmd) {
     my $result = nqp::p6box_s(nqp::readallfh($pio));
     nqp::closefh($pio);
     $result;
-#?endif    
+#?endif
 }
 
 sub EXHAUST(|) {

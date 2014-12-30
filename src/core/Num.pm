@@ -15,7 +15,7 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     method Num() { self }
     method Bridge(Num:D:) { self }
-    
+
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self)) ??
             fail("Cannot coerce Inf or NaN to an Int") !!
@@ -24,7 +24,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
     multi method new() { nqp::box_n(0e0, self) }
     multi method new($n) { nqp::box_n($n.Num, self) }
-    
+
     multi method perl(Num:D:) {
         my $res = self.Str;
         if nqp::isnanorinf(nqp::unbox_n(self))
@@ -44,7 +44,7 @@ my class Num does Real { # declared in BOOTSTRAP
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
         (self == Inf || self == -Inf) && fail("Cannot coerce Inf to a Rat");
-        
+
         my Num $num = self;
         my Int $signum = $num < 0 ?? -1 !! 1;
         $num = -$num if $signum == -1;

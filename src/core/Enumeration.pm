@@ -2,27 +2,27 @@
 my role Enumeration {
     has $.key;
     has $.value;
-    
+
     multi method Numeric(::?CLASS:D:) { $!value.Numeric }
-    
+
     method enums() {
         self.^enum_values
     }
-    
+
     multi method gist(::?CLASS:D:) {
         $!key
     }
-    
+
     method kv(::?CLASS:D:) { ($!key, $!value) }
-    
+
     method pair(::?CLASS:D:) { $!key => $!value }
-    
+
     method perl() {
         self.defined ??
             (self.^name ~ '::' ~ $!key) !!
             self.^name;
     }
-    
+
     method pick(*@pos, *%named) {
         self.defined
           ?? self xx +?( @pos[0] // 1 )

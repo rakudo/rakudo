@@ -7,21 +7,21 @@ my class MapIter is Iterator {
     has Mu $!items;            # reified items we haven't consumed yet
     has Mu $!label;            # The label that might be attached to us
 
-    method new($list, $block, Mu $flattens = Bool::True, :$label) { 
+    method new($list, $block, Mu $flattens = Bool::True, :$label) {
         my $new := nqp::create(self);
-        $new.BUILD(nqp::p6listiter(nqp::list(nqp::decont($list)), $new), 
+        $new.BUILD(nqp::p6listiter(nqp::list(nqp::decont($list)), $new),
                    $block, $flattens, True, :$label);
         $new;
     }
 
-    method BUILD(Mu \listiter, \block, Mu \flattens, $first = False, :$label) { 
+    method BUILD(Mu \listiter, \block, Mu \flattens, $first = False, :$label) {
         nqp::bindattr(listiter, ListIter, '$!list', self) if nqp::isconcrete(listiter);
-        $!listiter := listiter; 
-        $!block = block; 
+        $!listiter := listiter;
+        $!block = block;
         $!first = $first;
         $!flattens = flattens;
         $!label := $label;
-        self 
+        self
     }
 
     method flattens() { $!flattens }
@@ -159,12 +159,12 @@ my class MapIter is Iterator {
             my Mu $items := $!items;
             my Mu $args := nqp::list();
             my Mu $arg;
-            
+
             # Pre-size (set to count we want, then back to zero, which leaves
             # the backing array at $count).
             nqp::setelems($rpa, $count min 1024) unless $sink;
             nqp::setelems($rpa, 0);
-            
+
             if $argc == 1 && !$NEXT {
                 # Fast path case: only 1 argument for each block, no NEXT phaser.
                 $!label ??
@@ -174,7 +174,7 @@ my class MapIter is Iterator {
                             nqp::unless(nqp::elems($items), nqp::stmts(
                                 nqp::if($!listiter, $!listiter.reify(1))
                             )),
-                            nqp::if($items, 
+                            nqp::if($items,
                                 nqp::stmts(($arg := nqp::shift($items)), $state = 2),
                                 $state = 0)
                         )),
@@ -199,12 +199,12 @@ my class MapIter is Iterator {
                             nqp::unless(nqp::elems($items), nqp::stmts(
                                 nqp::if($!listiter, $!listiter.reify(1))
                             )),
-                            nqp::if($items, 
+                            nqp::if($items,
                                 nqp::stmts(($arg := nqp::shift($items)), $state = 2),
                                 $state = 0)
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                            ($sink ?? SEQ($did_iterate = 1; $block($arg)) 
+                            ($sink ?? SEQ($did_iterate = 1; $block($arg))
                                    !! nqp::push($rpa, $block($arg))),
                             $state = 1
                         ))

@@ -374,11 +374,11 @@ proto sub trait_mod:<handles>(|) { * }
 multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target does role {
         has $.handles;
-        
+
         method set_handles($expr) {
             $!handles := $expr;
         }
-        
+
         method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
             my $meth := method (|c) is rw {
                 $attr.get_value(self)."$call_name"(|c)
@@ -386,7 +386,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
             $meth.set_name($meth_name);
             $pkg.HOW.add_method($pkg, $meth_name, $meth);
         }
-        
+
         method apply_handles($attr: Mu $pkg) {
             sub applier($expr) {
                 if $expr.defined() {

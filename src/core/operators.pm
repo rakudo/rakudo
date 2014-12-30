@@ -145,7 +145,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
                     if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) && nqp::istype($c,Numeric) {
-                        $code = { $^x + $ab } 
+                        $code = { $^x + $ab }
                     }
                     else {
                         $code = succpred($b cmp $c)
@@ -162,8 +162,8 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             }
             elsif $tail.elems == 2 {
                 my $ab = $b - $a;
-                if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) { 
-                    $code = { $^x + $ab } 
+                if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) {
+                    $code = { $^x + $ab }
                 }
                 else {
                     $code = succpred($a cmp $b)
@@ -307,7 +307,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
         # move sigil from first to last chunk, because
         # $Foo::Bar::baz is actually stored as Foo::Bar::$baz
         my $last_idx      = @parts.end;
-        @parts[$last_idx] = $first.substr(0, 1) ~ @parts[$last_idx]; 
+        @parts[$last_idx] = $first.substr(0, 1) ~ @parts[$last_idx];
         $first            = $first.substr(1);
         if $first eq '' {
             $first = @parts.shift;

@@ -9,7 +9,7 @@ class GatherIter is Iterator {
 #?endif
     method new($block, Mu :$infinite) {
 #?if parrot
-        my Mu $coro := 
+        my Mu $coro :=
             nqp::clone(nqp::getattr(&coro, Code, '$!do'));
         nqp::ifnull($coro($block), Nil);
 #?endif
@@ -44,7 +44,7 @@ class GatherIter is Iterator {
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 
-    method reify($n = 1) { 
+    method reify($n = 1) {
         if !$!reified.defined {
             my Mu $rpa := nqp::list();
             my Mu $parcel;
@@ -61,7 +61,7 @@ class GatherIter is Iterator {
                 nqp::push($rpa, $parcel) unless $end;
                 $count = $count - 1;
             }
-            nqp::push($rpa, 
+            nqp::push($rpa,
                 nqp::p6bindattrinvres(
                     nqp::p6bindattrinvres(
                         nqp::create(self), GatherIter, '$!coro', $!coro),
@@ -106,8 +106,8 @@ class GatherIter is Iterator {
 }
 
 
-sub GATHER(\block, Mu :$infinite) { 
-    GatherIter.new( block, :$infinite ).list;  
+sub GATHER(\block, Mu :$infinite) {
+    GatherIter.new( block, :$infinite ).list;
 }
 
 # vim: ft=perl6 expandtab sw=4

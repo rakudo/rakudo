@@ -65,11 +65,11 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         so $path ~~ /^ [ <$driveletter> <$slash> | <$slash> | <$UNCpath> ]/
     }
 
-    method split ($path as Str is copy) { 
+    method split ($path as Str is copy) {
         $path ~~ s[ <$slash>+ $] = ''                       #=
             unless $path ~~ /^ <$driveletter>? <$slash>+ $/;
 
-        $path ~~ 
+        $path ~~
             m/^ ( <$volume_rx> ? )
             ( [ .* <$slash> ]? )
             (.*)
@@ -90,7 +90,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 #        (:$volume, :$dirname, :$basename);
     }
 
-    method join ($volume, $dirname is copy, $file is copy) { 
+    method join ($volume, $dirname is copy, $file is copy) {
         $dirname = '' if $dirname eq '.' && $file.chars;
         if $dirname.match( /^<$slash>$/ ) && $file.match( /^<$slash>$/ ) {
             $file    = '';
@@ -99,14 +99,14 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         self.catpath($volume, $dirname, $file);
     }
 
-    method splitpath($path as Str, :$nofile = False) { 
+    method splitpath($path as Str, :$nofile = False) {
 
         if $nofile {
             $path ~~ /^ (<$volume_rx>?) (.*) /;
             (~$0, ~$1, '');
         }
         else {
-            $path ~~ 
+            $path ~~
                 m/^ ( <$volume_rx> ? )
                 ( [ .* <$slash> [ '.' ** 1..2 $]? ]? )
                 (.*)
@@ -165,9 +165,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
         my ($base_volume, $base_directories) = self.splitpath( $base, :nofile ) ;
 
-        $path = self.catpath( 
-                    $base_volume, 
-                    self.catdir( $base_directories, $path_directories ), 
+        $path = self.catpath(
+                    $base_volume,
+                    self.catdir( $base_directories, $path_directories ),
                     $path_file
                     ) ;
 
@@ -201,7 +201,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         }
         $path ~~ s/^ '\\'+ //;        # \xx --> xx  NOTE: this is *not* root
         $path ~~ s/ '\\'+ $//;        # xx\ --> xx
-        if $volume ~~ / '\\' $ / {    # <vol>\.. --> <vol>\ 
+        if $volume ~~ / '\\' $ / {    # <vol>\.. --> <vol>\
             $path ~~ s/ ^  '..'  '\\..'*  [ '\\' | $ ] //;
         }
 

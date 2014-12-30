@@ -20,13 +20,13 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method Bool(Int:D:) {
         nqp::p6bool(nqp::bool_I(self));
     }
-    
+
     method Int() { self }
-    
+
     multi method Str(Int:D:) {
         nqp::p6box_s(nqp::tostr_I(self));
     }
-    
+
     method Num(Int:D:) {
         nqp::p6box_n(nqp::tonum_I(self));
     }

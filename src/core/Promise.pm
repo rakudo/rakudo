@@ -23,13 +23,13 @@ my class Promise {
     has $!lock;
     has $!cond;
     has @!thens;
-    
+
     submethod BUILD(:$!scheduler = $*SCHEDULER) {
         $!lock            := nqp::create(Lock);
         $!cond            := $!lock.condition();
         $!status           = Planned;
     }
-    
+
     # A Promise::Vow is used to enable the right to keep/break a promise
     # to be restricted to a given "owner". Taking the Vow for a Promise
     # prevents anybody else from getting hold of it.
@@ -64,7 +64,7 @@ my class Promise {
     multi method keep(Promise:D: \result) {
         self.vow.keep(result)
     }
-    
+
     method !keep(\result) {
         $!lock.protect({
             $!result := result;
@@ -74,7 +74,7 @@ my class Promise {
         });
         $!result
     }
-    
+
     proto method break(|) { * }
     multi method break(Promise:D:) {
         self.vow.break(False)
@@ -82,7 +82,7 @@ my class Promise {
     multi method break(Promise:D: \result) {
         self.vow.break(result)
     }
-    
+
     method !break(\result) {
         $!lock.protect({
             $!result = nqp::istype(result, Exception)
@@ -93,13 +93,13 @@ my class Promise {
             $!cond.signal_all;
         });
     }
-    
+
     method !schedule_thens() {
         while @!thens {
             $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
         }
     }
-    
+
     method result(Promise:D:) {
         # One important missing optimization here is that if the promise is
         # not yet started, then the work can be done immediately by the
@@ -117,7 +117,7 @@ my class Promise {
             $!result.throw
         }
     }
-    
+
     multi method Bool(Promise:D:) {
         so $!status == any(Broken, Kept)
     }
@@ -133,7 +133,7 @@ my class Promise {
             ).throw
         }
     }
-    
+
     method then(Promise:D: &code) {
         nqp::lock($!lock);
         if $!status == Broken | Kept {
@@ -154,7 +154,7 @@ my class Promise {
             $then_promise
         }
     }
-    
+
     method start(Promise:U: &code, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
@@ -163,14 +163,14 @@ my class Promise {
             :catch(-> $ex { $vow.break($ex) }) );
         $p
     }
-    
+
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
     }
-    
+
     method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1) }
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p) }
 

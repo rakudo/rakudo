@@ -6,7 +6,7 @@ class Array { # declared in BOOTSTRAP
     # class Array is List {
     #     has Mu $!descriptor;
 
-    method new(|) { 
+    method new(|) {
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
 
@@ -87,7 +87,7 @@ class Array { # declared in BOOTSTRAP
         self.gimme($pos + 1);
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
-    
+
     method delete_pos(\pos, :$SINK) {
         fail X::Subscript::Negative.new(index => pos, type => self.WHAT) if pos < 0;
 
@@ -167,10 +167,10 @@ class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        method new(|) { 
+        method new(|) {
             my Mu $args := nqp::p6argvmarray();
             nqp::shift($args);
-            
+
             my $list := nqp::p6list($args, self.WHAT, Bool::True);
 
             my $of = self.of;

@@ -121,7 +121,7 @@ multi sub infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
 
 multi sub prefix:<->(Real:D \a)            { -a.Bridge }
 
-# NOTE: According to the spec, infix:<mod> is "Not coercive, 
+# NOTE: According to the spec, infix:<mod> is "Not coercive,
 # so fails on differing types."  Thus no casts here.
 proto sub infix:<mod>($, $) {*}
 multi sub infix:<mod>(Real $a, Real $b) {

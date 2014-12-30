@@ -297,7 +297,7 @@ my class Any { # declared in BOOTSTRAP
     proto method min (|) { * }
     multi method min(Any:D:) {
         my $min;
-        for self { 
+        for self {
             $min = $_ if .defined and !$min.defined || $_ cmp $min < 0;
         }
         $min // Inf;
@@ -305,7 +305,7 @@ my class Any { # declared in BOOTSTRAP
     multi method min(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min;
-        for self { 
+        for self {
             $min = $_ if .defined and !$min.defined || $cmp($_, $min) < 0;
         }
         $min // Inf;
@@ -314,7 +314,7 @@ my class Any { # declared in BOOTSTRAP
     proto method max (|) { * }
     multi method max(Any:D:) {
         my $max;
-        for self { 
+        for self {
             $max = $_ if .defined and !$max.defined || $_ cmp $max > 0;
         }
         $max // -Inf;
@@ -322,7 +322,7 @@ my class Any { # declared in BOOTSTRAP
     multi method max(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max;
-        for self { 
+        for self {
             $max = $_ if .defined and !$max.defined || $cmp($_, $max) > 0;
         }
         $max // -Inf;
@@ -385,7 +385,7 @@ my class Any { # declared in BOOTSTRAP
     multi method assign_pos(\SELF: \pos, Mu \assignee) {
         SELF.at_pos(pos) = assignee;
     }
-    
+
     method all() { all(self.list) }
     method any() { any(self.list) }
     method one() { one(self.list) }
@@ -416,7 +416,7 @@ my class Any { # declared in BOOTSTRAP
         SELF.at_key(key) = assignee;
     }
 
-    method FLATTENABLE_LIST() { 
+    method FLATTENABLE_LIST() {
         my $list := self.list;
         nqp::findmethod($list, 'FLATTENABLE_LIST')($list);
     }
@@ -678,7 +678,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                     my $kv := %a.delete_key('kv');
                     if !%a {
                         !$kv | $wasthere
-                          ?? ( $one, !( $wasthere ?^ $exists ) ) 
+                          ?? ( $one, !( $wasthere ?^ $exists ) )
                           !! ();
                     }
                     else {
@@ -843,7 +843,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
     my $at = SELF.can( $array ?? 'at_pos'     !! 'at_key'     )[0];
     my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
 
-    my \result = do {  
+    my \result = do {
 
         if %a.delete_key('delete') {       # :delete:*
             my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
@@ -868,7 +868,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     if !%a {                     # :delete:exists(0|1):kv(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
-                            ($_, !( $wasthere ?^ $exists )) 
+                            ($_, !( $wasthere ?^ $exists ))
                               if !$kv | $wasthere;
                         } ).flat.eager.Parcel
                     }

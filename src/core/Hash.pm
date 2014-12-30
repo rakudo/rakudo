@@ -4,7 +4,7 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is EnumMap {
     #     has Mu $!descriptor;
 
-    method new(*@args) { 
+    method new(*@args) {
         my %h := nqp::create(self);
         %h.STORE(@args) if @args;
         %h;
@@ -265,7 +265,7 @@ my class Hash { # declared in BOOTSTRAP
             self.{$key} = $value;
         }
     }
-    
+
     my role TypedHash[::TValue] does Associative[TValue] {
         method at_key(::?CLASS:D: $key is copy) is rw {
             $key = $key.Str;
@@ -336,7 +336,7 @@ my class Hash { # declared in BOOTSTRAP
                         nqp::bindkey(
                             nqp::getattr(self, $?CLASS, '$!keys'),
                             nqp::unbox_s($key_which),
-                            key);                        
+                            key);
                         nqp::bindkey(
                             nqp::getattr(self, EnumMap, '$!storage'),
                             nqp::unbox_s($key_which),

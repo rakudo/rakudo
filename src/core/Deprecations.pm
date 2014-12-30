@@ -105,7 +105,7 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
 
     # update callsite
     $dep.callsites{$callsite.file.IO}{$callsite.line}++;
-} 
+}
 
 END {
     unless %*ENV<RAKUDO_NO_DEPRECATIONS> {

@@ -5,15 +5,15 @@ my class Enum does Associative {
     method new(:$key, Mu :$value) { nqp::create(self).BUILD($key, $value) }
     method BUILD(\key, Mu \value) { $!key = key; $!value = value; self }
 
-    multi method ACCEPTS(Enum:D: Associative:D $topic) { 
-        $topic{$.key} ~~ $.value 
+    multi method ACCEPTS(Enum:D: Associative:D $topic) {
+        $topic{$.key} ~~ $.value
     }
 
     multi method ACCEPTS(Enum:D: Mu $topic) {
         my $method = $.key;
         $topic."$method"() === $.value;
     }
-    
+
     method invert() {
         self.new(key => $.value, value => $.key);
     }
@@ -39,7 +39,7 @@ my class Enum does Associative {
     method fmt($format = "%s\t%s") {
         sprintf($format, $.key, $.value);
     }
-    
+
     method at_key($key) {
         $key eq $!key ?? $!value !! Mu
     }
@@ -47,7 +47,7 @@ my class Enum does Associative {
     method exists_key(Enum:D: $key) {
         $key eq $!key
     }
-    
+
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() { nqp::hash($!key, $!value) }
 }

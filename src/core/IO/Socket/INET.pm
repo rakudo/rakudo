@@ -64,17 +64,17 @@ my class IO::Socket::INET does IO::Socket {
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(|%args)!initialize()
     }
-    
+
     method !initialize() {
 #?if parrot
         my $PIO := Q:PIR { %r = root_new ['parrot';'Socket'] };
-        $PIO.socket($.family, $.type, $.proto);        
+        $PIO.socket($.family, $.type, $.proto);
 #?endif
 #?if !parrot
         my $PIO := nqp::socket($.listen ?? 10 !! 0);
 #?endif
         #Quoting perl5's SIO::INET:
-        #If Listen is defined then a listen socket is created, else if the socket type, 
+        #If Listen is defined then a listen socket is created, else if the socket type,
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $.listen || $.localhost || $.localport {
 #?if parrot
@@ -101,7 +101,7 @@ my class IO::Socket::INET does IO::Socket {
             nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
 #?endif
         }
-        
+
         nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);
         self;
     }
@@ -122,7 +122,7 @@ my class IO::Socket::INET does IO::Socket {
         my int $sep-len = nqp::chars($sep);
         my str $line    = nqp::readlinefh($io);
         my int $len     = nqp::chars($line);
-        
+
         if $len == 0 { Str }
         else {
             ++$!ins;

@@ -20,7 +20,7 @@ my class Junction { # declared in BOOTSTRAP
     multi method Bool(Junction:D:) {
         SEQ($!storage.map({return True if $_}).gimme(*); return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.map({return False unless $_}).gimme(*); return True) 
+        SEQ($!storage.map({return False unless $_}).gimme(*); return True)
             if nqp::iseq_s($!type, 'all');
         SEQ($!storage.map({return False if $_}).gimme(*); return True)
             if nqp::iseq_s($!type, 'none');
@@ -37,7 +37,7 @@ my class Junction { # declared in BOOTSTRAP
     multi method ACCEPTS(Junction:D: Mu \topic) {
         SEQ($!storage.map({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.map({return False unless $_.ACCEPTS(topic)}).gimme(*); return True) 
+        SEQ($!storage.map({return False unless $_.ACCEPTS(topic)}).gimme(*); return True)
             if nqp::iseq_s($!type, 'all');
         SEQ($!storage.map({return False if $_.ACCEPTS(topic)}).gimme(*); return True)
             if nqp::iseq_s($!type, 'none');
@@ -50,22 +50,22 @@ my class Junction { # declared in BOOTSTRAP
     multi method gist(Junction:D:) {
         $!type ~ '(' ~ $!storage.map({$_.gist}).join(', ') ~ ')'
     }
-    
-    multi method perl(Junction:D:) { 
+
+    multi method perl(Junction:D:) {
         $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
     }
-    
+
     method invoke($c) {
         self.AUTOTHREAD(
             -> $obj, |c { $obj(|c) },
             self, |$c);
     }
-    
+
     method sink(Junction:D:) {
         .?sink for $!storage.list;
         Nil;
     }
-    
+
     method AUTOTHREAD(&call, |args) {
         my Mu $pos_rpa := nqp::getattr(nqp::decont(args), Capture, '$!list');
         sub thread_junction(int $i) {
@@ -128,7 +128,7 @@ my class Junction { # declared in BOOTSTRAP
                 return $res_junc;
             }
         }
-        
+
         # If we get here, wasn't actually anything to autothread.
         call(|args);
     }

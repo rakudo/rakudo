@@ -12,7 +12,7 @@ my class Mix does Mixy {
         @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 
-    method total (--> Real) { $!total //= [+] self.values }   
+    method total (--> Real) { $!total //= [+] self.values }
     method at_key($k --> Real) {
         my $key := $k.WHICH;
         %!elems.exists_key($key)

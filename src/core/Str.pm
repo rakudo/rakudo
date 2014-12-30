@@ -238,7 +238,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $r1 = $r1 - 1;
             # extend string if carried past first rangechar position
             $str = nqp::replace($str, $r0, 0,
-                       nqp::existskey($carrydigit, $ch1) 
+                       nqp::existskey($carrydigit, $ch1)
                            ?? nqp::atkey($carrydigit, $ch1)
                            !! $ch1)
                 if $r1 < $r0;
@@ -559,7 +559,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $icu = $*VM.config<has_icu>;
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
-            $result ~= %esc{$ch} 
+            $result ~= %esc{$ch}
                        //  (   ((!$icu && $ch.ord >= 256)
                                || nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0))
@@ -567,7 +567,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?if !parrot
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
-            $result ~= %esc{$ch} 
+            $result ~= %esc{$ch}
                        //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0)
 #?endif
@@ -590,9 +590,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! self.match(:g, :$x, $pat).map: { .Str }
     }
 
-    method match($pat, 
+    method match($pat,
                   :continue(:$c), :pos(:$p),
-                  :global(:$g), :overlap(:$ov), :exhaustive(:$ex), 
+                  :global(:$g), :overlap(:$ov), :exhaustive(:$ex),
                   # :st(:nd(:rd(:th($nth)))) is cute, but slow
                   :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');
@@ -631,7 +631,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         if $x.defined {
             $multi = True;
             if nqp::istype($x, Int) {
-                @matches := @matches.gimme($x) >= $x 
+                @matches := @matches.gimme($x) >= $x
                             ?? @matches[^$x]
                             !! ().list
             }
@@ -1090,7 +1090,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         has str $.unsubstituted_text;
         has str $.substituted_text;
-        
+
         submethod BUILD(:$!source) { }
 
         method add_substitution($key, $value) {
@@ -1142,7 +1142,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             # triage_substitution has a side effect!
             @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }
 
-            $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index, 
+            $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
                 = $!source.substr($!index, $!next_match - $!index);
             if defined $!next_substitution {
                 my $result = $!next_substitution.value;

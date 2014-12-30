@@ -6,7 +6,7 @@ my class ListIter { # declared in BOOTSTRAP
     #   has Mu $!nextiter;     # next iterator in sequence, if any
     #   has Mu $!rest;         # VM's array of elements remaining to be reified
     #   has Mu $!list;         # List object associated with this iterator
-    
+
     method reify($n = 1, :$sink) {
         unless nqp::isconcrete($!reified) {
             my $eager := nqp::p6bool(nqp::istype($n, Whatever));
@@ -37,13 +37,13 @@ my class ListIter { # declared in BOOTSTRAP
                     if nqp::isconcrete($x) {
                         SEQ(nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
                         $x := $x.iterator.reify(
-                                  $eager 
-                                    ?? Whatever 
+                                  $eager
+                                    ?? Whatever
                                     !! nqp::p6box_i($count - nqp::elems($rpa)),
                                   :$sink)
                             if nqp::istype($x, Iterable);
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
-                    
+
                     }
                     elsif nqp::not_i(nqp::istype($x, Nil)) {
                         nqp::push($rpa, $x);
@@ -65,7 +65,7 @@ my class ListIter { # declared in BOOTSTRAP
     }
 
     method infinite() {
-        $!rest 
+        $!rest
           ?? nqp::istype(nqp::atpos($!rest, 0), Iterable)
              && nqp::atpos($!rest,0).infinite
              || Nil

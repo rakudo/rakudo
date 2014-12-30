@@ -59,8 +59,8 @@ my class List does Positional { # declared in BOOTSTRAP
         self.map({ .fmt($format) }).join($separator);
     }
 
-    method flat() { self.flattens 
-                    ?? self 
+    method flat() { self.flattens
+                    ?? self
                     !! nqp::p6list(nqp::list(self), List, Bool::True)
     }
     method list() { self }
@@ -138,7 +138,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $count
     }
 
-    method infinite() { 
+    method infinite() {
         self.DEFINITE && $!nextiter.defined && $!nextiter.infinite;
     }
 
@@ -203,7 +203,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method shift() is parcel {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
-          ?? nqp::shift($!items) 
+          ?? nqp::shift($!items)
           !! fail 'Element shifted from empty list';
     }
 
@@ -270,7 +270,7 @@ my class List does Positional { # declared in BOOTSTRAP
             callsame();
         }
     }
-    
+
     multi method unshift(List:D: *@values) {
         fail 'Cannot .unshift an infinite list' if @values.infinite;
         nqp::p6listitems(self);
@@ -559,7 +559,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
     multi method perl(List:D \SELF:) {
         self.gimme(*);
-        self.Parcel.perl ~ '.list'  
+        self.Parcel.perl ~ '.list'
           ~ (nqp::iscont(SELF) ?? '.item' !! '')
     }
 
@@ -624,7 +624,7 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
-    proto method combinations($?) {*}                                                  
+    proto method combinations($?) {*}
     multi method combinations( Int $of ) {
         ([self[@$_]] for combinations(self.elems, $of).eager)
     }

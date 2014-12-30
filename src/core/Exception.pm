@@ -247,7 +247,7 @@ do {
             X::ControlFlow.new(illegal => 'take', enclosing => 'gather').throw;
         }
     }
-            
+
     my Mu $comp := nqp::getcomp('perl6');
     $comp.HOW.add_method($comp, 'handle-exception',
         method (|) {
@@ -541,7 +541,7 @@ my class X::OutOfRange is Exception {
     has $.range = '<unknown>';
     has $.comment;
     method message() {
-        $.comment.defined 
+        $.comment.defined
            ?? "$.what out of range. Is: $.got, should be in $.range.gist(); $.comment"
            !! "$.what out of range. Is: $.got, should be in $.range.gist()"
     }
@@ -1083,12 +1083,12 @@ my class X::Syntax::Regex::MalformedRange does X::Syntax {
 my class X::Syntax::Regex::Unspace does X::Syntax {
     has $.char;
     method message { "No unspace allowed in regex; if you meant to match the literal character, " ~
-        "please enclose in single quotes ('" ~ $.char ~ "') or use a backslashed form like \\x" ~ 
+        "please enclose in single quotes ('" ~ $.char ~ "') or use a backslashed form like \\x" ~
         sprintf('%02x', $.char.ord)
     }
 }
 
-my class X::Syntax::Regex::Unterminated does X::Syntax { 
+my class X::Syntax::Regex::Unterminated does X::Syntax {
     method message { 'Regex not terminated.' }
 }
 
@@ -1334,13 +1334,13 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     has @.arguments;
     has $.objname;
     has $.signature;
-    method message { 
+    method message {
             ($.protoguilt ?? "Calling proto of '" !! "Calling '") ~
             $.objname ~ "' " ~
             (+@.arguments == 0
               ?? "requires arguments (if you meant to operate on \$_, please use .$.objname or use an explicit invocant or argument)\n"
-              !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n") 
-            ~ $.signature 
+              !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n")
+            ~ $.signature
     }
 }
 
@@ -1438,7 +1438,7 @@ my class X::HyperOp::NonDWIM is Exception {
     has $.right-elems;
     method message() {
         "Lists on both side of non-dwimmy hyperop of &.operator.name() are not of the same length\n"
-        ~ "left: $.left-elems elements, right: $.right-elems elements"; 
+        ~ "left: $.left-elems elements, right: $.right-elems elements";
     }
 }
 
@@ -1587,7 +1587,7 @@ my class X::Caller::NotDynamic is Exception {
             X::Role::Initialization.new(:$role).throw
         }
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));
-    
+
     0;
 }
 

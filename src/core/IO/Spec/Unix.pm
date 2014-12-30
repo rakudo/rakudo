@@ -4,8 +4,8 @@ my class IO::Spec::Unix is IO::Spec {
         my $path = $patharg.Str;
         return '' if $path eq '';
 
-        $path ~~ s:g { '//' '/'* }         = '/';     # xx////xx  -> xx/xx  
-        $path ~~ s:g { '/.'+ ['/' | $] }   = '/';     # xx/././xx -> xx/xx  
+        $path ~~ s:g { '//' '/'* }         = '/';     # xx////xx  -> xx/xx
+        $path ~~ s:g { '/.'+ ['/' | $] }   = '/';     # xx/././xx -> xx/xx
         $path ~~ s { ^ './' <!before $> }  = '';      # ./xx      -> xx
         if $parent {
             Nil while $path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = '';
@@ -72,7 +72,7 @@ my class IO::Spec::Unix is IO::Spec {
             ( '', $path, '' );
         }
         else {
-            $path ~~ m/^ ( [ .* \/ [ '.'**1..2 $ ]? ]? ) (<-[\/]>*) /; 
+            $path ~~ m/^ ( [ .* \/ [ '.'**1..2 $ ]? ]? ) (<-[\/]>*) /;
             ( '', ~$0, ~$1 );
         }
     }
@@ -162,7 +162,7 @@ my class IO::Spec::Unix is IO::Spec {
         }
         return self.curdir unless @pathchunks || @basechunks;
 
-        # $base now contains the directories the resulting relative path 
+        # $base now contains the directories the resulting relative path
         # must ascend out of before it can descend to $path_directory.
         my $result_dirs = self.catdir( self.updir() xx @basechunks.elems, @pathchunks );
         return self.canonpath( self.catpath('', $result_dirs, '') );

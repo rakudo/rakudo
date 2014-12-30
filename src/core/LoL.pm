@@ -2,12 +2,12 @@ class LoL { # declared in BOOTSTRAP
     # class LoL is List {
     #     has Mu $!descriptor;
 
-    method new(|) { 
+    method new(|) {
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Mu);
     }
-    
+
     method at_pos($pos is copy) {
         $pos = $pos.Int;
         self.exists_pos($pos)

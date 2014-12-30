@@ -29,6 +29,10 @@ role CompUnitRepo::Locally {
 
     multi method WHICH(CompUnitRepo::Locally:D:) { $!WHICH }
 
+    method path-spec(CompUnitRepo::Locally:D:) {
+        self.short-id ~ ':' ~ $!IO.abspath;
+    }
+
     # stubs
     method install(CompUnitRepo::Locally:D: $source, $from? )             {...}
     method files(CompUnitRepo::Locally:D: $file, :$name, :$auth, :$ver)   {...}

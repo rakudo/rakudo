@@ -115,7 +115,7 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
             }
 
             # keep this one
-            @found.push: $($class, ~$<path>, %options);
+            @found.push: $(my $ = $class, ~$<path>, %options);
         }
 
         # huh?

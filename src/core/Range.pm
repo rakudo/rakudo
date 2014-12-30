@@ -214,4 +214,11 @@ sub prefix:<^>($max) {
     Range.new(0, $max.Numeric, :excludes_max) 
 }
 
+multi sub infix:<eqv>(Range:D \a, Range:D \b) {
+       a.min eqv b.min
+    && a.max eqv b.max
+    && a.excludes_min eqv b.excludes_min
+    && a.excludes_max eqv b.excludes_max
+}
+
 # vim: ft=perl6 expandtab sw=4

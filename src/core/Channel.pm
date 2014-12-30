@@ -89,13 +89,15 @@ my class Channel {
         }
     }
 
-    method list($self:) {
-        map {
-            earliest $self {
-              more * { $_ }
-              done * { last }
+    method list($self: :$wait = 0 ) {
+        gather {
+            loop {
+                earliest $self {
+                  more * { take $_ }
+                  done * { last }
+                }
             }
-        }, *;
+        }
     }
 
     method close() {

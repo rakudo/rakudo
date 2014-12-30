@@ -21,7 +21,7 @@ my class Variable {
 }
 
 # "is" traits
-multi trait_mod:<is>(Variable:D $v, |c ) {
+multi sub trait_mod:<is>(Variable:D $v, |c ) {
     $v.throw( 'X::Comp::Trait::Unknown', 
       type      => 'is',
       subtype   => c.hash.keys[0],
@@ -29,12 +29,12 @@ multi trait_mod:<is>(Variable:D $v, |c ) {
       expected  => <TypeObject default dynamic>,
     );
 }
-multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
+multi sub trait_mod:<is>(Variable:D $v, Mu:U $is ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'is TypeObject'",
     );
 }
-multi trait_mod:<is>(Variable:D $v, :$default!) {
+multi sub trait_mod:<is>(Variable:D $v, :$default!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
     try { nqp::getattr(
@@ -54,7 +54,7 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
     # make sure we start with the default if a scalar
     $var = $default if nqp::istype($what, Scalar);
 }
-multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
+multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
     try { nqp::getattr(
@@ -68,7 +68,7 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
         }
     }
 }
-multi trait_mod:<is>(Variable:D $v, :$export!) {
+multi sub trait_mod:<is>(Variable:D $v, :$export!) {
     if $v.scope ne 'our' {
         $v.throw( 'X::Comp::Trait::Scope',
           type      => 'is',
@@ -86,7 +86,7 @@ multi trait_mod:<is>(Variable:D $v, :$export!) {
 }
 
 # "of" traits
-multi trait_mod:<of>(Variable:D $v, |c ) {
+multi sub trait_mod:<of>(Variable:D $v, |c ) {
     $v.throw( 'X::Comp::Trait::Unknown', 
       type      => 'of',
       subtype   => c.hash.keys[0],
@@ -94,7 +94,7 @@ multi trait_mod:<of>(Variable:D $v, |c ) {
       expected  => <TypeObject>,
     );
 }
-multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
+multi sub trait_mod:<of>(Variable:D $v, Mu:U $of ) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
     my $how  := $what.HOW;
@@ -113,7 +113,7 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
 }
 
 # phaser traits
-multi trait_mod:<will>(Variable:D $v, $block, |c ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, |c ) {
     $v.throw( 'X::Comp::Trait::Unknown',
       type      => 'will',
       subtype   => c.hash.keys[0],
@@ -124,54 +124,54 @@ multi trait_mod:<will>(Variable:D $v, $block, |c ) {
                     'compose'),
     );
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $block(); # no need to delay execution
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$check! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$check! ) {
     $*W.add_phaser($v.slash, 'CHECK', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$final! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$final! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will final {...}'",
     );
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$init! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$init! ) {
 # for some reason exceptions are caught and not rethrown
 #    $*W.add_phaser($v.slash, 'INIT', $block)  # doesn't work :-(
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$end! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
 # for some reason exceptions are caught and not rethrown
 #    $*W.add_phaser($v.slash, 'END', $block)  # doesn't work :-(
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
     $v.block.add_phaser('ENTER', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
     $v.block.add_phaser('LEAVE', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$keep! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$keep! ) {
     $v.block.add_phaser('KEEP', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
     $v.block.add_phaser('UNDO', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$first! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$first! ) {
     $v.block.add_phaser('FIRST', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$next! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$next! ) {
     $v.block.add_phaser('NEXT', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$last! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$last! ) {
     $v.block.add_phaser('LAST', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
     $v.block.add_phaser('PRE', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$post! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$post! ) {
 # for some reason exceptions are caught and not rethrown
 #    $v.block.add_phaser('POST', $block)  # doesn't work :-(
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
 # for some reason exceptions are caught and not rethrown
 #    $*W.add_phaser($v.slash, 'COMPOSE', $block)  # doesn't work :-(
 }

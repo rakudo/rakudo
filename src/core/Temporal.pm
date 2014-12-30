@@ -617,37 +617,37 @@ my class Date does Dateish {
     }
 }
  
-multi infix:<+>(Date:D $d, Int:D $x) {
+multi sub infix:<+>(Date:D $d, Int:D $x) {
     Date.new-from-daycount($d.daycount + $x)
 }
-multi infix:<+>(Int:D $x, Date:D $d) {
+multi sub infix:<+>(Int:D $x, Date:D $d) {
     Date.new-from-daycount($d.daycount + $x)
 }
-multi infix:<->(Date:D $d, Int:D $x) {
+multi sub infix:<->(Date:D $d, Int:D $x) {
     Date.new-from-daycount($d.daycount - $x)
 }
-multi infix:<->(Date:D $a, Date:D $b) {
+multi sub infix:<->(Date:D $a, Date:D $b) {
     $a.daycount - $b.daycount;
 }
-multi infix:<cmp>(Date:D $a, Date:D $b) {
+multi sub infix:<cmp>(Date:D $a, Date:D $b) {
     $a.daycount cmp $b.daycount
 }
-multi infix:«<=>»(Date:D $a, Date:D $b) {
+multi sub infix:«<=>»(Date:D $a, Date:D $b) {
     $a.daycount <=> $b.daycount
 }
-multi infix:<==>(Date:D $a, Date:D $b) {
+multi sub infix:<==>(Date:D $a, Date:D $b) {
     $a.daycount == $b.daycount
 }
-multi infix:«<=»(Date:D $a, Date:D $b) {
+multi sub infix:«<=»(Date:D $a, Date:D $b) {
     $a.daycount <= $b.daycount
 }
-multi infix:«<»(Date:D $a, Date:D $b) {
+multi sub infix:«<»(Date:D $a, Date:D $b) {
     $a.daycount < $b.daycount
 }
-multi infix:«>=»(Date:D $a, Date:D $b) {
+multi sub infix:«>=»(Date:D $a, Date:D $b) {
     $a.daycount >= $b.daycount
 }
-multi infix:«>»(Date:D $a, Date:D $b) {
+multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 

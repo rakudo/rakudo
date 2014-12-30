@@ -124,7 +124,7 @@ class CompUnit {
 }
 
 # TEMPORARY ACCESS TO COMPUNIT INTERNALS UNTIL WE CAN LOAD DIRECTLY
-multi postcircumfix:<{ }> (CompUnit:D \c, "provides" ) {
+multi sub postcircumfix:<{ }> (CompUnit:D \c, "provides" ) {
     my % = (
       c.name => {
         pm => {
@@ -136,9 +136,9 @@ multi postcircumfix:<{ }> (CompUnit:D \c, "provides" ) {
       }
     );
 }
-multi postcircumfix:<{ }> (CompUnit:D \c, "key" ) {
+multi sub postcircumfix:<{ }> (CompUnit:D \c, "key" ) {
     c.key;
 }
-multi postcircumfix:<{ }> (CompUnit:D \c, "ver" ) {
+multi sub postcircumfix:<{ }> (CompUnit:D \c, "ver" ) {
     Version.new('0');
 }

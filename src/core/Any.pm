@@ -435,33 +435,33 @@ Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
 #?if parrot
-proto infix:<===>($?, $?) is pure { * }
+proto sub infix:<===>($?, $?) is pure { * }
 #?endif
 #?if !parrot
-proto infix:<===>(Mu $?, Mu $?) is pure { * }
+proto sub infix:<===>(Mu $?, Mu $?) is pure { * }
 #?endif
-multi infix:<===>($?)    { Bool::True }
-multi infix:<===>($a, $b) {
+multi sub infix:<===>($?)    { Bool::True }
+multi sub infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
 #?if parrot
-proto infix:<before>($, $?)  is pure { * }
+proto sub infix:<before>($, $?)  is pure { * }
 #?endif
 #?if !parrot
-proto infix:<before>(Mu $, Mu $?)  is pure { * }
+proto sub infix:<before>(Mu $, Mu $?)  is pure { * }
 #?endif
-multi infix:<before>($?)      { Bool::True }
-multi infix:<before>(\a, \b)   { (a cmp b) < 0 }
+multi sub infix:<before>($?)      { Bool::True }
+multi sub infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
 #?if parrot
-proto infix:<after>($, $?) is pure { * }
+proto sub infix:<after>($, $?) is pure { * }
 #?endif
 #?if !parrot
-proto infix:<after>(Mu $, Mu $?) is pure { * }
+proto sub infix:<after>(Mu $, Mu $?) is pure { * }
 #?endif
-multi infix:<after>($x?)       { Bool::True }
-multi infix:<after>(\a, \b)    { (a cmp b) > 0 }
+multi sub infix:<after>($x?)       { Bool::True }
+multi sub infix:<after>(\a, \b)    { (a cmp b) > 0 }
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|)             { * }
@@ -479,11 +479,11 @@ multi postfix:<-->(Mu:D \a is rw) { my $b = a; a = a.pred; $b }
 multi postfix:<-->(Mu:U \a is rw) { a = -1; 0 }
 
 # builtins
-proto infix:<min>(|) is pure { * }
-multi infix:<min>(Mu:D \a, Mu:U) { a }
-multi infix:<min>(Mu:U, Mu:D \b) { b }
-multi infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
-multi infix:<min>(*@args) { @args.min }
+proto sub infix:<min>(|) is pure { * }
+multi sub infix:<min>(Mu:D \a, Mu:U) { a }
+multi sub infix:<min>(Mu:U, Mu:D \b) { b }
+multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
+multi sub infix:<min>(*@args) { @args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
 #proto sub min(|)     { * }
@@ -491,107 +491,113 @@ multi infix:<min>(*@args) { @args.min }
 #multi sub min(*@args, :&by!) { @args.min(&by) }
 sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
 
-proto infix:<max>(|) is pure { * }
-multi infix:<max>(Mu:D \a, Mu:U) { a }
-multi infix:<max>(Mu:U, Mu:D \b) { b }
-multi infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
-multi infix:<max>(*@args) { @args.max }
+proto sub infix:<max>(|) is pure { * }
+multi sub infix:<max>(Mu:D \a, Mu:U) { a }
+multi sub infix:<max>(Mu:U, Mu:D \b) { b }
+multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
+multi sub infix:<max>(*@args) { @args.max }
 #proto sub max(|) { * }
 #multi sub max(*@args) { @args.max() }
 #multi sub max(*@args, :&by!) { @args.max(&by) }
 sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
 
-proto infix:<minmax>(|) is pure { * }
-multi infix:<minmax>(*@args) { @args.minmax }
+proto sub infix:<minmax>(|) is pure { * }
+multi sub infix:<minmax>(*@args) { @args.minmax }
 #proto sub minmax(|) { * }
 #multi sub minmax(*@args) { @args.minmax() }
 #multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
 sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
-proto map(|) {*}
+proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13
-#multi map(&code, @values) { @values.map(&code) }
-multi map(&code, *@values) { @values.map(&code) }
-multi map(Whatever, \a)    { a }
-multi map(&code, Whatever) { (1..Inf).map(&code) }
+#multi sub map(&code, @values) { @values.map(&code) }
+multi sub map(&code, *@values) { @values.map(&code) }
+multi sub map(Whatever, \a)    { a }
+multi sub map(&code, Whatever) { (1..Inf).map(&code) }
 
-proto grep(|) {*}
-multi grep(Mu $test, @values) { @values.grep($test) }
-multi grep(Mu $test, *@values) { @values.grep($test) }
-multi grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
+proto sub grep(|) {*}
+multi sub grep(Mu $test, @values) { @values.grep($test) }
+multi sub grep(Mu $test, *@values) { @values.grep($test) }
+multi sub grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
 
-proto grep-index(|) {*}
-multi grep-index(Mu $test, @values) { @values.grep-index($test) }
-multi grep-index(Mu $test, *@values) { @values.grep-index($test) }
-multi grep-index(Bool:D $t, *@v) {fail X::Match::Bool.new(type => 'grep-index')}
+proto sub grep-index(|) {*}
+multi sub grep-index(Mu $test, @values) { @values.grep-index($test) }
+multi sub grep-index(Mu $test, *@values) { @values.grep-index($test) }
+multi sub grep-index(Bool:D $t, *@v) {
+    fail X::Match::Bool.new(type => 'grep-index');
+}
 
-proto first(|) {*}
-multi first(Mu $test, @values) { @values.first($test) }
-multi first(Mu $test, *@values) { @values.first($test) }
-multi first(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
+proto sub first(|) {*}
+multi sub first(Mu $test, @values) { @values.first($test) }
+multi sub first(Mu $test, *@values) { @values.first($test) }
+multi sub first(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
 
-proto first-index(|) {*}
-multi first-index(Mu $test, @values) { @values.first-index($test) }
-multi first-index(Mu $test, *@values) { @values.first-index($test) }
-multi first-index(Bool:D $t,*@v) {fail X::Match::Bool.new(type => 'first-index')}
+proto sub first-index(|) {*}
+multi sub first-index(Mu $test, @values) { @values.first-index($test) }
+multi sub first-index(Mu $test, *@values) { @values.first-index($test) }
+multi sub first-index(Bool:D $t,*@v) {
+    fail X::Match::Bool.new(type => 'first-index');
+}
 
-proto last-index(|) {*}
-multi last-index(Mu $test, @values) { @values.last-index($test) }
-multi last-index(Mu $test, *@values) { @values.last-index($test) }
-multi last-index(Bool:D $t, *@v) {fail X::Match::Bool.new(type => 'last-index')}
+proto sub last-index(|) {*}
+multi sub last-index(Mu $test, @values) { @values.last-index($test) }
+multi sub last-index(Mu $test, *@values) { @values.last-index($test) }
+multi sub last-index(Bool:D $t, *@v) {
+    fail X::Match::Bool.new(type => 'last-index');
+}
 
-proto join(|) { * }
-multi join($sep = '', *@values) { @values.join($sep) }
+proto sub join(|) { * }
+multi sub join($sep = '', *@values) { @values.join($sep) }
 
-proto pick(|) { * }
-multi pick($n, @values) { @values.pick($n) }
-multi pick($n, *@values) { @values.pick($n) }
+proto sub pick(|) { * }
+multi sub pick($n, @values) { @values.pick($n) }
+multi sub pick($n, *@values) { @values.pick($n) }
 
-proto roll(|) { * }
-multi roll($n, @values) { @values.roll($n) }
-multi roll($n, *@values) { @values.roll($n) }
+proto sub roll(|) { * }
+multi sub roll($n, @values) { @values.roll($n) }
+multi sub roll($n, *@values) { @values.roll($n) }
 
-proto keys(|) { * }
-multi keys($x) { $x.keys }
+proto sub keys(|) { * }
+multi sub keys($x) { $x.keys }
 
-proto values(|) { * }
-multi values($x) { $x.values }
+proto sub values(|) { * }
+multi sub values($x) { $x.values }
 
-proto pairs(|) { * }
-multi pairs($x) { $x.pairs }
+proto sub pairs(|) { * }
+multi sub pairs($x) { $x.pairs }
 
-proto kv(|) { * }
-multi kv($x) { $x.kv }
+proto sub kv(|) { * }
+multi sub kv($x) { $x.kv }
 
-proto elems(|) { * }
-multi elems($a) { $a.elems }
+proto sub elems(|) { * }
+multi sub elems($a) { $a.elems }
 
-proto end(|) { * }
-multi end($a) { $a.end }
+proto sub end(|) { * }
+multi sub end($a) { $a.end }
 
-proto classify(|) { * }
-multi classify( $test, *@items ) { {}.classify-list( $test, @items ) }
-#multi classify( $test, *@items, :$into! ) {   # problem in MMD
+proto sub classify(|) { * }
+multi sub classify( $test, *@items ) { {}.classify-list( $test, @items ) }
+#multi sub classify( $test, *@items, :$into! ) {   # problem in MMD
 #    ( $into // $into.new).classify-list( $test, @items );
 #}
 
-proto categorize(|) { * }
-multi categorize( $test, *@items ) { {}.categorize-list( $test, @items ) }
-#multi categorize( $test, *@items, :$into! ) {   # problem in MMD
+proto sub categorize(|) { * }
+multi sub categorize( $test, *@items ) { {}.categorize-list( $test, @items ) }
+#multi sub categorize( $test, *@items, :$into! ) {   # problem in MMD
 #    ( $into // $into.new).categorize-list( $test, @items );
 #}
 
-proto uniq(|) { * }
-multi uniq(*@values, |c) {
+proto sub uniq(|) { * }
+multi sub uniq(*@values, |c) {
     DEPRECATED('unique', |<2014.12 2015.11>);
     @values.unique(|c)
 }
 
-proto unique(|) { * }
-multi unique(*@values, |c) { @values.unique(|c) }
+proto sub unique(|) { * }
+multi sub unique(*@values, |c) { @values.unique(|c) }
 
-proto squish(|) { * }
-multi squish(*@values, |c) { @values.squish(|c) }
+proto sub squish(|) { * }
+multi sub squish(*@values, |c) { @values.squish(|c) }
 
 proto sub sort(|) {*}
 multi sub sort(*@values)      {

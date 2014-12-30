@@ -1295,109 +1295,109 @@ my class Str does Stringy { # declared in BOOTSTRAP
 }
 
 
-multi prefix:<~>(Str:D \a)  returns Str:D { a }
-multi prefix:<~>(str $a)    returns str   { $a }
+multi sub prefix:<~>(Str:D \a)  returns Str:D { a }
+multi sub prefix:<~>(str $a)    returns str   { $a }
 
-multi infix:<~>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
+multi sub infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
 
-multi infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
+multi sub infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
     $repetition < 0
         ?? ''
         !!  nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
-multi infix:<x>(str $s, int $repetition) returns str {
+multi sub infix:<x>(str $s, int $repetition) returns str {
     nqp::if(nqp::islt_i($repetition, 0), '', nqp::x($s, $repetition))
 }
 
-multi infix:<cmp>(Str:D \a, Str:D \b) returns Order:D {
+multi sub infix:<cmp>(Str:D \a, Str:D \b) returns Order:D {
     ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<cmp>(str $a, str $b) returns Order:D {
+multi sub infix:<cmp>(str $a, str $b) returns Order:D {
     ORDER(nqp::cmp_s($a, $b))
 }
 
-multi infix:<===>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<===>(Str:D \a, Str:D \b) returns Bool:D {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<===>(str $a, str $b) returns Bool:D {
+multi sub infix:<===>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::iseq_s($a, $b))
 }
 
-multi infix:<leg>(Str:D \a, Str:D \b) returns Order:D {
+multi sub infix:<leg>(Str:D \a, Str:D \b) returns Order:D {
     ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<leg>(str $a, str $b) returns Order:D {
+multi sub infix:<leg>(str $a, str $b) returns Order:D {
     ORDER(nqp::cmp_s($a, $b))
 }
 
-multi infix:<eq>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<eq>(Str:D \a, Str:D \b) returns Bool:D {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<eq>(str $a, str $b) returns Bool:D {
+multi sub infix:<eq>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::iseq_s($a, $b))
 }
 
-multi infix:<lt>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<lt>(Str:D \a, Str:D \b) returns Bool:D {
     nqp::p6bool(nqp::islt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<lt>(str $a, str $b) returns Bool:D {
+multi sub infix:<lt>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::islt_s($a, $b))
 }
 
-multi infix:<le>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<le>(Str:D \a, Str:D \b) returns Bool:D {
     nqp::p6bool(nqp::isle_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<le>(str $a, str $b) returns Bool:D {
+multi sub infix:<le>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::isle_s($a, $b))
 }
 
-multi infix:<gt>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<gt>(Str:D \a, Str:D \b) returns Bool:D {
     nqp::p6bool(nqp::isgt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<gt>(str $a, str $b) returns Bool:D {
+multi sub infix:<gt>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::isgt_s($a, $b))
 }
 
-multi infix:<ge>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<ge>(Str:D \a, Str:D \b) returns Bool:D {
     nqp::p6bool(nqp::isge_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<le>(str $a, str $b) returns Bool:D {
+multi sub infix:<le>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::isle_s($a, $b))
 }
 
-multi infix:<~|>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~|>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::bitor_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<~|>(str $a, str $b) returns str { nqp::bitor_s($a, $b) }
+multi sub infix:<~|>(str $a, str $b) returns str { nqp::bitor_s($a, $b) }
 
-multi infix:<~&>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~&>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::bitand_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<~&>(str $a, str $b) returns str { nqp::bitand_s($a, $b) }
+multi sub infix:<~&>(str $a, str $b) returns str { nqp::bitand_s($a, $b) }
 
-multi infix:<~^>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~^>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::bitxor_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }
+multi sub infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }
 
-multi prefix:<~^>(Str \a) {
+multi sub prefix:<~^>(Str \a) {
     fail "prefix:<~^> NYI";   # XXX
 }
 
 # XXX: String-wise shifts NYI
-multi infix:«~>»(Str:D \a, Int:D \b) returns Str:D {
+multi sub infix:«~>»(Str:D \a, Int:D \b) returns Str:D {
     X::NYI.new(feature => "infix:«~>»").throw;
 }
-multi infix:«~>»(str $a, int $b) {
+multi sub infix:«~>»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~>»").throw;
 }
-multi infix:«~<»(Str:D \a, Int:D \b) returns Str:D {
+multi sub infix:«~<»(Str:D \a, Int:D \b) returns Str:D {
     X::NYI.new(feature => "infix:«~<»").throw;
 }
-multi infix:«~<»(str $a, int $b) {
+multi sub infix:«~<»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~<»").throw;
 }
 
@@ -1469,31 +1469,31 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
 # These probably belong in a separate unicodey file
 
 #?if parrot
-multi uniname(|)  { die 'uniname NYI on parrot backend' }
-multi uniprop(|)  { die 'uniprop NYI on parrot backend' }
-multi unibool(|)  { die 'unibool NYI on parrot backend' }
-multi unival(|)   { die 'unival NYI on parrot backend' }
-multi univals(|)  { die 'univals NYI on parrot backend' }
-multi unimatch(|) { die 'unimatch NYI on parrot backend' }
+multi sub uniname(|)  { die 'uniname NYI on parrot backend' }
+multi sub uniprop(|)  { die 'uniprop NYI on parrot backend' }
+multi sub unibool(|)  { die 'unibool NYI on parrot backend' }
+multi sub unival(|)   { die 'unival NYI on parrot backend' }
+multi sub univals(|)  { die 'univals NYI on parrot backend' }
+multi sub unimatch(|) { die 'unimatch NYI on parrot backend' }
 #?endif
 #?if jvm
-multi uniname(|)  { die 'uniname NYI on jvm backend' }
-multi uniprop(|)  { die 'uniprop NYI on jvm backend' }
-multi unibool(|)  { die 'unibool NYI on jvm backend' }
-multi unival(|)   { die 'unival NYI on jvm backend' }
-multi univals(|)  { die 'univals NYI on jvm backend' }
-multi unimatch(|) { die 'unimatch NYI on jvm backend' }
+multi sub uniname(|)  { die 'uniname NYI on jvm backend' }
+multi sub uniprop(|)  { die 'uniprop NYI on jvm backend' }
+multi sub unibool(|)  { die 'unibool NYI on jvm backend' }
+multi sub unival(|)   { die 'unival NYI on jvm backend' }
+multi sub univals(|)  { die 'univals NYI on jvm backend' }
+multi sub unimatch(|) { die 'unimatch NYI on jvm backend' }
 #?endif
 #?if moar
 my %propcodecache;
 my %pvalcodecache;
-proto uniname(|) {*}
-multi uniname(Str $str) { uniname($str.ord) }
-multi uniname(Int $code) { nqp::getuniname($code) }
+proto sub uniname(|) {*}
+multi sub uniname(Str $str) { uniname($str.ord) }
+multi sub uniname(Int $code) { nqp::getuniname($code) }
 
-proto uniprop(|) {*}
-multi uniprop(Str $str, |c) { uniprop($str.ord, |c) }
-multi uniprop(Int $code, Stringy $propname = "GeneralCategory") {
+proto sub uniprop(|) {*}
+multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }
+multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
     my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
     state %prefs;  # could prepopulate this with various prefs
     given %prefs{$propname} // '' {
@@ -1509,30 +1509,30 @@ multi uniprop(Int $code, Stringy $propname = "GeneralCategory") {
     }
 }
 
-proto uniprop-int(|) {*}
-multi uniprop-int(Str $str, Stringy $propname) { uniprop-int($str.ord, $propname) }
-multi uniprop-int(Int $code, Stringy $propname) {
+proto sub uniprop-int(|) {*}
+multi sub uniprop-int(Str $str, Stringy $propname) { uniprop-int($str.ord, $propname) }
+multi sub uniprop-int(Int $code, Stringy $propname) {
     my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
     nqp::getuniprop_int($code,$prop);
 }
 
-proto uniprop-bool(|) {*}
-multi uniprop-bool(Str $str, Stringy $propname) { uniprop-bool($str.ord, $propname) }
-multi uniprop-bool(Int $code, Stringy $propname) {
+proto sub uniprop-bool(|) {*}
+multi sub uniprop-bool(Str $str, Stringy $propname) { uniprop-bool($str.ord, $propname) }
+multi sub uniprop-bool(Int $code, Stringy $propname) {
     my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
     so nqp::getuniprop_bool($code,$prop);
 }
 
-proto uniprop-str(|) {*}
-multi uniprop-str(Str $str, Stringy $propname) { uniprop-str($str.ord, $propname) }
-multi uniprop-str(Int $code, Stringy $propname) {
+proto sub uniprop-str(|) {*}
+multi sub uniprop-str(Str $str, Stringy $propname) { uniprop-str($str.ord, $propname) }
+multi sub uniprop-str(Int $code, Stringy $propname) {
     my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
     nqp::getuniprop_str($code,$prop);
 }
 
-proto unival(|) {*}
-multi unival(Str $str) { unival($str.ord) }
-multi unival(Int $code) {
+proto sub unival(|) {*}
+multi sub unival(Str $str) { unival($str.ord) }
+multi sub unival(Int $code) {
     state $nuprop = nqp::unipropcode("NumericValueNumerator");
     state $deprop = nqp::unipropcode("NumericValueDenominator");
     my $nu = nqp::getuniprop_str($code, $nuprop);
@@ -1540,12 +1540,12 @@ multi unival(Int $code) {
     !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
 }
 
-proto univals(|) {*}
-multi univals(Str $str) { $str.ords.map: { unival($_) } }
+proto sub univals(|) {*}
+multi sub univals(Str $str) { $str.ords.map: { unival($_) } }
 
-proto unimatch(|) {*}
-multi unimatch(Str $str, |c) { unimatch($str.ord, |c) }
-multi unimatch(Int $code, Stringy $pvalname, Stringy $propname = $pvalname) {
+proto sub unimatch(|) {*}
+multi sub unimatch(Str $str, |c) { unimatch($str.ord, |c) }
+multi sub unimatch(Int $code, Stringy $pvalname, Stringy $propname = $pvalname) {
     my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
     my $pval = %pvalcodecache{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
     so nqp::matchuniprop($code,$prop,$pval);

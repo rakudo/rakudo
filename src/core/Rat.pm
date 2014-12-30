@@ -52,14 +52,14 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
     $r;
 }
 
-multi prefix:<->(Rat:D \a) {
+multi sub prefix:<->(Rat:D \a) {
     Rat.new(-a.numerator, a.denominator);
 }
-multi prefix:<->(FatRat:D \a) {
+multi sub prefix:<->(FatRat:D \a) {
     FatRat.new(-a.numerator, a.denominator);
 }
 
-multi infix:<+>(Rational \a, Rational \b) {
+multi sub infix:<+>(Rational \a, Rational \b) {
     my Int $gcd := a.denominator gcd b.denominator;
     DIVIDE_NUMBERS(
         (a.numerator * (b.denominator div $gcd) + b.numerator * (a.denominator div $gcd)),

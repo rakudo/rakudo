@@ -95,31 +95,31 @@ my role Real does Numeric {
 proto sub cis($) {*}
 multi sub cis(Real $a) { $a.cis }
 
-multi infix:<+>(Real \a, Real \b)   { a.Bridge + b.Bridge }
+multi sub infix:<+>(Real \a, Real \b)   { a.Bridge + b.Bridge }
 
-multi infix:<->(Real \a, Real \b)   { a.Bridge - b.Bridge }
+multi sub infix:<->(Real \a, Real \b)   { a.Bridge - b.Bridge }
 
-multi infix:<*>(Real \a, Real \b)   { a.Bridge * b.Bridge }
+multi sub infix:<*>(Real \a, Real \b)   { a.Bridge * b.Bridge }
 
-multi infix:</>(Real \a, Real \b)   { a.Bridge / b.Bridge }
+multi sub infix:</>(Real \a, Real \b)   { a.Bridge / b.Bridge }
 
-multi infix:<%>(Real \a, Real \b)   { a.Bridge % b.Bridge }
+multi sub infix:<%>(Real \a, Real \b)   { a.Bridge % b.Bridge }
 
-multi infix:<**>(Real \a, Real \b)  { a.Bridge ** b.Bridge }
+multi sub infix:<**>(Real \a, Real \b)  { a.Bridge ** b.Bridge }
 
-multi infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
+multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
 
-multi infix:<==>(Real \a, Real \b)  { a.Bridge == b.Bridge }
+multi sub infix:<==>(Real \a, Real \b)  { a.Bridge == b.Bridge }
 
-multi infix:«<»(Real \a, Real \b)   { a.Bridge < b.Bridge }
+multi sub infix:«<»(Real \a, Real \b)   { a.Bridge < b.Bridge }
 
-multi infix:«<=»(Real \a, Real \b)  { a.Bridge <= b.Bridge }
+multi sub infix:«<=»(Real \a, Real \b)  { a.Bridge <= b.Bridge }
 
-multi infix:«>»(Real \a, Real \b)   { a.Bridge > b.Bridge }
+multi sub infix:«>»(Real \a, Real \b)   { a.Bridge > b.Bridge }
 
-multi infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
+multi sub infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
 
-multi prefix:<->(Real:D \a)            { -a.Bridge }
+multi sub prefix:<->(Real:D \a)            { -a.Bridge }
 
 # NOTE: According to the spec, infix:<mod> is "Not coercive, 
 # so fails on differing types."  Thus no casts here.

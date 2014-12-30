@@ -653,20 +653,20 @@ sub list(|) {
     nqp::p6list(nqp::p6argvmarray(), List, Mu)
 }
 
-proto infix:<xx>(|)       { * }
-multi infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
-multi infix:<xx>(Mu \x)   {x }
-multi infix:<xx>(Mu \x, $n is copy, :$thunked!) {
+proto sub infix:<xx>(|)       { * }
+multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
+multi sub infix:<xx>(Mu \x)   {x }
+multi sub infix:<xx>(Mu \x, $n is copy, :$thunked!) {
     $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? Inf !! $n.Int;
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
-multi infix:<xx>(Mu \x, Whatever, :$thunked!) {
+multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
     GatherIter.new({ loop { take x.() } }, :infinite(True)).flat
 }
-multi infix:<xx>(Mu \x, Whatever) {
+multi sub infix:<xx>(Mu \x, Whatever) {
     GatherIter.new({ loop { take x } }, :infinite(True)).flat
 }
-multi infix:<xx>(Mu \x, $n) {
+multi sub infix:<xx>(Mu \x, $n) {
     my int $size = $n.Int;
 
     my Mu $rpa := nqp::list();

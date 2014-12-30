@@ -422,11 +422,11 @@ multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re &
 multi sub infix:<==>(Complex:D \a, Real      \b) returns Bool:D { a.re == b    && a.im == 0e0   }
 multi sub infix:<==>(Real      \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0   == b.im }
 
-proto postfix:<i>(|) returns Complex:D is pure { * }
-multi postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }
-multi postfix:<i>(Complex:D \a) returns Complex:D { Complex.new(-a.im, a.re) }
-multi postfix:<i>(Numeric   \a) returns Complex:D { a * Complex.new(0e0, 1e0) }
-multi postfix:<i>(Cool      \a) returns Complex:D { a.Numeric * Complex.new(0e0, 1e0) }
+proto sub postfix:<i>(|) returns Complex:D is pure { * }
+multi sub postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }
+multi sub postfix:<i>(Complex:D \a) returns Complex:D { Complex.new(-a.im, a.re) }
+multi sub postfix:<i>(Numeric   \a) returns Complex:D { a * Complex.new(0e0, 1e0) }
+multi sub postfix:<i>(Cool      \a) returns Complex:D { a.Numeric * Complex.new(0e0, 1e0) }
 
 constant i = Complex.new(0e0, 1e0);
 

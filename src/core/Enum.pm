@@ -56,7 +56,7 @@ multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
     $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
 }
 
-multi infix:<cmp>(Enum:D \a, Enum:D \b) {
+multi sub infix:<cmp>(Enum:D \a, Enum:D \b) {
     (a.key cmp b.key) || (a.value cmp b.value)
 }
 

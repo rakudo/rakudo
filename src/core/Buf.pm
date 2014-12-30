@@ -338,7 +338,7 @@ multi sub pack(Str $template, *@items) {
     return Buf.new(@bytes);
 }
 
-multi infix:<~>(Blob:D $a, Blob:D $b) {
+multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $res := ($a.WHAT === $b.WHAT ?? $a !! Buf).new;
     my $adc := nqp::decont($a);
     my $bdc := nqp::decont($b);
@@ -361,7 +361,7 @@ multi infix:<~>(Blob:D $a, Blob:D $b) {
     $res
 }
 
-multi prefix:<~^>(Blob:D $a) {
+multi sub prefix:<~^>(Blob:D $a) {
     $a ~~ Blob[int16] ?? $a.new($a.list.map: 0xFFFF - *) !!
     $a ~~ Blob[int32] ?? $a.new($a.list.map: 0xFFFFFFFF - *) !!
                          $a.new($a.list.map: 0xFF - *);
@@ -391,7 +391,7 @@ multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
     ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
 }
 
-multi infix:<eqv>(Blob:D $a, Blob:D $b) {
+multi sub infix:<eqv>(Blob:D $a, Blob:D $b) {
     if $a.WHAT === $b.WHAT && $a.elems == $b.elems {
         my int $n  = $a.elems;
         my int $i  = 0;

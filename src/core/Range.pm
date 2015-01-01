@@ -201,20 +201,20 @@ my class Range is Iterable is Cool does Positional {
     method excludes_max() { DEPRECATED('excludes-max', |<2014.12 2015.12>); $!excludes-max }
 }
 
-sub infix:<..>($min, $max) { 
-    Range.new($min, $max) 
+sub infix:<..>($min, $max) {
+    Range.new($min, $max)
 }
-sub infix:<^..>($min, $max) { 
-    Range.new($min, $max, :excludes-min) 
+sub infix:<^..>($min, $max) {
+    Range.new($min, $max, :excludes-min)
 }
-sub infix:<..^>($min, $max) { 
-    Range.new($min, $max, :excludes-max) 
+sub infix:<..^>($min, $max) {
+    Range.new($min, $max, :excludes-max)
 }
 sub infix:<^..^>($min, $max) is pure {
-    Range.new($min, $max, :excludes-min, :excludes-max) 
+    Range.new($min, $max, :excludes-min, :excludes-max)
 }
 sub prefix:<^>($max) {
-    Range.new(0, $max.Numeric, :excludes-max) 
+    Range.new(0, $max.Numeric, :excludes-max)
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -28,8 +28,8 @@ for (
 
 ) -> $to-check { parse_ok( $to-check ) };
 
-#?rakudo todo 'RT #122137'
 ok 1, '#122137';
+##?rakudo todo 'RT #122137'
 #parse_ok( 
 #  ( '/foo/bar , inst:/installed' =>
 #    [ $( CompUnitRepo::Local::File, '/foo/bar', ().hash ),

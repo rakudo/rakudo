@@ -16,10 +16,10 @@ role CompUnitRepo::Locally {
 
     multi method Str(CompUnitRepo::Locally:D:) { $!IO.abspath }
     multi method gist(CompUnitRepo::Locally:D:) {
-      "{self.short-id}:{$!IO.abspath}"
+        "{self.short-id}:$!IO.abspath()";
     }
     multi method perl(CompUnitRepo::Locally:D:) {
-      "CompUnitRepo.new('{self.short-id}:{$!IO.abspath}')"
+        $?CLASS.^name ~ ".new('$!IO.abspath()')";
     }
 
     method path(CompUnitRepo::Locally:D:) {

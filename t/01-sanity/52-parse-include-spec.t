@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 13;
+plan 14;
 
 for (
 
@@ -49,6 +49,10 @@ for (
     [ $( CompUnitRepo::GitHub, "masak/html-template", ().hash ) ] ),
 ) -> $to-check { parse_ok( $to-check ) };
 ';
+
+my $current = CREATE-INCLUDE-SPEC(@*INC);
+my @INC = PARSE-INCLUDE-SPEC($current).map: { $_[0].new($_[1]) };
+is_deeply @INC, @*INC, 'can we reprodice an @*INC setting';
 
 #========================================================
 sub parse_ok ($to-check) {

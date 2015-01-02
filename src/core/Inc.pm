@@ -56,7 +56,7 @@
     # starting up for creating precomp
     if %*ENV<RAKUDO_PRECOMP_WITH> -> \specs {
         for PARSE-INCLUDE-SPEC(specs) -> \spec {
-            @INC.push: make-cur(|spec);
+            @INC.push: make-cur(spec[0],spec[1]);
         }
     }
 

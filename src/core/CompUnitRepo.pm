@@ -1,3 +1,4 @@
+role  CompUnitRepo::Locally             { ... }
 class CompUnitRepo::Local::File         { ... }
 class CompUnitRepo::Local::Installation { ... }
 
@@ -124,6 +125,14 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
         }
     }
     @found;
+}
+
+sub CREATE-INCLUDE-SPEC(@INC) {
+    my $root = $*CWD ~ '/';
+    @INC.map( {
+        (nqp::istype($_,CompUnitRepo::Locally) ?? .short-id !! .^name)
+         ~ ':' ~ REMOVE-ROOT($root,.IO.abspath);
+    } ).join(',');
 }
 
 # vim: ft=perl6 expandtab sw=4

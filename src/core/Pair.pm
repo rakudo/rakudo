@@ -10,7 +10,7 @@ my class Pair is Enum {
     }
 }
 
-sub infix:«=>»($key, Mu $value) { 
+sub infix:«=>»($key, Mu $value) {
     Pair.new(:key($key), :value($value))
 }
 

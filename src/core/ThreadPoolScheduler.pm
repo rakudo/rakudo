@@ -7,11 +7,11 @@ my class ThreadPoolScheduler does Scheduler {
     # when empty until some work arrives.
     my class Queue is repr('ConcBlockingQueue') { }
     has $!queue;
-    
+
     # Semaphore to ensure we don't start more than the maximum number of
     # threads allowed.
     has $!thread_start_semaphore;
-    
+
     # Number of outstanding work items, used for rough management of the
     # pool size.
     has int $!loads;
@@ -24,11 +24,11 @@ my class ThreadPoolScheduler does Scheduler {
 
     # If we've got incoming I/O events we need a thread to handle.
     has int $!need_io_thread;
-    
+
     # Initial and maximum threads.
     has Int $.initial_threads;
     has Int $.max_threads;
-    
+
     # Have we started any threads yet?
     has int $!started_any;
 
@@ -60,7 +60,7 @@ my class ThreadPoolScheduler does Scheduler {
             });
         }
     }
-    
+
     submethod BUILD(
         Int :$!initial_threads = 0,
         Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 16).Int,
@@ -139,7 +139,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         # just cue the code
         else {
-            my &run := &catch 
+            my &run := &catch
                ?? -> { code(); CATCH { default { catch($_) } } }
                !! &code;
             self!maybe_new_thread() if $!loads + $!need_io_thread <= $!threads_started;

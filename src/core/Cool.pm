@@ -3,7 +3,7 @@ my class IOU { ... }
 
 my class SprintfHandler {
     method mine($x) { nqp::reprname($x) eq "P6opaque"; }
-    
+
     method int($x) { $x.Int }
 }
 
@@ -45,7 +45,7 @@ my class Cool { # declared in BOOTSTRAP
     method cotanh()  { self.Numeric.cotanh }
     method acotanh() { self.Numeric.acotanh }
     method cis()     { self.Numeric.cis }
-    
+
     proto method log(|) {*}
     multi method log(Cool:D: )      { self.Numeric.log          }
     multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
@@ -85,7 +85,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    method substr($start, $length?) { 
+    method substr($start, $length?) {
         self.Stringy.substr($start, $length);
     }
 

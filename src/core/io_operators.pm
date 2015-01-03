@@ -293,21 +293,6 @@ sub link($target, $name, :$CWD as Str = $*CWD) {
     $result // $result.throw;
 }
 
-# deprecations
-{
-    sub cwd() {
-        return nqp::p6box_s(nqp::cwd());
-        CATCH { default {
-            fail X::IO::Cwd.new( os-error => .Str,);
-        } }
-    }
-#    PROCESS::<&cwd> := Deprecation.obsolete(
-#      :name('&*cwd'),
-#      :value(&cwd),
-#      :instead('chdir'),
-#    );
-}
-
 sub cwd() {
     DEPRECATED('$*CWD', |<2014.10 2015.10>);
     $*CWD.chop;

@@ -25,7 +25,7 @@ my class Block { # declared in BOOTSTRAP
             nqp::shift($iter).() while $iter;
         }
     }
-    
+
     method phasers(Str $name) {
         unless nqp::isnull($!phasers) {
             if nqp::existskey($!phasers, nqp::unbox_s($name)) {

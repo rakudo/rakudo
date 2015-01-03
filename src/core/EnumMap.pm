@@ -26,7 +26,7 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     multi method ACCEPTS(EnumMap:D: Regex $topic) {
         so self.keys.any.match($topic);
     }
-    
+
     proto method exists_key(|) {*}
     multi method exists_key(EnumMap:U:) { False }
     multi method exists_key(EnumMap:D: Str:D \key) {
@@ -84,13 +84,13 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
     }
-    
+
     method Capture(EnumMap:D:) {
         my $cap := nqp::create(Capture);
         nqp::bindattr($cap, Capture, '$!hash', $!storage);
         $cap
     }
-    
+
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
         nqp::defined($!storage) ||
@@ -106,7 +106,7 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
             self.pairs.fmt($format, $sep);
         }
     }
-    
+
     method hash() { self }
 }
 

@@ -19,7 +19,7 @@ my class Instant is Cool does Real {
                 ++$offset;
             } else {
                 return self.new: $posix + $offset + do
-                    $_ == $p && !$prefer-leap-second 
+                    $_ == $p && !$prefer-leap-second
             }
         }
         self.new: $posix + $offset;

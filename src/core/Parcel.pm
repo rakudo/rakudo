@@ -147,7 +147,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
 
         # first pass -- scan lhs containers and pick out
         # scalar versus list assignment.  This also reifies
-        # the rhs values 
+        # the rhs values
         my Mu $lhs := nqp::clone($!storage);
         my Mu $tv := nqp::list();
         while ($lhs) {

@@ -233,7 +233,7 @@ multi sub infix:<<(<+)>>(Baggy $a, Baggy $b --> Bool) {
 only sub infix:<<"\x227C">>($a, $b --> Bool) {
     $a (<+) $b;
 }
-  
+
 proto sub infix:<<(>+)>>($, $ --> Bool) {*}
 multi sub infix:<<(>+)>>(Baggy $a, Baggy $b --> Bool) {
     so all $b.keys.map({ $b{$_} <= $a{$_} });

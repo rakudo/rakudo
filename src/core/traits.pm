@@ -41,8 +41,8 @@ my sub set_trailing_docs($obj, $docs) {
     }
 }
 
-proto trait_mod:<is>(|) { * }
-multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
+proto sub trait_mod:<is>(|) { * }
+multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
         $child.HOW.add_parent($child, $parent);
     }
@@ -56,27 +56,27 @@ multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         ).throw;
     }
 }
-multi trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
+multi sub trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
 # add COMPOSE phaser for this child, which will add an ENTER phaser to an
 # existing "new" method, or create a "new" method with a call to DEPRECATED
 # and a nextsame.
 }
-multi trait_mod:<is>(Mu:U $type, :$rw!) {
+multi sub trait_mod:<is>(Mu:U $type, :$rw!) {
     $type.HOW.set_rw($type);
 }
-multi trait_mod:<is>(Mu:U $type, :$nativesize!) {
+multi sub trait_mod:<is>(Mu:U $type, :$nativesize!) {
     $type.HOW.set_nativesize($type, $nativesize);
 }
-multi trait_mod:<is>(Mu:U $type, :$unsigned!) {
+multi sub trait_mod:<is>(Mu:U $type, :$unsigned!) {
     $type.HOW.set_unsigned($type, $unsigned);
 }
-multi trait_mod:<is>(Mu:U $type, :$hidden!) {
+multi sub trait_mod:<is>(Mu:U $type, :$hidden!) {
     $type.HOW.set_hidden($type);
 }
-multi trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
+multi sub trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
     $type.HOW.set_array_type($type, $array_type);
 }
-multi trait_mod:<is>(Mu:U $type, *%fail) {
+multi sub trait_mod:<is>(Mu:U $type, *%fail) {
     if %fail.keys[0] !eq $type.HOW.name($type) {
         X::Inheritance::UnknownParent.new(
             :child($type.HOW.name($type)),
@@ -90,7 +90,7 @@ multi trait_mod:<is>(Mu:U $type, *%fail) {
     }
 }
 
-multi trait_mod:<is>(Attribute:D $attr, |c ) {
+multi sub trait_mod:<is>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
       file       => $?FILE,
       line       => $?LINE,
@@ -100,30 +100,30 @@ multi trait_mod:<is>(Attribute:D $attr, |c ) {
       highexpect => <rw readonly box_target leading_docs trailing_docs>,
     ).throw;
 }
-multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
     warn "useless use of 'is rw' on $attr.name()" unless $attr.has_accessor;
 }
-multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     $attr.set_readonly();
     warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
-multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
 }
-multi trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 # need to add a COMPOSE phaser to the class, that will add an ENTER phaser
 # to the (possibly auto-generated) accessor method.
 }
-multi trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
     set_leading_docs($attr, $leading_docs);
 }
 
-multi trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
     set_trailing_docs($attr, $trailing_docs);
 }
 
-multi trait_mod:<is>(Routine:D $r, |c ) {
+multi sub trait_mod:<is>(Routine:D $r, |c ) {
     X::Comp::Trait::Unknown.new(
       file       => $?FILE,
       line       => $?LINE,
@@ -135,28 +135,28 @@ multi trait_mod:<is>(Routine:D $r, |c ) {
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
 }
-multi trait_mod:<is>(Routine:D $r, :$rw!) {
+multi sub trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
-multi trait_mod:<is>(Routine:D $r, :$parcel!) {
+multi sub trait_mod:<is>(Routine:D $r, :$parcel!) {
     $r.set_rw(); # for now, until we have real parcel handling
 }
-multi trait_mod:<is>(Routine:D $r, :$default!) {
+multi sub trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
-multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
+multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
     $r.add_phaser( 'ENTER', -> { DEPRECATED($new) } );
 }
-multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
+multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));
 }
-multi trait_mod:<is>(Routine:D $r, :$onlystar!) {
+multi sub trait_mod:<is>(Routine:D $r, :$onlystar!) {
     $r.set_onlystar();
 }
-multi trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
+multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     my role Precedence {
         has %.prec;
     }
@@ -171,12 +171,12 @@ multi trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     }
     0;
 }
-multi trait_mod:<is>(Routine $r, :&equiv!) {
+multi sub trait_mod:<is>(Routine $r, :&equiv!) {
     nqp::can(&equiv, 'prec')
         ?? trait_mod:<is>($r, :prec(&equiv.prec))
         !! die "Routine given to equiv does not appear to be an operator";
 }
-multi trait_mod:<is>(Routine $r, :&tighter!) {
+multi sub trait_mod:<is>(Routine $r, :&tighter!) {
     die "Routine given to tighter does not appear to be an operator"
         unless nqp::can(&tighter, 'prec');
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
@@ -184,7 +184,7 @@ multi trait_mod:<is>(Routine $r, :&tighter!) {
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, '@=');
 }
-multi trait_mod:<is>(Routine $r, :&looser!) {
+multi sub trait_mod:<is>(Routine $r, :&looser!) {
     die "Routine given to looser does not appear to be an operator"
         unless nqp::can(&looser, 'prec');
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
@@ -192,7 +192,7 @@ multi trait_mod:<is>(Routine $r, :&looser!) {
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, ':=');
 }
-multi trait_mod:<is>(Routine $r, :$assoc!) {
+multi sub trait_mod:<is>(Routine $r, :$assoc!) {
     trait_mod:<is>($r, :prec({ :$assoc }))
 }
 
@@ -200,7 +200,7 @@ multi trait_mod:<is>(Routine $r, :$assoc!) {
 # point we wrote its proto, we do it manually here.
 BEGIN &trait_mod:<is>.set_onlystar();
 
-multi trait_mod:<is>(Parameter:D $param, |c ) {
+multi sub trait_mod:<is>(Parameter:D $param, |c ) {
     X::Comp::Trait::Unknown.new(
       file       => $?FILE,
       line       => $?LINE,
@@ -210,25 +210,25 @@ multi trait_mod:<is>(Parameter:D $param, |c ) {
       highexpect => <rw readonly copy required parcel leading_docs trailing_docs>,
     ).throw;
 }
-multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
+multi sub trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.
 }
-multi trait_mod:<is>(Parameter:D $param, :$rw!) {
+multi sub trait_mod:<is>(Parameter:D $param, :$rw!) {
     $param.set_rw();
 }
-multi trait_mod:<is>(Parameter:D $param, :$copy!) {
+multi sub trait_mod:<is>(Parameter:D $param, :$copy!) {
     $param.set_copy();
 }
-multi trait_mod:<is>(Parameter:D $param, :$required!) {
+multi sub trait_mod:<is>(Parameter:D $param, :$required!) {
     $param.set_required();
 }
-multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
+multi sub trait_mod:<is>(Parameter:D $param, :$parcel!) {
     $param.set_parcel();
 }
-multi trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
+multi sub trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
     set_leading_docs($param, $leading_docs);
 }
-multi trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
+multi sub trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
     set_trailing_docs($param, $trailing_docs);
 }
 
@@ -268,7 +268,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     }
     0;
 }
-multi trait_mod:<is>(Routine:D \r, :$export!) {
+multi sub trait_mod:<is>(Routine:D \r, :$export!) {
     my $to_export := r.multi ?? r.dispatcher !! r;
     my $exp_name  := '&' ~ r.name;
     my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
@@ -276,7 +276,7 @@ multi trait_mod:<is>(Routine:D \r, :$export!) {
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
-multi trait_mod:<is>(Mu:U \type, :$export!) {
+multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.HOW.name(type);
     my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                        nqp::istype($export,Positional) ?? @($export)>>.key !!
@@ -284,7 +284,7 @@ multi trait_mod:<is>(Mu:U \type, :$export!) {
     EXPORT_SYMBOL($exp_name, @tags, type);
 }
 # for constants
-multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
+multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
     my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                     nqp::istype($export,Positional) ?? @($export)>>.key !!
                     'DEFAULT');
@@ -294,23 +294,22 @@ multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
 
 # this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
 # will catch it and declare "docs" to be an unknown trait
-multi trait_mod:<is>(Routine:D $r, :$leading_docs!) {
+multi sub trait_mod:<is>(Routine:D $r, :$leading_docs!) {
     set_leading_docs($r, $leading_docs);
 }
-multi trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
+multi sub trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
     set_trailing_docs($r, $trailing_docs);
 }
 
-multi trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
+multi sub trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
     set_leading_docs($docee, $leading_docs);
 }
-multi trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
+multi sub trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
     set_trailing_docs($docee.HOW, $trailing_docs);
 }
 
-
-proto trait_mod:<does>(|) { * }
-multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
+proto sub trait_mod:<does>(|) { * }
+multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     if $role.HOW.archetypes.composable() {
         $doee.HOW.add_role($doee, $role)
     }
@@ -325,12 +324,12 @@ multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     }
 }
 
-proto trait_mod:<of>(|) { * }
-multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
+proto sub trait_mod:<of>(|) { * }
+multi sub trait_mod:<of>(Mu:U $target, Mu:U $type) {
     # XXX Ensure we can do this, die if not.
     $target.HOW.set_of($target, $type);
 }
-multi trait_mod:<of>(Routine:D $target, Mu:U $type) {
+multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
     X::Redeclaration.new(what => 'return type for', symbol => $target,
         postfix => " (previous return type was {$sig.returns.^name})").throw
@@ -338,26 +337,26 @@ multi trait_mod:<of>(Routine:D $target, Mu:U $type) {
     $sig.set_returns($type)
 }
 
-multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
+multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
     $r.HOW.mixin($r, role {
         method is_hidden_from_backtrace { True }
     });
 }
 
-multi trait_mod:<is>(Routine:D $r, :$hidden_from_USAGE!) {
+multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_USAGE!) {
     $r.HOW.mixin($r, role {
         method is_hidden_from_USAGE { True }
     });
 }
 
-multi trait_mod:<is>(Routine:D $r, :$pure!) {
+multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
     $r.HOW.mixin($r, role {
         method IS_PURE { True }
     });
 }
 
-proto trait_mod:<returns>(|) { * }
-multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
+proto sub trait_mod:<returns>(|) { * }
+multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
     X::Redeclaration.new(what => 'return type for', symbol => $target,
         postfix => " (previous return type was {$sig.returns.^name})").throw
@@ -365,21 +364,21 @@ multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     $sig.set_returns($type)
 }
 
-proto trait_mod:<as>(|) { * }
-multi trait_mod:<as>(Parameter:D $param, $type) {
+proto sub trait_mod:<as>(|) { * }
+multi sub trait_mod:<as>(Parameter:D $param, $type) {
     $param.set_coercion($type);
 }
 
 my class Pair { ... }
-proto trait_mod:<handles>(|) { * }
-multi trait_mod:<handles>(Attribute:D $target, $thunk) {
+proto sub trait_mod:<handles>(|) { * }
+multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target does role {
         has $.handles;
-        
+
         method set_handles($expr) {
             $!handles := $expr;
         }
-        
+
         method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
             my $meth := method (|c) is rw {
                 $attr.get_value(self)."$call_name"(|c)
@@ -387,7 +386,7 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
             $meth.set_name($meth_name);
             $pkg.HOW.add_method($pkg, $meth_name, $meth);
         }
-        
+
         method apply_handles($attr: Mu $pkg) {
             sub applier($expr) {
                 if $expr.defined() {
@@ -466,18 +465,18 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     0;
 }
 
-proto trait_mod:<will>(|) { * }
-multi trait_mod:<will>(Attribute $attr, Block :$build!) {
+proto sub trait_mod:<will>(|) { * }
+multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {
     $attr.set_build($build)
 }
 
-proto trait_mod:<trusts>(|) { * }
-multi trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
+proto sub trait_mod:<trusts>(|) { * }
+multi sub trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
     $truster.HOW.add_trustee($truster, $trustee);
 }
 
-proto trait_mod:<hides>(|) { * }
-multi trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
+proto sub trait_mod:<hides>(|) { * }
+multi sub trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
         $child.HOW.add_parent($child, $parent, :hides);
     }

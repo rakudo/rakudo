@@ -34,7 +34,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             Nil;
         }
     }
-    
+
     method on_demand(&producer, :&closing, :$scheduler = CurrentThreadScheduler) {
         my class OnDemandSupply does Supply {
             has &!producer;
@@ -120,13 +120,13 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
         IntervalSupply.new(:$interval, :$delay, :$scheduler)
     }
-    
+
     method flat(Supply $source) {
         my class FlatSupply does Supply does PrivatePublishing {
             has $!source;
-            
+
             submethod BUILD(:$!source) { }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -146,9 +146,9 @@ my class SupplyOperations is repr('Uninstantiable') {
         my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
             has Mu $!test;
-            
+
             submethod BUILD(:$!source, :$!test) { }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -173,9 +173,9 @@ my class SupplyOperations is repr('Uninstantiable') {
         my class MapSupply does Supply does PrivatePublishing {
             has $!source;
             has &!mapper;
-            
+
             submethod BUILD(:$!source, :&!mapper) { }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -195,9 +195,9 @@ my class SupplyOperations is repr('Uninstantiable') {
         my class ScheduleSupply does Supply does PrivatePublishing {
             has $!source;
             has $!scheduler;
-            
+
             submethod BUILD(:$!source, :$!scheduler) { }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -212,14 +212,14 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
         ScheduleSupply.new(:$source, :$scheduler)
     }
-    
+
     method start(Supply $s, &startee) {
         my class StartSupply does Supply does PrivatePublishing {
             has $!value;
             has &!startee;
-            
+
             submethod BUILD(:$!value, :&!startee) { }
-            
+
             method live { $s.live }
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
@@ -250,11 +250,11 @@ my class SupplyOperations is repr('Uninstantiable') {
             has $!scheduler;
             has $!lock;
             has $!last_cancellation;
-            
+
             submethod BUILD(:$!source, :$!time, :$!scheduler) {
                 $!lock = Lock.new;
             }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -291,9 +291,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             has $!source;
             has $!time;
             has $!scheduler;
-            
+
             submethod BUILD(:$!source, :$!time, :$!scheduler) { }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -319,11 +319,11 @@ my class SupplyOperations is repr('Uninstantiable') {
             has $!source;
             has $!current;
             has $!lock;
-            
+
             submethod BUILD(:$!source) {
                 $!lock = Lock.new;
             }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -351,7 +351,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         my class ClassifySupply does Supply does PrivatePublishing {
             has $!source;
             has %!mapping;
-            
+
             submethod BUILD(:$!source) { }
             submethod find_supply ($key) {
                 %!mapping{ $key.WHICH } //= do {
@@ -360,7 +360,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                     $s;
                 };
             }
-            
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;

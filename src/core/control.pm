@@ -22,14 +22,14 @@ sub RETURN-PARCEL(Mu \parcel) is rw {
             !! parcel)
 }
 
-my &return-rw := -> | { 
-    my $parcel := 
+my &return-rw := -> | {
+    my $parcel :=
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     nqp::p6routinereturn($parcel);
     $parcel
 };
 my &return := -> | {
-    my $parcel := 
+    my $parcel :=
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     nqp::p6routinereturn(nqp::p6recont_ro($parcel));
     $parcel
@@ -44,16 +44,16 @@ my &take-rw := -> | {
 }
 #?endif
 #?if !jvm
-proto take-rw(|) { * }
-multi take-rw() {
+proto sub take-rw(|) { * }
+multi sub take-rw() {
     THROW(Nil, nqp::const::CONTROL_TAKE);
     Nil
 }
-multi take-rw(\x) {
+multi sub take-rw(\x) {
     THROW(x, nqp::const::CONTROL_TAKE);
     x
 }
-multi take-rw(|) {
+multi sub take-rw(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW($parcel, nqp::const::CONTROL_TAKE);
     $parcel
@@ -69,16 +69,16 @@ my &take := -> | {
 }
 #?endif
 #?if !jvm
-proto take(|) { * }
-multi take() {
+proto sub take(|) { * }
+multi sub take() {
     THROW(Nil, nqp::const::CONTROL_TAKE);
     Nil
 }
-multi take(\x) {
+multi sub take(\x) {
     THROW(nqp::p6recont_ro(x), nqp::const::CONTROL_TAKE);
     x
 }
-multi take(|) {
+multi sub take(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
     $parcel
@@ -96,7 +96,7 @@ my &last := -> | {
     }
 };
 
-my &next := -> | { 
+my &next := -> | {
     my Mu $args := nqp::p6argvmarray();
     if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
         nqp::atpos($args, 0).next()
@@ -107,7 +107,7 @@ my &next := -> | {
     }
 };
 
-my &redo := -> | { 
+my &redo := -> | {
     my Mu $args := nqp::p6argvmarray();
     if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
         nqp::atpos($args, 0).redo()
@@ -118,14 +118,14 @@ my &redo := -> | {
     }
 };
 
-proto succeed(|) { * }
-multi succeed() {
+proto sub succeed(|) { * }
+multi sub succeed() {
     THROW(Nil, nqp::const::CONTROL_SUCCEED)
 }
-multi succeed(\x) {
+multi sub succeed(\x) {
     THROW(nqp::decont(x), nqp::const::CONTROL_SUCCEED)
 }
-multi succeed(|) {
+multi sub succeed(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), nqp::const::CONTROL_SUCCEED)
 }
@@ -293,7 +293,7 @@ sub QX($cmd) {
     my $result = nqp::p6box_s(nqp::readallfh($pio));
     nqp::closefh($pio);
     $result;
-#?endif    
+#?endif
 }
 
 sub EXHAUST(|) {

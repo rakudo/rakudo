@@ -542,7 +542,7 @@ my class IO::Path is Cool {
         FILETEST-ACCESSED($!abspath);
     }
 
-    method changed() { 
+    method changed() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<changed>) if !$.e;
         FILETEST-CHANGED($!abspath);
     }

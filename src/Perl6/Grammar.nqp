@@ -2838,6 +2838,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
           ]?
+
+          :dba('shape declaration')
+          :my $*IN_DECL := '';
+          [
+          | <?before ':('>  ':'  # XXX allow fakesig parsed as subsig for the moment
+          | <?before '('>         <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
+          | <?before '['>         <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant a subsignature for unpacking'>
+               <postcircumfix>
+          | <?before <[ { < « ]>> <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant something else'>
+               <postcircumfix>
+          ]?
         ]
     }
 
@@ -3759,6 +3770,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<opening>=[ '«' | '»' ]
         {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
+        <.can_meta($<infixish>, "hyper with")>
         {} <O=.copyO($<infixish>)>
     }
 
@@ -4042,14 +4054,36 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
-        || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
+        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
         || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
         ]
     }
-    token infix_prefix_meta_operator:sym<R> { <sym> <infixish('R')> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<S> { <sym> <infixish('S')> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<X> { <sym> <infixish('X')> <O('%list_infix')> }
-    token infix_prefix_meta_operator:sym<Z> { <sym> <infixish('Z')> <O('%list_infix')> }
+
+    token infix_prefix_meta_operator:sym<R> {
+        <sym> <infixish('R')> {}
+        <.can_meta($<infixish>, "reverse the args of")>
+        <O=.copyO($<infixish>)>
+    }
+
+    token infix_prefix_meta_operator:sym<S> {
+        <sym> <infixish('S')> {}
+        <.can_meta($<infixish>, "sequence the args of")>
+        <O=.copyO($<infixish>)>
+    }
+
+    token infix_prefix_meta_operator:sym<X> {
+        <sym> <infixish('X')> {}
+        <.can_meta($<infixish>, "cross with")>
+        <O('%list_infix')>
+
+    }
+
+    token infix_prefix_meta_operator:sym<Z> {
+        <sym> <infixish('Z')> {}
+        <.can_meta($<infixish>, "zip with")>
+        <O('%list_infix')>
+    }
+
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
     token infix:sym<:=> {
@@ -4287,7 +4321,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # runs us into fun with terminators.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
-                self.panic("Unable to identify both starter and stopper from '$opname'\nPerhaps you forgot to separate them with whitespace?");
+                self.typed_panic('X::Syntax::AddCategorial::MissingSeparator', :$opname);
             }
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -4303,7 +4337,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # Find opener and closer and parse an EXPR between them.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
-                self.panic("Unable to identify both starter and stopper from '$opname'\nPerhaps you forgot to separate them with whitespace?");
+                self.typed_panic('X::Syntax::AddCategorial::MissingSeparator', :$opname);
             }
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {

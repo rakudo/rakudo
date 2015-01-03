@@ -39,7 +39,7 @@ my class MixHash does Mixy {
         else {
             Mix.new-from-pairs(%!elems.values);
         }
-    }           
+    }
     method MixHash { self }
     method Bag     { Bag.new-from-pairs(%!elems.values) }
     method BagHash { BagHash.new-from-pairs(%!elems.values) }

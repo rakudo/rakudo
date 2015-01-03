@@ -78,7 +78,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         else {
             $d.id = $repo<dist-count>++
         }
-        
+
         # Build patterns to choose what goes into "provides" section.
         my $ext = regex { [pm|pm6|pir|pbc|jar|moarvm] };
         my @provides;
@@ -86,13 +86,13 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             $v.=subst(/ [pm|pm6]? \.<$ext>$/, '.');
             @provides.push: regex { $v [ [pm|pm6] \. ]? <ext=.$ext> { make $k } }
         }
-        
+
         # Initialize "provides" section.
         for %($d.provides).kv -> $k, $v is rw {
             # when we do not use .kv, we error out when trying to store into Pairs
             $v = {};
         }
-        
+
         # Walk the to be installed files, decide whether we put them into
         # "provides" or just "files".
         for @files -> $file is copy {
@@ -127,9 +127,9 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             copy($file, $path ~ '/' ~ $file-id);
             $file-id++;
         }
-        
+
         $repo<dists>[$d.id] = $d.Hash;
-        
+
         # XXX Create path if needed.
         "$path/MANIFEST".IO.spurt: to-json( $repo )
     } ) }
@@ -143,7 +143,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
                             ?? $dist<ver>
                             !! Version.new( $dist<ver> )
                         !! Version.new('0');
-                
+
                 if (!$name || $dist<name> ~~ $name)
                 && (!$auth || $dist<auth> ~~ $auth)
                 && (!$ver  || $dver ~~ $ver)
@@ -168,7 +168,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
                             ?? $dist<ver>
                             !! Version.new( ~$dist<ver> )
                         !! Version.new('0');
-                
+
                 if (!$auth || $dist<auth> ~~ $auth)
                 && (!$ver  || $dver ~~ $ver)
                 && $dist<provides>{$name} {

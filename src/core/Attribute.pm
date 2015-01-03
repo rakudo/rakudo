@@ -79,15 +79,15 @@ my class Attribute { # declared in BOOTSTRAP
                 $package.HOW.add_method($package, $meth_name, $meth);
             }
         }
-        
+
         # Apply any handles trait we may have.
         self.apply_handles($package);
     }
-    
+
     method apply_handles(Mu $pkg) {
         # None by default.
     }
-    
+
     method get_value(Mu $obj) {
         my $decont := nqp::decont($obj);
         given nqp::p6box_i(nqp::objprimspec($!type)) {
@@ -97,7 +97,7 @@ my class Attribute { # declared in BOOTSTRAP
             when 3 { nqp::p6box_s(nqp::getattr_s($decont, $!package, $!name)) }
         }
     }
-    
+
     method set_value(Mu $obj, Mu \value) {
         my $decont := nqp::decont($obj);
         given nqp::p6box_i(nqp::objprimspec($!type)) {
@@ -107,7 +107,7 @@ my class Attribute { # declared in BOOTSTRAP
             when 3 { nqp::p6box_s(nqp::bindattr_s($decont, $!package, $!name, value)) }
         }
     }
-    
+
     method container() is rw { nqp::isnull($!auto_viv_container) ?? Mu !! $!auto_viv_container }
     method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }

@@ -39,7 +39,7 @@ sub INVOKE_KV(&block, $key, $value?) {
     die "Couldn't figure out how to invoke {&block.signature().perl}";
 }
 
-sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
+sub EARLIEST(@earliest, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
     my Num $until = $wait ?? nqp::time_n() + $wait_time !! Nil;
 
     my constant $EARLIEST_KIND_DONE = 0;
@@ -47,6 +47,7 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
 
     my @todo;
 #       |-- [ ordinal, kind, contestant, block, alternate_block? ]
+    my %distinct-channels;
 
     # sanity check and transmogrify possibly multiple channels into things to do
     while +@other {
@@ -61,17 +62,21 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
             if !nqp::istype($next,Channel) {
                 die "Got a {$next.WHAT.perl}, but expected a Channel";
             }
-            push @contestant, $next;
+            @contestant.push: $next;
         }
         my &block = @other.shift;
 
-        @todo.push: [ +@todo, $kind, $_, &block ] for @contestant;
+        for @contestant {
+            %distinct-channels{$_.WHICH} = $_;
+            @todo.push: [ +@todo, $kind, $_, &block ];
+        }
     }
 
-    # transmogrify any winner spec if nothing to do so far
+    # transmogrify any earliest spec if nothing to do so far
     if !@todo {
-        for @winner {
+        for @earliest {
             when Channel {
+                %distinct-channels{$_.WHICH} = $_;
                 @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more, $wild_done ];
             }
             default {
@@ -81,7 +86,7 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
     }
 
     if !@todo {
-        die "Nothing todo for winner";
+        die "Nothing todo for earliest";
     }
 
     my $action;
@@ -100,15 +105,32 @@ sub EARLIEST(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is 
             }
 
             else { # $kind == $EARLIEST_KIND_MORE
+                if +%distinct-channels == 1 && !$wait {
+                    try {
+                        my $value := $contestant.receive;
+                        $action = { INVOKE_KV($todo[3], $todo[0], $value) };
+                        last CHECK;
 
-                if !nqp::istype((my $value := $contestant.poll),Nil) {
-                    $action = { INVOKE_KV($todo[3], $todo[0], $value) };
-                    last CHECK;
+                        CATCH {
+                            when X::Channel::ReceiveOnClosed {
+                                if $todo[4] {
+                                    $action = { INVOKE_KV($todo[4], $todo[0]) };
+                                    last CHECK;
+                                }
+                            }
+                        }
+                    }
                 }
+                else {
+                    if !nqp::istype((my $value := $contestant.poll),Nil) {
+                        $action = { INVOKE_KV($todo[3], $todo[0], $value) };
+                        last CHECK;
+                    }
 
-                elsif $contestant.closed && $todo[4] {
-                    $action = { INVOKE_KV($todo[4], $todo[0]) };
-                    last CHECK;
+                    elsif $contestant.closed && $todo[4] {
+                        $action = { INVOKE_KV($todo[4], $todo[0]) };
+                        last CHECK;
+                    }
                 }
             }
         }

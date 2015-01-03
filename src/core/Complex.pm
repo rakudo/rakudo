@@ -90,11 +90,11 @@ my class Complex is Cool does Numeric {
         $mag **= 1e0 / $n;
         (^$n).map: { $mag.unpolar( ($angle + $_ * 2e0 * pi) / $n) };
     }
-    
+
     method sin(Complex:D:) {
         $!re.sin * $!im.cosh + ($!re.cos * $!im.sinh)i;
     }
-    
+
     method asin(Complex:D:) {
         (Complex.new(0, -1) * log((self)i + sqrt(1 - self * self)));
     }
@@ -102,15 +102,15 @@ my class Complex is Cool does Numeric {
     method cos(Complex:D:) {
         $!re.cos * $!im.cosh - ($!re.sin * $!im.sinh)i;
     }
-    
+
     method acos(Complex:D:) {
         (pi / 2) - self.asin;
     }
-    
+
     method tan(Complex:D:) {
         self.sin / self.cos;
     }
-    
+
     method atan(Complex:D:) {
         ((log(1 - (self)i) - log(1 + (self)i))i / 2);
     }
@@ -142,47 +142,47 @@ my class Complex is Cool does Numeric {
     method sinh(Complex:D:) {
         -((Complex.new(0, 1) * self).sin)i;
     }
-    
+
     method asinh(Complex:D:) {
         (self + sqrt(1 + self * self)).log;
     }
-    
+
     method cosh(Complex:D:) {
         (Complex.new(0, 1) * self).cos;
     }
-    
+
     method acosh(Complex:D:) {
         (self + sqrt(self * self - 1)).log;
     }
-    
+
     method tanh(Complex:D:) {
         -((Complex.new(0, 1) * self).tan)i;
     }
-    
+
     method atanh(Complex:D:) {
         (((1 + self) / (1 - self)).log / 2);
     }
-    
+
     method sech(Complex:D:) {
         1 / self.cosh;
     }
-    
+
     method asech(Complex:D:) {
         (1 / self).acosh;
     }
-    
+
     method cosech(Complex:D:) {
         1 / self.sinh;
     }
-    
+
     method acosech(Complex:D:) {
         (1 / self).asinh;
     }
-    
+
     method cotanh(Complex:D:) {
         1 / self.tanh;
     }
-    
+
     method acotanh(Complex:D:) {
         (1 / self).atanh;
     }
@@ -412,7 +412,7 @@ multi sub infix:<**>(Complex:D \a, Complex:D \b) returns Complex:D {
     (a.re == 0e0 && a.im == 0e0) ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
 multi sub infix:<**>(Real      \a, Complex:D \b) returns Complex:D {
-    a == 0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp 
+    a == 0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Real      \b) returns Complex:D {
     (b * a.log).exp
@@ -422,11 +422,11 @@ multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re &
 multi sub infix:<==>(Complex:D \a, Real      \b) returns Bool:D { a.re == b    && a.im == 0e0   }
 multi sub infix:<==>(Real      \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0   == b.im }
 
-proto postfix:<i>(|) returns Complex:D is pure { * }
-multi postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }
-multi postfix:<i>(Complex:D \a) returns Complex:D { Complex.new(-a.im, a.re) }
-multi postfix:<i>(Numeric   \a) returns Complex:D { a * Complex.new(0e0, 1e0) }
-multi postfix:<i>(Cool      \a) returns Complex:D { a.Numeric * Complex.new(0e0, 1e0) }
+proto sub postfix:<i>(|) returns Complex:D is pure { * }
+multi sub postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }
+multi sub postfix:<i>(Complex:D \a) returns Complex:D { Complex.new(-a.im, a.re) }
+multi sub postfix:<i>(Numeric   \a) returns Complex:D { a * Complex.new(0e0, 1e0) }
+multi sub postfix:<i>(Cool      \a) returns Complex:D { a.Numeric * Complex.new(0e0, 1e0) }
 
 constant i = Complex.new(0e0, 1e0);
 

@@ -1,7 +1,7 @@
-my class Grammar is Cursor { 
+my class Grammar is Cursor {
     method parse($target, :$rule = 'TOP',  Parcel :$args = (), Mu :$actions = Mu, *%opt) {
         my $*ACTIONS = $actions;
-        my $result = 
+        my $result =
             self."!cursor_init"($target, |%opt)."$rule"(|$args).MATCH;
         $result = Nil unless $result.to == $target.chars;
         nqp::getlexcaller('$/') = $result;

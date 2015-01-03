@@ -7,15 +7,15 @@ sub infix:<=>(Mu \a, Mu \b) is rw {
     nqp::p6store(a, b)
 }
 
-proto infix:<does>(Mu, Mu, *%) { * }
-multi infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
+proto sub infix:<does>(Mu, Mu, *%) { * }
+multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.HOW.mixin(obj, $role).BUILD_LEAST_DERIVED({});
 }
-multi infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
+multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
@@ -23,25 +23,25 @@ multi infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
     my \mixedin = obj.HOW.mixin(obj, $role, :need-mixin-attribute);
     mixedin.BUILD_LEAST_DERIVED({ mixedin.^mixin_attribute.Str.substr(2) => $value });
 }
-multi infix:<does>(Mu:U \obj, Mu:U \role) is rw {
+multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
     X::Does::TypeObject.new().throw
 }
-multi infix:<does>(Mu:D \obj, @roles) is rw {
+multi sub infix:<does>(Mu:D \obj, @roles) is rw {
     # XXX Mutability check.
     obj.HOW.mixin(obj, |@roles).BUILD_LEAST_DERIVED({});
 }
-multi infix:<does>(Mu:U \obj, @roles) is rw {
+multi sub infix:<does>(Mu:U \obj, @roles) is rw {
     X::Does::TypeObject.new().throw
 }
 
-proto infix:<but>(Mu, Mu, *%) { * }
-multi infix:<but>(Mu:D \obj, Mu:U \rolish) {
+proto sub infix:<but>(Mu, Mu, *%) { * }
+multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.HOW.mixin(obj.clone(), $role).BUILD_LEAST_DERIVED({});
 }
-multi infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
+multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
@@ -55,13 +55,13 @@ multi infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
     }
     mixedin.BUILD_LEAST_DERIVED({ attr.Str.substr(2) => $mixin-value });
 }
-multi infix:<but>(Mu:U \obj, Mu:U \rolish) {
+multi sub infix:<but>(Mu:U \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.HOW.mixin(obj, $role);
 }
-multi infix:<but>(Mu \obj, Mu:D $val) is rw {
+multi sub infix:<but>(Mu \obj, Mu:D $val) is rw {
     my $role := Metamodel::ParametricRoleHOW.new_type();
     my $meth := method () { $val };
     $meth.set_name($val.^name);
@@ -71,10 +71,10 @@ multi infix:<but>(Mu \obj, Mu:D $val) is rw {
     $role.HOW.compose($role);
     obj.HOW.mixin(obj.clone(), $role);
 }
-multi infix:<but>(Mu:D \obj, @roles) {
+multi sub infix:<but>(Mu:D \obj, @roles) {
     obj.HOW.mixin(obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
 }
-multi infix:<but>(Mu:U \obj, @roles) {
+multi sub infix:<but>(Mu:U \obj, @roles) {
     obj.HOW.mixin(obj, |@roles)
 }
 
@@ -145,7 +145,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
                     if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) && nqp::istype($c,Numeric) {
-                        $code = { $^x + $ab } 
+                        $code = { $^x + $ab }
                     }
                     else {
                         $code = succpred($b cmp $c)
@@ -162,8 +162,8 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             }
             elsif $tail.elems == 2 {
                 my $ab = $b - $a;
-                if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) { 
-                    $code = { $^x + $ab } 
+                if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) {
+                    $code = { $^x + $ab }
                 }
                 else {
                     $code = succpred($a cmp $b)
@@ -307,7 +307,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
         # move sigil from first to last chunk, because
         # $Foo::Bar::baz is actually stored as Foo::Bar::$baz
         my $last_idx      = @parts.end;
-        @parts[$last_idx] = $first.substr(0, 1) ~ @parts[$last_idx]; 
+        @parts[$last_idx] = $first.substr(0, 1) ~ @parts[$last_idx];
         $first            = $first.substr(1);
         if $first eq '' {
             $first = @parts.shift;

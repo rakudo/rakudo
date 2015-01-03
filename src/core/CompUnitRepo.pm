@@ -1,3 +1,4 @@
+role  CompUnitRepo::Locally             { ... }
 class CompUnitRepo::Local::File         { ... }
 class CompUnitRepo::Local::Installation { ... }
 
@@ -62,14 +63,14 @@ my %CURLID2CLASS = (
 sub PARSE-INCLUDE-SPEC(Str $specs) {
     my @found;
     my $class = %CURLID2CLASS<file>;
-    
+
     # for all possible specs
     for $specs.split(/ \s* ',' \s* /) -> $spec {
         my %options;
 
         # something we understand
         if $spec ~~ /^
-          [ 
+          [
             $<type>=[ <.ident>+ % '::' ]
             [ ':' $<n>=\w+
               <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
@@ -115,7 +116,7 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
             }
 
             # keep this one
-            @found.push: $($class, ~$<path>, %options);
+            @found.push: $(my $ = $class, ~$<path>, %options);
         }
 
         # huh?
@@ -124,6 +125,14 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
         }
     }
     @found;
+}
+
+sub CREATE-INCLUDE-SPEC(@INC) {
+    my $root = $*CWD ~ '/';
+    @INC.map( {
+        (nqp::istype($_,CompUnitRepo::Locally) ?? .short-id !! .^name)
+         ~ ':' ~ REMOVE-ROOT($root,.IO.abspath);
+    } ).join(',');
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -719,7 +719,7 @@ my role Supply {
             },
         }
     }
-    
+
     method zip(*@s, :&with is copy = &[,]) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
@@ -800,7 +800,7 @@ sub on(&setup) {
     my class OnSupply does Supply {
         has &!setup;
         has Bool $!live = False;
-        
+
         submethod BUILD(:&!setup) { }
 
         method !add_source(
@@ -845,7 +845,7 @@ sub on(&setup) {
 
             $source.tap( &tap_emit, done => &tap_done, quit => &tap_quit );
         }
-        
+
         method live { $!live }
         method tap(|c) {
             my @to_close;

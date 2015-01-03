@@ -3,8 +3,8 @@ my class HashIter is Iterator {
     has Mu $!hashiter;         # the VM level hash iterator
     has Mu $!keystore;         # key store, if it's a typed hash
     has int $!mode;            # pair = 0, kv = 1, k = 2, v = 3, invert = 4
-    
-    method new($hash, :$keystore, :$pairs, :$kv, :$k, :$v, :$invert) { 
+
+    method new($hash, :$keystore, :$pairs, :$kv, :$k, :$v, :$invert) {
         my $new := nqp::create(self);
         $new.BUILD($hash, $keystore,
             $pairs  ?? 0 !!
@@ -16,20 +16,20 @@ my class HashIter is Iterator {
         $new;
     }
 
-    method BUILD($hash, $keystore, Int $mode) { 
+    method BUILD($hash, $keystore, Int $mode) {
         $!hashiter := nqp::iterator(nqp::getattr(nqp::decont($hash), EnumMap, '$!storage'));
         $!mode      = $mode;
         $!keystore := nqp::getattr(nqp::decont($keystore), EnumMap, '$!storage')
             if $keystore.DEFINITE;
-        self 
+        self
     }
-    
+
     method reify($n?, :$sink) {  # hashes are finite, and hashiter non-reentrant, so do eager snapshot for now
         unless nqp::isconcrete($!reified) {
             my int $mode  =  $!mode;
             my Mu $rpa    := nqp::list();
             my $it        := $!hashiter;
-            
+
             my Mu $pairish;
             if $mode == 0 {   # :pairs
                 if nqp::defined($!keystore) {

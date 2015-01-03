@@ -49,7 +49,7 @@ multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
         method Numeric { $!id }
         method Str     { $!name }
         method gist    { "$!name ($!id)" }
-    }    
+    }
 
     class IdFetch {
         has Str $!name;
@@ -70,7 +70,7 @@ multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
                     PROCESS::<$GROUP> :=
                       IdName.new( :id(+$<gid>), :name(~$<group>) );
                 }
-    
+
                 # alas, no support yet
                 else {
                     PROCESS::<$USER>  := Nil;

@@ -210,7 +210,7 @@ public final class RakOps {
         long index;
         for (index = start; index < last; index++) {
             SixModelObject val = arr.at_pos_boxed(tc, index);
-            if (val.st.ContainerSpec == null) {
+            if (val != null && val.st.ContainerSpec == null) {
                 boolean found = false;
                 for (int typeIndex = 0; typeIndex < ntypes; typeIndex++) {
                     if (Ops.istype(val, typeArr[typeIndex], tc) != 0) {

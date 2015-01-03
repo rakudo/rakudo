@@ -89,31 +89,31 @@ my grammar JSONPrettyGrammar {
     }
 }
 
-proto to-json($, :$indent = 0, :$first = 0) {*}
+proto sub to-json($, :$indent = 0, :$first = 0) {*}
 
-multi to-json(Version:D $v, :$indent = 0, :$first = 0) { to-json(~$v, :$indent, :$first) }
-multi to-json(Real:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ~$d }
-multi to-json(Bool:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ($d ?? 'true' !! 'false') }
-multi to-json(Str:D $d, :$indent = 0, :$first = 0) {
+multi sub to-json(Version:D $v, :$indent = 0, :$first = 0) { to-json(~$v, :$indent, :$first) }
+multi sub to-json(Real:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ~$d }
+multi sub to-json(Bool:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ($d ?? 'true' !! 'false') }
+multi sub to-json(Str:D $d, :$indent = 0, :$first = 0) {
     (' ' x $first) ~ '"'
     ~ $d.trans(['"', '\\', "\b", "\f", "\n", "\r", "\t"]
             => ['\"', '\\\\', '\b', '\f', '\n', '\r', '\t'])\
             .subst(/<-[\c32..\c126]>/, { ord(~$_).fmt('\u%04x') }, :g)
     ~ '"'
 }
-multi to-json(Positional:D $d, :$indent = 0, :$first = 0) {
+multi sub to-json(Positional:D $d, :$indent = 0, :$first = 0) {
     return (' ' x $first) ~ "\["
             ~ ($d ?? $d.map({ "\n" ~ to-json($_, :indent($indent + 2), :first($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
             ~ ']';
 }
-multi to-json(Associative:D $d, :$indent = 0, :$first = 0) {
+multi sub to-json(Associative:D $d, :$indent = 0, :$first = 0) {
     return (' ' x $first) ~ "\{"
             ~ ($d ?? $d.map({ "\n" ~ to-json(.key, :first($indent + 2)) ~ ' : ' ~ to-json(.value, :indent($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
             ~ '}';
 }
 
-multi to-json(Mu:U $, :$indent = 0, :$first = 0) { 'null' }
-multi to-json(Mu:D $s, :$indent = 0, :$first = 0) {
+multi sub to-json(Mu:U $, :$indent = 0, :$first = 0) { 'null' }
+multi sub to-json(Mu:D $s, :$indent = 0, :$first = 0) {
     die "Can't serialize an object of type " ~ $s.WHAT.perl
 }
 

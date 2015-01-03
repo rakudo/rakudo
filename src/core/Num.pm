@@ -15,7 +15,7 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     method Num() { self }
     method Bridge(Num:D:) { self }
-    
+
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self)) ??
             fail("Cannot coerce Inf or NaN to an Int") !!
@@ -24,7 +24,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
     multi method new() { nqp::box_n(0e0, self) }
     multi method new($n) { nqp::box_n($n.Num, self) }
-    
+
     multi method perl(Num:D:) {
         my $res = self.Str;
         if nqp::isnanorinf(nqp::unbox_n(self))
@@ -44,7 +44,7 @@ my class Num does Real { # declared in BOOTSTRAP
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
         (self == Inf || self == -Inf) && fail("Cannot coerce Inf to a Rat");
-        
+
         my Num $num = self;
         my Int $signum = $num < 0 ?? -1 !! 1;
         $num = -$num if $signum == -1;
@@ -233,41 +233,41 @@ my constant e  = 2.71828_18284_59045_235e0;
 my constant π := pi;
 #?endif
 
-multi prefix:<++>(Num:D \a is rw) {   # XXX
+multi sub prefix:<++>(Num:D \a is rw) {   # XXX
     a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0))
 }
-multi prefix:<++>(Num:U \a is rw) {   # XXX
+multi sub prefix:<++>(Num:U \a is rw) {   # XXX
     a = 1e0;
 }
-multi prefix:<-->(Num:D \a is rw) {   # XXX
+multi sub prefix:<-->(Num:D \a is rw) {   # XXX
     a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0))
 }
-multi prefix:<-->(Num:U \a is rw) {   # XXX
+multi sub prefix:<-->(Num:U \a is rw) {   # XXX
     a = -1e0;
 }
-multi postfix:<++>(Num:D \a is rw) {  # XXX
+multi sub postfix:<++>(Num:D \a is rw) {  # XXX
     my $b = a;
     a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0));
     $b
 }
-multi postfix:<++>(Num:U \a is rw) {   # XXX
+multi sub postfix:<++>(Num:U \a is rw) {   # XXX
     a = 1e0;
     0
 }
-multi postfix:<-->(Num:D \a is rw) {  # XXX
+multi sub postfix:<-->(Num:D \a is rw) {  # XXX
     my $b = a;
     a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0));
     $b
 }
-multi postfix:<-->(Num:U \a is rw) {   # XXX
+multi sub postfix:<-->(Num:U \a is rw) {   # XXX
     a = -1e0;
     0e0
 }
 
-multi prefix:<->(Num:D \a) {
+multi sub prefix:<->(Num:D \a) {
     nqp::p6box_n(nqp::neg_n(nqp::unbox_n(a)))
 }
-multi prefix:<->(num $a) {
+multi sub prefix:<->(num $a) {
     nqp::neg_n($a);
 }
 
@@ -278,113 +278,113 @@ multi sub abs(num $a) {
     nqp::abs_n($a)
 }
 
-multi infix:<+>(Num:D \a, Num:D \b) {
+multi sub infix:<+>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<+>(num $a, num $b) {
+multi sub infix:<+>(num $a, num $b) {
     nqp::add_n($a, $b)
 }
 
-multi infix:<->(Num:D \a, Num:D \b) {
+multi sub infix:<->(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<->(num $a, num $b) {
+multi sub infix:<->(num $a, num $b) {
     nqp::sub_n($a, $b)
 }
 
-multi infix:<*>(Num:D \a, Num:D \b) {
+multi sub infix:<*>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::mul_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<*>(num $a, num $b) {
+multi sub infix:<*>(num $a, num $b) {
     nqp::mul_n($a, $b)
 }
 
-multi infix:</>(Num:D \a, Num:D \b) {
+multi sub infix:</>(Num:D \a, Num:D \b) {
     fail X::Numeric::DivideByZero.new unless b;
     nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:</>(num $a, num $b) {
+multi sub infix:</>(num $a, num $b) {
     fail X::Numeric::DivideByZero.new unless $b;
     nqp::div_n($a, $b)
 }
 
-multi infix:<%>(Num:D \a, Num:D \b) {
+multi sub infix:<%>(Num:D \a, Num:D \b) {
     fail X::Numeric::DivideByZero.new(:using<%>) unless b;
     nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<%>(num $a, num $b) {
+multi sub infix:<%>(num $a, num $b) {
     fail X::Numeric::DivideByZero.new(:using<%>) unless $b;
     nqp::mod_n($a, $b)
 }
 
-multi infix:<**>(Num:D \a, Num:D \b) {
+multi sub infix:<**>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<**>(num $a, num $b) {
+multi sub infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
 }
 
 
-multi infix:<cmp>(Num:D \a, Num:D \b) {
+multi sub infix:<cmp>(Num:D \a, Num:D \b) {
     ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<cmp>(num $a, num $b) {
+multi sub infix:<cmp>(num $a, num $b) {
     ORDER(nqp::cmp_n($a, $b))
 }
 
-multi infix:«<=>»(Num:D \a, Num:D \b) {
+multi sub infix:«<=>»(Num:D \a, Num:D \b) {
     ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:«<=>»(num $a, num $b) {
+multi sub infix:«<=>»(num $a, num $b) {
     ORDER(nqp::cmp_n($a, $b))
 }
 
-multi infix:<===>(Num:D \a, Num:D \b) {
+multi sub infix:<===>(Num:D \a, Num:D \b) {
     nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<===>(NaN, NaN) {
+multi sub infix:<===>(NaN, NaN) {
     True;
 }
-multi infix:<===>(num $a, num $b) returns Bool:D {
+multi sub infix:<===>(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::iseq_n($a, $b))
 }
 
-multi infix:<==>(Num:D \a, Num:D \b) returns Bool:D  {
+multi sub infix:<==>(Num:D \a, Num:D \b) returns Bool:D  {
     nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<==>(num $a, num $b) returns Bool:D  {
+multi sub infix:<==>(num $a, num $b) returns Bool:D  {
     nqp::p6bool(nqp::iseq_n($a, $b))
 }
 
-multi infix:<!=>(num $a, num $b) returns Bool:D {
+multi sub infix:<!=>(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isne_n($a, $b))
 }
 
-multi infix:«<»(Num:D \a, Num:D \b) returns Bool:D {
+multi sub infix:«<»(Num:D \a, Num:D \b) returns Bool:D {
     nqp::p6bool(nqp::islt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:«<»(num $a, num $b) returns Bool:D {
+multi sub infix:«<»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::islt_n($a, $b))
 }
 
-multi infix:«<=»(Num:D \a, Num:D \b) returns Bool:D {
+multi sub infix:«<=»(Num:D \a, Num:D \b) returns Bool:D {
     nqp::p6bool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:«<=»(num $a, num $b) returns Bool:D {
+multi sub infix:«<=»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isle_n($a, $b))
 }
 
-multi infix:«>»(Num:D \a, Num:D \b) returns Bool:D {
+multi sub infix:«>»(Num:D \a, Num:D \b) returns Bool:D {
     nqp::p6bool(nqp::isgt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:«>»(num $a, num $b) returns Bool:D {
+multi sub infix:«>»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isgt_n($a, $b))
 }
 
-multi infix:«>=»(Num:D \a, Num:D \b) returns Bool:D {
+multi sub infix:«>=»(Num:D \a, Num:D \b) returns Bool:D {
     nqp::p6bool(nqp::isge_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:«>=»(num $a, num $b) returns Bool:D {
+multi sub infix:«>=»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isge_n($a, $b))
 }
 

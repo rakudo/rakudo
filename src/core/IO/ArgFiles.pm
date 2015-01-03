@@ -4,7 +4,7 @@ my class IO::ArgFiles {
     has $!io;
     has $.ins;
 
-    method eof() { 
+    method eof() {
         ! $!args && $!io.opened && $!io.eof
     }
 

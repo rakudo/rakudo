@@ -45,7 +45,7 @@ my role IO::Socket does IO {
             my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), 65536);
             $!buffer ~= $r;
         }
-        
+
         if $bin {
             my $rec;
             if $!buffer.elems > $chars {
@@ -82,7 +82,7 @@ my role IO::Socket does IO {
 
     method read(IO::Socket:D: Cool $bufsize as Int) {
         fail('Socket not available') unless $!PIO;
-#?if parrot            
+#?if parrot
         my str $res;
         my str $read;
         repeat {

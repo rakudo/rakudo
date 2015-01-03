@@ -35,12 +35,12 @@ my class Parameter { # declared in BOOTSTRAP
     method name() {
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
-    
+
     method constraint_list() {
         nqp::isnull($!post_constraints) ?? () !!
             nqp::hllize($!post_constraints)
     }
-    
+
     method constraints() {
         all(nqp::isnull($!post_constraints) ?? () !!
             nqp::hllize($!post_constraints))
@@ -69,7 +69,7 @@ my class Parameter { # declared in BOOTSTRAP
             ().list
         }
     }
-    
+
     method positional() {
         nqp::p6bool(
             ($!flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_IS_CAPTURE)) == 0 &&
@@ -84,40 +84,40 @@ my class Parameter { # declared in BOOTSTRAP
                         +| $SIG_ELEM_SLURPY_BLOCK)
         )
     }
-    
+
     method optional() {
         ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
     }
-    
+
     method parcel() {
         ?($!flags +& $SIG_ELEM_IS_PARCEL)
     }
-    
+
     method capture() {
         ?($!flags +& $SIG_ELEM_IS_CAPTURE)
     }
-    
+
     method rw() {
         ?($!flags +& $SIG_ELEM_IS_RW)
     }
-    
+
     method copy() {
         ?($!flags +& $SIG_ELEM_IS_COPY)
     }
-    
+
     method readonly() {
         !($.rw || $.copy || $.parcel)
     }
-    
+
     method invocant() {
         ?($!flags +& $SIG_ELEM_INVOCANT)
     }
-    
+
     method default() {
         nqp::isnull($!default_value) ?? Any !!
             $!default_value ~~ Code ?? $!default_value !! { $!default_value }
     }
-    
+
     method type_captures() {
         if !nqp::isnull($!type_captures) {
             my Int $count = nqp::p6box_i(nqp::elems($!type_captures));
@@ -137,9 +137,9 @@ my class Parameter { # declared in BOOTSTRAP
 
     multi method ACCEPTS(Parameter:D: Parameter:D $other) {
         return False unless $other.type ~~ $.type;
-        return False unless 
+        return False unless
             $!flags +& $SIG_ELEM_DEFINED_ONLY <= $other!flags +& $SIG_ELEM_DEFINED_ONLY
-            and $!flags +& $SIG_ELEM_UNDEFINED_ONLY <= 
+            and $!flags +& $SIG_ELEM_UNDEFINED_ONLY <=
                 $other!flags +& $SIG_ELEM_UNDEFINED_ONLY;
         if $.sub_signature {
             return False unless $other.sub_signature ~~ $.sub_signature;
@@ -150,7 +150,7 @@ my class Parameter { # declared in BOOTSTRAP
         }
         return True;
     }
-    
+
     multi method perl(Parameter:D:) {
         my $perl = '';
         my $rest = '';
@@ -158,8 +158,8 @@ my class Parameter { # declared in BOOTSTRAP
         my $truemu='';
 
         # XXX Need a CODE_SIGIL too?
-        if $!flags +& $SIG_ELEM_ARRAY_SIGIL or 
-            $!flags +& $SIG_ELEM_HASH_SIGIL or 
+        if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
+            $!flags +& $SIG_ELEM_HASH_SIGIL or
             $type ~~ /^^ Callable >> / {
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $perl = ~$/;
@@ -180,7 +180,7 @@ my class Parameter { # declared in BOOTSTRAP
         } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
             $name = '\\' ~ $name unless $name ~~ /^^ <[@$]>/;
         } elsif !$name {
-            if $!flags +& $SIG_ELEM_ARRAY_SIGIL {        
+            if $!flags +& $SIG_ELEM_ARRAY_SIGIL {
             $name = '@';
             } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
             $name = '%';

@@ -19,7 +19,7 @@ my role Scheduler {
     }
 
     method cue { ... }
-    
+
     method loads() { ... }
 }
 

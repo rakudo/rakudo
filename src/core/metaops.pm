@@ -231,14 +231,14 @@ sub METAOP_HYPER_PREFIX(\op, \obj) { deepmap(op, obj) }
 sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
 proto sub hyper(|) { * }
-multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) { 
+multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
     my @alist := a.DEFINITE ?? a.flat !! (a,).list;
     my @blist := b.DEFINITE ?? b.flat !! (b,).list;
     my $elems = 0;
     if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
     elsif $dwim-left { $elems = @blist.elems }
     elsif $dwim-right { $elems = @alist.elems }
-    else { 
+    else {
         X::HyperOp::NonDWIM.new(
                 operator    => op,
                 left-elems  => @alist.elems,
@@ -273,7 +273,7 @@ multi sub deepmap(\op, \obj) {
     my Mu $rpa := nqp::list();
     my Mu $items := nqp::p6listitems(obj.flat.eager);
     my Mu $o;
-    # We process the elements in two passes, end to start, to 
+    # We process the elements in two passes, end to start, to
     # prevent users from relying on a sequential ordering of hyper.
     # Also, starting at the end pre-allocates $rpa for us.
     my int $i = nqp::elems($items) - 1;
@@ -281,7 +281,7 @@ multi sub deepmap(\op, \obj) {
         nqp::isge_i($i, 0),
         nqp::stmts(
             ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i, 
+            nqp::bindpos($rpa, $i,
                 nqp::if(nqp::istype($o, Iterable),
                         $o.new(deepmap(op, $o)).item,
                         op.($o))),
@@ -293,7 +293,7 @@ multi sub deepmap(\op, \obj) {
         nqp::isge_i($i, 0),
         nqp::stmts(
             ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i, 
+            nqp::bindpos($rpa, $i,
                 nqp::if(nqp::istype($o, Iterable),
                         $o.new(deepmap(op, $o)).item,
                         op.($o))),
@@ -313,7 +313,7 @@ multi sub flatmap(\op, \obj) {
     my Mu $rpa := nqp::list();
     my Mu $items := nqp::p6listitems(obj.flat.eager);
     my Mu $o;
-    # We process the elements in two passes, end to start, to 
+    # We process the elements in two passes, end to start, to
     # prevent users from relying on a sequential ordering of hyper.
     # Also, starting at the end pre-allocates $rpa for us.
     my int $i = nqp::elems($items) - 1;
@@ -321,7 +321,7 @@ multi sub flatmap(\op, \obj) {
         nqp::isge_i($i, 0),
         nqp::stmts(
             ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i, 
+            nqp::bindpos($rpa, $i,
                 nqp::if(Mu,             # hack cuz I don't understand nqp
                         $o.new(flatmap(op, $o)).item,
                         op.($o))),
@@ -333,7 +333,7 @@ multi sub flatmap(\op, \obj) {
         nqp::isge_i($i, 0),
         nqp::stmts(
             ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i, 
+            nqp::bindpos($rpa, $i,
                 nqp::if(Mu,             # hack cuz I don't understand nqp
                         $o.new(flatmap(op, $o)).item,
                         op.($o))),
@@ -350,7 +350,7 @@ multi sub flatmap(\op, Associative \h) {
 
 proto sub duckmap(|) { * }
 multi sub duckmap(\op, \obj) {
-    flatmap(-> \arg { try { op.(arg) } // try { duckmap(op,arg) } }, obj); 
+    flatmap(-> \arg { try { op.(arg) } // try { duckmap(op,arg) } }, obj);
 }
 
 multi sub duckmap(\op, Associative \h) {

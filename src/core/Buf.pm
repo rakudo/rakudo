@@ -21,7 +21,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method new(*@values) {
         self.new(@values)
     }
-    
+
     multi method at_pos(Blob:D: $i) {
         nqp::atpos_i(self, $i.Int)
     }
@@ -30,22 +30,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method at_pos(Blob:D: int $i) {
         nqp::atpos_i(self, $i)
-    }
-
-    multi method assign_pos(Blob:D: \pos, Mu \assignee) is rw {
-#?if !parrot
-        if nqp::istype(pos, Num) && nqp::isnanorinf(pos) {
-#?endif
-#?if parrot
-        if nqp::isnanorinf(pos) {
-#?endif
-            X::Item.new(aggregate => self, index => pos).throw;
-        }
-        my int $p = nqp::unbox_i(nqp::istype(pos, Int) ?? pos !! pos.Int);
-        nqp::bindpos_i(self, $p, assignee)
-    }
-    multi method assign_pos(Blob:D: int $pos, Mu \assignee) is rw {
-        nqp::bindpos_i(self, $pos, assignee)
     }
 
     multi method Bool(Blob:D:) {
@@ -64,11 +48,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method Numeric(Blob:D:) { self.elems }
     method Int(Blob:D:)     { self.elems }
-    
+
     method decode(Blob:D: $encoding = 'utf-8') {
         nqp::p6box_s(nqp::decode(self, NORMALIZE_ENCODING($encoding)))
     }
-    
+
     method list(Blob:D:) {
         my @l;
         my int $n = nqp::elems(self);
@@ -81,12 +65,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method gist(Blob:D:) {
-        'Buf:0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
+        self.^name ~ ':0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
     }
     multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
     }
-    
+
     method subbuf(Blob:D: $from = 0, $len is copy = self.elems - $from) {
 
         if ($len < 0) {
@@ -137,28 +121,23 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         }
         $ret
     }
-    
+
     method unpack(Blob:D: $template) {
         my @bytes = self.list;
         my @fields;
         for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
             my $directive = $unit.substr(0, 1);
             my $amount = $unit.substr(1);
+            my $pa = $amount eq ''  ?? 1            !!
+                     $amount eq '*' ?? @bytes.elems !! +$amount;
 
             given $directive {
                 when 'a' | 'A' | 'Z' {
-                    my $asciistring;
-                    if $amount eq '*' {
-                        $amount = @bytes.elems;
-                    }
-                    for ^$amount {
-                        $asciistring ~= chr(shift @bytes);
-                    }
-                    @fields.push($asciistring);
+                    @fields.push: @bytes.splice(0, $pa).map(&chr).join;
                 }
                 when 'H' {
-                    my $hexstring;
-                    while @bytes {
+                    my str $hexstring = '';
+                    for ^$pa {
                         my $byte = shift @bytes;
                         $hexstring ~= ($byte +> 4).fmt('%x')
                                     ~ ($byte % 16).fmt('%x');
@@ -166,36 +145,38 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                     @fields.push($hexstring);
                 }
                 when 'x' {
-                    if $amount eq '*' {
-                        $amount = 0;
-                    }
-                    elsif $amount eq '' {
-                        $amount = 1;
-                    }
-                    splice @bytes, 0, $amount;
+                    splice @bytes, 0, $pa;
                 }
                 when 'C' {
-                    @fields.push: shift @bytes;
+                    @fields.push: @bytes.splice(0, $pa);
                 }
                 when 'S' | 'v' {
-                    @fields.push: shift(@bytes)
-                                 + (shift(@bytes) +< 0x08);
+                    for ^$pa {
+                        @fields.push: shift(@bytes)
+                                    + (shift(@bytes) +< 0x08);
+                    }
                 }
                 when 'L' | 'V' {
-                    @fields.push: shift(@bytes)
-                                 + (shift(@bytes) +< 0x08)
-                                 + (shift(@bytes) +< 0x10)
-                                 + (shift(@bytes) +< 0x18);
+                    for ^$pa {
+                        @fields.push: shift(@bytes)
+                                    + (shift(@bytes) +< 0x08)
+                                    + (shift(@bytes) +< 0x10)
+                                    + (shift(@bytes) +< 0x18);
+                    }
                 }
                 when 'n' {
-                    @fields.push: (shift(@bytes) +< 0x08)
-                                 + shift(@bytes);
+                    for ^$pa {
+                        @fields.push: (shift(@bytes) +< 0x08)
+                                    + shift(@bytes);
+                    }
                 }
                 when 'N' {
-                    @fields.push: (shift(@bytes) +< 0x18)
-                                 + (shift(@bytes) +< 0x10)
-                                 + (shift(@bytes) +< 0x08)
-                                 + shift(@bytes);
+                    for ^$pa {
+                        @fields.push: (shift(@bytes) +< 0x18)
+                                    + (shift(@bytes) +< 0x10)
+                                    + (shift(@bytes) +< 0x08)
+                                    + shift(@bytes);
+                    }
                 }
                 X::Buf::Pack.new(:$directive).throw;
             }
@@ -207,7 +188,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     # XXX: the pack.t spectest file seems to require this method
     # not sure if it should be changed to list there...
     method contents(Blob:D:) { self.list }
-    
+
     method encoding() { Any }
 }
 
@@ -254,6 +235,23 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     # TODO: override at_pos so we get mutability
+    #
+    multi method assign_pos(Buf:D: \pos, Mu \assignee) is rw {
+#?if !parrot
+        if nqp::istype(pos, Num) && nqp::isnanorinf(pos) {
+#?endif
+#?if parrot
+        if nqp::isnanorinf(pos) {
+#?endif
+            X::Item.new(aggregate => self, index => pos).throw;
+        }
+        my int $p = nqp::unbox_i(nqp::istype(pos, Int) ?? pos !! pos.Int);
+        nqp::bindpos_i(self, $p, assignee)
+    }
+    multi method assign_pos(Blob:D: int $pos, Mu \assignee) is rw {
+        nqp::bindpos_i(self, $pos, assignee)
+    }
+
 }
 
 constant buf8 = Buf[uint8];
@@ -340,7 +338,7 @@ multi sub pack(Str $template, *@items) {
     return Buf.new(@bytes);
 }
 
-multi infix:<~>(Blob:D $a, Blob:D $b) {
+multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $res := ($a.WHAT === $b.WHAT ?? $a !! Buf).new;
     my $adc := nqp::decont($a);
     my $bdc := nqp::decont($b);
@@ -363,7 +361,7 @@ multi infix:<~>(Blob:D $a, Blob:D $b) {
     $res
 }
 
-multi prefix:<~^>(Blob:D $a) {
+multi sub prefix:<~^>(Blob:D $a) {
     $a ~~ Blob[int16] ?? $a.new($a.list.map: 0xFFFF - *) !!
     $a ~~ Blob[int32] ?? $a.new($a.list.map: 0xFFFFFFFF - *) !!
                          $a.new($a.list.map: 0xFF - *);
@@ -393,7 +391,7 @@ multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
     ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
 }
 
-multi infix:<eqv>(Blob:D $a, Blob:D $b) {
+multi sub infix:<eqv>(Blob:D $a, Blob:D $b) {
     if $a.WHAT === $b.WHAT && $a.elems == $b.elems {
         my int $n  = $a.elems;
         my int $i  = 0;

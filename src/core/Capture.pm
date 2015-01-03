@@ -63,7 +63,7 @@ my class Capture { # declared in BOOTSTRAP
     method list(Capture:D:) {
         nqp::p6list(nqp::clone($!list), List, Mu);
     }
-    
+
     method elems(Capture:D:) {
         nqp::p6box_i(nqp::elems($!list))
     }
@@ -105,15 +105,15 @@ my class Capture { # declared in BOOTSTRAP
     multi method Bool(Capture:D:) {
         $!list || $!hash ?? True !! False
     }
-    
+
     method Capture(Capture:D:) {
         self
     }
-    
+
     multi method Numeric(Capture:D:) {
         self.elems
     }
-    
+
     method FLATTENABLE_LIST() { $!list ?? $!list !! nqp::list() }
     method FLATTENABLE_HASH() { $!hash ?? $!hash !! nqp::hash() }
 

@@ -128,7 +128,7 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
 }
 
 sub CREATE-INCLUDE-SPEC(@INC) {
-    my $root = $*CWD ~ '/';
+    my $root = $*CWD.Str;
     @INC.map( {
         (nqp::istype($_,CompUnitRepo::Locally) ?? .short-id !! .^name)
          ~ ':' ~ REMOVE-ROOT($root,.IO.abspath);

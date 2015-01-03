@@ -114,7 +114,7 @@ class CompUnit {
       :@INC = @*INC,
       :$force,
       --> Bool) {
-        die "Cannot pre-compile an already pre-compiled file: $!path"
+        die "Cannot pre-compile an already pre-compiled file: $!abspath"
           if $.has-precomp;
         die "Cannot pre-compile over an existing file: $out"
           if !$force and FILETEST-E($out);

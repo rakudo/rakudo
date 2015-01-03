@@ -702,4 +702,8 @@ sub splice(@arr, $offset = 0, $size?, *@values) {
     @arr.splice($offset, $size, @values)
 }
 
+multi sub infix:<cmp>(@a, @b) {
+    (@a Zcmp @b).first(*.so) || @a <=> @b || Order::Same;
+}
+
 # vim: ft=perl6 expandtab sw=4

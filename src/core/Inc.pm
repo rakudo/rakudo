@@ -86,7 +86,7 @@
 
         my $prefix  := $*VM.prefix ~ '/languages/perl6';
         my $abspath := "$prefix/share/libraries.json";
-        if IO::Path.new-from-absolute-path($abspath).e {
+        if nqp::istype($abspath.IO,IO::File) {
             my $config = from-json( slurp $abspath );
 
             for $config.list -> @group {

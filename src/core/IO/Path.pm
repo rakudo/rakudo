@@ -19,16 +19,6 @@ my class IO::Path is Cool {
 
     submethod BUILD(:$!path! as Str, :$!SPEC!, :$!CWD! as Str) { }
 
-    method new-from-absolute-path($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        method !fap() {
-            $!is-absolute = True;
-            $!abspath := $path;
-            self;
-        }
-
-        self.bless(:$path, :$SPEC, :$CWD)!fap;
-    }
-
     multi method new(IO::Path: $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         self.bless(:$path, :$SPEC, :$CWD);
     }
@@ -195,7 +185,7 @@ my class IO::Path is Cool {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = IO::Path.new-from-absolute-path($path,:$!SPEC,:CWD(self));
+        my $dir = IO::Path.new($path,:$!SPEC,:CWD(self));
 
         # basic sanity
         unless $dir.d && $dir.x {
@@ -347,7 +337,7 @@ my class IO::Path is Cool {
                         ?? take $abspath-sep ~ $elem
                         !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1)
                       !! $absolute
-                        ?? take IO::Path.new-from-absolute-path($abspath-sep ~ $elem,:$!SPEC,:$CWD)
+                        ?? take IO::Path.new($abspath-sep ~ $elem,:$!SPEC,:$CWD)
                         !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1).IO(:$!SPEC,:$CWD);
                 }
             }
@@ -374,7 +364,7 @@ my class IO::Path is Cool {
                         !! take $elem
                       !! !$absolute && !$.is-absolute
                         ?? take $elem.substr($cwd_chars + 1).IO(:$!SPEC,:$CWD)
-                        !! take IO::Path.new-from-absolute-path($elem,:$!SPEC,:$CWD);
+                        !! take IO::Path.new($elem,:$!SPEC,:$CWD);
                 }
 #?if moar
                 nqp::chdir($cwd);

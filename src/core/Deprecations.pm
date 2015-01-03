@@ -104,7 +104,7 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
     $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
 
     # update callsite
-    $dep.callsites{$callsite.file.IO}{$callsite.line}++;
+    $dep.callsites{$callsite.file}{$callsite.line}++;
 }
 
 END {

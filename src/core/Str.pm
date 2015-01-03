@@ -8,8 +8,6 @@ my class X::Str::Trans::InvalidArg { ... }
 my class X::Numeric::Confused { ... }
 my class X::NYI { ... }
 
-my class IO::Path { ... }   # XXX
-
 my $?TABSTOP = 8;
 
 sub NORMALIZE_ENCODING(Str:D $s) {

@@ -109,7 +109,11 @@ class CompUnit {
 
     method precomp-path(CompUnit:D: --> Str) { "$!abspath.$!precomp-ext" }
 
-    method precomp(CompUnit:D: $out = self.precomp-path, :$force --> Bool) {
+    method precomp(CompUnit:D:
+      $out  = self.precomp-path,
+      :@INC = @*INC,
+      :$force,
+      --> Bool) {
         die "Cannot pre-compile an already pre-compiled file: $!abspath"
           if $.has-precomp;
         die "Cannot pre-compile over an existing file: $out"
@@ -118,9 +122,11 @@ class CompUnit {
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'
           !! '';
+        %*ENV<RAKUDO_PRECOMP_WITH> = CREATE-INCLUDE-SPEC(@INC);
         my Bool $result = ?shell(
           "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!abspath"
         );
+        %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 
         $!has-precomp = $result if $out eq self.precomp-path;
         $result;

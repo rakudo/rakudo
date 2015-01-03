@@ -19,9 +19,8 @@ compiled code.
   -n                   run program once for each line of input
   -p                   same as -n, but also print $_ at the end of lines
   --target=[stage]     specify compilation stage to emit
-  -t, --trace=[flags]  enable trace flags, see 'parrot --help-debug'
   --encoding=[mode]    specify string encoding mode
-  -o, --output=[name]  specify name of output file
+  --output=[name]      specify name of output file
   -v, --version        display version information
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
@@ -32,16 +31,19 @@ Note that only boolean single-letter options may be bundled
 
 Output from C<--profile> can be visualized by C<kcachegrind> for the Parrot backend.
 
-Supported stages for --target are:
+The supported values for C<--target> are:
 
- parse past post pir evalpmc
+ Target     Backend  Description
+ ======     =======  ===========
+ parse      all      a representation of the parse tree
+ ast        all      an abstract syntax tree (before optimizations)
+ optimize   all      an abstract syntax tree (after optimizations)
 
-where
+ mbc        MoarVM   MoarVM byte code
+ jar        JVM      JVM archive
+ post       Parrot   an intermediate format representing the parrot opcode syntax tree
+ pir        Parrot   the parrot intermediate representation
 
- parse = a representation of the parse tree
- past  = an intermediate format representing the parrot abstract syntax tree
- post  = an intermediate format representing the parrot opcode syntax tree
- pir   = the parrot intermediate representation
 
 =head1 List of env vars used in Rakudo
 

@@ -4,7 +4,7 @@ class CompUnitRepo::Local::Installation { ... }
 
 class CompUnitRepo {
     my Mu $p6ml := nqp::gethllsym('perl6', 'ModuleLoader');
-    my $lock := Lock.new;
+    my $lock     = Lock.new;
 
     method files($file, :$name, :$auth, :$ver) {
         for @*INC {

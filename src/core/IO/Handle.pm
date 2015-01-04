@@ -1,8 +1,7 @@
-class IO::Handle does IO does PIO {
-    has Str $.abspath;
+class IO::Handle does IO does PIO does IO::Locally {
 
-    method BUILD(:$abspath,:$path,|c) {
-        $!abspath := $abspath // $path.Str;
+    submethod BUILD(:$abspath,:$path,|c) {
+        $!abspath = $abspath // $path.Str;
         self!set-PIO-attributes(|c);
     }
 
@@ -35,30 +34,11 @@ class IO::Handle does IO does PIO {
           !! self.print(what);
     }
 
-#    method seek(|c) {
-#        fail "You cannot seek on an {self.^name}";
-#    }
-
-    method e(PIO:D:)   { True  }
-    method d(PIO:D:)   { False }
-    method f(PIO:D:)   { FILETEST-F(  $!abspath) }
-    method s(PIO:D:)   { FILETEST-S(  $!abspath) }
-    method l(PIO:D:)   { FILETEST-L(  $!abspath) }
-    method r(PIO:D:)   { FILETEST-R(  $!abspath) }
-    method w(PIO:D:)   { FILETEST-W(  $!abspath) }
-    method rw(PIO:D:)  { FILETEST-RW( $!abspath) }
-    method x(PIO:D:)   { FILETEST-X(  $!abspath) }
-    method rwx(PIO:D:) { FILETEST-RWX($!abspath) }
-    method z(PIO:D:)   { FILETEST-Z(  $!abspath) }
-    method modified(PIO:D:) { FILETEST-MODIFIED($!abspath) }
-    method accessed(PIO:D:) { FILETEST-ACCESSED($!abspath) }
-    method changed(PIO:D:)  { FILETEST-CHANGED( $!abspath) }
-
-#?if moar
-    method watch(IO::Handle:D:) {
-        IO::Notification.watch_path($!abspath);
+    multi method Str(IO::Handle:D:)  { "open('$.relative')" }
+    multi method gist(IO::Handle:D:) { "open('$.relative')" }
+    multi method perl(IO::Handle:D:) {
+        "open('$.relative',...)";
     }
-#?endif
 }
 
 # vim: ft=perl6 expandtab sw=4

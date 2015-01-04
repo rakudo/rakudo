@@ -39,6 +39,9 @@ class IO::Handle does IO does PIO does IO::Locally {
     multi method perl(IO::Handle:D:) {
         "open('$.relative',...)";
     }
+
+    method d(PIO:D:) { False }
+    method f(PIO:D:) { True }
 }
 
 # vim: ft=perl6 expandtab sw=4

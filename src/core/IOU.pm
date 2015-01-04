@@ -60,6 +60,8 @@ my class IOU does IO::Locally {
     method w(IOU:D:)           { self!that ?? $!that.w         !! self!fail }
     method rw(IOU:D:)          { self!that ?? $!that.rw        !! self!fail }
     method x(IOU:D:)           { self!that ?? $!that.x         !! self!fail }
+    method rx(IOU:D:)          { self!that ?? $!that.rx        !! self!fail }
+    method wx(IOU:D:)          { self!that ?? $!that.wx        !! self!fail }
     method rwx(IOU:D:)         { self!that ?? $!that.rwx       !! self!fail }
     method z(IOU:D:)           { self!that ?? $!that.z         !! self!fail }
     method modified(IOU:D:)    { self!that ?? $!that.modified  !! self!fail }

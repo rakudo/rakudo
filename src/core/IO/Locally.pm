@@ -51,6 +51,8 @@ my role IO::Locally {
     method w(IO::Locally:D:)   { FILETEST-W(  $!abspath) }
     method rw(IO::Locally:D:)  { FILETEST-RW( $!abspath) }
     method x(IO::Locally:D:)   { FILETEST-X(  $!abspath) }
+    method rx(IO::Locally:D:)  { FILETEST-RX( $!abspath) }
+    method wx(IO::Locally:D:)  { FILETEST-WX( $!abspath) }
     method rwx(IO::Locally:D:) { FILETEST-RWX($!abspath) }
     method z(IO::Locally:D:)   { FILETEST-Z(  $!abspath) }
     method modified(IO::Locally:D:) { FILETEST-MODIFIED($!abspath) }

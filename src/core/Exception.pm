@@ -1297,8 +1297,10 @@ my class X::TypeCheck is Exception {
     has $.operation;
     has $.got;
     has $.expected;
+    method gotn()      { (try $!got.^name)      // "?" }
+    method expectedn() { (try $!expected.^name) // "?" }
     method message() {
-        "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
+        "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
 
     }
 }
@@ -1308,16 +1310,16 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     method operation { 'binding' }
     method message() {
         if $.symbol {
-            "Type check failed in $.operation $.symbol; expected '{$.expected.^name}' but got '{$.got.^name}'";
+            "Type check failed in $.operation $.symbol; expected '$.expectedn' but got '$.gotn'";
         } else {
-            "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
+            "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
         }
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
-        "Type check failed for return value; expected '{$.expected.^name}' but got '{$.got.^name}'";
+        "Type check failed for return value; expected '$.expectedn' but got '$.gotn'";
     }
 }
 my class X::TypeCheck::Assignment is X::TypeCheck {
@@ -1325,8 +1327,8 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method operation { 'assignment' }
     method message {
         $.symbol.defined
-            ?? "Type check failed in assignment to '$.symbol'; expected '{$.expected.^name}' but got '{$.got.^name}'"
-            !! "Type check failed in assignment; expected '{$.expected.^name}' but got '{$.got.^name}'";
+            ?? "Type check failed in assignment to '$.symbol'; expected '$.expectedn' but got '$.gotn'"
+            !! "Type check failed in assignment; expected '$.expectedn' but got '$.gotn'";
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {
@@ -1347,7 +1349,7 @@ my class X::TypeCheck::Argument is X::TypeCheck {
 my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
     has $.action;
     method message {
-        "Type check failed in {$.action}; expected {$.expected.^name} but got {$.got.^name}";
+        "Type check failed in {$.action}; expected '$.expectedn' but got '$.gotn'";
     }
 
 }

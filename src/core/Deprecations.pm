@@ -110,9 +110,12 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
 END {
     unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
         if Deprecation.report -> $message {
-            note $message;
-            note "Please contact the author to have these calls to deprecated code adapted,";
-            note "so that this message will disappear!";
+            note $message;   # q:to/TEXT/ doesn't work in settings
+            note 'Please contact the author to have these calls to deprecated code adapted,
+so that this message will disappear!
+
+Please note that *ALL* deprecated features will be removed at the release
+of Perl 6.0.0 (expected some time in 2015).'
         }
     }
 }

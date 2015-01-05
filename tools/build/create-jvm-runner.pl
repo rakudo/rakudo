@@ -53,7 +53,7 @@ my $bootclasspath = join($cpsep,
     File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar')));
     
 my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
-my $jopts = '-Xms100m -Xbootclasspath/a:' . $bootclasspath 
+my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $bootclasspath 
           . ' -cp ' . ($^O eq 'MSWin32' ? '%CLASSPATH%' : '$CLASSPATH') . ":" . $classpath
           . ' -Dperl6.prefix=' . $prefix
           . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');

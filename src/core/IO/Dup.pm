@@ -28,14 +28,20 @@ class IO::Dup does IO does PIO {
 
     method IO(IO::Dup:D:) { self }
 
-    method e(IO::Dup:D:) { True }
-    method d(IO::Dup:D:) { False }
-    method f(IO::Dup:D:) { False }
-    method s(IO::Dup:D:) { 0 }
-    method l(IO::Dup:D:) { False }
-    method r(IO::Dup:D:) { $!fileno == 0 }
-    method w(IO::Dup:D:) { $!fileno  > 0 }
-    method x(IO::Dup:D:) { False }
+    method e(IO::Dup:D:)   { True }
+    method d(IO::Dup:D:)   { False }
+    method f(IO::Dup:D:)   { False }
+    method s(IO::Dup:D:)   { 0 }
+    method l(IO::Dup:D:)   { False }
+    method r(IO::Dup:D:)   { $!fileno == 0 }
+    method w(IO::Dup:D:)   { $!fileno  > 0 }
+    method rw(IO::Dup:D:)  { False }
+    method x(IO::Dup:D:)   { False }
+    method rx(IO::Dup:D:)  { False }
+    method wx(IO::Dup:D:)  { False }
+    method rwx(IO::Dup:D:) { False }
+    method o(IO::Dup:D:)   { False }
+    method z(IO::Dup:D:)   { False }
     method modified(IO::Dup:D:) { Instant }
     method accessed(IO::Dup:D:) { Instant }
     method changed(IO::Dup:D:)  { Instant }

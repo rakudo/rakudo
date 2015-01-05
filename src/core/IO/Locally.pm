@@ -11,9 +11,8 @@ my role IO::Locally {
         );
     }
 
-    method absolute(IO::Locally:D:) { $!abspath }
     method chop(IO::Locally:D:)     { $!abspath.chop }
-    method relative(IO::Locally:D: $root?) {
+    method relpath(IO::Locally:D: $root?) {
         REMOVE-ROOT( $root // $*CWD.Str,$!abspath);
     }
 
@@ -76,9 +75,17 @@ my role IO::Locally {
     }
 #?endif
 
-    method directory() {
+    method directory(IO::Locally:D:) {
         DEPRECATED("dirname", |<2014.10 2015.10>);
         self.dirname;
+    }
+    method absolute(IO::Locally:D:) {
+        DEPRECATED("abspath", |<2015.01 2016.01>);
+        $!abspath;
+    }
+    method relative(IO::Locally:D: |c) {
+        DEPRECATED("relpath", |<2015.01 2016.01>);
+        self.relpath(|c);
     }
 }
 

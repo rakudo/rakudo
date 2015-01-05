@@ -1,89 +1,89 @@
 # A role for local file(path)s
-my role IO::Locally {
+my role IO::Pathy {
     has $.abspath;
     has @!parts;
 
     submethod BUILD(:$abspath) { $!abspath = $abspath }
 
-    multi method ACCEPTS(IO::Locally:D: \other) {
+    multi method ACCEPTS(IO::Pathy:D: \other) {
         nqp::p6bool(
           nqp::iseq_s(nqp::unbox_s($!abspath), nqp::unbox_s(~other))
         );
     }
 
-    method chop(IO::Locally:D:)     { $!abspath.chop }
-    method relpath(IO::Locally:D: $root?) {
+    method chop(IO::Pathy:D:)     { $!abspath.chop }
+    method relpath(IO::Pathy:D: $root?) {
         REMOVE-ROOT( $root // $*CWD.Str,$!abspath);
     }
 
     method !parts() { @!parts = $!abspath.split('/') unless @!parts }
-    method volume(IO::Locally:D:)    {
+    method volume(IO::Pathy:D:)    {
 #        self!parts;  # runtime failure
         @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
         @!parts[0];
     }
-    method dirname(IO::Locally:D:)   {
+    method dirname(IO::Pathy:D:)   {
         #self!parts;  # runtime failure
         @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
         @!parts[1 .. *-2].join('/');
     }
-    method basename(IO::Locally:D:)  { MAKE-BASENAME($!abspath) }
-    method extension(IO::Locally:D:) { MAKE-EXT(MAKE-BASENAME($!abspath))}
+    method basename(IO::Pathy:D:)  { MAKE-BASENAME($!abspath) }
+    method extension(IO::Pathy:D:) { MAKE-EXT(MAKE-BASENAME($!abspath))}
 
-    method IO(IO::Locally:D:)      { self }
-    method Numeric(IO::Locally:D:) { self.basename.Numeric }
-    method Bridge(IO::Locally:D:)  { self.basename.Bridge }
-    method Int(IO::Locally:D:)     { self.basename.Int }
+    method IO(IO::Pathy:D:)      { self }
+    method Numeric(IO::Pathy:D:) { self.basename.Numeric }
+    method Bridge(IO::Pathy:D:)  { self.basename.Bridge }
+    method Int(IO::Pathy:D:)     { self.basename.Int }
 
-    multi method Str(IO::Locally:D:)  { $!abspath }
-    multi method gist(IO::Locally:D:) { qq|"{ self.relative }".IO| }
-    multi method perl(IO::Locally:D:) { "q|$!abspath|.IO" }
+    multi method Str(IO::Pathy:D:)  { $!abspath }
+    multi method gist(IO::Pathy:D:) { qq|"{ self.relative }".IO| }
+    multi method perl(IO::Pathy:D:) { "q|$!abspath|.IO" }
 
-    method succ(IO::Locally:D:) { $!abspath.succ }
-    method pred(IO::Locally:D:) { $!abspath.pred }
+    method succ(IO::Pathy:D:) { $!abspath.succ }
+    method pred(IO::Pathy:D:) { $!abspath.pred }
 
-    method e(IO::Locally:D:)   { True }
-    method f(IO::Locally:D:)   { FILETEST-F(  $!abspath) }
-    method s(IO::Locally:D:)   { FILETEST-S(  $!abspath) }
-    method l(IO::Locally:D:)   { FILETEST-L(  $!abspath) }
-    method r(IO::Locally:D:)   { FILETEST-R(  $!abspath) }
-    method w(IO::Locally:D:)   { FILETEST-W(  $!abspath) }
-    method rw(IO::Locally:D:)  { FILETEST-RW( $!abspath) }
-    method x(IO::Locally:D:)   { FILETEST-X(  $!abspath) }
-    method rx(IO::Locally:D:)  { FILETEST-RX( $!abspath) }
-    method wx(IO::Locally:D:)  { FILETEST-WX( $!abspath) }
-    method rwx(IO::Locally:D:) { FILETEST-RWX($!abspath) }
-    method o(IO::Locally:D:)   { FILETEST-UID($!abspath) == +$*USER }
-    method z(IO::Locally:D:)   { FILETEST-Z(  $!abspath) }
-    method modified(IO::Locally:D:) { FILETEST-MODIFIED($!abspath) }
-    method accessed(IO::Locally:D:) { FILETEST-ACCESSED($!abspath) }
-    method changed(IO::Locally:D:)  { FILETEST-CHANGED( $!abspath) }
+    method e(IO::Pathy:D:)   { True }
+    method f(IO::Pathy:D:)   { FILETEST-F(  $!abspath) }
+    method s(IO::Pathy:D:)   { FILETEST-S(  $!abspath) }
+    method l(IO::Pathy:D:)   { FILETEST-L(  $!abspath) }
+    method r(IO::Pathy:D:)   { FILETEST-R(  $!abspath) }
+    method w(IO::Pathy:D:)   { FILETEST-W(  $!abspath) }
+    method rw(IO::Pathy:D:)  { FILETEST-RW( $!abspath) }
+    method x(IO::Pathy:D:)   { FILETEST-X(  $!abspath) }
+    method rx(IO::Pathy:D:)  { FILETEST-RX( $!abspath) }
+    method wx(IO::Pathy:D:)  { FILETEST-WX( $!abspath) }
+    method rwx(IO::Pathy:D:) { FILETEST-RWX($!abspath) }
+    method o(IO::Pathy:D:)   { FILETEST-UID($!abspath) == +$*USER }
+    method z(IO::Pathy:D:)   { FILETEST-Z(  $!abspath) }
+    method modified(IO::Pathy:D:) { FILETEST-MODIFIED($!abspath) }
+    method accessed(IO::Pathy:D:) { FILETEST-ACCESSED($!abspath) }
+    method changed(IO::Pathy:D:)  { FILETEST-CHANGED( $!abspath) }
 
-    method rename(IO::Locally:D: $to as Str, :$createonly) {
+    method rename(IO::Pathy:D: $to as Str, :$createonly) {
         RENAME-PATH($!abspath,MAKE-ABSOLUTE-PATH($to,$*CWD.Str),:$createonly);
     }
-    method chmod(IO::Locally:D: $mode as Int) {
+    method chmod(IO::Pathy:D: $mode as Int) {
         CHMOD-PATH($!abspath, $mode);
     }
-    method symlink(IO::Locally:D: $name as Str) {
+    method symlink(IO::Pathy:D: $name as Str) {
         SYMLINK-PATH($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD.Str));
     }
 
 #?if moar
-    method watch(IO::Locally:D:) {
+    method watch(IO::Pathy:D:) {
         IO::Notification.watch_path($!abspath);
     }
 #?endif
 
-    method directory(IO::Locally:D:) {
+    method directory(IO::Pathy:D:) {
         DEPRECATED("dirname", |<2014.10 2015.10>);
         self.dirname;
     }
-    method absolute(IO::Locally:D:) {
+    method absolute(IO::Pathy:D:) {
         DEPRECATED("abspath", |<2015.01 2016.01>);
         $!abspath;
     }
-    method relative(IO::Locally:D: |c) {
+    method relative(IO::Pathy:D: |c) {
         DEPRECATED("relpath", |<2015.01 2016.01>);
         self.relpath(|c);
     }

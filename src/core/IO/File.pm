@@ -1,5 +1,5 @@
 # A class for file(path)s that we know exist
-my class IO::File is Cool does IO::Locally {
+my class IO::File is Cool does IO::Pathy {
 
     method open(IO::File:D: |c) { open( $!abspath, |c ) }
 

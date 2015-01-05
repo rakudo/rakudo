@@ -1,4 +1,4 @@
-class IO::Handle does IO does PIO does IO::Locally {
+class IO::Handle does IO does PIO does IO::Pathy {
 
     submethod BUILD(:$abspath,:$path,|c) {
         $!abspath = $abspath // $path.Str;

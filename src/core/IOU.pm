@@ -1,5 +1,5 @@
 # class for Unclassified IO objects
-my class IOU does IO::Locally {
+my class IOU does IO::Pathy {
     has $!this;
     has $!rest;
     has $!that;

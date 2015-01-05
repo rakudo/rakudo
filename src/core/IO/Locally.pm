@@ -54,6 +54,7 @@ my role IO::Locally {
     method rx(IO::Locally:D:)  { FILETEST-RX( $!abspath) }
     method wx(IO::Locally:D:)  { FILETEST-WX( $!abspath) }
     method rwx(IO::Locally:D:) { FILETEST-RWX($!abspath) }
+    method o(IO::Locally:D:)   { FILETEST-UID($!abspath) == +$*USER }
     method z(IO::Locally:D:)   { FILETEST-Z(  $!abspath) }
     method modified(IO::Locally:D:) { FILETEST-MODIFIED($!abspath) }
     method accessed(IO::Locally:D:) { FILETEST-ACCESSED($!abspath) }

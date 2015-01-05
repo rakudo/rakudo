@@ -352,6 +352,12 @@ sub FILETEST-CHANGED(Str $abspath) {
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
     ));
 }
+sub FILETEST-UID(Str $abspath) {
+    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_UID) );
+}
+sub FILETEST-GID(Str $abspath) {
+    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_GID) );
+}
 
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {

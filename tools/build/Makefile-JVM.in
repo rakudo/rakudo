@@ -325,6 +325,7 @@ j-fulltest: j-coretest j-stresstest
 
 j-coretest: j-all
 	$(J_HARNESS) t/01-sanity
+	$(J_HARNESS) t/03-jvm
 
 # Run the spectests that we know work.
 j-spectest: j-testable t/spectest.data

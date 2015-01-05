@@ -172,7 +172,7 @@ multi sub slurp(IO::ArgFiles:D $io) {
     my $result := $io.slurp;
     $result // $result.throw;
 }
-multi sub slurp(IO::Handle:D $io, :$enc, |c) {
+multi sub slurp(PIO:D $io, :$enc, |c) {
     DEPRECATED('slurp($path,...)',|<2014.10 2015.10>,:what<slurp($handle,...)>);
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
@@ -186,8 +186,13 @@ multi sub slurp(Any:D $path as Str, :$enc, |c) {
     $result // $result.throw;
 }
 
+sub slurp-rest(PIO:D $io, :$enc, |c) {
+    my $result := $io.slurp-rest(:$enc, |c);
+    $result // $result.throw;
+}
+
 proto sub spurt(|) { * }
-multi sub spurt(IO::Handle:D $fh,\what,|c ) {
+multi sub spurt(PIO:D $fh,\what,|c ) {
     DEPRECATED('spurt($path,...)',|<2014.10 2015.10>,:what<spurt($handle,...)>);
     my $result := $fh.spurt(what,:nodepr,|c);
     $result // $result.throw;

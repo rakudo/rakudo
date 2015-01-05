@@ -44,13 +44,6 @@ my class IOU does IO::Locally {
 # at creation time.  We try to create the object again, call the method if
 # succeeds, or fail.  Wish there were a less verbose way to do this.
 
-    method absolute(IOU:D:)    { self!that ?? $!that.absolute  !! self!fail }
-    method relative(IOU:D: |c) { self!that ?? $!that.relative(|c) !! self!fail }
-    method chop(IOU:D:)        { self!that ?? $!that.chop      !! self!fail }
-    method volume(IOU:D:)      { self!that ?? $!that.volume    !! self!fail }
-    method dirname(IOU:D:)     { self!that ?? $!that.dirname   !! self!fail }
-    method basename(IOU:D:)    { self!that ?? $!that.basename  !! self!fail }
-    method extension(IOU:D:)   { self!that ?? $!that.extension !! self!fail }
     method e(IOU:D:)           { self!that ?? $!that.e         !! self!fail }
     method f(IOU:D:)           { self!that ?? $!that.f         !! self!fail }
     method d(IOU:D:)           { self!that ?? $!that.d         !! self!fail }
@@ -67,9 +60,6 @@ my class IOU does IO::Locally {
     method modified(IOU:D:)    { self!that ?? $!that.modified  !! self!fail }
     method accessed(IOU:D:)    { self!that ?? $!that.accessed  !! self!fail }
     method changed(IOU:D:)     { self!that ?? $!that.changed   !! self!fail }
-    method Numeric(IOU:D:)     { self!that ?? $!that.Numeric   !! self!fail }
-    method Bridge(IOU:D:)      { self!that ?? $!that.Bridge    !! self!fail }
-    method Int(IOU:D:)         { self!that ?? $!that.Int       !! self!fail }
 
 # private methods
 

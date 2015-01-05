@@ -56,6 +56,7 @@ my class IOU does IO::Locally {
     method rx(IOU:D:)          { self!that ?? $!that.rx        !! self!fail }
     method wx(IOU:D:)          { self!that ?? $!that.wx        !! self!fail }
     method rwx(IOU:D:)         { self!that ?? $!that.rwx       !! self!fail }
+    method o(IOU:D:)           { self!that ?? $!that.o         !! self!fail }
     method z(IOU:D:)           { self!that ?? $!that.z         !! self!fail }
     method modified(IOU:D:)    { self!that ?? $!that.modified  !! self!fail }
     method accessed(IOU:D:)    { self!that ?? $!that.accessed  !! self!fail }

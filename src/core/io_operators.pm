@@ -233,7 +233,7 @@ sub chdir($path as Str) {
     $*CWD = $newCWD;
 }
 
-sub indir($path as Str, $what, :$test = <r w>) {
+sub indir($path as Str, $what) {
     my $newCWD := CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-RWX);
     $newCWD // $newCWD.throw;
 

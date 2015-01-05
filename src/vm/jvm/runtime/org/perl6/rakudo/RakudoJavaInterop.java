@@ -512,7 +512,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
         // &new()-equivalent, which dispatches among the generated
         // adaptorConstructors - which aren't really constructors but static
         // methods
-        createConstructorDispatchAdaptor(cc, target.getConstructors());
+        if( target.getConstructors().length > 0 )
+            createConstructorDispatchAdaptor(cc, target.getConstructors());
         createAdaptorSpecials(cc);
         compunitMethods(cc);
 

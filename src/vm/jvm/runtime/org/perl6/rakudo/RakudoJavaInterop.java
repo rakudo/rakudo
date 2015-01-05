@@ -259,8 +259,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
     }
 
     public static Object filterReturnValueMethod(Object in, ThreadContext tc) {
-        Class<?> what = in.getClass();
         GlobalExt gcx = RakOps.key.getGC(tc);
+        if(in == null) {
+            return gcx.Nil;
+        }
+
+        Class<?> what = in.getClass();
         Object out = null;
         if(what == void.class) {
             out = null;

@@ -54,7 +54,7 @@ class Deprecation {
             $message ~=
               "Deprecated since v$.from, will be removed {$.removed
                 ?? 'with release v' ~ $.removed ~ '!'
-                !! 'at some time in the future'
+                !! 'sometime in the future'
               }\n" if $.from;
         }
         $message ~= "Please use $.alternative instead.\n";
@@ -115,7 +115,7 @@ END {
 so that this message will disappear!
 
 Please note that *ALL* deprecated features will be removed at the release
-of Perl 6.0.0 (expected some time in 2015).'
+of Perl 6.0.0 (expected sometime in 2015).'
         }
     }
 }

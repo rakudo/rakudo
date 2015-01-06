@@ -54,11 +54,13 @@
     }
 
     # starting up for creating precomp
-    my $path-sep := $*DISTRO.path-sep;
     if %*ENV<RAKUDO_PRECOMP_WITH> -> \specs {
         for PARSE-INCLUDE-SPEC(specs) -> \spec {
             @INC.push: make-cur(spec[0],spec[1]);
         }
+#?if moar
+        $*VM;  # apparently we need $*VM to be populated for valid precomps
+#?endif
     }
 
     # normal start up
@@ -74,6 +76,7 @@
             }
         }
 
+        my $path-sep := $*DISTRO.path-sep;
         add-curs(%*ENV<RAKUDOLIB>, $path-sep) if %*ENV<RAKUDOLIB>;
         add-curs(%*ENV<PERL6LIB>, $path-sep)  if %*ENV<PERL6LIB>;
 

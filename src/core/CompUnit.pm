@@ -107,7 +107,7 @@ class CompUnit {
 
     method precomp(CompUnit:D:
       $out  = self.precomp-path,
-      :@INC = @*INC,
+      :$INC = @*INC,
       :$force,
       --> Bool) {
         die "Cannot pre-compile an already pre-compiled file: $!path"
@@ -118,7 +118,7 @@ class CompUnit {
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'
           !! '';
-        %*ENV<RAKUDO_PRECOMP_WITH> = CREATE-INCLUDE-SPEC(@INC);
+        %*ENV<RAKUDO_PRECOMP_WITH> = CREATE-INCLUDE-SPEC(@$INC);
         my Bool $result = ?shell(
           "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path"
         );

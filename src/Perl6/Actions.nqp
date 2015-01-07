@@ -7372,11 +7372,14 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 walk($node[0]);
                 walk($node[1]);
             }
+            # (can't just use postprocess_words here because it introduces spurious comma operations)
+            elsif $node.has_compile_time_value {
+                my @words := HLL::Grammar::split_words($/,
+                    nqp::unbox_s($node.compile_time_value));
+                for @words { $result.push($*W.add_string_constant(~$_)); }
+            }
             else {
-                my $ppw := self.postprocess_words($/, $node);
-                unless nqp::istype($ppw, QAST::Stmts) && +@($ppw[0]) == 0 {
-                    $result.push($ppw);
-                }
+                $result.push(QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $node, QAST::IVal.new( :value(1), :named('autoderef') ) ) );
             }
         }
         walk($past);

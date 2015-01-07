@@ -68,7 +68,7 @@ my class Match is Capture is Cool {
         for @.caps {
             $r ~= $s ~ (.key // '?') ~ ' ' ~ .value.gist($d + 1)
         }
-        $r.chomp;
+        $d == 0 ?? $r.chomp !! $r;
     }
 
     method make(Match:D: Mu \made) {

@@ -35,8 +35,8 @@ my role IO::Local {
     method Int(IO::Local:D:)     { self.basename.Int }
 
     method Str(IO::Local:D:)  { $!abspath }
-    method gist(IO::Local:D:) { qq|"{ self.relative }".IO| }
-    method perl(IO::Local:D:) { "q|$!abspath|.IO" }
+    multi method gist(IO::Local:D:) { qq|"{ self.relative }".IO| }
+    multi method perl(IO::Local:D:) { "q|$!abspath|.IO" }
 
     method succ(IO::Local:D:) { $!abspath.succ }
     method pred(IO::Local:D:) { $!abspath.pred }

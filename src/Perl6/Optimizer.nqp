@@ -1360,8 +1360,7 @@ class Perl6::Optimizer {
             my $pkg  := $op[2].returns;  # actions always sets this
             my $meth := $pkg.HOW.find_private_method($pkg, $name);
             if nqp::defined($meth) && $meth {
-                try {
-                    $*W.get_ref($meth); # may fail, thus the try; verifies it's in SC
+                unless nqp::isnull(nqp::getobjsc($meth)) {
                     my $call := QAST::WVal.new( :value($meth) );
                     my $inv  := $op.shift;
                     $op.shift; $op.shift; # name, package (both pre-resolved now)

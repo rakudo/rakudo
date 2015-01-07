@@ -27,6 +27,8 @@ end of this document.
   2015-11-19   Rakudo #94
   2015-12-17   Rakudo #95
 
+(More planned dates can be generated with F<tools/release-dates.pl>).
+
 =head2 Suggested .pm group names for future releases
 
 Names can be gotten from L<http://www.pm.org> if you 

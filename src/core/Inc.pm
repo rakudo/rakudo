@@ -58,9 +58,7 @@
         for PARSE-INCLUDE-SPEC(specs) -> \spec {
             @INC.push: make-cur(spec[0],spec[1]);
         }
-#?if moar
         $*VM;  # apparently we need $*VM to be populated for valid precomps
-#?endif
     }
 
     # normal start up

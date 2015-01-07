@@ -28,8 +28,16 @@ my class Enum does Associative {
 
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
 
+    multi method gist(Enum:D:) {
+        if nqp::istype($.key, Enum) {
+            '(' ~ $.key.gist ~ ') => ' ~ $.value.gist;
+        } else {
+            $.key.gist ~ ' => ' ~ $.value.gist;
+        }
+    }
+
     multi method perl(Enum:D:) {
-        if nqp::istype($.key,Enum) {
+        if nqp::istype($.key, Enum) {
             '(' ~ $.key.perl ~ ') => ' ~ $.value.perl;
         } else {
             $.key.perl ~ ' => ' ~ $.value.perl;

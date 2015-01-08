@@ -733,6 +733,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         freshType.st.MethodCache = names;
         freshType.st.ModeFlags |= STable.METHOD_CACHE_AUTHORITATIVE;
+        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!methods", STable.NO_HINT, hash);
 
         hash.bind_key_boxed(tc, "/TYPE/", freshType);
 

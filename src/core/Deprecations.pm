@@ -11,7 +11,7 @@ class Obsolete is Str {
     submethod BUILD (:$!name, :$!value, :$!instead, :$!from, :$!removed) { }
 
     method Str  { DEPRECATED( $!instead, $!from, $!removed, :up(2), :what($!name) ); $!value }
-    method gist { DEPRECATED( $!instead, $!from, $!removed, :up(2), :what($!name) ); $!value }
+    multi method gist(Obsolete:D:) { DEPRECATED( $!instead, $!from, $!removed, :up(2), :what($!name) ); $!value }
 }
 
 class Deprecation {

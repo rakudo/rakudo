@@ -171,13 +171,11 @@ my class Promise {
         $p
     }
 
-    method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1) }
-    method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p) }
+    method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1, 'anyof') }
+    method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
-    method !until_n_kept(@promises, Int $N) is hidden_from_backtrace {
-        X::Promise::Combinator.new(
-          combinator => callframe(2).my<&?ROUTINE>.name  # skip <!> dispatcher
-        ).throw if NOT_ALL_DEFINED_TYPE(@promises,Promise);
+    method !until_n_kept(@promises, Int $N, Str $combinator) is hidden_from_backtrace {
+        X::Promise::Combinator.new(:$combinator).throw if NOT_ALL_DEFINED_TYPE(@promises, Promise);
 
         my int $n  = $N;
         my int $c  = $n;

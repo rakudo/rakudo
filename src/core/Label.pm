@@ -22,7 +22,7 @@ my class Label {
 
     # XXX method leave(@args)
 
-    method gist() {
+    multi method gist(Label:D:) {
         my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
         my ($red, $green, $yellow, $clear) = $color
             ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")

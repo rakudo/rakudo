@@ -1639,12 +1639,15 @@ class Perl6::World is HLL::World {
     }
     
     method nibble_to_str($/, $ast, $mkerr) {
+        if (nqp::istype($ast, QAST::Stmts) || nqp::istype($ast, QAST::Stmt)) && +@($ast) == 1 {
+            $ast := $ast[0];
+        }
         if $ast.has_compile_time_value {
             return nqp::unbox_s($ast.compile_time_value);
         }
-        elsif nqp::istype($ast[0], QAST::Op) && $ast[0].name eq '&infix:<,>' {
+        elsif nqp::istype($ast, QAST::Op) && $ast.name eq '&infix:<,>' {
             my @pieces;
-            for @($ast[0]) {
+            for @($ast) {
                 if $_.has_compile_time_value {
                     nqp::push(@pieces, nqp::unbox_s($_.compile_time_value));
                 }

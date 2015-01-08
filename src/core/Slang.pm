@@ -1,7 +1,7 @@
 class Slang {
     has $.grammar;
     has $.actions;
-    method gist {
+    multi method gist(Slang:D:) {
         # Handle NQP objects like Perl6::Grammar
         'Slang.new('
             ~ (':grammar('~$!grammar.HOW.name($!grammar)~')',

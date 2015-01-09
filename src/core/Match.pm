@@ -7,14 +7,11 @@ my class Match is Capture is Cool {
 
     # new/BUILD here only for performance reasons
     method new(:$orig,:$from,:$to,:$CURSOR,:$made) {
-        nqp::create(self).BUILD($orig,$from,$to,$CURSOR,$made);
+        nqp::create(self).BUILD(:$orig,:$from,:$to,:$CURSOR,:$made);
     }
-    submethod BUILD($orig,$from,$to,$CURSOR,$made) {
-        $!orig   = $orig;
-        $!from   = $from // 0;
-        $!to     = $to   // 0;
-        $!CURSOR = $CURSOR;
-        $!made   = $made;
+    method BUILD(:$!orig,:$from,:$to,:$!CURSOR,:$!made) {
+        $!from   = $from // 0;  # cannot assign to int in sig
+        $!to     = $to   // 0;  # cannot assign to int in sig
         self;
     }
 

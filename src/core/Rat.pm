@@ -162,6 +162,18 @@ multi sub infix:</>(Int \a, Int \b) {
     DIVIDE_NUMBERS a, b, a, b
 }
 
+multi sub infix:<%>(Rational \a, Int \b) {
+    a - floor(a / b) * b
+}
+
+multi sub infix:<%>(Int \a, Rational \b) {
+    a - floor(a / b) * b
+}
+
+multi sub infix:<%>(Rational \a, Rational \b) {
+    a - floor(a / b) * b
+}
+
 multi sub infix:<**>(Rational \a, Int \b) {
     DIVIDE_NUMBERS
         a.numerator ** b,

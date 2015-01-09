@@ -3,13 +3,17 @@ my class Capture { # declared in BOOTSTRAP
     #     has Mu $!list;   # positional parameters
     #     has Mu $!hash;   # named parameters
 
+    method new(:@list,:%hash) {
+        nqp::create(self).BUILD(:@list,:%hash);
+    }
+
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')
         );
         my Mu $hs := nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage');
         nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
-        1;
+        self;
     }
     multi method WHICH (Capture:D:) {
         my $WHICH = self.^name;

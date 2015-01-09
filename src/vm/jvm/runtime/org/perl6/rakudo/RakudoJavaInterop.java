@@ -685,8 +685,10 @@ public class RakudoJavaInterop extends BootJavaInterop {
         HashMap<String, SixModelObject> names = new HashMap< >();
         HashMap<String, ArrayList<SixModelObject>> multis = new HashMap< >();
 
-        STable protoSt = gc.BOOTJava.st;
-        SixModelObject freshType = protoSt.REPR.type_object_for(tc, computeHOW(tc, klass.getName()));
+        GlobalExt gcx = RakOps.key.getGC(tc);
+        STable protoSt = gcx.JavaHOW.st;
+        SixModelObject ThisHOW = computeHOW(tc, klass.getName());
+        SixModelObject freshType = protoSt.REPR.type_object_for(tc, ThisHOW);
 
         HashMap<String, SixModelObject> mult = new HashMap< >();
         for (int i = 0; i < adaptor.descriptors.size(); i++) {
@@ -733,6 +735,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         freshType.st.MethodCache = names;
         freshType.st.ModeFlags |= STable.METHOD_CACHE_AUTHORITATIVE;
+
         ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!methods", STable.NO_HINT, hash);
 
         hash.bind_key_boxed(tc, "/TYPE/", freshType);

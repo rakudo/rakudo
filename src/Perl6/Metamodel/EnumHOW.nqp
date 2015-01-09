@@ -40,6 +40,9 @@ class Perl6::Metamodel::EnumHOW
     # Are we composed yet?
     has $!composed;
 
+    # Exportation callback for enum symbols, if any.
+    has $!export_callback;
+
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1) );
     method archetypes() {
         $archetypes
@@ -61,7 +64,11 @@ class Perl6::Metamodel::EnumHOW
         %!values{nqp::unbox_s($value.key)} := $value.value;
         @!enum_value_list[+@!enum_value_list] := $value;
     }
-    
+
+    method set_export_callback($obj, $callback) {
+        $!export_callback := $callback
+    }
+
     method enum_values($obj) {
         %!values
     }
@@ -130,7 +137,16 @@ class Perl6::Metamodel::EnumHOW
 
         $obj
     }
-    
+
+    # Called by the compiler when all enum values have been added, to trigger
+    # any needed actions.
+    method compose_values($obj) {
+        if $!export_callback {
+            $!export_callback();
+            $!export_callback := Mu;
+        }
+    }
+
     my $composalizer;
     method set_composalizer($c) { $composalizer := $c }
     method composalize($obj) {

@@ -3411,11 +3411,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
+
         # create a type object even for empty enums
         make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
 
         $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
             ($*SCOPE || 'our'), 'enum', $*PACKAGE, $block, $type_obj);
+
+        # Compose the added enum values.
+        $type_obj.HOW.compose_values($type_obj);
 
         # Document it
         Perl6::Pod::document($/, $type_obj, $*POD_BLOCK, :leading);

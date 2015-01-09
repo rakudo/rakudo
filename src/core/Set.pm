@@ -10,6 +10,7 @@ my class Set does Setty {
     }
     submethod BUILD (:%elems) {
         nqp::bindattr(self, Set, '%!elems', %elems);
+        self;
     }
 
     method at_key($k --> Bool) {

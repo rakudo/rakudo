@@ -10,7 +10,6 @@ my class Bag does Baggy {
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
-    submethod BUILD (:%!elems)  { }
 
     method at_key($k --> Int) {
         my $key := $k.WHICH;

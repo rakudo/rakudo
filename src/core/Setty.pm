@@ -1,7 +1,7 @@
 my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
-    method BUILD (:%!elems) {}
+    method BUILD (:%!elems)  { self }
     method default(--> Bool) { False }
     method keys { %!elems.values }
     method values { True xx %!elems.elems }
@@ -24,7 +24,7 @@ my role Setty does QuantHash {
     method new(*@args --> Setty) {
         my %e;
         %e{$_.WHICH} = $_ for @args;
-        self.bless(:elems(%e));
+        nqp::create(self).BUILD(:elems(%e));
     }
     method new-from-pairs(*@pairs --> Setty) {
         my %e;

@@ -8,14 +8,14 @@ my class MapIter is Iterator {
     has Mu $!label;            # The label that might be attached to us
 
     method new($list, $block, Mu $flattens = Bool::True, :$label) {
-        my $new := nqp::create(self);
-        $new.BUILD(nqp::p6listiter(nqp::list(nqp::decont($list)), $new),
-                   $block, $flattens, True, :$label);
-        $new;
+        nqp::create(self).BUILD(
+          nqp::p6listiter(nqp::list(nqp::decont($list)), self),
+          $block, $flattens, True, :$label);
     }
 
-    method BUILD(Mu \listiter, \block, Mu \flattens, $first = False, :$label) {
-        nqp::bindattr(listiter, ListIter, '$!list', self) if nqp::isconcrete(listiter);
+    submethod BUILD(Mu \listiter, \block, Mu \flattens, $first, :$label) {
+        nqp::bindattr(listiter, ListIter, '$!list', self)
+          if nqp::isconcrete(listiter);
         $!listiter := listiter;
         $!block = block;
         $!first = $first;
@@ -287,7 +287,7 @@ my class MapIter is Iterator {
 #?endif
 
             if $!items || $!listiter {
-                my $nextiter := nqp::create(self).BUILD($!listiter, $!block, $!flattens, :$!label);
+                my $nextiter := nqp::create(self).BUILD($!listiter, $!block, $!flattens, False, :$!label);
                 nqp::bindattr($nextiter, MapIter, '$!items', $!items);
                 nqp::push($rpa, $nextiter);
             }

@@ -4,13 +4,12 @@ my class Complex is Cool does Numeric {
 
     proto method new(|) { * }
     multi method new(Real \re, Real \im) {
-        my $new = nqp::create(self);
-        $new.BUILD(re.Num, im.Num);
-        $new;
+        nqp::create(self).BUILD(re.Num,im.Num);
     }
-    method BUILD(Num \re, Num \im) {
+    submethod BUILD(Num \re, Num \im) {
         $!re = re;
         $!im = im;
+        self;
     }
     method reals(Complex:D:) {
         (self.re, self.im);

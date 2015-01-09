@@ -5,6 +5,7 @@ my class Match is Capture is Cool {
     has $.CURSOR;
     has $.made;
 
+    # new/BUILD here only for performance reasons
     method new(:$orig,:$from,:$to,:$CURSOR,:$made) {
         nqp::create(self).BUILD($orig,$from,$to,$CURSOR,$made);
     }

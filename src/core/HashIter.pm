@@ -5,23 +5,22 @@ my class HashIter is Iterator {
     has int $!mode;            # pair = 0, kv = 1, k = 2, v = 3, invert = 4
 
     method new($hash, :$keystore, :$pairs, :$kv, :$k, :$v, :$invert) {
-        my $new := nqp::create(self);
-        $new.BUILD($hash, $keystore,
+        nqp::create(self).BUILD($hash, $keystore,
             $pairs  ?? 0 !!
             $kv     ?? 1 !!
             $k      ?? 2 !!
             $v      ?? 3 !!
             $invert ?? 4 !!
                        0);
-        $new;
     }
 
-    method BUILD($hash, $keystore, Int $mode) {
-        $!hashiter := nqp::iterator(nqp::getattr(nqp::decont($hash), EnumMap, '$!storage'));
+    submethod BUILD($hash, $keystore, Int $mode) {
+        $!hashiter :=
+          nqp::iterator(nqp::getattr(nqp::decont($hash), EnumMap, '$!storage'));
         $!mode      = $mode;
         $!keystore := nqp::getattr(nqp::decont($keystore), EnumMap, '$!storage')
-            if $keystore.DEFINITE;
-        self
+          if $keystore.DEFINITE;
+        self;
     }
 
     method reify($n?, :$sink) {  # hashes are finite, and hashiter non-reentrant, so do eager snapshot for now

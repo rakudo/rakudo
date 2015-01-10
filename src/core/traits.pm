@@ -282,6 +282,13 @@ multi sub trait_mod:<is>(Mu:U \type, :$export!) {
                        nqp::istype($export,Positional) ?? @($export)>>.key !!
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, type);
+    if nqp::istype(type.HOW, Metamodel::EnumHOW) {
+        type.HOW.set_export_callback(type, {
+            for type.^enum_values.keys -> $value_name {
+                EXPORT_SYMBOL($value_name, @tags, type.WHO{$value_name});
+            }
+        });
+    }
 }
 # for constants
 multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {

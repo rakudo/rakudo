@@ -5,6 +5,16 @@ my class Match is Capture is Cool {
     has $.CURSOR;
     has $.made;
 
+    # new/BUILD here only for performance reasons
+    method new(:$orig,:$from,:$to,:$CURSOR,:$made) {
+        nqp::create(self).BUILD(:$orig,:$from,:$to,:$CURSOR,:$made);
+    }
+    method BUILD(:$!orig,:$from,:$to,:$!CURSOR,:$!made) {
+        $!from   = $from // 0;  # cannot assign to int in sig
+        $!to     = $to   // 0;  # cannot assign to int in sig
+        self;
+    }
+
     method ast(Match:D:) { $!made }
 
     multi method Str(Match:D:) {

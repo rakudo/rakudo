@@ -351,7 +351,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         // the conditional is rather sketchy, but seems to be needed to 
         // correctly return a new instance when we're called from 
         // ConstructorDispatchCallSite, probably because of
-        // Perl 6' .new creating a new CallFrame or something..?
+        // Perl 6' .new creating a new CallFrame or something..?
         return Ops.result_o(tc.curFrame) != null ? Ops.result_o(tc.curFrame) : Ops.result_o(tc.curFrame.caller);
     }
 

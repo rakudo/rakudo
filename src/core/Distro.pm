@@ -72,7 +72,7 @@ multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
             $release := ~$0 if m/^^ VERSION_ID \= (\N*) /;
         }
         elsif $name eq 'linux' {
-            if qx/lsb_release -a/ ~~ m/
+            if qx{lsb_release -a 2> /dev/null} ~~ m/
                 Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+
                 Description\: \s+ (<[\w\ ]>+) \s+ (<[\d\.]>+) \s+
                 Release\: \s+ (<[\d\.]>+)

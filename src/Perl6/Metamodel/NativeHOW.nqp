@@ -9,6 +9,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::MROBasedTypeChecking
 {
     has $!nativesize;
+    has $!ctype;
     has int $!unsigned;
     has $!composed;
 
@@ -22,7 +23,7 @@ class Perl6::Metamodel::NativeHOW
     }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
-        my $metaclass := self.new(:nativesize(0));
+        my $metaclass := self.new(:nativesize(0), :ctype(0));
         my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver) if $ver;
@@ -34,13 +35,16 @@ class Perl6::Metamodel::NativeHOW
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
-        if !$!composed && $!nativesize {
+        if !$!composed && ($!nativesize || $!ctype) {
+            # TODO: Make sure we have nativesize XOR ctype
             my $info := nqp::hash();
             $info<integer> := nqp::hash();
-            $info<integer><bits> := nqp::unbox_i($!nativesize);
+            $info<integer><bits> := nqp::unbox_i($!nativesize) if $!nativesize;
+            $info<integer><ctype> := nqp::unbox_i($!ctype) if $!ctype;
             $info<integer><unsigned> := 1 if $!unsigned;
             $info<float> := nqp::hash();
-            $info<float><bits> := nqp::unbox_i($!nativesize);
+            $info<float><bits> := nqp::unbox_i($!nativesize) if $!nativesize;
+            $info<float><ctype> := nqp::unbox_i($!ctype) if $!ctype;
             nqp::composetype($obj, $info);
         }
         $!composed := 1;
@@ -56,6 +60,18 @@ class Perl6::Metamodel::NativeHOW
     
     method nativesize($obj) {
         $!nativesize
+    }
+
+    method set_ctype($obj, $ctype) {
+        if $ctype eq "int" { $!ctype := 1; }
+        elsif $ctype eq "long" { $!ctype := 2; }
+        else {
+            nqp::die("Unknown ctype value `$ctype'");
+        }
+    }
+
+    method ctype($obj) {
+        $!ctype;
     }
     
     method set_unsigned($obj, $unsigned) {

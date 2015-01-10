@@ -230,7 +230,7 @@ only sub infix:<(.)>(**@p) {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.grep(Baggy) {
+    } else {  # go Baggy by default
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -259,7 +259,7 @@ only sub infix:<(+)>(**@p) {
             $mixhash{$_} += $mix{$_} for $mix.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.grep(Baggy) {
+    } else {  # go Baggy by default
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;

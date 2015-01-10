@@ -235,7 +235,7 @@ j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/lib.pm6.jar l
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
-	$(JAVAC) -source 1.7 -cp $(NQP_JARS) -g -d bin $(RUNTIME_JAVAS)
+	$(JAVAC) -source 1.7 -cp $(NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
 $(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp

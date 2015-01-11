@@ -52,22 +52,22 @@ sub prompt($msg) {
 }
 
 proto sub dir(|) { * }
-multi sub dir(Mu :$test, :$absolute) {
+multi sub dir(Mu :$test) {
     DIR-GATHER($*CWD.Str, $test);
 }
-multi sub dir(:$Str!,Mu :$test, :$absolute) {
+multi sub dir(:$Str!,Mu :$test) {
     $Str
       ?? DIR-GATHER-STR($*CWD.Str,$test)
       !! DIR-GATHER($*CWD.Str, $test);
 }
-multi sub dir($dir as Str, :$CWD = $*CWD, Mu :$test, :$absolute) {
+multi sub dir($dir as Str, :$CWD = $*CWD, Mu :$test) {
     DIR-GATHER(
       MAKE-CLEAN-PARTS(
         MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD.Str)
       ).join('/'), $test,
     );
 }
-multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test, :$absolute) {
+multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test) {
     $Str
       ?? DIR-GATHER-STR(
            MAKE-CLEAN-PARTS(

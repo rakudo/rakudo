@@ -58,7 +58,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 
-    multi method Bool(Str:D:) { self ne '' && self ne '0' }
+    multi method Bool(Str:D:) {
+        nqp::p6bool(nqp::chars($!value) && nqp::isne_s($!value,"0"));
+    }
 
     multi method Str(Str:D:)     { self }
     multi method Stringy(Str:D:) { self }

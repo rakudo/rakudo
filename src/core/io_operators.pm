@@ -270,7 +270,7 @@ multi sub mkdir(Int $mode, *@dirnames, :$CWD as Str = $*CWD) {
     @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
 }
 multi sub mkdir($path, $mode = 0o777, :$CWD as Str = $*CWD) {
-    MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$CWD),$mode) ?? ($path,) !! ();
+    MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$CWD),$mode);
 }
 
 sub rename($from, $to, :$CWD as Str = $*CWD, |c) {

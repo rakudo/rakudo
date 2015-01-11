@@ -1509,8 +1509,14 @@ class Perl6::Optimizer {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $sigil := nqp::substr($var.name, 0, 1);
+            my str $name  := nqp::substr($var.name, 1);
             if $sigil eq '$' || $sigil eq '@' || $sigil eq '%' {
-                $!problems.add_worry($var, "Useless use of variable " ~ $var.name ~ " in sink context");
+                $!problems.add_worry(
+                  $var,
+                  $name eq ''
+                    ?? "Useless use of unnamed $sigil variable in sink context"
+                    !! "Useless use of variable $sigil$name in sink context"
+                );
                 return $NULL;
             }
         }

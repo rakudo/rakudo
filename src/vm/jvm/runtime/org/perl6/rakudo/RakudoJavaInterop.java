@@ -83,11 +83,37 @@ public class RakudoJavaInterop extends BootJavaInterop {
                         outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
                     }
                     else {
-                        try {
-                            outArgs[i - offset] = RuntimeSupport.unboxJava(Ops.decont((SixModelObject) inArgs[i], tc));
-                        } catch (Exception e) {
-                            throw ExceptionHandling.dieInternal(tc,
-                                "Couldn't parse arguments in Java call. (Did you pass a type object?)");
+                        if( Ops.islist( (SixModelObject) inArgs[i], tc ) == 1 ) {
+                            outArgs[i - offset] = null;
+                            // XXX: obviously breaks for arrays with elems > Integer.MAX_VALUE
+                            int elems = (int) Ops.elems((SixModelObject) inArgs[i], tc);
+                            SixModelObject argsContent = (SixModelObject) inArgs[i];
+                            for( int j = 0; j < elems; ++j ) {
+                                argsContent.at_pos_native(tc, j);
+                                if( tc.native_type == ThreadContext.NATIVE_NUM ) {
+                                    if( outArgs[i - offset] == null ) 
+                                        outArgs[i - offset] = new double[elems];
+                                    ((double[])outArgs[i - offset])[j] = tc.native_n;
+                                }
+                                else if( tc.native_type == ThreadContext.NATIVE_STR ) {
+                                    if( outArgs[i - offset] == null ) 
+                                        outArgs[i - offset] = new String[elems];
+                                    ((String[])outArgs[i - offset])[j] = tc.native_s;
+                                }
+                                else if( tc.native_type == ThreadContext.NATIVE_INT ) {
+                                    if( outArgs[i - offset] == null ) 
+                                        outArgs[i - offset] = new long[elems];
+                                    ((long[])outArgs[i - offset])[j] = tc.native_i;
+                                }
+                            }
+                        }
+                        else {
+                            try {
+                                outArgs[i - offset] = RuntimeSupport.unboxJava(Ops.decont((SixModelObject) inArgs[i], tc));
+                            } catch (Exception e) {
+                                throw ExceptionHandling.dieInternal(tc,
+                                    "Couldn't parse arguments in Java call. (Did you pass a type object?)");
+                            }
                         }
                     }
                 }
@@ -119,7 +145,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 INNER: for( int j = 0; j < parsedArgs.length; ++j ) {
                     switch (argTypes[j].getSort()) {
                         case Type.BOOLEAN:
-                            if( parsedArgs[j].getClass().equals(long.class) ) {
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
                                 parsedArgs[j] = parsedArgs[j] != null ? ((Long) parsedArgs[j]) == 0 ? false : true : null;
                                 continue INNER;
                             }
@@ -128,25 +154,25 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             }
                             break;
                         case Type.BYTE:
-                            if( parsedArgs[j].getClass().equals(long.class) ) {
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
                                 parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).byteValue() : null;
                                 continue INNER;
                             }
                             break;
                         case Type.SHORT:
-                            if( parsedArgs[j].getClass().equals(long.class) ) {
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
                                 parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).shortValue() : null;
                                 continue INNER;
                             }
                             break;
                         case Type.INT:
-                            if( parsedArgs[j].getClass().equals(long.class) ) {
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
                                 parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).intValue() : null;
                                 continue INNER;
                             }
                             break;
                         case Type.LONG:
-                            if( parsedArgs[j].getClass().equals(long.class) ) {
+                            if( parsedArgs[j].getClass().equals(Long.class) ) {
                                 continue INNER; 
                             }
                             break;
@@ -174,8 +200,91 @@ public class RakudoJavaInterop extends BootJavaInterop {
                                 continue INNER;
                             }
                             break;
+                        case Type.ARRAY:
+                            // check that we actually have an array as argument
+                            if( parsedArgs[j].getClass().getComponentType() != null ) {
+                                // and then check types again
+                                switch( argTypes[j].getElementType().getSort() ) { 
+                                    case Type.BOOLEAN:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
+                                            boolean[] converted = new boolean[((Object[])parsedArgs[j]).length];
+                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
+                                                converted[k] = ((Long) ((long[])parsedArgs[j])[k]) == 0 ? false : true;
+                                            parsedArgs[j] = converted;
+                                            continue INNER;
+                                        }
+                                        break;
+                                    case Type.BYTE:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
+                                            byte[] converted = new byte[((long[])parsedArgs[j]).length];
+                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
+                                                converted[k] = ((Long)((long[])parsedArgs[j])[k]).byteValue();
+                                            parsedArgs[j] = converted;
+                                            continue INNER;
+                                        }
+                                        break;
+                                    case Type.SHORT:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
+                                            short[] converted = new short[((long[])parsedArgs[j]).length];
+                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
+                                                converted[k] = ((Long)((long[])parsedArgs[j])[k]).shortValue();
+                                            parsedArgs[j] = converted;
+                                            continue INNER;
+                                        }
+                                        break;
+                                    case Type.INT:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
+                                            int[] converted = new int[((long[])parsedArgs[j]).length];
+                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
+                                                converted[k] = ((Long)((long[])parsedArgs[j])[k]).intValue();
+                                            parsedArgs[j] = converted;
+                                            continue INNER;
+                                        }
+                                        break;
+                                    case Type.LONG:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
+                                            continue INNER; 
+                                        }
+                                        break;
+                                    case Type.CHAR:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(String.class) ) {
+                                            continue INNER;
+                                        }
+                                        break;
+                                    case Type.FLOAT:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(double.class) ) {
+                                            float[] converted = new float[((double[])parsedArgs[j]).length];
+                                            for( int k = 0; k < ((double[])parsedArgs[j]).length; ++k )
+                                                converted[k] = ((Double)((double[])parsedArgs[j])[k]).floatValue();
+                                            parsedArgs[j] = converted;
+                                            continue INNER;
+                                        }
+                                        break;
+                                    case Type.DOUBLE:
+                                        if( parsedArgs[j].getClass().getComponentType().equals(double.class) ) {
+                                            continue INNER;
+                                        }
+                                        break;
+                                    case Type.OBJECT:
+                                        Class<?> innerArgType = Class.forName(argTypes[j].getElementType()
+                                            .getInternalName().replace('/', '.'), false, tc.gc.byteClassLoader);
+                                        if( innerArgType.isAssignableFrom(parsedArgs[j].getClass()) ) {
+                                            // not sure how unboxing of Object[] is gonna work...
+                                            continue INNER;
+                                        }
+                                        break;
+                                }
+                            }
+
                         default:
+                            /* debug
+                            System.out.print("skipping handle with ");
+                            for(Type type : argTypes) 
+                                System.out.print(type.toString() + ", ");
+                            System.out.println();
+                            */
                             // if we didn't continue INNER we failed to match types
+
                     }
                     continue OUTER;
                 }
@@ -185,14 +294,14 @@ public class RakudoJavaInterop extends BootJavaInterop {
             if( handlePos == -1 ) {
                 String types = "void";
                 boolean first = true;
-                if( argTypes != null ) {
-                    for( Type type : argTypes ) {
+                if( parsedArgs != null ) {
+                    for( Object arg : parsedArgs ) {
                         if( first ) {
-                            types = type.toString();
+                            types = arg.getClass().toString();
                             first = false;
                         }
                         else {
-                            types += ", " + type;
+                            types += ", " + arg.getClass().toString();
                         }
                     }
                 }
@@ -209,6 +318,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
             CallFrame cf = (CallFrame) incf;
             CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
             Object[] parsedArgs = parseArgs(args, tc);
+            
+            /* debug
+            for(int i = 0; i < parsedArgs.length; ++i ) {
+                System.out.println("parsed arg " + i + " as " + parsedArgs[i].getClass());
+            }
+            */
 
             if(forCtors) {
                 this.handleList = Class.forName(Type.getObjectType(((String) declaringClass).replace('/', '.')).getInternalName(),
@@ -512,7 +627,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
         // &new()-equivalent, which dispatches among the generated
         // adaptorConstructors - which aren't really constructors but static
         // methods
-        createConstructorDispatchAdaptor(cc, target.getConstructors());
+        if( target.getConstructors().length > 0 )
+            createConstructorDispatchAdaptor(cc, target.getConstructors());
         createAdaptorSpecials(cc);
         compunitMethods(cc);
 
@@ -600,3 +716,5 @@ public class RakudoJavaInterop extends BootJavaInterop {
     }
 
 }
+
+

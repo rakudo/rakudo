@@ -72,7 +72,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method ACCEPTS(Str:D: Str:D \other) {
         nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other),$!value));
     }
-    multi method ACCEPTS(Str:D: \other) {
+    multi method ACCEPTS(Str:D: Any:U \other) {
+        False;
+    }
+    multi method ACCEPTS(Str:D: Any:D \other) {
         nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other.Str),$!value));
     }
 

@@ -179,7 +179,7 @@ sub CHANGE-DIRECTORY($path,$base,&test) {
     my $abspath := MAKE-CLEAN-PARTS(
       MAKE-ABSOLUTE-PATH(FORWARD-SLASH($path),$base)
     ).join('/');
-    FILETEST-E($abspath) && FILETEST-D($abspath) && test($abspath)
+    FILETEST-e($abspath) && FILETEST-d($abspath) && test($abspath)
       ?? IO::Dir.new(:$abspath)
       !! fail X::IO::Chdir.new(
            :$path,
@@ -188,7 +188,7 @@ sub CHANGE-DIRECTORY($path,$base,&test) {
 }
 
 sub COPY-FILE(Str $from, Str $to, :$createonly) {
-    if $createonly and FILETEST-E($to) {
+    if $createonly and FILETEST-e($to) {
         fail X::IO::Copy.new(
           :$from,
           :$to,
@@ -204,7 +204,7 @@ sub COPY-FILE(Str $from, Str $to, :$createonly) {
 }
 
 sub RENAME-PATH(Str $from, Str $to, :$createonly) {
-    if $createonly and FILETEST-E($to) {
+    if $createonly and FILETEST-e($to) {
         fail X::IO::Rename.new(
           :$from,
           :$to,
@@ -261,7 +261,7 @@ sub SLURP-PATH(Str $path,:$encoding,:$bin,:$enc,|c) {
 }
 
 sub SPURT-PATH(Str $path,\what,:$encoding,:$append,:$createonly,:$bin,:$enc,|c) {
-    if $createonly and FILETEST-E($path) {
+    if $createonly and FILETEST-e($path) {
         fail("File '$path' already exists, and :createonly was specified");
     }
     my $mode = $append ?? :a !! :w;
@@ -292,49 +292,49 @@ sub REMOVE-DIR(Str $path) {
     True;
 }
 
-sub FILETEST-E(Str $abspath) {
+sub FILETEST-e(Str $abspath) {
     nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_EXISTS) );
 }
-sub FILETEST-D(Str $abspath) {
+sub FILETEST-d(Str $abspath) {
     nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_ISDIR) );
 }
-sub FILETEST-F(Str $abspath) {
+sub FILETEST-f(Str $abspath) {
     nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_ISREG) );
 }
-sub FILETEST-S(Str $abspath) {
+sub FILETEST-s(Str $abspath) {
     nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE) );
 }
-sub FILETEST-L(Str $abspath) {
+sub FILETEST-l(Str $abspath) {
     nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));
 }
-sub FILETEST-R(Str $abspath) {
+sub FILETEST-r(Str $abspath) {
     nqp::p6bool(nqp::filereadable(nqp::unbox_s($abspath)));
 }
-sub FILETEST-W(Str $abspath) {
+sub FILETEST-w(Str $abspath) {
     nqp::p6bool(nqp::filewritable(nqp::unbox_s($abspath)));
 }
-sub FILETEST-RW(Str $abspath) {
+sub FILETEST-rw(Str $abspath) {
     my str $p = nqp::unbox_s($abspath);
     nqp::p6bool(nqp::filereadable($p) && nqp::filewritable($p));
 }
-sub FILETEST-X(Str $abspath) {
+sub FILETEST-x(Str $abspath) {
     nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($abspath)));
 }
-sub FILETEST-RX(Str $abspath) {
+sub FILETEST-rx(Str $abspath) {
     my str $p = nqp::unbox_s($abspath);
     nqp::p6bool(nqp::filereadable($p) && nqp::fileexecutable($p));
 }
-sub FILETEST-WX(Str $abspath) {
+sub FILETEST-wx(Str $abspath) {
     my str $p = nqp::unbox_s($abspath);
     nqp::p6bool(nqp::filewritable($p) && nqp::fileexecutable($p));
 }
-sub FILETEST-RWX(Str $abspath) {
+sub FILETEST-rwx(Str $abspath) {
     my str $p = nqp::unbox_s($abspath);
     nqp::p6bool(
       nqp::filereadable($p) && nqp::filewritable($p) && nqp::fileexecutable($p)
     );
 }
-sub FILETEST-Z(Str $abspath) {
+sub FILETEST-z(Str $abspath) {
     nqp::p6bool(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE)==0);
 }
 sub FILETEST-MODIFIED(Str $abspath) {
@@ -362,7 +362,7 @@ sub FILETEST-GID(Str $abspath) {
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take FILETEST-D($elem)
+            take FILETEST-d($elem)
               ?? IO::Dir.new(:abspath($elem ~ '/'))
               !! IO::File.new(:abspath($elem));
         }
@@ -372,7 +372,7 @@ sub DIR-GATHER(Str $abspath,Mu $test) {
 sub DIR-GATHER-STR(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take FILETEST-D($elem)
+            take FILETEST-d($elem)
               ?? $elem ~ '/'
               !! $elem;
         }

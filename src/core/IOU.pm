@@ -75,11 +75,11 @@ my class IOU does IO::Pathy {
 
     method !what(IOU: $abspath, |c) {
 
-        if FILETEST-E($abspath) {
-            if FILETEST-F($abspath) {
+        if FILETEST-e($abspath) {
+            if FILETEST-f($abspath) {
                 return IO::File.new(:$abspath, |c);
             }
-            elsif FILETEST-D($abspath) {
+            elsif FILETEST-d($abspath) {
                 return IO::Dir.new(:$abspath, |c);
             }
             else {

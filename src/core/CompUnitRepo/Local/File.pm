@@ -41,12 +41,12 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
                 my $abspath = $base ~ $extension;
                 return %seen{$base} = CompUnit.new(
                   $abspath, :$name, :$extension, :has-source
-                ) if FILETEST-E($abspath) && FILETEST-F($abspath);
+                ) if FILETEST-e($abspath) && FILETEST-f($abspath);
 
                 $abspath = $abspath ~ '.' ~ $precomp-ext;
                 return %seen{$base} = CompUnit.new(
                   $abspath, :$name, :$extension, :!has-source, :has-precomp
-                ) if FILETEST-E($abspath) && FILETEST-F($abspath);
+                ) if FILETEST-e($abspath) && FILETEST-f($abspath);
             }
         }
 
@@ -54,7 +54,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
         elsif $base ~ $precomp-ext -> $abspath {
             return %seen{$base} = CompUnit.new(
               $abspath, :$name, :extension(''), :!has-source, :has-precomp
-            ) if FILETEST-E($abspath) && FILETEST-F($abspath);
+            ) if FILETEST-e($abspath) && FILETEST-f($abspath);
         }
 
         # alas

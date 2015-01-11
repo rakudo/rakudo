@@ -468,58 +468,58 @@ my class IO::Path is Cool {
         $result;
     }
 
-    method e() { $!e //= FILETEST-E($.abspath) }
+    method e() { $!e //= FILETEST-e($.abspath) }
 
     method d() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<d>) if !$.e;
-        FILETEST-D($!abspath);
+        FILETEST-d($!abspath);
     }
 
     method f() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<f>) if !$.e;
-        FILETEST-F($!abspath);
+        FILETEST-f($!abspath);
     }
 
     method s() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<s>) if !$.e;
         fail X::IO::NotAFile.new(:path(self.Str),:trying<s>)     if !$.f;
-        FILETEST-S($!abspath);
+        FILETEST-s($!abspath);
     }
 
     method l() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<l>) if !$.e;
-        FILETEST-L($!abspath);
+        FILETEST-l($!abspath);
     }
 
     method r() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<r>) if !$.e;
-        FILETEST-R($!abspath);
+        FILETEST-r($!abspath);
     }
 
     method w() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<w>) if !$.e;
-        FILETEST-W($!abspath);
+        FILETEST-w($!abspath);
     }
 
     method rw() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<w>) if !$.e;
-        FILETEST-RW($!abspath);
+        FILETEST-rw($!abspath);
     }
 
     method x() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<x>) if !$.e;
-        FILETEST-X($!abspath);
+        FILETEST-x($!abspath);
     }
 
     method rwx() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<w>) if !$.e;
-        FILETEST-RWX($!abspath);
+        FILETEST-rwx($!abspath);
     }
 
     method z() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<z>) if !$.e;
         fail X::IO::NotAFile.new(:path(self.Str),:trying<z>)     if !$.f;
-        FILETEST-Z($!abspath);
+        FILETEST-z($!abspath);
     }
 
     method modified() {

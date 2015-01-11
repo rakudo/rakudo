@@ -101,7 +101,7 @@ multi sub open( $path,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
     # want a normal handle
     my $abspath := MAKE-ABSOLUTE-PATH($path,$*CWD.Str);
     fail X::IO::Directory.new(:$path, :trying<open>)
-      if FILETEST-E($abspath) && FILETEST-D($abspath);
+      if FILETEST-e($abspath) && FILETEST-d($abspath);
 
     my $mode := ($rw || $w) ?? 'w' !! ($a ?? 'wa' !! 'r' );
     # TODO: catch error, and fail()
@@ -228,13 +228,13 @@ sub chdir($path as Str) {
         $*CWD = $*CWD.IO;
     }
 
-    my $newCWD = CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-X);
+    my $newCWD = CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-x);
     $newCWD // $newCWD.throw;
     $*CWD = $newCWD;
 }
 
 sub indir($path as Str, $what) {
-    my $newCWD := CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-RWX);
+    my $newCWD := CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-rwx);
     $newCWD // $newCWD.throw;
 
     {
@@ -244,13 +244,13 @@ sub indir($path as Str, $what) {
 }
 
 sub tmpdir($path as Str) {
-    my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR.Str,&FILETEST-RWX);
+    my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR.Str,&FILETEST-rwx);
     $newTMPDIR // $newTMPDIR.throw;
     $*TMPDIR = $newTMPDIR;
 }
 
 sub homedir($path as Str) {
-    my $newHOME := CHANGE-DIRECTORY($path,$*HOME.Str,&FILETEST-RWX);
+    my $newHOME := CHANGE-DIRECTORY($path,$*HOME.Str,&FILETEST-rwx);
     $newHOME // $newHOME.throw;
     $*HOME = $newHOME;
 }

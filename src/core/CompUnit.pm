@@ -31,8 +31,8 @@ class CompUnit {
 
         # sanity test
         my $precomp-ext = $*VM.precomp-ext;
-        $has-source  //= FILETEST-E($abspath);
-        $has-precomp //= FILETEST-E("$abspath.$precomp-ext");
+        $has-source  //= FILETEST-e($abspath);
+        $has-precomp //= FILETEST-e("$abspath.$precomp-ext");
         return Nil unless $has-source or $has-precomp;
 
         $global.protect( { %instances{$abspath} //= self.bless(
@@ -117,7 +117,7 @@ class CompUnit {
         die "Cannot pre-compile an already pre-compiled file: $!abspath"
           if $.has-precomp;
         die "Cannot pre-compile over an existing file: $out"
-          if !$force and FILETEST-E($out);
+          if !$force and FILETEST-e($out);
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'

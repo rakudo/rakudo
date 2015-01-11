@@ -43,18 +43,18 @@ my role IO::Pathy {
     method pred(IO::Pathy:D:) { $!abspath.pred }
 
     method e(IO::Pathy:D:)   { True }
-    method f(IO::Pathy:D:)   { FILETEST-F(  $!abspath) }
-    method s(IO::Pathy:D:)   { FILETEST-S(  $!abspath) }
-    method l(IO::Pathy:D:)   { FILETEST-L(  $!abspath) }
-    method r(IO::Pathy:D:)   { FILETEST-R(  $!abspath) }
-    method w(IO::Pathy:D:)   { FILETEST-W(  $!abspath) }
-    method rw(IO::Pathy:D:)  { FILETEST-RW( $!abspath) }
-    method x(IO::Pathy:D:)   { FILETEST-X(  $!abspath) }
-    method rx(IO::Pathy:D:)  { FILETEST-RX( $!abspath) }
-    method wx(IO::Pathy:D:)  { FILETEST-WX( $!abspath) }
-    method rwx(IO::Pathy:D:) { FILETEST-RWX($!abspath) }
+    method f(IO::Pathy:D:)   { FILETEST-f(  $!abspath) }
+    method s(IO::Pathy:D:)   { FILETEST-s(  $!abspath) }
+    method l(IO::Pathy:D:)   { FILETEST-l(  $!abspath) }
+    method r(IO::Pathy:D:)   { FILETEST-r(  $!abspath) }
+    method w(IO::Pathy:D:)   { FILETEST-w(  $!abspath) }
+    method rw(IO::Pathy:D:)  { FILETEST-rw( $!abspath) }
+    method x(IO::Pathy:D:)   { FILETEST-x(  $!abspath) }
+    method rx(IO::Pathy:D:)  { FILETEST-rx( $!abspath) }
+    method wx(IO::Pathy:D:)  { FILETEST-wx( $!abspath) }
+    method rwx(IO::Pathy:D:) { FILETEST-rwx($!abspath) }
     method o(IO::Pathy:D:)   { FILETEST-UID($!abspath) == +$*USER }
-    method z(IO::Pathy:D:)   { FILETEST-Z(  $!abspath) }
+    method z(IO::Pathy:D:)   { FILETEST-z(  $!abspath) }
     method modified(IO::Pathy:D:) { FILETEST-MODIFIED($!abspath) }
     method accessed(IO::Pathy:D:) { FILETEST-ACCESSED($!abspath) }
     method changed(IO::Pathy:D:)  { FILETEST-CHANGED( $!abspath) }

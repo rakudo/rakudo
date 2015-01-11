@@ -5,7 +5,7 @@ my class IO::Dir is Cool does IO::Pathy {
         if $check {   # should really be .resolve, but we don't have that yet
             @!parts = MAKE-CLEAN-PARTS($!abspath);
             $!abspath = @!parts.join('/');
-            fail "$!abspath is not a directory" unless FILETEST-D($!abspath);
+            fail "$!abspath is not a directory" unless FILETEST-d($!abspath);
         }
     }
 

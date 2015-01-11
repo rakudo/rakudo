@@ -69,7 +69,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method Int(Str:D:) { self.Numeric.Int; }
     method Num(Str:D:) { self.Numeric.Num; }
 
-    multi method ACCEPTS(Str:D: $other) { $other eq self }
+    multi method ACCEPTS(Str:D: Str:D \other) {
+        nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other),$!value));
+    }
+    multi method ACCEPTS(Str:D: \other) {
+        nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other.Str),$!value));
+    }
 
     method chomp(Str:D:) {
         my str $sself = nqp::unbox_s(self);

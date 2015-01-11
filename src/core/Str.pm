@@ -58,7 +58,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 
-    multi method Bool(Str:D:) { self ne '' && self ne '0' }
+    multi method Bool(Str:D:) {
+        nqp::p6bool(nqp::chars($!value) && nqp::isne_s($!value,"0"));
+    }
 
     multi method Str(Str:D:)     { self }
     multi method Stringy(Str:D:) { self }
@@ -67,7 +69,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method Int(Str:D:) { self.Numeric.Int; }
     method Num(Str:D:) { self.Numeric.Num; }
 
-    multi method ACCEPTS(Str:D: $other) { $other eq self }
+    multi method ACCEPTS(Str:D: Str:D \other) {
+        nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other),$!value));
+    }
+    multi method ACCEPTS(Str:D: Any:U \other) {
+        False;
+    }
+    multi method ACCEPTS(Str:D: Any:D \other) {
+        nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other.Str),$!value));
+    }
 
     method chomp(Str:D:) {
         my str $sself = nqp::unbox_s(self);

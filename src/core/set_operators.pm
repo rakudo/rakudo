@@ -32,7 +32,7 @@ only sub infix:<<"\x220C">>($a, $b --> Bool) {
 }
 
 only sub infix:<(|)>(**@p) {
-    if @p.grep(Mixy) {
+    if @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -40,7 +40,7 @@ only sub infix:<(|)>(**@p) {
             $mixhash{$_} max= $mix{$_} for $mix.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.grep(Baggy) {
+    } elsif @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -60,7 +60,7 @@ only sub infix:<<"\x222A">>(|p) {
 only sub infix:<(&)>(**@p) {
     return set() unless @p;
 
-    if @p.grep(Mixy) {
+    if @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -71,7 +71,7 @@ only sub infix:<(&)>(**@p) {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.grep(Baggy) {
+    } elsif @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -100,7 +100,7 @@ only sub infix:<<"\x2229">>(|p) {
 only sub infix:<(-)>(**@p) {
     return set() unless @p;
 
-    if @p.grep(Mixy) {
+    if @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -111,7 +111,7 @@ only sub infix:<(-)>(**@p) {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.grep(Baggy) {
+    } elsif @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -219,7 +219,7 @@ only sub infix:<<"\x2285">>($a, $b --> Bool) {
 only sub infix:<(.)>(**@p) {
     return bag() unless @p;
 
-    if @p.grep(Mixy) {
+    if @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -251,7 +251,7 @@ only sub infix:<<"\x228D">>(|p) {
 only sub infix:<(+)>(**@p) {
     return bag() unless @p;
 
-    if @p.grep(Mixy) {
+    if @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -276,7 +276,7 @@ only sub infix:<<"\x228E">>(|p) {
 
 proto sub infix:<<(<+)>>($, $ --> Bool) {*}
 multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool) {
-    if $a ~~ Mixy or $b ~~ Mixy {
+    if nqp::istype($a, Mixy) or nqp::istype($b, Mixy) {
         $a.Mix(:view) (<+) $b.Mix(:view);
     } else {
         $a.Bag(:view) (<+) $b.Bag(:view);
@@ -295,7 +295,7 @@ multi sub infix:<<(>+)>>(Baggy $a, Baggy $b --> Bool) {
     so all $b.keys.map({ $b{$_} <= $a{$_} });
 }
 multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool) {
-    if $a ~~ Mixy or $b ~~ Mixy {
+    if nqp::istype($a, Mixy) or nqp::istype($b, Mixy) {
         $a.Mix(:view) (>+) $b.Mix(:view);
     } else {
         $a.Bag(:view) (>+) $b.Bag(:view);

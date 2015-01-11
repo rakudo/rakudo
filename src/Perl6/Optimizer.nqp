@@ -1514,8 +1514,8 @@ class Perl6::Optimizer {
                 $!problems.add_worry(
                   $var,
                   $name eq ''
-                    ?? "Useless use of unnamed $sigil in sink context"
-                    !! "Useless use of $sigil$name in sink context"
+                    ?? "Useless use of unnamed $sigil variable in sink context"
+                    !! "Useless use of variable $sigil$name in sink context"
                 );
                 return $NULL;
             }

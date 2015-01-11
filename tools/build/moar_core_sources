@@ -69,7 +69,6 @@ src/core/Grammar.pm
 src/core/Regex.pm
 src/core/PIO.pm
 src/core/IO.pm
-src/core/IO/Locally.pm
 src/core/IO/Pathy.pm
 src/core/IO/Local.pm
 src/core/IO/Dir.pm

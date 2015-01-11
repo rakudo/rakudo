@@ -283,7 +283,7 @@ multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool) {
     }
 }
 multi sub infix:<<(<+)>>(QuantHash $a, QuantHash $b --> Bool) {
-    so all $a.keys.map({ $a{$_} <= $b{$_} })
+    [&&] $a.keys.map({ $a{$_} <= $b{$_} })
 }
 # U+227C PRECEDES OR EQUAL TO
 only sub infix:<<"\x227C">>($a, $b --> Bool) {
@@ -292,7 +292,7 @@ only sub infix:<<"\x227C">>($a, $b --> Bool) {
 
 proto sub infix:<<(>+)>>($, $ --> Bool) {*}
 multi sub infix:<<(>+)>>(Baggy $a, Baggy $b --> Bool) {
-    so all $b.keys.map({ $b{$_} <= $a{$_} });
+    [&&] $b.keys.map({ $b{$_} <= $a{$_} });
 }
 multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool) {
     if nqp::istype($a, Mixy) or nqp::istype($b, Mixy) {

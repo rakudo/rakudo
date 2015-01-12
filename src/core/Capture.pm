@@ -39,16 +39,18 @@ my class Capture { # declared in BOOTSTRAP
         nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Any;
     }
 
-    multi method at_pos(Capture:D: $pos is copy) {
-        $pos = $pos.Int;
-        nqp::existspos($!list, nqp::unbox_i($pos))
-          ?? nqp::atpos($!list, nqp::unbox_i($pos))
-          !! Any
+    multi method at_pos(Capture:D: int \pos) {
+        nqp::existspos($!list, pos) ?? nqp::atpos($!list, pos) !! Any;
     }
-    multi method at_pos(Capture:D: Int $pos) {
-        nqp::existspos($!list, nqp::unbox_i($pos))
-          ?? nqp::atpos($!list, nqp::unbox_i($pos))
-          !! Any
+    multi method at_pos(Capture:D: Int \pos) {
+        my int $pos = nqp::unbox_i(pos);
+        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Any;
+    }
+    multi method at_pos(Capture:D: \pos) {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
+        my int $pos = nqp::unbox_i(pos.Int);
+        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Any;
     }
 
     method hash(Capture:D:) {

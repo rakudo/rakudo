@@ -11,7 +11,7 @@ my class Bag does Baggy {
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
 
-    method at_key($k --> Int) {
+    multi method at_key(Bag:D: $k --> Int) {
         my $key := $k.WHICH;
         %!elems.exists_key($key)
           ?? %!elems{$key}.value

@@ -1,9 +1,9 @@
 my class MixHash does Mixy {
 
-    method at_key($k) {
+    multi method at_key(MixHash:D: $k) {
         Proxy.new(
           FETCH => {
-              my $key   := $k.WHICH;
+              my $key := $k.WHICH;
               %!elems.exists_key($key) ?? %!elems{$key}.value !! 0;
           },
           STORE => -> $, $value {

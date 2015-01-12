@@ -13,7 +13,7 @@ my class Mix does Mixy {
     }
 
     method total (--> Real) { $!total //= [+] self.values }
-    method at_key($k --> Real) {
+    multi method at_key(Mix:D: $k --> Real) {
         my $key := $k.WHICH;
         %!elems.exists_key($key)
           ?? %!elems{$key}.value

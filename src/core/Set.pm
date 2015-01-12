@@ -13,8 +13,8 @@ my class Set does Setty {
         self;
     }
 
-    method at_key($k --> Bool) {
-        so %!elems.exists_key($k.WHICH);
+    multi method at_key(Set:D: \k --> Bool) {
+        so %!elems.exists_key(k.WHICH);
     }
 
     method delete_key($k --> Bool) is hidden_from_backtrace {

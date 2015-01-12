@@ -30,16 +30,13 @@ my class Capture { # declared in BOOTSTRAP
         $WHICH;
     }
 
-    multi method at_key(Capture:D: $key is copy) {
-        $key = $key.Str;
-        nqp::existskey($!hash, nqp::unbox_s($key))
-          ?? nqp::atkey($!hash, nqp::unbox_s($key))
-          !! Any
+    multi method at_key(Capture:D: \key) {
+        my str $skey = nqp::unbox_s(key.Str);
+        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Any;
     }
-    multi method at_key(Capture:D: Str $key) {
-        nqp::existskey($!hash, nqp::unbox_s($key))
-          ?? nqp::atkey($!hash, nqp::unbox_s($key))
-          !! Any
+    multi method at_key(Capture:D: Str:D \key) {
+        my str $skey = nqp::unbox_s(key);
+        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Any;
     }
 
     multi method at_pos(Capture:D: $pos is copy) {

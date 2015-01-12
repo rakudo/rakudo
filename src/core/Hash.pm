@@ -14,16 +14,16 @@ my class Hash { # declared in BOOTSTRAP
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
             unless nqp::defined($storage);
-        my str $key = nqp::istype(key, Str) ?? key !! key.Str;
-        if nqp::existskey($storage, $key) {
-            nqp::atkey($storage, $key);
+        my str $skey = nqp::istype(key, Str) ?? key !! key.Str;
+        if nqp::existskey($storage, $skey) {
+            nqp::atkey($storage, $skey);
         }
         else {
             nqp::p6bindattrinvres(
                 (my \v := nqp::p6scalarfromdesc($!descriptor)),
                 Scalar,
                 '$!whence',
-                -> { nqp::bindkey($storage, $key, v) }
+                -> { nqp::bindkey($storage, $skey, v) }
             );
         }
     }

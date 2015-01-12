@@ -1,6 +1,6 @@
 my class SetHash does Setty {
 
-    method at_key($k --> Bool) {
+    multi method at_key(SetHash:D: $k --> Bool) {
         Proxy.new(
           FETCH => {
               so %!elems.exists_key($k.WHICH);

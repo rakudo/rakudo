@@ -45,7 +45,7 @@ my class Enum does Associative {
         sprintf($format, $.key, $.value);
     }
 
-    method at_key($key) {
+    multi method at_key(Enum:D: $key) {
         $key eq $!key ?? $!value !! Mu
     }
 

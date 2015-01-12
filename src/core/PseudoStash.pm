@@ -105,7 +105,7 @@ my class PseudoStash is EnumMap {
                 '$?PACKAGE')
         };
 
-    method at_key($key is copy) is rw {
+    multi method at_key(PseudoStash:D: $key is copy) is rw {
         $key = $key.Str;
         my Mu $nkey := nqp::unbox_s($key);
         if %pseudoers.exists_key($key) {

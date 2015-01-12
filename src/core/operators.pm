@@ -353,4 +353,13 @@ sub infix:<andthen>(*@a) {
     $current;
 }
 
+sub IS-NAN-OR-INF(\val) {
+#?if !parrot    
+    nqp::istype(val, Num) && nqp::isnanorinf(val);
+#?endif             
+#?if parrot         
+    nqp::isnanorinf(val);
+#?endif   
+}
+
 # vim: ft=perl6 expandtab sw=4

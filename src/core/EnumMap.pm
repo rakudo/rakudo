@@ -49,25 +49,20 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     method iterator(EnumMap:) { self.pairs.iterator }
     method list(EnumMap:) { self.pairs }
 
-    method keys(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :k).list
+    multi method keys(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.new(self, :k) !! ()).list;
     }
-    method kv(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :kv).list
+    multi method kv(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.new(self, :kv) !! ()).list;
     }
-    method values(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :v).list
+    multi method values(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.new(self, :v) !! ()).list;
     }
-    method pairs(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :pairs).list
+    multi method pairs(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.new(self, :pairs) !! ()).list;
     }
-    method invert(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :invert).list
+    multi method invert(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.new(self, :invert) !! ()).list;
     }
 
     method at_key($key) is rw {

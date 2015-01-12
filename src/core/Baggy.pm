@@ -3,9 +3,13 @@ my role Baggy does QuantHash {
 
     method BUILD (:%!elems) { self }
     method default(--> Int) { 0 }
-    method keys { %!elems.values.map( {.key} ) }
-    method values { %!elems.values.map( {.value} ) }
-    method kv { %!elems.values.map( {.key, .value} ) }
+
+    multi method keys(Baggy:D:)   { %!elems.values.map( {.key} ) }
+    multi method kv(Baggy:D:)     { %!elems.values.map( {.key, .value} ) }
+    multi method values(Baggy:D:) { %!elems.values.map( {.value} ) }
+    multi method pairs(Baggy:D:)  { %!elems.values.map: { (.key => .value) } }
+    multi method invert(Baggy:D:) { %!elems.values.map: { ( .value => .key ) } }
+
     method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
@@ -15,7 +19,6 @@ my role Baggy does QuantHash {
     method Bool { %!elems.Bool }
 
     method hash(--> Hash) { %!elems.values.hash }
-    method invert(--> List) { %!elems.values.map: { ( .value => .key ) } }
 
     method new(*@args --> Baggy) {
         my %e;
@@ -70,7 +73,6 @@ my role Baggy does QuantHash {
     }
 
     method list() { self.pairs }
-    method pairs() { %!elems.values.map: { (.key => .value) } }
 
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {

@@ -17,7 +17,7 @@ my class Bag does Baggy {
           ?? %!elems{$key}.value
           !! 0;
     }
-    method pairs() {
+    multi method pairs() {   # need to copy, otherwise we would change the Bag
         @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 

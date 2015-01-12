@@ -27,7 +27,7 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    method pairs() {
+    multi method pairs(Set:D:) { # need to copy otherwise we can change the Set
         @!pairs ||= %!elems.values.map: { Enum.new(:key($_),:value(True)) };
     }
 

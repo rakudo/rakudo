@@ -121,17 +121,17 @@ my class Capture { # declared in BOOTSTRAP
     method FLATTENABLE_LIST() { $!list ?? $!list !! nqp::list() }
     method FLATTENABLE_HASH() { $!hash ?? $!hash !! nqp::hash() }
 
-    method pairs(Capture:D:) {
-        (self.list.pairs, self.hash.pairs).flat
+    multi method keys(Capture:D:) {
+        (self.list.keys, self.hash.keys).flat;
     }
-    method values(Capture:D:) {
-        (self.list.values, self.hash.values).flat
+    multi method kv(Capture:D:) {
+        (self.list.kv, self.hash.kv).flat;
     }
-    method keys(Capture:D:) {
-        (self.list.keys, self.hash.keys).flat
+    multi method values(Capture:D:) {
+        (self.list.values, self.hash.values).flat;
     }
-    method kv(Capture:D:) {
-        (self.list.kv, self.hash.kv).flat
+    multi method pairs(Capture:D:) {
+        (self.list.pairs, self.hash.pairs).flat;
     }
 }
 

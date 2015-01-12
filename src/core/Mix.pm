@@ -8,7 +8,7 @@ my class Mix does Mixy {
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
-    method pairs() {
+    multi method pairs(Mix:D:) { # copy values otherwise we can change the Mix
         @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 

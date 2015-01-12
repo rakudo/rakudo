@@ -63,14 +63,30 @@ my class Any { # declared in BOOTSTRAP
     multi method end(Any:U:) { -1 }
     multi method end(Any:D:) { self.list.end }
 
+    proto method keys(|) { * }
+    multi method keys(Any:U:) { ().list }
+    multi method keys(Any:D:) { self.list.keys }
+
+    proto method kv(|) { * }
+    multi method kv(Any:U:) { ().list }
+    multi method kv(Any:D:) { self.list.kv }
+
+    proto method values(|) { * }
+    multi method values(Any:U:) { ().list }
+    multi method values(Any:D:) { self.list }
+
+    proto method pairs(|) { * }
+    multi method pairs(Any:U:) { ().list }
+    multi method pairs(Any:D:)  { self.list.pairs }
+
+    proto method invert(|) { * }
+    multi method invert(Any:U:) { ().list }
+    multi method invert(Any:D:) { self.list.invert }
+
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
-    method values() { self.list }
-    method keys()   { self.list.keys }
-    method kv()     { self.list.kv }
-    method pairs()  { self.list.pairs }
     method reduce(&with) { self.list.reduce(&with) }
     method combinations(|c) { self.list.combinations(|c) }
     method permutations(|c) { self.list.permutations(|c) }

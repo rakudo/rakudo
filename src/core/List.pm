@@ -587,20 +587,19 @@ my class List does Positional { # declared in BOOTSTRAP
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 
-    method keys(List:) {
+    multi method keys(List:D:) {
         self.values.map: { (state $)++ }
     }
-    method values(List:) {
-        return unless self.DEFINITE;
+    multi method kv(List:D:) {
+        self.values.map: { ((state $)++, $_) }
+    }
+    multi method values(List:D:) {
         my Mu $rpa := nqp::clone(nqp::p6listitems(self));
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
         nqp::p6list($rpa, List, self.flattens);
     }
-    method pairs(List:) {
+    multi method pairs(List:D:) {
         self.values.map: {; (state $)++ => $_ }
-    }
-    method kv(List:) {
-        self.values.map: { ((state $)++, $_) }
     }
 
     method reduce(List: &with) {

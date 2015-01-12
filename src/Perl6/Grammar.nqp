@@ -2072,12 +2072,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$.> {
-        <sym> {} <?before \s | ',' | <terminator> >
+        <sym> {} <!before \w | '('>
         <.obsvar('$.')>
     }
 
     token special_variable:sym<$?> {
-        <sym> {} <?before \s | ',' | <terminator> >
+        <sym> {} <!before \w | '('>
         <.obsvar('$?')>
     }
     

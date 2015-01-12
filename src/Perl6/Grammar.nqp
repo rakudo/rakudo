@@ -3464,8 +3464,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.ws>
             [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
             [ <infixish> || <.missing: "assignment operator"> ]
-            [ <?{ $<infixish>.Str eq '=' }> || <.malformed: "assignment operator"> ]
-            # XXX When we support it, above check should add: || $<infixish><infix_postfix_meta_operator>[0]
+            [ <?{ $<infixish>.Str eq '=' || $<infixish><infix_postfix_meta_operator> }> || <.malformed: "assignment operator"> ]
             <.ws>
             [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
         ||

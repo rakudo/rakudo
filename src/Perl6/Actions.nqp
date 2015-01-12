@@ -6108,7 +6108,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1)) if $<sibble><left>.ast;
 
         # Quote needs to be closure-i-fied.
-        my $closure := block_closure(make_thunk_ref($<sibble><right>.ast, $<sibble><right>));
+        my $infixish := $<sibble><infixish>;
+        my $right;
+        if !$infixish || $infixish.Str eq '=' {
+            $right := $<sibble><right>.ast;
+        }
+        else {
+            $right := $infixish.ast;
+            $right.push(QAST::Op.new(
+                :op('assign'),
+                QAST::Op.new( :op('p6scalarfromdesc'), QAST::Op.new( :op('null') ) ),
+                QAST::Var.new( :name('$/'), :scope('lexical') )
+            ));
+            $right.push($<sibble><right>.ast);
+        }
+        my $closure := block_closure(make_thunk_ref($right, $<sibble><right>));
 
         # make $/ = $_.subst-mutate(...)
         my $past := QAST::Op.new(

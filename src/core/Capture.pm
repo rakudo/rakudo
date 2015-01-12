@@ -57,8 +57,11 @@ my class Capture { # declared in BOOTSTRAP
         $enum;
     }
 
-    method exists_key(Capture:D: $key ) {
-        nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s($key.Str)));
+    multi method exists_key(Capture:D: Str:D \key ) {
+        nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s(key)));
+    }
+    multi method exists_key(Capture:D: \key ) {
+        nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s(key.Str)));
     }
 
     method list(Capture:D:) {

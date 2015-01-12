@@ -25,8 +25,6 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         so self.keys.any.match($topic);
     }
 
-    proto method exists_key(|) {*}
-    multi method exists_key(EnumMap:U:) { False }
     multi method exists_key(EnumMap:D: Str:D \key) {
         nqp::p6bool(
             nqp::defined($!storage)

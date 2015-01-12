@@ -15,7 +15,10 @@ my class Any { # declared in BOOTSTRAP
     # primitives
     method infinite()   { Nil }
 
-    method exists_key($key) { False }
+    proto method exists_key(|){ * }
+    multi method exists_key(Any:U: $) { False }
+    multi method exists_key(Any:D: $) { False }
+
     proto method exists_pos(|) { * }
     multi method exists_pos(Any:U: $pos) { False }
     multi method exists_pos(Any:D: $pos) { $pos == 0 }

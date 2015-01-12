@@ -13,7 +13,7 @@ my role Baggy does QuantHash {
     method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
-    method exists_key($k --> Bool) {
+    multi method exists_key(Baggy:D: $k --> Bool) {
         %!elems.exists_key($k.WHICH);
     }
     method Bool { %!elems.Bool }

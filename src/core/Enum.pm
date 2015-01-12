@@ -45,13 +45,8 @@ my class Enum does Associative {
         sprintf($format, $.key, $.value);
     }
 
-    multi method at_key(Enum:D: $key) {
-        $key eq $!key ?? $!value !! Mu
-    }
-
-    method exists_key(Enum:D: $key) {
-        $key eq $!key
-    }
+    multi method at_key(Enum:D: $key)     { $key eq $!key ?? $!value !! Mu }
+    multi method exists_key(Enum:D: $key) { $key eq $!key }
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() { nqp::hash($!key, $!value) }

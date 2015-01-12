@@ -14,14 +14,8 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method at_pos(Array:D: $pos) is rw {
-#?if !parrot
-        if nqp::istype($pos, Num) && nqp::isnanorinf($pos) {
-#?endif
-#?if parrot
-        if nqp::isnanorinf($pos) {
-#?endif
-            X::Item.new(aggregate => self, index => $pos).throw;
-        }
+        X::Item.new(aggregate => self, index => $pos).throw
+          if nqp::istype($pos, Num) && nqp::isnanorinf($pos);
         my int $p = nqp::unbox_i(nqp::istype($pos, Int) ?? $pos !! $pos.Int);
         my \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
@@ -56,14 +50,8 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method assign_pos(Array:D: \pos, Mu \assignee) is rw {
-#?if !parrot
-        if nqp::istype(pos, Num) && nqp::isnanorinf(pos) {
-#?endif
-#?if parrot
-        if nqp::isnanorinf(pos) {
-#?endif
-            X::Item.new(aggregate => self, index => pos).throw;
-        }
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::istype(pos, Num) && nqp::isnanorinf(pos);
         my int $p = nqp::unbox_i(nqp::istype(pos, Int) ?? pos !! pos.Int);
         my \items := nqp::p6listitems(self);
         nqp::existspos(items, $p) || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && self.exists_pos($p)

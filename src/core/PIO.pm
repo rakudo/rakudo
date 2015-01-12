@@ -361,6 +361,15 @@ my role PIO {
         True;
     }
 
+    method send(PIO:D: |c) {
+        DEPRECATED('print',|<2015.01 2016.01>);
+        self.print(|c);
+    }
+
+    method poll(PIO:D:) {
+        die $?CLASS.^name ~ '.poll is NYI on ' ~ $*VM.name;
+    }
+
     method opened(PIO:D:) {
         nqp::p6bool(nqp::istrue($!PIO));
     }

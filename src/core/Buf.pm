@@ -22,14 +22,16 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.new(@values)
     }
 
-    multi method at_pos(Blob:D: $i) {
-        nqp::atpos_i(self, $i.Int)
+    multi method at_pos(Blob:D: int \pos) {
+        nqp::atpos_i(self, pos);
     }
-    multi method at_pos(Blob:D: Int $i) {
-        nqp::atpos_i(self, $i)
+    multi method at_pos(Blob:D: Int \pos) {
+        nqp::atpos_i(self, nqp::unbox_i(pos));
     }
-    multi method at_pos(Blob:D: int $i) {
-        nqp::atpos_i(self, $i)
+    multi method at_pos(Blob:D: \pos) {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
+        nqp::atpos_i(self, nqp::unbox_i(pos.Int));
     }
 
     multi method Bool(Blob:D:) {

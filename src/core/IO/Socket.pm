@@ -1,5 +1,5 @@
-my role IO::Socket does IO {
-    has $!PIO;
+my class IO::Socket does IO does PIO {
+
     # JVM and Parrot have a buffer here; Moar does enough buffering of its own
     # and gets it much more correct when bytes cross boundaries, so we use its.
 #?if parrot
@@ -105,28 +105,27 @@ my role IO::Socket does IO {
 #?endif
     }
 
-    method poll(Int $bitmask, $seconds) {
 #?if parrot
+    method poll(IO::Socket:D: Int $bitmask, $seconds) {
         $!PIO.poll(
             nqp::unbox_i($bitmask), nqp::unbox_i($seconds.floor),
             nqp::unbox_i((($seconds - $seconds.floor) * 1000).Int)
         );
-#?endif
-#?if !parrot
-        die 'Socket.poll is NYI on this backend'
-#?endif
     }
 
-    method send (Cool $string as Str) {
-        fail("Not connected") unless $!PIO;
-#?if parrot
-        $!PIO.send(nqp::unbox_s($string)).Bool;
-#?endif
-#?if !parrot
-        nqp::printfh($!PIO, nqp::unbox_s($string));
-        True
-#?endif
+    method send(IO::Socket:D: |c) {
+        DEPRECATED('print',|<2015.01 2016.01>);
+        self.print(|c);
     }
+
+    multi method print(IO::Socket:D: Str:D \x) {
+        $!PIO.send(nqp::unbox_s(\x)).Bool;
+    }
+    multi method print(IO::Socket:D: *@list) {
+        $!PIO.send(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
+        Bool::True;
+    }
+#?endif
 
     method write(Blob:D $buf) {
         fail('Socket not available') unless $!PIO;

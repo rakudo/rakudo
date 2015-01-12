@@ -261,7 +261,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $unit := $*UNIT;
         my $mainline := QAST::Stmts.new(
             $*POD_PAST,
-            $<statementlist>.ast,
+            statementlist_with_handlers($/)
         );
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
@@ -911,14 +911,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method blockoid($/) {
         if $<statementlist> {
-            my $past := $<statementlist>.ast;
-            if %*HANDLERS {
-                $past := QAST::Op.new( :op('handle'), $past );
-                for %*HANDLERS {
-                    $past.push($_.key);
-                    $past.push($_.value);
-                }
-            }
+            my $past := statementlist_with_handlers($/);
             my $BLOCK := $*CURPAD;
             $BLOCK.blocktype('declaration_static');
             $BLOCK.push($past);
@@ -933,6 +926,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*HAS_YOU_ARE_HERE := 1;
             make $<you_are_here>.ast;
         }
+    }
+
+    sub statementlist_with_handlers($/) {
+        my $past := $<statementlist>.ast;
+        if %*HANDLERS {
+            $past := QAST::Op.new( :op('handle'), $past );
+            for %*HANDLERS {
+                $past.push($_.key);
+                $past.push($_.value);
+            }
+        }
+        $past
     }
 
     method you_are_here($/) {

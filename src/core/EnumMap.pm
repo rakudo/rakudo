@@ -33,10 +33,10 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
             && nqp::existskey($!storage, nqp::unbox_s(key))
         )
     }
-    multi method exists_key(EnumMap:D: \key as Str) {
+    multi method exists_key(EnumMap:D: \key) {
         nqp::p6bool(
             nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s(key))
+            && nqp::existskey($!storage, nqp::unbox_s(key.Str))
         )
     }
 

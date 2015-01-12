@@ -49,23 +49,24 @@ my role PIO {
     }
 
     method get(PIO:D:) {
-        return Str if self.eof;
+        return Str if nqp::eoffh($!PIO);
 
-        my \line = $!chomp
-          ?? nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
-          !! nqp::p6box_s(nqp::readlinefh($!PIO));
+        my str $line = nqp::readlinefh($!PIO);
 
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
-        return Str if self.eof && line eq '';
+        return Str if nqp::eoffh($!PIO) && nqp::chars($line) == 0;
+
         $!ins = $!ins + 1;
-        line;
+        $!chomp
+          ?? nqp::p6box_s($line).chomp
+          !! nqp::p6box_s($line);
     }
 
     method getc(PIO:D:) {
-        my $c := nqp::p6box_s(nqp::getcfh($!PIO));
-        fail if $c eq '';
-        $c;
+        my str $c = nqp::getcfh($!PIO);
+        fail if nqp::chars($c) == 0;
+        nqp::p6box_s($c);
     }
 
     proto method words (|) { * }
@@ -81,7 +82,7 @@ my role PIO {
 
 #?if moar
                 # optimize for ASCII
-                $str   = $str ~ nqp::readcharsfh($!PIO, 65536);
+                $str = $str ~ nqp::readcharsfh($!PIO, 65536);
 #?endif
 #?if !moar
                 my Buf $buf := Buf.new;
@@ -164,12 +165,12 @@ my role PIO {
         until nqp::eoffh($!PIO) {
 
 #?if moar
-            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+            $str = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
 #?endif
 #?if !moar
             my Buf $buf := Buf.new;
             nqp::readfh($!PIO, $buf, 65536);
-            $str   = $str ~ nqp::unbox_s($buf.decode);
+            $str = $str ~ nqp::unbox_s($buf.decode);
 #?endif
             $chars = nqp::chars($str);
             $pos   = nqp::findnotcclass(
@@ -206,12 +207,12 @@ my role PIO {
         until nqp::eoffh($!PIO) {
 
 #?if moar
-            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+            $str = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
 #?endif
 #?if !moar
             my Buf $buf := Buf.new;
             nqp::readfh($!PIO, $buf, 65536);
-            $str   = $str ~ nqp::unbox_s($buf.decode);
+            $str = $str ~ nqp::unbox_s($buf.decode);
 #?endif
             $chars = nqp::chars($str);
             $pos   = nqp::findnotcclass(

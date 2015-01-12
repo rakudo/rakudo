@@ -3,12 +3,10 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     #   has Mu $!storage;
 
     multi method Bool(EnumMap:D:) {
-        nqp::p6bool(nqp::defined($!storage) ?? nqp::elems($!storage) !! 0)
+        nqp::p6bool(nqp::defined($!storage) && nqp::elems($!storage));
     }
-    method elems(EnumMap:) {
-        self.DEFINITE && nqp::defined($!storage)
-          ?? nqp::p6box_i(nqp::elems($!storage))
-          !! 0
+    method elems(EnumMap:D:) {
+        nqp::p6box_i(nqp::defined($!storage) && nqp::elems($!storage));
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {

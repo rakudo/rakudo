@@ -39,14 +39,14 @@ my role Rational[::NuT, ::DeT] does Real {
              ));
     }
 
-    method floor(Rational:D:) returns Int:D {
+    method floor(Rational:D:) {
         # correct formula
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
-    method ceiling(Rational:D:) returns Int:D {
+    method ceiling(Rational:D:) {
         # correct formula
         $!denominator == 1
             ?? $!numerator

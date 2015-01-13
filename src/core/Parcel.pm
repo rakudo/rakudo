@@ -114,14 +114,6 @@ my class Parcel does Positional { # declared in BOOTSTRAP
           ?? Nil
           !! nqp::atpos($!storage,$pos);
     }
-    multi method at_pos(Parcel:D: \pos) is rw {
-        X::Item.new(aggregate => self, index => pos).throw
-          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
-        my $pos = nqp::unbox_i(pos.Int);
-        $pos > nqp::elems($!storage) || $pos < 0
-          ?? Nil
-          !! nqp::atpos($!storage,$pos);
-    }
 
     multi method gist(Parcel:D:) {
         my Mu $gist := nqp::list();

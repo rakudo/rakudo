@@ -42,14 +42,8 @@ my class Capture { # declared in BOOTSTRAP
     multi method at_pos(Capture:D: int \pos) {
         nqp::existspos($!list, pos) ?? nqp::atpos($!list, pos) !! Any;
     }
-    multi method at_pos(Capture:D: Int \pos) {
+    multi method at_pos(Capture:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
-        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Any;
-    }
-    multi method at_pos(Capture:D: \pos) {
-        X::Item.new(aggregate => self, index => pos).throw
-          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
-        my int $pos = nqp::unbox_i(pos.Int);
         nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Any;
     }
 

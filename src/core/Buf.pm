@@ -25,13 +25,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method at_pos(Blob:D: int \pos) {
         nqp::atpos_i(self, pos);
     }
-    multi method at_pos(Blob:D: Int \pos) {
+    multi method at_pos(Blob:D: Int:D \pos) {
         nqp::atpos_i(self, nqp::unbox_i(pos));
-    }
-    multi method at_pos(Blob:D: \pos) {
-        X::Item.new(aggregate => self, index => pos).throw
-          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
-        nqp::atpos_i(self, nqp::unbox_i(pos.Int));
     }
 
     multi method Bool(Blob:D:) {

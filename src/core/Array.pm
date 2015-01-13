@@ -29,11 +29,9 @@ class Array { # declared in BOOTSTRAP
             );
         }
     }
-    multi method at_pos(Array:D: \pos) is rw {
-        X::Item.new(aggregate => self, index => pos).throw
-          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
-        my int $pos = nqp::unbox_i(nqp::istype(pos,Int) ?? pos !! pos.Int);
-        my \items := nqp::p6listitems(self);
+    multi method at_pos(Array:D: Int:D \pos) is rw {
+        my int $pos = nqp::unbox_i(pos.Int);
+        my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         if nqp::existspos(items,$pos)
           || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))

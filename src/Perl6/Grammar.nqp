@@ -1285,7 +1285,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token label {
         <identifier> ':' <?[\s]> <.ws>
         {
-            $*LABEL       := ~$<identifier>;
+            $*LABEL := ~$<identifier>;
+            if $*W.already_declared('my', $*PACKAGE, $*W.cur_lexpad(), [$*LABEL]) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $*LABEL);
+            }
             my str $orig      := self.orig();
             my int $total     := nqp::chars($orig);
             my int $from      := self.MATCH.from();

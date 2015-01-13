@@ -2585,7 +2585,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
             elsif !nqp::can($code, 'postcircumfix:<( )>') {
-                self.add_inlining_info_if_possible($/, $code, $block, @params);
+                self.add_inlining_info_if_possible($/, $code, $signature, $block, @params);
             }
         }
         
@@ -2633,24 +2633,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.add_proto_to_sort($code);
         $code
     }
-    
-    method add_inlining_info_if_possible($/, $code, $past, @params) {
+
+    my $SIG_ELEM_IS_COPY := 512;
+    method add_inlining_info_if_possible($/, $code, $sig, $past, @params) {
         # Make sure the block has the common structure we expect
         # (decls then statements).
         return 0 unless +@($past) == 2;
 
         # Ensure all parameters are simple and build placeholders for
         # them.
+        my $Param  := $*W.find_symbol(['Parameter']);
+        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature']), '$!params');
+        my int $i  := 0;
+        my int $n  := nqp::elems(@params);
         my %arg_placeholders;
-        my int $arg_num := 0;
-        for @params {
-            return 0 if $_<optional> || $_<is_capture> || $_<pos_slurpy> ||
-                $_<named_slurpy> || $_<pos_lol> || $_<bind_attr> ||
-                $_<bind_accessor> || $_<nominal_generic> || $_<named_names> ||
-                $_<type_captures> || $_<post_constraints>;
-            %arg_placeholders{$_<variable_name>} :=
-                QAST::InlinePlaceholder.new( :position($arg_num) );
-            $arg_num := $arg_num + 1;
+        while $i < $n {
+            my %info      := @params[$i];
+            my $param_obj := @p_objs[$i];
+            return 0 if %info<optional> || %info<is_capture> || %info<pos_slurpy> ||
+                %info<named_slurpy> || %info<pos_lol> || %info<bind_attr> ||
+                %info<bind_accessor> || %info<nominal_generic> || %info<named_names> ||
+                %info<type_captures> || %info<post_constraints>;
+            my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
+            return 0 if $flags +& $SIG_ELEM_IS_COPY;
+            %arg_placeholders{%info<variable_name>} :=
+                QAST::InlinePlaceholder.new( :position($i) );
+            $i++;
         }
 
         # Ensure nothing extra is declared and there are no inner blocks.
@@ -6264,7 +6272,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         0
     }
     my $SIG_ELEM_IS_RW       := 256;
-    my $SIG_ELEM_IS_COPY     := 512;
     my $SIG_ELEM_IS_PARCEL   := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
     sub lower_signature($block, $sig, @params) {

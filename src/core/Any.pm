@@ -400,35 +400,46 @@ my class Any { # declared in BOOTSTRAP
                  SELF.bind_pos(pos, $v) });
         $v
     }
-    multi method at_pos(Any:U \SELF: Int \pos) is rw {
+    multi method at_pos(Any:U \SELF: Int:D \pos) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Array.new);
                  SELF.bind_pos(nqp::unbox_i(pos), $v) });
         $v
     }
-    multi method at_pos(Any:U \SELF: Num \pos) is rw {
+    multi method at_pos(Any:U \SELF: Num:D \pos) is rw {
         X::Item.new(aggregate => self, index => pos).throw
           if nqp::isnanorinf(pos);
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.bind_pos(nqp::unbox_i(pos.Int), $v) });
-        $v
+        self.at_pos(nqp::unbox_i(pos.Int));
+    }
+    multi method at_pos(Any:U \SELF: Any:D \pos) is rw {
+        self.at_pos(nqp::unbox_i(pos.Int));
     }
     multi method at_pos(Any:U \SELF: \pos) is rw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.bind_pos(nqp::unbox_i(pos.Int), $v) });
-        $v
+        die "Cannot use '{pos.^name}' as an index";
     }
 
-    multi method at_pos(Any:D: $pos as Int) {
-        fail X::OutOfRange.new(
-            what => 'Index',
-            got  => $pos,
-            range => (0..0)
-        ) if $pos != 0;
+    multi method at_pos(Any:D: int \pos) {
+        fail X::OutOfRange.new(:what<Index>, :got(pos), :range(0..0))
+          unless nqp::not_i(pos);
         self;
     }
+    multi method at_pos(Any:D: Int:D \pos) {
+        fail X::OutOfRange.new(:what<Index>, :got(pos), :range(0..0))
+          if pos != 0;
+        self;
+    }
+    multi method at_pos(Any:D: Num:D \pos) {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::isnanorinf(pos);
+        self.at_pos(nqp::unbox_i(pos.Int));
+    }
+    multi method at_pos(Any:D: Any:D \pos) {
+        self.at_pos(nqp::unbox_i(pos.Int));
+    }
+    multi method at_pos(Any:D \SELF: \pos) is rw {
+        die "Cannot use '{pos.^name}' as an index";
+    }
+
     proto method assign_pos(|) { * }
     multi method assign_pos(\SELF: \pos, Mu \assignee) {
         SELF.at_pos(pos) = assignee;

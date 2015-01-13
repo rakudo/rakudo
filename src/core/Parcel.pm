@@ -103,11 +103,24 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $parcel;
     }
 
-    multi method at_pos(Parcel:D: \x) is rw { self.at_pos(nqp::unbox_i(x.floor)) }
-    multi method at_pos(Parcel:D: int $x) is rw {
-        $x > nqp::elems($!storage) || $x < 0
-            ?? Nil
-            !! nqp::atpos($!storage, $x);
+    multi method at_pos(Parcel:D: int \pos) is rw {
+        pos > nqp::elems($!storage) || pos < 0
+          ?? Nil
+          !! nqp::atpos($!storage,pos);
+    }
+    multi method at_pos(Parcel:D: Int \pos) is rw {
+        my $pos = nqp::unbox_i(pos);
+        $pos > nqp::elems($!storage) || $pos < 0
+          ?? Nil
+          !! nqp::atpos($!storage,$pos);
+    }
+    multi method at_pos(Parcel:D: \pos) is rw {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
+        my $pos = nqp::unbox_i(pos.Int);
+        $pos > nqp::elems($!storage) || $pos < 0
+          ?? Nil
+          !! nqp::atpos($!storage,$pos);
     }
 
     multi method gist(Parcel:D:) {

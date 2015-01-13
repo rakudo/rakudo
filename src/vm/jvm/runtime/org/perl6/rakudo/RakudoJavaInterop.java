@@ -73,19 +73,35 @@ public class RakudoJavaInterop extends BootJavaInterop {
             for(; i < inArgs.length; ++i) {
                 // there doesn't seem to be an actual type Bool in gc or gcx
                 if( !Ops.typeName((SixModelObject) inArgs[i], tc).equals("Bool") ) {
-                    if( Ops.isnum(Ops.decont((SixModelObject) inArgs[i], tc), tc) == 1 ) {
+                    // one decont for native types...
+                    StorageSpec outerSS = Ops.decont((SixModelObject) inArgs[i], tc)
+                        .st.REPR.get_storage_spec(tc, ((SixModelObject)inArgs[i]).st);
+                    // ...and two for boxeds
+                    StorageSpec innerSS = Ops.decont(Ops.decont((SixModelObject) inArgs[i], tc), tc)
+                        .st.REPR.get_storage_spec(tc, Ops.decont((SixModelObject)inArgs[i], tc).st);
+                    if( (outerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
                         outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
                     }
-                    else if( Ops.isstr(Ops.decont((SixModelObject) inArgs[i], tc), tc) == 1 ) {
+                    else if( (outerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
                         outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
                     }
-                    else if( Ops.isint(Ops.decont((SixModelObject) inArgs[i], tc), tc) == 1 ) {
+                    else if( (outerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
+                        outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
+                    }
+                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
+                        outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
+                    }
+                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
+                        outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
+                    }
+                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
                         outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
                     }
                     else {
                         if( Ops.islist( (SixModelObject) inArgs[i], tc ) == 1 ) {
                             outArgs[i - offset] = null;
                             // XXX: obviously breaks for arrays with elems > Integer.MAX_VALUE
+                            // more precisely, breaks already at Integer.MAX_VALUE - 5 elems
                             int elems = (int) Ops.elems((SixModelObject) inArgs[i], tc);
                             SixModelObject argsContent = (SixModelObject) inArgs[i];
                             for( int j = 0; j < elems; ++j ) {

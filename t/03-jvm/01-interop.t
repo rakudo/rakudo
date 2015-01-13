@@ -31,10 +31,7 @@ use Test;
     {
         my $crc32 = CRC32.new;
         for 'Hello, Java'.encode('utf-8').list {
-            # utf8 elems aren't int-y and not marshalled smart enough (yet?) either
-            # to clarify, the coercion should probably be not neccessary 
-            # and should be considered a bug
-            $crc32.update($_.Int);
+            $crc32.update($_);
         }
         is $crc32.getValue, 1072431491, "(I)V candidate for CRC32 is recognized correctly";
     }
@@ -42,7 +39,6 @@ use Test;
     {
         my $crc32 = CRC32.new;
         for 'Hello, Java'.encode('utf-8') {
-            # because utf8 lists automatically know they're something int-y
             $crc32.update($_);
         }
         is $crc32.getValue, 1072431491, "([B)V candidate for CRC32 is recognized correctly";

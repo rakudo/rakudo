@@ -73,13 +73,13 @@ public class RakudoJavaInterop extends BootJavaInterop {
             for(; i < inArgs.length; ++i) {
                 // there doesn't seem to be an actual type Bool in gc or gcx
                 if( !Ops.typeName((SixModelObject) inArgs[i], tc).equals("Bool") ) {
-                    if( Ops.isnum((SixModelObject) inArgs[i], tc) == 1 ) {
+                    if( Ops.isnum(Ops.decont((SixModelObject) inArgs[i], tc), tc) == 1 ) {
                         outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
                     }
-                    else if( Ops.isstr((SixModelObject) inArgs[i], tc) == 1 ) {
+                    else if( Ops.isstr(Ops.decont((SixModelObject) inArgs[i], tc), tc) == 1 ) {
                         outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
                     }
-                    else if( Ops.isint((SixModelObject) inArgs[i], tc) == 1 ) {
+                    else if( Ops.isint(Ops.decont((SixModelObject) inArgs[i], tc), tc) == 1 ) {
                         outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
                     }
                     else {

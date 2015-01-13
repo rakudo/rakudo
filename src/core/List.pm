@@ -88,16 +88,15 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method Supply(List:D:) { Supply.for(self) }
 
-    multi method at_pos(List:D: $pos is copy) is rw {
-        $pos = $pos.Int;
-        self.exists_pos($pos)
-          ?? nqp::atpos($!items, nqp::unbox_i($pos))
-          !! Nil;
+    multi method at_pos(List:D: int \pos) is rw {
+        self.exists_pos(pos) ?? nqp::atpos($!items,pos) !! Nil;
     }
-    multi method at_pos(List:D: int $pos) is rw {
-        self.exists_pos($pos)
-            ?? nqp::atpos($!items, $pos)
-            !! Nil;
+    multi method at_pos(List:D: Int \pos) is rw {
+        self.exists_pos(pos) ?? nqp::atpos($!items,nqp::unbox_i(pos)) !! Nil;
+    }
+    multi method at_pos(List:D: \pos) is rw {
+        my int $pos = nqp::unbox_i($pos.Int);
+        self.exists_pos($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }
 
     method eager() { self.gimme(*); self }

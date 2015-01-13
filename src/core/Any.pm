@@ -1,11 +1,13 @@
-my class MapIter { ... }
-my role  Numeric { ... }
-my class Pair { ... }
-my class Range { ... }
-my class X::Bind::Slice { ... }
-my class X::Bind::ZenSlice { ... }
-my class X::Match::Bool { ... }
+my class MapIter                { ... }
+my class Pair                   { ... }
+my class Range                  { ... }
+my class X::Bind::Slice         { ... }
+my class X::Bind::ZenSlice      { ... }
+my class X::Item                { ... }
+my class X::Match::Bool         { ... }
 my class X::Subscript::Negative { ... }
+
+my role  Numeric { ... }
 
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
@@ -392,6 +394,33 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method at_pos(|) {*}
+    multi method at_pos(Any:U \SELF: int \pos) is rw {
+        nqp::bindattr(my $v, Scalar, '$!whence',
+            -> { SELF.defined || (SELF = Array.new);
+                 SELF.bind_pos(pos, $v) });
+        $v
+    }
+    multi method at_pos(Any:U \SELF: Int \pos) is rw {
+        nqp::bindattr(my $v, Scalar, '$!whence',
+            -> { SELF.defined || (SELF = Array.new);
+                 SELF.bind_pos(nqp::unbox_i(pos), $v) });
+        $v
+    }
+    multi method at_pos(Any:U \SELF: Num \pos) is rw {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::isnanorinf(pos);
+        nqp::bindattr(my $v, Scalar, '$!whence',
+            -> { SELF.defined || (SELF = Array.new);
+                 SELF.bind_pos(nqp::unbox_i(pos.Int), $v) });
+        $v
+    }
+    multi method at_pos(Any:U \SELF: \pos) is rw {
+        nqp::bindattr(my $v, Scalar, '$!whence',
+            -> { SELF.defined || (SELF = Array.new);
+                 SELF.bind_pos(nqp::unbox_i(pos.Int), $v) });
+        $v
+    }
+
     multi method at_pos(Any:D: $pos as Int) {
         fail X::OutOfRange.new(
             what => 'Index',
@@ -399,12 +428,6 @@ my class Any { # declared in BOOTSTRAP
             range => (0..0)
         ) if $pos != 0;
         self;
-    }
-    multi method at_pos(Any:U \SELF: $pos) is rw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.bind_pos($pos, $v) });
-        $v
     }
     proto method assign_pos(|) { * }
     multi method assign_pos(\SELF: \pos, Mu \assignee) {

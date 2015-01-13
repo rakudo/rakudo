@@ -1,4 +1,3 @@
-my class X::Item { ... };
 my class X::TypeCheck { ... };
 my class X::Subscript::Negative { ... };
 

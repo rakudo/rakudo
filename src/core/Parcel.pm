@@ -108,8 +108,8 @@ my class Parcel does Positional { # declared in BOOTSTRAP
           ?? Nil
           !! nqp::atpos($!storage,pos);
     }
-    multi method at_pos(Parcel:D: Int \pos) is rw {
-        my $pos = nqp::unbox_i(pos);
+    multi method at_pos(Parcel:D: Int:D \pos) is rw {
+        my int $pos = nqp::unbox_i(pos);
         $pos > nqp::elems($!storage) || $pos < 0
           ?? Nil
           !! nqp::atpos($!storage,$pos);

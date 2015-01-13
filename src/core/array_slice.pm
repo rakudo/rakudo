@@ -111,8 +111,10 @@ multi sub postcircumfix:<[ ]>( \SELF, \pos, :$v!, *%other ) is rw {
 # @a[@i]
 multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
     if nqp::iscont(pos)  {
-        fail X::Subscript::Negative.new(index => pos, type => SELF.WHAT) if pos < 0;
-        SELF.at_pos(pos);
+        my int $pos = nqp::unbox_i(pos.Int);
+        fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+          if $pos < 0;
+        SELF.at_pos($pos);
     }
     else {
         POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
@@ -120,8 +122,10 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
 }
 multi sub postcircumfix:<[ ]>( \SELF, Positional \pos, Mu \assignee ) is rw {
     if nqp::iscont(pos)  {
-        fail X::Subscript::Negative.new(index => pos, type => SELF.WHAT) if pos < 0;
-        SELF.assign_pos(pos, assignee);
+        my int $pos = nqp::unbox_i(pos.Int);
+        fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+          if $pos < 0;
+        SELF.assign_pos($pos,assignee);
     }
     else {
         POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;

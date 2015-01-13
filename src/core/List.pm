@@ -95,6 +95,8 @@ my class List does Positional { # declared in BOOTSTRAP
         self.exists_pos(pos) ?? nqp::atpos($!items,nqp::unbox_i(pos)) !! Nil;
     }
     multi method at_pos(List:D: \pos) is rw {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
         my int $pos = nqp::unbox_i($pos.Int);
         self.exists_pos($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }

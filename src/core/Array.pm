@@ -13,38 +13,40 @@ class Array { # declared in BOOTSTRAP
         nqp::p6list($args, self.WHAT, Bool::True);
     }
 
-    multi method at_pos(Array:D: $pos) is rw {
-        X::Item.new(aggregate => self, index => $pos).throw
-          if nqp::istype($pos, Num) && nqp::isnanorinf($pos);
-        my int $p = nqp::unbox_i(nqp::istype($pos, Int) ?? $pos !! $pos.Int);
-        my \items := nqp::p6listitems(self);
+    multi method at_pos(Array:D: int \pos) is rw {
+        my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
-        if nqp::existspos(items, $p)
-          || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && nqp::istrue(self.exists_pos($p)) {
-            nqp::atpos(items, $p);
+        if nqp::existspos(items,pos)
+          || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
+          && nqp::istrue(self.exists_pos(pos)) {
+            nqp::atpos(items,pos);
         }
         else {
             nqp::p6bindattrinvres(
                 (my \v := nqp::p6scalarfromdesc($!descriptor)),
                 Scalar,
                 '$!whence',
-                -> { nqp::bindpos(items, $p, v) }
+                -> { nqp::bindpos(items,pos,v) }
             );
         }
     }
-    multi method at_pos(Array:D: int $pos) is rw {
-        my Mu \items := nqp::p6listitems(self);
+    multi method at_pos(Array:D: \pos) is rw {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::istype(pos,Num) && nqp::isnanorinf(pos);
+        my int $pos = nqp::unbox_i(nqp::istype(pos,Int) ?? pos !! pos.Int);
+        my \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
-        if nqp::existspos(items, $pos)
-          || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && nqp::istrue(self.exists_pos($pos)) {
-            nqp::atpos(items, $pos);
+        if nqp::existspos(items,$pos)
+          || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
+          && nqp::istrue(self.exists_pos($pos)) {
+            nqp::atpos(items,$pos);
         }
         else {
             nqp::p6bindattrinvres(
                 (my \v := nqp::p6scalarfromdesc($!descriptor)),
                 Scalar,
                 '$!whence',
-                -> { nqp::bindpos(items, $pos, v) }
+                -> { nqp::bindpos(items,$pos,v) }
             );
         }
     }

@@ -13,6 +13,11 @@ my class HashIter is Iterator {
             $invert ?? 4 !!
                        0);
     }
+    method pairs($h,$keystore?)  { nqp::create(self).BUILD($h,$keystore,0) }
+    method kv($h,$keystore?)     { nqp::create(self).BUILD($h,$keystore,1) }
+    method keys($h,$keystore?)   { nqp::create(self).BUILD($h,$keystore,2) }
+    method values($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,3) }
+    method invert($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,4) }
 
     submethod BUILD($hash, $keystore, Int $mode) {
         $!hashiter :=

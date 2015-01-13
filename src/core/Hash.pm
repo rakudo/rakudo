@@ -399,23 +399,23 @@ my class Hash { # declared in BOOTSTRAP
         }
         method keys(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :k).list
+            HashIter.keys(self,$!keys).list
         }
         method kv(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :kv).list
+            HashIter.kv(self,$!keys).list
         }
         method values(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :v).list
+            HashIter.values(self,$!keys).list
         }
         method pairs(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :pairs).list
+            HashIter.pairs(self,$!keys).list
         }
         method invert(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :invert).list
+            HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
             'Hash['

@@ -3,12 +3,10 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     #   has Mu $!storage;
 
     multi method Bool(EnumMap:D:) {
-        nqp::p6bool(nqp::defined($!storage) ?? nqp::elems($!storage) !! 0)
+        nqp::p6bool(nqp::defined($!storage) && nqp::elems($!storage));
     }
-    method elems(EnumMap:) {
-        self.DEFINITE && nqp::defined($!storage)
-          ?? nqp::p6box_i(nqp::elems($!storage))
-          !! 0
+    method elems(EnumMap:D:) {
+        nqp::p6box_i(nqp::defined($!storage) && nqp::elems($!storage));
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
@@ -27,18 +25,16 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         so self.keys.any.match($topic);
     }
 
-    proto method exists_key(|) {*}
-    multi method exists_key(EnumMap:U:) { False }
     multi method exists_key(EnumMap:D: Str:D \key) {
         nqp::p6bool(
             nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s(key))
         )
     }
-    multi method exists_key(EnumMap:D: \key as Str) {
+    multi method exists_key(EnumMap:D: \key) {
         nqp::p6bool(
             nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s(key))
+            && nqp::existskey($!storage, nqp::unbox_s(key.Str))
         )
     }
 
@@ -51,25 +47,20 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     method iterator(EnumMap:) { self.pairs.iterator }
     method list(EnumMap:) { self.pairs }
 
-    method keys(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :k).list
+    multi method keys(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.keys(self)   !! ()).list;
     }
-    method kv(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :kv).list
+    multi method kv(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.kv(self)     !! ()).list;
     }
-    method values(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :v).list
+    multi method values(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.values(self) !! ()).list;
     }
-    method pairs(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :pairs).list
+    multi method pairs(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.pairs(self)  !! ()).list;
     }
-    method invert(EnumMap:) {
-        return unless self.DEFINITE && nqp::defined($!storage);
-        HashIter.new(self, :invert).list
+    multi method invert(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.invert(self) !! ()).list;
     }
 
     method at_key($key) is rw {

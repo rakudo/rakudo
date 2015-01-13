@@ -13,8 +13,8 @@ my class Set does Setty {
         self;
     }
 
-    method at_key($k --> Bool) {
-        so %!elems.exists_key($k.WHICH);
+    multi method at_key(Set:D: \k --> Bool) {
+        so %!elems.exists_key(k.WHICH);
     }
 
     method delete_key($k --> Bool) is hidden_from_backtrace {
@@ -27,7 +27,7 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    method pairs() {
+    multi method pairs(Set:D:) { # need to copy otherwise we can change the Set
         @!pairs ||= %!elems.values.map: { Enum.new(:key($_),:value(True)) };
     }
 

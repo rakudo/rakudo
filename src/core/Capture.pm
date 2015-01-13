@@ -30,28 +30,21 @@ my class Capture { # declared in BOOTSTRAP
         $WHICH;
     }
 
-    multi method at_key(Capture:D: $key is copy) {
-        $key = $key.Str;
-        nqp::existskey($!hash, nqp::unbox_s($key))
-          ?? nqp::atkey($!hash, nqp::unbox_s($key))
-          !! Any
+    multi method at_key(Capture:D: \key) {
+        my str $skey = nqp::unbox_s(key.Str);
+        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Any;
     }
-    multi method at_key(Capture:D: Str $key) {
-        nqp::existskey($!hash, nqp::unbox_s($key))
-          ?? nqp::atkey($!hash, nqp::unbox_s($key))
-          !! Any
+    multi method at_key(Capture:D: Str:D \key) {
+        my str $skey = nqp::unbox_s(key);
+        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Any;
     }
 
-    multi method at_pos(Capture:D: $pos is copy) {
-        $pos = $pos.Int;
-        nqp::existspos($!list, nqp::unbox_i($pos))
-          ?? nqp::atpos($!list, nqp::unbox_i($pos))
-          !! Any
+    multi method at_pos(Capture:D: int \pos) {
+        nqp::existspos($!list, pos) ?? nqp::atpos($!list, pos) !! Any;
     }
-    multi method at_pos(Capture:D: Int $pos) {
-        nqp::existspos($!list, nqp::unbox_i($pos))
-          ?? nqp::atpos($!list, nqp::unbox_i($pos))
-          !! Any
+    multi method at_pos(Capture:D: Int:D \pos) {
+        my int $pos = nqp::unbox_i(pos);
+        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Any;
     }
 
     method hash(Capture:D:) {
@@ -60,8 +53,11 @@ my class Capture { # declared in BOOTSTRAP
         $enum;
     }
 
-    method exists_key(Capture:D: $key ) {
-        nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s($key.Str)));
+    multi method exists_key(Capture:D: Str:D \key ) {
+        nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s(key)));
+    }
+    multi method exists_key(Capture:D: \key ) {
+        nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s(key.Str)));
     }
 
     method list(Capture:D:) {
@@ -121,17 +117,17 @@ my class Capture { # declared in BOOTSTRAP
     method FLATTENABLE_LIST() { $!list ?? $!list !! nqp::list() }
     method FLATTENABLE_HASH() { $!hash ?? $!hash !! nqp::hash() }
 
-    method pairs(Capture:D:) {
-        (self.list.pairs, self.hash.pairs).flat
+    multi method keys(Capture:D:) {
+        (self.list.keys, self.hash.keys).flat;
     }
-    method values(Capture:D:) {
-        (self.list.values, self.hash.values).flat
+    multi method kv(Capture:D:) {
+        (self.list.kv, self.hash.kv).flat;
     }
-    method keys(Capture:D:) {
-        (self.list.keys, self.hash.keys).flat
+    multi method values(Capture:D:) {
+        (self.list.values, self.hash.values).flat;
     }
-    method kv(Capture:D:) {
-        (self.list.kv, self.hash.kv).flat
+    multi method pairs(Capture:D:) {
+        (self.list.pairs, self.hash.pairs).flat;
     }
 }
 

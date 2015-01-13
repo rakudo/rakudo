@@ -13,7 +13,7 @@ my role Enumeration {
         $!key
     }
 
-    method kv(::?CLASS:D:) { ($!key, $!value) }
+    multi method kv(::?CLASS:D:) { ($!key, $!value) }
 
     method pair(::?CLASS:D:) { $!key => $!value }
 

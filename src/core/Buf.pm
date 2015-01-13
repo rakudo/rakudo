@@ -1,5 +1,5 @@
-my class X::Buf::AsStr { ... }
-my class X::Buf::Pack { ... }
+my class X::Buf::AsStr          { ... }
+my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
@@ -22,14 +22,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.new(@values)
     }
 
-    multi method at_pos(Blob:D: $i) {
-        nqp::atpos_i(self, $i.Int)
+    multi method at_pos(Blob:D: int \pos) {
+        nqp::atpos_i(self, pos);
     }
-    multi method at_pos(Blob:D: Int $i) {
-        nqp::atpos_i(self, $i)
-    }
-    multi method at_pos(Blob:D: int $i) {
-        nqp::atpos_i(self, $i)
+    multi method at_pos(Blob:D: Int:D \pos) {
+        nqp::atpos_i(self, nqp::unbox_i(pos));
     }
 
     multi method Bool(Blob:D:) {

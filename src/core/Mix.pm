@@ -8,12 +8,12 @@ my class Mix does Mixy {
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
-    method pairs() {
+    multi method pairs(Mix:D:) { # copy values otherwise we can change the Mix
         @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
 
     method total (--> Real) { $!total //= [+] self.values }
-    method at_key($k --> Real) {
+    multi method at_key(Mix:D: $k --> Real) {
         my $key := $k.WHICH;
         %!elems.exists_key($key)
           ?? %!elems{$key}.value

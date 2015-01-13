@@ -14,16 +14,16 @@ my class Hash { # declared in BOOTSTRAP
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
             unless nqp::defined($storage);
-        my str $key = nqp::istype(key, Str) ?? key !! key.Str;
-        if nqp::existskey($storage, $key) {
-            nqp::atkey($storage, $key);
+        my str $skey = nqp::istype(key, Str) ?? key !! key.Str;
+        if nqp::existskey($storage, $skey) {
+            nqp::atkey($storage, $skey);
         }
         else {
             nqp::p6bindattrinvres(
                 (my \v := nqp::p6scalarfromdesc($!descriptor)),
                 Scalar,
                 '$!whence',
-                -> { nqp::bindkey($storage, $key, v) }
+                -> { nqp::bindkey($storage, $skey, v) }
             );
         }
     }
@@ -399,23 +399,23 @@ my class Hash { # declared in BOOTSTRAP
         }
         method keys(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :k).list
+            HashIter.keys(self,$!keys).list
         }
         method kv(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :kv).list
+            HashIter.kv(self,$!keys).list
         }
         method values(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :v).list
+            HashIter.values(self,$!keys).list
         }
         method pairs(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :pairs).list
+            HashIter.pairs(self,$!keys).list
         }
         method invert(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.new(self, :keystore($!keys), :invert).list
+            HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
             'Hash['

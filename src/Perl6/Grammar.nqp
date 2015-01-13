@@ -1285,7 +1285,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token label {
         <identifier> ':' <?[\s]> <.ws>
         {
-            $*LABEL       := ~$<identifier>;
+            $*LABEL := ~$<identifier>;
+            if $*W.already_declared('my', $*PACKAGE, $*W.cur_lexpad(), [$*LABEL]) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $*LABEL);
+            }
             my str $orig      := self.orig();
             my int $total     := nqp::chars($orig);
             my int $from      := self.MATCH.from();
@@ -2072,12 +2075,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$.> {
-        <sym> {} <?before \s | ',' | <terminator> >
+        <sym> {} <!before \w | '('>
         <.obsvar('$.')>
     }
 
     token special_variable:sym<$?> {
-        <sym> {} <?before \s | ',' | <terminator> >
+        <sym> {} <!before \w | '('>
         <.obsvar('$?')>
     }
     
@@ -3464,8 +3467,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.ws>
             [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
             [ <infixish> || <.missing: "assignment operator"> ]
-            [ <?{ $<infixish>.Str eq '=' }> || <.malformed: "assignment operator"> ]
-            # XXX When we support it, above check should add: || $<infixish><infix_postfix_meta_operator>[0]
+            [ <?{ $<infixish>.Str eq '=' || $<infixish><infix_postfix_meta_operator> }> || <.malformed: "assignment operator"> ]
             <.ws>
             [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
         ||

@@ -105,7 +105,7 @@ my class PseudoStash is EnumMap {
                 '$?PACKAGE')
         };
 
-    method at_key($key is copy) is rw {
+    multi method at_key(PseudoStash:D: $key is copy) is rw {
         $key = $key.Str;
         my Mu $nkey := nqp::unbox_s($key);
         if %pseudoers.exists_key($key) {
@@ -155,7 +155,8 @@ my class PseudoStash is EnumMap {
             die "This case of binding is not yet implemented";
         }
     }
-    method exists_key($key is copy) {
+    # for some reason we get a ambiguous dispatch error by making this a multi
+    method exists_key(PseudoStash:D: $key is copy) {
         $key = $key.Str;
         if %pseudoers.exists_key($key) {
             True

@@ -1,11 +1,13 @@
-my class MapIter { ... }
-my role  Numeric { ... }
-my class Pair { ... }
-my class Range { ... }
-my class X::Bind::Slice { ... }
-my class X::Bind::ZenSlice { ... }
-my class X::Match::Bool { ... }
+my class MapIter                { ... }
+my class Pair                   { ... }
+my class Range                  { ... }
+my class X::Bind::Slice         { ... }
+my class X::Bind::ZenSlice      { ... }
+my class X::Item                { ... }
+my class X::Match::Bool         { ... }
 my class X::Subscript::Negative { ... }
+
+my role  Numeric { ... }
 
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
@@ -15,7 +17,10 @@ my class Any { # declared in BOOTSTRAP
     # primitives
     method infinite()   { Nil }
 
-    method exists_key($key) { False }
+    proto method exists_key(|){ * }
+    multi method exists_key(Any:U: $) { False }
+    multi method exists_key(Any:D: $) { False }
+
     proto method exists_pos(|) { * }
     multi method exists_pos(Any:U: $pos) { False }
     multi method exists_pos(Any:D: $pos) { $pos == 0 }
@@ -54,17 +59,39 @@ my class Any { # declared in BOOTSTRAP
 
     # derived from .list
     method Parcel() { self.list.Parcel }
-    method elems() { self.list.elems }
+
+    proto method elems(|) { * }
+    multi method elems(Any:U:) { 0 }
+    multi method elems(Any:D:) { self.list.elems }
+
     proto method end(|) { * }
-    multi method end() { self.list.end }
+    multi method end(Any:U:) { -1 }
+    multi method end(Any:D:) { self.list.end }
+
+    proto method keys(|) { * }
+    multi method keys(Any:U:) { ().list }
+    multi method keys(Any:D:) { self.list.keys }
+
+    proto method kv(|) { * }
+    multi method kv(Any:U:) { ().list }
+    multi method kv(Any:D:) { self.list.kv }
+
+    proto method values(|) { * }
+    multi method values(Any:U:) { ().list }
+    multi method values(Any:D:) { self.list }
+
+    proto method pairs(|) { * }
+    multi method pairs(Any:U:) { ().list }
+    multi method pairs(Any:D:)  { self.list.pairs }
+
+    proto method invert(|) { * }
+    multi method invert(Any:U:) { ().list }
+    multi method invert(Any:D:) { self.list.invert }
+
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
-    method values() { self.list }
-    method keys()   { self.list.keys }
-    method kv()     { self.list.kv }
-    method pairs()  { self.list.pairs }
     method reduce(&with) { self.list.reduce(&with) }
     method combinations(|c) { self.list.combinations(|c) }
     method permutations(|c) { self.list.permutations(|c) }
@@ -367,20 +394,52 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method at_pos(|) {*}
-    multi method at_pos(Any:D: $pos as Int) {
-        fail X::OutOfRange.new(
-            what => 'Index',
-            got  => $pos,
-            range => (0..0)
-        ) if $pos != 0;
-        self;
-    }
-    multi method at_pos(Any:U \SELF: $pos) is rw {
+    multi method at_pos(Any:U \SELF: int \pos) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Array.new);
-                 SELF.bind_pos($pos, $v) });
+                 SELF.bind_pos(pos, $v) });
         $v
     }
+    multi method at_pos(Any:U \SELF: Int:D \pos) is rw {
+        nqp::bindattr(my $v, Scalar, '$!whence',
+            -> { SELF.defined || (SELF = Array.new);
+                 SELF.bind_pos(nqp::unbox_i(pos), $v) });
+        $v
+    }
+    multi method at_pos(Any:U \SELF: Num:D \pos) is rw {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::isnanorinf(pos);
+        self.at_pos(nqp::unbox_i(pos.Int));
+    }
+    multi method at_pos(Any:U \SELF: Any:D \pos) is rw {
+        self.at_pos(nqp::unbox_i(pos.Int));
+    }
+    multi method at_pos(Any:U \SELF: \pos) is rw {
+        die "Cannot use '{pos.^name}' as an index";
+    }
+
+    multi method at_pos(Any:D: int \pos) {
+        fail X::OutOfRange.new(:what<Index>, :got(pos), :range(0..0))
+          unless nqp::not_i(pos);
+        self;
+    }
+    multi method at_pos(Any:D: Int:D \pos) {
+        fail X::OutOfRange.new(:what<Index>, :got(pos), :range(0..0))
+          if pos != 0;
+        self;
+    }
+    multi method at_pos(Any:D: Num:D \pos) {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::isnanorinf(pos);
+        self.at_pos(nqp::unbox_i(pos.Int));
+    }
+    multi method at_pos(Any:D: Any:D \pos) {
+        self.at_pos(nqp::unbox_i(pos.Int));
+    }
+    multi method at_pos(Any:D \SELF: \pos) is rw {
+        die "Cannot use '{pos.^name}' as an index";
+    }
+
     proto method assign_pos(|) { * }
     multi method assign_pos(\SELF: \pos, Mu \assignee) {
         SELF.at_pos(pos) = assignee;

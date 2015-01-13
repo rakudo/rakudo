@@ -3,14 +3,16 @@ my role Setty does QuantHash {
 
     method BUILD (:%!elems)  { self }
     method default(--> Bool) { False }
-    method keys { %!elems.values }
-    method values { True xx %!elems.elems }
-    method kv { %!elems.values X, True }
+
+    multi method keys(Setty:D:)   { %!elems.values }
+    multi method kv(Setty:D:)     { %!elems.values X, True }
+    multi method values(Setty:D:) { True xx %!elems.elems }
+
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { %!elems.elems }
     method minpairs(--> List) { self.pairs }
     method maxpairs(--> List) { self.pairs }
-    method exists_key($k --> Bool) {
+    multi method exists_key(Setty:D: $k --> Bool) {
         so ( %!elems && nqp::existskey(%!elems, nqp::unbox_s($k.WHICH)) );
     }
     multi method Bool(Setty:D:) { %!elems.Bool }
@@ -62,7 +64,7 @@ my role Setty does QuantHash {
     }
 
     method list() { %!elems.values }
-    method pairs() { %!elems.values.map: { $_ => True } }
+    multi method pairs(Setty:D:) { %!elems.values.map: { $_ => True } }
     method grab($count = 1) {
         (%!elems{ %!elems.keys.pick($count) }:delete).list;
     }

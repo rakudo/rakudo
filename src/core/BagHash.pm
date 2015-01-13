@@ -1,6 +1,6 @@
 my class BagHash does Baggy {
 
-    method at_key($k) {
+    multi method at_key(BagHash:D: $k) {
         Proxy.new(
           FETCH => {
               my $key   := $k.WHICH;

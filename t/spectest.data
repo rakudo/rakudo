@@ -251,6 +251,7 @@ S04-declarations/our.t
 S04-declarations/state.t
 S04-declarations/will.t
 S04-exception-handlers/catch.t
+S04-exception-handlers/top-level.t
 S04-exceptions/control_across_runloop.t
 S04-exceptions/fail.t
 S04-exceptions/pending.t

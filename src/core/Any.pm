@@ -21,13 +21,9 @@ my class Any { # declared in BOOTSTRAP
     multi method exists_key(Any:U: $) { False }
     multi method exists_key(Any:D: $) { False }
 
-    proto method exists_pos(|) { * }
-    multi method exists_pos(Any:U: $pos) { False }
-    multi method exists_pos(Any:D: $pos) { $pos == 0 }
-
     proto method delete_key(|) { * }
-    multi method delete_key(Any:U: $key) { Nil }
-    multi method delete_key(Any:D: $key) {
+    multi method delete_key(Any:U: $) { Nil }
+    multi method delete_key(Any:D: $) {
         fail "Can not remove values from a {self.^name}";
     }
 
@@ -391,6 +387,31 @@ my class Any { # declared in BOOTSTRAP
                   $max // -Inf,
                   :excludes-min($excludes-min),
                   :excludes-max($excludes-max));
+    }
+
+    proto method exists_pos(|) { * }
+    multi method exists_pos(Any:U: Any:D $) { False }
+    multi method exists_pos(Any:U: Any:U $pos) is rw {
+        die "Cannot use '{$pos.^name}' as an index";
+    }
+
+    multi method exists_pos(Any:D: int \pos) {
+        nqp::p6bool(nqp::iseq_i(pos,0));
+    }
+    multi method exists_pos(Any:D: Int:D \pos) {
+        pos == 0;
+    }
+    multi method exists_pos(Any:D: Num:D \pos) {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::isnanorinf(pos);
+        self.at_pos(nqp::unbox_i(pos.Int));
+        pos == 0;
+    }
+    multi method exists_pos(Any:D: Any:D \pos) {
+        pos.Int == 0;
+    }
+    multi method exists_pos(Any:D: Any:U \pos) {
+        die "Cannot use '{pos.^name}' as an index";
     }
 
     proto method at_pos(|) {*}

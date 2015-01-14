@@ -5875,6 +5875,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     my %SUBST_ALLOWED_ADVERBS;
+    my %TRANS_ALLOWED_ADVERBS;
     my %SHARED_ALLOWED_ADVERBS;
     my %MATCH_ALLOWED_ADVERBS;
     my %MATCH_ADVERBS_MULTIPLE := hash(
@@ -5902,6 +5903,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         Perl5       => 'P5',
         samecase    => 'ii',
         samespace   => 'ss',
+        squash      => 's',
+        complement  => 'c',
+        delete      => 'd',
     );
     my %REGEX_ADVERB_IMPLIES := hash(
         ii        => 'i',
@@ -5921,6 +5925,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $mods := 'x c continue p pos nth th st nd rd g global ov overlap ex exhaustive';
         for nqp::split(' ', $mods) {
             %MATCH_ALLOWED_ADVERBS{$_} := 1;
+        }
+
+        $mods := 'd delete cm complement sq squash';
+        for nqp::split(' ', $mods) {
+            %TRANS_ALLOWED_ADVERBS{$_} := 1;
         }
     }
 
@@ -6056,9 +6065,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method quote:sym<tr>($/) {
-        if nqp::elems($<rx_adverbs><quotepair>) {
-            $*W.throw($/, 'X::Comp::NYI', feature => 'tr/// adverbs');
-        }
         my $left  := $<tribble><left>.ast;
         my $right := $<tribble><right>.ast;
 
@@ -6090,6 +6096,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new(:name('$_'), :scope<lexical>),
             $pair
         );
+
+        if nqp::elems($<rx_adverbs><quotepair>) {
+            self.handle_and_check_adverbs($/, %TRANS_ALLOWED_ADVERBS, 'transliteration', $trans);
+        }
 
         my $StrDistance := $*W.find_symbol(['StrDistance']);
         # Putting it all together.

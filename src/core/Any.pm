@@ -427,15 +427,15 @@ my class Any { # declared in BOOTSTRAP
                  SELF.bind_pos(nqp::unbox_i(pos), $v) });
         $v
     }
-    multi method at_pos(Any:U \SELF: Num:D \pos) is rw {
+    multi method at_pos(Any:U: Num:D \pos) is rw {
         X::Item.new(aggregate => self, index => pos).throw
           if nqp::isnanorinf(pos);
         self.at_pos(nqp::unbox_i(pos.Int));
     }
-    multi method at_pos(Any:U \SELF: Any:D \pos) is rw {
+    multi method at_pos(Any:U: Any:D \pos) is rw {
         self.at_pos(nqp::unbox_i(pos.Int));
     }
-    multi method at_pos(Any:U \SELF: \pos) is rw {
+    multi method at_pos(Any:U: Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
     }
 
@@ -457,13 +457,31 @@ my class Any { # declared in BOOTSTRAP
     multi method at_pos(Any:D: Any:D \pos) {
         self.at_pos(nqp::unbox_i(pos.Int));
     }
-    multi method at_pos(Any:D \SELF: \pos) is rw {
+    multi method at_pos(Any:D: Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
     }
 
     proto method assign_pos(|) { * }
-    multi method assign_pos(\SELF: \pos, Mu \assignee) {
-        SELF.at_pos(pos) = assignee;
+    multi method assign_pos(Any:U \SELF: \pos, Mu \assignee) {
+       SELF.at_pos(pos) = assignee;
+    }
+
+    multi method assign_pos(Any:D: int \pos, Mu \assignee) {
+        self.at_pos(pos) = assignee;
+    }
+    multi method assign_pos(Any:D: Int:D \pos, Mu \assignee) {
+        self.at_pos(pos) = assignee;
+    }
+    multi method assign_pos(Any:D: Num:D \pos, Mu \assignee) {
+        X::Item.new(aggregate => self, index => pos).throw
+          if nqp::isnanorinf(pos);
+        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;
+    }
+    multi method assign_pos(Any:D: Any:D \pos, Mu \assignee) {
+        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;
+    }
+    multi method assign_pos(Any:D: Any:U \pos, Mu \assignee) {
+        die "Cannot use '{pos.^name}' as an index";
     }
 
     method all() { all(self.list) }

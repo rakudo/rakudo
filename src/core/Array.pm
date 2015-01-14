@@ -48,20 +48,22 @@ class Array { # declared in BOOTSTRAP
         }
     }
 
-    multi method assign_pos(Array:D: \pos, Mu \assignee) is rw {
-        X::Item.new(aggregate => self, index => pos).throw
-          if nqp::istype(pos, Num) && nqp::isnanorinf(pos);
-        my int $p = nqp::unbox_i(nqp::istype(pos, Int) ?? pos !! pos.Int);
+    multi method assign_pos(Array:D: int \pos, Mu \assignee) is rw {
         my \items := nqp::p6listitems(self);
-        nqp::existspos(items, $p) || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && self.exists_pos($p)
-            ?? (nqp::atpos(items, $p) = assignee)
-            !! (nqp::bindpos(items, $p, nqp::p6scalarfromdesc($!descriptor)) = assignee)
+        nqp::existspos(items,pos)
+          || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
+          && self.exists_pos(pos)
+            ?? (nqp::atpos(items,pos) = assignee)
+            !! (nqp::bindpos(items,pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
     }
-    multi method assign_pos(Array:D: int $pos, Mu \assignee) is rw {
-        my Mu \items := nqp::p6listitems(self);
-        nqp::existspos(items, $pos) || nqp::isconcrete(nqp::getattr(self, List, '$!nextiter')) && self.exists_pos($pos)
-            ?? (nqp::atpos(items, $pos) = assignee)
-            !! (nqp::bindpos(items, $pos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
+    multi method assign_pos(Array:D: Int:D \pos, Mu \assignee) is rw {
+        my \items := nqp::p6listitems(self);
+        my int $pos = nqp::unbox_i(pos);
+        nqp::existspos(items,$pos)
+          || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
+          && self.exists_pos($pos)
+            ?? (nqp::atpos(items,$pos) = assignee)
+            !! (nqp::bindpos(items,$pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
     }
 
     proto method bind_pos(|) { * }

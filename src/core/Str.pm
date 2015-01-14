@@ -6,7 +6,6 @@ my class X::Str::Match::x { ... }
 my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
 my class X::Numeric::Confused { ... }
-my class X::NYI { ... }
 
 my $?TABSTOP = 8;
 

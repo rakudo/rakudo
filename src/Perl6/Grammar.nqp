@@ -289,6 +289,18 @@ role STD {
                     }
                     else {
                         my @suggestions := $*W.suggest_lexicals($name);
+
+                        if nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+                            my $sigil    := nqp::substr($name, 0, 1);
+                            my $twigil   := nqp::concat($sigil, '!');
+                            my $basename := nqp::substr($name, 1, nqp::chars($name) - 1);
+                            my $attrname := nqp::concat($twigil, $basename);
+
+                            my $attribute := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $attrname);
+                            nqp::push(@suggestions, $attrname);
+
+                            CATCH {}
+                        }
                         $*W.throw($var, ['X', 'Undeclared'], symbol => $name, suggestions => @suggestions);
                     }
                 }

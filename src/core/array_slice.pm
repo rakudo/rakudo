@@ -27,7 +27,7 @@ my class X::NYI { ... }
 proto sub postcircumfix:<[ ]>(|) { * }
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type ) is rw {
-    fail "Indexing requires an instance, tried to do: {SELF.VAR.name}[ {$type.^name} ]";
+    fail "Indexing requires an instance, tried to do: {SELF.VAR.name}[ {$type.gist} ]";
 }
 
 # @a[int 1]

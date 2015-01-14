@@ -26,6 +26,10 @@ my class X::NYI { ... }
 
 proto sub postcircumfix:<[ ]>(|) { * }
 
+multi sub postcircumfix:<[ ]>( \SELF, Any:U $ ) is rw {
+    fail "Index requires an instance, but a type object was passed";
+}
+
 # @a[int 1]
 multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
     fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
@@ -103,43 +107,43 @@ multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$v!, *%other ) is rw {
 }
 
 # @a[$x]
-multi sub postcircumfix:<[ ]>( \SELF, \pos ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos ) is rw {
     my int $pos = nqp::unbox_i(pos.Int);
     fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
       if nqp::islt_i($pos,0);
     SELF.at_pos($pos);
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Mu \assignee ) is rw {
     my int $pos = nqp::unbox_i(pos.Int);
     fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
       if nqp::islt_i($pos,0);
     SELF.assign_pos($pos, assignee);
 }
-multi sub postcircumfix:<[ ]>(\SELF, \pos, Mu :$BIND! is parcel) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is parcel) is rw {
     my int $pos = nqp::unbox_i(pos.Int);
     fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
       if nqp::islt_i($pos,0);
     SELF.bind_pos($pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, :$SINK!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$SINK!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$SINK, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, :$delete!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$delete!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, :$exists!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$exists!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, :$kv!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$kv!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, :$p!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$p!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, :$k!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$k!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, \pos, :$v!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$v, |%other );
 }
 

@@ -124,6 +124,26 @@ my class Parcel does Positional { # declared in BOOTSTRAP
           !! nqp::atpos($!storage,$pos);
     }
 
+    multi method assign_pos(Parcel:D: int \pos, Mu \assignee) is rw {
+        X::OutOfRange.new(
+          :what<Index>,
+          :got(pos),
+          :range(Range.new(0,nqp::elems($!storage)-1))
+        ).throw
+          if nqp::isge_i(pos,nqp::elems($!storage)) || nqp::islt_i(pos,0);
+        nqp::atpos($!storage,pos) = assignee;
+    }
+    multi method assign_pos(Parcel:D: Int:D \pos, Mu \assignee) is rw {
+        my int $pos = nqp::unbox_i(pos);
+        X::OutOfRange.new(
+          :what<Index>,
+          :got(pos),
+          :range(Range.new(0,nqp::elems($!storage)-1))
+        ).throw
+          if nqp::isge_i($pos,nqp::elems($!storage)) || nqp::islt_i($pos,0);
+        nqp::atpos($!storage,$pos) = assignee;
+    }
+
     multi method gist(Parcel:D:) {
         my Mu $gist := nqp::list();
         my Mu $iter := nqp::iterator($!storage);

@@ -103,14 +103,23 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $parcel;
     }
 
-    multi method at_pos(Parcel:D: int \pos) is rw {
-        pos >= nqp::elems($!storage) || pos < 0
+    multi method exists_pos(Parcel:D: int \pos) {
+        nqp::p6bool(
+          nqp::isge_i(pos,nqp::elems($!storage)) || nqp::islt_i(pos,0)
+        );
+    }
+    multi method exists_pos(Parcel:D: Int:D \pos) {
+        pos >= nqp::elems($!storage) || pos < 0;
+    }
+
+    multi method at_pos(Parcel:D: int \pos) {
+        nqp::isge_i(pos,nqp::elems($!storage)) || nqp::islt_i(pos,0)
           ?? Nil
           !! nqp::atpos($!storage,pos);
     }
-    multi method at_pos(Parcel:D: Int:D \pos) is rw {
+    multi method at_pos(Parcel:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
-        $pos >= nqp::elems($!storage) || $pos < 0
+        nqp::isge_i($pos,nqp::elems($!storage)) || nqp::islt_i($pos,0)
           ?? Nil
           !! nqp::atpos($!storage,$pos);
     }

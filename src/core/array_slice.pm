@@ -65,40 +65,40 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
 }
 
 # @a[Int 1]
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos ) is rw {
     fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
       if $pos < 0;
     SELF.at_pos($pos);
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Mu \assignee ) is rw {
     fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
       if $pos < 0;
     SELF.assign_pos($pos, assignee);
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int $pos, Mu :$BIND! is parcel) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is parcel) is rw {
     fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
       if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$SINK!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$SINK!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$SINK, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$delete!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$delete!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$exists!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$exists!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$kv!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$kv!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$p!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$p!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$k!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$k!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$v!, *%other ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$v!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$v, |%other );
 }
 
@@ -144,7 +144,7 @@ multi sub postcircumfix:<[ ]>( \SELF, \pos, :$v!, *%other ) is rw {
 }
 
 # @a[@i]
-multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos ) is rw {
     if nqp::iscont(pos)  {
         my int $pos = nqp::unbox_i(pos.Int);
         fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
@@ -155,7 +155,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
         POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
     }
 }
-multi sub postcircumfix:<[ ]>( \SELF, Positional \pos, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \assignee ) is rw {
     if nqp::iscont(pos)  {
         my int $pos = nqp::unbox_i(pos.Int);
         fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
@@ -166,75 +166,75 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos, Mu \assignee ) is rw {
         POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;
     }
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$BIND!) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$SINK!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$SINK!, *%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$SINK, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF,Positional \pos,:$delete!,*%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF,Positional:D \pos,:$delete!,*%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF,Positional \pos,:$exists!,*%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF,Positional:D \pos,:$exists!,*%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$kv!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$kv!, *%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$p!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$p!, *%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$k!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$k!, *%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$v!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$v!, *%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$v, |%other );
 }
 
 # @a[->{}]
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block ) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block ) is rw {
     SELF[$block(|(SELF.elems xx $block.count))];
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is rw {
     SELF[$block(|(SELF.elems xx $block.count))] = assignee;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$BIND!) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$SINK!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$SINK!, *%other) is rw {
     SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$SINK, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$delete!,*%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is rw {
     my @positions := POSITIONS(SELF,$block);
     +@positions == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$delete, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$exists!,*%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$exists!,*%other) is rw {
     my @positions := POSITIONS(SELF,$block);
     +@positions == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$exists, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$kv!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$kv!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
     +@positions == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$kv, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$p!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$p!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
     +@positions == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$p, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$k!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$k!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
     +@positions == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$k, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$v!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$v!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
     +@positions == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$v, |%other )
@@ -242,42 +242,42 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$v!, *%other) is rw {
 }
 
 # @a[*]
-multi sub postcircumfix:<[ ]>( \SELF, Whatever ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Whatever:D ) is rw {
     SELF[SELF.keys];
 }
-multi sub postcircumfix:<[ ]>( \SELF, Whatever, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is rw {
     SELF[SELF.keys] = assignee;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$BIND!) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$SINK!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$SINK!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, True, :$SINK, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$delete!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$delete!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$exists!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$exists!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$kv!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$kv!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$p!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$p!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$k!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$k!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$v!, *%other) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$v!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, True, :$v, |%other );
 }
 
 # @a[**]
-multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever $, *%adv) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, *%adv) is rw {
     X::NYI.new(feature => 'HyperWhatever in array index').throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever $, Mu \assignee, *%adv) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee, *%adv) is rw {
     X::NYI.new(feature => 'HyperWhatever in array index').throw;
 }
 
@@ -311,7 +311,7 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 }
 
 # @a[;]
-multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, *%adv) is rw {
+multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, *%adv) is rw {
     if keys > 1 {
         X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
             if keys[0].isa(HyperWhatever);
@@ -331,7 +331,7 @@ multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, *%adv) is rw {
         postcircumfix:<[ ]>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);
     }
 }
-multi sub postcircumfix:<[ ]> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
+multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, Mu \assignee, *%adv) is rw {
     if keys > 1 {
         postcircumfix:<[ ]>(SELF, keys, |%adv) = assignee;
     } else {

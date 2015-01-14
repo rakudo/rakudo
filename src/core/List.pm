@@ -105,10 +105,19 @@ my class List does Positional { # declared in BOOTSTRAP
         $!nextiter.defined ?? Inf !! $n
     }
 
-    method exists_pos(\pos) {
-        return False if !self.DEFINITE || pos < 0;
-        self.gimme(pos + 1);
-        nqp::p6bool( !nqp::isnull(nqp::atpos($!items, nqp::unbox_i(pos))) );
+    multi method exists_pos(List:D: int $pos) {
+        return False if nqp::islt_i($pos,0);
+        self.gimme($pos + 1);
+        nqp::p6bool(
+          nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
+        );
+    }
+    multi method exists_pos(List:D: Int:D $pos) {
+        return False if $pos < 0;
+        self.gimme($pos + 1);
+        nqp::p6bool(
+          nqp::not_i(nqp::isnull(nqp::atpos($!items,nqp::unbox_i($pos))))
+        );
     }
 
     method gimme($n, :$sink) {

@@ -2603,7 +2603,8 @@ class Perl6::World is HLL::World {
         %seen{$name} := 1;
         sub evaluate($name, $value, $has_value, $hash) {
             # the descriptor identifies variables.
-            return 1 unless nqp::existskey($hash, "descriptor");
+            return 1 unless nqp::existskey($hash, "scope");
+            return 1 unless $hash<scope> eq 'lexical';
             return 1 if nqp::existskey(%seen, $name);
             %seen{$name} := 1;
             return &inner-evaluator($name, $hash);

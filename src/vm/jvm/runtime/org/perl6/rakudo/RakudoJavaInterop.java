@@ -73,19 +73,35 @@ public class RakudoJavaInterop extends BootJavaInterop {
             for(; i < inArgs.length; ++i) {
                 // there doesn't seem to be an actual type Bool in gc or gcx
                 if( !Ops.typeName((SixModelObject) inArgs[i], tc).equals("Bool") ) {
-                    if( Ops.isnum((SixModelObject) inArgs[i], tc) == 1 ) {
+                    // one decont for native types...
+                    StorageSpec outerSS = Ops.decont((SixModelObject) inArgs[i], tc)
+                        .st.REPR.get_storage_spec(tc, ((SixModelObject)inArgs[i]).st);
+                    // ...and two for boxeds
+                    StorageSpec innerSS = Ops.decont(Ops.decont((SixModelObject) inArgs[i], tc), tc)
+                        .st.REPR.get_storage_spec(tc, Ops.decont((SixModelObject)inArgs[i], tc).st);
+                    if( (outerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
                         outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
                     }
-                    else if( Ops.isstr((SixModelObject) inArgs[i], tc) == 1 ) {
+                    else if( (outerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
                         outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
                     }
-                    else if( Ops.isint((SixModelObject) inArgs[i], tc) == 1 ) {
+                    else if( (outerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
+                        outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
+                    }
+                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
+                        outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
+                    }
+                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
+                        outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
+                    }
+                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
                         outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
                     }
                     else {
                         if( Ops.islist( (SixModelObject) inArgs[i], tc ) == 1 ) {
                             outArgs[i - offset] = null;
                             // XXX: obviously breaks for arrays with elems > Integer.MAX_VALUE
+                            // more precisely, breaks already at Integer.MAX_VALUE - 5 elems
                             int elems = (int) Ops.elems((SixModelObject) inArgs[i], tc);
                             SixModelObject argsContent = (SixModelObject) inArgs[i];
                             for( int j = 0; j < elems; ++j ) {
@@ -384,16 +400,23 @@ public class RakudoJavaInterop extends BootJavaInterop {
         if(what == void.class) {
             out = null;
         }
-        else if(what == int.class || what == short.class || what == byte.class || what == boolean.class) {
+        else if(what == int.class || what == Integer.class) { 
             out = new Long((int) in);
         }
-        else if (what == long.class || what == double.class || what == String.class || what == SixModelObject.class) {
+        else if( what == short.class || what == Short.class) {
+            out = new Long((short) in);
+        } else if( what == byte.class || what == Byte.class) {
+            out = new Long((byte) in);
+        } else if( what == boolean.class || what == Boolean.class) {
+            out = new Long((boolean) in ? 1 : 0);
+        }
+        else if (what == long.class || what == double.class || what == String.class || what == SixModelObject.class || what == Long.class || what == Double.class) {
             out = in;
         }
-        else if (what == float.class) {
-            out = new Double((double) in);
+        else if (what == float.class || what == Float.class) {
+            out = new Double((float) in);
         }
-        else if (what == char.class) {
+        else if (what == char.class || what == Character.class) {
             out = String.valueOf((char) in);
         }
         else {
@@ -454,11 +477,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
             }
         }
 
-        if (what == String.class || what == char.class)
+        if (what == String.class || what == char.class || what == Character.class)
             Ops.return_s((String) out, tc.curFrame);
-        else if (what == float.class || what == double.class)
+        else if (what == float.class || what == double.class || what == Double.class || what == Float.class)
             Ops.return_n(((Double)out).doubleValue(), tc.curFrame);
-        else if (what != void.class && what.isPrimitive())
+        else if (what != void.class && ( what.isPrimitive() || what == Long.class
+              || what == Integer.class || what == Short.class || what == Byte.class ))
             Ops.return_i(((Long)out).longValue(), tc.curFrame);
         else
             Ops.return_o((SixModelObject) out, tc.curFrame);

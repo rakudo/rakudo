@@ -31,10 +31,7 @@ use Test;
     {
         my $crc32 = CRC32.new;
         for 'Hello, Java'.encode('utf-8').list {
-            # utf8 elems aren't int-y and not marshalled smart enough (yet?) either
-            # to clarify, the coercion should probably be not neccessary 
-            # and should be considered a bug
-            $crc32.update($_.Int);
+            $crc32.update($_);
         }
         is $crc32.getValue, 1072431491, "(I)V candidate for CRC32 is recognized correctly";
     }
@@ -42,12 +39,58 @@ use Test;
     {
         my $crc32 = CRC32.new;
         for 'Hello, Java'.encode('utf-8') {
-            # because utf8 lists automatically know they're something int-y
             $crc32.update($_);
         }
         is $crc32.getValue, 1072431491, "([B)V candidate for CRC32 is recognized correctly";
     }
 }
 
+{
+    use java::lang::Long:from<Java>;
+    {
+        my $long = Long.new("42");
+        is $long, 42, 'multi constructor and marshalling for Long works';
+    }
+}
+
+{
+    use java::lang::Integer:from<Java>;
+    {
+        my $int = Integer.new("42");
+        is $int, 42, 'multi constructor and marshalling for Integer works';
+    }
+}
+
+{
+    use java::lang::Short:from<Java>;
+    {
+        my $short = Short.new("42");
+        is $short, 42, 'multi constructor and marshalling for Short works';
+    }
+}
+
+{
+    use java::lang::Byte:from<Java>;
+    {
+        my $Byte = Byte.new("42");
+        is $Byte, 42, 'multi constructor and marshalling for Byte works';
+    }
+}
+
+{
+    use java::lang::Float:from<Java>;
+    {
+        my $Float = Float.new("42.0");
+        is $Float, 42.0, 'multi constructor and marshalling for Float works';
+    }
+}
+
+{
+    use java::lang::Double:from<Java>;
+    {
+        my $Double = Double.new("42.0");
+        is $Double, 42.0, 'multi constructor and marshalling for Double works';
+    }
+}
 
 done;

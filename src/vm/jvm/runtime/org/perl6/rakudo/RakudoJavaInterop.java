@@ -400,16 +400,23 @@ public class RakudoJavaInterop extends BootJavaInterop {
         if(what == void.class) {
             out = null;
         }
-        else if(what == int.class || what == short.class || what == byte.class || what == boolean.class) {
+        else if(what == int.class || what == Integer.class) { 
             out = new Long((int) in);
         }
-        else if (what == long.class || what == double.class || what == String.class || what == SixModelObject.class) {
+        else if( what == short.class || what == Short.class) {
+            out = new Long((short) in);
+        } else if( what == byte.class || what == Byte.class) {
+            out = new Long((byte) in);
+        } else if( what == boolean.class || what == Boolean.class) {
+            out = new Long((boolean) in ? 1 : 0);
+        }
+        else if (what == long.class || what == double.class || what == String.class || what == SixModelObject.class || what == Long.class || what == Double.class) {
             out = in;
         }
-        else if (what == float.class) {
-            out = new Double((double) in);
+        else if (what == float.class || what == Float.class) {
+            out = new Double((float) in);
         }
-        else if (what == char.class) {
+        else if (what == char.class || what == Character.class) {
             out = String.valueOf((char) in);
         }
         else {
@@ -470,11 +477,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
             }
         }
 
-        if (what == String.class || what == char.class)
+        if (what == String.class || what == char.class || what == Character.class)
             Ops.return_s((String) out, tc.curFrame);
-        else if (what == float.class || what == double.class)
+        else if (what == float.class || what == double.class || what == Double.class || what == Float.class)
             Ops.return_n(((Double)out).doubleValue(), tc.curFrame);
-        else if (what != void.class && what.isPrimitive())
+        else if (what != void.class && ( what.isPrimitive() || what == Long.class
+              || what == Integer.class || what == Short.class || what == Byte.class ))
             Ops.return_i(((Long)out).longValue(), tc.curFrame);
         else
             Ops.return_o((SixModelObject) out, tc.curFrame);

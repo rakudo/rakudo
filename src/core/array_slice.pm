@@ -2,10 +2,13 @@
 
 my class X::Subscript::Negative { ... }
 
-sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
+sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
     my $positions = pos.flat;
 
-    if nqp::istype(pos,Range) || $positions.infinite || ($positions.gimme(*) && $positions.infinite) {
+    if nqp::istype(pos,Range)                         # a Range
+      || $positions.infinite                          # an infinite list
+      || ($positions.gimme(*) && $positions.infinite) # an infinite list now
+    {
         my $list = SELF.list;
         $positions.map( {
             last if $_ >= $list.gimme( $_ + 1 );

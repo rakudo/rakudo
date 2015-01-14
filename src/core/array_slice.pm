@@ -3,7 +3,7 @@
 my class X::Subscript::Negative { ... }
 
 sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
-    my $positions = pos.flat;
+    my $positions := pos.flat;
 
     if nqp::istype(pos,Range)                         # a Range
       || $positions.infinite                          # an infinite list
@@ -26,23 +26,58 @@ my class X::NYI { ... }
 
 proto sub postcircumfix:<[ ]>(|) { * }
 
-# @a[1]
+# @a[int 1]
+multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if nqp::islt_i($pos,0);
+    SELF.at_pos($pos);
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, Mu \assignee ) is rw {
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if nqp::islt_i($pos,0);
+    SELF.assign_pos($pos, assignee);
+}
+multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if nqp::islt_i($pos,0);
+    SELF.bind_pos($pos, $BIND);
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$SINK, |%other );
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$delete!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$delete, |%other );
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$exists!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$exists, |%other );
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$kv!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$kv, |%other );
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$p!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$p, |%other );
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$k!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$k, |%other );
+}
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$v, |%other );
+}
+
+# @a[Int 1]
 multi sub postcircumfix:<[ ]>( \SELF, Int $pos ) is rw {
-    if $pos < 0 {
-        fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT);
-    }
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if $pos < 0;
     SELF.at_pos($pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int $pos, Mu \assignee ) is rw {
-    if $pos < 0 {
-        X::Subscript::Negative.new(index => $pos, type => SELF.WHAT).throw;
-    }
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if $pos < 0;
     SELF.assign_pos($pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int $pos, Mu :$BIND! is parcel) is rw {
-    if $pos < 0 {
-        fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT);
-    }
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$SINK!, *%other ) is rw {
@@ -69,25 +104,22 @@ multi sub postcircumfix:<[ ]>( \SELF, Int $pos, :$v!, *%other ) is rw {
 
 # @a[$x]
 multi sub postcircumfix:<[ ]>( \SELF, \pos ) is rw {
-    my Int $index = pos.Int;
-    if $index < 0 {
-        fail X::Subscript::Negative.new(:$index, type => SELF.WHAT);
-    }
-    SELF.at_pos($index);
+    my int $pos = nqp::unbox_i(pos.Int);
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if nqp::islt_i($pos,0);
+    SELF.at_pos($pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, \pos, Mu \assignee ) is rw {
-    my Int $index = pos.Int;
-    if $index < 0 {
-        X::Subscript::Negative.new(:$index, type => SELF.WHAT).throw;
-    }
-    SELF.assign_pos($index, assignee);
+    my int $pos = nqp::unbox_i(pos.Int);
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if nqp::islt_i($pos,0);
+    SELF.assign_pos($pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, \pos, Mu :$BIND! is parcel) is rw {
-    my Int $index = pos.Int;
-    if $index < 0 {
-        fail X::Subscript::Negative.new(:$index, type => SELF.WHAT);
-    }
-    SELF.bind_pos($index, $BIND);
+    my int $pos = nqp::unbox_i(pos.Int);
+    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
+      if nqp::islt_i($pos,0);
+    SELF.bind_pos($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, \pos, :$SINK!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$SINK, |%other );
@@ -116,7 +148,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
     if nqp::iscont(pos)  {
         my int $pos = nqp::unbox_i(pos.Int);
         fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-          if $pos < 0;
+          if nqp::islt_i($pos,0);
         SELF.at_pos($pos);
     }
     else {
@@ -127,7 +159,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos, Mu \assignee ) is rw {
     if nqp::iscont(pos)  {
         my int $pos = nqp::unbox_i(pos.Int);
         fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-          if $pos < 0;
+          if nqp::islt_i($pos,0);
         SELF.assign_pos($pos,assignee);
     }
     else {
@@ -160,10 +192,10 @@ multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$v!, *%other) is rw {
 }
 
 # @a[->{}]
-multi sub postcircumfix:<[ ]>( \SELF, Callable $block ) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable $block ) is rw {
     SELF[$block(|(SELF.elems xx $block.count))];
 }
-multi sub postcircumfix:<[ ]>( \SELF, Callable $block, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable $block, Mu \assignee ) is rw {
     SELF[$block(|(SELF.elems xx $block.count))] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$BIND!) is rw {

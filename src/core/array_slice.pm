@@ -1,7 +1,5 @@
 # all sub postcircumfix [] candidates here please
 
-my class X::Subscript::Negative { ... }
-
 sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
     my $positions := pos.flat;
 
@@ -32,18 +30,12 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is rw {
 
 # @a[int 1]
 multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if nqp::islt_i($pos,0);
     SELF.at_pos($pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Mu \assignee ) is rw {
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if nqp::islt_i($pos,0);
     SELF.assign_pos($pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if nqp::islt_i($pos,0);
     SELF.bind_pos($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is rw {
@@ -70,18 +62,12 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
 
 # @a[Int 1]
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos ) is rw {
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if $pos < 0;
     SELF.at_pos($pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Mu \assignee ) is rw {
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if $pos < 0;
     SELF.assign_pos($pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is parcel) is rw {
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$SINK!, *%other ) is rw {
@@ -108,22 +94,13 @@ multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$v!, *%other ) is rw {
 
 # @a[$x]
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos ) is rw {
-    my int $pos = nqp::unbox_i(pos.Int);
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if nqp::islt_i($pos,0);
-    SELF.at_pos($pos);
+    SELF.at_pos(pos.Int);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Mu \assignee ) is rw {
-    my int $pos = nqp::unbox_i(pos.Int);
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if nqp::islt_i($pos,0);
-    SELF.assign_pos($pos, assignee);
+    SELF.assign_pos(pos.Int, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is parcel) is rw {
-    my int $pos = nqp::unbox_i(pos.Int);
-    fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-      if nqp::islt_i($pos,0);
-    SELF.bind_pos($pos, $BIND);
+    SELF.bind_pos(pos.Int, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$SINK!, *%other ) is rw {
     SLICE_ONE( SELF, pos.Int, True, :$SINK, |%other );
@@ -149,26 +126,14 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is rw {
 
 # @a[@i]
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos ) is rw {
-    if nqp::iscont(pos)  {
-        my int $pos = nqp::unbox_i(pos.Int);
-        fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-          if nqp::islt_i($pos,0);
-        SELF.at_pos($pos);
-    }
-    else {
-        POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
-    }
+    nqp::iscont(pos)
+      ?? SELF.at_pos(pos.Int)
+      !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
 }
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \assignee ) is rw {
-    if nqp::iscont(pos)  {
-        my int $pos = nqp::unbox_i(pos.Int);
-        fail X::Subscript::Negative.new(index => $pos, type => SELF.WHAT)
-          if nqp::islt_i($pos,0);
-        SELF.assign_pos($pos,assignee);
-    }
-    else {
-        POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;
-    }
+    nqp::iscont(pos)
+      ?? SELF.assign_pos(pos.Int,assignee)
+      !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

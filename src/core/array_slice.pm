@@ -175,37 +175,37 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$SINK!, *%other) is rw 
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is rw {
     my @positions := POSITIONS(SELF,$block);
-    +@positions == 1
+    @positions.elems == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$delete, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$exists!,*%other) is rw {
     my @positions := POSITIONS(SELF,$block);
-    +@positions == 1
+    @positions.elems == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$exists, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$kv!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
-    +@positions == 1
+    @positions.elems == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$kv, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$p!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
-    +@positions == 1
+    @positions.elems == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$p, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$k!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
-    +@positions == 1
+    @positions.elems == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$k, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$v!, *%other) is rw {
     my @positions := POSITIONS(SELF,$block);
-    +@positions == 1
+    @positions.elems == 1
       ?? SLICE_ONE(  SELF, @positions[0], True, :$v, |%other )
       !! SLICE_MORE( SELF, @positions,    True, :$v, |%other );
 }

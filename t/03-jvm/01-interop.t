@@ -49,7 +49,9 @@ use Test;
     use java::lang::Long:from<Java>;
     {
         my $long = Long.new("42");
-        is $long, 42, 'multi constructor and marshalling for Long works';
+        is $long, 42, 'multi constructor and marshalling for Long works (1)';
+        my $otherlong = Long.new(42);
+        is $otherlong, 42, 'multi constructor and marshalling for Long works (2)';
     }
 }
 
@@ -57,7 +59,9 @@ use Test;
     use java::lang::Integer:from<Java>;
     {
         my $int = Integer.new("42");
-        is $int, 42, 'multi constructor and marshalling for Integer works';
+        is $int, 42, 'multi constructor and marshalling for Integer works (1)';
+        my $otherint = Integer.new(42);
+        is $otherint, 42, 'multi constructor and marshalling for Integer works (2)';
     }
 }
 
@@ -65,7 +69,9 @@ use Test;
     use java::lang::Short:from<Java>;
     {
         my $short = Short.new("42");
-        is $short, 42, 'multi constructor and marshalling for Short works';
+        is $short, 42, 'multi constructor and marshalling for Short works (1)';
+        my $othershort = Short.new(42);
+        is $othershort, 42, 'multi constructor and marshalling for Short works (2)';
     }
 }
 
@@ -73,7 +79,9 @@ use Test;
     use java::lang::Byte:from<Java>;
     {
         my $Byte = Byte.new("42");
-        is $Byte, 42, 'multi constructor and marshalling for Byte works';
+        is $Byte, 42, 'multi constructor and marshalling for Byte works (1)';
+        my $otherByte = Byte.new(42);
+        is $otherByte, 42, 'multi constructor and marshalling for Byte works (2)';
     }
 }
 
@@ -81,7 +89,9 @@ use Test;
     use java::lang::Float:from<Java>;
     {
         my $Float = Float.new("42.0");
-        is $Float, 42.0, 'multi constructor and marshalling for Float works';
+        is $Float, 42.0, 'multi constructor and marshalling for Float works (1)';
+        my $otherFloat = Float.new(42e0);
+        is $otherFloat, 42e0, 'multi constructor and marshalling for Float works (1)';
     }
 }
 
@@ -89,7 +99,9 @@ use Test;
     use java::lang::Double:from<Java>;
     {
         my $Double = Double.new("42.0");
-        is $Double, 42.0, 'multi constructor and marshalling for Double works';
+        is $Double, 42.0, 'multi constructor and marshalling for Double works (1)';
+        my $otherDouble = Double.new(42e0);
+        is $otherDouble, 42e0, 'multi constructor and marshalling for Double works (2)';
     }
 }
 

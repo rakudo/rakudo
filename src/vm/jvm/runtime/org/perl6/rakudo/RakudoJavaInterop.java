@@ -198,13 +198,13 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             }
                             break;
                         case Type.FLOAT:
-                            if( parsedArgs[j].getClass().equals(double.class) ) {
+                            if( parsedArgs[j].getClass().equals(Double.class) ) {
                                 parsedArgs[j] = parsedArgs[j] != null ? ((Double)parsedArgs[j]).floatValue() : null;
                                 continue INNER;
                             }
                             break;
                         case Type.DOUBLE:
-                            if( parsedArgs[j].getClass().equals(double.class) ) {
+                            if( parsedArgs[j].getClass().equals(Double.class) ) {
                                 continue INNER;
                             }
                             break;

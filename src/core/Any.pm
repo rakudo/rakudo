@@ -437,12 +437,12 @@ my class Any { # declared in BOOTSTRAP
     }
 
     multi method at_pos(Any:D: int \pos) {
-        fail X::OutOfRange.new(:what<Index>, :got(pos), :range(0..0))
+        fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           unless nqp::not_i(pos);
         self;
     }
     multi method at_pos(Any:D: Int:D \pos) {
-        fail X::OutOfRange.new(:what<Index>, :got(pos), :range(0..0))
+        fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           if pos != 0;
         self;
     }
@@ -461,22 +461,22 @@ my class Any { # declared in BOOTSTRAP
 
     proto method assign_pos(|) { * }
     multi method assign_pos(Any:U \SELF: \pos, Mu \assignee) {
-       SELF.at_pos(pos) = assignee;
+       SELF.at_pos(pos) = assignee;                     # defer < 0 check
     }
 
     multi method assign_pos(Any:D: int \pos, Mu \assignee) {
-        self.at_pos(pos) = assignee;
+        self.at_pos(pos) = assignee;                    # defer < 0 check
     }
     multi method assign_pos(Any:D: Int:D \pos, Mu \assignee) {
-        self.at_pos(pos) = assignee;
+        self.at_pos(pos) = assignee;                    # defer < 0 check
     }
     multi method assign_pos(Any:D: Num:D \pos, Mu \assignee) {
         X::Item.new(aggregate => self, index => pos).throw
           if nqp::isnanorinf(pos);
-        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;
+        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method assign_pos(Any:D: Any:D \pos, Mu \assignee) {
-        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;
+        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method assign_pos(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";

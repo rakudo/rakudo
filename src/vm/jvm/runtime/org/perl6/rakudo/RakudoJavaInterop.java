@@ -135,10 +135,10 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 }
                 else {
                     if( Ops.istrue((SixModelObject) inArgs[i], tc) == 1 ) {
-                        outArgs[i - offset] = true;
+                        outArgs[i - offset] = new Boolean(true);
                     }
                     else if( Ops.isfalse((SixModelObject) inArgs[i], tc) == 1 ) {
-                        outArgs[i - offset] = false;
+                        outArgs[i - offset] = new Boolean(false);
                     }
                 }
             }
@@ -162,10 +162,14 @@ public class RakudoJavaInterop extends BootJavaInterop {
                     switch (argTypes[j].getSort()) {
                         case Type.BOOLEAN:
                             if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                parsedArgs[j] = parsedArgs[j] != null ? ((Long) parsedArgs[j]) == 0 ? false : true : null;
+                                parsedArgs[j] = parsedArgs[j] != null
+                                    ? ((Long) parsedArgs[j]) == 0
+                                        ? new Boolean(false)
+                                        : new Boolean(true)
+                                    : null;
                                 continue INNER;
                             }
-                            else if( parsedArgs[j].getClass().equals(boolean.class) ) {
+                            else if( parsedArgs[j].getClass().equals(Boolean.class) ) {
                                 continue INNER;
                             }
                             break;
@@ -416,7 +420,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         } else if( what == byte.class || what == Byte.class) {
             out = new Long((byte) in);
         } else if( what == boolean.class || what == Boolean.class) {
-            out = new Long((boolean) in ? 1 : 0);
+            out = (boolean) in ? gcx.True : gcx.False;
         }
         else if (what == long.class || what == double.class || what == String.class || what == SixModelObject.class || what == Long.class || what == Double.class) {
             out = in;

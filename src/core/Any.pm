@@ -435,9 +435,6 @@ my class Any { # declared in BOOTSTRAP
     multi method at_pos(Any:U: Any:D \pos) is rw {
         self.at_pos(nqp::unbox_i(pos.Int));
     }
-    multi method at_pos(Any:U: Any:U \pos) is rw {
-        die "Cannot use '{pos.^name}' as an index";
-    }
 
     multi method at_pos(Any:D: int \pos) {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range(0..0))
@@ -457,7 +454,8 @@ my class Any { # declared in BOOTSTRAP
     multi method at_pos(Any:D: Any:D \pos) {
         self.at_pos(nqp::unbox_i(pos.Int));
     }
-    multi method at_pos(Any:D: Any:U \pos) is rw {
+
+    multi method at_pos(Any:   Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
     }
 

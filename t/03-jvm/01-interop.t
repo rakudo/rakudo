@@ -93,4 +93,18 @@ use Test;
     }
 }
 
+{
+    use java::util::zip::CRC32:from<Java>;
+    {
+        CRC32.HOW.add_method(CRC32, "doubledValue", method ($self:) {
+            return $self.getValue() * 2;
+        });
+        my $crc32 = CRC32.new;
+        for 'Hello, Java'.encode('utf-8') {
+            $crc32.update($_);
+        }
+        is $crc32.doubledValue(), 2144862982, "adding methods to a Java type object works";
+    }
+}
+
 done;

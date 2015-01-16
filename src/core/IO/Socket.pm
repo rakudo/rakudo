@@ -26,8 +26,8 @@ my class IO::Socket does IO does PIO {
 
         my $rec;
         if $!buffer.chars > $chars {
-            $rec     = $!buffer.substr(0, $chars);
-            $!buffer = $!buffer.substr($chars);
+            $rec     = substr($!buffer,0,$chars);
+            $!buffer = substr($!buffer,$chars);
         } else {
             $rec     = $!buffer;
             $!buffer = '';
@@ -59,7 +59,7 @@ my class IO::Socket does IO does PIO {
         } else {
             my $rec = nqp::decode(nqp::decont($!buffer), 'utf8');
             if $rec.chars > $chars {
-                $rec = $rec.substr(0, $chars);
+                $rec = substr($rec,0,$chars);
                 my $used = $rec.encode('utf8').elems;
                 $!buffer = $!buffer.subbuf($used)
             } else {

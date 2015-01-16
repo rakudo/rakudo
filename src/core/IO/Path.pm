@@ -44,7 +44,7 @@ my class IO::Path is Cool {
     }
 
     method abspath() {
-        $!abspath //= $!path.substr(0,1) eq '-'
+        $!abspath //= substr($!path,0,1) eq '-'
           ?? ''
           !! $!SPEC.rel2abs($!path,$!CWD.chop);
     }
@@ -335,10 +335,10 @@ my class IO::Path is Cool {
                     $Str
                       ?? $absolute
                         ?? take $abspath-sep ~ $elem
-                        !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1)
+                        !! take substr($abspath-sep ~ $elem,$cwd_chars + 1)
                       !! $absolute
                         ?? take IO::Path.new($abspath-sep ~ $elem,:$!SPEC,:$CWD)
-                        !! take ($abspath-sep ~ $elem).substr($cwd_chars + 1).IO(:$!SPEC,:$CWD);
+                        !! take substr($abspath-sep ~ $elem,$cwd_chars + 1).IO(:$!SPEC,:$CWD);
                 }
             }
 #?endif
@@ -360,10 +360,10 @@ my class IO::Path is Cool {
 #?endif
                     $Str
                       ?? !$absolute && !$.is-absolute
-                        ?? take $elem.substr($cwd_chars + 1)
+                        ?? take substr($elem,$cwd_chars + 1)
                         !! take $elem
                       !! !$absolute && !$.is-absolute
-                        ?? take $elem.substr($cwd_chars + 1).IO(:$!SPEC,:$CWD)
+                        ?? take substr($elem,$cwd_chars + 1).IO(:$!SPEC,:$CWD)
                         !! take IO::Path.new($elem,:$!SPEC,:$CWD);
                 }
 #?if moar

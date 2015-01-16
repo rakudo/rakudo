@@ -10,7 +10,7 @@ class Version {
         }
         self.bless(
           :parts(@parts),
-          :plus(?$s.chars && $s.substr(*-1) eq '+'),
+          :plus(?$s.chars && substr($s,*-1) eq '+'),
         );
     };
 

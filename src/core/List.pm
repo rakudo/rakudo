@@ -89,10 +89,15 @@ my class List does Positional { # declared in BOOTSTRAP
     method Supply(List:D:) { Supply.for(self) }
 
     multi method at_pos(List:D: int \pos) is rw {
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i(pos,0);
         self.exists_pos(pos) ?? nqp::atpos($!items,pos) !! Nil;
     }
     multi method at_pos(List:D: Int:D \pos) is rw {
-        self.exists_pos(pos) ?? nqp::atpos($!items,nqp::unbox_i(pos)) !! Nil;
+        my int $pos = nqp::unbox_i(pos);
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i($pos,0);
+        self.exists_pos($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }
 
     method eager() { self.gimme(*); self }
@@ -142,9 +147,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $count
     }
 
-    method infinite() {
-        self.DEFINITE && $!nextiter.defined && $!nextiter.infinite;
-    }
+    multi method infinite(List:D:) { $!nextiter.infinite }
 
     method iterator() {
         # Return a reified ListIter containing our currently reified elements

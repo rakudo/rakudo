@@ -62,7 +62,7 @@ my class Routine { # declared in BOOTSTRAP
         if self.name() -> $n {
             $perl ~= " $n";
         }
-        $perl ~= ' ' ~ self.signature().perl.substr(1); # lose colon prefix
+        $perl ~= ' ' ~ substr(self.signature().perl,1); # lose colon prefix
         $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
         $perl
     }

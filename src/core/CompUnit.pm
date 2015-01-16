@@ -114,8 +114,6 @@ class CompUnit {
       :$INC = @*INC,
       :$force,
       --> Bool) {
-        die "Cannot pre-compile an already pre-compiled file: $!abspath"
-          if $.has-precomp;
         die "Cannot pre-compile over an existing file: $out"
           if !$force and FILETEST-e($out);
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');

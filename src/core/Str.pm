@@ -105,51 +105,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
     }
 
-    method substr(Str:D: $start, $length? is copy) {
-        my str $sself  = nqp::unbox_s(self);
-        my int $istart = nqp::unbox_i(
-            nqp::istype($start, Callable)
-                ?? $start(nqp::p6box_i(nqp::chars($sself)))
-                !! $start.Int
-            );
-        my int $ichars = nqp::chars($sself);
-        if $istart < 0 {
-            if nqp::istype($start, Callable) || -$istart > $ichars {
-                X::OutOfRange.new(
-                    what    => 'Start argument to substr',
-                    got     => $istart,
-                    range   => (0..$ichars),
-                ).fail
-            }
-            else {
-                X::OutOfRange.new(
-                    what    => 'Start argument to substr',
-                    got     => $start,
-                    range   => (0..*),
-                    comment => "use *{$istart} if you want to index relative to the end"
-                ).fail
-            }
-        }
-        X::OutOfRange.new(
-            what => 'Start of substr',
-            got  => $istart,
-            range => (0..$ichars),
-        ).fail
-            if $istart > $ichars;
-        $length = $length($ichars - $istart) if nqp::istype($length, Callable);
-        my int $ilength = !$length.defined || $length === Inf
-                            ?? $ichars - $istart
-                            !! $length.Int;
-        X::OutOfRange.new(
-            what    => 'Length argument to substr',
-            got     => $length,
-            range   => (0..*),
-            comment => "use *{$ilength} if you want to index relative to the end"
-        ).fail
-            if $ilength < 0;
-        nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
-    }
-
     # chars used to handle ranges for pred/succ
     my str $RANGECHAR =
         "01234567890"                                # arabic digits
@@ -567,7 +522,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?if parrot
         my $icu = $*VM.config<has_icu>;
         for ^self.chars -> $i {
-            my $ch = self.substr($i, 1);
+            my $ch = substr(self,$i, 1);
             $result ~= %esc{$ch}
                        //  (   ((!$icu && $ch.ord >= 256)
                                || nqp::iscclass( nqp::const::CCLASS_PRINTING,
@@ -575,7 +530,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 #?if !parrot
         for ^self.chars -> $i {
-            my $ch = self.substr($i, 1);
+            my $ch = substr(self,$i, 1);
             $result ~= %esc{$ch}
                        //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0)
@@ -697,7 +652,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $result = '';
         for @matches -> $m {
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
-            $result ~= self.substr($prev, $m.from - $prev);
+            $result ~= substr(self,$prev, $m.from - $prev);
 
             my $real_replacement = ~(nqp::istype($replacement,Callable)
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
@@ -708,7 +663,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $prev = $m.to;
         }
         my $last = @matches[@matches-1];
-        $result ~= self.substr($last.to);
+        $result ~= substr(self,$last.to);
         $self = $result;
         $global ?? (@matches,).list !! @matches[0];
     }
@@ -728,7 +683,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $result = '';
         for @matches -> $m {
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
-            $result ~= self.substr($prev, $m.from - $prev);
+            $result ~= substr(self,$prev, $m.from - $prev);
 
             my $real_replacement = ~(nqp::istype($replacement,Callable)
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
@@ -739,7 +694,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $prev = $m.to;
         }
         my $last = @matches.pop;
-        $result ~= self.substr($last.to);
+        $result ~= substr(self,$last.to);
         $result;
     }
 
@@ -849,7 +804,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         if ($all) {
             my $elems = +@matches;
             map {
-                my $value = self.substr($prev-pos, .from - $prev-pos);
+                my $value = substr(self,$prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 # we don't want the dummy object
                 --$elems ?? ($value, $_) !! $value;
@@ -857,7 +812,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         else {
             map {
-                my $value = self.substr($prev-pos, .from - $prev-pos);
+                my $value = substr(self,$prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 $value;
             }, @matches;
@@ -1137,7 +1092,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         proto method increment_index(|) {*}
         multi method increment_index(Regex $s) {
-            $!source.substr($!index) ~~ $s;
+            substr($!source,$!index) ~~ $s;
             $!index = $!next_match + $/.chars;
         }
 
@@ -1152,7 +1107,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
-                = $!source.substr($!index, $!next_match - $!index);
+                = substr($!source,$!index, $!next_match - $!index);
             if defined $!next_substitution {
                 my $result = $!next_substitution.value;
                 $!substituted_text
@@ -1427,7 +1382,7 @@ multi sub UNBASE(Int:D $base, Cool:D $num) is hidden_from_backtrace {
     X::Numeric::Confused.new(:what($num)).throw;
 }
 multi sub UNBASE(Int:D $base, Str:D $str) is hidden_from_backtrace {
-    my Str $prefix = $str.substr(0, 2);
+    my Str $prefix = substr($str,0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
        or $base <= 33 && $prefix eq '0x' {
@@ -1463,14 +1418,63 @@ sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join;
 }
 
-sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
-    my Str $substr = $s.substr($from, $chars);
+sub substr(\what, \from, $chars?) {
+    my str $str  = nqp::unbox_s(nqp::istype(what,Str) ?? what !! what.Str);
+    my int $max  = nqp::chars($str);
+    my int $from = nqp::unbox_i(
+      nqp::istype(from, Callable) ?? (from)(nqp::p6box_i($max)) !! from.Int
+    );
+
+    if $from < 0 {
+        if nqp::istype($from, Callable) || -$from > $max {
+            X::OutOfRange.new(
+              :what<Start argument to substr>,:got(from),:range("0..$max"),
+            ).fail;
+        }
+        else {
+            X::OutOfRange.new(
+              :what<Start argument to substr>,:got(from),:range<0..Inf>,
+              :comment("use *$from if you want to index relative to the end")
+            ).fail;
+        }
+    }
+    elsif $from > $max {
+        X::OutOfRange.new(
+          :what<Start of substr>,:got(from),:range("0..$max"),
+        ).fail;
+    }
+
+    my int $length = nqp::unbox_i(
+      $chars.defined
+        ?? $chars === Inf
+          ?? $max - $from
+          !! nqp::istype($chars,Callable)
+            ?? $chars($max - $from)
+            !! (nqp::istype($chars,Int) ?? $chars !! $chars.Int)
+        !! $max - $from
+    );
+    X::OutOfRange.new(
+      :what<Length argument to substr>,:got($chars),:range<0..Inf>,
+      :comment("use *$length if you want to index relative to the end")
+    ).fail if $length < 0;
+
+    nqp::p6box_s(nqp::substr($str, $from, $length));
+}
+
+sub substr-rw($s is rw, $from, $length?) {
+    my str $str   = nqp::unbox_s(nqp::istype($s,Str) ?? $s !! $s.Str);
+    my int $chars = nqp::unbox_i(
+      nqp::defined($length) ?? $length !! $from - nqp::chars($str)
+    );
+    my str $substr = nqp::substr($str,$from,$chars);
     Proxy.new(
-        FETCH   => sub ($) { $substr },
+        FETCH   => sub ($) { nqp::p6box_s($substr) },
         STORE   => sub ($, $new) {
-            $s = $s.substr(0, $from)
-               ~ $new
-               ~ $s.substr($from + $chars);
+            $s = nqp::p6box_s(
+              nqp::substr($str,0,$from)
+              ~ nqp::unbox_s($new)
+              ~ nqp::substr($str,$from + $chars)
+            );
         }
     );
 }

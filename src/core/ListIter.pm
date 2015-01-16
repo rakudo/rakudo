@@ -7,7 +7,7 @@ my class ListIter { # declared in BOOTSTRAP
     #   has Mu $!rest;         # VM's array of elements remaining to be reified
     #   has Mu $!list;         # List object associated with this iterator
 
-    method reify($n = 1, :$sink) {
+    method reify($n, :$sink) {
         unless nqp::isconcrete($!reified) {
             my $eager := nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens := nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;
@@ -16,13 +16,14 @@ my class ListIter { # declared in BOOTSTRAP
             my $rpa := nqp::list();
             if $eager {
                 $count = $max;
+                nqp::setelems($rpa, 5);  # this number is highly speculative
             }
             else {
                 $count = nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
                 $max = $count if $count > $max;
                 nqp::setelems($rpa, $count);
-                nqp::setelems($rpa, 0);
             }
+            nqp::setelems($rpa, 0);
             my int $index;
             my $want_types := $flattens
                 ?? nqp::list(Iterable, Parcel)
@@ -64,12 +65,12 @@ my class ListIter { # declared in BOOTSTRAP
         $!reified;
     }
 
-    method infinite() {
+    multi method infinite(ListIter:D:) {
         $!rest
           ?? nqp::istype(nqp::atpos($!rest, 0), Iterable)
              && nqp::atpos($!rest,0).infinite
              || Nil
-          !! Bool::False
+          !! False
     }
 
     method iterator() { self }

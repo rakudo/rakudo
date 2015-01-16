@@ -32,10 +32,23 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method at_pos(Blob:D: int \pos) {
+        X::OutOfRange.new(
+          :what<Index>,
+          :got(pos),
+          :range("0..{nqp::elems(self)-1}")
+        ).throw
+          if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
         nqp::atpos_i(self, pos);
     }
     multi method at_pos(Blob:D: Int:D \pos) {
-        nqp::atpos_i(self, nqp::unbox_i(pos));
+        my int $pos = nqp::unbox_i(pos);
+        X::OutOfRange.new(
+          :what<Index>,
+          :got(pos),
+          :range("0..{nqp::elems(self)-1}")
+        ).throw
+          if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
+        nqp::atpos_i(self,$pos);
     }
 
     multi method Bool(Blob:D:) {
@@ -132,8 +145,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my @bytes = self.list;
         my @fields;
         for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
-            my $directive = $unit.substr(0, 1);
-            my $amount = $unit.substr(1);
+            my $directive = substr($unit,0,1);
+            my $amount    = substr($unit,1);
             my $pa = $amount eq ''  ?? 1            !!
                      $amount eq '*' ?? @bytes.elems !! +$amount;
 
@@ -240,13 +253,28 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 }
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
-    # TODO: override at_pos so we get mutability
-    #
+    multi method at_pos(Buf:D: int \pos) {
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i(pos,0);
+        nqp::atpos_i(self, pos);
+    }
+    multi method at_pos(Buf:D: Int:D \pos) {
+        my int $pos = nqp::unbox_i(pos);
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i($pos,0);
+        nqp::atpos_i(self,$pos);
+    }
+
     multi method assign_pos(Buf:D: int \pos, Mu \assignee) {
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i(pos,0);
         nqp::bindpos_i(self,\pos,assignee)
     }
     multi method assign_pos(Buf:D: Int:D \pos, Mu \assignee) is rw {
-        nqp::bindpos_i(self,nqp::unbox_i(pos),assignee)
+        my int $pos = nqp::unbox_i(pos);
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i($pos,0);
+        nqp::bindpos_i(self,$pos,assignee)
     }
 }
 
@@ -258,8 +286,8 @@ constant buf64 = Buf[uint64];
 multi sub pack(Str $template, *@items) {
     my @bytes;
     for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
-        my $directive = $unit.substr(0, 1);
-        my $amount = $unit.substr(1);
+        my $directive = substr($unit,0,1);
+        my $amount    = substr($unit,1);
 
         given $directive {
             when 'A' {

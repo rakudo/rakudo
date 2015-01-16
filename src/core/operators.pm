@@ -21,7 +21,7 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     my \mixedin = obj.HOW.mixin(obj, $role, :need-mixin-attribute);
-    mixedin.BUILD_LEAST_DERIVED({ mixedin.^mixin_attribute.Str.substr(2) => $value });
+    mixedin.BUILD_LEAST_DERIVED({ substr(mixedin.^mixin_attribute.Str,2) => $value });
 }
 multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
     X::Does::TypeObject.new().throw
@@ -53,7 +53,7 @@ multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
             $mixin-value := attr.type.($value);
         }
     }
-    mixedin.BUILD_LEAST_DERIVED({ attr.Str.substr(2) => $mixin-value });
+    mixedin.BUILD_LEAST_DERIVED({ substr(attr.Str,2) => $mixin-value });
 }
 multi sub infix:<but>(Mu:U \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
@@ -303,12 +303,12 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
     my Str $name = @chunks.join('::');
     my @parts    = $name.split('::');
     my $first    = @parts.shift;
-    if @parts && '$@%&'.index($first.substr(0, 1)).defined {
+    if @parts && '$@%&'.index(substr($first,0, 1)).defined {
         # move sigil from first to last chunk, because
         # $Foo::Bar::baz is actually stored as Foo::Bar::$baz
         my $last_idx      = @parts.end;
-        @parts[$last_idx] = $first.substr(0, 1) ~ @parts[$last_idx];
-        $first            = $first.substr(1);
+        @parts[$last_idx] = substr($first,0, 1) ~ @parts[$last_idx];
+        $first            = substr($first,1);
         if $first eq '' {
             $first = @parts.shift;
             $name = @chunks.join('::');

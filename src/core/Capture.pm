@@ -32,19 +32,23 @@ my class Capture { # declared in BOOTSTRAP
 
     multi method at_key(Capture:D: \key) {
         my str $skey = nqp::unbox_s(key.Str);
-        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Any;
+        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
     }
     multi method at_key(Capture:D: Str:D \key) {
         my str $skey = nqp::unbox_s(key);
-        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Any;
+        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
     }
 
     multi method at_pos(Capture:D: int \pos) {
-        nqp::existspos($!list, pos) ?? nqp::atpos($!list, pos) !! Any;
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i(pos,0);
+        nqp::existspos($!list,pos) ?? nqp::atpos($!list,pos) !! Nil;
     }
     multi method at_pos(Capture:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
-        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Any;
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i($pos,0);
+        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Nil;
     }
 
     method hash(Capture:D:) {

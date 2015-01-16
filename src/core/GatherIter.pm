@@ -44,21 +44,22 @@ class GatherIter is Iterator {
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 
-    method reify($n = 1) {
+    method reify($n) {
         if !$!reified.defined {
             my Mu $rpa := nqp::list();
             my Mu $parcel;
-            my $end = Bool::False;
-            my $count = nqp::istype($n, Whatever) ?? 1000 !! $n;
-            while !$end && $count > 0 {
+            my int $end;
+            my int $count =
+              nqp::unbox_i(nqp::istype($n,Whatever) ?? 1000 !! $n);
+            while nqp::not_i($end) && nqp::isgt_i($count,0) {
                 $parcel := $!coro();
 #?if parrot
-                $end = nqp::p6bool(nqp::isnull($parcel));
+                $end = nqp::isnull($parcel);
 #?endif
 #?if !parrot
-                $end = nqp::p6bool(nqp::eqaddr($parcel, $SENTINEL));
+                $end = nqp::eqaddr($parcel, $SENTINEL);
 #?endif
-                nqp::push($rpa, $parcel) unless $end;
+                nqp::push($rpa, $parcel) if nqp::not_i($end);
                 $count = $count - 1;
             }
             nqp::push($rpa,
@@ -66,13 +67,13 @@ class GatherIter is Iterator {
                     nqp::p6bindattrinvres(
                         nqp::create(self), GatherIter, '$!coro', $!coro),
                     GatherIter, '$!infinite', $!infinite))
-                unless $end;
+                if nqp::not_i($end);
             $!reified := nqp::p6parcel($rpa, nqp::null());
         }
         $!reified
     }
 
-    method infinite() { $!infinite }
+    multi method infinite(GatherIter:D:) { $!infinite }
 
 #?if parrot
     my sub coro(\block) {

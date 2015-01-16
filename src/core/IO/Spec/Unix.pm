@@ -30,7 +30,7 @@ my class IO::Spec::Unix is IO::Spec {
         my int $index = nqp::rindex($str,'/');
         nqp::p6bool($index == -1)
           ?? path
-          !! path.substr( nqp::box_i($index + 1,Int) );
+          !! substr(path,nqp::box_i($index + 1,Int) );
     }
 
     method extension(\path) {
@@ -38,7 +38,7 @@ my class IO::Spec::Unix is IO::Spec {
         my int $index = nqp::rindex($str,'.');
         nqp::p6bool($index == -1)
           ?? ''
-          !! path.substr( nqp::box_i($index + 1,Int) );
+          !! substr(path,nqp::box_i($index + 1,Int) );
     }
 
     method tmpdir {
@@ -111,8 +111,8 @@ my class IO::Spec::Unix is IO::Spec {
     method catpath( $, $dirname, $file ) {
         $dirname ne ''
           && $file ne ''
-          && $dirname.substr( *-1 ) ne '/'
-          && $file.substr( 0, 1 )   ne '/'
+          && substr($dirname, *-1 ) ne '/'
+          && substr($file, 0, 1 )   ne '/'
           ?? $dirname ~ '/' ~ $file
           !! $dirname ~ $file
     }

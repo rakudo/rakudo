@@ -13,6 +13,8 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method at_pos(Array:D: int \pos) is rw {
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i(pos,0);
         my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         if nqp::existspos(items,pos)
@@ -31,6 +33,8 @@ class Array { # declared in BOOTSTRAP
     }
     multi method at_pos(Array:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos.Int);
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i($pos,0);
         my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         if nqp::existspos(items,$pos)
@@ -49,6 +53,8 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method assign_pos(Array:D: int \pos, Mu \assignee) is rw {
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i(pos,0);
         my \items := nqp::p6listitems(self);
         nqp::existspos(items,pos)
           || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
@@ -57,8 +63,10 @@ class Array { # declared in BOOTSTRAP
             !! (nqp::bindpos(items,pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
     }
     multi method assign_pos(Array:D: Int:D \pos, Mu \assignee) is rw {
-        my \items := nqp::p6listitems(self);
         my int $pos = nqp::unbox_i(pos);
+        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+          if nqp::islt_i($pos,0);
+        my \items := nqp::p6listitems(self);
         nqp::existspos(items,$pos)
           || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
           && self.exists_pos($pos)

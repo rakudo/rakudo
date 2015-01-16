@@ -31,8 +31,8 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         nqp::p6bool($indexf == -1 && $indexb == -1)
           ?? path
           !! $indexf > $indexb
-             ?? path.substr( nqp::box_i($indexf + 1,Int) )
-             !! path.substr( nqp::box_i($indexb + 1,Int) );
+             ?? substr(path,nqp::box_i($indexf + 1,Int) )
+             !! substr(path,nqp::box_i($indexb + 1,Int) );
     }
 
     method tmpdir {

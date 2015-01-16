@@ -2,7 +2,6 @@ my class Iterable { # declared in BOOTSTRAP
     # class Iterable is Any {
 
     method elems()    { self.list.elems }
-    method infinite() { Nil }
     method item($self:) { $self }
 
     method fmt($format = '%s', $separator = ' ') {

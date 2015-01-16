@@ -342,6 +342,39 @@ public final class Binder {
                     /* Report junction failure mode if it's a junction. */
                     return juncOrFail(tc, gcx, decontValue);
                 }
+
+                /* Also enforce definedness check */
+                if ( (paramFlags & SIG_ELEM_DEFINEDNES_CHECK) != 0) {
+
+                    /* Don't check decontValue for concreteness though, but arg_o,
+                       seeing as we don't have a isconcrete_nodecont */
+                    if ((paramFlags & SIG_ELEM_UNDEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) == 1) {
+                        if (error != null) {
+                            if ((paramFlags & SIG_ELEM_INVOCANT) != 0) {
+                                error[0] = "Invocant requires a type object, but an object instance was passed";
+                            }
+                            else {
+                                error[0] = String.format(
+                                    "Parameter '%s' requires a type object, but an object instance was passed",
+                                    varName);
+                            }
+                        }
+                        return juncOrFail(tc, gcx, decontValue);
+                    }
+                    if ((paramFlags & SIG_ELEM_DEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) != 1) {
+                        if (error != null) {
+                            if ((paramFlags & SIG_ELEM_INVOCANT) != 0) {
+                                error[0] = "Invocant requires a instance, but a type object was passed";
+                            }
+                            else {
+                                error[0] = String.format(
+                                    "Parameter '%s' requires an instance, but a type object was passed",
+                                    varName);
+                            }
+                        }
+                        return juncOrFail(tc, gcx, decontValue);
+                    }
+                }
             }
         }
         

@@ -762,7 +762,7 @@ S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
 S32-list/sort.t
-S32-list/uniq.t
+S32-list/unique.t
 S32-list/squish.t
 S32-num/abs.t
 S32-num/base.t

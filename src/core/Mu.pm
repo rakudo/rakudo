@@ -68,6 +68,9 @@ my class Mu { # declared in BOOTSTRAP
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
+    proto method infinite (|) { * }
+    multi method infinite(Mu:) { Nil }
+
     method CREATE() {
         nqp::create(self)
     }
@@ -443,7 +446,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method perl(Mu:D:) {
         my @attrs;
         for self.^attributes().grep: { .has_accessor } -> $attr {
-            my $name := $attr.Str.substr(2);
+            my $name := substr($attr.Str,2);
             @attrs.push: $name
                         ~ ' => '
                         ~ self."$name"().perl
@@ -544,7 +547,7 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
                     if nqp::iscont($attr_val);
             }
-            my $acc_name := $name.substr(2);
+            my $acc_name := substr($name,2);
             if $attr.has-accessor && %twiddles.exists_key($acc_name) {
                 nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
             }
@@ -556,7 +559,7 @@ my class Mu { # declared in BOOTSTRAP
         my %attrs;
         for self.^attributes -> $attr {
             if $attr.has-accessor {
-                my $name = $attr.name.substr(2);
+                my $name = substr($attr.name,2);
                 unless %attrs.exists_key($name) {
                     %attrs{$name} = self."$name"();
                 }

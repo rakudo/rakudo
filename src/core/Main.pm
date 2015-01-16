@@ -103,7 +103,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
                 else {
                     my $constraints  = $param.constraint_list.map(*.gist).join(' ');
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
-                    $argument = $param.name   ?? '<' ~ $param.name.substr(1) ~ '>' !!
+                    $argument = $param.name   ?? '<' ~ substr($param.name,1) ~ '>' !!
                                 $simple-const ??       $constraints                !!
                                                  '<' ~ $param.type.^name     ~ '>' ;
 

@@ -76,7 +76,7 @@ my class Range is Iterable is Cool does Positional {
             && !(!topic.excludes-max && $!excludes-max))
     }
 
-    method reify($n = 10) {
+    method reify($n) {
         my $value = $!excludes-min ?? $!min.succ !! $!min;
         # Iterating a Str range delegates to iterating a sequence.
         if Str.ACCEPTS($value) {

@@ -7,7 +7,7 @@ my class ListIter { # declared in BOOTSTRAP
     #   has Mu $!rest;         # VM's array of elements remaining to be reified
     #   has Mu $!list;         # List object associated with this iterator
 
-    method reify($n = 1, :$sink) {
+    method reify($n, :$sink) {
         unless nqp::isconcrete($!reified) {
             my $eager := nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens := nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;

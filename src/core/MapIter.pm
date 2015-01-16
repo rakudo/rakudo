@@ -26,7 +26,7 @@ my class MapIter is Iterator {
 
     method flattens() { $!flattens }
 
-    method reify($n = 1, :$sink) {
+    method reify($n, :$sink) {
         unless nqp::isconcrete($!reified) {
             my $argc   := $!block.count;
             $argc := 1 if $argc < 1 || $argc == Inf;

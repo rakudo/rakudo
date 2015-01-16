@@ -28,7 +28,7 @@ my class HashIter is Iterator {
         self;
     }
 
-    method reify($n?, :$sink) {  # hashes are finite, and hashiter non-reentrant, so do eager snapshot for now
+    method reify($n, :$sink) {  # hashes are finite, and hashiter non-reentrant, so do eager snapshot for now
         unless nqp::isconcrete($!reified) {
             my int $mode  =  $!mode;
             my Mu $rpa    := nqp::list();

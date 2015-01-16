@@ -9,8 +9,7 @@ class Distro does Systemic {
     has Str $.path-sep;
 
     submethod BUILD (:$name, :$version, :$!release, :$!auth, :$!path-sep) {
-        $!name = $name.lc;    # lowercase
-        $!name ~~ s:g/" "//;  # spaceless
+        $!name = TRANSPOSE-ONE($name.lc," ",""); # lowercase and spaceless
         $!version = Version.new($version);
         $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
     }

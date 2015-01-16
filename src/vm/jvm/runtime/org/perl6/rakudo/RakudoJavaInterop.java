@@ -335,11 +335,11 @@ public class RakudoJavaInterop extends BootJavaInterop {
             CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
             Object[] parsedArgs = parseArgs(args, tc);
             
-            /* debug
+            // debug
             for(int i = 0; i < parsedArgs.length; ++i ) {
                 System.out.println("parsed arg " + i + " as " + parsedArgs[i].getClass());
             }
-            */
+            // */
 
             if(forCtors) {
                 this.handleList = Class.forName(Type.getObjectType(((String) declaringClass).replace('/', '.')).getInternalName(),
@@ -347,6 +347,14 @@ public class RakudoJavaInterop extends BootJavaInterop {
             }
 
             int handlePos = findHandle(parsedArgs, tc);
+
+            // debug
+            if(forCtors) {
+                System.out.println("ctor cand: " + ((Constructor) this.handleList[handlePos]).toGenericString());
+            } else {
+                System.out.println("mhand cand: " + (MethodHandle) this.handleList[handlePos]);
+            }
+            // */
 
             MethodHandle rfh;
             try {
@@ -552,12 +560,14 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;[Ljava/lang/Object;)" +
                 "Ljava/lang/invoke/CallSite;");
         Handle[] candhandles = new Handle[mlist.size()];
-        for(int i = 0; i < mlist.size(); ++i) {
-            candhandles[i] = new Handle(Modifier.
-                    isStatic(mlist.get(i).getModifiers()) ? Opcodes.H_INVOKESTATIC : Opcodes.H_INVOKEVIRTUAL,
-                    mlist.get(i).getDeclaringClass().getName().replace('.', '/'), 
-                    mlist.get(i).getName(), 
-                    Type.getMethodDescriptor(mlist.get(i)));
+        int i = 0;
+        for(Iterator<Method> it = mlist.iterator(); it.hasNext(); ) {
+            Method next = it.next();
+            candhandles[i++] = new Handle(Modifier.
+                    isStatic(next.getModifiers()) ? Opcodes.H_INVOKESTATIC : Opcodes.H_INVOKEVIRTUAL,
+                    next.getDeclaringClass().getName().replace('.', '/'), 
+                    next.getName(), 
+                    Type.getMethodDescriptor(next));
         }
 
         mc.mv.visitVarInsn(Opcodes.ALOAD, 1);
@@ -610,6 +620,11 @@ public class RakudoJavaInterop extends BootJavaInterop {
     }
 
     @Override
+    protected void createAdaptorField(ClassContext c, Field f) {
+        // do nothing, for debug
+    }
+
+    @Override
     protected ClassContext createAdaptor(Class<?> target) {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
         String className = "org/perl6/nqp/generatedadaptor/"+target.getName().replace('.','/');
@@ -624,6 +639,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         HashMap<String, Integer> multiDescs = new HashMap< >();
         for (Method m : target.getMethods()) {
+            if( m.isSynthetic() ) {
+                // debug
+                System.out.println("skipping: " + m.toGenericString());
+                // */
+                continue;
+            }
             if( multiDescs.containsKey(m.getName()) ) {
                 multiDescs.put(m.getName(), multiDescs.get(m.getName()) + 1);
             }
@@ -658,11 +679,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         finishClass(cc);
         // debug
-        // try {
-        //     java.nio.file.Files.write(new java.io.File(className.replace('/','_') + ".class").toPath(), cc.cv.toByteArray());
-        // } catch (java.io.IOException e) {
-        //     e.printStackTrace();
-        // }
+        try {
+            java.nio.file.Files.write(new java.io.File(className.replace('/','_') + ".class").toPath(), cc.cv.toByteArray());
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+        //
 
         return cc;
     }

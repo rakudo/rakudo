@@ -117,7 +117,6 @@ use Test;
     }
 }
 
-#rakudo.jvm skip 'IllegalAccessError'
 {
     use java::lang::StringBuilder:from<Java>;
     {

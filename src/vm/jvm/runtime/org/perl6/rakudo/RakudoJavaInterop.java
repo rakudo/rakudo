@@ -644,12 +644,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
         HashMap<String, ArrayList<Method>> multiMethods = new HashMap< >();
         for (Method m : target.getMethods()) {
             if( m.isSynthetic() ) {
-                // synthetic methods don't get their own perl6-level sub,
-                // they only exist as a wrapper for the class we're generating
-                // an adaptor for
-                /* debug
-                System.out.println("skipping: " + m.toGenericString());
-                // */
+                // synthetics don't get their own perl6-level method, because
+                // they only exist as a visibility aid for the class we're 
+                // generating an adaptor for
                 continue;
             }
             if( multiDescs.get(m.getName()) > 1 ) {
@@ -663,8 +660,16 @@ public class RakudoJavaInterop extends BootJavaInterop {
         for (Iterator<Map.Entry<String, ArrayList<Method>>> msit = multiMethods.entrySet().iterator(); msit.hasNext(); ) {
             createAdaptorMultiDispatch(cc, msit.next().getValue());
         }
-        for (Field f : target.getFields()) createAdaptorField(cc, f);
-        for (Constructor<?> c : target.getConstructors()) createAdaptorConstructor(cc, c);
+        for (Field f : target.getFields()) {
+            if( f.isSynthetic() )
+                continue;
+            createAdaptorField(cc, f);
+        }
+        for (Constructor<?> c : target.getConstructors()) { 
+            if( c.isSynthetic() )
+                continue;
+            createAdaptorConstructor(cc, c);
+        }
         // what we actually want to do is grab all the methods we generated in
         // the for() directly above and generate a varargs shortname
         // &new()-equivalent, which dispatches among the generated

@@ -150,6 +150,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
     }
 
+    method substr-rw(Str:D \SELF: |c) { substr-rw(SELF,|c) }
+
     # chars used to handle ranges for pred/succ
     my str $RANGECHAR =
         "01234567890"                                # arabic digits

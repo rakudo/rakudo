@@ -150,7 +150,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
     }
 
-    method substr-rw(Str:D \SELF: |c) { substr-rw(SELF,|c) }
+    method substr-rw(Str:D \SELF: $from = 0, $chars = SELF.chars - $from) {
+        substr-rw(SELF,$from,$chars);
+    }
 
     # chars used to handle ranges for pred/succ
     my str $RANGECHAR =

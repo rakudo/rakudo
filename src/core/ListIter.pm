@@ -16,13 +16,14 @@ my class ListIter { # declared in BOOTSTRAP
             my $rpa := nqp::list();
             if $eager {
                 $count = $max;
+                nqp::setelems($rpa, 5);  # this number is highly speculative
             }
             else {
                 $count = nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
                 $max = $count if $count > $max;
                 nqp::setelems($rpa, $count);
-                nqp::setelems($rpa, 0);
             }
+            nqp::setelems($rpa, 0);
             my int $index;
             my $want_types := $flattens
                 ?? nqp::list(Iterable, Parcel)

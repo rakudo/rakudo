@@ -13,18 +13,18 @@ my role IO {
 # optimizing targets.
 
 sub MAKE-ABSOLUTE-PATH($path,$abspath) {
-    if $path.ord == 47 {              # 4x faster $path.substr(0,1) eq "/"
+    if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
         return $path;
     }
-    elsif $path.substr(1,1) eq ':' {  # assume C: something
-        if $path.substr(2,1) eq "/" { #  assume C:/ like prefix
+    elsif substr($path,1,1) eq ':' {  # assume C: something
+        if substr($path,2,1) eq "/" { #  assume C:/ like prefix
             return $path;
         }
-        elsif $abspath.substr(0,2) ne $path.substr(0,2) {
+        elsif substr($abspath,0,2) ne substr($path,0,2) {
             die "Can not set relative dir from different roots";
         }
         else {
-            return $abspath ~ $path.substr(2);
+            return $abspath ~ substr($path,2);
         }
     }
     else {                            # assume relative path

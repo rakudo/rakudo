@@ -18,7 +18,7 @@ my class Match is Capture is Cool {
     method ast(Match:D:) { $!made }
 
     multi method Str(Match:D:) {
-        $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
+        $!to > $!from ?? substr($!orig,$!from,$!to-$!from) !! ''
     }
     multi method Numeric(Match:D:) {
         self.Str.Numeric
@@ -29,10 +29,10 @@ my class Match is Capture is Cool {
     multi method ACCEPTS(Match:D: Any $) { self }
 
     method prematch(Match:D:) {
-        $!orig.substr(0, $!from);
+        substr($!orig,0,$!from);
     }
     method postmatch(Match:D:) {
-        $!orig.substr($!to)
+        substr($!orig,$!to)
     }
 
     method caps(Match:D:) {
@@ -52,12 +52,12 @@ my class Match is Capture is Cool {
         gather {
             for self.caps {
                 if .value.from > $prev {
-                    take '~' => $!orig.substr($prev, .value.from - $prev)
+                    take '~' => substr($!orig,$prev, .value.from - $prev)
                 }
                 take $_;
                 $prev = .value.to;
             }
-            take '~' => $!orig.substr($prev, $!to - $prev) if $prev < $!to;
+            take '~' => substr($!orig,$prev, $!to - $prev) if $prev < $!to;
         }
     }
 

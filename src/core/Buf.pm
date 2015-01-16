@@ -145,8 +145,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my @bytes = self.list;
         my @fields;
         for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
-            my $directive = $unit.substr(0, 1);
-            my $amount = $unit.substr(1);
+            my $directive = substr($unit,0,1);
+            my $amount    = substr($unit,1);
             my $pa = $amount eq ''  ?? 1            !!
                      $amount eq '*' ?? @bytes.elems !! +$amount;
 
@@ -286,8 +286,8 @@ constant buf64 = Buf[uint64];
 multi sub pack(Str $template, *@items) {
     my @bytes;
     for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
-        my $directive = $unit.substr(0, 1);
-        my $amount = $unit.substr(1);
+        my $directive = substr($unit,0,1);
+        my $amount    = substr($unit,1);
 
         given $directive {
             when 'A' {

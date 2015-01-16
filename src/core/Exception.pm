@@ -1216,9 +1216,9 @@ my class X::Str::Numeric is Exception {
     method source-indicator {
         constant marker = chr(0x23CF);
         join '', "in '",
-                $.source.substr(0, $.pos),
+                substr($.source,0, $.pos),
                 marker,
-                $.source.substr($.pos),
+                substr($.source,$.pos),
                 "' (indicated by ",
                 marker,
                 ")",

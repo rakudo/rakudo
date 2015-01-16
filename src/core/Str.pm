@@ -522,7 +522,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?if parrot
         my $icu = $*VM.config<has_icu>;
         for ^self.chars -> $i {
-            my $ch = self.substr($i, 1);
+            my $ch = substr(self,$i, 1);
             $result ~= %esc{$ch}
                        //  (   ((!$icu && $ch.ord >= 256)
                                || nqp::iscclass( nqp::const::CCLASS_PRINTING,
@@ -530,7 +530,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 #?if !parrot
         for ^self.chars -> $i {
-            my $ch = self.substr($i, 1);
+            my $ch = substr(self,$i, 1);
             $result ~= %esc{$ch}
                        //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0)
@@ -652,7 +652,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $result = '';
         for @matches -> $m {
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
-            $result ~= self.substr($prev, $m.from - $prev);
+            $result ~= substr(self,$prev, $m.from - $prev);
 
             my $real_replacement = ~(nqp::istype($replacement,Callable)
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
@@ -663,7 +663,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $prev = $m.to;
         }
         my $last = @matches[@matches-1];
-        $result ~= self.substr($last.to);
+        $result ~= substr(self,$last.to);
         $self = $result;
         $global ?? (@matches,).list !! @matches[0];
     }
@@ -683,7 +683,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $result = '';
         for @matches -> $m {
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
-            $result ~= self.substr($prev, $m.from - $prev);
+            $result ~= substr(self,$prev, $m.from - $prev);
 
             my $real_replacement = ~(nqp::istype($replacement,Callable)
                 ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
@@ -694,7 +694,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $prev = $m.to;
         }
         my $last = @matches.pop;
-        $result ~= self.substr($last.to);
+        $result ~= substr(self,$last.to);
         $result;
     }
 
@@ -804,7 +804,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         if ($all) {
             my $elems = +@matches;
             map {
-                my $value = self.substr($prev-pos, .from - $prev-pos);
+                my $value = substr(self,$prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 # we don't want the dummy object
                 --$elems ?? ($value, $_) !! $value;
@@ -812,7 +812,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         else {
             map {
-                my $value = self.substr($prev-pos, .from - $prev-pos);
+                my $value = substr(self,$prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 $value;
             }, @matches;
@@ -1092,7 +1092,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         proto method increment_index(|) {*}
         multi method increment_index(Regex $s) {
-            $!source.substr($!index) ~~ $s;
+            substr($!source,$!index) ~~ $s;
             $!index = $!next_match + $/.chars;
         }
 
@@ -1107,7 +1107,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
-                = $!source.substr($!index, $!next_match - $!index);
+                = substr($!source,$!index, $!next_match - $!index);
             if defined $!next_substitution {
                 my $result = $!next_substitution.value;
                 $!substituted_text
@@ -1382,7 +1382,7 @@ multi sub UNBASE(Int:D $base, Cool:D $num) is hidden_from_backtrace {
     X::Numeric::Confused.new(:what($num)).throw;
 }
 multi sub UNBASE(Int:D $base, Str:D $str) is hidden_from_backtrace {
-    my Str $prefix = $str.substr(0, 2);
+    my Str $prefix = substr($str,0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
        or $base <= 33 && $prefix eq '0x' {

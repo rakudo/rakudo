@@ -99,7 +99,7 @@ class Kernel does Systemic {
             }
 
             for Signal.^enum_value_list -> $signal {
-                my $name = $signal.key.substr(3);
+                my $name = substr($signal.key,3);
                 if @names.first-index( * eq $name ) -> $index {
                     @!signals[$index] = $signal;
                 }

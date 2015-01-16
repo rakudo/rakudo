@@ -3,7 +3,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
 
     method new(*@) { Nil }
     method iterator(*@) { self }
-    method reify() { () }
+    method reify($n) { () }
     method gist(*@) { 'Nil' }
     method Str(*@) { '' }       # XXX still needs warning
     method sink(*@) { Nil }     # required by RESTRICTED setting

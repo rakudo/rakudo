@@ -72,7 +72,7 @@ class GatherIter is Iterator {
         $!reified
     }
 
-    method infinite() { $!infinite }
+    multi method infinite(GatherIter:D:) { $!infinite }
 
 #?if parrot
     my sub coro(\block) {

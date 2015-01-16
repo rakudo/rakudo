@@ -68,6 +68,9 @@ my class Mu { # declared in BOOTSTRAP
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
+    proto method infinite (|) { * }
+    multi method infinite(Mu:) { Nil }
+
     method CREATE() {
         nqp::create(self)
     }

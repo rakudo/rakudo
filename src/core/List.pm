@@ -147,9 +147,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $count
     }
 
-    method infinite() {
-        self.DEFINITE && $!nextiter.defined && $!nextiter.infinite;
-    }
+    multi method infinite(List:D:) { $!nextiter.infinite }
 
     method iterator() {
         # Return a reified ListIter containing our currently reified elements

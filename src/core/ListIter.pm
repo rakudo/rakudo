@@ -64,12 +64,12 @@ my class ListIter { # declared in BOOTSTRAP
         $!reified;
     }
 
-    method infinite() {
+    multi method infinite(ListIter:D:) {
         $!rest
           ?? nqp::istype(nqp::atpos($!rest, 0), Iterable)
              && nqp::atpos($!rest,0).infinite
              || Nil
-          !! Bool::False
+          !! False
     }
 
     method iterator() { self }

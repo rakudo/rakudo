@@ -14,9 +14,6 @@ my class Any { # declared in BOOTSTRAP
 
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
-    # primitives
-    method infinite()   { Nil }
-
     proto method exists_key(|){ * }
     multi method exists_key(Any:U: $) { False }
     multi method exists_key(Any:D: $) { False }

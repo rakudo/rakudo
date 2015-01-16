@@ -126,7 +126,7 @@ my class HashIter is Iterator {
         $!reified;
     }
 
-    method infinite() { False }
+    multi method infinite(HashIter:D:) { False }
 
     multi method DUMP(HashIter:D: :$indent-step = 4, :%ctx?) {
         return DUMP(self, :$indent-step) unless %ctx;

@@ -107,17 +107,17 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             for( int j = 0; j < elems; ++j ) {
                                 argsContent.at_pos_native(tc, j);
                                 if( tc.native_type == ThreadContext.NATIVE_NUM ) {
-                                    if( outArgs[i - offset] == null ) 
+                                    if( outArgs[i - offset] == null )
                                         outArgs[i - offset] = new double[elems];
                                     ((double[])outArgs[i - offset])[j] = tc.native_n;
                                 }
                                 else if( tc.native_type == ThreadContext.NATIVE_STR ) {
-                                    if( outArgs[i - offset] == null ) 
+                                    if( outArgs[i - offset] == null )
                                         outArgs[i - offset] = new String[elems];
                                     ((String[])outArgs[i - offset])[j] = tc.native_s;
                                 }
                                 else if( tc.native_type == ThreadContext.NATIVE_INT ) {
-                                    if( outArgs[i - offset] == null ) 
+                                    if( outArgs[i - offset] == null )
                                         outArgs[i - offset] = new long[elems];
                                     ((long[])outArgs[i - offset])[j] = tc.native_i;
                                 }
@@ -189,7 +189,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             break;
                         case Type.LONG:
                             if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                continue INNER; 
+                                continue INNER;
                             }
                             break;
                         case Type.CHAR:
@@ -209,7 +209,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             }
                             break;
                         case Type.OBJECT:
-                            Class<?> argType = Class.forName(argTypes[j].getInternalName().replace('/', '.'), 
+                            Class<?> argType = Class.forName(argTypes[j].getInternalName().replace('/', '.'),
                                 false, tc.gc.byteClassLoader);
                             if( argType.isAssignableFrom(parsedArgs[j].getClass()) ) {
                                 // we can coerce
@@ -220,7 +220,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             // check that we actually have an array as argument
                             if( parsedArgs[j].getClass().getComponentType() != null ) {
                                 // and then check types again
-                                switch( argTypes[j].getElementType().getSort() ) { 
+                                switch( argTypes[j].getElementType().getSort() ) {
                                     case Type.BOOLEAN:
                                         if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
                                             boolean[] converted = new boolean[((Object[])parsedArgs[j]).length];
@@ -259,7 +259,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                                         break;
                                     case Type.LONG:
                                         if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
-                                            continue INNER; 
+                                            continue INNER;
                                         }
                                         break;
                                     case Type.CHAR:
@@ -295,7 +295,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                         default:
                             /* debug
                             System.out.print("skipping handle with ");
-                            for(Type type : argTypes) 
+                            for(Type type : argTypes)
                                 System.out.print(type.toString() + ", ");
                             System.out.println();
                             */
@@ -334,7 +334,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
             CallFrame cf = (CallFrame) incf;
             CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
             Object[] parsedArgs = parseArgs(args, tc);
-            
+
             /* debug
             for(int i = 0; i < parsedArgs.length; ++i ) {
                 System.out.println("parsed arg " + i + " as " + parsedArgs[i].getClass());
@@ -358,9 +358,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
             MethodHandle rfh;
             try {
-                rfh = MethodHandles.lookup().findStatic(RakudoJavaInterop.class, "filterReturnValueMethod", 
+                rfh = MethodHandles.lookup().findStatic(RakudoJavaInterop.class, "filterReturnValueMethod",
                     MethodType.fromMethodDescriptorString(
-                        "(Ljava/lang/Object;Lorg/perl6/nqp/runtime/ThreadContext;)Ljava/lang/Object;", 
+                        "(Ljava/lang/Object;Lorg/perl6/nqp/runtime/ThreadContext;)Ljava/lang/Object;",
                         tc.gc.byteClassLoader));
             } catch (NoSuchMethodException|IllegalAccessException nsme) {
                 throw ExceptionHandling.dieInternal(tc,
@@ -408,7 +408,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         if(what == void.class) {
             out = null;
         }
-        else if(what == int.class || what == Integer.class) { 
+        else if(what == int.class || what == Integer.class) {
             out = new Long((int) in);
         }
         else if( what == short.class || what == Short.class) {
@@ -434,22 +434,22 @@ public class RakudoJavaInterop extends BootJavaInterop {
             }
             if (what.isArray()) {
                 SixModelObject ARRAY = tc.gc.BOOTArray;
-                out = ARRAY.st.REPR.allocate(tc, ARRAY.st); 
+                out = ARRAY.st.REPR.allocate(tc, ARRAY.st);
                 if(stable == null) {
                     stable = ARRAY.st;
                 }
                 if(what.getComponentType().isPrimitive()) {
-                    if(what.getComponentType() == long.class 
-                    || what.getComponentType() == int.class 
-                    || what.getComponentType() == short.class 
-                    || what.getComponentType() == byte.class 
+                    if(what.getComponentType() == long.class
+                    || what.getComponentType() == int.class
+                    || what.getComponentType() == short.class
+                    || what.getComponentType() == byte.class
                     || what.getComponentType() == boolean.class) {
                         for(int i = 0; i < ((int[])in).length; ++i) {
                             SixModelObject cur = RakOps.p6box_i(((int[])in)[i], tc);
                             Ops.bindpos((SixModelObject) out, i, cur, tc);
                         }
                     }
-                    else if (what.getComponentType() == String.class 
+                    else if (what.getComponentType() == String.class
                     || what.getComponentType() == char.class) {
                         for(int i = 0; i < ((int[])in).length; ++i) {
                             SixModelObject cur = RakOps.p6box_s(((String[])in)[i], tc);
@@ -472,7 +472,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             cur =  RakOps.p6box_s(((String[])in)[i], tc);
                         }
                         else {
-                            cur = RuntimeSupport.boxJava(((Object[])in)[i], 
+                            cur = RuntimeSupport.boxJava(((Object[])in)[i],
                                     gcx.rakudoInterop.getSTableForClass(what.getComponentType()));
                         }
                         Ops.bindpos((SixModelObject) out, i, cur, tc);
@@ -495,8 +495,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
         else
             Ops.return_o((SixModelObject) out, tc.curFrame);
 
-        // the conditional is rather sketchy, but seems to be needed to 
-        // correctly return a new instance when we're called from 
+        // the conditional is rather sketchy, but seems to be needed to
+        // correctly return a new instance when we're called from
         // ConstructorDispatchCallSite, probably because of
         // Perl 6' .new creating a new CallFrame or something..?
         return Ops.result_o(tc.curFrame) != null ? Ops.result_o(tc.curFrame) : Ops.result_o(tc.curFrame.caller);
@@ -556,7 +556,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         // what if this is the only static one?
         if (!Modifier.isStatic(mlist.get(0).getModifiers())) marshalOut(mc, mlist.get(0).getDeclaringClass(), 0);
-        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "multiBootstrap", 
+        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "multiBootstrap",
                 "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;[Ljava/lang/Object;)" +
                 "Ljava/lang/invoke/CallSite;");
         Handle[] candhandles = new Handle[mlist.size()];
@@ -565,8 +565,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
             Method next = it.next();
             candhandles[i++] = new Handle(Modifier.
                     isStatic(next.getModifiers()) ? Opcodes.H_INVOKESTATIC : Opcodes.H_INVOKEVIRTUAL,
-                    next.getDeclaringClass().getName().replace('.', '/'), 
-                    next.getName(), 
+                    next.getDeclaringClass().getName().replace('.', '/'),
+                    next.getName(),
                     Type.getMethodDescriptor(next));
         }
 
@@ -574,7 +574,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         mc.mv.visitVarInsn(Opcodes.ALOAD, 5);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 3);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 4);
-        mc.mv.visitInvokeDynamicInsn(mlist.get(0).getName(), 
+        mc.mv.visitInvokeDynamicInsn(mlist.get(0).getName(),
                 "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
                 disphandle, (Object[]) candhandles);
 
@@ -612,7 +612,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         mc.mv.visitVarInsn(Opcodes.ALOAD, 5);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 3);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 4);
-        mc.mv.visitInvokeDynamicInsn("new", 
+        mc.mv.visitInvokeDynamicInsn("new",
                 "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
                 disphandle, className);
 

@@ -85,9 +85,8 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    method substr($start, $length?) {
-        self.Stringy.substr($start, $length);
-    }
+    method substr($from, $length?)           { substr(   self,$from,$length) }
+    method substr-rw(\SELF: $from, $length?) { substr-rw(SELF,$from,$length) }
 
     method uc() {
         nqp::p6box_s(nqp::uc(nqp::unbox_s(self.Str)))
@@ -239,7 +238,6 @@ sub flip(Cool $s)                  { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }
-sub substr(Cool $s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc(Cool $s)                    { $s.uc }
 sub tc(Cool $s)                    { $s.tc }
 sub tclc(Cool $s)                  { $s.tclc }

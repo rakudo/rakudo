@@ -105,55 +105,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
     }
 
-    method substr(Str:D: $start, $length? is copy) {
-        my str $sself  = nqp::unbox_s(self);
-        my int $istart = nqp::unbox_i(
-            nqp::istype($start, Callable)
-                ?? $start(nqp::p6box_i(nqp::chars($sself)))
-                !! $start.Int
-            );
-        my int $ichars = nqp::chars($sself);
-        if $istart < 0 {
-            if nqp::istype($start, Callable) || -$istart > $ichars {
-                X::OutOfRange.new(
-                    what    => 'Start argument to substr',
-                    got     => $istart,
-                    range   => (0..$ichars),
-                ).fail
-            }
-            else {
-                X::OutOfRange.new(
-                    what    => 'Start argument to substr',
-                    got     => $start,
-                    range   => (0..*),
-                    comment => "use *{$istart} if you want to index relative to the end"
-                ).fail
-            }
-        }
-        X::OutOfRange.new(
-            what => 'Start of substr',
-            got  => $istart,
-            range => (0..$ichars),
-        ).fail
-            if $istart > $ichars;
-        $length = $length($ichars - $istart) if nqp::istype($length, Callable);
-        my int $ilength = !$length.defined || $length === Inf
-                            ?? $ichars - $istart
-                            !! $length.Int;
-        X::OutOfRange.new(
-            what    => 'Length argument to substr',
-            got     => $length,
-            range   => (0..*),
-            comment => "use *{$ilength} if you want to index relative to the end"
-        ).fail
-            if $ilength < 0;
-        nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
-    }
-
-    method substr-rw(Str:D \SELF: $from = 0, $chars = SELF.chars - $from) {
-        substr-rw(SELF,$from,$chars);
-    }
-
     # chars used to handle ranges for pred/succ
     my str $RANGECHAR =
         "01234567890"                                # arabic digits
@@ -1467,14 +1418,63 @@ sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join;
 }
 
-sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
-    my Str $substr = $s.substr($from, $chars);
+sub substr(\what, \from, $chars?) {
+    my str $str  = nqp::unbox_s(nqp::istype(what,Str) ?? what !! what.Str);
+    my int $max  = nqp::chars($str);
+    my int $from = nqp::unbox_i(
+      nqp::istype(from, Callable) ?? (from)(nqp::p6box_i($max)) !! from.Int
+    );
+
+    if $from < 0 {
+        if nqp::istype($from, Callable) || -$from > $max {
+            X::OutOfRange.new(
+              :what<Start argument to substr>,:got(from),:range("0..$max"),
+            ).fail;
+        }
+        else {
+            X::OutOfRange.new(
+              :what<Start argument to substr>,:got(from),:range<0..Inf>,
+              :comment("use *$from if you want to index relative to the end")
+            ).fail;
+        }
+    }
+    elsif $from > $max {
+        X::OutOfRange.new(
+          :what<Start of substr>,:got(from),:range("0..$max"),
+        ).fail;
+    }
+
+    my int $length = nqp::unbox_i(
+      $chars.defined
+        ?? $chars === Inf
+          ?? $max - $from
+          !! nqp::istype($chars,Callable)
+            ?? $chars($max - $from)
+            !! (nqp::istype($chars,Int) ?? $chars !! $chars.Int)
+        !! $max - $from
+    );
+    X::OutOfRange.new(
+      :what<Length argument to substr>,:got($chars),:range<0..Inf>,
+      :comment("use *$length if you want to index relative to the end")
+    ).fail if $length < 0;
+
+    nqp::p6box_s(nqp::substr($str, $from, $length));
+}
+
+sub substr-rw($s is rw, $from, $length?) {
+    my str $str   = nqp::unbox_s(nqp::istype($s,Str) ?? $s !! $s.Str);
+    my int $chars = nqp::unbox_i(
+      nqp::defined($length) ?? $length !! $from - nqp::chars($str)
+    );
+    my str $substr = nqp::substr($str,$from,$chars);
     Proxy.new(
-        FETCH   => sub ($) { $substr },
+        FETCH   => sub ($) { nqp::p6box_s($substr) },
         STORE   => sub ($, $new) {
-            $s = $s.substr(0, $from)
-               ~ $new
-               ~ $s.substr($from + $chars);
+            $s = nqp::p6box_s(
+              nqp::substr($str,0,$from)
+              ~ nqp::unbox_s($new)
+              ~ nqp::substr($str,$from + $chars)
+            );
         }
     );
 }

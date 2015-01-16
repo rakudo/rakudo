@@ -644,6 +644,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
         HashMap<String, ArrayList<Method>> multiMethods = new HashMap< >();
         for (Method m : target.getMethods()) {
             if( m.isSynthetic() ) {
+                // synthetic methods don't get their own perl6-level sub,
+                // they only exist as a wrapper for the class we're generating
+                // an adaptor for
                 /* debug
                 System.out.println("skipping: " + m.toGenericString());
                 // */

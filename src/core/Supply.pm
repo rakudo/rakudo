@@ -179,7 +179,6 @@ my role Supply {
     }
     method migrate(Supply:D: )           { SupplyOperations.migrate(self) }
 
-    proto method classify (|) { * }
     multi method classify(Supply:D: &mapper )  {
         SupplyOperations.classify(self, &mapper);
     }

@@ -486,6 +486,6 @@ sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
 sub hash(*@a, *%h) { my % = @a, %h }
 
 # XXX parse hangs with ordinary sub declaration
-my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.PARAMETERIZE_TYPE(Any,Any).new(@elems) }
+BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.PARAMETERIZE_TYPE(Any,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

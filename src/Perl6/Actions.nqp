@@ -4884,7 +4884,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @children := @($past.ann('past_block')[1]);
             $past := QAST::Op.new(
                 :op('call'),
-                :name('&circumfix:<{ }>'),
+                :name(
+                    $/.from && nqp::substr($/.orig, $/.from - 1, 1) eq ':' ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>'
+                ),
                 :node($/)
             );
             if $has_stuff {

@@ -418,13 +418,18 @@ my class Hash { # declared in BOOTSTRAP
             HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
-            'Hash['
-              ~ TValue.perl
-              ~ ','
-              ~ TKey.perl
-              ~ '].new('
-              ~ self.pairs.pick(*).map({.perl}).join(', ')
-              ~ ')';
+            if TKey === Any and TValue === Any and nqp::iscont(SELF) {
+                ':{' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ '}'
+            }
+            else {
+                'Hash['
+                  ~ TValue.perl
+                  ~ ','
+                  ~ TKey.perl
+                  ~ '].new('
+                  ~ self.pairs.pick(*).map({.perl}).join(', ')
+                  ~ ')';
+            }
         }
         multi method delete_key($key) {
             my Mu $val = self.at_key($key);
@@ -441,6 +446,19 @@ my class Hash { # declared in BOOTSTRAP
             );
             $val;
         }
+
+        # gotta force capture keys to strings or binder fails
+        method Capture(EnumMap:D:) {
+            my $cap := nqp::create(Capture);
+            my $h := nqp::hash();
+            for self.kv -> \k, \v {
+                my str $skey = nqp::istype(k, Str) ?? k !! k.Str;
+                nqp::bindkey($h, $skey, v);
+            }
+            nqp::bindattr($cap, Capture, '$!hash', $h);
+            $cap
+        }
+
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {
         if c.elems == 0 {
@@ -466,5 +484,8 @@ my class Hash { # declared in BOOTSTRAP
 
 sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
 sub hash(*@a, *%h) { my % = @a, %h }
+
+# XXX parse hangs with ordinary sub declaration
+my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.PARAMETERIZE_TYPE(Any,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

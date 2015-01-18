@@ -21,8 +21,8 @@ my class Signature { # declared in BOOTSTRAP
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
         my $sclass = self.params.classify({.named});
         my $tclass = $topic.params.classify({.named});
-        my @spos := $sclass<False> // ();
-        my @tpos := $tclass<False> // ();
+        my @spos := $sclass{False} // ();
+        my @tpos := $tclass{False} // ();
 
         while @spos {
             my $s;
@@ -50,16 +50,16 @@ my class Signature { # declared in BOOTSTRAP
             return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
         }
 
-        for ($sclass<True> // ()).grep({!.optional and !.slurpy}) -> $this {
+        for ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
             my $other;
-            return False unless $other=($tclass<True> // ()).grep(
+            return False unless $other=($tclass{True} // ()).grep(
                 {!.optional and $_ ~~ $this });
             return False unless +$other == 1;
         }
 
-        my $here=$sclass<True>.SetHash;
-        my $hasslurpy=($sclass<True> // ()).grep({.slurpy}).Bool;
-        for @($tclass<True> // ()) -> $other {
+        my $here=$sclass{True}.SetHash;
+        my $hasslurpy=($sclass{True} // ()).grep({.slurpy}).Bool;
+        for @($tclass{True} // ()) -> $other {
             my $this;
 
             if $other.slurpy {

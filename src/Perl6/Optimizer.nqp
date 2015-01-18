@@ -985,7 +985,7 @@ class Perl6::Optimizer {
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
         if $optype eq 'callmethod' && $op.name eq 'sink' &&
-              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
+              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'for' && @($op[0]) == 2 &&
               nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
                 (nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) &&
                         nqp::existskey(%range_bounds, $c2.name)
@@ -1379,13 +1379,10 @@ class Perl6::Optimizer {
     }
 
     method optimize_for_range($op, $c2) {
-        my $block := $!symbols.Block;
-        unless nqp::defined($block) { return };
-
         my $callee  := $op[0][1];
         my $code    := $callee.ann('code_object');
         my $count   := $code.count;
-        my $phasers := nqp::getattr($code, $block, '$!phasers');
+        my $phasers := try nqp::getattr($code, $!symbols.Block, '$!phasers');
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
             my $it_var     := QAST::Node.unique('range_it_');
             my $callee_var := QAST::Node.unique('range_callee_');

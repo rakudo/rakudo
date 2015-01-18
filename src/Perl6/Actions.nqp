@@ -2193,6 +2193,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
+        if $*OFTYPE {
+            my $archetypes := $*OFTYPE.ast.HOW.archetypes;
+            unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic {
+                $*OFTYPE.CURSOR.panic(~$*OFTYPE ~ " cannot be used as a nominal type on a variable");
+            }
+        }
+
         if $*SCOPE eq 'has' {
             # Ensure current package can take attributes.
             unless nqp::can($*PACKAGE.HOW, 'add_attribute') {

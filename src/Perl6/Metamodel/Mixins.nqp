@@ -1,4 +1,16 @@
+my class MixinCacheHOW {
+    method new_type($class_type) {
+        my $mo := self.new();
+        my $type := nqp::newtype($mo, 'Uninstantiable');
+        nqp::setparameterizer($type, sub ($type, @roles) {
+            $class_type.HOW.generate_mixin($class_type, @roles);
+        });
+        $type
+    }
+}
+
 role Perl6::Metamodel::Mixins {
+    has $!mixin_cache;
     has $!is_mixin;
     has $!mixin_attribute;
 
@@ -8,10 +20,19 @@ role Perl6::Metamodel::Mixins {
     method mixin_attribute($obj) { $!mixin_attribute }
     method flush_cache($obj) { }
 
+    method setup_mixin_cache($obj) {
+        $!mixin_cache := MixinCacheHOW.new_type($obj.WHAT);
+    }
+
     method mixin($obj, *@roles, :$need-mixin-attribute) {
-        # Generate mixin.
-        # TODO: Use 6pe support to cache mixins.
-        my $mixin_type := self.generate_mixin($obj, @roles);
+        # Lookup mixin, generating it if needed.
+        my int $i := 0;
+        my int $n := nqp::elems(@roles);
+        while $i < $n {
+            @roles[$i] := nqp::decont(@roles[$i]);
+            $i++;
+        }
+        my $mixin_type := nqp::parameterizetype($!mixin_cache, @roles);
 
         # Ensure there's a mixin attribute, if we need it.
         if $need-mixin-attribute {

@@ -352,9 +352,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $compunit.annotate('UNIT', $unit);
         $compunit.annotate('GLOBALish', $*GLOBALish);
         $compunit.annotate('W', $*W);
-        
-        # Do any final compiler state cleanup tasks.
-        $*W.cleanup();
 
         make $compunit;
     }

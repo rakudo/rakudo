@@ -595,6 +595,7 @@ S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/cwd.t
 S16-io/getc.t
+S16-io/print.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/tmpdir.t

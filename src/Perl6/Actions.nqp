@@ -2683,6 +2683,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         try $PseudoStash := $*W.find_symbol(['PseudoStash']);
         sub clear_node($qast) {
             $qast.node(nqp::null());
+            $qast.clear_annotations();
             $qast
         }
         sub node_walker($node) {

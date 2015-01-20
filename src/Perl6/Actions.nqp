@@ -3866,7 +3866,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %*PARAM_INFO<post_constraints>.push($type);
                 }
                 else {
-                    $/.CURSOR.panic(~$<typename><longname> ~
+                    $/.CURSOR.panic(~$<typename> ~
                         " cannot be used as a nominal type on a parameter");
                 }
                 for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {

@@ -3343,9 +3343,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*W.is_name($longname.type_name_parts('type name'))
           }>
         ]
-        # parametric type?
-        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]**0..1
-        <.unsp>? [ <?[(]> '(' ~ ')' <arglist> <.NYI("coercive type declarations")>]**0..1
+        # parametric/coercion type?
+        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
+        <.unsp>? [ <?[(]> '(' ~ ')' <accept=.typename>]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
 

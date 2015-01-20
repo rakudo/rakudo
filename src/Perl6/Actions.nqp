@@ -5855,9 +5855,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
-                    $type := $*W.parameterize_type($type, $<arglist>[0].ast, $/);
+                    $type := $*W.parameterize_type($type, $<arglist>.ast, $/);
                 }
-                if $<typename> {
+                if $<accept> {
+                    if $<typename> {
+                        $/.CURSOR.panic("Cannot put 'of' constraint on a coercion type");
+                    }
+                    $type := %*HOW<coercion>.new_type($type, $<accept>.ast);
+                }
+                elsif $<typename> {
                     $type := $*W.parameterize_type_with_args($type,
                         [$<typename>.ast], hash());
                 }
@@ -5866,6 +5872,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
+                }
+                if $<accepts> {
+                    $/.CURSOR.panic("Cannot base a coercion type on a type capture");
                 }
                 if $str_longname eq '::' {
                     $/.CURSOR.panic("Cannot use :: as a type name");

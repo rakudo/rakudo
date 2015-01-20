@@ -5,6 +5,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::MethodContainer
+    does Perl6::Metamodel::ClaimContainer
     does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::AttributeContainer

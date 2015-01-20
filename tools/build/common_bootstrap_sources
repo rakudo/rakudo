@@ -39,5 +39,6 @@ src/Perl6/Metamodel/GrammarHOW.nqp
 src/Perl6/Metamodel/NativeHOW.nqp
 src/Perl6/Metamodel/SubsetHOW.nqp
 src/Perl6/Metamodel/EnumHOW.nqp
+src/Perl6/Metamodel/CoercionHOW.nqp
 src/Perl6/Metamodel/ContainerDescriptor.nqp
 src/Perl6/Metamodel/Dispatchers.nqp

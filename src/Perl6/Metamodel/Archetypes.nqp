@@ -41,6 +41,9 @@ class Perl6::Metamodel::Archetypes {
     # that is parametric does define a type - though we may need the gaps
     # filled it before it's useful in some way.
     has $!parametric;
+
+    # Is it a coercive type?
+    has $!coercive;
     
     # Are we allowed to augment the type?
     has $!augmentable;
@@ -53,5 +56,6 @@ class Perl6::Metamodel::Archetypes {
     method composalizable() { $!composalizable }
     method generic() { $!generic }
     method parametric() { $!parametric }
+    method coercive() { $!coercive }
     method augmentable() { $!augmentable }
 }

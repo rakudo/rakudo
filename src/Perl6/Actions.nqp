@@ -3028,16 +3028,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Installs a method into the various places it needs to go.
     sub install_method($/, $name, $scope, $code, $outer, :$private) {
         my $meta_meth;
-        if $private {
-            if $*MULTINESS { $/.CURSOR.panic("Private multi-methods are not supported"); }
-            $meta_meth := 'add_private_method';
-        }
-        else {
-            $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
-        }
         if $scope eq '' || $scope eq 'has' {
             # Ensure that current package supports methods, and if so
             # add the method.
+            if $private {
+                if $*MULTINESS { $/.CURSOR.panic("Private multi-methods are not supported"); }
+                $meta_meth := 'add_private_method';
+            }
+            else {
+                $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+            }
             if nqp::can($*PACKAGE.HOW, $meta_meth) {
                 $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
             }
@@ -3048,12 +3048,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ($*PKGDECL || "mainline") ~ " (did you mean 'my $*METHODTYPE $name'?)\n");
             }
         }
+        elsif $scope eq 'claim' {
+            if $*MULTINESS { $/.CURSOR.panic("Cannot use claim with multi-methods"); }
+            if nqp::can($*PACKAGE.HOW, 'claim_method') {
+                $*W.pkg_add_method($/, $*PACKAGE, 'claim_method', $name, $code);
+            }
+            else {
+                $/.CURSOR.panic('Cannot claim a method in this context');
+            }
+        }
         elsif $scope eq 'my' {
             $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
         }
         elsif $scope eq 'our' {
             $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
             $*W.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+        }
+        else {
+            $/.CURSOR.panic("Cannot use '$*SCOPE' with sub declaration");
         }
     }
 

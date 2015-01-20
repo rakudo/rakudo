@@ -2482,6 +2482,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ATTR_INIT_BLOCK;
         <scoped('has')>
     }
+    token scope_declarator:sym<claim>     { <sym> <scoped('claim')> }
     token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
     token scope_declarator:sym<state>     { <sym> <scoped('state')> }

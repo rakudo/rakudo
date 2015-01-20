@@ -1382,7 +1382,10 @@ class Perl6::Optimizer {
         my $callee  := $op[0][1];
         my $code    := $callee.ann('code_object');
         my $count   := $code.count;
-        my $phasers := try nqp::getattr($code, $!symbols.Block, '$!phasers');
+        my $block   := $!symbols.Block;
+        my $phasers := nqp::istype($code, $block)
+          ?? nqp::getattr($code, $block, '$!phasers')
+          !! nqp::null();
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
             my $it_var     := QAST::Node.unique('range_it_');
             my $callee_var := QAST::Node.unique('range_callee_');

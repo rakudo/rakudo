@@ -3853,6 +3853,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 elsif $type.HOW.archetypes.nominal {
                     %*PARAM_INFO<nominal_type> := $type;
                 }
+                elsif $type.HOW.archetypes.coercive {
+                    %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
+                    %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
+                }
                 elsif $type.HOW.archetypes.generic {
                     %*PARAM_INFO<nominal_type> := $type;
                     %*PARAM_INFO<nominal_generic> := 1;

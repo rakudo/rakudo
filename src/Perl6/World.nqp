@@ -991,6 +991,9 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%param_info, 'sub_signature') {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
+        if nqp::existskey(%param_info, 'coerce_type') {
+            $parameter.set_coercion(%param_info<coerce_type>);
+        }
 
         if nqp::existskey(%param_info, 'dummy') {
             my $dummy := %param_info<dummy>;

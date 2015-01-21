@@ -1,6 +1,8 @@
 use v6;
 use Test;
 
+plan 24;
+
 {
     # still supported
     use java::lang::String:from<java>;
@@ -137,15 +139,3 @@ use Test;
         is $sb.toString(), "foo", 'calling through to a less visible parent method works';
     }
 }
-
-{
-    use java::lang::Boolean:from<Java>;
-    {
-        my $Boolean = Boolean.new("true"); # lower case t, because Java does the converting
-        is $Boolean, True, 'multi constructor and marshalling for Boolean works (1)';
-        my $otherBoolean = Boolean.new(True); # upper case T, because it's our own Bool::True
-        is $otherBoolean, True, 'multi constructor and marshalling for Boolean works (2)';
-    }
-}
-
-done;

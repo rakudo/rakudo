@@ -1,8 +1,8 @@
 my role Mixy does Baggy  {
-    method default(--> Real) { 0 }
-    method total(--> Real) { [+] self.values }
+    claim method default(--> Real) { 0 }
+    claim method total(--> Real) { [+] self.values }
 
-    method new-from-pairs(*@pairs --> Mixy) {
+    claim method new-from-pairs(*@pairs --> Mixy) {
         my %e;
         for @pairs {
             when Pair {

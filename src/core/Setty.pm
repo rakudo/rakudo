@@ -10,8 +10,8 @@ my role Setty does QuantHash {
 
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { %!elems.elems }
-    method minpairs(--> List) { self.pairs }
-    method maxpairs(--> List) { self.pairs }
+    claim method minpairs(--> List) { self.pairs }
+    claim method maxpairs(--> List) { self.pairs }
     multi method exists_key(Setty:D: $k --> Bool) {
         so ( %!elems && nqp::existskey(%!elems, nqp::unbox_s($k.WHICH)) );
     }

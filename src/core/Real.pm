@@ -54,10 +54,10 @@ my role Real does Numeric {
         Complex.new(self.cos, self.sin);
     }
     method Complex() { Complex.new(self.Num, 0e0) }
-    proto method log(|) {*}
+    claim proto method log(|) {*}
     multi method log(Real:D: )           { self.Bridge.log               }
     multi method log(Real:D: Real $base) { self.Bridge.log($base.Bridge) }
-    proto method exp(|) {*}
+    claim proto method exp(|) {*}
     multi method exp(Real:D: )           { self.Bridge.exp               }
     method truncate(Real:D:) {
         self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor

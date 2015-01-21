@@ -30,7 +30,7 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method nude() { $!numerator, $!denominator }
-    method Num() {
+    claim method Num() {
         $!denominator == 0
           ?? ($!numerator < 0 ?? -Inf !! Inf)
           !! nqp::p6box_n(nqp::div_In(
@@ -39,23 +39,23 @@ my role Rational[::NuT, ::DeT] does Real {
              ));
     }
 
-    method floor(Rational:D:) {
+    claim method floor(Rational:D:) {
         # correct formula
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
-    method ceiling(Rational:D:) {
+    claim method ceiling(Rational:D:) {
         # correct formula
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
     }
 
-    method Int() { self.truncate }
+    claim method Int() { self.truncate }
 
-    method Bridge() { self.Num }
+    claim method Bridge() { self.Num }
 
     multi method Str(::?CLASS:D:) {
         my $s = $!numerator < 0 ?? '-' !! '';
@@ -81,7 +81,7 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method base($base) {
+    claim method base($base) {
         my $s = $!numerator < 0 ?? '-' !! '';
         my $r = self.abs;
         my $i = $r.floor;
@@ -110,11 +110,11 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method succ {
+    claim method succ {
         self.new($!numerator + $!denominator, $!denominator);
     }
 
-    method pred {
+    claim method pred {
         self.new($!numerator - $!denominator, $!denominator);
     }
 

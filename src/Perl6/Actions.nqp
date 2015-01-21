@@ -3049,7 +3049,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         elsif $scope eq 'claim' {
-            if $*MULTINESS { $/.CURSOR.panic("Cannot use claim with multi-methods"); }
+            if $*MULTINESS eq 'multi' {
+                $/.CURSOR.panic("Cannot use claim with multi-methods");
+            }
             if nqp::can($*PACKAGE.HOW, 'claim_method') {
                 $*W.pkg_add_method($/, $*PACKAGE, 'claim_method', $name, $code);
             }

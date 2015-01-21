@@ -9,4 +9,10 @@ role Perl6::Metamodel::ClaimContainer {
     method claims($obj) {
         @!claims
     }
+
+    method add_claims($obj, @add) {
+        for @add {
+            nqp::push(@!claims, $_);
+        }
+    }
 }

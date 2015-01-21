@@ -176,6 +176,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         for self.multi_methods_to_incorporate($obj) {
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))
         }
+        $conc.HOW.add_claims($conc, self.claims($obj));
         
         # Roles done by this role need fully specializing also; all
         # they'll be missing is the target class (e.g. our first arg).

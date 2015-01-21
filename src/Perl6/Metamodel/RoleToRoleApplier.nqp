@@ -49,50 +49,64 @@ my class RoleToRoleApplier {
                 if nqp::can($_.HOW, 'private_method_table');
         }
 
-        # Also need methods of target.
+        # Also need methods of target, along with those it claims.
         my %target_meth_info := $target.HOW.method_table($target);
+        my %target_claims;
+        if nqp::can($target.HOW, 'claims') {
+            for $target.HOW.claims($target) {
+                %target_claims{$_} := 1;
+            }
+        }
 
         # Process method list.
         for %meth_info {
+            # If the role claims the method name in question, then we ignore all
+            # methods provided by other roles and just take it.
             my $name := $_.key;
-            my @add_meths := %meth_info{$name};
+            next if nqp::existskey(%target_claims, $name);
 
-            # Do we already have a method of this name? If so, ignore all of the
-            # methods we have from elsewhere.
-            unless nqp::existskey(%target_meth_info, $name) {
-                # No methods in the target role. If only one, it's easy...
-                if +@add_meths == 1 {
-                    $target.HOW.add_method($target, $name, @add_meths[0]);
+            # Get methods roles want to provide and filter out requirements.
+            my @add_meths := %meth_info{$name};
+            my @impl_meths;
+            for @add_meths {
+                my $yada := 0;
+                try { $yada := $_.yada; }
+                unless $yada {
+                    @impl_meths.push($_);
                 }
-                else {
-                    # Find if any of the methods are actually requirements, not
-                    # implementations.
-                    my @impl_meths;
-                    for @add_meths {
-                        my $yada := 0;
-                        try { $yada := $_.yada; }
-                        unless $yada {
-                            @impl_meths.push($_);
-                        }
-                    }
-                    
-                    # If there's still more than one possible - add to collisions list.
-                    # If we got down to just one, add it. If they were all requirements,
-                    # just choose one.
-                    if +@impl_meths == 1 {
-                        $target.HOW.add_method($target, $name, @impl_meths[0]);
-                    }
-                    elsif +@impl_meths == 0 {
-                        $target.HOW.add_method($target, $name, @add_meths[0]);
-                    }
-                    else {
-                        $target.HOW.add_collision($target, $name, %meth_providers{$name});
-                    }
-                }
+            }
+
+            # If the target role has a method with the name...
+            if nqp::existskey(%target_meth_info, $name) {
+                # No implementations from composed roles means nothing to do,
+                # as there's no conflict (we maybe satisfied a requirement).
+                next unless @impl_meths;
+
+                # Otherwise, add the target method into the add set, so we
+                # can record the conflict.
+                nqp::push(@impl_meths, %target_meth_info{$name});
+                nqp::push(%meth_providers{$name}, $target.HOW.name($target));
+            }
+
+            # If we've only one implementation, add it.
+            if +@impl_meths == 1 {
+                $target.HOW.add_method($target, $name, @impl_meths[0]);
+            }
+
+            # Otherwise, we may have no implementations at all, in which case
+            # pick any of the stubs.
+            elsif +@impl_meths == 0 {
+                $target.HOW.add_method($target, $name, @add_meths[0]);
+            }
+
+            # Otherwise a collision.
+            else {
+                $target.HOW.add_collision($target, $name, %meth_providers{$name});
             }
         }
         
         # Process private method list.
+        # XXX Needs updates for claims-based algorithm.
         if nqp::can($target.HOW, 'private_method_table') {
             my %target_priv_meth_info := $target.HOW.private_method_table($target);
             for %priv_meth_info {

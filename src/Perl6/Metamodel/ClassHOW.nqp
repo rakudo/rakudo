@@ -226,6 +226,10 @@ class Perl6::Metamodel::ClassHOW
     # Maybe this belongs on a role. Also, may be worth memoizing.
     method can($obj, $name) {
         my @meths;
+        my %smt := self.submethod_table($obj);
+        if nqp::existskey(%smt, $name) {
+            @meths.push(%smt{$name});
+        }
         for self.mro($obj) {
             my %mt := $_.HOW.method_table($_);
             if nqp::existskey(%mt, $name) {

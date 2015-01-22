@@ -32,6 +32,7 @@ class IO::Dup does IO does PIO {
     method d(IO::Dup:D:)   { False }
     method f(IO::Dup:D:)   { False }
     method s(IO::Dup:D:)   { 0 }
+    method i(IO::Dup:D:)   { 0 }
     method l(IO::Dup:D:)   { False }
     method r(IO::Dup:D:)   { $!fileno == 0 }
     method w(IO::Dup:D:)   { $!fileno  > 0 }

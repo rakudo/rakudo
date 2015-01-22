@@ -332,6 +332,9 @@ sub FILETEST-f(Str $abspath) {
 sub FILETEST-s(Str $abspath) {
     nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE) );
 }
+sub FILETEST-i(Str $abspath) {
+    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_INODE) );
+}
 sub FILETEST-l(Str $abspath) {
     nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));
 }

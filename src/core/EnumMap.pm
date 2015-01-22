@@ -1,14 +1,6 @@
-my class X::Hash::Store::OddNumber { ... }
-
 my class EnumMap does Associative { # declared in BOOTSTRAP
     # my class EnumMap is Iterable is Cool {
     #   has Mu $!storage;
-
-    method new(*@args) {
-        my %h := nqp::create(self);
-        %h.STORE(@args) if @args;
-        %h;
-    }
 
     multi method Bool(EnumMap:D:) {
         nqp::p6bool(nqp::defined($!storage) && nqp::elems($!storage));
@@ -47,10 +39,9 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     multi method perl(EnumMap:D:) {
-        self.^name
-          ~ '.new('
-          ~ self.pairs.pick(*).map({.perl}).join(', ')
-          ~ ')';
+        self.^name ~ '.new('
+            ~ self.keys.map({ .perl ~ ', ' ~ self.at_key($_).perl ~ ', '}).join
+            ~ ')';
     }
 
     method iterator(EnumMap:) { self.pairs.iterator }
@@ -72,42 +63,11 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         (nqp::defined($!storage) ?? HashIter.invert(self) !! ()).list;
     }
 
-    multi method at_key(EnumMap:D: \key) is rw {
-        my str $skey = nqp::unbox_s(key.Str);
+    method at_key($key) is rw {
+        my str $skey = nqp::unbox_s($key.Str);
         nqp::defined($!storage) && nqp::existskey($!storage, $skey)
           ?? nqp::atkey($!storage, $skey)
           !! Any
-    }
-
-    method STORE(\to_store) {
-        my $items = (to_store,).flat.eager;
-        $!storage := nqp::hash();
-
-        if $items.elems == 1 {
-            if nqp::istype($items[0],EnumMap) {
-                my Mu $x := $items.shift;
-                DEPRECATED(
-                  self.VAR.name ~ ' = %(itemized hash)',
-                  |<2014.07 2015.07>,
-                  :what(self.VAR.name ~ ' = itemized hash')
-                ) if nqp::iscont($x);
-                for $x.list { self.STORE_AT_KEY(.key, .value) }
-                return self;
-            }
-        }
-
-        while $items {
-            my Mu $x := $items.shift;
-            if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
-            elsif nqp::istype($x,EnumMap) and !nqp::iscont($x) {
-                for $x.list { self.STORE_AT_KEY(.key, .value) }
-            }
-            elsif $items { self.STORE_AT_KEY($x, $items.shift) }
-            else {
-                X::Hash::Store::OddNumber.new.throw
-            }
-        }
-        self
     }
 
     method STORE_AT_KEY(\key, Mu \value) is rw {

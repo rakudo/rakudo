@@ -1,6 +1,14 @@
+my class X::Hash::Store::OddNumber { ... }
+
 my class Hash { # declared in BOOTSTRAP
     # my class Hash is EnumMap {
     #     has Mu $!descriptor;
+
+    method new(*@args) {
+        my %h := nqp::create(self);
+        %h.STORE(@args) if @args;
+        %h;
+    }
 
     multi method at_key(Hash:D: \key) is rw {
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
@@ -69,6 +77,37 @@ my class Hash { # declared in BOOTSTRAP
     method STORE_AT_KEY(\key, Mu $x) is rw {
         my $v := nqp::p6scalarfromdesc($!descriptor);
         nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
+    }
+
+    method STORE(\to_store) {
+        my $items = (to_store,).flat.eager;
+        nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+
+        if $items.elems == 1 {
+            if nqp::istype($items[0],EnumMap) {
+                my Mu $x := $items.shift;
+                DEPRECATED(
+                  self.VAR.name ~ ' = %(itemized hash)',
+                  |<2014.07 2015.07>,
+                  :what(self.VAR.name ~ ' = itemized hash')
+                ) if nqp::iscont($x);
+                for $x.list { self.STORE_AT_KEY(.key, .value) }
+                return self;
+            }
+        }
+
+        while $items {
+            my Mu $x := $items.shift;
+            if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
+            elsif nqp::istype($x,EnumMap) and !nqp::iscont($x) {
+                for $x.list { self.STORE_AT_KEY(.key, .value) }
+            }
+            elsif $items { self.STORE_AT_KEY($x, $items.shift) }
+            else {
+                X::Hash::Store::OddNumber.new.throw
+            }
+        }
+        self
     }
 
     # introspection

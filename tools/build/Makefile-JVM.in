@@ -93,7 +93,6 @@ J_CORE_SOURCES = \
   src/core/Iterator.pm \
   src/core/Nil.pm \
   src/core/Range.pm \
-  src/core/Rangeint.pm \
   src/core/ListIter.pm \
   src/core/MapIter.pm \
   src/core/GatherIter.pm \

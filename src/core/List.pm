@@ -104,10 +104,11 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method elems() {
         return 0 unless self.DEFINITE;
+        return nqp::elems(nqp::p6listitems(self)) unless nqp::defined($!nextiter);
         # Get as many elements as we can.  If gimme stops before
         # reaching the end of the list, assume the list is infinite.
-        my $n = self.gimme(*);
-        $!nextiter.defined ?? Inf !! $n
+        my $n := self.gimme(*);
+        nqp::defined($!nextiter) ?? Inf !! $n
     }
 
     multi method exists_pos(List:D: int $pos) {

@@ -56,4 +56,11 @@ multi sub fail(*@msg) is hidden_from_backtrace {
     $fail
 }
 
+multi sub die(Failure:D $failure) is hidden_from_backtrace {
+    $failure.exception.throw
+}
+multi sub die(Failure:U) is hidden_from_backtrace {
+    X::AdHoc('Failure').throw
+}
+
 # vim: ft=perl6 expandtab sw=4

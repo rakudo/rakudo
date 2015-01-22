@@ -1,9 +1,21 @@
 New in 2015.01
++ New simple way of creating an object hash: :{}
++ Str.substr-rw was omitted before, it isn't anymore
++ The loop ^1000 optimization is working again
++ Pair.gist has been simplified (a => 42, rather than "a" => 42)
++ Exporting an Enum now also exports its values
 + Proper error handling for a placeholder that has already been used as
   non-placeholder in the same scope
-+ sub form of 'unique' introduced, 'uniq' deprecated
++ Sub form of 'unique' introduced, 'uniq' deprecated
 + Supply.for deprecated in favour of Supply.from-list
 + All deprecated features will be removed with 6.0.0 (sometime in 2015)
++ Startup on the JVM has improved by 20%
++ Many improvements to Java interop for the JVM backend
++ Several precomp issues have been solved
++ Better error messages for die(Failure)
++ Fixed CATCH/CONTROL blocks in the program mainline
++ Substitution now supports assignment meta-op, e.g. s[\d+] += 2
++ Many memory and CPU optimizations
 
 New in 2014.12
 + Flakiness on OS X has been fixed

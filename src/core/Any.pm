@@ -105,7 +105,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method classify(|) { * }
     multi method classify($test)   {
-        {}.classify-list( $test, self.list );
+        Hash.PARAMETERIZE_TYPE(Any,Any).new.classify-list( $test, self.list );
     }
     multi method classify($test, :$into!)   {
         ( $into // $into.new ).classify-list( $test, self.list );
@@ -113,7 +113,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method categorize(|) { * }
     multi method categorize($test) {
-        {}.categorize-list( $test, self.list );
+        Hash.PARAMETERIZE_TYPE(Any,Any).new.categorize-list( $test, self.list );
     }
     multi method categorize($test, :$into!) {
         ( $into // $into.new ).categorize-list( $test, self.list );
@@ -669,13 +669,13 @@ proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
 proto sub classify(|) { * }
-multi sub classify( $test, *@items ) { {}.classify-list( $test, @items ) }
+multi sub classify( $test, *@items ) { Hash.PARAMETERIZE_TYPE(Any,Any).new.classify-list( $test, @items ) }
 #multi sub classify( $test, *@items, :$into! ) {   # problem in MMD
 #    ( $into // $into.new).classify-list( $test, @items );
 #}
 
 proto sub categorize(|) { * }
-multi sub categorize( $test, *@items ) { {}.categorize-list( $test, @items ) }
+multi sub categorize( $test, *@items ) { Hash.PARAMETERIZE_TYPE(Any,Any).new.categorize-list( $test, @items ) }
 #multi sub categorize( $test, *@items, :$into! ) {   # problem in MMD
 #    ( $into // $into.new).categorize-list( $test, @items );
 #}

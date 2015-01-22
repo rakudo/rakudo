@@ -221,7 +221,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
         $code := make_topic_block_ref($/, $code, copy => 1);
-        my $past := QAST::Op.new(:op<callmethod>, :name<map>,
+        my $past := QAST::Op.new(:op<callmethod>, :name<for>,
             QAST::Op.new(:op<call>, :name<&lines>),
             QAST::Op.new(:op<p6capturelex>, $code)
         );
@@ -769,7 +769,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $past := make_topic_block_ref($/, $past);
                     }
                     $past := QAST::Op.new(
-                            :op<callmethod>, :name<map>, :node($/),
+                            :op<callmethod>, :name<for>, :node($/),
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
                         );
@@ -1040,7 +1040,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
         my $past := QAST::Op.new(
-                        :op<callmethod>, :name<map>, :node($/),
+                        :op<callmethod>, :name<for>, :node($/),
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
@@ -2683,6 +2683,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         try $PseudoStash := $*W.find_symbol(['PseudoStash']);
         sub clear_node($qast) {
             $qast.node(nqp::null());
+            $qast.clear_annotations();
             $qast
         }
         sub node_walker($node) {
@@ -4884,7 +4885,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @children := @($past.ann('past_block')[1]);
             $past := QAST::Op.new(
                 :op('call'),
-                :name('&circumfix:<{ }>'),
+                :name(
+                    $/.from && nqp::substr($/.orig, $/.from - 1, 1) eq ':' ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>'
+                ),
                 :node($/)
             );
             if $has_stuff {

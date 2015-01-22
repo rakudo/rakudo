@@ -107,17 +107,17 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             for( int j = 0; j < elems; ++j ) {
                                 argsContent.at_pos_native(tc, j);
                                 if( tc.native_type == ThreadContext.NATIVE_NUM ) {
-                                    if( outArgs[i - offset] == null ) 
+                                    if( outArgs[i - offset] == null )
                                         outArgs[i - offset] = new double[elems];
                                     ((double[])outArgs[i - offset])[j] = tc.native_n;
                                 }
                                 else if( tc.native_type == ThreadContext.NATIVE_STR ) {
-                                    if( outArgs[i - offset] == null ) 
+                                    if( outArgs[i - offset] == null )
                                         outArgs[i - offset] = new String[elems];
                                     ((String[])outArgs[i - offset])[j] = tc.native_s;
                                 }
                                 else if( tc.native_type == ThreadContext.NATIVE_INT ) {
-                                    if( outArgs[i - offset] == null ) 
+                                    if( outArgs[i - offset] == null )
                                         outArgs[i - offset] = new long[elems];
                                     ((long[])outArgs[i - offset])[j] = tc.native_i;
                                 }
@@ -135,10 +135,10 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 }
                 else {
                     if( Ops.istrue((SixModelObject) inArgs[i], tc) == 1 ) {
-                        outArgs[i - offset] = true;
+                        outArgs[i - offset] = new Boolean(true);
                     }
                     else if( Ops.isfalse((SixModelObject) inArgs[i], tc) == 1 ) {
-                        outArgs[i - offset] = false;
+                        outArgs[i - offset] = new Boolean(false);
                     }
                 }
             }
@@ -162,10 +162,14 @@ public class RakudoJavaInterop extends BootJavaInterop {
                     switch (argTypes[j].getSort()) {
                         case Type.BOOLEAN:
                             if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                parsedArgs[j] = parsedArgs[j] != null ? ((Long) parsedArgs[j]) == 0 ? false : true : null;
+                                parsedArgs[j] = parsedArgs[j] != null
+                                    ? ((Long) parsedArgs[j]) == 0
+                                        ? new Boolean(false)
+                                        : new Boolean(true)
+                                    : null;
                                 continue INNER;
                             }
-                            else if( parsedArgs[j].getClass().equals(boolean.class) ) {
+                            else if( parsedArgs[j].getClass().equals(Boolean.class) ) {
                                 continue INNER;
                             }
                             break;
@@ -189,7 +193,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             break;
                         case Type.LONG:
                             if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                continue INNER; 
+                                continue INNER;
                             }
                             break;
                         case Type.CHAR:
@@ -198,18 +202,18 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             }
                             break;
                         case Type.FLOAT:
-                            if( parsedArgs[j].getClass().equals(double.class) ) {
+                            if( parsedArgs[j].getClass().equals(Double.class) ) {
                                 parsedArgs[j] = parsedArgs[j] != null ? ((Double)parsedArgs[j]).floatValue() : null;
                                 continue INNER;
                             }
                             break;
                         case Type.DOUBLE:
-                            if( parsedArgs[j].getClass().equals(double.class) ) {
+                            if( parsedArgs[j].getClass().equals(Double.class) ) {
                                 continue INNER;
                             }
                             break;
                         case Type.OBJECT:
-                            Class<?> argType = Class.forName(argTypes[j].getInternalName().replace('/', '.'), 
+                            Class<?> argType = Class.forName(argTypes[j].getInternalName().replace('/', '.'),
                                 false, tc.gc.byteClassLoader);
                             if( argType.isAssignableFrom(parsedArgs[j].getClass()) ) {
                                 // we can coerce
@@ -220,7 +224,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             // check that we actually have an array as argument
                             if( parsedArgs[j].getClass().getComponentType() != null ) {
                                 // and then check types again
-                                switch( argTypes[j].getElementType().getSort() ) { 
+                                switch( argTypes[j].getElementType().getSort() ) {
                                     case Type.BOOLEAN:
                                         if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
                                             boolean[] converted = new boolean[((Object[])parsedArgs[j]).length];
@@ -259,7 +263,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                                         break;
                                     case Type.LONG:
                                         if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
-                                            continue INNER; 
+                                            continue INNER;
                                         }
                                         break;
                                     case Type.CHAR:
@@ -295,7 +299,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                         default:
                             /* debug
                             System.out.print("skipping handle with ");
-                            for(Type type : argTypes) 
+                            for(Type type : argTypes)
                                 System.out.print(type.toString() + ", ");
                             System.out.println();
                             */
@@ -334,12 +338,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
             CallFrame cf = (CallFrame) incf;
             CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
             Object[] parsedArgs = parseArgs(args, tc);
-            
+
             /* debug
             for(int i = 0; i < parsedArgs.length; ++i ) {
                 System.out.println("parsed arg " + i + " as " + parsedArgs[i].getClass());
             }
-            */
+            // */
 
             if(forCtors) {
                 this.handleList = Class.forName(Type.getObjectType(((String) declaringClass).replace('/', '.')).getInternalName(),
@@ -348,11 +352,19 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
             int handlePos = findHandle(parsedArgs, tc);
 
+            /* debug
+            if(forCtors) {
+                System.out.println("ctor cand: " + ((Constructor) this.handleList[handlePos]).toGenericString());
+            } else {
+                System.out.println("mhand cand: " + (MethodHandle) this.handleList[handlePos]);
+            }
+            // */
+
             MethodHandle rfh;
             try {
-                rfh = MethodHandles.lookup().findStatic(RakudoJavaInterop.class, "filterReturnValueMethod", 
+                rfh = MethodHandles.lookup().findStatic(RakudoJavaInterop.class, "filterReturnValueMethod",
                     MethodType.fromMethodDescriptorString(
-                        "(Ljava/lang/Object;Lorg/perl6/nqp/runtime/ThreadContext;)Ljava/lang/Object;", 
+                        "(Ljava/lang/Object;Lorg/perl6/nqp/runtime/ThreadContext;)Ljava/lang/Object;",
                         tc.gc.byteClassLoader));
             } catch (NoSuchMethodException|IllegalAccessException nsme) {
                 throw ExceptionHandling.dieInternal(tc,
@@ -400,7 +412,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         if(what == void.class) {
             out = null;
         }
-        else if(what == int.class || what == Integer.class) { 
+        else if(what == int.class || what == Integer.class) {
             out = new Long((int) in);
         }
         else if( what == short.class || what == Short.class) {
@@ -408,7 +420,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         } else if( what == byte.class || what == Byte.class) {
             out = new Long((byte) in);
         } else if( what == boolean.class || what == Boolean.class) {
-            out = new Long((boolean) in ? 1 : 0);
+            out = (boolean) in ? gcx.True : gcx.False;
         }
         else if (what == long.class || what == double.class || what == String.class || what == SixModelObject.class || what == Long.class || what == Double.class) {
             out = in;
@@ -426,22 +438,22 @@ public class RakudoJavaInterop extends BootJavaInterop {
             }
             if (what.isArray()) {
                 SixModelObject ARRAY = tc.gc.BOOTArray;
-                out = ARRAY.st.REPR.allocate(tc, ARRAY.st); 
+                out = ARRAY.st.REPR.allocate(tc, ARRAY.st);
                 if(stable == null) {
                     stable = ARRAY.st;
                 }
                 if(what.getComponentType().isPrimitive()) {
-                    if(what.getComponentType() == long.class 
-                    || what.getComponentType() == int.class 
-                    || what.getComponentType() == short.class 
-                    || what.getComponentType() == byte.class 
+                    if(what.getComponentType() == long.class
+                    || what.getComponentType() == int.class
+                    || what.getComponentType() == short.class
+                    || what.getComponentType() == byte.class
                     || what.getComponentType() == boolean.class) {
                         for(int i = 0; i < ((int[])in).length; ++i) {
                             SixModelObject cur = RakOps.p6box_i(((int[])in)[i], tc);
                             Ops.bindpos((SixModelObject) out, i, cur, tc);
                         }
                     }
-                    else if (what.getComponentType() == String.class 
+                    else if (what.getComponentType() == String.class
                     || what.getComponentType() == char.class) {
                         for(int i = 0; i < ((int[])in).length; ++i) {
                             SixModelObject cur = RakOps.p6box_s(((String[])in)[i], tc);
@@ -464,7 +476,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                             cur =  RakOps.p6box_s(((String[])in)[i], tc);
                         }
                         else {
-                            cur = RuntimeSupport.boxJava(((Object[])in)[i], 
+                            cur = RuntimeSupport.boxJava(((Object[])in)[i],
                                     gcx.rakudoInterop.getSTableForClass(what.getComponentType()));
                         }
                         Ops.bindpos((SixModelObject) out, i, cur, tc);
@@ -487,8 +499,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
         else
             Ops.return_o((SixModelObject) out, tc.curFrame);
 
-        // the conditional is rather sketchy, but seems to be needed to 
-        // correctly return a new instance when we're called from 
+        // the conditional is rather sketchy, but seems to be needed to
+        // correctly return a new instance when we're called from
         // ConstructorDispatchCallSite, probably because of
         // Perl 6' .new creating a new CallFrame or something..?
         return Ops.result_o(tc.curFrame) != null ? Ops.result_o(tc.curFrame) : Ops.result_o(tc.curFrame.caller);
@@ -548,23 +560,25 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         // what if this is the only static one?
         if (!Modifier.isStatic(mlist.get(0).getModifiers())) marshalOut(mc, mlist.get(0).getDeclaringClass(), 0);
-        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "multiBootstrap", 
+        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "multiBootstrap",
                 "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;[Ljava/lang/Object;)" +
                 "Ljava/lang/invoke/CallSite;");
         Handle[] candhandles = new Handle[mlist.size()];
-        for(int i = 0; i < mlist.size(); ++i) {
-            candhandles[i] = new Handle(Modifier.
-                    isStatic(mlist.get(i).getModifiers()) ? Opcodes.H_INVOKESTATIC : Opcodes.H_INVOKEVIRTUAL,
-                    mlist.get(i).getDeclaringClass().getName().replace('.', '/'), 
-                    mlist.get(i).getName(), 
-                    Type.getMethodDescriptor(mlist.get(i)));
+        int i = 0;
+        for(Iterator<Method> it = mlist.iterator(); it.hasNext(); ) {
+            Method next = it.next();
+            candhandles[i++] = new Handle(Modifier.
+                    isStatic(next.getModifiers()) ? Opcodes.H_INVOKESTATIC : Opcodes.H_INVOKEVIRTUAL,
+                    next.getDeclaringClass().getName().replace('.', '/'),
+                    next.getName(),
+                    Type.getMethodDescriptor(next));
         }
 
         mc.mv.visitVarInsn(Opcodes.ALOAD, 1);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 5);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 3);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 4);
-        mc.mv.visitInvokeDynamicInsn(mlist.get(0).getName(), 
+        mc.mv.visitInvokeDynamicInsn(mlist.get(0).getName(),
                 "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
                 disphandle, (Object[]) candhandles);
 
@@ -602,7 +616,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         mc.mv.visitVarInsn(Opcodes.ALOAD, 5);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 3);
         mc.mv.visitVarInsn(Opcodes.ALOAD, 4);
-        mc.mv.visitInvokeDynamicInsn("new", 
+        mc.mv.visitInvokeDynamicInsn("new",
                 "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
                 disphandle, className);
 
@@ -633,6 +647,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
         }
         HashMap<String, ArrayList<Method>> multiMethods = new HashMap< >();
         for (Method m : target.getMethods()) {
+            if( m.isSynthetic() ) {
+                // synthetics don't get their own perl6-level method, because
+                // they only exist as a visibility aid for the class we're 
+                // generating an adaptor for
+                continue;
+            }
             if( multiDescs.get(m.getName()) > 1 ) {
                 if( multiMethods.get(m.getName()) == null ) {
                     multiMethods.put(m.getName(), new ArrayList<Method>());
@@ -644,8 +664,16 @@ public class RakudoJavaInterop extends BootJavaInterop {
         for (Iterator<Map.Entry<String, ArrayList<Method>>> msit = multiMethods.entrySet().iterator(); msit.hasNext(); ) {
             createAdaptorMultiDispatch(cc, msit.next().getValue());
         }
-        for (Field f : target.getFields()) createAdaptorField(cc, f);
-        for (Constructor<?> c : target.getConstructors()) createAdaptorConstructor(cc, c);
+        for (Field f : target.getFields()) {
+            if( f.isSynthetic() )
+                continue;
+            createAdaptorField(cc, f);
+        }
+        for (Constructor<?> c : target.getConstructors()) { 
+            if( c.isSynthetic() )
+                continue;
+            createAdaptorConstructor(cc, c);
+        }
         // what we actually want to do is grab all the methods we generated in
         // the for() directly above and generate a varargs shortname
         // &new()-equivalent, which dispatches among the generated
@@ -657,12 +685,13 @@ public class RakudoJavaInterop extends BootJavaInterop {
         compunitMethods(cc);
 
         finishClass(cc);
-        // debug
-        // try {
-        //     java.nio.file.Files.write(new java.io.File(className.replace('/','_') + ".class").toPath(), cc.cv.toByteArray());
-        // } catch (java.io.IOException e) {
-        //     e.printStackTrace();
-        // }
+        /* debug
+        try {
+            java.nio.file.Files.write(new java.io.File(className.replace('/','_') + ".class").toPath(), cc.cv.toByteArray());
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+        // */
 
         return cc;
     }
@@ -685,8 +714,10 @@ public class RakudoJavaInterop extends BootJavaInterop {
         HashMap<String, SixModelObject> names = new HashMap< >();
         HashMap<String, ArrayList<SixModelObject>> multis = new HashMap< >();
 
-        STable protoSt = gc.BOOTJava.st;
-        SixModelObject freshType = protoSt.REPR.type_object_for(tc, computeHOW(tc, klass.getName()));
+        GlobalExt gcx = RakOps.key.getGC(tc);
+        STable protoSt = gcx.JavaHOW.st;
+        SixModelObject ThisHOW = computeHOW(tc, klass.getName());
+        SixModelObject freshType = protoSt.REPR.type_object_for(tc, ThisHOW);
 
         HashMap<String, SixModelObject> mult = new HashMap< >();
         for (int i = 0; i < adaptor.descriptors.size(); i++) {
@@ -733,6 +764,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         freshType.st.MethodCache = names;
         freshType.st.ModeFlags |= STable.METHOD_CACHE_AUTHORITATIVE;
+
+        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!methods", STable.NO_HINT, hash);
 
         hash.bind_key_boxed(tc, "/TYPE/", freshType);
 

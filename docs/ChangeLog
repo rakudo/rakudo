@@ -10,8 +10,11 @@ New in 2015.01
 + Supply.for deprecated in favour of Supply.from-list
 + All deprecated features will be removed with 6.0.0 (sometime in 2015)
 + Startup on the JVM has improved by 20%
++ Many improvements to Java interop for the JVM backend
 + Several precomp issues have been solved
 + Better error messages for die(Failure)
++ Fixed CATCH/CONTROL blocks in the program mainline
++ Substitution now supports assignment meta-op, e.g. s[\d+] += 2
 + Many memory and CPU optimizations
 
 New in 2014.12

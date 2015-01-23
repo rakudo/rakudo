@@ -32,22 +32,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method at_pos(Blob:D: int \pos) {
-        X::OutOfRange.new(
+        fail X::OutOfRange.new(
           :what<Index>,
           :got(pos),
           :range("0..{nqp::elems(self)-1}")
-        ).throw
-          if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
+        ) if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
         nqp::atpos_i(self, pos);
     }
     multi method at_pos(Blob:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
-        X::OutOfRange.new(
+        fail X::OutOfRange.new(
           :what<Index>,
           :got(pos),
           :range("0..{nqp::elems(self)-1}")
-        ).throw
-          if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
+        ) if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
         nqp::atpos_i(self,$pos);
     }
 
@@ -254,13 +252,13 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method at_pos(Buf:D: int \pos) {
-        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::atpos_i(self, pos);
     }
     multi method at_pos(Buf:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
-        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
         nqp::atpos_i(self,$pos);
     }
@@ -272,7 +270,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
     multi method assign_pos(Buf:D: Int:D \pos, Mu \assignee) is rw {
         my int $pos = nqp::unbox_i(pos);
-        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
         nqp::bindpos_i(self,$pos,assignee)
     }

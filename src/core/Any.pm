@@ -425,7 +425,7 @@ my class Any { # declared in BOOTSTRAP
         $v
     }
     multi method at_pos(Any:U: Num:D \pos) is rw {
-        X::Item.new(aggregate => self, index => pos).throw
+        fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.at_pos(nqp::unbox_i(pos.Int));
     }
@@ -444,7 +444,7 @@ my class Any { # declared in BOOTSTRAP
         self;
     }
     multi method at_pos(Any:D: Num:D \pos) {
-        X::Item.new(aggregate => self, index => pos).throw
+        fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.at_pos(nqp::unbox_i(pos.Int));
     }
@@ -468,7 +468,7 @@ my class Any { # declared in BOOTSTRAP
         self.at_pos(pos) = assignee;                    # defer < 0 check
     }
     multi method assign_pos(Any:D: Num:D \pos, Mu \assignee) {
-        X::Item.new(aggregate => self, index => pos).throw
+        fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.at_pos(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }

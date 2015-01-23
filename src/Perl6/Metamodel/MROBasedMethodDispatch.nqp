@@ -2,17 +2,17 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     # While we normally end up locating methods through the method cache,
     # this is here as a fallback.
     method find_method($obj, $name, :$no_fallback, *%adverbs) {
+        if nqp::can($obj.HOW, 'submethod_table') {
+            my %submethods := $obj.HOW.submethod_table($obj);
+            if nqp::existskey(%submethods, $name) {
+                return %submethods{$name}
+            }
+        }
         my %methods;
         for self.mro($obj) {
             %methods := $_.HOW.method_table($_);
             if nqp::existskey(%methods, $name) {
                 return %methods{$name}
-            }
-        }
-        if nqp::can($obj.HOW, 'submethod_table') {
-            my %submethods := $obj.HOW.submethod_table($obj);
-            if nqp::existskey(%submethods, $name) {
-                return %submethods{$name}
             }
         }
         !$no_fallback && nqp::can(self, 'find_method_fallback') ??

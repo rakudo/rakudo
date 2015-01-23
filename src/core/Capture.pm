@@ -40,13 +40,13 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method at_pos(Capture:D: int \pos) {
-        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::existspos($!list,pos) ?? nqp::atpos($!list,pos) !! Nil;
     }
     multi method at_pos(Capture:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
-        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
         nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Nil;
     }

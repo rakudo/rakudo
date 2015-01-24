@@ -32,7 +32,15 @@ role Perl6::Metamodel::Mixins {
             @roles[$i] := nqp::decont(@roles[$i]);
             $i++;
         }
-        my $mixin_type := nqp::parameterizetype($!mixin_cache, @roles);
+        # XXX Workaround for mixing in to non-composed types; when this takes
+        # place (a bunch during CORE.setting) the mixin is missing bits. This
+        # has long been a problem, and needs a real solution (it's related to
+        # the "augment does not convey additions to subclasses" issue); mixin
+        # caching just makes the problem very visible. For now, don't cache if
+        # the current type is not yet composed.
+        my $mixin_type := self.is_composed($obj)
+            ?? nqp::parameterizetype($!mixin_cache, @roles)
+            !! self.generate_mixin($obj, @roles);
 
         # Ensure there's a mixin attribute, if we need it.
         if $need-mixin-attribute {

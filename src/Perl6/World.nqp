@@ -1837,6 +1837,16 @@ class Perl6::World is HLL::World {
         $val
     }
 
+    # Gets a coercion type (possibly freshly created, possibly an
+    # interned one).
+    method create_coercion_type($/, $target, $constraint) {
+        self.ex-handle($/, {
+            my $type := %*HOW<coercion>.new_type($target, $constraint);
+            if nqp::isnull(nqp::getobjsc($type)) { self.add_object($type); }
+            $type
+        })
+    }
+
     method suggest_typename($name) {
         my %seen;
         %seen{$name} := 1;

@@ -3184,8 +3184,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ||  <?{ nqp::eqat($<longname>.Str, '::', 0) || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
-                <?{ $*W.is_type($*longname.components()) }>
-                <?[[]> :dba('type parameter') '[' ~ ']' <arglist>
+                <?[[]> <?{ $*W.is_type($*longname.components()) }>
+                :dba('type parameter') '[' ~ ']' <arglist>
+            ]?
+            <.unsp>?
+            [
+                <?[(]> <?{ $*W.is_type($*longname.components()) }>
+                '(' <.ws> [
+                    || <accept=.typename> <!{ nqp::isconcrete($<accept>.ast) }>
+                    || $<accept_any>=<?>
+                ] <.ws> ')'
             ]?
         || <args(1)>
             {

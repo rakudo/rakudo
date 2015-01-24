@@ -4431,7 +4431,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past;
         if $*longname.contains_indirect_lookup() {
             if $<args> {
-                $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
+                $/.CURSOR.panic("Combination of indirect name lookup and call not supported");
+            }
+            elsif $<arglist> {
+                $/.CURSOR.panic("Combination of indirect name lookup and type arguments not supported");
+            }
+            elsif $<accept> || $<accept_any> {
+                $/.CURSOR.panic("Combination of indirect name lookup and coercion type construction not supported");
             }
             $past := self.make_indirect_lookup($*longname.components())
         }
@@ -4535,10 +4541,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $past := instantiated_type(@name, $/);
             }
-            
+
             # Names ending in :: really want .WHO.
             if $*longname.get_who {
                 $past := QAST::Op.new( :op('who'), $past );
+            }
+
+            # If needed, try to form a coercion type.
+            if $<accept> || $<accept_any> {
+                unless nqp::istype($past, QAST::WVal) {
+                    $/.CURSOR.panic("Target type too complex to form a coercion type");
+                }
+                my $type := $*W.create_coercion_type($/, $past.value,
+                    $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
+                $past := QAST::WVal.new( :value($type) );
             }
         }
 
@@ -5865,7 +5881,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     if $<typename> {
                         $/.CURSOR.panic("Cannot put 'of' constraint on a coercion type");
                     }
-                    $type := %*HOW<coercion>.new_type($type,
+                    $type := $*W.create_coercion_type($/, $type,
                         $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
                 }
                 elsif $<typename> {

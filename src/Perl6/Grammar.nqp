@@ -3345,7 +3345,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         # parametric/coercion type?
         <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
-        <.unsp>? [ <?[(]> '(' ~ ')' <accept=.typename>]?
+        <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
 

@@ -5861,11 +5861,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $<arglist> {
                     $type := $*W.parameterize_type($type, $<arglist>.ast, $/);
                 }
-                if $<accept> {
+                if $<accept> || $<accept_any> {
                     if $<typename> {
                         $/.CURSOR.panic("Cannot put 'of' constraint on a coercion type");
                     }
-                    $type := %*HOW<coercion>.new_type($type, $<accept>.ast);
+                    $type := %*HOW<coercion>.new_type($type,
+                        $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
                 }
                 elsif $<typename> {
                     $type := $*W.parameterize_type_with_args($type,
@@ -5877,7 +5878,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
                 }
-                if $<accepts> {
+                if $<accepts> || $<accepts_any> {
                     $/.CURSOR.panic("Cannot base a coercion type on a type capture");
                 }
                 if $str_longname eq '::' {

@@ -211,8 +211,8 @@ my class Proc::Async {
     }
 
     method print(Proc::Async:D: $str as Str, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting(:method<print>).new.throw if !$!w;
-        X::Proc::Async::MustBeStarted(:method<print>).new.throw  if !$!started;
+        X::Proc::Async::OpenForWriting.new(:method<print>).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<print>).throw  if !$!started;
 
         my $p = Promise.new;
         my $v = $p.vow;
@@ -232,8 +232,8 @@ my class Proc::Async {
     }
 
     method say(Proc::Async:D: $str as Str, |c) {
-        X::Proc::Async::OpenForWriting(:method<say>).new.throw if !$!w;
-        X::Proc::Async::MustBeStarted(:method<say>).new.throw  if !$!started;
+        X::Proc::Async::OpenForWriting.new(:method<say>).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<say>).throw  if !$!started;
 
         self.print( $str ~ "\n", |c );
     }

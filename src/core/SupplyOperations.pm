@@ -361,6 +361,11 @@ my class SupplyOperations is repr('Uninstantiable') {
                 };
             }
 
+            method !classify-done() {
+                %!mapping.values>>.done;
+                self!done;
+            }
+
             method live { $source.live }
             method tap(|c) {
                 my $source_tap;
@@ -374,7 +379,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                   !! -> \val {
                       self.find_supply( mapper(val) ).emit(val);
                   },
-                  done => { self!done(); },
+                  done => { self!classify-done(); },
                   quit => -> $ex { self!quit($ex) });
                 $tap
             }

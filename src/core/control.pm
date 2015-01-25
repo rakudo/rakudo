@@ -232,13 +232,9 @@ my class Proc::Status { ... }
 
 sub run(*@args ($, *@)) {
     my $status = Proc::Status.new( :exit(255) );
-    my Mu $args-without := nqp::list();
-    for @args.eager {
-        nqp::push($args-without, nqp::decont(~$_));
-    }
     try {
         $status.status(nqp::p6box_i(nqp::spawn(
-          $args-without,
+          CLONE-LIST-DECONTAINERIZED(@args),
           $*CWD.Str,
           CLONE-HASH-DECONTAINERIZED(%*ENV),
         )));
@@ -304,6 +300,12 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
         nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
     }
     $hash-without;
+}
+
+sub CLONE-LIST-DECONTAINERIZED(\list) {
+    my Mu $list-without := nqp::list();
+    nqp::push($list-without, nqp::decont(~$_)) for list.eager;
+    $list-without;
 }
 
 # vim: ft=perl6 expandtab sw=4

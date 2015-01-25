@@ -39,7 +39,7 @@ my class Proc::Async {
     has $.path;
     has @.args;
     has $.w;
-    has Bool $!started;
+    has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
     has $!stderr_supply;

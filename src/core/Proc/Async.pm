@@ -238,7 +238,7 @@ my class Proc::Async {
         self.print( $str ~ "\n", |c );
     }
 
-    method write(Proc::Async:D: Buf $b, :$scheduler = $*SCHEDULER) {
+    method write(Proc::Async:D: Blob:D $b, :$scheduler = $*SCHEDULER) {
         X::Proc::Async::OpenForWriting.new(:method<write>).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<write>).throw  if !$!started;
 

@@ -737,14 +737,10 @@ sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) is hidden_from_backtrace {
 # internal 1 element hash/array access with adverbs
 sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
     my $ex;
-    if $array {
-        if $one < 0 {
-            fail X::Subscript::Negative.new(index => $one, type => SELF.WHAT)
-        }
-        $ex := SELF.can( 'exists_pos' )[0] if %adv;
-    }
-    else {
-        $ex := SELF.can( 'exists_key' )[0] if %adv;
+    if %adv {
+        $ex := $array
+          ?? SELF.can( 'exists_pos' )[0]
+          !! SELF.can( 'exists_key' )[0];
     }
 
     my %a = %adv.clone;

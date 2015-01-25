@@ -55,26 +55,11 @@ my class IO::Handle does IO {
         if $p {
             $!pipe = 1;
 
-            my Mu $hash-with-containers :=
-              nqp::getattr(%*ENV, EnumMap, '$!storage');
-            my Mu $hash-without := nqp::hash();
-            my Mu $enviter := nqp::iterator($hash-with-containers);
-
-            my $envelem;
-            while $enviter {
-                $envelem := nqp::shift($enviter);
-                nqp::bindkey(
-                  $hash-without,
-                  nqp::iterkey_s($envelem),
-                  nqp::decont(nqp::iterval($envelem)),
-                );
-            }
-
             my str $errpath;
             $!PIO := nqp::openpipe(
               nqp::unbox_s($!path.Str),
               nqp::unbox_s($*CWD.Str),
-              $hash-without,
+              CLONE-HASH-DECONTAINERIZED(%*ENV),
               $errpath,
             );
         }

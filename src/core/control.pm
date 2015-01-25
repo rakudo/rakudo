@@ -232,36 +232,28 @@ my class Proc::Status { ... }
 
 sub run(*@args ($, *@)) {
     my $status = Proc::Status.new( :exit(255) );
-    my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
-    my Mu $hash-without         := nqp::hash();
-    my Mu $enviter := nqp::iterator($hash-with-containers);
-    my $envelem;
-    while $enviter {
-        $envelem := nqp::shift($enviter);
-        nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
-    }
     my Mu $args-without := nqp::list();
     for @args.eager {
         nqp::push($args-without, nqp::decont(~$_));
     }
     try {
-        $status.status( nqp::p6box_i( nqp::spawn($args-without, $*CWD.Str, $hash-without) ) );
+        $status.status(nqp::p6box_i(nqp::spawn(
+          $args-without,
+          $*CWD.Str,
+          CLONE-HASH-DECONTAINERIZED(%*ENV),
+        )));
     }
     $status
 }
 
 sub shell($cmd) {
     my $status = Proc::Status.new( :exit(255) );
-    my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
-    my Mu $hash-without         := nqp::hash();
-    my Mu $enviter := nqp::iterator($hash-with-containers);
-    my $envelem;
-    while $enviter {
-        $envelem := nqp::shift($enviter);
-        nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
-    }
     try {
-        $status.status( nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash-without)) );
+        $status.status(nqp::p6box_i(nqp::shell(
+          $cmd,
+          $*CWD.Str,
+          CLONE-HASH-DECONTAINERIZED(%*ENV),
+        )));
     }
     $status
 }

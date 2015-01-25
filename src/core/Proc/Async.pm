@@ -162,14 +162,6 @@ my class Proc::Async {
         $!started = True;
 
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
-        my Mu $hash-with-containers := nqp::getattr(%ENV, EnumMap, '$!storage');
-        my Mu $hash-without         := nqp::hash();
-        my Mu $enviter := nqp::iterator($hash-with-containers);
-        my $envelem;
-        while $enviter {
-            $envelem := nqp::shift($enviter);
-            nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
-        }
 
         my Mu $args-without := nqp::list(nqp::decont($!path.Str));
         for @!args.eager {
@@ -197,7 +189,11 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'write', True) if $.w;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
-            $args-without, $*CWD.Str, $hash-without, $callbacks);
+            $args-without,
+            $*CWD.Str,
+            CLONE-HASH-DECONTAINERIZED(%ENV),
+            $callbacks,
+        );
 
         Promise.allof( $!exit_promise, @!promises ).then( {
             for @!promises -> $promise {

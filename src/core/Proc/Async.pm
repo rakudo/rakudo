@@ -231,11 +231,11 @@ my class Proc::Async {
         $p
     }
 
-    method say(Proc::Async:D: $str as Str, |c) {
+    method say(Proc::Async:D: \x, |c) {
         X::Proc::Async::OpenForWriting.new(:method<say>).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<say>).throw  if !$!started;
 
-        self.print( $str ~ "\n", |c );
+        self.print( x.gist ~ "\n", |c );
     }
 
     method write(Proc::Async:D: Blob:D $b, :$scheduler = $*SCHEDULER) {

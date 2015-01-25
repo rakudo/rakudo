@@ -1,6 +1,9 @@
 my class ObjAt { # declared in BOOTSTRAP
     # class ObjAt is Any {
     #     has str $!value;
+    method new(str $s) {
+        nqp::box_s($s, self.WHAT)
+    }
 
     multi method WHICH(ObjAt:D:) {
         nqp::box_s(

@@ -8,7 +8,7 @@ my class X::Proc::Async::TapBeforeSpawn is Exception {
 my class X::Proc::Async::CharsOrBytes is Exception {
     has $.handle;
     method message() {
-        "Can only tap one of chars or bytes supply for process $!handle"
+        "Can only tap one of chars or bytes supply for $!handle"
     }
 }
 

@@ -114,26 +114,12 @@ multi sub pipe( $command as Str,:$enc,:$nodepr,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc and !$nodepr;
 
-    my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
-    my Mu $hash-without := nqp::hash();
-    my Mu $enviter := nqp::iterator($hash-with-containers);
-
-    my $envelem;
-    while $enviter {
-        $envelem := nqp::shift($enviter);
-        nqp::bindkey(
-          $hash-without,
-          nqp::iterkey_s($envelem),
-          nqp::decont(nqp::iterval($envelem)),
-        );
-    }
-
     my str $errpath;   # what is this good for?
     # TODO: catch error, and fail()
     my $PIO := nqp::openpipe(
       nqp::unbox_s($command),
       nqp::unbox_s($*CWD.chop),
-      $hash-without,
+      CLONE-HASH-DECONTAINERIZED(%*ENV),
       $errpath,
     );
 

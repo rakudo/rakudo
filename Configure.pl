@@ -39,7 +39,7 @@ MAIN: {
                'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
-               'git-depth=s',
+               'git-depth=s', 'git-reference=s',
     ) or do {
         print_help();
         exit(1);
@@ -371,7 +371,11 @@ General Options:
     --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
     --git-depth=<number>
-                       Use the --depth option for git clone with parameter number
+                       Use the --git-depth option for git clone with parameter number
+    --git-reference=<path>
+                       Use --git-reference option to identify local path where git repositories are stored
+                       For example: --git-reference=/home/user/repo/for_perl6
+                       Folders 'nqp', 'moar', 'parrot' with corresponding git repos should be in for_perl6 folder
     --makefile-timing  Enable timing of individual makefile commands
 
 Configure.pl also reads options from 'config.default' in the current directory.

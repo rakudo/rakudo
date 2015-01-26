@@ -8,7 +8,7 @@ my class X::Proc::Async::TapBeforeSpawn is Exception {
 my class X::Proc::Async::CharsOrBytes is Exception {
     has $.handle;
     method message() {
-        "Can only tap one of chars or bytes supply for process $!handle"
+        "Can only tap one of chars or bytes supply for $!handle"
     }
 }
 
@@ -39,7 +39,7 @@ my class Proc::Async {
     has $.path;
     has @.args;
     has $.w;
-    has Bool $!started;
+    has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
     has $!stderr_supply;
@@ -162,19 +162,6 @@ my class Proc::Async {
         $!started = True;
 
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
-        my Mu $hash-with-containers := nqp::getattr(%ENV, EnumMap, '$!storage');
-        my Mu $hash-without         := nqp::hash();
-        my Mu $enviter := nqp::iterator($hash-with-containers);
-        my $envelem;
-        while $enviter {
-            $envelem := nqp::shift($enviter);
-            nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
-        }
-
-        my Mu $args-without := nqp::list(nqp::decont($!path.Str));
-        for @!args.eager {
-            nqp::push($args-without, nqp::decont(.Str));
-        }
 
         $!exit_promise = Promise.new;
 
@@ -183,7 +170,7 @@ my class Proc::Async {
             $!exit_promise.keep(Proc::Status.new(:exit(status)))
         });
         nqp::bindkey($callbacks, 'error', -> Mu \err {
-            $!exit_promise.break(err);
+            $!exit_promise.break(X::OS.new(os-error => err));
         });
 
         @!promises.push(
@@ -197,7 +184,11 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'write', True) if $.w;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
-            $args-without, $*CWD.chop, $hash-without, $callbacks);
+            CLONE-LIST-DECONTAINERIZED($!path,@!args),
+            $*CWD.chop,
+            CLONE-HASH-DECONTAINERIZED(%ENV),
+            $callbacks,
+        );
 
         Promise.allof( $!exit_promise, @!promises ).then( {
             for @!promises -> $promise {
@@ -211,8 +202,8 @@ my class Proc::Async {
     }
 
     method print(Proc::Async:D: $str as Str, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting(:method<print>).new.throw if !$!w;
-        X::Proc::Async::MustBeStarted(:method<print>).new.throw  if !$!started;
+        X::Proc::Async::OpenForWriting.new(:method<print>).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<print>).throw  if !$!started;
 
         my $p = Promise.new;
         my $v = $p.vow;
@@ -231,14 +222,14 @@ my class Proc::Async {
         $p
     }
 
-    method say(Proc::Async:D: $str as Str, |c) {
-        X::Proc::Async::OpenForWriting(:method<say>).new.throw if !$!w;
-        X::Proc::Async::MustBeStarted(:method<say>).new.throw  if !$!started;
+    method say(Proc::Async:D: \x, |c) {
+        X::Proc::Async::OpenForWriting.new(:method<say>).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<say>).throw  if !$!started;
 
-        self.print( $str ~ "\n", |c );
+        self.print( x.gist ~ "\n", |c );
     }
 
-    method write(Proc::Async:D: Buf $b, :$scheduler = $*SCHEDULER) {
+    method write(Proc::Async:D: Blob:D $b, :$scheduler = $*SCHEDULER) {
         X::Proc::Async::OpenForWriting.new(:method<write>).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<write>).throw  if !$!started;
 

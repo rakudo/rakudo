@@ -302,9 +302,9 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
     $hash-without;
 }
 
-sub CLONE-LIST-DECONTAINERIZED(\list) {
+sub CLONE-LIST-DECONTAINERIZED(*@list) {
     my Mu $list-without := nqp::list();
-    nqp::push($list-without, nqp::decont(~$_)) for list.eager;
+    nqp::push($list-without, nqp::decont(~$_)) for @list.eager;
     $list-without;
 }
 

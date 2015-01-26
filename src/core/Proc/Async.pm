@@ -163,11 +163,6 @@ my class Proc::Async {
 
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
 
-        my Mu $args-without := nqp::list(nqp::decont($!path.Str));
-        for @!args.eager {
-            nqp::push($args-without, nqp::decont(.Str));
-        }
-
         $!exit_promise = Promise.new;
 
         my Mu $callbacks := nqp::hash();
@@ -189,7 +184,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'write', True) if $.w;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
-            $args-without,
+            CLONE-LIST-DECONTAINERIZED($!path,@!args),
             $*CWD.Str,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,

@@ -713,59 +713,74 @@ sub RWPAIR(\k, \v) {   # internal fast pair creation
 }
 
 sub OBJECT_HUH (\SELF) {
-    my $huh = SELF.WHAT.perl;
+    my $huh := SELF.WHAT.perl;
     try { $huh ~= " {SELF.VAR.name}" };
     $huh;
 }
 
-sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) is hidden_from_backtrace {
+sub SLICE_HUH ( \SELF, @nogo, Mu $d, %adv ) is hidden_from_backtrace {
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.exists_key('delete');
-    @nogo.push( %a<delete exists kv p k v>:delete:k ); # all valid params
+    for <delete exists kv p k v> -> $valid { # check all valid params
+        if nqp::existskey($d,nqp::unbox_s($valid)) {
+            nqp::deletekey($d,nqp::unbox_s($valid));
+            @nogo.push($valid);
+        }
+    }
 
-    if %a.elems {
-        %a.elems > 1
-              ?? fail "{%a.elems} unexpected named parameters ({%a.keys.join(', ')}) passed to {OBJECT_HUH(SELF)}"
-          !! fail "Unexpected named parameter '{%a.keys}' passed to {OBJECT_HUH(SELF)}";
+    if nqp::elems($d) -> $elems {
+        my @keys;
+        my Mu $iter := nqp::iterator($d);
+        @keys.push: nqp::p6box_s(nqp::iterkey_s(nqp::shift($iter))) while $iter;
+
+        $elems > 1
+          ?? fail "$elems unexpected named parameters (@keys.join(', ')) passed to {OBJECT_HUH(SELF)}"
+          !! fail "Unexpected named parameter '@keys[0]' passed to {OBJECT_HUH(SELF)}";
     }
 
     else {
-        fail "Unsupported combination of named parameters ({@nogo.join(', ')}) passed to {OBJECT_HUH(SELF)}";
+        fail "Unsupported combination of named parameters (@nogo.join(', ')) passed to {OBJECT_HUH(SELF)}";
     }
 } #SLICE_HUH
 
 # internal 1 element hash/array access with adverbs
 sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
+    my $d := CLONE-HASH-DECONTAINERIZED(%adv);
+
     my $ex;
-    if %adv {
+    if nqp::elems($d) {
         $ex := $array
           ?? SELF.can( 'exists_pos' )[0]
           !! SELF.can( 'exists_key' )[0];
     }
 
-    my %a = %adv.clone;
-    my @nogo;
+    sub DELETEKEY(str $key) {
+        my Mu $value := nqp::atkey($d,$key);
+        nqp::deletekey($d,$key);
+        $value;
+    }
 
+    my @nogo;
     my \result = do {
 
-        if %a.delete_key('delete') {          # :delete:*
-            my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
-            if %a.delete_key('SINK') {          # :delete:SINK
+        if DELETEKEY('delete') {            # :delete:*
+            my $de := SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
+            if DELETEKEY('SINK') {            # :delete:SINK
                 $de(SELF,$one,:SINK);
             }
-            elsif !%a {                         # :delete
+            elsif nqp::elems($d) == 0 {       # :delete
                 $de(SELF,$one);
             }
-            elsif %a.exists_key('exists') {     # :delete:exists(0|1):*
-                my $exists   := %a.delete_key('exists');
+            elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
+                my $exists   := DELETEKEY('exists');
                 my $wasthere := $ex(SELF,$one);
                 $de(SELF,$one);
-                if !%a {                          # :delete:exists(0|1)
+                if nqp::elems($d) == 0 {          # :delete:exists(0|1)
                     !( $wasthere ?^ $exists )
                 }
-                elsif %a.exists_key('kv') {       # :delete:exists(0|1):kv(0|1)
-                    my $kv := %a.delete_key('kv');
-                    if !%a {
+                elsif nqp::existskey($d,'kv') {   # :delete:exists(0|1):kv(0|1)
+                    my $kv := DELETEKEY('kv');
+                    if nqp::elems($d) == 0 {
                         !$kv || $wasthere
                           ?? ( $one, !( $wasthere ?^ $exists ) )
                           !! ();
@@ -774,9 +789,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                         @nogo = <delete exists kv>;
                     }
                 }
-                elsif %a.exists_key('p') {        # :delete:exists(0|1):p(0|1)
-                    my $p := %a.delete_key('p');
-                    if !%a {
+                elsif nqp::existskey($d,'p') {    # :delete:exists(0|1):p(0|1)
+                    my $p := DELETEKEY('p');
+                    if nqp::elems($d) == 0 {
                         !$p || $wasthere
                           ?? RWPAIR($one, !($wasthere ?^ $exists) )
                           !! ();
@@ -789,9 +804,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete exists>;
                 }
             }
-            elsif %a.exists_key('kv') {         # :delete:kv(0|1)
-                my $kv := %a.delete_key('kv');
-                if !%a {
+            elsif nqp::existskey($d,'kv') {    # :delete:kv(0|1)
+                my $kv := DELETEKEY('kv');
+                if nqp::elems($d) == 0 {
                     !$kv || $ex(SELF,$one)
                       ?? ( $one, $de(SELF,$one) )
                       !! ();
@@ -800,9 +815,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete kv>;
                 }
             }
-            elsif %a.exists_key('p') {          # :delete:p(0|1)
-                my $p := %a.delete_key('p');
-                if !%a {
+            elsif nqp::existskey($d,'p') {     # :delete:p(0|1)
+                my $p := DELETEKEY('p');
+                if nqp::elems($d) == 0 {
                     !$p || $ex(SELF,$one)
                       ?? RWPAIR($one, $de(SELF,$one))
                       !! ();
@@ -811,9 +826,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete p>;
                 }
             }
-            elsif %a.exists_key('k') {          # :delete:k(0|1)
-                my $k := %a.delete_key('k');
-                if !%a {
+            elsif nqp::existskey($d,'k') {     # :delete:k(0|1)
+                my $k := DELETEKEY('k');
+                if nqp::elems($d) == 0 {
                     !$k || $ex(SELF,$one)
                       ?? do { $de(SELF,$one); $one }
                       !! ();
@@ -822,9 +837,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete k>;
                 }
             }
-            elsif %a.exists_key('v') {          # :delete:v(0|1)
-                my $v := %a.delete_key('v');
-                if !%a {
+            elsif nqp::existskey($d,'v') {     # :delete:v(0|1)
+                my $v := DELETEKEY('v');
+                if nqp::elems($d) == 0 {
                     !$v || $ex(SELF,$one)
                       ?? $de(SELF,$one)
                       !! ();
@@ -837,15 +852,15 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <delete>;
             }
         }
-        elsif %a.exists_key('exists') {       # :!delete?:exists(0|1):*
-            my $exists  := %a.delete_key('exists');
+        elsif nqp::existskey($d,'exists') {  # :!delete?:exists(0|1):*
+            my $exists  := DELETEKEY('exists');
             my $wasthere = $ex(SELF,$one);
-            if !%a {                            # :!delete?:exists(0|1)
+            if nqp::elems($d) == 0 {           # :!delete?:exists(0|1)
                 !( $wasthere ?^ $exists )
             }
-            elsif %a.exists_key('kv') {         # :!delete?:exists(0|1):kv(0|1)
-                my $kv := %a.delete_key('kv');
-                if !%a {
+            elsif nqp::existskey($d,'kv') {    # :!delete?:exists(0|1):kv(0|1)
+                my $kv := DELETEKEY('kv');
+                if nqp::elems($d) == 0 {
                     !$kv || $wasthere
                       ?? ( $one, !( $wasthere ?^ $exists ) )
                       !! ();
@@ -854,9 +869,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <exists kv>;
                 }
             }
-            elsif %a.exists_key('p') {          # :!delete?:exists(0|1):p(0|1)
-                my $p := %a.delete_key('p');
-                if !%a {
+            elsif nqp::existskey($d,'p') {     # :!delete?:exists(0|1):p(0|1)
+                my $p := DELETEKEY('p');
+                if nqp::elems($d) == 0 {
                     !$p || $wasthere
                       ?? RWPAIR($one, !( $wasthere ?^ $exists ))
                       !! ();
@@ -869,9 +884,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <exists>;
             }
         }
-        elsif %a.exists_key('kv') {           # :!delete?:kv(0|1):*
-            my $kv := %a.delete_key('kv');
-            if !%a {                            # :!delete?:kv(0|1)
+        elsif nqp::existskey($d,'kv') {      # :!delete?:kv(0|1):*
+            my $kv := DELETEKEY('kv');
+            if nqp::elems($d) == 0 {           # :!delete?:kv(0|1)
                 !$kv || $ex(SELF,$one)
                   ?? ($one, $array ?? SELF.at_pos($one) !! SELF.at_key($one))
                   !! ();
@@ -880,9 +895,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <kv>;
             }
         }
-        elsif %a.exists_key('p') {            # :!delete?:p(0|1):*
-            my $p := %a.delete_key('p');
-            if !%a {                            # :!delete?:p(0|1)
+        elsif nqp::existskey($d,'p') {       # :!delete?:p(0|1):*
+            my $p := DELETEKEY('p');
+            if nqp::elems($d) == 0 {           # :!delete?:p(0|1)
                 !$p || $ex(SELF,$one)
                   ?? RWPAIR($one,
                        $array ?? SELF.at_pos($one) !! SELF.at_key($one))
@@ -892,9 +907,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <p>;
             }
         }
-        elsif %a.exists_key('k') {            # :!delete?:k(0|1):*
-            my $k := %a.delete_key('k');
-            if !%a {                            # :!delete?:k(0|1)
+        elsif nqp::existskey($d,'k') {       # :!delete?:k(0|1):*
+            my $k := DELETEKEY('k');
+            if nqp::elems($d) == 0 {           # :!delete?:k(0|1)
                 !$k || $ex(SELF,$one)
                   ?? $one
                   !! ();
@@ -903,9 +918,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <k>;
             }
         }
-        elsif %a.exists_key('v') {            # :!delete?:v(0|1):*
-            my $v := %a.delete_key('v');            # :!delete?:v(0|1)
-            if !%a {
+        elsif nqp::existskey($d,'v') {       # :!delete?:v(0|1):*
+            my $v := DELETEKEY('v');           # :!delete?:v(0|1)
+            if nqp::elems($d) == 0 {
                 !$v || $ex(SELF,$one)
                   ?? ($array ?? SELF.at_pos($one) !! SELF.at_key($one))
                   !! ();
@@ -914,65 +929,71 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <v>;
             }
         }
-        elsif !%a {                           # :!delete
+        elsif nqp::elems($d) == 0 {           # :!delete
             $array ?? SELF.at_pos($one) !! SELF.at_key($one);
         }
     }
 
-    @nogo || %a
-      ?? SLICE_HUH( SELF, @nogo, %a, %adv )
+    @nogo || nqp::elems($d)
+      ?? SLICE_HUH( SELF, @nogo, $d, %adv )
       !! result;
 } #SLICE_ONE
 
 # internal >1 element hash/array access with adverbs
 sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
-    my %a = %adv.clone;
+    my $d := CLONE-HASH-DECONTAINERIZED(%adv);
     my @nogo;
 
-    my $at = SELF.can( $array ?? 'at_pos'     !! 'at_key'     )[0];
-    my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
+    my $at := SELF.can( $array ?? 'at_pos'     !! 'at_key'     )[0];
+    my $ex := SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
+
+    sub DELETEKEY(str $key) {
+        my Mu $value := nqp::atkey($d,$key);
+        nqp::deletekey($d,$key);
+        $value;
+    }
 
     my \result = do {
 
-        if %a.delete_key('delete') {       # :delete:*
-            my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
-            if %a.delete_key('SINK') {       # :delete:SINK
+        if DELETEKEY('delete') {            # :delete:*
+            my $de := SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
+            if DELETEKEY('SINK') {            # :delete:SINK
                 $de(SELF,$_,:SINK) for $more;
                 Nil;
             }
-            elsif !%a {                      # :delete
+            elsif nqp::elems($d) == 0 {       # :delete
                 $more.list.map( { $de(SELF,$_) } ).eager.Parcel;
             }
-            elsif %a.exists_key('exists') {  # :delete:exists(0|1):*
-                my $exists := %a.delete_key('exists');
+            elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
+                my $exists := DELETEKEY('exists');
                 my $wasthere; # no need to initialize every iteration of map
-                if !%a {                       # :delete:exists(0|1)
+                if nqp::elems($d) == 0 {          # :delete:exists(0|1)
                     $more.list.map( {
                         $de(SELF,$_) if $wasthere = $ex(SELF,$_);
                         !( $wasthere ?^ $exists );
-                    } ).eager.Parcel
+                    } ).eager.Parcel;
                 }
-                elsif %a.exists_key('kv') {    # :delete:exists(0|1):kv(0|1):*
-                    my $kv := %a.delete_key('kv');
-                    if !%a {                     # :delete:exists(0|1):kv(0|1)
+                elsif nqp::existskey($d,'kv') { # :delete:exists(0|1):kv(0|1):*
+                    my $kv := DELETEKEY('kv');
+                    if nqp::elems($d) == 0 {      # :delete:exists(0|1):kv(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
                             ($_, !( $wasthere ?^ $exists ))
                               if !$kv || $wasthere;
-                        } ).flat.eager.Parcel
+                        } ).flat.eager.Parcel;
                     }
                     else {
                         @nogo = <delete exists kv>;
                     }
                 }
-                elsif %a.exists_key('p') {     # :delete:exists(0|1):p(0|1):*
-                    my $p := %a.delete_key('p');
-                    if !%a {                     # :delete:exists(0|1):p(0|1)
+                elsif nqp::existskey($d,'p') {  # :delete:exists(0|1):p(0|1):*
+                    my $p := DELETEKEY('p');
+                    if nqp::elems($d) == 0 {      # :delete:exists(0|1):p(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
                             RWPAIR($_,!($wasthere ?^ $exists))
                               if !$p || $wasthere;
-                        } ).eager.Parcel
+                        } ).eager.Parcel;
                     }
                     else {
                         @nogo = <delete exists p>;
@@ -982,9 +1003,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete exists>;
                 }
             }
-            elsif %a.exists_key('kv') {      # :delete:kv(0|1):*
-                my $kv := %a.delete_key('kv');
-                if !%a {                       # :delete:kv(0|1)
+            elsif nqp::existskey($d,'kv') {     # :delete:kv(0|1):*
+                my $kv := DELETEKEY('kv');
+                if nqp::elems($d) == 0 {          # :delete:kv(0|1)
                     $kv
                       ?? $more.list.map( {
                              ( $_, $de(SELF,$_) ) if $ex(SELF,$_);
@@ -997,9 +1018,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete kv>;
                 }
             }
-            elsif %a.exists_key('p') {       # :delete:p(0|1):*
-                my $p := %a.delete_key('p');
-                if !%a {                       # :delete:p(0|1)
+            elsif nqp::existskey($d,'p') {      # :delete:p(0|1):*
+                my $p := DELETEKEY('p');
+                if nqp::elems($d) == 0 {          # :delete:p(0|1)
                     $p
                       ?? $more.list.map( {
                              RWPAIR($_, $de(SELF,$_)) if $ex(SELF,$_);
@@ -1012,9 +1033,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete p>;
                 }
             }
-            elsif %a.exists_key('k') {       # :delete:k(0|1):*
-                my $k := %a.delete_key('k');
-                if !%a {                       # :delete:k(0|1)
+            elsif nqp::existskey($d,'k') {     # :delete:k(0|1):*
+                my $k := DELETEKEY('k');
+                if nqp::elems($d) == 0 {          # :delete:k(0|1)
                     $k
                       ?? $more.list.map( {
                              SEQ( $de(SELF,$_); $_ ) if $ex(SELF,$_);
@@ -1027,9 +1048,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <delete k>;
                 }
             }
-            elsif %a.exists_key('v') {       # :delete:v(0|1):*
-                my $v := %a.delete_key('v');
-                if !%a {                       # :delete:v(0|1)
+            elsif nqp::existskey($d,'v') {      # :delete:v(0|1):*
+                my $v := DELETEKEY('v');
+                if nqp::elems($d) == 0 {          # :delete:v(0|1)
                     $v
                       ?? $more.list.map( {
                              $de(SELF,$_) if $ex(SELF,$_);
@@ -1046,14 +1067,14 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <delete>;
             }
         }
-        elsif %a.exists_key('exists') {    # :!delete?:exists(0|1):*
-            my $exists := %a.delete_key('exists');
-            if !%a {                         # :!delete?:exists(0|1)
+        elsif nqp::existskey($d,'exists') { # :!delete?:exists(0|1):*
+            my $exists := DELETEKEY('exists');
+            if nqp::elems($d) == 0 {          # :!delete?:exists(0|1)
                 $more.list.map({ !( $ex(SELF,$_) ?^ $exists ) }).eager.Parcel;
             }
-            elsif %a.exists_key('kv') {      # :!delete?:exists(0|1):kv(0|1):*
-                my $kv := %a.delete_key('kv');
-                if !%a {                       # :!delete?:exists(0|1):kv(0|1)
+            elsif nqp::existskey($d,'kv') {   # :!delete?:exists(0|1):kv(0|1):*
+                my $kv := DELETEKEY('kv');
+                if nqp::elems($d) == 0 {        # :!delete?:exists(0|1):kv(0|1)
                     $kv
                       ?? $more.list.map( {
                              ( $_, $exists ) if $ex(SELF,$_);
@@ -1066,9 +1087,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     @nogo = <exists kv>;
                 }
             }
-            elsif %a.exists_key('p') {       # :!delete?:exists(0|1):p(0|1):*
-                my $p := %a.delete_key('p');
-                if !%a {                       # :!delete?:exists(0|1):p(0|1)
+            elsif nqp::existskey($d,'p') {  # :!delete?:exists(0|1):p(0|1):*
+                my $p := DELETEKEY('p');
+                if nqp::elems($d) == 0 {      # :!delete?:exists(0|1):p(0|1)
                     $p
                       ?? $more.list.map( {
                              RWPAIR( $_, $exists ) if $ex(SELF,$_);
@@ -1085,9 +1106,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <exists>;
             }
         }
-        elsif %a.exists_key('kv') {        # :!delete?:kv(0|1):*
-            my $kv := %a.delete_key('kv');
-            if !%a {                         # :!delete?:kv(0|1)
+        elsif nqp::existskey($d,'kv') {     # :!delete?:kv(0|1):*
+            my $kv := DELETEKEY('kv');
+            if nqp::elems($d) == 0 {          # :!delete?:kv(0|1)
                 $kv
                   ?? $more.list.map( {
                          $_, $at(SELF,$_) if $ex(SELF,$_);
@@ -1100,9 +1121,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <kv>;
             }
         }
-        elsif %a.exists_key('p') {         # :!delete?:p(0|1):*
-            my $p := %a.delete_key('p');
-            if !%a {                         # :!delete?:p(0|1)
+        elsif nqp::existskey($d,'p') {      # :!delete?:p(0|1):*
+            my $p := DELETEKEY('p');
+            if nqp::elems($d) == 0 {          # :!delete?:p(0|1)
                 $p
                   ?? $more.list.map( {
                          RWPAIR($_, $at(SELF,$_)) if $ex(SELF,$_);
@@ -1115,9 +1136,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <p>
             }
         }
-        elsif %a.exists_key('k') {         # :!delete?:k(0|1):*
-            my $k := %a.delete_key('k');
-            if !%a {                         # :!delete?:k(0|1)
+        elsif nqp::existskey($d,'k') {      # :!delete?:k(0|1):*
+            my $k := DELETEKEY('k');
+            if nqp::elems($d) == 0 {          # :!delete?:k(0|1)
                 $k
                   ?? $more.list.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
                   !! $more.list.flat.eager.Parcel;
@@ -1126,9 +1147,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <k>;
             }
         }
-        elsif %a.exists_key('v') {         # :!delete?:v(0|1):*
-            my $v := %a.delete_key('v');
-            if !%a {                         # :!delete?:v(0|1)
+        elsif nqp::existskey($d,'v') {      # :!delete?:v(0|1):*
+            my $v := DELETEKEY('v');
+            if nqp::elems($d) == 0 {          # :!delete?:v(0|1)
                 $v
                   ??  $more.list.map( {
                           $at(SELF,$_) if $ex(SELF,$_);
@@ -1141,13 +1162,13 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 @nogo = <v>;
             }
         }
-        elsif !%a {                        # :!delete
+        elsif nqp::elems($d) == 0 {         # :!delete
             $more.list.map( { $at(SELF,$_) } ).eager.Parcel;
         }
     }
 
-    @nogo || %a
-      ?? SLICE_HUH( SELF, @nogo, %a, %adv )
+    @nogo || nqp::elems($d)
+      ?? SLICE_HUH( SELF, @nogo, $d, %adv )
       !! result;
 } #SLICE_MORE
 

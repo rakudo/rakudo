@@ -291,15 +291,14 @@ sub NOT_ALL_DEFINED_TYPE(\values,\type) {
 }
 
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
-    my Mu $hash-with-containers := nqp::getattr(hash,EnumMap,'$!storage');
-    my Mu $hash-without         := nqp::hash();
-    my Mu $enviter := nqp::iterator($hash-with-containers);
-    my $envelem;
-    while $enviter {
-        $envelem := nqp::shift($enviter);
-        nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
+    my Mu $clone := nqp::hash();
+    my Mu $iter  := nqp::iterator(nqp::getattr(hash,EnumMap,'$!storage'));
+    my $e;
+    while $iter {
+        $e := nqp::shift($iter);
+        nqp::bindkey($clone, nqp::iterkey_s($e), nqp::decont(nqp::iterval($e)));
     }
-    $hash-without;
+    $clone;
 }
 
 sub CLONE-LIST-DECONTAINERIZED(*@list) {

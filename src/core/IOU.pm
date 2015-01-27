@@ -49,6 +49,7 @@ my class IOU does IO::Pathy {
     method d(IOU:D:)        { self!that ?? $!that.d        !! self!fail('d')   }
     method s(IOU:D:)        { self!that ?? $!that.s        !! self!fail('s')   }
     method i(IOU:D:)        { self!that ?? $!that.i        !! self!fail('i')   }
+    method v(IOU:D:)        { self!that ?? $!that.v        !! self!fail('v')   }
     method l(IOU:D:)        { self!that ?? $!that.l        !! self!fail('l')   }
     method r(IOU:D:)        { self!that ?? $!that.r        !! self!fail('r')   }
     method w(IOU:D:)        { self!that ?? $!that.w        !! self!fail('w')   }

@@ -3943,7 +3943,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<%%>   { <sym>  <O('%multiplicative, :iffy<1>')> }
     token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
     token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
-    token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
+    token infix:sym<?&>   { <sym>  <O('%multiplicative, :iffy<1>')> }
     token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O('%multiplicative')> }
     token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O('%multiplicative')> }
     token infix:sym«~<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O('%multiplicative')> }
@@ -3963,8 +3963,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<+^>   { <sym>  <O('%additive')> }
     token infix:sym<~|>   { <sym>  <O('%additive')> }
     token infix:sym<~^>   { <sym>  <O('%additive')> }
-    token infix:sym<?|>   { <sym>  <O('%additive')> }
-    token infix:sym<?^>   { <sym>  <O('%additive')> }
+    token infix:sym<?|>   { <sym>  <O('%additive, :iffy<1>')> }
+    token infix:sym<?^>   { <sym>  <O('%additive, :iffy<1>')> }
 
     token infix:sym<x>    { <sym> >> <O('%replication')> }
     token infix:sym<xx>    { <sym> >> <O('%replication')> }
@@ -3972,14 +3972,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
     token infix:sym<.>    { <sym> <[\]\)\},:\s\$"']>  <.obs('. to concatenate strings', '~')> }
 
-    token infix:sym<&>   { <sym> <O('%junctive_and')> }
+    token infix:sym<&>   { <sym> <O('%junctive_and, :iffy<1>')> }
     token infix:sym<(&)> { <sym> <O('%junctive_and')> }
     token infix:sym«∩»   { <sym> <O('%junctive_and')> }
     token infix:sym<(.)> { <sym> <O('%junctive_and')> }
     token infix:sym«⊍»   { <sym> <O('%junctive_and')> }
 
-    token infix:sym<|>    { <sym> <O('%junctive_or')> }
-    token infix:sym<^>    { <sym> <O('%junctive_or')> }
+    token infix:sym<|>    { <sym> <O('%junctive_or, :iffy<1>')> }
+    token infix:sym<^>    { <sym> <O('%junctive_or, :iffy<1>')> }
     token infix:sym<(|)>  { <sym> <O('%junctive_or')> }
     token infix:sym«∪»    { <sym> <O('%junctive_or')> }
     token infix:sym<(^)>  { <sym> <O('%junctive_or')> }
@@ -4042,10 +4042,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <?before \h* [ 'Bool::'? 'False' && <.longname> ] > <.worry("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")>
     }
 
-    token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
+    token infix:sym<&&>   { <sym>  <O('%tight_and, :iffy<1>, :pasttype<if>')> }
 
-    token infix:sym<||>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
+    token infix:sym<||>   { <sym>  <O('%tight_or, :iffy<1>, :assoc<left>, :pasttype<unless>')> }
+    token infix:sym<^^>   { <sym>  <O('%tight_or, :iffy<1>, :pasttype<xor>')> }
     token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<defor>')> }
     token infix:sym<min>  { <sym> >> <O('%tight_or')> }
     token infix:sym<max>  { <sym> >> <O('%tight_or')> }
@@ -4159,11 +4159,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token infix:sym<and>  { <sym> >> <O('%loose_and, :pasttype<if>')> }
+    token infix:sym<and>  { <sym> >> <O('%loose_and, :iffy<1>, :pasttype<if>')> }
     token infix:sym<andthen> { <sym> >> <O('%loose_and, :assoc<list>')> }
 
-    token infix:sym<or>   { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor>')> }
+    token infix:sym<or>   { <sym> >> <O('%loose_or, :iffy<1>, :assoc<left>, :pasttype<unless>')> }
+    token infix:sym<xor>  { <sym> >> <O('%loose_or, :iffy<1>, :pasttype<xor>')> }
     token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<defor>')> }
 
     token infix:sym«<==»  { <sym> <O('%sequencer')> }

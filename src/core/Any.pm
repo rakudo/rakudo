@@ -755,9 +755,21 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
     }
 
     sub DELETEKEY(str $key) {
+#?if jvm
+        if nqp::existskey($d,$key) {
+            my Mu $value = nqp::atkey($d,$key);
+            nqp::deletekey($d,$key);
+            $value;
+        }
+        else {
+            Mu;
+        }
+#?endif
+#?if !jvm
         my Mu $value := nqp::atkey($d,$key);
         nqp::deletekey($d,$key);
         $value;
+#?endif
     }
 
     my @nogo;
@@ -948,9 +960,21 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
     my $ex := SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
 
     sub DELETEKEY(str $key) {
+#?if jvm
+        if nqp::existskey($d,$key) {
+            my Mu $value = nqp::atkey($d,$key);
+            nqp::deletekey($d,$key);
+            $value;
+        }
+        else {
+            Mu;
+        }
+#?endif
+#?if !jvm
         my Mu $value := nqp::atkey($d,$key);
         nqp::deletekey($d,$key);
         $value;
+#?endif
     }
 
     my \result = do {

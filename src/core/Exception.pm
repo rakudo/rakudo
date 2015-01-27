@@ -1061,6 +1061,14 @@ my class X::Syntax::NonAssociative does X::Syntax {
     }
 }
 
+my class X::Syntax::DiffyReduce does X::Syntax {
+    has $.operator;
+    has $.dba;
+    method message() {
+        "Cannot reduce with $.operator because $.dba operators are diffy and not chaining";
+    }
+}
+
 my class X::Syntax::Regex::Adverb does X::Syntax {
     has $.adverb;
     has $.construct;

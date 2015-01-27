@@ -3771,7 +3771,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <!{ $op<OPER><O><diffy> }>
         || <?{ $op<OPER><O><pasttype> eq 'chain' }>
-        || <.sorry("Cannot reduce with " ~ $op<OPER><sym> ~ " because " ~ $op<OPER><O><dba> ~ " operators are diffy and not chaining")>
+        || { self.typed_panic: 'X::Syntax::DiffyReduce', operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba> }
         ]
 
         <args>

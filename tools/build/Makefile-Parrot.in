@@ -144,6 +144,7 @@ P_CORE_SOURCES = \
   src/core/Mu.pm \
   src/core/Stringy.pm \
   src/core/Any.pm \
+  src/core/SLICE.pm \
   src/core/Whatever.pm \
   src/core/array_slice.pm \
   src/core/hash_slice.pm \

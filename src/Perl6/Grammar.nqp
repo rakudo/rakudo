@@ -3598,8 +3598,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<q=>, :assoc<list>, :dba<junctive and>', '%junctive_and');
         Perl6::Grammar.O(':prec<p=>, :assoc<list>, :dba<junctive or>', '%junctive_or');
         Perl6::Grammar.O(':prec<o=>, :assoc<unary>, :dba<named unary>', '%named_unary');
-        Perl6::Grammar.O(':prec<n=>, :assoc<non>, :dba<structural infix>',  '%structural');
-        Perl6::Grammar.O(':prec<m=>, :assoc<left>, :dba<chaining>, :iffy<1>, :pasttype<chain>',  '%chaining');
+        Perl6::Grammar.O(':prec<n=>, :assoc<non>, :dba<structural infix>, :diffy<1>',  '%structural');
+        Perl6::Grammar.O(':prec<m=>, :assoc<left>, :dba<chaining>, :iffy<1>, :diffy<1> :pasttype<chain>',  '%chaining');
         Perl6::Grammar.O(':prec<l=>, :assoc<left>, :dba<tight and>',  '%tight_and');
         Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>',  '%tight_or');
         Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>', '%conditional');
@@ -3767,6 +3767,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $op := $<op>; }
         
         <.can_meta($op, "reduce with")>
+
+        [
+        || <!{ $op<OPER><O><diffy> }>
+        || <?{ $op<OPER><O><pasttype> eq 'chain' }>
+        || <.sorry("Cannot reduce with " ~ $op<OPER><sym> ~ " because " ~ $op<OPER><O><dba> ~ " operators are diffy and not chaining")>
+        ]
 
         <args>
     }

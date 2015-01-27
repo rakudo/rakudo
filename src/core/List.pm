@@ -450,60 +450,48 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method unique() {
         my $seen := nqp::hash();
         my str $target;
-        gather map {
+        gather for @.list {
             $target = nqp::unbox_s($_.WHICH);
-            if nqp::existskey($seen, $target) {
-                next;
-            }
-            else {
+            unless nqp::existskey($seen, $target) {
                 nqp::bindkey($seen, $target, 1);
                 take $_;
             }
-        }, @.list;
+        }
     }
     multi method unique( :&as!, :&with! ) {
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        gather map {
+        gather for @.list {
             $target = &as($_);
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
                 take $_;
             }
-            else {
-                next;
-            }
-        }, @.list;
+        };
     }
     multi method unique( :&as! ) {
         my $seen := nqp::hash();
         my str $target;
-        gather map {
+        gather for @.list {
             $target = &as($_).WHICH;
-            if nqp::existskey($seen, $target) {
-                next;
-            }
-            else {
+            unless nqp::existskey($seen, $target) {
                 nqp::bindkey($seen, $target, 1);
                 take $_;
             }
-        }, @.list;
+        }
     }
     multi method unique( :&with! ) {
         nextwith() if &with === &[===]; # use optimized version
 
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        gather map {
+        gather for @.list {
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
                 take $_;
             }
-            else {
-                next;
-            }
-        }, @.list;
+        }
     }
 
     my @secret;
@@ -511,28 +499,22 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
         my str $which;
-        gather map {
+        gather for @.list {
             $which = &as($_).Str;
-            if with($which,$last) {
-                next;
-            }
-            else {
+            unless with($which,$last) {
                 $last = $which;
                 take $_;
             }
-        }, @.list;
+        }
     }
     multi method squish( :&with = &[===] ) {
         my $last = @secret;
-        gather map {
-            if with($_,$last) {
-                next;
-            }
-            else {
+        gather for @.list {
+            unless with($_,$last) {
                 $last = $_;
                 take $_;
             }
-        }, @.list;
+        }
     }
 
     proto method rotor(|) {*}

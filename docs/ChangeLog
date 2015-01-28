@@ -1,3 +1,8 @@
+New in 2015.02
++ Overriding invoke/postcircumfix:<( )> for type coercions (ex. MyType(...))
+  now passes the function arguments as-is, rather than just passing a Capture
+  containing them
+
 New in 2015.01
 + New simple way of creating an object hash: :{}
 + Str.substr-rw was omitted before, it isn't anymore

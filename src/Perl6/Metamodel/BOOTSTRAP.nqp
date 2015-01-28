@@ -2655,10 +2655,7 @@ BEGIN {
                 }
             }
             else {
-                my $c := nqp::create(Capture);
-                nqp::bindattr($c, Capture, '$!list', @pos);
-                nqp::bindattr($c, Capture, '$!hash', %named);
-                nqp::can($self, 'invoke') ?? $self.invoke($c) !! $self.postcircumfix:<( )>($c);
+                nqp::can($self, 'invoke') ?? $self.invoke(|@pos, |%named) !! $self.postcircumfix:<( )>(|@pos, |%named);
             }
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);

@@ -62,7 +62,18 @@ my role IO::Pathy {
     method changed(IO::Pathy:D:)  { FILETEST-CHANGED( $!abspath) }
 
     method rename(IO::Pathy:D: $to as Str, :$createonly) {
-        RENAME-PATH($!abspath,MAKE-ABSOLUTE-PATH($to,$*CWD.Str),:$createonly);
+        my $topath := MAKE-ABSOLUTE-PATH($to,$*CWD.Str);
+        RENAME-PATH($!abspath,$topath,:$createonly);
+        $!abspath = $topath;  # have the object point to the new location
+#        self!parts;  # runtime failure
+        @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
+    }
+    method move(IO::Pathy:D: $to as Str, :$createonly) {
+        my $topath := MAKE-ABSOLUTE-PATH($to,$*CWD.Str);
+        MOVE-PATH($!abspath,$topath,:$createonly);
+        $!abspath = $topath;  # have the object point to the new location
+#        self!parts;  # runtime failure
+        @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
     }
     method chmod(IO::Pathy:D: $mode as Int) {
         CHMOD-PATH($!abspath, $mode);

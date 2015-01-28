@@ -149,11 +149,11 @@ multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
         postcircumfix:<{ }>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);
     }
 }
-multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
+multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, Mu \ASSIGN) is rw {
     if keys > 1 {
-        postcircumfix:<{ }>(SELF, keys, |%adv) = assignee;
+        SELF{keys[0]}{keys[1..*]} = ASSIGN;
     } else {
-        postcircumfix:<{ }>(SELF, keys[0], assignee, |%adv);
+        SELF{keys[0]} = ASSIGN;
     }
 }
 

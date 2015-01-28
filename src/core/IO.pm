@@ -247,6 +247,32 @@ sub RENAME-PATH(Str $from, Str $to, :$createonly) {
     True;
 }
 
+sub MOVE-PATH(Str \from, Str \to, :$createonly) {
+    if $createonly and FILETEST-e(to) {
+        fail X::IO::Move.new(
+          :from(from),
+          :to(to),
+          :os-error(':createonly specified and destination exists'),
+        );
+    }
+
+    my str $from = nqp::unbox_s(from);
+    my str $to   = nqp::unbox_s(to);
+    return True unless nqp::rename($from,$to);
+
+    CATCH { default {
+        nqp::copy($from,$to);
+        if FILETEST-e($to) {
+            nqp::unlink($from);
+            return True;
+        }
+        CATCH { default {
+            fail X::IO::Move.new( :$from, :$to, :os-error(.Str) );
+        } }
+    } }
+    True;
+}
+
 sub CHMOD-PATH(Str $path, Int $mode) {
     nqp::chmod(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {

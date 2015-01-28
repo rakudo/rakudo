@@ -248,16 +248,19 @@ sub RENAME-PATH(Str $from, Str $to, :$createonly) {
 }
 
 sub MOVE-PATH(Str \from, Str \to, :$createonly) {
-    if $createonly and FILETEST-e(to) {
-        fail X::IO::Move.new(
-          :from(from),
-          :to(to),
-          :os-error(':createonly specified and destination exists'),
-        );
+    my str $to = nqp::unbox_s(to);
+    if FILETEST-e(to) {
+        $to = $to ~ '/' ~ MAKE-BASENAME(from) if FILETEST-d(to);
+        if $createonly and FILETEST-e(nqp::p6box_s($to)) {
+            fail X::IO::Move.new(
+              :from(from),
+              :$to,
+              :os-error(':createonly specified and destination exists'),
+            );
+        }
     }
 
     my str $from = nqp::unbox_s(from);
-    my str $to   = nqp::unbox_s(to);
     return True unless nqp::rename($from,$to);
 
     CATCH { default {

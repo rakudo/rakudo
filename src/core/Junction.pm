@@ -55,10 +55,10 @@ my class Junction { # declared in BOOTSTRAP
         $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
     }
 
-    method invoke($c) {
+    method invoke(|c) {
         self.AUTOTHREAD(
             -> $obj, |c { $obj(|c) },
-            self, |$c);
+            self, |c);
     }
 
     method sink(Junction:D:) {

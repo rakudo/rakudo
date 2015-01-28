@@ -13,25 +13,25 @@ multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is parcel) is rw {
     SELF.bind_key(key, $BIND);
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$SINK!, *%other ) is rw {
-    SLICE_ONE( SELF, key, False, :$SINK, |%other );
+    SLICE_ONE_HASH( SELF, key, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$delete!, *%other ) is rw {
-    SLICE_ONE( SELF, key, False, :$delete, |%other );
+    SLICE_ONE_HASH( SELF, key, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$exists!, *%other ) is rw {
-    SLICE_ONE( SELF, key, False, :$exists, |%other );
+    SLICE_ONE_HASH( SELF, key, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$kv!, *%other ) is rw {
-    SLICE_ONE( SELF, key, False, :$kv, |%other );
+    SLICE_ONE_HASH( SELF, key, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$p!, *%other ) is rw {
-    SLICE_ONE( SELF, key, False, :$p, |%other );
+    SLICE_ONE_HASH( SELF, key, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$k!, *%other ) is rw {
-    SLICE_ONE( SELF, key, False, :$k, |%other );
+    SLICE_ONE_HASH( SELF, key, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is rw {
-    SLICE_ONE( SELF, key, False, :$v, |%other );
+    SLICE_ONE_HASH( SELF, key, :$v, |%other );
 }
 
 # %h<a b c>
@@ -49,25 +49,25 @@ multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$SINK!,*%other) is rw {
-    SLICE_MORE( SELF, \key, False, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, \key, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$delete!,*%other) is rw {
-    SLICE_MORE( SELF, \key, False, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, \key, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$exists!,*%other) is rw {
-    SLICE_MORE( SELF, \key, False, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, \key, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$kv!, *%other) is rw {
-    SLICE_MORE( SELF, \key, False, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, \key, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$p!, *%other) is rw {
-    SLICE_MORE( SELF, \key, False, :$p, |%other );
+    SLICE_MORE_HASH( SELF, \key, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$k!, *%other) is rw {
-    SLICE_MORE( SELF, \key, False, :$k, |%other );
+    SLICE_MORE_HASH( SELF, \key, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$v!, *%other) is rw {
-    SLICE_MORE( SELF, \key, False, :$v, |%other );
+    SLICE_MORE_HASH( SELF, \key, :$v, |%other );
 }
 
 # %h{*}
@@ -81,25 +81,25 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$delete!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$exists!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$kv!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$k!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
 }
 
 # %h{}
@@ -110,25 +110,25 @@ multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$delete!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$exists!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$kv!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$k!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
-    SLICE_MORE( SELF, SELF.keys, False, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
 }
 
 # %h{;}
@@ -149,11 +149,11 @@ multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
         postcircumfix:<{ }>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);
     }
 }
-multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, Mu \assignee, *%adv) is rw {
+multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, Mu \ASSIGN) is rw {
     if keys > 1 {
-        postcircumfix:<{ }>(SELF, keys, |%adv) = assignee;
+        SELF{keys[0]}{keys[1..*]} = ASSIGN;
     } else {
-        postcircumfix:<{ }>(SELF, keys[0], assignee, |%adv);
+        SELF{keys[0]} = ASSIGN;
     }
 }
 

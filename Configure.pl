@@ -375,7 +375,7 @@ General Options:
     --git-reference=<path>
                        Use --git-reference option to identify local path where git repositories are stored
                        For example: --git-reference=/home/user/repo/for_perl6
-                       Folders 'nqp', 'moar', 'parrot' with corresponding git repos should be in for_perl6 folder
+                       Folders 'nqp', 'MoarVM', 'parrot' with corresponding git repos should be in for_perl6 folder
     --makefile-timing  Enable timing of individual makefile commands
 
 Configure.pl also reads options from 'config.default' in the current directory.

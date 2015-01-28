@@ -291,6 +291,14 @@ my class X::IO::Rename does X::IO is Exception {
     }
 }
 
+my class X::IO::Move does X::IO is Exception {
+    has $.from;
+    has $.to;
+    method message() {
+        "Failed to move '$.from' to '$.to': $.os-error"
+    }
+}
+
 my class X::IO::Copy does X::IO is Exception {
     has $.from;
     has $.to;

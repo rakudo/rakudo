@@ -643,7 +643,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             && $*ALLOW_INLINE_CODE
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
         $<text> = [
-            [<!before '=' \w> \N+]+ % [<pod_newline> $<spaces>]
+            [<!before '=' \w> \N+]+ % [<pod_newline>+ $<spaces>]
         ]
     }
 

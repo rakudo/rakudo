@@ -2,6 +2,9 @@ New in 2015.02
 + Overriding invoke/postcircumfix:<( )> for type coercions (ex. MyType(...))
   now passes the function arguments as-is, rather than just passing a Capture
   containing them
++ optimizations to slices with adverbs
++ improved error messages from sprintf and fmt
++ Proc::Async polished (improved error reporting, relaxed type constraints)
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

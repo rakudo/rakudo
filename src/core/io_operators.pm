@@ -207,38 +207,38 @@ multi sub spurt(Any:D $path as Str,\what,:$enc,|c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir($path as Str) {
+sub chdir($path as Str, $CWD as Str = $*CWD) {        # Str(Any),Str(Any)
+    my $newCWD := CHANGE-DIRECTORY($path,$CWD,&FILETEST-x);
+    return $newCWD if nqp::istype($newCWD,Failure);
 
-    if !nqp::istype($*CWD,IO::Dir) {   # canary until 2014.10
-        warn "\$*CWD is a {$*CWD.^name}, not an IO::Dir!!!";
-        $*CWD = $*CWD.IO;
-    }
-
-    my $newCWD = CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-x);
-    $newCWD // $newCWD.throw;
     $*CWD = $newCWD;
+    True;
 }
 
-sub indir($path as Str, $what) {
-    my $newCWD := CHANGE-DIRECTORY($path,$*CWD.Str,&FILETEST-rwx);
-    $newCWD // $newCWD.throw;
+sub indir($path as Str, &what, $CWD as Str = $*CWD) { # Str(Any),,Str(Any)
+    my $newCWD := CHANGE-DIRECTORY($path,$CWD,&FILETEST-rwx);
+    return $newCWD if nqp::istype($newCWD,Failure);
 
-    {
-        my $*CWD = $newCWD;  # temp doesn't work in core settings :-(
-        $what();
+    { # need separate scope to prevent confusion with default $CWD
+        my $*CWD = $newCWD;
+        what();
     }
 }
 
-sub tmpdir($path as Str) {
+sub tmpdir($path as Str, $CWD as Str = $*CWD) {       # Str(Any),Str(Any)
     my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR.Str,&FILETEST-rwx);
-    $newTMPDIR // $newTMPDIR.throw;
+    return $newTMPDIR if nqp::istype($newTMPDIR,Failure);
+
     $*TMPDIR = $newTMPDIR;
+    True;
 }
 
-sub homedir($path as Str) {
+sub homedir($path as Str, $CWD as Str = $*CWD) {      # Str(Any),Str(Any)
     my $newHOME := CHANGE-DIRECTORY($path,$*HOME.Str,&FILETEST-rwx);
-    $newHOME // $newHOME.throw;
+    return $newHOME if nqp::istype($newHOME,Failure);
+
     $*HOME = $newHOME;
+    True;
 }
 
 sub chmod($mode, *@filenames, :$CWD as Str = $*CWD) {

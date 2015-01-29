@@ -181,67 +181,32 @@ multi sub round($a)                 { $a.Numeric.round }
 multi sub round(Numeric $a)         { $a.round }
 multi sub round(Numeric $a, $scale) { $a.round($scale) }
 
-#?if parrot
-proto sub infix:<+>($?, $?) is pure   { * }
-#?endif
-#?if !parrot
 proto sub infix:<+>(Mu $?, Mu $?) is pure   { * }
-#?endif
 multi sub infix:<+>($x = 0)      { $x.Numeric }
 multi sub infix:<+>(\a, \b)    { a.Numeric + b.Numeric }
 
-#?if parrot
-proto sub infix:<->($?, $?) is pure   { * }
-#?endif
-#?if !parrot
 proto sub infix:<->(Mu $?, Mu $?) is pure   { * }
-#?endif
 multi sub infix:<->($x = 0)      { $x.Numeric }
 multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 
-#?if parrot
-proto sub infix:<*>($?, $?) is pure   { * }
-#?endif
-#?if !parrot
 proto sub infix:<*>(Mu $?, Mu $?) is pure   { * }
-#?endif
 multi sub infix:<*>($x = 1)      { $x.Numeric }
 multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 
-#?if parrot
-proto sub infix:</>($?, $?) { * }
-#?endif
-#?if !parrot
 proto sub infix:</>(Mu $?, Mu $?) { * }
-#?endif
 multi sub infix:</>()            { fail "No zero-arg meaning for infix:</>" }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 
-#?if parrot
-proto sub infix:<div>($?, $?) is pure  { * }
-#?endif
-#?if !parrot
 proto sub infix:<div>(Mu $?, Mu $?) is pure  { * }
-#?endif
 # rest of infix:<div> is in Int.pm
 
-#?if parrot
-proto sub infix:<%>($?, $?) is pure   { * }
-#?endif
-#?if !parrot
 proto sub infix:<%>(Mu $?, Mu $?) is pure   { * }
-#?endif
 multi sub infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
 multi sub infix:<%>($x)          { $x }
 multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
 
-#?if parrot
-proto sub infix:<%%>($?, $?) is pure  { * }
-#?endif
-#?if !parrot
 proto sub infix:<%%>(Mu $?, Mu $?) is pure  { * }
-#?endif
 multi sub infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
 multi sub infix:<%%>($)         { Bool::True }
 multi sub infix:<%%>(\a, \b)   {
@@ -249,50 +214,25 @@ multi sub infix:<%%>(\a, \b)   {
     a.Real % b.Real == 0;
 }
 
-#?if parrot
-proto sub infix:<lcm>($?, $?) is pure  { * }
-#?endif
-#?if !parrot
 proto sub infix:<lcm>(Mu $?, Mu $?) is pure  { * }
-#?endif
 multi sub infix:<lcm>(Int $x = 1) { $x }
 multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
-#?if parrot
-proto sub infix:<gcd>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<gcd>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
 multi sub infix:<gcd>(Int $x)    { $x }
 multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
-#?if parrot
-proto sub infix:<**>($?, $?) is pure  { * }
-#?endif
-#?if !parrot
 proto sub infix:<**>(Mu $?, Mu $?) is pure  { * }
-#?endif
 multi sub infix:<**>($x = 1)     { $x.Numeric }
 multi sub infix:<**>(\a, \b)   { a.Numeric ** b.Numeric }
 
 ## relational operators
 
-#?if parrot
-proto sub infix:«<=>»($?, $?) is pure       { * }
-#?endif
-#?if !parrot
 proto sub infix:«<=>»(Mu $, Mu $?) is pure       { * }
-#?endif
 multi sub infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
 
-#?if parrot
-proto sub infix:<==>($?, $?) is pure  { * }
-#?endif
-#?if !parrot
 proto sub infix:<==>(Mu $?, Mu $?) is pure  { * }
-#?endif
 multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
@@ -300,100 +240,50 @@ proto sub infix:<!=>(Mu $?, Mu $?) is pure  { * }
 multi sub infix:<!=>($?)        { Bool::True }
 multi sub infix:<!=>(Mu \a, Mu \b)   { not a == b }
 
-#?if parrot
-proto sub infix:«<»($?, $?) is pure   { * }
-#?endif
-#?if !parrot
 proto sub infix:«<»(Mu $?, Mu $?) is pure   { * }
-#?endif
 multi sub infix:«<»($?)         { Bool::True }
 multi sub infix:«<»(\a, \b)    { a.Real < b.Real }
 
-#?if parrot
-proto sub infix:«<=»($?, $?) is pure  { * }
-#?endif
-#?if !parrot
 proto sub infix:«<=»(Mu $?, Mu $?) is pure  { * }
-#?endif
 multi sub infix:«<=»($?)        { Bool::True }
 multi sub infix:«<=»(\a, \b)   { a.Real <= b.Real }
 
-#?if parrot
-proto sub infix:«>»($?, $?) is pure   { * }
-#?endif
-#?if !parrot
 proto sub infix:«>»(Mu $?, Mu $?) is pure   { * }
-#?endif
 multi sub infix:«>»($?)         { Bool::True }
 multi sub infix:«>»(\a, \b)    { a.Real > b.Real }
 
-#?if parrot
-proto sub infix:«>=»($?, $?) is pure  { * }
-#?endif
-#?if !parrot
 proto sub infix:«>=»(Mu $?, Mu $?) is pure  { * }
-#?endif
 multi sub infix:«>=»($?)        { Bool::True }
 multi sub infix:«>=»(\a, \b)   { a.Real >= b.Real }
 
 ## bitwise operators
 
-#?if parrot
-proto sub infix:<+&>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<+&>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<+&>()           { +^0 }
 multi sub infix:<+&>($x)         { $x }
 multi sub infix:<+&>($x, $y)     { $x.Numeric.Int +& $y.Numeric.Int }
 
-#?if parrot
-proto sub infix:<+|>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<+|>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<+|>()           { 0 }
 multi sub infix:<+|>($x)         { $x }
 multi sub infix:<+|>($x, $y)     { $x.Numeric.Int +| $y.Numeric.Int }
 
-#?if parrot
-proto sub infix:<+^>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<+^>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<+^>()           { 0 }
 multi sub infix:<+^>($x)         { $x }
 multi sub infix:<+^>($x, $y)     { $x.Numeric.Int +^ $y.Numeric.Int }
 
-#?if parrot
-proto sub infix:«+<»($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:«+<»(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:«+<»()           { fail "No zero-arg meaning for infix:«+<»"; }
 multi sub infix:«+<»($x)         { $x }
 multi sub infix:«+<»($x,$y)      { $x.Numeric.Int +< $y.Numeric.Int }
 
-#?if parrot
-proto sub infix:«+>»($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:«+>»(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:«+>»()           { fail "No zero-arg meaning for infix:«+>»"; }
 multi sub infix:«+>»($x)         { $x }
 multi sub infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 
-#?if parrot
-proto sub prefix:<+^>($) is pure { * }
-#?endif
-#?if !parrot
 proto sub prefix:<+^>(Mu $) is pure { * }
-#?endif
 multi sub prefix:<+^>($x)        { +^ $x.Numeric.Int }
 
 # vim: ft=perl6 expandtab sw=4

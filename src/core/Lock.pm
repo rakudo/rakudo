@@ -1,4 +1,3 @@
-#?if !parrot
 # A reentrant lock mechanism with condition variable support.
 my class X::Lock::ConditionVariable::New is Exception {
     method message() {
@@ -31,12 +30,5 @@ my class Lock is repr('ReentrantMutex') {
         nqp::getlockcondvar(self, ConditionVariable)
     }
 }
-
-#?endif
-#?if parrot
-my class Lock {
-    method protect (&code) { code() }
-}
-#?endif
 
 # vim: ft=perl6 expandtab sw=4

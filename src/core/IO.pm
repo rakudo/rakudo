@@ -251,14 +251,18 @@ sub MOVE-PATH(Str \from, Str \to, :$createonly) {
     my str $to = nqp::unbox_s(to);
     if FILETEST-e(to) {
         $to = $to ~ '/' ~ MAKE-BASENAME(from) if FILETEST-d(to);
-        if $createonly and FILETEST-e(nqp::p6box_s($to)) {
-            fail X::IO::Move.new(
-              :from(from),
-              :$to,
-              :os-error(':createonly specified and destination exists'),
-            );
-        }
+        fail X::IO::Move.new(
+          :from(from),
+          :$to,
+          :os-error(':createonly specified and destination exists'),
+        ) if $createonly and FILETEST-e(nqp::p6box_s($to));
     }
+
+    fail X::IO::Move.new(
+      :from(from),
+      :$to,
+      :os-error('Can only move regular files'),
+    ) if FILETEST-e(from) && !FILETEST-f(from);
 
     my str $from = nqp::unbox_s(from);
     return True unless nqp::rename($from,$to);

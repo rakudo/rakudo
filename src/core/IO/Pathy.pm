@@ -12,8 +12,8 @@ my role IO::Pathy {
     }
 
     method chop(IO::Pathy:D:)     { $!abspath.chop }
-    method relpath(IO::Pathy:D: $root?) {
-        REMOVE-ROOT( $root // $*CWD.Str,$!abspath);
+    method relpath(IO::Pathy:D: $root as Str = $*CWD) { # Str(Any)
+        REMOVE-ROOT($root,$!abspath);
     }
 
     method !parts() { @!parts = $!abspath.split('/') unless @!parts }
@@ -36,7 +36,7 @@ my role IO::Pathy {
     method Int(IO::Pathy:D:)     { self.basename.Int }
 
     multi method Str(IO::Pathy:D:)  { $!abspath }
-    multi method gist(IO::Pathy:D:) { qq|"{ self.relative }".IO| }
+    multi method gist(IO::Pathy:D:) { qq|"{ self.relpath }".IO| }
     multi method perl(IO::Pathy:D:) { "q|$!abspath|.IO" }
 
     method succ(IO::Pathy:D:) { $!abspath.succ }

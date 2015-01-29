@@ -52,7 +52,6 @@ perl6-debug-m
 perl6-debug-m.bat
 t/localtest.data
 t/spec
-/parrot
 perl6.c
 perl6.o
 MANIFEST
@@ -67,12 +66,6 @@ dynext/*.pdb
 dynext/*.dylib
 perl6_group.?
 perl6_group.obj
-libparrot.dll
-cygparrot*.dll
-src/vm/parrot/guts/*.o
-src/vm/parrot/guts/*.obj
-src/vm/parrot/guts/*.bundle
-src/vm/parrot/guts/*.pdb
 docs/test_summary.times
 docs/test_summary.times.tmp
 lib/DateTime/strftime.pir

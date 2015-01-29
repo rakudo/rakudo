@@ -39,19 +39,8 @@ my class Exception {
     }
 
     method resume() {
-#?if parrot
-        my Mu $resume := nqp::atkey($!ex, 'resume');
-        if $resume {
-            $resume();
-        }
-        else {
-            die "Exception is not resumable";
-        }
-#?endif
-#?if !parrot
         nqp::resume($!ex);
         True
-#?endif
     }
 
     method die(Exception:D:) { self.throw }
@@ -116,12 +105,7 @@ sub EXCEPTION(|) {
     } else {
         my int $type = nqp::getextype($vm_ex);
         my $ex;
-#?if parrot
-        if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND &&
-#?endif
-#?if !parrot
         if
-#?endif
             nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
 
             $ex := X::Method::NotFound.new(
@@ -176,12 +160,7 @@ do {
             my $e := EXCEPTION($ex);
             my Mu $err := nqp::getstderr();
 
-#?if parrot
-            if $e.is-compile-time || is_runtime($ex.backtrace) {
-#?endif
-#?if !parrot
             if $e.is-compile-time || is_runtime(nqp::backtrace($ex)) {
-#?endif
                 nqp::printfh($err, $e.gist);
                 nqp::printfh($err, "\n");
             }
@@ -193,13 +172,8 @@ do {
             THE_END();
         }
         if $! {
-#?if parrot
-            pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::decont($!), Exception, '$!ex'), $ex);
-#?endif
-#?if !parrot
             nqp::rethrow(nqp::getattr(nqp::decont($!), Exception, '$!ex'));
             $ex
-#?endif
         }
     }
 
@@ -210,22 +184,9 @@ do {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::getmessage($ex));
             nqp::printfh($err, $msg.chars ?? "$msg" !! "Warning");
-#?if parrot
-            nqp::printfh($err, Backtrace.new($ex.backtrace, 0).nice(:oneline));
-#?endif
-#?if !parrot
             nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
-#?endif
             nqp::printfh($err, "\n");
-#?if parrot
-            my $resume := nqp::atkey($ex, 'resume');
-            if ($resume) {
-                $resume();
-            }
-#?endif
-#?if !parrot
             nqp::resume($ex)
-#?endif
         }
         if ($type == nqp::const::CONTROL_LAST) {
             X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct').throw;
@@ -252,12 +213,7 @@ do {
     $comp.HOW.add_method($comp, 'handle-exception',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
-#?if parrot
-            pir::perl6_invoke_catchhandler__vPP(&print_exception, $ex);
-#?endif
-#?if !parrot
             print_exception($ex);
-#?endif
             nqp::exit(1);
             0;
         }
@@ -265,12 +221,7 @@ do {
     $comp.HOW.add_method($comp, 'handle-control',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
-#?if parrot
-            pir::perl6_invoke_catchhandler__vPP(&print_control, $ex);
-#?endif
-#?if !parrot
             print_control($ex);
-#?endif
             nqp::rethrow($ex);
         }
     );

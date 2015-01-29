@@ -18,9 +18,6 @@ my class IO::Spec {
 
         # really just a way of getting $*DISTRO.name before we have %*ENV
         $token //=
-#?if parrot
-          nqp::p6box_s(nqp::atkey(nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH), 'osname'));
-#?endif
 #?if jvm
           nqp::p6box_s(nqp::atkey(nqp::jvmgetproperties(), 'os.name'));
 #?endif

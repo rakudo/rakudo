@@ -380,7 +380,6 @@ class Perl6::World is HLL::World {
             QAST::Op.new(
                 :op('loadbytecode'),
                 QAST::VM.new(
-                    :parrot(QAST::SVal.new( :value('ModuleLoader.pbc') )),
                     :jvm(QAST::SVal.new( :value('ModuleLoader.class') )),
                     :moar(QAST::SVal.new( :value('ModuleLoader.moarvm') ))
                 )),
@@ -1312,11 +1311,6 @@ class Perl6::World is HLL::World {
                     $code_past[0].push(self.run_phasers_code($code, $block_type, 'ENTER'));
                 }
                 if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
-                    if nqp::getcomp('perl6').backend.name eq 'parrot' {
-                        $code_past[+@($code_past) - 1] := QAST::Op.new(
-                            :op('p6return'),
-                            $code_past[+@($code_past) - 1]);
-                    }
                     $code_past.has_exit_handler(1);
                 }
             }
@@ -1867,95 +1861,69 @@ class Perl6::World is HLL::World {
         # TODO: use the Moar code-path here on all backends. The issue was
         # discovered close to release, so only the Moar backend - that really
         # needs this - is being updated for now.
-        if nqp::getcomp('perl6').backend.name ne 'parrot' {
-            my class FixupList {
-                has $!list;
-                has $!resolved;
-                has $!resolver;
-                method add_unresolved($code) {
-                    nqp::scwbdisable();
-                    nqp::push($!list, $code);
-                    nqp::scwbenable();
-                    if nqp::isconcrete($!resolved) {
-                        my int $added_update := 0;
-                        try {
-                            my $cur_handle := $*W.handle;
-                            if $cur_handle ne $!resolver {
-                                $*W.add_object($code);
-                                $*W.add_fixup_task(:deserialize_ast(QAST::Op.new(
-                                    :op('callmethod'), :name('update'),
-                                    QAST::WVal.new( :value(self) ),
-                                    QAST::WVal.new( :value($code) )
-                                )));
-                                $added_update := 1;
-                            }
-                        }
-                        unless $added_update {
-                            nqp::p6captureouters2([$code], $!resolved);
+        my class FixupList {
+            has $!list;
+            has $!resolved;
+            has $!resolver;
+            method add_unresolved($code) {
+                nqp::scwbdisable();
+                nqp::push($!list, $code);
+                nqp::scwbenable();
+                if nqp::isconcrete($!resolved) {
+                    my int $added_update := 0;
+                    try {
+                        my $cur_handle := $*W.handle;
+                        if $cur_handle ne $!resolver {
+                            $*W.add_object($code);
+                            $*W.add_fixup_task(:deserialize_ast(QAST::Op.new(
+                                :op('callmethod'), :name('update'),
+                                QAST::WVal.new( :value(self) ),
+                                QAST::WVal.new( :value($code) )
+                            )));
+                            $added_update := 1;
                         }
                     }
-                }
-                method resolve($resolved) {
-                    nqp::scwbdisable();
-                    $!resolved := $resolved;
-                    nqp::scwbenable();
-                    nqp::p6captureouters2($!list, $resolved);
-                }
-                method update($code) {
-                    if !nqp::isnull($!resolved) && !nqp::istype($!resolved, NQPMu) {
-                        nqp::p6captureouters2([$code],
-                            nqp::getcomp('perl6').backend.name eq 'moar'
-                                ?? nqp::getstaticcode($!resolved)
-                                !! $!resolved);
+                    unless $added_update {
+                        nqp::p6captureouters2([$code], $!resolved);
                     }
                 }
             }
-
-            # Create a list and put it in the SC.
-            my $fixup_list := nqp::create(FixupList);
-            self.add_object($fixup_list);
-            nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
-            nqp::bindattr($fixup_list, FixupList, '$!resolver', self.handle());
-
-            # Set up capturing code.
-            my $capturer := self.cur_lexpad();
-            my $c_block  := QAST::Block.new( :blocktype('declaration_static') );
-            self.create_simple_code_object($c_block, 'Code');
-            $capturer[0].push(QAST::Op.new(
-                :op('callmethod'), :name('resolve'),
-                QAST::WVal.new( :value($fixup_list) ),
-                QAST::Op.new( :op('takeclosure'), $c_block )));
-
-            # Return a QAST node that we can push the dummy closure.
-            return QAST::Op.new(
-                :op('callmethod'), :name('add_unresolved'),
-                QAST::WVal.new( :value($fixup_list) )
-            );
+            method resolve($resolved) {
+                nqp::scwbdisable();
+                $!resolved := $resolved;
+                nqp::scwbenable();
+                nqp::p6captureouters2($!list, $resolved);
+            }
+            method update($code) {
+                if !nqp::isnull($!resolved) && !nqp::istype($!resolved, NQPMu) {
+                    nqp::p6captureouters2([$code],
+                        nqp::getcomp('perl6').backend.name eq 'moar'
+                            ?? nqp::getstaticcode($!resolved)
+                            !! $!resolved);
+                }
+            }
         }
-        else {
-            # Create a list and put it in the SC.
-            my class FixupList { has $!list }
-            my $fixup_list := nqp::create(FixupList);
-            self.add_object($fixup_list);
-            nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
-    
-            # Set up capturing code.
-            my $capturer := self.cur_lexpad();
-            $capturer[0].push(QAST::Op.new(
-                :op('p6captureouters'),
-                QAST::Var.new(
-                    :name('$!list'), :scope('attribute'),
-                    QAST::WVal.new( :value($fixup_list) ),
-                    QAST::WVal.new( :value(FixupList) ))));
-            
-            # Return a PAST node that we can push the dummy closure
-            return QAST::Op.new(
-                :op('push'),
-                QAST::Var.new(
-                    :name('$!list'), :scope('attribute'),
-                    QAST::WVal.new( :value($fixup_list) ),
-                    QAST::WVal.new( :value(FixupList) )));
-        }
+
+        # Create a list and put it in the SC.
+        my $fixup_list := nqp::create(FixupList);
+        self.add_object($fixup_list);
+        nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
+        nqp::bindattr($fixup_list, FixupList, '$!resolver', self.handle());
+
+        # Set up capturing code.
+        my $capturer := self.cur_lexpad();
+        my $c_block  := QAST::Block.new( :blocktype('declaration_static') );
+        self.create_simple_code_object($c_block, 'Code');
+        $capturer[0].push(QAST::Op.new(
+            :op('callmethod'), :name('resolve'),
+            QAST::WVal.new( :value($fixup_list) ),
+            QAST::Op.new( :op('takeclosure'), $c_block )));
+
+        # Return a QAST node that we can push the dummy closure.
+        return QAST::Op.new(
+            :op('callmethod'), :name('add_unresolved'),
+            QAST::WVal.new( :value($fixup_list) )
+        );
     }
     
     # Handles addition of a phaser.
@@ -2697,22 +2665,7 @@ class Perl6::World is HLL::World {
     # Adds various bits of initialization that must always be done early on.
     method add_initializations() {
         if self.is_precompilation_mode() {
-            self.add_load_dependency_task(:deserialize_ast(QAST::VM.new(
-                :parrot(QAST::Stmts.new(
-                    QAST::VM.new( :pirop('nqp_dynop_setup v') ),
-                    QAST::VM.new( :pirop('nqp_bigint_setup v') ),
-                    QAST::VM.new( :pirop('nqp_native_call_setup v') ),
-                    QAST::VM.new( :pirop('rakudo_dynop_setup v') ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('hll_map'),
-                        QAST::VM.new( :pirop('getinterp P') ),
-                        QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('LexPad') ) ),
-                        QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('NQPLexPad') ) )
-                    )
-                )),
-                :jvm(QAST::Op.new( :op('null') )),
-                :moar(QAST::Op.new( :op('null') ))
-            )));
+            self.add_load_dependency_task(:deserialize_ast(QAST::Op.new( :op('null') )));
         }
     }
 

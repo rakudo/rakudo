@@ -1470,14 +1470,6 @@ sub substr-rw($s is rw, $from, $length?) {
 
 # These probably belong in a separate unicodey file
 
-#?if parrot
-multi sub uniname(|)  { die 'uniname NYI on parrot backend' }
-multi sub uniprop(|)  { die 'uniprop NYI on parrot backend' }
-multi sub unibool(|)  { die 'unibool NYI on parrot backend' }
-multi sub unival(|)   { die 'unival NYI on parrot backend' }
-multi sub univals(|)  { die 'univals NYI on parrot backend' }
-multi sub unimatch(|) { die 'unimatch NYI on parrot backend' }
-#?endif
 #?if jvm
 multi sub uniname(|)  { die 'uniname NYI on jvm backend' }
 multi sub uniprop(|)  { die 'uniprop NYI on jvm backend' }

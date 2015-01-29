@@ -13,14 +13,6 @@ class VM does Systemic {
       :$!properties,
 #?endif
     ) {
-#?if parrot
-        $!name           = 'parrot';
-        $!auth           = "Parrot Foundation";
-        $!version        = Version.new($!config<VERSION> // "unknown");
-        $!precomp-ext    = "pir";
-        $!precomp-target = "pir";
-        $!prefix         = $!config<libdir> ~ $!config<versiondir>;
-#?endif
 #?if jvm
         $!name           = 'jvm';
         $!auth           = $!properties<java.vendor> // "unknown";
@@ -59,9 +51,6 @@ multi sub postcircumfix:<{ }> (VM $d, "properties" ) {
 multi sub INITIALIZE_DYNAMIC('$*VM') {
     PROCESS::<$VM> := do {
         my $config :=
-#?if parrot
-            nqp::hllize(nqp::atpos(pir::getinterp__P,pir::const::IGLOBALS_CONFIG_HASH));
-#?endif
 #?if jvm
             do {
                 my %CONFIG;

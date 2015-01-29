@@ -36,9 +36,6 @@ nqp::bindhllsym('perl6', '@END_PHASERS', []);
 # In an embedding environment, let @*ARGS be empty instead of crashing
 nqp::bindhllsym('perl6', '$!ARGITER', 0);
 
-#?if parrot
-sub MAIN(@ARGS) {
-#?endif
 #?if jvm
 sub MAIN(*@ARGS) {
 #?endif

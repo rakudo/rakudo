@@ -7,39 +7,19 @@ multi sub infix:<eqv>(Stringy:D $a, Stringy:D $b) {
 proto sub prefix:<~>($) is pure { * }
 multi sub prefix:<~>(\a)          { a.Stringy }
 
-#?if parrot
-proto sub infix:<~>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<~>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<~>($x = '')       { $x.Stringy }
 multi sub infix:<~>(\a, \b)      { a.Stringy ~ b.Stringy }
 
-#?if parrot
-proto sub infix:<x>($?, $?)        { * }
-#?endif
-#?if !parrot
 proto sub infix:<x>(Mu $?, Mu $?)        { * }
-#?endif
 multi sub infix:<x>()              { fail "No zero-arg meaning for infix:<x>" }
 multi sub infix:<x>($x)            { $x.Stringy }
 multi sub infix:<x>($s, $n)        { $s.Stringy x ($n.Int // 0) }
 
-#?if parrot
-proto sub infix:<leg>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<leg>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<leg>(\a, \b)      { a.Stringy cmp b.Stringy }
 
-#?if parrot
-proto sub infix:<eq>($?, $?)  is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<eq>(Mu $?, Mu $?)  is pure { * }
-#?endif
 multi sub infix:<eq>($x?)          { Bool::True }
 multi sub infix:<eq>(\a, \b)       { a.Stringy eq b.Stringy }
 
@@ -47,76 +27,36 @@ proto sub infix:<ne>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<ne>($x?)            { Bool::True }
 multi sub infix:<ne>(Mu \a, Mu \b)   { a !eq b }
 
-#?if parrot
-proto sub infix:<lt>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<lt>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<lt>($x?)          { Bool::True }
 multi sub infix:<lt>(\a, \b)       { a.Stringy lt b.Stringy }
 
-#?if parrot
-proto sub infix:<le>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<le>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<le>($x?)          { Bool::True }
 multi sub infix:<le>(\a, \b)       { a.Stringy le b.Stringy }
 
-#?if parrot
-proto sub infix:<gt>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<gt>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<gt>($x?)          { Bool::True }
 multi sub infix:<gt>(\a, \b)       { a.Stringy gt b.Stringy }
 
-#?if parrot
-proto sub infix:<ge>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<ge>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<ge>($x?)          { Bool::True }
 multi sub infix:<ge>(\a, \b)       { a.Stringy ge b.Stringy }
 
-#?if parrot
-proto sub infix:<~|>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<~|>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<~|>($x = '')      { $x.Stringy }
 multi sub infix:<~|>(\a, \b)       { a.Stringy ~| b.Stringy }
 
-#?if parrot
-proto sub infix:<~^>($?, $?)  is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<~^>(Mu $?, Mu $?)  is pure { * }
-#?endif
 multi sub infix:<~^>($x = '')      { $x.Stringy }
 multi sub infix:<~^>(\a, \b)       { a.Stringy ~^ b.Stringy }
 
-#?if parrot
-proto sub infix:<~&>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<~&>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<~&>()             { fail "No zero-arg meaning for infix:<~&>" }
 multi sub infix:<~&>($x)           { $x.Stringy }
 multi sub infix:<~&>(\a, \b)       { a.Stringy ~& b.Stringy }
 
-#?if parrot
-proto sub prefix:<~^>($) is pure { * }
-#?endif
-#?if !parrot
 proto sub prefix:<~^>(Mu $) is pure { * }
-#?endif
 multi sub prefix:<~^>(\a)         { ~^ a.Stringy }
 
 # vim: ft=perl6 expandtab sw=4

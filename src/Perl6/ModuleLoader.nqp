@@ -174,18 +174,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
                 # Read source file.
                 DEBUG("loading ", %chosen<pm>) if $DEBUG;
-#?if parrot
-                my $fh := nqp::open(%chosen<pm>, 'r');
-                $fh.encoding('utf8');
-                my $source := $fh.readall();
-                $fh.close();
-#?endif
-#?if !parrot
                 my $fh := nqp::open(%chosen<pm>, 'r');
                 nqp::setencoding($fh, 'utf8');
                 my $source := nqp::readallfh($fh);
                 nqp::closefh($fh);
-#?endif
 
                 # Get the compiler and compile the code, then run it
                 # (which runs the mainline and captures UNIT).

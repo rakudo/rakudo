@@ -82,87 +82,10 @@ my class Mu { # declared in BOOTSTRAP
     method BUILDALL(@autovivs, %attrinit) {
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
-        # would get expensive. Need to do it a bit differently on
-        # Parrot; it's not so 6model-y as other backends.
+        # would get expensive.
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = 0;
-#?if parrot
-        while nqp::islt_i($i, $count) {
-            my $task := nqp::atpos($build_plan, $i);
-            my int $code = nqp::atpos_i($task, 0);
-            $i = nqp::add_i($i, 1);
-            if nqp::iseq_i($code, 0) {
-                # Custom BUILD call.
-                nqp::atpos($task, 1)(self, |%attrinit);
-            }
-            elsif nqp::iseq_i($code, 1) {
-                # See if we have a value to initialize this attr
-                # with.
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    # XXX Should not really need the decontainerize, but seems
-                    # that slurpy hashes sometimes lead to double containers
-                    # somehow...
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-            }
-            elsif nqp::iseq_i($code, 2) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::list())
-                }
-            }
-            elsif nqp::iseq_i($code, 3) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::hash())
-                }
-            }
-            elsif nqp::iseq_i($code, 4) {
-                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
-                    my \attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
-                    attr = nqp::atpos($task, 3)(self, attr);
-                }
-            }
-            elsif nqp::iseq_i($code, 5) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
-            }
-            elsif nqp::iseq_i($code, 6) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
-            }
-            elsif nqp::iseq_i($code, 7) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
-            }
-            else {
-                die "Invalid BUILDALLPLAN";
-            }
-        }
-#?endif
-#?if !parrot
         while nqp::islt_i($i, $count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
@@ -236,96 +159,14 @@ my class Mu { # declared in BOOTSTRAP
                 die "Invalid BUILDALLPLAN";
             }
         }
-#?endif
         self
     }
 
     method BUILD_LEAST_DERIVED(%attrinit) {
-        # Get the build plan for just this class. Need to do it a bit
-        # differently on Parrot; it's not so 6model-y as other backends.
+        # Get the build plan for just this class.
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = 0;
-#?if parrot
-        while nqp::islt_i($i, $count) {
-            my $task := nqp::atpos($build_plan, $i);
-            my int $code = nqp::atpos_i($task, 0);
-            $i = nqp::add_i($i, 1);
-            if nqp::iseq_i($code, 0) {
-                # Custom BUILD call.
-                nqp::atpos($task, 1)(self, |%attrinit);
-            }
-            elsif nqp::iseq_i($code, 1) {
-                # See if we have a value to initialize this attr
-                # with.
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-            }
-            elsif nqp::iseq_i($code, 2) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::list())
-                }
-            }
-            elsif nqp::iseq_i($code, 3) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::hash())
-                }
-            }
-            elsif nqp::iseq_i($code, 4) {
-                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
-                    my \attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
-                    attr = nqp::atpos($task, 3)(self, attr);
-                }
-            }
-            elsif nqp::iseq_i($code, 5) || nqp::iseq_i($code, 6) || nqp::iseq_i($code, 7) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::bindattr(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
-            }
-            elsif nqp::iseq_i($code, 5) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
-            }
-            elsif nqp::iseq_i($code, 6) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
-            }
-            elsif nqp::iseq_i($code, 7) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
-                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
-            }
-            else {
-                die "Invalid BUILDALLPLAN";
-            }
-        }
-#?endif
-#?if !parrot
         while nqp::islt_i($i, $count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
@@ -396,7 +237,6 @@ my class Mu { # declared in BOOTSTRAP
                 die "Invalid BUILDALLPLAN";
             }
         }
-#?endif
         self
     }
 
@@ -758,15 +598,7 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         if nqp::iscont($topic);
     return '(null)' if nqp::isnull($topic);
 
-    # On Parrot, not everything is a 6model object, so use the typeof op to
-    # get a real type name. On other platforms, .HOW.name(...) can be relied
-    # on to work.
-#?if parrot
-    my str $type  = pir::typeof__SP($topic);
-#?endif
-#?if !parrot
     my str $type  = $topic.HOW.name($topic);
-#?endif
     my str $where = nqp::base_I(nqp::where($topic), 16);
 
     if %ctx{$where} -> $obj_num {
@@ -780,9 +612,6 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         %ctx{$where} = $obj_num;
 
         if    nqp::islist($topic) {
-#?if parrot
-            $type = 'RPA' if $type eq 'ResizablePMCArray';
-#?endif
             my str $id = $type ~ '<' ~ $obj_num ~ '>';
 
             my @pieces;

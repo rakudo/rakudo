@@ -265,6 +265,12 @@ sub rename($from, $to, :$CWD as Str = $*CWD, |c) {
     );
     $result // $result.throw;
 }
+sub move($from, $to, :$CWD as Str = $*CWD, |c) {
+    my $result := MOVE-PATH(
+      MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
+    );
+    $result // $result.throw;
+}
 sub copy($from, $to, :$CWD as Str = $*CWD, |c) {
     my $result := COPY-FILE(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c

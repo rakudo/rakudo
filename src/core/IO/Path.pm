@@ -347,19 +347,8 @@ my class IO::Path is Cool {
           ?? $!SPEC.dir-sep
           !! $.abspath ~ $!SPEC.dir-sep;
 
-#?if parrot
-        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($.abspath));
-        my int $elems = nqp::elems($RSA);
-        gather
-            loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-                my Str $elem = nqp::p6box_s(pir::trans_encoding__Ssi(
-                  nqp::atpos_s($RSA, $i),
-                  pir::find_encoding__Is('utf8')));
-#?endif
-#?if !parrot
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.abspath));
         gather {
-#?endif
 #?if jvm
             for <. ..> -> $elem {
                 if $test.ACCEPTS($elem) {
@@ -373,7 +362,6 @@ my class IO::Path is Cool {
                 }
             }
 #?endif
-#?if !parrot
             loop {
                 my str $str_elem = nqp::nextfiledir($dirh);
                 if nqp::isnull_s($str_elem) || nqp::chars($str_elem) == 0 {
@@ -381,7 +369,6 @@ my class IO::Path is Cool {
                     last;
                 }
                 my Str $elem = nqp::box_s($str_elem,Str);
-#?endif
 #?if jvm
                 if $test.ACCEPTS($!SPEC.basename($elem)) {
 #?endif
@@ -401,9 +388,7 @@ my class IO::Path is Cool {
                 nqp::chdir($cwd);
 #?endif
             }
-#?if !parrot
         }
-#?endif
     }
 
     proto method slurp() { * }

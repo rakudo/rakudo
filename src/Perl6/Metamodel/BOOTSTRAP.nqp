@@ -1011,22 +1011,6 @@ BEGIN {
     nqp::p6init();
 
     # class Mu { ... }
-#?if parrot
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_i($self.Int())
-        }));
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_number',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_n($self.Num())
-        }));
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_string',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_s($self.Str())
-        }));
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
-        nqp::getstaticcode(sub ($self) { nqp::istrue($self.defined()) }));
-#?endif
     Mu.HOW.compose_repr(Mu);
 
     # class Any is Mu { ... }
@@ -1927,7 +1911,6 @@ BEGIN {
             my $many_res := $many ?? [] !! Mu;
             my @possibles;
             my int $done := 0;
-            my int $done_bind_check := 0;
             until $done {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
@@ -2034,14 +2017,6 @@ BEGIN {
                                 $new_possibles := [] unless nqp::islist($new_possibles);
                                 
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
-#?if !parrot
-                                unless $done_bind_check {
-                                    # Need a copy of the capture, as we may later do a
-                                    # multi-dispatch when evaluating the constraint.
-                                    $capture := nqp::clone($capture);
-                                    $done_bind_check := 1;
-                                }
-#?endif
                                 if nqp::p6isbindable($sig, $capture) {
                                     nqp::push($new_possibles, nqp::atpos(@possibles, $i));
                                     unless $many {

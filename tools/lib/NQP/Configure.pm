@@ -218,8 +218,6 @@ sub gen_nqp {
     my $git_protocol = $options{'git-protocol'} // 'https';
     my @moar_options = @{ $options{'moar-option'} // [] };
 
-    my $PARROT_REVISION = 'nqp/tools/build/PARROT_REVISION';
-
     my (%impls, %need);
 
     for my $b (qw/jvm moar/) {

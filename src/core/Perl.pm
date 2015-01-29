@@ -8,13 +8,10 @@ class Perl does Systemic {
       :$!compiler  = Compiler.new,
     ) { }
 
-    method VMnames { <moar jvm parrot> }
+    method VMnames { <moar jvm > }
 
     method DISTROnames {
         (
-#?if parrot
-        <macosx linux freebsd mswin32 mingw msys cygwin solaris haiku openbsd netbsd>
-#?endif
 #?if jvm
         <macosx linux freebsd mswin32 openbsd netbsd>
 #?endif

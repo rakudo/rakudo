@@ -1,5 +1,3 @@
-#!./parrot perl6.pbc
-
 # check string ops
 
 use v6;

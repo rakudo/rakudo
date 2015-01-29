@@ -2446,12 +2446,6 @@ BEGIN {
     Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
     Str.HOW.set_boolification_mode(Str, 4);
     Str.HOW.publish_boolification_spec(Str);
-#?if parrot
-    Str.HOW.add_parrot_vtable_mapping(Str, 'get_string',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_s($self)
-        }));
-#?endif
     Str.HOW.compose_repr(Str);
 
     # class Int is Cool {
@@ -2710,28 +2704,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
 }
 EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
-
-#?if parrot
-# Publish Parrot v-table handler mappings.
-Mu.HOW.publish_parrot_vtable_mapping(Mu);
-Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
-Code.HOW.publish_parrot_vtable_handler_mapping(Code);
-Code.HOW.publish_parrot_vtable_mapping(Code);
-Block.HOW.publish_parrot_vtable_handler_mapping(Block);
-Block.HOW.publish_parrot_vtable_mapping(Block);
-Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
-Routine.HOW.publish_parrot_vtable_mapping(Routine);
-Sub.HOW.publish_parrot_vtable_handler_mapping(Sub);
-Sub.HOW.publish_parrot_vtable_mapping(Sub);
-Method.HOW.publish_parrot_vtable_handler_mapping(Method);
-Method.HOW.publish_parrot_vtable_mapping(Method);
-Submethod.HOW.publish_parrot_vtable_handler_mapping(Submethod);
-Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
-Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
-Regex.HOW.publish_parrot_vtable_mapping(Regex);
-Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
-Str.HOW.publish_parrot_vtable_handler_mapping(Str);
-#?endif
 
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);

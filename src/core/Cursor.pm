@@ -75,14 +75,8 @@ my class Cursor does NQPCursorRole {
                             if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                 $list := nqp::list() unless nqp::isconcrete($list);
                                 $needs_list
-#?if parrot
-                                    ?? nqp::atpos($list, +$name).push($submatch)
-                                    !! nqp::bindpos($list, +$name, $submatch);
-#?endif
-#?if !parrot
                                     ?? nqp::atpos($list, nqp::bind(my int $, nqp::unbox_s($name))).push($submatch)
                                     !! nqp::bindpos($list, nqp::bind(my int $, nqp::unbox_s($name)), $submatch);
-#?endif
                             }
                             else {
                                 $needs_list
@@ -94,12 +88,7 @@ my class Cursor does NQPCursorRole {
                             my Mu $names := nqp::split('=', $name);
                             my $iter     := nqp::iterator($names);
                             while $iter {
-#?if parrot
-                                my Mu $name   := nqp::shift($iter);
-#?endif
-#?if !parrot
                                 my str $name   = nqp::unbox_s(nqp::shift($iter));
-#?endif
                                 my Mu $capval := nqp::atkey($caplist, $name);
 #?if jvm
                                 my int $needs_list = nqp::isconcrete($capval) &&
@@ -112,14 +101,8 @@ my class Cursor does NQPCursorRole {
                                 if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                     $list := nqp::list() unless nqp::isconcrete($list);
                                     $needs_list
-#?if parrot
-                                        ?? nqp::atpos($list, +$name).push($submatch)
-                                        !! nqp::bindpos($list, +$name, $submatch);
-#?endif
-#?if !parrot
                                         ?? nqp::atpos($list, nqp::bind(my int $, $name)).push($submatch)
                                         !! nqp::bindpos($list, nqp::bind(my int $, $name), $submatch);
-#?endif
                                 }
                                 else {
                                     $needs_list

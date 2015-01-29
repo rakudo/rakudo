@@ -530,32 +530,17 @@ my class Any { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
-#?if parrot
-proto sub infix:<===>($?, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<===>(Mu $?, Mu $?) is pure { * }
-#?endif
 multi sub infix:<===>($?)    { Bool::True }
 multi sub infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-#?if parrot
-proto sub infix:<before>($, $?)  is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<before>(Mu $, Mu $?)  is pure { * }
-#?endif
 multi sub infix:<before>($?)      { Bool::True }
 multi sub infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-#?if parrot
-proto sub infix:<after>($, $?) is pure { * }
-#?endif
-#?if !parrot
 proto sub infix:<after>(Mu $, Mu $?) is pure { * }
-#?endif
 multi sub infix:<after>($x?)       { Bool::True }
 multi sub infix:<after>(\a, \b)    { (a cmp b) > 0 }
 

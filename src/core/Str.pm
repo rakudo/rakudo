@@ -519,22 +519,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
         my $result = '"';
-#?if parrot
-        my $icu = $*VM.config<has_icu>;
-        for ^self.chars -> $i {
-            my $ch = substr(self,$i, 1);
-            $result ~= %esc{$ch}
-                       //  (   ((!$icu && $ch.ord >= 256)
-                               || nqp::iscclass( nqp::const::CCLASS_PRINTING,
-                                                  nqp::unbox_s($ch), 0))
-#?endif
-#?if !parrot
         for ^self.chars -> $i {
             my $ch = substr(self,$i, 1);
             $result ~= %esc{$ch}
                        //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0)
-#?endif
                            ?? $ch
                            !! $ch.ord.fmt('\x[%x]')
                            );

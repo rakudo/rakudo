@@ -2788,7 +2788,6 @@ nqp::sethllconfig('perl6', nqp::hash(
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
     },
-#?if !parrot
     'exit_handler', -> $coderef, $resultish {
         my $code := nqp::getcodeobj($coderef);
         my %phasers := nqp::getattr($code, Block, '$!phasers');
@@ -2825,14 +2824,12 @@ nqp::sethllconfig('perl6', nqp::hash(
                         }
                     }
                     if $run {
-#?endif
 #?if jvm
                         $phaser();
 #?endif
 #?if moar
                         nqp::p6capturelexwhere($phaser.clone())();
 #?endif
-#?if !parrot
                     }
                     $i++;
                 }
@@ -2843,7 +2840,6 @@ nqp::sethllconfig('perl6', nqp::hash(
                 my int $n := nqp::elems(@posts);
                 my int $i := 0;
                 while $i < $n {
-#?endif
 #?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
 #?endif
@@ -2851,13 +2847,11 @@ nqp::sethllconfig('perl6', nqp::hash(
                     nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
                         nqp::ifnull($resultish, Mu));
 #?endif
-#?if !parrot
                     $i++;
                 }
             }
         }
     },
-#?endif
 #?if moar
     'bind_error', -> $capture {
         # Get signature and lexpad.

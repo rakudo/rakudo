@@ -256,7 +256,7 @@ my class Cursor does NQPCursorRole {
                     $len   := nqp::chars( $topic_str );
                     $match := $len < 1
                             ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic_str)
-                                    !! nqp::substr($tgt, $pos, $len) eq $topic_str);
+                                    !! nqp::eqat($tgt, $topic_str, $pos));
                 }
 
                 if $match && $len > $maxlen && $pos + $len <= $eos {

@@ -448,12 +448,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method delimited_code_content($/) {
         my @t := [];
-        if $<delimited_code_content> {
-            @t := Perl6::Pod::merge_twines($<pod_string>) if $<pod_string>;
-            @t.push($*W.add_constant(
-                'Str', 'str', ~$<pod_newline>
-            ).compile_time_value);
-            nqp::splice(@t, $<delimited_code_content>.ast,+@t,0);
+        for $/[0] {
+            if $_<pod_string> {
+                nqp::splice(@t, Perl6::Pod::merge_twines($_<pod_string>), +@t, 0);
+                nqp::push(@t, $*W.add_constant(
+                    'Str', 'str', ~$_<pod_newline>
+                ).compile_time_value);
+            } else {
+                @t.push($*W.add_constant('Str', 'str', "\n").compile_time_value);
+            }
         }
         make @t;
     }

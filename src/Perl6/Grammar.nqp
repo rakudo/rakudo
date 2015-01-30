@@ -801,15 +801,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token delimited_code_content($spaces = '') {
         ^^
-        [
+        (
         | $spaces
-          [
-          || '=end' \h+ 'code' [ <pod_newline> | $ ]
-          || <pod_string>**0..1 <pod_newline>
-             <delimited_code_content($spaces)>
-          ]
-        | <pod_newline> <delimited_code_content($spaces)>
-        ]
+            <!before '=end' \h+ 'code' [ <pod_newline> | $ ]>
+            <pod_string>**0..1 <pod_newline>
+        | <pod_newline>
+        )*
+        $spaces '=end' \h+ 'code' [ <pod_newline> | $ ]
     }
 
     token table_row {

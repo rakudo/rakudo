@@ -285,27 +285,28 @@ multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, *%adv) is rw {
         X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
             if keys[0].isa(HyperWhatever);
 
-        postcircumfix:<[ ]>(SELF, keys[0], :kv).map(-> \key, \value {
-            if [||] %adv<kv p k> {
+        if [||] %adv<kv p k> {
+            (SELF[keys[0]]:kv).map(-> \key, \value {
+                # make sure to call .item so that recursive calls don't map the LoL's elems
                 map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2).item, value2 } !!
                     %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
-                    # .item so that recursive calls don't map the LoL's elems
-                    %adv<k>  ?? { LoL.new(key, |$_).item } !!
-                    *, postcircumfix:<[ ]>(value, LoL.new(|keys[1..*]), |%adv);
-            } else {
-                postcircumfix:<[ ]>(value, LoL.new(|keys[1..*]), |%adv);
-            }
-        }).eager.Parcel;
+                    { LoL.new(key, |$_).item },
+                    postcircumfix:<[ ]>(value, LoL.new(|keys[1..*]), |%adv);
+            }).eager.Parcel;
+        } else {
+            (keys[0].isa(Whatever)
+                ?? SELF[SELF.keys].Parcel
+                !! SELF[keys[0].list].Parcel
+            ).map(-> \elem {
+                postcircumfix:<[ ]>(elem, LoL.new(|keys[1..*]), |%adv);
+            }).eager.Parcel;
+        }
     } else {
         postcircumfix:<[ ]>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);
     }
 }
 multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, Mu \assignee) is rw {
-    if keys > 1 {
-        SELF[keys[0]][keys[1..*]] = assignee;
-    } else {
-        SELF[keys[0]] = assignee;
-    }
+    (SELF[keys],) = assignee;
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -467,7 +467,7 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
             self."$call_name"()."$meth_name"(|c);
         }
         $meth.set_name($meth_name);
-        $pkg.HOW.add_method($pkg, $meth_name, $m);
+        $pkg.HOW.add_method($pkg, $meth_name, $meth);
     }
     0;
 }

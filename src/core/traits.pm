@@ -473,11 +473,8 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
 }
 
 multi sub trait_mod:<aka>(Method:D $m, &thunk) {
-    my $pkg := $m.signature.params[0].type;
-    my $call_name := $m.name;
-    for thunk() -> $meth_name {
-        $pkg.HOW.add_method($pkg, $meth_name, $m);
-    }
+    my $pkg := $m.package;
+    $pkg.HOW.add_method($pkg,$_,$m) for thunk();
     0;
 }
 

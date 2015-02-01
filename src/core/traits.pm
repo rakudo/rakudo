@@ -467,7 +467,16 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
             self."$call_name"()."$meth_name"(|c);
         }
         $meth.set_name($meth_name);
-        $pkg.HOW.add_method($pkg, $meth_name, $meth);
+        $pkg.HOW.add_method($pkg, $meth_name, $m);
+    }
+    0;
+}
+
+multi sub trait_mod:<aka>(Method:D $m, &thunk) {
+    my $pkg := $m.signature.params[0].type;
+    my $call_name := $m.name;
+    for thunk() -> $meth_name {
+        $pkg.HOW.add_method($pkg, $meth_name, $m);
     }
     0;
 }

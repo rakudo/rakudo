@@ -2404,7 +2404,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $/.CURSOR.panic("Compilation unit cannot be anonymous");
                         }
                         unless $outer =:= $*UNIT {
-                            $/.CURSOR.panic("Semicolon form of " ~ $*PKGDECL ~ " definition not allowed in subscope;\n  please use block form");
+                            $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => $*PKGDECL, where => "in subscopes");
                         }
                         if $*PKGDECL eq 'package' {
                             $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
@@ -2415,7 +2415,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     <.finishpad>
                     <statementlist(1)>     # whole rest of file, presumably
                     { $*CURPAD := $*W.pop_lexpad() }
-                || <.panic("Too late for semicolon form of $*PKGDECL definition")>
+                || { $/.CURSOR.typed_panic("X::SemicolonForm::TooLate", what => $*PKGDECL); }
                 ]
             || <.panic("Unable to parse $*PKGDECL definition")>
             ]
@@ -2626,16 +2626,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 if $<deflongname> ne 'MAIN' {
-                    $/.CURSOR.panic("Semicolon form of sub definitions only allowed for MAIN subs;\n  please use block form");
+                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "except on MAIN subs");
                 }
                 unless $*begin_compunit {
-                    $/.CURSOR.panic("Too late for semicolon form of sub definition;\n  please use block form");
+                    $/.CURSOR.typed_panic("X::SemicolonForm::TooLate", what => "sub");
                 }
-                if $*MULTINESS eq '' || $*MULTINESS eq 'only' {
-                    $/.CURSOR.panic("Semicolon form of sub definitions not allowed on $*MULTINESS subs;\n  please use block form");
+                unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
+                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "on $*MULTINESS subs");
                 }
                 unless $outer =:= $*UNIT {
-                    $/.CURSOR.panic("Semicolon form of sub definitions not allowed in subscope;\n  please use block form");
+                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "in subscopes");
                 }
                 $*begin_compunit := 0;
             }

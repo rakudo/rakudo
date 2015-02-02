@@ -2373,7 +2373,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block := $<onlystar>.ast;
         }
         else {
-            $block := $<blockoid>.ast;
+            if $<blockoid> {
+                $block := $<blockoid>.ast;
+            } else {
+                $block := $*CURPAD;
+                $block.blocktype('declaration_static');
+                $block.push($<statementlist>.ast);
+                $block.node($/);
+            }
             if is_clearly_returnless($block) {
                 unless nqp::objprimspec($block[1].returns) {
                     $block[1] := QAST::Op.new(

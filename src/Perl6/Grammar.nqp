@@ -2596,6 +2596,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
+        :my $*CURPAD;
+        :my $outer := $*W.cur_lexpad();
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2621,6 +2623,25 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <trait>* :!s
         { $*IN_DECL := ''; }
         [
+        || ';'
+            {
+                if $<deflongname> ne 'MAIN' {
+                    $/.CURSOR.panic("Semicolon form of sub definitions only allowed for MAIN subs;\n  please use block form");
+                }
+                unless $*begin_compunit {
+                    $/.CURSOR.panic("Too late for semicolon form of sub definition;\n  please use block form");
+                }
+                if $*MULTINESS eq '' || $*MULTINESS eq 'only' {
+                    $/.CURSOR.panic("Semicolon form of sub definitions not allowed on $*MULTINESS subs;\n  please use block form");
+                }
+                unless $outer =:= $*UNIT {
+                    $/.CURSOR.panic("Semicolon form of sub definitions not allowed in subscope;\n  please use block form");
+                }
+                $*begin_compunit := 0;
+            }
+            <.finishpad>
+            <statementlist(1)>
+            { $*CURPAD := $*W.pop_lexpad() }
         || <onlystar>
         || <blockoid>
         ]

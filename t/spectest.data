@@ -5,7 +5,6 @@
 # we don't add some files here, although all tests might pass right now
 #
 # Each file may have one or more markers that deselects the test:
-#     icu    - run tests only if --icu=1      (default is 1)
 #     long   - run tests only if --long=1     (default is 1)
 #     stress - run tests only if --stress=1   (default is 0)
 # See the "make quicktest" and "make stresstest" targets in
@@ -19,7 +18,7 @@ S02-lexical-conventions/minimal-whitespace.t
 S02-lexical-conventions/one-pass-parsing.t
 S02-lexical-conventions/pod-in-multi-line-exprs.t
 S02-lexical-conventions/sub-block-parsing.t
-S02-lexical-conventions/unicode.t                          # icu
+S02-lexical-conventions/unicode.t
 S02-lexical-conventions/unicode-whitespace.t
 S02-lexical-conventions/unspace.t
 S02-lists/indexing.t
@@ -27,7 +26,7 @@ S02-lists/tree.t
 S02-literals/adverbs.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
-S02-literals/char-by-name.t # icu
+S02-literals/char-by-name.t
 S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
@@ -40,7 +39,7 @@ S02-literals/numeric.t
 S02-literals/pair-boolean.t
 S02-literals/pairs.t
 S02-literals/quoting.t
-S02-literals/quoting-unicode.t          # icu
+S02-literals/quoting-unicode.t
 S02-literals/radix.t
 S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
@@ -77,7 +76,7 @@ S02-names-vars/contextual.t
 S02-names-vars/fmt.t
 S02-names-vars/list_array_perl.t
 S02-names-vars/names.t
-S02-names-vars/perl.t                              # icu
+S02-names-vars/perl.t
 S02-names-vars/signature.t
 S02-names-vars/variables-and-packages.t
 S02-names-vars/varnames.t
@@ -129,8 +128,8 @@ S02-types/subscripts_and_context.t
 S02-types/subset.t
 S02-types/type.t
 S02-types/undefined-types.t
-S02-types/unicode.t                     # icu
-S02-types/version.t                     # icu
+S02-types/unicode.t
+S02-types/version.t
 S02-types/whatever.t
 S02-types/WHICH.t
 S03-binding/arrays.t
@@ -159,7 +158,7 @@ S03-operators/orelse.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
-S03-operators/autoincrement-range.t # icu
+S03-operators/autoincrement-range.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
 S03-operators/bag.t
@@ -320,13 +319,13 @@ S05-grammar/ws.t
 S05-interpolation/lexicals.t
 S05-interpolation/regex-in-variable.t
 S05-mass/charsets.t
-S05-mass/named-chars.t                                     # icu
-S05-mass/properties-block.t                                # icu
-S05-mass/properties-derived.t                              # icu
-S05-mass/properties-general.t                              # icu
-S05-mass/properties-script.t                               # icu
+S05-mass/named-chars.t
+S05-mass/properties-block.t
+S05-mass/properties-derived.t
+S05-mass/properties-general.t
+S05-mass/properties-script.t
 S05-mass/recursive.t
-S05-mass/rx.t                                              # icu
+S05-mass/rx.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
@@ -359,7 +358,7 @@ S05-modifier/continue.t
 S05-modifier/counted-match.t
 S05-modifier/counted.t
 S05-modifier/global.t
-S05-modifier/ignorecase.t  # icu
+S05-modifier/ignorecase.t
 S05-modifier/ii.t
 S05-modifier/overlapping.t
 S05-modifier/perl5_0.t
@@ -376,7 +375,7 @@ S05-modifier/repetition.t
 S05-modifier/sigspace.t
 S05-substitution/67222.t
 S05-substitution/match.t
-S05-substitution/subst.t # icu
+S05-substitution/subst.t
 S05-transliteration/79778.t
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
@@ -658,7 +657,7 @@ S17-supply/words.t       # conc
 S17-supply/zip.t         # conc
 S17-supply/zip-latest.t  # conc
 S19-command-line/arguments.t
-S19-command-line/dash-e.t # icu
+S19-command-line/dash-e.t
 S19-command-line/help.t
 S19-command-line/repl.t
 S19-command-line-options/02-dash-n.t
@@ -692,7 +691,7 @@ S29-context/exit-in-if.t
 S29-context/exit.t
 S29-context/sleep.t
 S29-conversions/hash.t
-S29-conversions/ord_and_chr.t                              #icu
+S29-conversions/ord_and_chr.t
 S29-os/system.t
 S32-array/bool.t
 S32-array/create.t
@@ -794,33 +793,33 @@ S32-scalar/perl.t
 S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t
-S32-str/capitalize.t                                       # icu
+S32-str/capitalize.t
 S32-str/chomp.t
 S32-str/chop.t
-S32-str/comb.t                                             # icu
+S32-str/comb.t
 S32-str/encode.t
-S32-str/flip.t                                             # icu
-S32-str/indent.t                                           # icu
+S32-str/flip.t
+S32-str/indent.t
 S32-str/index.t
-S32-str/lc.t                                               # icu
+S32-str/lc.t
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
 S32-str/pack.t
 S32-str/pos.t
 S32-str/rindex.t
-S32-str/samecase.t                                         # icu
+S32-str/samecase.t
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
-S32-str/substr.t                                           # icu
+S32-str/substr.t
 S32-str/substr-rw.t
-S32-str/tc.t                                               # icu
-S32-str/tclc.t                                             # icu
+S32-str/tc.t
+S32-str/tclc.t
 S32-str/trim.t
-S32-str/uc.t                                               # icu
+S32-str/uc.t
 S32-str/unpack.t
-S32-str/words.t                                            # icu
+S32-str/words.t
 S32-temporal/calendar.t
 S32-temporal/Date.t
 S32-temporal/DateTime-Instant-Duration.t
@@ -937,7 +936,7 @@ integration/advent2014-day05.t # conc
 integration/advent2014-day13.t
 integration/advent2014-day16.t
 integration/code-blocks-as-sub-args.t
-integration/error-reporting.t  # icu
+integration/error-reporting.t
 integration/lazy-bentley-generator.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t

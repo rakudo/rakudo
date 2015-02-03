@@ -2856,7 +2856,7 @@ class Perl6::World is HLL::World {
                 }
                 return "(" ~ join(", ", @result) ~ ")";
             } else {
-                return ~$target;
+                return (try { ~$target} // '(unstringifiable object)' );
             }
         }
 

@@ -96,7 +96,7 @@ programs, so newbie questions are welcomed there.  Newbie questions
 are also welcome on the #perl6 channel; the Rakudo and Perl 6
 development teams tend to hang out there and are generally glad
 to help.  You can follow "@rakudoperl" on Twitter, and there's
-a Perl 6 news aggregator at [Planet Perl 6](http://planeteria.org/perl6/).
+a Perl 6 news aggregator at [Planet Perl 6](http://pl6anet.org/).
 
 Questions about NQP can also be posted to the #perl6 IRC channel.
 For questions about Parrot, see <http://parrot.org/> for links and

@@ -603,63 +603,63 @@ S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
-S17-channel/basic.t      # conc
-S17-channel/earliest.t   # conc
-# S17-lowlevel/lock.t      # conc
-S17-lowlevel/thread.t    # conc
+S17-channel/basic.t
+S17-channel/earliest.t
+# S17-lowlevel/lock.t
+S17-lowlevel/thread.t
 S17-procasync/basic.t    # moar
 # S17-procasync/print.t    # moar
 # S17-procasync/kill.t     # moar
-S17-promise/allof.t      # conc
-S17-promise/anyof.t      # conc
-S17-promise/basic.t      # conc
-S17-promise/in.t         # conc
-S17-promise/start.t      # conc
-S17-promise/then.t       # conc
-S17-scheduler/at.t       # conc
-S17-scheduler/basic.t    # conc
-S17-scheduler/every.t    # conc
-S17-scheduler/in.t       # conc
-S17-scheduler/times.t    # conc
-S17-supply/act.t         # conc
-S17-supply/basic.t       # conc
-S17-supply/batch.t       # conc
-S17-supply/categorize.t  # conc
-S17-supply/Channel.t     # conc
-S17-supply/classify.t    # conc
-S17-supply/delayed.t     # conc
-S17-supply/do.t          # conc
-S17-supply/elems.t       # conc
-S17-supply/flat.t        # conc
-S17-supply/for.t         # conc
-S17-supply/grab.t        # conc
-S17-supply/grep.t        # conc
-S17-supply/interval.t    # conc
-S17-supply/last.t        # conc
-S17-supply/lines.t       # conc
-S17-supply/list.t        # conc
-S17-supply/map.t         # conc
-S17-supply/max.t         # conc
-S17-supply/merge.t       # conc
-S17-supply/migrate.t     # conc
-S17-supply/min.t         # conc
-S17-supply/minmax.t      # conc
-S17-supply/on.t          # conc
-S17-supply/Promise.t     # conc
-S17-supply/reduce.t      # conc
-S17-supply/reverse.t     # conc
-S17-supply/rotor.t       # conc
-S17-supply/schedule_on.t # conc
-S17-supply/sort.t        # conc
-S17-supply/squish.t      # conc
-S17-supply/stable.t      # conc
-S17-supply/start.t       # conc
-S17-supply/unique.t      # conc
-S17-supply/wait.t        # conc
-S17-supply/watch_path.t  # conc
-S17-supply/words.t       # conc
-S17-supply/zip.t         # conc
-S17-supply/zip-latest.t  # conc
+S17-promise/allof.t
+S17-promise/anyof.t
+S17-promise/basic.t
+S17-promise/in.t
+S17-promise/start.t
+S17-promise/then.t
+S17-scheduler/at.t
+S17-scheduler/basic.t
+S17-scheduler/every.t
+S17-scheduler/in.t
+S17-scheduler/times.t
+S17-supply/act.t
+S17-supply/basic.t
+S17-supply/batch.t
+S17-supply/categorize.t
+S17-supply/Channel.t
+S17-supply/classify.t
+S17-supply/delayed.t
+S17-supply/do.t
+S17-supply/elems.t
+S17-supply/flat.t
+S17-supply/for.t
+S17-supply/grab.t
+S17-supply/grep.t
+S17-supply/interval.t
+S17-supply/last.t
+S17-supply/lines.t
+S17-supply/list.t
+S17-supply/map.t
+S17-supply/max.t
+S17-supply/merge.t
+S17-supply/migrate.t
+S17-supply/min.t
+S17-supply/minmax.t
+S17-supply/on.t
+S17-supply/Promise.t
+S17-supply/reduce.t
+S17-supply/reverse.t
+S17-supply/rotor.t
+S17-supply/schedule_on.t
+S17-supply/sort.t
+S17-supply/squish.t
+S17-supply/stable.t
+S17-supply/start.t
+S17-supply/unique.t
+S17-supply/wait.t
+S17-supply/watch_path.t
+S17-supply/words.t
+S17-supply/zip.t
+S17-supply/zip-latest.t
 S19-command-line/arguments.t
 S19-command-line/dash-e.t
 S19-command-line/help.t
@@ -668,8 +668,7 @@ S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S22-package-format/local.t
 S24-testing/0-compile.t
-S26-documentation/01-delimited.t
-S26-documentation/02-paragraph.t
+S26-documentation/01-delimited.t S26-documentation/02-paragraph.t
 S26-documentation/03-abbreviated.t
 S26-documentation/04-code.t
 S26-documentation/05-comment.t
@@ -928,15 +927,15 @@ integration/advent2013-day08.t
 integration/advent2013-day09.t
 integration/advent2013-day10.t
 integration/advent2013-day12.t
-integration/advent2013-day14.t # conc
+integration/advent2013-day14.t
 integration/advent2013-day15.t
 integration/advent2013-day18.t
-integration/advent2013-day19.t # conc
+integration/advent2013-day19.t
 integration/advent2013-day20.t
 integration/advent2013-day21.t
 integration/advent2013-day22.t
 integration/advent2013-day23.t
-integration/advent2014-day05.t # conc
+integration/advent2014-day05.t
 integration/advent2014-day13.t
 integration/advent2014-day16.t
 integration/code-blocks-as-sub-args.t

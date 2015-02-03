@@ -36,7 +36,7 @@ $s eq '   ' and say 'ok 15';
 $s = 'ABC' ~| '   ';
 $s eq 'abc' and say 'ok 16';
 
-# check COW of Parrot strings (r27046, r27048)
+# check COW of strings
 my $foo = 'fred';
 my $bar = 'fred';
 $foo++;

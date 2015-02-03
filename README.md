@@ -1,7 +1,6 @@
 # Rakudo Perl 6
 
-This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine,
-the JVM and MoarVM.
+This is Rakudo Perl, a Perl 6 compiler for the MoarVM and JVM.
 
 Rakudo Perl is Copyright (C) 2008-2015, The Perl Foundation. Rakudo Perl
 is distributed under the terms of the Artistic License 2.0. For more
@@ -44,14 +43,6 @@ To automatically download and build a fresh MoarVM and NQP, run:
 
     perl Configure.pl --gen-moar --gen-nqp --backends=moar
 
-### Configuring Rakudo to run on Parrot
-
-To automatically download and build a fresh Parrot and NQP, run:
-
-    perl Configure.pl --gen-parrot --gen-nqp --backends=parrot
-
-It is recommended to first install the libicu-dev and libreadline-dev packages.
-
 ### Configuring Rakudo to run on the JVM
 
 Note that to run Rakudo on JVM, JDK 1.7 must be installed. To automatically
@@ -70,19 +61,18 @@ By supplying combinations of backends to the `--backends` flag, you
 can get two or three backends built in the same prefix. The first
 backend you supply in the list is the one that gets the `perl6` name
 as a symlink, and all backends are installed seperately as
-`perl6-m`, `perl6-p`, or `perl6-j` for Rakudo on
-MoarVM, Parrot, or JVM respectively.
+`perl6-m` or `perl6-j` for Rakudo on
+MoarVM, or JVM respectively.
 
 The format for the `--backends` flag is:
 
-    $ perl Configure.pl --backends=moar,parrot
-    $ perl Configure.pl --backends=parrot,moar,jvm
+    $ perl Configure.pl --backends=moar,jvm
     $ perl Configure.pl --backends=ALL
 
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with
-help for Perl 6 and Rakudo on Parrot. Figuring out the right one to use
+help for Perl 6 and Rakudo. Figuring out the right one to use
 is often the biggest battle. Here are some rough guidelines:
 
 The central hub for Perl 6 information is [perl6.org](http://perl6.org/).
@@ -99,8 +89,6 @@ to help.  You can follow "@rakudoperl" on Twitter, and there's
 a Perl 6 news aggregator at [Planet Perl 6](http://planeteria.org/perl6/).
 
 Questions about NQP can also be posted to the #perl6 IRC channel.
-For questions about Parrot, see <http://parrot.org/> for links and
-resources, or join the #parrot IRC channel on irc.perl.org .
 For questions about MoarVM, you can join #moarvm on freenode.
 
 ## Reporting bugs

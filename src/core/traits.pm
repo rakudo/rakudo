@@ -472,6 +472,12 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     0;
 }
 
+multi sub trait_mod:<aka>(Method:D $m, &thunk) {
+    my $pkg := $m.package;
+    $pkg.HOW.add_method($pkg,$_,$m) for thunk();
+    0;
+}
+
 proto sub trait_mod:<will>(|) { * }
 multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {
     $attr.set_build($build)

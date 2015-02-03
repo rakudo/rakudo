@@ -801,15 +801,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token delimited_code_content($spaces = '') {
         ^^
-        [
+        (
         | $spaces
-          [
-          || '=end' \h+ 'code' [ <pod_newline> | $ ]
-          || <pod_string>**0..1 <pod_newline>
-             <delimited_code_content($spaces)>
-          ]
-        | <pod_newline> <delimited_code_content($spaces)>
-        ]
+            <!before '=end' \h+ 'code' [ <pod_newline> | $ ]>
+            <pod_string>**0..1 <pod_newline>
+        | <pod_newline>
+        )*
+        $spaces '=end' \h+ 'code' [ <pod_newline> | $ ]
     }
 
     token table_row {
@@ -2406,7 +2404,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $/.CURSOR.panic("Compilation unit cannot be anonymous");
                         }
                         unless $outer =:= $*UNIT {
-                            $/.CURSOR.panic("Semicolon form of " ~ $*PKGDECL ~ " definition not allowed in subscope;\n  please use block form");
+                            $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => $*PKGDECL, where => "in subscopes");
                         }
                         if $*PKGDECL eq 'package' {
                             $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
@@ -2417,7 +2415,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     <.finishpad>
                     <statementlist(1)>     # whole rest of file, presumably
                     { $*CURPAD := $*W.pop_lexpad() }
-                || <.panic("Too late for semicolon form of $*PKGDECL definition")>
+                || { $/.CURSOR.typed_panic("X::SemicolonForm::TooLate", what => $*PKGDECL); }
                 ]
             || <.panic("Unable to parse $*PKGDECL definition")>
             ]
@@ -2598,6 +2596,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
+        :my $*CURPAD;
+        :my $outer := $*W.cur_lexpad();
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2623,6 +2623,25 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <trait>* :!s
         { $*IN_DECL := ''; }
         [
+        || ';'
+            {
+                if $<deflongname> ne 'MAIN' {
+                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "except on MAIN subs");
+                }
+                unless $*begin_compunit {
+                    $/.CURSOR.typed_panic("X::SemicolonForm::TooLate", what => "sub");
+                }
+                unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
+                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "on $*MULTINESS subs");
+                }
+                unless $outer =:= $*UNIT {
+                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "in subscopes");
+                }
+                $*begin_compunit := 0;
+            }
+            <.finishpad>
+            <statementlist(1)>
+            { $*CURPAD := $*W.pop_lexpad() }
         || <onlystar>
         || <blockoid>
         ]
@@ -3104,6 +3123,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule trait_mod:sym<as>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<returns> { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
+    rule trait_mod:sym<aka>     { <sym> [ <term> || <.panic: 'Invalid term'>] }
 
 
     ## Terms

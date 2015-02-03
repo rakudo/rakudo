@@ -8,10 +8,10 @@
     parrot runtime. The requirements are likely higher for the JVM backend
     and 1G is sufficient to build everything for the MoarVM backend.
 
-    In order to fully support Unicode on parrot, you'll also want to have
-    the ICU library installed (<http://site.icu-project.org/>). Rakudo on
-    parrot can run without ICU, but some Unicode-related features do not
-    work properly. Rakudo on JVM and MoarVM don't need ICU.
+    In order to install on Parrot, you'll also need to have the ICU
+    library installed (<http://site.icu-project.org/>). Parrot itself can
+    be installed without ICU, but Rakudo needs it to be installed for some
+    Unicode-related features. Rakudo on JVM and MoarVM don't need ICU.
 
     To get readline support (command history and editing), you'll also
     need the "libreadline-dev" library.

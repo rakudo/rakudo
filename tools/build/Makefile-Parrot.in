@@ -291,6 +291,7 @@ P_CLEANUPS = \
   perl6-p$(O) \
   perl6_group.* \
   lib/Test.pm.pir \
+  lib/nqp.pm6.pir \
   lib/lib.pm6.pir \
   lib/Pod/To/Text.pm.pir \
   p-rakudo_test_run.tar.gz \
@@ -317,7 +318,7 @@ P_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_IC
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/Test.pm.pir lib/lib.pm6.pir lib/Pod/To/Text.pm.pir $(PERL6_DEBUG_EXE)
+p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/Test.pm.pir lib/nqp.pm6.pir lib/lib.pm6.pir lib/Pod/To/Text.pm.pir $(PERL6_DEBUG_EXE)
 
 # the install target
 p-install: p-all
@@ -339,6 +340,8 @@ p-install: p-all
 	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm.pir     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/nqp.pm6         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/nqp.pm6.pir     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/lib.pm6         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/lib.pm6.pir     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
@@ -460,6 +463,9 @@ $(PERL6_DEBUG_PBC): $(PERL6_PBC) src/perl6-debug.nqp
 ##  testing targets
 lib/Test.pm.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Test.pm.pir lib/Test.pm
+
+lib/nqp.pm6.pir: lib/nqp.pm6 $(PERL6_EXE) $(SETTING_PBC)
+	./$(PERL6_EXE) --target=pir --output=lib/nqp.pm6.pir lib/nqp.pm6
 
 lib/lib.pm6.pir: lib/lib.pm6 $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/lib.pm6.pir lib/lib.pm6

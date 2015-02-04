@@ -5,6 +5,8 @@ New in 2015.02
 + optimizations to slices with adverbs
 + improved error messages from sprintf and fmt
 + Proc::Async polished (improved error reporting, relaxed type constraints)
++ LoL assignment is now autovivifying
++ Semicolon/"rest of file" form of the MAIN sub implemented
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

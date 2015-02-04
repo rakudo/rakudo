@@ -293,7 +293,7 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir; also look for executables there
-    --backends=vm,moar
+    --backends=jvm,moar
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
                        Download and build a copy of NQP

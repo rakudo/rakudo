@@ -5631,7 +5631,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $ast := QAST::Op.new( :node($/), :op<call>,
                     QAST::Op.new( :op<call>, :name<&METAOP_ASSIGN>,
-                        ($ast // QAST::Var.new(
+                        ($ast[0] // QAST::Var.new(
                             :name("&infix:<$basesym>"), :scope('lexical') ))));
             }
         }

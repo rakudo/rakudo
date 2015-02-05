@@ -3590,7 +3590,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
             [ <?[>]> <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
             <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))>
-          | $<num>=[<[1..9]><[0..9]>*] '/' $<denom>=[<[1..9]><[0..9]>*]
+          | $<num>=['-'?<[1..9]><[0..9]>*] '/' $<denom>=[<[1..9]><[0..9]>*]
         ]
     }
     token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }

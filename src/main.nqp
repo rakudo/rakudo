@@ -17,6 +17,7 @@ nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
 
 # Add extra command line options.
 my @clo := $comp.commandline_options();
+@clo.push('allow-nqp');
 @clo.push('parsetrace');
 @clo.push('setting=s');
 @clo.push('n');

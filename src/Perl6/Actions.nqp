@@ -271,6 +271,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $mainline[1] := QAST::Stmt.new(wrap_option_n_code($/, $mainline[1]));
         }
 
+        if %*COMPILING<%?OPTIONS><allow-nqp> {
+            nqp::say('setting NQP_ENABLED to 1');
+            $*NQP_ENABLED := 1;
+        }
+
         # We'll install our view of GLOBAL as the main one; any other
         # compilation unit that is using this one will then replace it
         # with its view later (or be in a position to restore it).
@@ -4579,6 +4584,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<nqp::op>($/) {
         $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
+        unless $*NQP_ENABLED {
+            $/.CURSOR.panic('nqp:: ops only allowed with "use nqp;" in scope');
+        }
         my @args := $<args> ?? $<args>.ast.list !! [];
         my $past := QAST::Op.new( :op(~$<op>), |@args );
         if $past.op eq 'want' || $past.op eq 'handle' {

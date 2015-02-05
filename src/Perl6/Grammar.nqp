@@ -956,6 +956,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL;                             # what declaration we're in
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
+        :my $*NQP_ENABLED := 0;                    # whether 'nqp::' ops can be used
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
@@ -1618,6 +1619,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # Turn off lax mode.
                     $*STRICT  := 1;
                     $longname := "";
+                }
+                elsif $longname.Str eq 'nqp' {
+                    # Turn off lax mode.
+                    $*NQP_ENABLED := 1;
+                    $longname    := "";
                 }
                 elsif $longname.Str eq 'FORBID_PIR' ||
                       $longname.Str eq 'Devel::Trace' ||

@@ -4834,10 +4834,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method circumfix:sym<ang>($/) { make $<nibble>.ast; }
+    method circumfix:sym<ang>($/) {
+        if $<num> {
+            make QAST::Op.new( :op('call'), :name('&infix:</>'),
+                    QAST::IVal.new( :value(+$<num>) ),
+                    QAST::IVal.new( :value(+$<denom>) ));
+        } else {
+            make $<nibble>.ast;
+        }
+    }
 
     method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
-    
+
     method circumfix:sym<« »>($/) { make $<nibble>.ast; }
 
     method circumfix:sym<{ }>($/) {

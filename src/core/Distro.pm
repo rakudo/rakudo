@@ -26,6 +26,24 @@ class Distro does Systemic {
             }
         }
     }
+
+    method tmpdir() {
+        my $ENV := %*ENV;
+        my $io;
+        first( {
+            if .defined {
+                $io = .IO;
+                $io.d && $io.rwx;
+            }
+        }, $!is-win
+             ?? <<
+  $ENV<TMPDIR> $ENV<TEMP> $ENV<TMP> SYS:/temp C:/system/temp C:/temp /tmp / .
+                >>
+             !! <<
+  $ENV<TMPDIR> /tmp .
+                >>
+        );
+    }
 }
 
 # set up $*DISTRO and deprecated $*OS and $*OSVER

@@ -65,6 +65,7 @@ M_CLEANUPS = \
   $(PERL6_MOAR) \
   lib/Test.pm.moarvm \
   lib/lib.pm6.moarvm \
+  lib/nqp.pm6.moarvm \
   lib/Pod/To/Text.pm.moarvm \
   rakudo_test_run.tar.gz \
   src/gen/m-CORE.setting \
@@ -81,7 +82,7 @@ M_CLEANUPS = \
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
-m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/Pod/To/Text.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER)
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/nqp.pm6.moarvm lib/Pod/To/Text.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER)
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
@@ -175,6 +176,9 @@ $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR)
 lib/Test.pm.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
 	.@slash@$(M_RUNNER) --target=mbc --output=lib/Test.pm.moarvm lib/Test.pm
 
+lib/nqp.pm6.moarvm: lib/nqp.pm6 $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	.@slash@$(M_RUNNER) --target=mbc --output=lib/nqp.pm6.moarvm lib/nqp.pm6
+
 lib/lib.pm6.moarvm: lib/lib.pm6 $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
 	.@slash@$(M_RUNNER) --target=mbc --output=lib/lib.pm6.moarvm lib/lib.pm6
 
@@ -233,6 +237,8 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
 	$(CP) lib/Test.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/Test.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) lib/nqp.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) lib/nqp.pm6.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/lib.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/lib.pm6.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To

@@ -4091,13 +4091,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         };
     }
 
-    method trait_mod:sym<aka>($/) {
-        my $thunk := $*W.create_thunk($/, $<term>.ast);
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<aka>', $declarand, $thunk);
-        };
-    }
-
     method postop($/) {
         if $<postfix> {
             make $<postfix>.ast
@@ -5638,7 +5631,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $ast := QAST::Op.new( :node($/), :op<call>,
                     QAST::Op.new( :op<call>, :name<&METAOP_ASSIGN>,
-                        ($ast // QAST::Var.new(
+                        ($ast[0] // QAST::Var.new(
                             :name("&infix:<$basesym>"), :scope('lexical') ))));
             }
         }

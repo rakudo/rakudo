@@ -3123,8 +3123,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule trait_mod:sym<as>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<returns> { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
-    rule trait_mod:sym<aka>     { <sym> [ <term> || <.panic: 'Invalid term'>] }
-
 
     ## Terms
 

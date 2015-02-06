@@ -279,6 +279,6 @@ class Array { # declared in BOOTSTRAP
 }
 
 
-sub circumfix:<[ ]>(*@elems) is rw { my $x = @elems.eager }
+sub circumfix:<[ ]>(*@elems) is rw { my $ = @elems.eager }
 
 # vim: ft=perl6 expandtab sw=4

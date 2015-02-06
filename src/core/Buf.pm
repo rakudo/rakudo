@@ -57,7 +57,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::p6box_i(nqp::elems(self));
     }
     method bytes(Blob:D:) {
-        self.elems
+        ceiling(self.elems * ::T.^nativesize / 8);
     }
     method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }

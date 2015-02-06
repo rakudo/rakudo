@@ -30,19 +30,22 @@ class Distro does Systemic {
     method tmpdir() {
         my $ENV := %*ENV;
         my $io;
-        first( {
-            if .defined {
-                $io = .IO;
-                $io.d && $io.rwx;
+        for $!is-win
+              ?? <<
+  $ENV<TMPDIR> $ENV<TEMP> $ENV<TMP> SYS:/temp C:/system/temp C:/temp /tmp /
+                 >>
+              !! <<
+  $ENV<TMPDIR> /tmp
+                 >>
+        -> $path {
+            if $path.defined {
+                $io := $path.IO;
+                return $io if $io.d && $io.rwx;
             }
-        }, $!is-win
-             ?? <<
-  $ENV<TMPDIR> $ENV<TEMP> $ENV<TMP> SYS:/temp C:/system/temp C:/temp /tmp / .
-                >>
-             !! <<
-  $ENV<TMPDIR> /tmp .
-                >>
-        );
+        }
+
+        # alas, nothing worked, use current dir
+        ".".IO;
     }
 }
 

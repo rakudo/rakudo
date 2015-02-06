@@ -30,6 +30,14 @@ my role IO::Pathy {
     method basename(IO::Pathy:D:)  { MAKE-BASENAME($!abspath) }
     method extension(IO::Pathy:D:) { MAKE-EXT(MAKE-BASENAME($!abspath))}
 
+    method parent(IO::Pathy:D: $levels = 1) {
+        #self!parts;  # runtime failure
+        @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
+        @!parts <= $levels + 1
+          ?? self.new(:abspath( @!parts[0] ~ '/' ))
+          !! self.new(:abspath( @!parts[0 .. *-($levels + 2)].join('/') ~ '/'));
+    }
+
     method IO(IO::Pathy:D:)      { self }
     method Numeric(IO::Pathy:D:) { self.basename.Numeric }
     method Bridge(IO::Pathy:D:)  { self.basename.Bridge }

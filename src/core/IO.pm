@@ -383,16 +383,10 @@ sub FILETEST-l(Str $abspath) {
     nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));
 }
 sub FILETEST-L(Str $abspath) {
-    my $link = $abspath;
-
-    # we assume that -e is false on cyclic symlinks or dead-ended symlinks
-    while FILETEST-e($link) && FILETEST-l($link) {
-        $link := MAKE-ABSOLUTE-PATH(
-          nqp::p6box_s(nqp::readlink(nqp::unbox_s($link))),
-          MAKE-PARENT($link),
-        );
-    }
-    $link;
+    MAKE-ABSOLUTE-PATH(
+      nqp::p6box_s(nqp::readlink(nqp::unbox_s($abspath))),
+      MAKE-PARENT($abspath),
+    );
 }
 sub FILETEST-r(Str $abspath) {
     nqp::p6bool(nqp::filereadable(nqp::unbox_s($abspath)));

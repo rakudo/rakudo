@@ -1230,6 +1230,7 @@ BEGIN {
         $type.HOW.set_native_type($type, $primitive);
         $type.HOW.set_ref_kind($type, $ref_kind);
         $type.HOW.compose_repr($type);
+        nqp::setcontspec($type, 'native_ref', nqp::null());
     }
     setup_native_ref_type(IntLexRef, int, 'lexical');
     setup_native_ref_type(NumLexRef, num, 'lexical');

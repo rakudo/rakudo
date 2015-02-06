@@ -107,6 +107,14 @@ sub MAKE-BASENAME(Str $abspath) {
       !! nqp::box_s(nqp::substr($abspath_s,$offset + 1),Str);
 }
 
+sub MAKE-PARENT(Str $abspath) {
+    my str $abspath_s = nqp::unbox_s($abspath);
+    my int $offset    = nqp::rindex($abspath_s,'/');
+    nqp::p6bool($offset == -1)
+      ?? $abspath
+      !! nqp::box_s(nqp::substr($abspath_s,0,$offset + 1),Str);
+}
+
 sub MAKE-EXT(Str $basename) {
     my str $basename_s = nqp::unbox_s($basename);
     my int $offset     = nqp::rindex($basename_s,'.');

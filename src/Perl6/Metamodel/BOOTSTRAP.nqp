@@ -2949,7 +2949,16 @@ nqp::sethllconfig('perl6', nqp::hash(
                 $d($o)
             }
         }
-    }
+    },
+    'int_lex_ref', IntLexRef,
+    'num_lex_ref', NumLexRef,
+    'str_lex_ref', StrLexRef,
+    'int_attr_ref', IntAttrRef,
+    'num_attr_ref', NumAttrRef,
+    'str_attr_ref', StrAttrRef,
+    'int_pos_ref', IntPosRef,
+    'num_pos_ref', NumPosRef,
+    'str_pos_ref', StrPosRef,
 ));
 
 #?if jvm

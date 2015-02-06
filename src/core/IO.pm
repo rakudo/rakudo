@@ -382,12 +382,6 @@ sub FILETEST-v(Str $abspath) {
 sub FILETEST-l(Str $abspath) {
     nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));
 }
-sub FILETEST-L(Str $abspath) {
-    MAKE-ABSOLUTE-PATH(
-      nqp::p6box_s(nqp::readlink(nqp::unbox_s($abspath))),
-      MAKE-PARENT($abspath),
-    );
-}
 sub FILETEST-r(Str $abspath) {
     nqp::p6bool(nqp::filereadable(nqp::unbox_s($abspath)));
 }
@@ -438,6 +432,12 @@ sub FILETEST-UID(Str $abspath) {
 }
 sub FILETEST-GID(Str $abspath) {
     nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_GID) );
+}
+sub FILETEST-READLINK(Str $abspath) {
+    MAKE-ABSOLUTE-PATH(
+      nqp::p6box_s(nqp::readlink(nqp::unbox_s($abspath))),
+      MAKE-PARENT($abspath),
+    );
 }
 
 sub DIR-GATHER(Str $abspath,Mu $test) {

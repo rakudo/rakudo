@@ -77,6 +77,15 @@ my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub IntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub NumAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 
 #?if moar
 # On MoarVM, implement the signature binder.
@@ -1214,6 +1223,23 @@ BEGIN {
 
     # Scalar needs to be registered as a container type.
     nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::null());
+
+    # Set up various native reference types.
+    sub setup_native_ref_type($type, $primitive, $ref_kind) {
+        $type.HOW.add_parent($type, Any);
+        $type.HOW.set_native_type($type, $primitive);
+        $type.HOW.set_ref_kind($type, $ref_kind);
+        $type.HOW.compose_repr($type);
+    }
+    setup_native_ref_type(IntLexRef, int, 'lexical');
+    setup_native_ref_type(NumLexRef, num, 'lexical');
+    setup_native_ref_type(StrLexRef, str, 'lexical');
+    setup_native_ref_type(IntAttrRef, int, 'attribute');
+    setup_native_ref_type(NumAttrRef, num, 'attribute');
+    setup_native_ref_type(StrAttrRef, str, 'attribute');
+    setup_native_ref_type(IntPosRef, int, 'positional');
+    setup_native_ref_type(NumPosRef, num, 'positional');
+    setup_native_ref_type(StrPosRef, str, 'positional');
 
     # class Proxy is Any {
     #    has Mu &!FETCH;

@@ -44,6 +44,7 @@ my role IO::Pathy {
 
     method e(IO::Pathy:D:)   { True }
     method f(IO::Pathy:D:)   { FILETEST-f(  $!abspath) }
+    method d(IO::Pathy:D:)   { FILETEST-d(  $!abspath) }
     method s(IO::Pathy:D:)   { FILETEST-s(  $!abspath) }
     method i(IO::Pathy:D:)   { FILETEST-i(  $!abspath) }
     method v(IO::Pathy:D:)   { FILETEST-v(  $!abspath) }

@@ -7,6 +7,11 @@ sub infix:<=>(Mu \a, Mu \b) is rw {
     nqp::p6store(a, b)
 }
 
+my class X::Does::TypeObject is Exception {
+    has Mu $.type;
+    method message() { "Cannot use 'does' operator with a type object." }
+}
+
 proto sub infix:<does>(Mu, Mu, *%) { * }
 multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
     # XXX Mutability check.
@@ -24,14 +29,14 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
     mixedin.BUILD_LEAST_DERIVED({ substr(mixedin.^mixin_attribute.Str,2) => $value });
 }
 multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
-    X::Does::TypeObject.new().throw
+    X::Does::TypeObject.new(type => obj).throw
 }
 multi sub infix:<does>(Mu:D \obj, @roles) is rw {
     # XXX Mutability check.
     obj.HOW.mixin(obj, |@roles).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<does>(Mu:U \obj, @roles) is rw {
-    X::Does::TypeObject.new().throw
+    X::Does::TypeObject.new(type => obj).throw
 }
 
 proto sub infix:<but>(Mu, Mu, *%) { * }

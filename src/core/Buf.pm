@@ -254,13 +254,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method at_pos(Buf:D: int \pos) {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
-        nqp::atpos_i(self, pos);
+        nqp::atposref_i(self, pos);
     }
     multi method at_pos(Buf:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
-        nqp::atpos_i(self,$pos);
+        nqp::atposref_i(self,$pos);
     }
 
     multi method assign_pos(Buf:D: int \pos, Mu \assignee) {

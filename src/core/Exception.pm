@@ -934,10 +934,6 @@ my class X::Syntax::Argument::MOPMacro does X::Syntax {
     method message() { "Cannot give arguments to $.macro" };
 }
 
-my class X::Does::TypeObject is Exception {
-    method message() { "Cannot use 'does' operator with a type object." }
-}
-
 my class X::Role::Initialization is Exception {
     has $.role;
     method message() { "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '{$.role.^name}'" }

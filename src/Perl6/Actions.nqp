@@ -1777,6 +1777,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.push($wval);
             }
         }
+        elsif $twigil eq '=' && $desigilname ne 'pod' {
+            $*W.throw($/, 'X::Comp::NYI', feature => 'Pod variables other than $=pod');
+        }
         elsif $past.name() eq '@_' {
             if $*W.nearest_signatured_block_declares('@_') {
                 $past.scope('lexical');

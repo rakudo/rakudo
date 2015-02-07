@@ -1,6 +1,8 @@
-my class Instant  { ... }
-my class IO::Dir  { ... }
-my class IO::File  { ... }
+my class Instant     { ... }
+my class IO::File    { ... }
+my class IO::Dir     { ... }
+my class IO::Symlink { ... }
+my class IO::Local   { ... }
 
 my role IO {
     method umask { state $ = :8( qx/umask/.chomp ) }
@@ -440,12 +442,19 @@ sub FILETEST-READLINK(Str $abspath) {
     );
 }
 
+sub OBJECTIFY-ABSPATH(Str $abspath, |c) {
+    FILETEST-f($abspath)
+      ?? IO::File.new(:$abspath, |c)
+      !! FILETEST-d($abspath)
+        ?? IO::Dir.new(:abspath($abspath ~ '/'), |c)
+        !! FILETEST-l($abspath)
+          ?? IO::Symlink.new(:$abspath, |c)
+          !! IO::Local.new(:$abspath, |c);
+}
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take FILETEST-d($elem)
-              ?? IO::Dir.new(:abspath($elem ~ '/'))
-              !! IO::File.new(:abspath($elem));
+            take OBJECTIFY-ABSPATH($elem);
         }
     }
 }
@@ -453,9 +462,7 @@ sub DIR-GATHER(Str $abspath,Mu $test) {
 sub DIR-GATHER-STR(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take FILETEST-d($elem)
-              ?? $elem ~ '/'
-              !! $elem;
+            take FILETEST-d($elem) ?? $elem ~ '/' !! $elem;
         }
     }
 }

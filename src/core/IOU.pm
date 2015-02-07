@@ -80,19 +80,9 @@ my class IOU does IO::Pathy {
     }
 
     method !what(IOU: $abspath, |c) {
-
-        if FILETEST-e($abspath) {
-            if FILETEST-f($abspath) {
-                return IO::File.new(:$abspath, |c);
-            }
-            elsif FILETEST-d($abspath) {
-                return IO::Dir.new(:$abspath, |c);
-            }
-            else {
-                return IO::Local.new(:$abspath, |c);
-            }
-        }
-        Mu;
+        FILETEST-e($abspath)
+          ?? OBJECTIFY-ABSPATH($abspath, |c)
+          !! Mu;
     }
 }
 

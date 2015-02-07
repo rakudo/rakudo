@@ -1699,7 +1699,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $*IN_DECL := 'variable';
                     my $*SCOPE := 'state';
                     my $*OFTYPE;  # should default to Mu/Mu/Any
-                    $past := QAST::Var.new( );
+                    $past := QAST::Var.new( :node($/) );
                     $past := declare_variable($/, $past, $name, '', '', 0);
                     $past.annotate('nosink', 1);
                 }

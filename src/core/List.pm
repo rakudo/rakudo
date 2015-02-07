@@ -86,7 +86,7 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6parcel($rpa, Any);
     }
 
-    method Supply(List:D:) { Supply.for(self) }
+    method Supply(List:D:) { Supply.from-list(self) }
 
     multi method at_pos(List:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)

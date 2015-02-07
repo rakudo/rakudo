@@ -74,6 +74,7 @@ src/core/IO/Pathy.pm
 src/core/IO/Local.pm
 src/core/IO/Dir.pm
 src/core/IO/File.pm
+src/core/IO/Symlink.pm
 src/core/IOU.pm
 src/core/IO/Spec.pm
 src/core/IO/Spec/Unix.pm

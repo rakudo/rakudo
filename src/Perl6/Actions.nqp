@@ -2263,6 +2263,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'our' || $*SCOPE eq 'state' {
             # Some things can't be done to our vars.
+            my $varname;
             if $*SCOPE eq 'our' {
                 if $*OFTYPE {
                     $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
@@ -2278,14 +2279,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $twigil {
                     $/.CURSOR.panic("Cannot have an anonymous variable with a twigil");
                 }
-                $name := QAST::Node.unique($sigil ~ 'ANON_VAR_');
+                $name    := QAST::Node.unique($sigil ~ 'ANON_VAR_');
+                $varname := $sigil;
             }
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(
-              %cont_info<value_type>, 1, $name, %cont_info<default_value>);
+              %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 
             # Install the container.
             my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,

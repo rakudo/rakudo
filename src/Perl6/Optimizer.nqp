@@ -173,6 +173,17 @@ my class Symbols {
         nqp::die("Optimizer: No lexical $name found");
     }
 
+    method find_lexical_symbol($name) {
+        my int $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            return %sym if +%sym;
+        }
+        nqp::die("Optimizer: No lexical $name found");
+    }
+
     # Checks if a given lexical is declared, though it needn't have a compile
     # time known value.
     method is_lexical_declared($name) {
@@ -1508,14 +1519,15 @@ class Perl6::Optimizer {
         if $!void_context && !$!in_declaration && $var.name && !$var.ann('sink_ok') {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
-            my str $sigil := nqp::substr($var.name, 0, 1);
-            my str $name  := nqp::substr($var.name, 1);
+            my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
+            $name         := $var.name unless $name;
+            my str $sigil := nqp::substr($name, 0, 1);
             if $sigil eq '$' || $sigil eq '@' || $sigil eq '%' {
                 $!problems.add_worry(
                   $var,
-                  $name eq ''
+                  $name eq $sigil
                     ?? "Useless use of unnamed $sigil variable in sink context"
-                    !! "Useless use of variable $sigil$name in sink context"
+                    !! "Useless use of variable $name in sink context"
                 );
                 return $NULL;
             }

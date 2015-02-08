@@ -3765,9 +3765,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token prefix_postfix_meta_operator { <...> }
     
-    method can_meta($op, $meta) {
-        !$op<OPER><O><fiddly> ||
-            self.sorry("Cannot " ~ $meta ~ " " ~ $op<OPER><sym> ~ " because " ~ $op<OPER><O><dba> ~ " operators are too fiddly");
+    method can_meta($op, $meta, $reason = "fiddly") {
+        if $op<OPER><O>{$reason} {
+            self.typed_panic: "X::Syntax::Can'tMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
+        }
         self;
     }
     
@@ -3790,7 +3791,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <!{ $op<OPER><O><diffy> }>
         || <?{ $op<OPER><O><pasttype> eq 'chain' }>
-        || { self.typed_panic: 'X::Syntax::DiffyReduce', operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba> }
+        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => 'diffy and not chaining' }
         ]
 
         <args>
@@ -4094,7 +4095,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
         || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
-        || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
+        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
         ]
     }
 
@@ -4141,16 +4142,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # use $*OPER until NQP/Rakudo supports proto tokens with arguments
     token infix_postfix_meta_operator:sym<=> {
         :my $prec;
-        :my %op_O := $*OPER<O>;
+        :my %fudge_oper;
         '='
-        <.can_meta($*OPER, "make assignment out of")>
-        [
-        || <!{ %op_O<diffy> }>
-        || <.sorry("Cannot make assignment out of " ~ $*OPER<sym> ~ " because " ~ %op_O<dba> ~ " operators are diffy")>
-        ]
+        { %fudge_oper<OPER> := $*OPER }
+        <.can_meta(%fudge_oper, "make assignment out of")>
+        [ <!{ $*OPER<O><diffy> }> || <.can_meta(%fudge_oper, "make assignment out of", "diffy")> ]
         {
             $<sym> := $*OPER<sym> ~ '=';
-            if %op_O<prec> gt 'g=' {
+            if $*OPER<O><prec> gt 'g=' {
                 $prec := '%item_assignment';
             }
             else {

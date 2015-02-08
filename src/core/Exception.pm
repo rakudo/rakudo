@@ -1057,11 +1057,13 @@ my class X::Syntax::NonAssociative does X::Syntax {
     }
 }
 
-my class X::Syntax::DiffyReduce does X::Syntax {
+my class X::Syntax::Can'tMeta does X::Syntax {
+    has $.meta;
     has $.operator;
+    has $.reason;
     has $.dba;
     method message() {
-        "Cannot reduce with $.operator because $.dba operators are diffy and not chaining";
+        "Cannot $.meta $.operator because $.dba operators are $.reason";
     }
 }
 

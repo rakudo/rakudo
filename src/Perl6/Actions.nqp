@@ -2843,9 +2843,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.name($name ?? $name !! '<anon>');
 
         # Do the various tasks to trun the block into a method code object.
+        my $meta := $<specials> && ~$<specials> eq '^';
         my %sig_info := $<multisig> ?? $<multisig>.ast !! hash(parameters => []);
         my $inv_type  := $*W.find_symbol([
-            $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+            $<longname> && $*W.is_lexical('$?CLASS') && !$meta ?? '$?CLASS' !! 'Mu']);
         my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
 
         # If it's a proto but not an onlystar, need some variables for the
@@ -2889,7 +2890,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Install method.
         if $name {
-            install_method($/, $name, $*SCOPE, $code, $outer,
+            install_method($/, $name, $*SCOPE, $code, $outer, :$meta,
                 :private($<specials> && ~$<specials> eq '!'));
         }
         elsif $*MULTINESS {
@@ -3045,11 +3046,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     # Installs a method into the various places it needs to go.
-    sub install_method($/, $name, $scope, $code, $outer, :$private) {
+    sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta) {
         my $meta_meth;
         if $private {
             if $*MULTINESS { $/.CURSOR.panic("Private multi-methods are not supported"); }
             $meta_meth := 'add_private_method';
+        }
+        elsif $meta {
+            if $*MULTINESS { $/.CURSOR.panic("Meta multi-methods are not supported"); }
+            $meta_meth := 'add_meta_method';
         }
         else {
             $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';

@@ -2123,13 +2123,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             make $list;
         }
-        elsif $<identifier> {
+        elsif $<defterm> {
             # 'my \foo' style declaration
             if $*SCOPE ne 'my' {
                 $*W.throw($/, 'X::Comp::NYI',
                     feature => "$*SCOPE scoped term definitions (only 'my' is supported at the moment)");
             }
-            my $name       :=  ~$<identifier>;
+            my $name       :=  $<defterm>.ast;
             my $cur_lexpad := $*W.cur_lexpad;
             if $cur_lexpad.symbol($name) {
                 $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);

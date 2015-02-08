@@ -431,7 +431,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         !! '';
                     my $canname  := $category ~ ":sym<" ~ $opname ~ ">";
                     my $termname := $category ~ ":<" ~ $opname ~ ">";
-                    $/.CURSOR.add_categorical($category, $opname, $canname, $termname);
+                    $/.CURSOR.add_categorical($category, $opname, $canname, $termname, :defterm);
                 }
             }
         | <?>
@@ -2427,7 +2427,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         # STD.pm6 uses <defterm> here, but we need different 
         # action methods
-        | '\\' <identifier> <.ws>
+        | '\\' <defterm> <.ws>
             [ <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
           [
@@ -4322,7 +4322,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # Called when we add a new choice to an existing syntactic category, for
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
-    method add_categorical($category, $opname, $canname, $subname, $declarand?) {
+    method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
         
         # Ensure it's not a null name.
@@ -4466,7 +4466,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             };
             %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
-                $*IN_DECL eq 'constant'
+                $defterm
                     ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
                     !! TermAction.HOW.curry(TermAction, $canname, $subname));
         }

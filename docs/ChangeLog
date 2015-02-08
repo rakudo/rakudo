@@ -8,6 +8,7 @@ New in 2015.02
 + LoL assignment is now autovivifying
 + Semicolon/"rest of file" form of the MAIN sub implemented
 + Parsing for infixes like "$foo !and $bar" or "$foo !&& $bar" fixed
++ Coercion syntax for parameters: sub foo( Str(Any) $x ) { ... }
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

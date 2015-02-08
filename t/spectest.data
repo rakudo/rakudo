@@ -502,6 +502,7 @@ S12-class/rw.t
 S12-class/self-inheritance.t
 S12-class/stubs.t
 S12-class/type-object.t
+S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t

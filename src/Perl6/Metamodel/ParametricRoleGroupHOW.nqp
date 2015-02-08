@@ -72,6 +72,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             CATCH { $error := $! }
         }
         if $error {
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if nqp::existskey(%ex, 'X::Role::Parametric::NoSuchCandidate') {
+                %ex{'X::Role::Parametric::NoSuchCandidate'}($obj);
+            }
             nqp::die("Could not find an appropriate parametric role variant for '" ~
                 self.name($obj) ~ "' using the arguments supplied.\n" ~
                 $error);

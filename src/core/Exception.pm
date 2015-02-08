@@ -107,6 +107,15 @@ my class X::Method::InvalidQualifier is Exception {
     }
 }
 
+my class X::Role::Parametric::NoSuchCandidate is Exception {
+    has Mu $.role;
+    method message {
+        "No appropriate parametric role variant available for '"
+        ~ $.role.^name
+        ~ "'";
+    }
+}
+
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
@@ -1593,6 +1602,9 @@ my class X::Caller::NotDynamic is Exception {
         };
     %c_ex{'X::Role::Initialization'} := sub ($role) is hidden_from_backtrace {
             X::Role::Initialization.new(:$role).throw
+        }
+    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) is hidden_from_backtrace {
+        X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
         }
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));
 

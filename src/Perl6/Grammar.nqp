@@ -3682,29 +3682,30 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
         :my $*IN_META := $in_meta;
-        :my $oper;
+        :my $*OPER;
         <!stdstopper>
         <!infixstopper>
         :dba('infix or meta-infix')
         [
-        | <colonpair> <fake_infix> { $oper := $<fake_infix> }
+        | <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
         |   [
-            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $oper := $<infixish><OPER> }
+            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
                 # XXX Gets false positives.
                 #[ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
             | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
                 {
                     $<variable><O> := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive') unless $<variable><O>;
-                    $oper := $<variable>;
+                    $*OPER := $<variable>;
                     self.check_variable($<variable>)
                 }
-            | <infix_circumfix_meta_operator> { $oper := $<infix_circumfix_meta_operator> }
-            | <infix_prefix_meta_operator> { $oper := $<infix_prefix_meta_operator> }
-            | <infix> { $oper := $<infix> }
+            | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
+            | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
+            | <infix> { $*OPER := $<infix> }
             ]
-            [ <?before '='> <infix_postfix_meta_operator> { $oper := $<infix_postfix_meta_operator> } ]?
+            [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> }
+            ]?
         ]
-        <OPER=.asOPER($oper)>
+        <OPER=.asOPER($*OPER)>
     }
 
     method asOPER($OPER) {
@@ -4136,7 +4137,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     # Should probably have <!after '='> to agree w/spec, but after NYI.
     # Modified infix != below instead to prevent misparse
-    token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
+    # token infix_postfix_meta_operator:sym<=>($op) {
+    # use $*OPER until NQP/Rakudo supports proto tokens with arguments
+    token infix_postfix_meta_operator:sym<=> {
+        :my $prec;
+        :my %op_O := $*OPER<O>;
+        '='
+        <.can_meta($*OPER, "make assignment out of")>
+        [
+        || <!{ %op_O<diffy> }>
+        || <.sorry("Cannot make assignment out of " ~ $*OPER<sym> ~ " because " ~ %op_O<dba> ~ " operators are diffy")>
+        ]
+        {
+            $<sym> := $*OPER<sym> ~ '=';
+            if %op_O<prec> gt 'g=' {
+                $prec := '%item_assignment';
+            }
+            else {
+                $prec := '%list_assignment';
+            }
+        }
+        <O("$prec, :dba<assignment operator>, :iffy<0>")> {}
+    }
 
     token infix:sym«=>» { <sym> <O('%item_assignment')> }
 

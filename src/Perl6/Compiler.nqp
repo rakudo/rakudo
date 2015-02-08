@@ -18,9 +18,16 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method optimize($past, *%adverbs) {
-        %adverbs<optimize> eq 'off' ??
-            $past !!
-            Perl6::Optimizer.new.optimize($past, |%adverbs)
+        # Apply optimizations.
+        my $result := %adverbs<optimize> eq 'off'
+            ?? $past
+            !! Perl6::Optimizer.new.optimize($past, |%adverbs);
+
+        # Apply world clean-up tasks, we we will not trigger any more dynamic
+        # compilation beyond this point.
+        $past.ann('W').cleanup();
+
+        $result;
     }
 
     method syntaxcheck($past, *%adverbs) {

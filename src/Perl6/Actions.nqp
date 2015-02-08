@@ -352,9 +352,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $compunit.annotate('UNIT', $unit);
         $compunit.annotate('GLOBALish', $*GLOBALish);
         $compunit.annotate('W', $*W);
-        
-        # Do any final compiler state cleanup tasks.
-        $*W.cleanup();
 
         make $compunit;
     }
@@ -2202,6 +2199,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
+        if $*OFTYPE {
+            my $archetypes := $*OFTYPE.ast.HOW.archetypes;
+            unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic {
+                $*OFTYPE.CURSOR.panic(~$*OFTYPE ~ " cannot be used as a nominal type on a variable");
+            }
+        }
+
         if $*SCOPE eq 'has' {
             # Ensure current package can take attributes.
             unless nqp::can($*PACKAGE.HOW, 'add_attribute') {
@@ -3865,6 +3869,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 elsif $type.HOW.archetypes.nominal {
                     %*PARAM_INFO<nominal_type> := $type;
                 }
+                elsif $type.HOW.archetypes.coercive {
+                    %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
+                    %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
+                }
                 elsif $type.HOW.archetypes.generic {
                     %*PARAM_INFO<nominal_type> := $type;
                     %*PARAM_INFO<nominal_generic> := 1;
@@ -3878,7 +3886,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %*PARAM_INFO<post_constraints>.push($type);
                 }
                 else {
-                    $/.CURSOR.panic(~$<typename><longname> ~
+                    $/.CURSOR.panic(~$<typename> ~
                         " cannot be used as a nominal type on a parameter");
                 }
                 for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
@@ -4439,7 +4447,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past;
         if $*longname.contains_indirect_lookup() {
             if $<args> {
-                $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
+                $/.CURSOR.panic("Combination of indirect name lookup and call not supported");
+            }
+            elsif $<arglist> {
+                $/.CURSOR.panic("Combination of indirect name lookup and type arguments not supported");
+            }
+            elsif $<accept> || $<accept_any> {
+                $/.CURSOR.panic("Combination of indirect name lookup and coercion type construction not supported");
             }
             $past := self.make_indirect_lookup($*longname.components())
         }
@@ -4543,10 +4557,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $past := instantiated_type(@name, $/);
             }
-            
+
             # Names ending in :: really want .WHO.
             if $*longname.get_who {
                 $past := QAST::Op.new( :op('who'), $past );
+            }
+
+            # If needed, try to form a coercion type.
+            if $<accept> || $<accept_any> {
+                unless nqp::istype($past, QAST::WVal) {
+                    $/.CURSOR.panic("Target type too complex to form a coercion type");
+                }
+                my $type := $*W.create_coercion_type($/, $past.value,
+                    $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
+                $past := QAST::WVal.new( :value($type) );
             }
         }
 
@@ -5869,9 +5893,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
-                    $type := $*W.parameterize_type($type, $<arglist>[0].ast, $/);
+                    $type := $*W.parameterize_type($type, $<arglist>.ast, $/);
                 }
-                if $<typename> {
+                if $<accept> || $<accept_any> {
+                    if $<typename> {
+                        $/.CURSOR.panic("Cannot put 'of' constraint on a coercion type");
+                    }
+                    $type := $*W.create_coercion_type($/, $type,
+                        $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
+                }
+                elsif $<typename> {
                     $type := $*W.parameterize_type_with_args($type,
                         [$<typename>.ast], hash());
                 }
@@ -5880,6 +5911,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
+                }
+                if $<accepts> || $<accepts_any> {
+                    $/.CURSOR.panic("Cannot base a coercion type on a type capture");
                 }
                 if $str_longname eq '::' {
                     $/.CURSOR.panic("Cannot use :: as a type name");

@@ -185,9 +185,16 @@ class Perl6::World is HLL::World {
     # The stack of code objects; phasers get attached to the top one.
     has @!CODES;
     
-    # Mapping of sub IDs to their proto code objects; used for fixing
-    # up in dynamic compilation.
+    # Mapping of sub IDs to their code objects; used for fixing up in
+    # dynamic compilation.
     has %!sub_id_to_code_object;
+
+    # Mapping of sub IDs to any code objects that were cloned during
+    # compilation before we had chance to compile the code. These are
+    # not true closures (in those cases the surrounding scope that it
+    # would close over is also compiled), but rather are clones for
+    # things like proto method derivation.
+    has %!sub_id_to_cloned_code_objects;
 
     # Mapping of sub IDs to SC indexes of code stubs.
     has %!sub_id_to_sc_idx;
@@ -227,6 +234,7 @@ class Perl6::World is HLL::World {
         @!protos_to_sort := [];
         @!CHECKs := [];
         %!sub_id_to_code_object := {};
+        %!sub_id_to_cloned_code_objects := {};
         %!sub_id_to_sc_idx := {};
         %!code_object_fixup_list := {};
         %!const_cache := {};
@@ -983,6 +991,9 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%param_info, 'sub_signature') {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
+        if nqp::existskey(%param_info, 'coerce_type') {
+            $parameter.set_coercion(%param_info<coerce_type>);
+        }
 
         if nqp::existskey(%param_info, 'dummy') {
             my $dummy := %param_info<dummy>;
@@ -1131,7 +1142,8 @@ class Perl6::World is HLL::World {
         $code_past.code_object($code);
 
         # Stash it under the QAST block unique ID.
-        %!sub_id_to_code_object{$code_past.cuid()} := $code;
+        my str $cuid := $code_past.cuid();
+        %!sub_id_to_code_object{$cuid} := $code;
         
         # Create the compiler stuff array and stick it in the code object.
         # Also add clearup task to remove it again later.
@@ -1176,7 +1188,7 @@ class Perl6::World is HLL::World {
         nqp::markcodestatic($stub);
         nqp::markcodestub($stub);
         my $code_ref_idx := self.add_root_code_ref($stub, $code_past);
-        %!sub_id_to_sc_idx{$code_past.cuid()} := $code_ref_idx;
+        %!sub_id_to_sc_idx{$cuid} := $code_ref_idx;
         
         # If we clone the stub, need to mark it as a dynamic compilation
         # boundary.
@@ -1187,6 +1199,10 @@ class Perl6::World is HLL::World {
                 nqp::push(@!cleanup_tasks, sub () {
                     nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
                 });
+                unless %!sub_id_to_cloned_code_objects{$cuid} {
+                    %!sub_id_to_cloned_code_objects{$cuid} := [];
+                }
+                %!sub_id_to_cloned_code_objects{$cuid}.push($clone);
             };
         }
         
@@ -1222,7 +1238,7 @@ class Perl6::World is HLL::World {
                 
                 # Also stash fixups so we can know not to do them if we
                 # do dynamic compilation.
-                %!code_object_fixup_list{$code_past.cuid} := $fixups;
+                %!code_object_fixup_list{$cuid} := $fixups;
             }
 
             # Stash the QAST block in the comp stuff.
@@ -1475,6 +1491,14 @@ class Perl6::World is HLL::World {
                 nqp::setcodeobj(@coderefs[$i], $code_obj);
                 nqp::bindattr($code_obj, $code_type, '$!do', @coderefs[$i]);
                 nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
+            }
+            if nqp::existskey(%!sub_id_to_cloned_code_objects, $subid) {
+                for %!sub_id_to_cloned_code_objects{$subid} -> $code_obj {
+                    my $clone := nqp::clone(@coderefs[$i]);
+                    nqp::setcodeobj($clone, $code_obj);
+                    nqp::bindattr($code_obj, $code_type, '$!do', $clone);
+                    nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
+                }
             }
             if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
                 nqp::markcodestatic(@coderefs[$i]);
@@ -1811,6 +1835,16 @@ class Perl6::World is HLL::World {
 
         # Result is the value.
         $val
+    }
+
+    # Gets a coercion type (possibly freshly created, possibly an
+    # interned one).
+    method create_coercion_type($/, $target, $constraint) {
+        self.ex-handle($/, {
+            my $type := %*HOW<coercion>.new_type($target, $constraint);
+            if nqp::isnull(nqp::getobjsc($type)) { self.add_object($type); }
+            $type
+        })
     }
 
     method suggest_typename($name) {

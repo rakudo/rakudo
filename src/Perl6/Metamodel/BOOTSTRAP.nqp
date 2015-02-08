@@ -2795,6 +2795,8 @@ Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
+Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
 
 # Let ClassHOW and EnumHOW know about the invocation handler.
 Perl6::Metamodel::ClassHOW.set_default_invoke_handler(

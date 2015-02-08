@@ -3202,8 +3202,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ||  <?{ nqp::eqat($<longname>.Str, '::', 0) || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
-                <?{ $*W.is_type($*longname.components()) }>
-                <?[[]> :dba('type parameter') '[' ~ ']' <arglist>
+                <?[[]> <?{ $*W.is_type($*longname.components()) }>
+                :dba('type parameter') '[' ~ ']' <arglist>
+            ]?
+            <.unsp>?
+            [
+                <?[(]> <?{ $*W.is_type($*longname.components()) }>
+                '(' <.ws> [
+                    || <accept=.typename> <!{ nqp::isconcrete($<accept>.ast) }>
+                    || $<accept_any>=<?>
+                ] <.ws> ')'
             ]?
         || <args(1)>
             {
@@ -3361,9 +3369,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*W.is_name($longname.type_name_parts('type name'))
           }>
         ]
-        # parametric type?
-        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]**0..1
-        <.unsp>? [ <?[(]> '(' ~ ')' <arglist> <.NYI("coercive type declarations")>]**0..1
+        # parametric/coercion type?
+        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
+        <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
 

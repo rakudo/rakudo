@@ -39,7 +39,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # class Str is Cool {
     #     has str $!value is box_target;
 
-    method WHY(Str:D:) {
+    multi method WHY(Str:D:) {
         nextsame if self ne "Life, the Universe, and Everything";
         42;
     }

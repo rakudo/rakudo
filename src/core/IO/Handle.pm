@@ -414,7 +414,7 @@ my class IO::Handle does IO {
         nqp::p6parcel($rpa, Nil);
     }
 
-    method read(IO::Handle:D: Cool:D $bytes as Int) {
+    method read(IO::Handle:D: Int(Cool:D) $bytes) {
         my $buf := buf8.new();
         nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
         $buf;

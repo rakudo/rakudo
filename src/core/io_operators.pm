@@ -125,7 +125,7 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
 }
 
 {
-    sub chdir($path as Str) {
+    sub chdir(Str(Any) $path) {
         nqp::chdir(nqp::unbox_s($path));
         $*CWD = IO::Path.new(cwd());
         return True;
@@ -141,7 +141,7 @@ multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir($path as Str, :$test = 'r') {
+sub chdir(Str(Any) $path, :$test = 'r') {
 
     if !nqp::istype($*CWD,IO::Path) {   # canary until 2014.10
         warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
@@ -154,7 +154,7 @@ sub chdir($path as Str, :$test = 'r') {
     $*CWD = $newCWD;
 }
 
-sub indir($path as Str, $what, :$test = <r w>) {
+sub indir(Str(Any) $path, $what, :$test = <r w>) {
     my $newCWD := $*CWD.chdir($path,:$test);
     $newCWD // $newCWD.throw;
 
@@ -164,14 +164,14 @@ sub indir($path as Str, $what, :$test = <r w>) {
     }
 }
 
-sub tmpdir($path as Str, :$test = <r w x>) {
+sub tmpdir(Str(Any) $path, :$test = <r w x>) {
     my $newTMPDIR := $*TMPDIR.chdir($path,:$test);
     $newTMPDIR // $newTMPDIR.throw;
 
     $*TMPDIR = $newTMPDIR;
 }
 
-sub homedir($path as Str, :$test = <r w x>) {
+sub homedir(Str(Any) $path, :$test = <r w x>) {
     my $newHOME := $*HOME.chdir($path,:$test);
     $newHOME // $newHOME.throw;
 

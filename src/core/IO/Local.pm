@@ -55,13 +55,13 @@ my role IO::Local {
     method accessed(IO::Local:D:) { FILETEST-ACCESSED($!abspath) }
     method changed(IO::Local:D:)  { FILETEST-CHANGED( $!abspath) }
 
-    method rename(IO::Local:D: $to as Str, :$createonly) {
+    method rename(IO::Local:D: Str(Any) $to, :$createonly) {
         RENAME-PATH($!abspath,MAKE-ABSOLUTE-PATH($to,$*CWD ~ '/'),:$createonly);
     }
-    method chmod(IO::Local:D: $mode as Int) {
+    method chmod(IO::Local:D: Int(Any) $mode) {
         CHMOD-PATH($!abspath, $mode);
     }
-    method symlink(IO::Local:D: $name as Str) {
+    method symlink(IO::Local:D: Str(Any) $name) {
         SYMLINK-PATH($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD ~ '/'));
     }
 

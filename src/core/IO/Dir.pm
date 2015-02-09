@@ -22,7 +22,7 @@ my class IO::Dir is Cool does IO::Local {
           !! self.new(:abspath( @!parts[0 .. *-($levels + 2)].join('/') ~ '/'));
     }
 
-    method chdir(IO::Dir:D: $path as Str, :$test = 'r') {
+    method chdir(IO::Dir:D: Str(Any) $path, :$test = 'r') {
         my $new := self.new( MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
         $new // $new.throw;
         my $result := $new.all($test);

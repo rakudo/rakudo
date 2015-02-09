@@ -80,7 +80,7 @@ my role IO::Socket does IO {
 #?endif
     }
 
-    method read(IO::Socket:D: Cool $bufsize as Int) {
+    method read(IO::Socket:D: Int(Cool) $bufsize) {
         fail('Socket not available') unless $!PIO;
 #?if parrot
         my str $res;
@@ -117,7 +117,7 @@ my role IO::Socket does IO {
 #?endif
     }
 
-    method send (Cool $string as Str) {
+    method send (Str(Cool) $string) {
         fail("Not connected") unless $!PIO;
 #?if parrot
         $!PIO.send(nqp::unbox_s($string)).Bool;

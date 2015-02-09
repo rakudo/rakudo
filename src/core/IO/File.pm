@@ -5,13 +5,13 @@ my class IO::File is Cool does IO::Local {
 
     method open(IO::File:D: |c) { open( $!abspath, |c ) }
 
-    method copy(IO::File:D: $to as Str, :$createonly) {
+    method copy(IO::File:D: Str(Any) $to, :$createonly) {
         COPY-FILE($!abspath, MAKE-ABSOLUTE-PATH($to,$*CWD ~ '/'), :$createonly);
     }
 
     method unlink(IO::File:D:) { UNLINK-PATH($!abspath) }
 
-    method link(IO::File:D: $name as Str) {
+    method link(IO::File:D: Str(Any) $name) {
         LINK-FILE($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD ~ '/'));
     }
 

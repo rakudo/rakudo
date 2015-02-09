@@ -60,4 +60,8 @@ role Perl6::Metamodel::REPRComposeProtocol {
             $!composed_repr := 1;
         }
     }
+
+    method repr_composed($obj) {
+        $!composed_repr;
+    }
 }

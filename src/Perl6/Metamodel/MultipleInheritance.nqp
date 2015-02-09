@@ -22,6 +22,11 @@ role Perl6::Metamodel::MultipleInheritance {
         if nqp::decont($parent) =:= nqp::decont($obj) {
             nqp::die("Class " ~ self.name($obj) ~ " cannot inherit from itself");
         }
+        my $parent_how := $parent.HOW;
+        if nqp::can($parent_how, 'repr_composed') && !$parent_how.repr_composed($parent) {
+            nqp::die("Class " ~ self.name($obj) ~ " cannot inherit from "
+                ~ $parent_how.name($parent) ~ " because the parent is not composed yet");
+        }
         for @!parents {
             if nqp::decont($_) =:= nqp::decont($parent) {
                 nqp::die("Package '" ~ self.name($obj) ~

@@ -60,18 +60,18 @@ multi sub dir(:$Str!,Mu :$test) {
       ?? DIR-GATHER-STR($*CWD.Str,$test)
       !! DIR-GATHER($*CWD.Str, $test);
 }
-multi sub dir($dir as Str, :$CWD = $*CWD, Mu :$test) {
+multi sub dir(Str() $dir, Str() :$CWD = $*CWD, Mu :$test) {
     DIR-GATHER(
       MAKE-CLEAN-PARTS(
-        MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD.Str)
+        MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD)
       ).join('/'), $test,
     );
 }
-multi sub dir($dir as Str, :$Str!, :$CWD = $*CWD, Mu :$test) {
+multi sub dir(Str() $dir, :$Str!, Str() :$CWD = $*CWD, Mu :$test) {
     $Str
       ?? DIR-GATHER-STR(
            MAKE-CLEAN-PARTS(
-             MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD.Str)
+             MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD)
            ).join('/'),$test
          )
       !! DIR-GATHER(
@@ -110,7 +110,7 @@ multi sub open( $path,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
 }
 
 proto sub pipe(|) { * }
-multi sub pipe( $command as Str,:$enc,:$nodepr,|c) {
+multi sub pipe(Str() $command,:$enc,:$nodepr,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc and !$nodepr;
 
@@ -165,7 +165,7 @@ multi sub slurp(PIO:D $io, :$enc, |c) {
     my $result := $io.slurp-rest(:$enc,|c);
     $result // $result.throw;
 }
-multi sub slurp(Any:D $path as Str, :$enc, |c) {
+multi sub slurp(Any:D Str() $path, :$enc, |c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
     my $result := SLURP-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),:$enc,|c);
@@ -183,7 +183,7 @@ multi sub spurt(PIO:D $fh,\what,|c ) {
     my $result := $fh.spurt(what,:nodepr,|c);
     $result // $result.throw;
 }
-multi sub spurt(Any:D $path as Str,\what,:$enc,|c) {
+multi sub spurt(Any:D Str() $path,\what,:$enc,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
     my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),what,:$enc,|c);

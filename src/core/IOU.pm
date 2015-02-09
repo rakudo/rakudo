@@ -5,7 +5,7 @@ my class IOU does IO::Pathy {
     has $!that;
 
     submethod BUILD(:$!this,:$!rest,:$!abspath) { }
-    method new($this, :$CWD as Str = $*CWD, |c) {
+    method new($this, Str() :$CWD = $*CWD, |c) {
         my $abspath := MAKE-ABSOLUTE-PATH($this,$CWD);
         self!what($abspath,|c)                      # either a IO::Local object
           // self.bless(:$this,:rest(c),:$abspath); # or a placeholder

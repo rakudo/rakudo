@@ -12,7 +12,7 @@ my role IO::Pathy {
     }
 
     method chop(IO::Pathy:D:)     { $!abspath.chop }
-    method relpath(IO::Pathy:D: $root as Str = $*CWD) { # Str(Any)
+    method relpath(IO::Pathy:D: Str() $root = $*CWD) {
         REMOVE-ROOT($root,$!abspath);
     }
 
@@ -70,24 +70,24 @@ my role IO::Pathy {
     method accessed(IO::Pathy:D:) { FILETEST-ACCESSED($!abspath) }
     method changed(IO::Pathy:D:)  { FILETEST-CHANGED( $!abspath) }
 
-    method rename(IO::Pathy:D: $to as Str, :$createonly) {
+    method rename(IO::Pathy:D: Str() $to, :$createonly) {
         my $topath := MAKE-ABSOLUTE-PATH($to,$*CWD.Str);
         RENAME-PATH($!abspath,$topath,:$createonly);
         $!abspath = $topath;  # have the object point to the new location
 #        self!parts;  # runtime failure
         @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
     }
-    method move(IO::Pathy:D: $to as Str, :$createonly) {
+    method move(IO::Pathy:D: Str() $to, :$createonly) {
         my $topath := MAKE-ABSOLUTE-PATH($to,$*CWD.Str);
         MOVE-PATH($!abspath,$topath,:$createonly);
         $!abspath = $topath;  # have the object point to the new location
 #        self!parts;  # runtime failure
         @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
     }
-    method chmod(IO::Pathy:D: $mode as Int) {
+    method chmod(IO::Pathy:D: Int() $mode) {
         CHMOD-PATH($!abspath, $mode);
     }
-    method symlink(IO::Pathy:D: $name as Str) {
+    method symlink(IO::Pathy:D: Str() $name) {
         SYMLINK-PATH($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD.Str));
     }
 

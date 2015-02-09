@@ -5,7 +5,7 @@ role CompUnitRepo::Locally {
 
     my %instances;
 
-    method new(CompUnitRepo::Locally: $dir as Str) {
+    method new(CompUnitRepo::Locally: Str() $dir) {
         my $IO := CHANGE-DIRECTORY($dir,$*CWD.Str,&FILETEST-r);
         return Nil unless $IO;
 

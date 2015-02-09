@@ -24,6 +24,10 @@ role Perl6::Metamodel::MultipleInheritance {
         }
         my $parent_how := $parent.HOW;
         if nqp::can($parent_how, 'repr_composed') && !$parent_how.repr_composed($parent) {
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::Inheritance::NotComposed') {
+                %ex{'X::Inheritance::NotComposed'}(self.name($obj), $parent_how.name($parent))
+            }
             nqp::die("Class " ~ self.name($obj) ~ " cannot inherit from "
                 ~ $parent_how.name($parent) ~ " because the parent is not composed yet");
         }

@@ -17,7 +17,7 @@ my class IO::Path is Cool {
         nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
     }
 
-    submethod BUILD(Str(Any) :$!path!, :$!SPEC!, Str(Any) :$!CWD!) { }
+    submethod BUILD(Str() :$!path!, :$!SPEC!, Str() :$!CWD!) { }
 
     method new-from-absolute-path($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         method !fap() {
@@ -187,7 +187,7 @@ my class IO::Path is Cool {
     multi method chdir(IO::Path:U: $path, :$test = 'r') {
         $*CWD.chdir($path,:$test);
     }
-    multi method chdir(IO::Path:D: Str(Any) $path is copy, :$test = 'r') {
+    multi method chdir(IO::Path:D: Str() $path is copy, :$test = 'r') {
         if !$!SPEC.is-absolute($path) {
             my ($volume,$dirs) = $!SPEC.splitpath(self, :nofile);
             my @dirs = $!SPEC.splitdir($dirs);

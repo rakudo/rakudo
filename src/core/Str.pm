@@ -53,7 +53,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ObjAt
         );
     }
-    submethod BUILD(Str(Any) :$value = '') {
+    submethod BUILD(Str() :$value = '') {
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 

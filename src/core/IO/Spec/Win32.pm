@@ -65,7 +65,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         so $path ~~ /^ [ <$driveletter> <$slash> | <$slash> | <$UNCpath> ]/
     }
 
-    method split (Str(Any) $path is copy) {
+    method split (Str() $path is copy) {
         $path ~~ s[ <$slash>+ $] = ''                       #=
             unless $path ~~ /^ <$driveletter>? <$slash>+ $/;
 
@@ -99,7 +99,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         self.catpath($volume, $dirname, $file);
     }
 
-    method splitpath(Str(Any) $path, :$nofile = False) {
+    method splitpath(Str() $path, :$nofile = False) {
 
         if $nofile {
             $path ~~ /^ (<$volume_rx>?) (.*) /;

@@ -144,6 +144,41 @@ only sub infix:<<"\x2296">>($a, $b --> Setty) {
     $a (^) $b;
 }
 
+
+only sub infix:<<(^+)>>(**@p) {
+    if @p.first(Mixy) {
+        my $mixhash = nqp::istype(@p[0],MixHash)
+                            ?? MixHash.new-from-pairs(@p.shift.pairs)
+                            !! @p.shift.MixHash;
+        for @p.map(*.Mix(:view)) -> $mix {
+            my $i = $mixhash (|) $mix;
+            for $i.keys -> $k {
+                $mixhash{$k}  = $mixhash{$k}
+                                  ?? abs($mixhash{$k} - $mix{$k})
+                                  !! $mix{$k};
+            }
+        }
+        $mixhash.Mix(:view);
+    } else {
+        my $baghash = nqp::istype(@p[0],BagHash)
+                ?? BagHash.new-from-pairs(@p.shift.pairs)
+                !! @p.shift.BagHash;
+        for @p.map(*.Bag(:view)) -> $bag {
+            my $i = $baghash (|) $bag;
+            for $i.keys -> $k {
+                $baghash{$k}  = $baghash{$k}
+                                  ?? abs($baghash{$k} - $bag{$k})
+                                  !! $bag{$k};
+            }
+        }
+        $baghash.Bag(:view);
+    }
+}
+# U+2296 CIRCLED MINUS
+only sub infix:<<"\x229c">>(|p) {
+    infix:<(^+)>(|p);
+}
+
 # TODO: polymorphic eqv
 # multi sub infix:<eqv>(Any $a, Any $b --> Bool) {
 #     $a.Set(:view) eqv $b.Set(:view);

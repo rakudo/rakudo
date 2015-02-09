@@ -11,6 +11,7 @@ class Perl6::Metamodel::NativeRefHOW
     has $!type;
     has $!refkind;
     has $!composed;
+    has $!repr_composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
     method archetypes() {
@@ -35,18 +36,19 @@ class Perl6::Metamodel::NativeRefHOW
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
+        $!composed := 1;
         $obj
     }
 
     method compose_repr($obj) {
-        if !$!composed {
+        if !$!repr_composed {
             my $info := nqp::hash();
             $info<nativeref> := nqp::hash();
             $info<nativeref><type> := nqp::decont($!type);
             $info<nativeref><refkind> := $!refkind // 'unknown';
             nqp::composetype($obj, $info);
+            $!repr_composed := 1;
         }
-        $!composed := 1;
     }
 
     method is_composed($obj) {

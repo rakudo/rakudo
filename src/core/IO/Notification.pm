@@ -8,7 +8,7 @@ my class IO::Notification {
         has $.event;
     }
 
-    method watch_path($path as Str, :$scheduler = $*SCHEDULER) {
+    method watch_path(Str() $path, :$scheduler = $*SCHEDULER) {
         my $s = Supply.new;
         nqp::watchfile(
             $scheduler.queue,

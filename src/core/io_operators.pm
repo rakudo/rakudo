@@ -191,7 +191,7 @@ multi sub spurt(Any:D $path as Str,\what,:$enc,|c) {
 }
 
 {
-    sub chdir($path as Str) {
+    sub chdir(Str() $path) {
         nqp::chdir(nqp::unbox_s($path));
         $*CWD = IO::Path.new(cwd());
         return True;
@@ -207,7 +207,7 @@ multi sub spurt(Any:D $path as Str,\what,:$enc,|c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir($path as Str, $CWD as Str = $*CWD) {        # Str(Any),Str(Any)
+sub chdir(Str() $path, Str() $CWD = $*CWD) {
     my $newCWD := CHANGE-DIRECTORY($path,$CWD,&FILETEST-x);
     return $newCWD if nqp::istype($newCWD,Failure);
 
@@ -215,7 +215,7 @@ sub chdir($path as Str, $CWD as Str = $*CWD) {        # Str(Any),Str(Any)
     True;
 }
 
-sub indir($path as Str, &what, $CWD as Str = $*CWD) { # Str(Any),,Str(Any)
+sub indir(Str() $path, &what, Str() $CWD = $*CWD) {
     my $newCWD := CHANGE-DIRECTORY($path,$CWD,&FILETEST-rwx);
     return $newCWD if nqp::istype($newCWD,Failure);
 
@@ -225,7 +225,7 @@ sub indir($path as Str, &what, $CWD as Str = $*CWD) { # Str(Any),,Str(Any)
     }
 }
 
-sub tmpdir($path as Str, $CWD as Str = $*CWD) {       # Str(Any),Str(Any)
+sub tmpdir(Str() $path, Str() $CWD = $*CWD) {
     my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR.Str,&FILETEST-rwx);
     return $newTMPDIR if nqp::istype($newTMPDIR,Failure);
 
@@ -233,7 +233,7 @@ sub tmpdir($path as Str, $CWD as Str = $*CWD) {       # Str(Any),Str(Any)
     True;
 }
 
-sub homedir($path as Str, $CWD as Str = $*CWD) {      # Str(Any),Str(Any)
+sub homedir(Str() $path, Str() $CWD = $*CWD) {
     my $newHOME := CHANGE-DIRECTORY($path,$*HOME.Str,&FILETEST-rwx);
     return $newHOME if nqp::istype($newHOME,Failure);
 
@@ -241,49 +241,49 @@ sub homedir($path as Str, $CWD as Str = $*CWD) {      # Str(Any),Str(Any)
     True;
 }
 
-sub chmod($mode, *@filenames, :$CWD as Str = $*CWD) {
+sub chmod($mode, *@filenames, Str() :$CWD = $*CWD) {
     @filenames.grep( { CHMOD-PATH(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
 }
-sub unlink(*@filenames, :$CWD as Str = $*CWD)       {
+sub unlink(*@filenames, Str() :$CWD = $*CWD)       {
     @filenames.grep( { UNLINK-PATH(MAKE-ABSOLUTE-PATH($_,$CWD)) } ).eager;
 }
-sub rmdir(*@filenames, :$CWD as Str = $*CWD) {
+sub rmdir(*@filenames, Str() :$CWD = $*CWD) {
     @filenames.grep( { REMOVE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD)) } ).eager;
 }
 
 proto sub mkdir(|) { * }
-multi sub mkdir(Int $mode, *@dirnames, :$CWD as Str = $*CWD) {
+multi sub mkdir(Int $mode, *@dirnames, Str() :$CWD = $*CWD) {
     @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
 }
-multi sub mkdir($path, $mode = 0o777, :$CWD as Str = $*CWD) {
+multi sub mkdir($path, $mode = 0o777, Str() :$CWD = $*CWD) {
     MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$CWD),$mode);
 }
 
-sub rename($from, $to, :$CWD as Str = $*CWD, |c) {
+sub rename($from, $to, Str() :$CWD = $*CWD, |c) {
     my $result := RENAME-PATH(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub move($from, $to, :$CWD as Str = $*CWD, |c) {
+sub move($from, $to, Str() :$CWD = $*CWD, |c) {
     my $result := MOVE-PATH(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub copy($from, $to, :$CWD as Str = $*CWD, |c) {
+sub copy($from, $to, Str() :$CWD = $*CWD, |c) {
     my $result := COPY-FILE(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub symlink($target, $name, :$CWD as Str = $*CWD) {
+sub symlink($target, $name, Str() :$CWD = $*CWD) {
     my $result := SYMLINK-PATH(
       MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
     );
     $result // $result.throw;
 }
-sub link($target, $name, :$CWD as Str = $*CWD) {
+sub link($target, $name, Str() :$CWD = $*CWD) {
     my $result := LINK-FILE(
       MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
     );

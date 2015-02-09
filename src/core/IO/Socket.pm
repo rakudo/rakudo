@@ -80,7 +80,7 @@ my class IO::Socket does IO does PIO {
 #?endif
     }
 
-    method read(IO::Socket:D: Cool $bufsize as Int) {
+    method read(IO::Socket:D: Int(Cool) $bufsize) {
         fail('Socket not available') unless $!PIO;
 #?if parrot
         my str $res;
@@ -113,13 +113,13 @@ my class IO::Socket does IO does PIO {
         );
     }
 
-    method send(IO::Socket:D: |c) {
+    method send(IO::Socket:D: \string) {
         DEPRECATED('print',|<2015.01 2016.01>);
-        self.print(|c);
+        self.print(string);
     }
 
-    multi method print(IO::Socket:D: Str:D \x) {
-        $!PIO.send(nqp::unbox_s(\x)).Bool;
+    multi method print(IO::Socket:D: Str:D \string) {
+        $!PIO.send(nqp::unbox_s(\string)).Bool;
     }
     multi method print(IO::Socket:D: *@list) {
         $!PIO.send(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);

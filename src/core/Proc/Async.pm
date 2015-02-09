@@ -201,7 +201,7 @@ my class Proc::Async {
         } );
     }
 
-    method print(Proc::Async:D: $str as Str, :$scheduler = $*SCHEDULER) {
+    method print(Proc::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
         X::Proc::Async::OpenForWriting.new(:method<print>).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<print>).throw  if !$!started;
 

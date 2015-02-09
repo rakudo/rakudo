@@ -15,10 +15,10 @@ my class IO::Dir is Cool does IO::Pathy {
           !! self;
     }
 
-    method chdir(IO::Dir:D: $path as Str, :$test = 'r') {
+    method chdir(IO::Dir:D: Str() $path, :$test = 'r') {
         my $new := self.new( MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
         $new // $new.throw;
-        my $result := $new.all($test);
+        my $result := $new.all($test);   # XXX
         $result // $result.throw;
         $new;
     }

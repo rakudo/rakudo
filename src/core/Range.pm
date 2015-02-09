@@ -163,7 +163,7 @@ my class Range is Iterable is Cool does Positional {
         my Int:D $elems = 1 + ($!excludes-max ?? $!max - 1 !! $!max) - $least;
         $elems ?? ($least + nqp::rand_I(nqp::decont($elems), Int)) !! Any;
     }
-    multi method roll(Cool $num as Int) {
+    multi method roll(Int(Cool) $num) {
         return self.list.roll($num) unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
         return self.roll if $num == 1;
         my int $n = nqp::unbox_i($num);
@@ -175,7 +175,7 @@ my class Range is Iterable is Cool does Positional {
     proto method pick(|)        { * }
     multi method pick()          { self.roll };
     multi method pick(Whatever)  { self.list.pick(*) };
-    multi method pick(Cool $n as Int) {
+    multi method pick(Int(Cool) $n) {
         return self.list.pick($n) unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
         return self.roll if $n == 1;
         my Int:D $least = $!excludes-min ?? $!min + 1 !! $!min;

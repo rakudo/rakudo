@@ -145,7 +145,7 @@ my class Any { # declared in BOOTSTRAP
             !! self
     }
     multi method tree(Any:D: Whatever ) { self.tree }
-    multi method tree(Any:D: Cool $count as Int) {
+    multi method tree(Any:D: Int(Cool) $count) {
         nqp::istype(self,Positional) && $count > 0
             ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
             !! self

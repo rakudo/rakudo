@@ -11,7 +11,7 @@ my class Grammar is Cursor {
         nqp::getlexcaller('$/') =
             self."!cursor_init"($target, |%opt)."$rule"(|$args).MATCH;
     }
-    method parsefile(Cool $filename as Str, *%opts) {
+    method parsefile(Str(Cool) $filename, *%opts) {
         my $match := self.parse($filename.IO.slurp, |%opts);
         nqp::getlexcaller('$/') = $match;
     }

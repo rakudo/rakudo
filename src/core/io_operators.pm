@@ -165,7 +165,7 @@ multi sub slurp(PIO:D $io, :$enc, |c) {
     my $result := $io.slurp-rest(:$enc,|c);
     $result // $result.throw;
 }
-multi sub slurp(Any:D Str() $path, :$enc, |c) {
+multi sub slurp(Str() $path, :$enc, |c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
     my $result := SLURP-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),:$enc,|c);
@@ -183,7 +183,7 @@ multi sub spurt(PIO:D $fh,\what,|c ) {
     my $result := $fh.spurt(what,:nodepr,|c);
     $result // $result.throw;
 }
-multi sub spurt(Any:D Str() $path,\what,:$enc,|c) {
+multi sub spurt(Str() $path,\what,:$enc,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
     my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),what,:$enc,|c);

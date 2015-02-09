@@ -4315,7 +4315,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method add_variable($name) {
         my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
         if $categorical {
-            self.add_categorical(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $name);
+            self.add_categorical(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $categorical[0]);
         }
     }
 

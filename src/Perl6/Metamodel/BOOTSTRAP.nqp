@@ -1960,8 +1960,13 @@ BEGIN {
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
                                 if $got_prim == $BIND_VAL_OBJ {
-                                    # Object; won't do.
-                                    $type_mismatch := 1;
+                                    # Object, but could be a native container. If not, mismatch.
+                                    my $contish := nqp::captureposarg($capture, $i);
+                                    unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
+                                           (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
+                                           (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
+                                        $type_mismatch := 1;
+                                    }
                                 }
                                 elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
                                    (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||

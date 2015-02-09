@@ -107,6 +107,15 @@ my class X::Method::InvalidQualifier is Exception {
     }
 }
 
+my class X::Role::Parametric::NoSuchCandidate is Exception {
+    has Mu $.role;
+    method message {
+        "No appropriate parametric role variant available for '"
+        ~ $.role.^name
+        ~ "'";
+    }
+}
+
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
@@ -1065,11 +1074,13 @@ my class X::Syntax::NonAssociative does X::Syntax {
     }
 }
 
-my class X::Syntax::DiffyReduce does X::Syntax {
+my class X::Syntax::Can'tMeta does X::Syntax {
+    has $.meta;
     has $.operator;
+    has $.reason;
     has $.dba;
     method message() {
-        "Cannot reduce with $.operator because $.dba operators are diffy and not chaining";
+        "Cannot $.meta $.operator because $.dba operators are $.reason";
     }
 }
 
@@ -1571,6 +1582,19 @@ my class X::Caller::NotDynamic is Exception {
     }
 }
 
+my class X::Inheritance::NotComposed is Exception {
+    # normally, we try very hard to capture the types
+    # and not just their names. But in this case, both types
+    # involved aren't composed yet, so they basically aren't
+    # usable at all.
+    has $.child-name;
+    has $.parent-name;
+    method message() {
+        "'$.child-name' cannot inherit from '$.parent-name' because '$.parent-name' isn't compose yet"
+            ~ ' (maybe it is stubbed)';
+    }
+}
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden_from_backtrace {
@@ -1600,6 +1624,12 @@ my class X::Caller::NotDynamic is Exception {
     %c_ex{'X::Role::Initialization'} := sub ($role) is hidden_from_backtrace {
             X::Role::Initialization.new(:$role).throw
         }
+    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) is hidden_from_backtrace {
+        X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
+        }
+    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) is hidden_from_backtrace {
+        X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
+    }
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));
 
     0;

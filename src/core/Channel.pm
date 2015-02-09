@@ -103,6 +103,9 @@ my class Channel {
     method close() {
         $!closed = 1;
         nqp::push($!queue, CHANNEL_CLOSE);
+        # if $!queue is otherwise empty, make sure that $!closed_promise
+        # learns about the new value
+        self!peek();
         Nil
     }
 

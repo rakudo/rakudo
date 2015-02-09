@@ -431,7 +431,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         !! '';
                     my $canname  := $category ~ ":sym<" ~ $opname ~ ">";
                     my $termname := $category ~ ":<" ~ $opname ~ ">";
-                    $/.CURSOR.add_categorical($category, $opname, $canname, $termname);
+                    $/.CURSOR.add_categorical($category, $opname, $canname, $termname, :defterm);
                 }
             }
         | <?>
@@ -2427,14 +2427,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         # STD.pm6 uses <defterm> here, but we need different 
         # action methods
-        | '\\' <identifier> <.ws>
-            [ <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
+        | '\\' <defterm>
+            [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
           [
-          || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
-          || <initializer>?
+          || <?{ $*SCOPE eq 'has' }> <.newpad> [ <.ws> <initializer> ]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
+          || [ <.ws> <initializer> ]?
           ]
-        | '(' ~ ')' <signature> <trait>* <.ws> <initializer>?
+        | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
@@ -2517,7 +2517,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           }
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
-        ] <.ws>
+        ]
         || <.ws>[<typename><.ws>]* <ident> <?before <.ws> [':'?':'?'=' | ';' | '}' ]> {}
             <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
         || <.ws><typo_typename> <!>
@@ -2564,10 +2564,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <?[<]> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
         ]?
-        <.ws>
-        
-        <trait>*
-        <post_constraint>*
+
+        [ <.ws> <trait>+ ]?
+        [ <.ws> <post_constraint>+ <.NYI: "Post-constraints on variables"> ]?
     }
 
     proto token routine_declarator { <...> }
@@ -3202,8 +3201,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ||  <?{ nqp::eqat($<longname>.Str, '::', 0) || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
-                <?{ $*W.is_type($*longname.components()) }>
-                <?[[]> :dba('type parameter') '[' ~ ']' <arglist>
+                <?[[]> <?{ $*W.is_type($*longname.components()) }>
+                :dba('type parameter') '[' ~ ']' <arglist>
+            ]?
+            <.unsp>?
+            [
+                <?[(]> <?{ $*W.is_type($*longname.components()) }>
+                '(' <.ws> [
+                    || <accept=.typename> <!{ nqp::isconcrete($<accept>.ast) }>
+                    || $<accept_any>=<?>
+                ] <.ws> ')'
             ]?
         || <args(1)>
             {
@@ -3361,9 +3368,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*W.is_name($longname.type_name_parts('type name'))
           }>
         ]
-        # parametric type?
-        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]**0..1
-        <.unsp>? [ <?[(]> '(' ~ ')' <arglist> <.NYI("coercive type declarations")>]**0..1
+        # parametric/coercion type?
+        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
+        <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
 
@@ -3682,29 +3689,30 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
         :my $*IN_META := $in_meta;
-        :my $oper;
+        :my $*OPER;
         <!stdstopper>
         <!infixstopper>
         :dba('infix or meta-infix')
         [
-        | <colonpair> <fake_infix> { $oper := $<fake_infix> }
+        | <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
         |   [
-            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $oper := $<infixish><OPER> }
+            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
                 # XXX Gets false positives.
                 #[ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
             | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
                 {
                     $<variable><O> := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive') unless $<variable><O>;
-                    $oper := $<variable>;
+                    $*OPER := $<variable>;
                     self.check_variable($<variable>)
                 }
-            | <infix_circumfix_meta_operator> { $oper := $<infix_circumfix_meta_operator> }
-            | <infix_prefix_meta_operator> { $oper := $<infix_prefix_meta_operator> }
-            | <infix> { $oper := $<infix> }
+            | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
+            | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
+            | <infix> { $*OPER := $<infix> }
             ]
-            [ <?before '='> <infix_postfix_meta_operator> { $oper := $<infix_postfix_meta_operator> } ]?
+            [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> }
+            ]?
         ]
-        <OPER=.asOPER($oper)>
+        <OPER=.asOPER($*OPER)>
     }
 
     method asOPER($OPER) {
@@ -3764,9 +3772,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token prefix_postfix_meta_operator { <...> }
     
-    method can_meta($op, $meta) {
-        !$op<OPER><O><fiddly> ||
-            self.sorry("Cannot " ~ $meta ~ " " ~ $op<OPER><sym> ~ " because " ~ $op<OPER><O><dba> ~ " operators are too fiddly");
+    method can_meta($op, $meta, $reason = "fiddly") {
+        if $op<OPER><O>{$reason} {
+            self.typed_panic: "X::Syntax::Can'tMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
+        }
         self;
     }
     
@@ -3789,7 +3798,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <!{ $op<OPER><O><diffy> }>
         || <?{ $op<OPER><O><pasttype> eq 'chain' }>
-        || { self.typed_panic: 'X::Syntax::DiffyReduce', operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba> }
+        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => 'diffy and not chaining' }
         ]
 
         <args>
@@ -4093,7 +4102,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
         || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
-        || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
+        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
         ]
     }
 
@@ -4136,7 +4145,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     # Should probably have <!after '='> to agree w/spec, but after NYI.
     # Modified infix != below instead to prevent misparse
-    token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
+    # token infix_postfix_meta_operator:sym<=>($op) {
+    # use $*OPER until NQP/Rakudo supports proto tokens with arguments
+    token infix_postfix_meta_operator:sym<=> {
+        :my $prec;
+        :my %fudge_oper;
+        '='
+        { %fudge_oper<OPER> := $*OPER }
+        <.can_meta(%fudge_oper, "make assignment out of")>
+        [ <!{ $*OPER<O><diffy> }> || <.can_meta(%fudge_oper, "make assignment out of", "diffy")> ]
+        {
+            $<sym> := $*OPER<sym> ~ '=';
+            if $*OPER<O><prec> gt 'g=' {
+                $prec := '%item_assignment';
+            }
+            else {
+                $prec := '%list_assignment';
+            }
+        }
+        <O("$prec, :dba<assignment operator>, :iffy<0>")> {}
+    }
 
     token infix:sym«=>» { <sym> <O('%item_assignment')> }
 
@@ -4286,14 +4314,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method add_variable($name) {
         my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
         if $categorical {
-            self.add_categorical(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $name);
+            self.add_categorical(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], ~$categorical[0]);
         }
     }
 
     # Called when we add a new choice to an existing syntactic category, for
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
-    method add_categorical($category, $opname, $canname, $subname, $declarand?) {
+    method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
         
         # Ensure it's not a null name.
@@ -4437,7 +4465,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             };
             %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
-                $*IN_DECL eq 'constant'
+                $defterm
                     ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
                     !! TermAction.HOW.curry(TermAction, $canname, $subname));
         }

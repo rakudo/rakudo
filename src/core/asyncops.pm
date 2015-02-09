@@ -4,13 +4,13 @@
 # pool that blocks; for now, this cheat gets the basic idea in place.
 
 proto sub await(|) { * }
-multi sub await(Promise $p) {
+multi sub await(Promise:D $p) {
     $p.result
 }
 multi sub await(*@awaitables) {
     @awaitables.eager.map(&await)
 }
-multi sub await(Channel $c) {
+multi sub await(Channel:D $c) {
     $c.receive
 }
 

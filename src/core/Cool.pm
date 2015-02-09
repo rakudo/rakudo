@@ -17,7 +17,7 @@ my class Cool { # declared in BOOTSTRAP
     method abs()  { self.Numeric.abs }
     method conj()  { self.Numeric.conj }
     method sqrt()  { self.Numeric.sqrt }
-    method sign()  { self.Numeric.sign }
+    method sign()  { self.Real.sign }
     method rand() { self.Num.rand }
     method sin()  { self.Numeric.sin }
     method asin() { self.Numeric.asin }

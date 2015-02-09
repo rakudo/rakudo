@@ -61,23 +61,40 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
-        # Locate correct parametric role and type environment.
+        # Use multi-dispatcher to pick the body block of the best role.
         my $error;
-        my @result;
+        my $selected_body;
         try {
-            @result := (self.get_selector($obj))(|@pos_args, |%named_args);
+            sub try_select(*@pos, *%named) {
+                self.get_selector($obj).find_best_dispatchee(nqp::usecapture(), 0)
+            }
+            $selected_body := try_select(|@pos_args, |%named_args);
             CATCH { $error := $! }
         }
         if $error {
-            nqp::die("None of the parametric role variants for '" ~
-                self.name($obj) ~ "' matched the arguments supplied.\n" ~
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if nqp::existskey(%ex, 'X::Role::Parametric::NoSuchCandidate') {
+                %ex{'X::Role::Parametric::NoSuchCandidate'}($obj);
+            }
+            nqp::die("Could not find an appropriate parametric role variant for '" ~
+                self.name($obj) ~ "' using the arguments supplied.\n" ~
                 $error);
         }
-        
+
+        # Locate the role that has that body block.
+        my $selected := NQPMu;
+        for @!candidates {
+            if $_.HOW.body_block($_) =:= $selected_body {
+                $selected := $_;
+                last;
+            }
+        }
+        if $selected =:= NQPMu {
+            nqp::die("Internal error: could not resolve body block to role candidate");
+        }
+
         # Having picked the appropriate one, specialize it.
-        my $prole := @result[0];
-        my $type_env := @result[1];
-        $prole.HOW.specialize_with($prole, $type_env, @pos_args)
+        $selected.HOW.specialize($selected, |@pos_args, |%named_args);
     }
     
     method get_selector($obj) {

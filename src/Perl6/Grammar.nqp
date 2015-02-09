@@ -2427,14 +2427,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         # STD.pm6 uses <defterm> here, but we need different 
         # action methods
-        | '\\' <defterm> <.ws>
-            [ <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
+        | '\\' <defterm>
+            [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
           [
-          || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
-          || <initializer>?
+          || <?{ $*SCOPE eq 'has' }> <.newpad> [ <.ws> <initializer> ]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
+          || [ <.ws> <initializer> ]?
           ]
-        | '(' ~ ')' <signature> <trait>* <.ws> <initializer>?
+        | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
@@ -2564,10 +2564,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <?[<]> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
         ]?
-        <.ws>
-        
-        <trait>*
-        <post_constraint>*
+
+        [ <.ws> <trait>+ ]?
+        [ <.ws> <post_constraint>+ <.NYI: "Post-constraints on variables"> ]?
     }
 
     proto token routine_declarator { <...> }

@@ -1978,9 +1978,11 @@ BEGIN {
                             else {
                                 my $param;
                                 if $got_prim == $BIND_VAL_OBJ {
-                                    $param := nqp::hllizefor(
-                                        nqp::captureposarg($capture, $i),
-                                        'perl6');
+                                    $param := nqp::captureposarg($capture, $i);
+                                    if    nqp::iscont_i($param) { $param := Int }
+                                    elsif nqp::iscont_n($param) { $param := Num }
+                                    elsif nqp::iscont_s($param) { $param := Str }
+                                    else { $param := nqp::hllizefor($param, 'perl6') }
                                 }
                                 else {
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!

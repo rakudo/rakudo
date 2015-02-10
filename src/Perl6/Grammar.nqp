@@ -3142,7 +3142,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<rand> {
         <sym> »
-        [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
+        [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
         <.end_keyword>
     }

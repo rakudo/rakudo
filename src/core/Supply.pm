@@ -172,10 +172,14 @@ my role Supply {
     }
     method start(Supply:D: &startee)     { SupplyOperations.start(self, &startee) }
     method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        SupplyOperations.stable(self, $time, :$scheduler)
+        SupplyOperations.stable(self, $time, :$scheduler);
     }
     method delay(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        SupplyOperations.delay(self, $time, :$scheduler)
+        DEPRECATED('delayed', '2015.02', '2016.01');
+        SupplyOperations.delayed(self, $time, :$scheduler);
+    }
+    method delayed(Supply:D: $time, :$scheduler = $*SCHEDULER) {
+        SupplyOperations.delayed(self, $time, :$scheduler)
     }
     method migrate(Supply:D: )           { SupplyOperations.migrate(self) }
 

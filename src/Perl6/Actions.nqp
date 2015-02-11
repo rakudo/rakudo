@@ -2802,6 +2802,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $past := $<blockoid>.ast;
+            if $past.ann('placeholder_sig') {
+                $/.CURSOR.panic('Placeholder variables cannot be used in a method');
+            }
             $past[1] := wrap_return_handler($past[1]);
         }
         $past.blocktype('declaration_static');
@@ -2998,9 +3001,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
         # Get signature and ensure it has an invocant.
         my @params := %sig_info<parameters>;
-        if $past.ann('placeholder_sig') {
-            $/.CURSOR.panic('Placeholder variables cannot be used in a method');
-        }
         unless @params[0]<is_invocant> {
             @params.unshift(hash(
                 nominal_type => $invocant_type,
@@ -3216,7 +3216,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
-        # create a code reference from a regex qast tree
+        # Regexes can't have place-holder signatures.
+        if $qast.ann('placeholder_sig') {
+            $/.CURSOR.panic('Placeholder variables cannot be used in a regex');
+        }
+
+        # Create a code reference from a regex qast tree
         my $past;
         if $proto {
             $block[1] := $qast;

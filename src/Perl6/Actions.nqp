@@ -3974,6 +3974,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Create Parameter objects, along with container descriptors
     # if needed. Parameters will be bound into the specified
     # lexpad.
+    my $SIG_ELEM_IS_RW := 256;
     sub create_signature_object($/, %signature_info, $lexpad, :$no_attr_check) {
         my @parameters;
         my %seen_names;
@@ -4002,12 +4003,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             
             # Add variable as needed.
-            if $_<variable_name> {
-                my %sym := $lexpad.symbol($_<variable_name>);
+            my $varname := $_<variable_name>;
+            if $varname {
+                my %sym := $lexpad.symbol($varname);
                 if +%sym && !nqp::existskey(%sym, 'descriptor') {
                     $_<container_descriptor> := $*W.create_container_descriptor(
-                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
-                    $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
+                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $varname);
+                    $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
                 }
             }
 
@@ -4016,6 +4018,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $_<traits> {
                 for $_<traits> {
                     ($_.ast)($param_obj) if $_.ast;
+                }
+            }
+
+            # If it's natively typed and we got "is rw" set, need to mark the
+            # container as being a lexical ref.
+            if $varname && nqp::objprimspec($_<nominal_type>) {
+                my $param_type := $*W.find_symbol(['Parameter']);
+                my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
+                if $flags +& $SIG_ELEM_IS_RW {
+                    for @($lexpad[0]) {
+                        if nqp::istype($_, QAST::Var) && $_.name eq $varname {
+                            $_.scope('lexicalref');
+                        }
+                    }
                 }
             }
 
@@ -6349,9 +6365,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         0
     }
-    my $SIG_ELEM_IS_RW       := 256;
     my $SIG_ELEM_IS_PARCEL   := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
+    my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s'];
     sub lower_signature($block, $sig, @params) {
         my @result;
         my $clear_topic_bind;
@@ -6464,9 +6480,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Add type checks.
-            my $nomtype := %info<nominal_type>;
-            if nqp::objprimspec($nomtype) {
-                $var.returns($nomtype);
+            my $nomtype   := %info<nominal_type>;
+            my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
+            my int $spec  := nqp::objprimspec($nomtype);
+            if $spec {
+                if $is_rw {
+                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op(@iscont_ops[$spec]),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    )));
+                }
+                else {
+                    $var.returns($nomtype);
+                }
             }
             elsif !$saw_slurpy {
                 # Must hll-ize before we go on.
@@ -6551,14 +6577,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         return 0;
                     }
                     else {
-                        my int $ps := nqp::objprimspec($nomtype);
-                        if $ps == 1 {
+                        if $spec == 1 {
                             $var.default(QAST::IVal.new( :value(0) ));
                         }
-                        elsif $ps == 2 {
+                        elsif $spec == 2 {
                             $var.default(QAST::NVal.new( :value(0.0) ));
                         }
-                        elsif $ps == 3 {
+                        elsif $spec == 3 {
                             $var.default(QAST::SVal.new( :value('') ));
                         }
                         else {
@@ -6581,10 +6606,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Bind to lexical if needed.
             if nqp::existskey(%info, 'variable_name') && !%info<bind_attr> {
-                if nqp::objprimspec($nomtype) || $flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_PARCEL {
+                if nqp::objprimspec($nomtype) || $is_rw || $flags +& $SIG_ELEM_IS_PARCEL {
+                    my $scope := $spec && $is_rw ?? 'lexicalref' !! 'lexical';
                     $var.push(QAST::Op.new(
                         :op('bind'),
-                        QAST::Var.new( :name(%info<variable_name>), :scope('lexical'), :returns($nomtype) ),
+                        QAST::Var.new( :name(%info<variable_name>), :$scope, :returns($nomtype) ),
                         QAST::Var.new( :name($name), :scope('local') )
                     ));
                 }

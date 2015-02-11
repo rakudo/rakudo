@@ -428,13 +428,15 @@ my class BlockVarOptimizer {
     has int $!uses_bindsig;
 
     method add_decl($var) {
-        if $var.scope eq 'lexical' {
+        my str $scope := $var.scope;
+        if $scope eq 'lexical' || $scope eq 'lexicalref' {
             %!decls{$var.name} := $var;
         }
     }
 
     method add_usage($var) {
-        if $var.scope eq 'lexical' {
+        my str $scope := $var.scope;
+        if $scope eq 'lexical' || $scope eq 'lexicalref' {
             my $name   := $var.name;
             my @usages := %!usages_flat{$name};
             unless @usages {
@@ -1293,6 +1295,7 @@ class Perl6::Optimizer {
         return NQPMu;
     }
 
+    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
     method optimize_nameless_call($op) {
         if +@($op) > 0 {
             # if we know we're directly calling the result, we can be smarter
@@ -1303,8 +1306,8 @@ class Perl6::Optimizer {
                         my str $sigil := nqp::substr($op[1].name, 0, 1);
                         my str $assignop;
 
-                        if nqp::objprimspec($op[1].returns) {
-                            $assignop := 'bind';
+                        if nqp::objprimspec($op[1].returns) -> $spec {
+                            $assignop := @native_assign_ops[$spec];
                         } elsif $sigil eq '$' {
                             $assignop := 'assign';
                         } else {
@@ -1332,7 +1335,7 @@ class Perl6::Optimizer {
                                         QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
                                     $operand));
 
-                        if $assignop eq 'bind' && nqp::objprimspec($target_var.returns) {
+                        if $assignop ne 'assign' && nqp::objprimspec($target_var.returns) {
                             $op.returns($target_var.returns);
                         }
                     }
@@ -1481,7 +1484,7 @@ class Perl6::Optimizer {
     method visit_var($var) {
         # Track usage.
         my str $scope := $var.scope;
-        if $scope eq 'attribute' || $scope eq 'positional' || $scope eq 'associative' {
+        if $scope eq 'attribute' || $scope eq 'attributeref' || $scope eq 'positional' || $scope eq 'associative' {
             self.visit_children($var);
         } else {
             my int $top := nqp::elems(@!block_var_stack) - 1;
@@ -1500,6 +1503,10 @@ class Perl6::Optimizer {
             }
             else {
                 @!block_var_stack[$top].add_usage($var);
+                if $var.scope eq 'lexicalref' {
+                    # XXX Workaround until we can be smarter about these.
+                    self.poison_var_lowering();
+                }
             }
         }
 

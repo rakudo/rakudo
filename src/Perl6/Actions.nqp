@@ -1720,8 +1720,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
                 }
                 my $attr := get_attribute_meta_object($/, $past.name(), $past);
-                $past.returns($attr.type) if $attr;
-                $past.scope('attribute');
+                my $type := $attr ?? $attr.type !! NQPMu;
+                $past.returns($type) if $attr;
+                $past.scope(nqp::objprimspec($type) ?? 'attributeref' !! 'attribute');
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
                 $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
             }
@@ -1817,6 +1818,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             try {
                 my $type := $*W.find_lexical_container_type($past.name);
                 $past.returns($type);
+                if nqp::objprimspec($type) {
+                    $past.scope('lexicalref');
+                }
             }
             
             # If it's a late-bound sub lookup, we may not find it, so be sure
@@ -2300,9 +2304,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
             if $past.isa(QAST::Var) {
+                my $bind_type := %cont_info<bind_constraint>;
                 $past.name($name);
-                $past.scope('lexical');
-                $past.returns(%cont_info<bind_constraint>);
+                $past.returns($bind_type);
+                $past.scope(nqp::objprimspec($bind_type) ?? 'lexicalref' !! 'lexical');
                 if %cont_info<bind_constraint>.HOW.archetypes.generic {
                     $past := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
@@ -5347,6 +5352,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
     sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
@@ -5354,10 +5360,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
         }
         if nqp::istype($lhs_ast, QAST::Var)
-                && nqp::objprimspec($lhs_ast.returns) {
-            # Native assignment is actually really a bind at low level.
+                && nqp::objprimspec($lhs_ast.returns) -> $spec {
+            # Native assignment is only possible to a reference; complain now
+            # rather than at runtime since we'll innevitably fail.
+            my $scope := $lhs_ast.scope;
+            if $scope ne 'lexicalref' && $scope ne 'attributeref' {
+                # XXX Typed exception, only sorry?
+                $/.CURSOR.panic('Cannot assign to a readonly variable');
+            }
             $past := QAST::Op.new(
-                :op('bind'), :returns($lhs_ast.returns),
+                :op(@native_assign_ops[$spec]), :returns($lhs_ast.returns),
                 $lhs_ast, $rhs_ast);
         }
         elsif $var_sigil eq '@' || $var_sigil eq '%' {

@@ -870,8 +870,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<lambda> eq '<->' {
                 for @params { $_<is_rw> := 1 }
             }
-            set_default_parameter_type(@params, 'Mu');
-            my $signature := create_signature_object($<signature>, %sig_info, $block);
+            my $signature := create_signature_object($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
 
             # We'll install PAST in current block so it gets capture_lex'd.
@@ -1933,8 +1932,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 is_multi_invocant => 1,
                 type_captures     => ['$?CLASS', '::?CLASS']
             ));
-            set_default_parameter_type(@params, 'Mu');
-            my $sig := create_signature_object($<signature>, %sig_info, $block);
+            my $sig := create_signature_object($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration_static');
 
@@ -2106,9 +2104,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     my %sig_info := $<signature>.ast;
-                    my @params := %sig_info<parameters>;
-                    set_default_parameter_type(@params, 'Mu');
-                    my $signature := create_signature_object($/, %sig_info, $*W.cur_lexpad());
+                    my $signature := create_signature_object($/, %sig_info, $*W.cur_lexpad(), 'Mu');
                     $list := QAST::Op.new(
                         :op('p6bindcaptosig'),
                         QAST::WVal.new( :value($signature) ),
@@ -2426,8 +2422,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                                                 [];
         }
         my @params := %sig_info<parameters>;
-        set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/,
+            %sig_info, $block, 'Any');
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
@@ -2938,8 +2934,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                                                 [];
         }
         my @params := %sig_info<parameters>;
-        set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/,
+            %sig_info, $block, 'Any');
         add_signature_binding_code($block, $signature, @params);
 
         # Finish code object, associating it with the routine body.
@@ -3027,8 +3023,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.symbol('%_', :scope('lexical'));
             }
         }
-        set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($/, %sig_info, $past);
+        my $signature := create_signature_object($/, %sig_info, $past, 'Any');
         add_signature_binding_code($past, $signature, @params);
 
         # Place to store invocant.
@@ -3598,10 +3593,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method fakesignature($/) {
         my $fake_pad := $*W.pop_lexpad();
-        my %sig_info := $<signature>.ast;
-        my @params := %sig_info<parameters>;
-        set_default_parameter_type(@params, 'Mu');
-        my $sig := create_signature_object($/, %sig_info, $fake_pad, :no_attr_check(1));
+        my $sig := create_signature_object($/, $<signature>.ast,
+            $fake_pad, 'Mu', :no_attr_check(1));
 
         $*W.cur_lexpad()[0].push($fake_pad);
         $*W.create_code_object($fake_pad, 'Block', $sig);
@@ -3958,27 +3951,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    # Sets the default parameter type for a signature.
-    sub set_default_parameter_type(@parameter_infos, $type_name) {
-        my $type := $*W.find_symbol([$type_name]);
-        for @parameter_infos {
-            unless nqp::existskey($_, 'nominal_type') {
-                $_<nominal_type> := $type;
-            }
-            if nqp::existskey($_, 'sub_signature_params') {
-                set_default_parameter_type($_<sub_signature_params><parameters>, $type_name);
-            }
-        }
-    }
-
     # Create Parameter objects, along with container descriptors
     # if needed. Parameters will be bound into the specified
     # lexpad.
     my $SIG_ELEM_IS_RW := 256;
-    sub create_signature_object($/, %signature_info, $lexpad, :$no_attr_check) {
+    sub create_signature_object($/, %signature_info, $lexpad, $default_type_name, :$no_attr_check) {
+        my $default_type := $*W.find_symbol([$default_type_name]);
         my @parameters;
         my %seen_names;
         for %signature_info<parameters> {
+            # Set default nominal type, if we lack one.
+            unless nqp::existskey($_, 'nominal_type') {
+                $_<nominal_type> := $default_type;
+            }
+
             # Check we don't have duplicated named parameter names.
             if $_<named_names> {
                 for $_<named_names> {
@@ -3999,7 +3985,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             # If we have a sub-signature, create that.
             if nqp::existskey($_, 'sub_signature_params') {
-                $_<sub_signature> := create_signature_object($/, $_<sub_signature_params>, $lexpad);
+                $_<sub_signature> := create_signature_object($/,
+                    $_<sub_signature_params>, $lexpad, $default_type_name);
             }
             
             # Add variable as needed.
@@ -7214,7 +7201,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $i++;
             }
             my %sig_info := hash(parameters => @params);
-            my $signature := create_signature_object($/, %sig_info, $block);
+            my $signature := create_signature_object($/, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));

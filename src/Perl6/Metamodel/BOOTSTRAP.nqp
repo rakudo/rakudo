@@ -153,7 +153,7 @@ my class Binder {
 
             $param_i++;
         }
-	my str $s := $arity == 1 ?? "" !! "s";
+        my str $s := $arity == 1 ?? "" !! "s";
 
         if $arity == $count {
             return "$error_prefix positionals passed; expected $arity argument$s but got $num_pos_args";

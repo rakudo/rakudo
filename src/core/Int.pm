@@ -152,18 +152,34 @@ my class Int does Real { # declared in BOOTSTRAP
 multi sub prefix:<++>(Int:D $a is rw) {
     $a = nqp::add_I(nqp::decont($a), 1, Int);
 }
+multi sub prefix:<++>(int $a is rw) {
+    $a = nqp::add_i($a, 1);
+}
 multi sub prefix:<-->(Int:D $a is rw) {
     $a = nqp::sub_I(nqp::decont($a), 1, Int);
+}
+multi sub prefix:<-->(int $a is rw) {
+    $a = nqp::sub_i($a, 1);
 }
 multi sub postfix:<++>(Int:D $a is rw) {
     my \b = nqp::decont($a);
     $a = nqp::add_I(b, 1, Int);
     b
 }
+multi sub postfix:<++>(int $a is rw) {
+    my int $b = $a;
+    $a = nqp::add_i($b, 1);
+    $b
+}
 multi sub postfix:<-->(Int:D $a is rw) {
     my \b = nqp::decont($a);
     $a = nqp::sub_I(b, 1, Int);
     b
+}
+multi sub postfix:<-->(int $a is rw) {
+    my int $b = $a;
+    $a = nqp::sub_i($b, 1);
+    $b
 }
 
 multi sub prefix:<->(Int:D \a) returns Int {

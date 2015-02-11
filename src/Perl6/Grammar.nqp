@@ -1556,10 +1556,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    token statement_control:sym<6> {
-        <?{ $*begin_compunit }> <sym> <?[;]> <.ws> <!!{ $*STRICT := 0; 1 }>
-    }
-
     token statement_control:sym<no> {
         :my $longname;
         <sym> <.ws>

@@ -1977,23 +1977,25 @@ BEGIN {
                             }
                             else {
                                 my $param;
+                                my int $primish := 0;
                                 if $got_prim == $BIND_VAL_OBJ {
                                     $param := nqp::captureposarg($capture, $i);
-                                    if    nqp::iscont_i($param) { $param := Int }
-                                    elsif nqp::iscont_n($param) { $param := Num }
-                                    elsif nqp::iscont_s($param) { $param := Str }
+                                    if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
+                                    elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
+                                    elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
                                     else { $param := nqp::hllizefor($param, 'perl6') }
                                 }
                                 else {
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!
                                               $got_prim == $BIND_VAL_NUM ?? Num !!
                                                                             Str;
+                                    $primish := 1;
                                 }
                                 unless nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
                                     $type_mismatch := 1;
                                 }
                                 if !$type_mismatch && $type_flags +& $DEFCON_MASK {
-                                    my int $defined := $got_prim != $BIND_VAL_OBJ || nqp::isconcrete($param);
+                                    my int $defined := $primish || nqp::isconcrete($param);
                                     my int $desired := $type_flags +& $DEFCON_MASK;
                                     if ($defined && $desired == $DEFCON_UNDEFINED) ||
                                        (!$defined && $desired == $DEFCON_DEFINED) {

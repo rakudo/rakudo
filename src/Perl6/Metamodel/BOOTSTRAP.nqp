@@ -183,7 +183,34 @@ my class Binder {
 
         # Check if boxed/unboxed expections are met.
         my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
-        unless $desired_native == $got_native {
+        my int $is_rw          := $flags +& $SIG_ELEM_IS_RW;
+        if $is_rw && $desired_native {
+            if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                unless !$got_native && nqp::iscont_i($oval) {
+                    if nqp::defined($error) {
+                        $error[0] := "Expected a native int argument for '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+            elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                unless !$got_native && nqp::iscont_n($oval) {
+                    if nqp::defined($error) {
+                        $error[0] := "Expected a native num argument for '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+            elsif $desired_native == $SIG_ELEM_NATIVE_STR_VALUE {
+                unless !$got_native && nqp::iscont_s($oval) {
+                    if nqp::defined($error) {
+                        $error[0] := "Expected a native str argument for '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+        }
+        elsif $desired_native != $got_native {
             # Maybe we need to box the native.
             if $desired_native == 0 {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
@@ -229,7 +256,7 @@ my class Binder {
         # bind if it passes the type check, or a native value that needs no
         # further checking.
         my $nom_type;
-        unless $got_native {
+        unless $got_native || ($is_rw && $desired_native) {
             # HLL-ize.
             $oval := nqp::hllizefor($oval, 'perl6');
 
@@ -348,7 +375,7 @@ my class Binder {
             }
             
             # Otherwise it's some objecty case.
-            elsif $flags +& $SIG_ELEM_IS_RW {
+            elsif $is_rw {
                 # XXX TODO Check if rw flag is set; also need to have a
                 # wrapper container that carries extra constraints.
                 nqp::bindkey($lexpad, $varname, $oval);

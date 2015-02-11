@@ -2406,24 +2406,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $block.blocktype('declaration_static');
 
-        # Obtain parameters, create signature object and generate code to
-        # call binder.
-        if $block.ann('placeholder_sig') && $<multisig> {
-            $*W.throw($/, ['X', 'Signature', 'Placeholder'],
-                placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
-            );
-        }
-        my %sig_info;
-        if $<multisig> {
-            %sig_info := $<multisig>.ast;
+        # Attach signature, building placeholder if needed.
+        my @params;
+        my $signature;
+        if $*SIG_OBJ {
+            if $block.ann('placeholder_sig') {
+                $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+                    placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
+                );
+            }
+            @params    := $<multisig>.ast<parameters>;
+            $signature := $*SIG_OBJ;
         }
         else {
-            %sig_info<parameters> := $block.ann('placeholder_sig') ?? $block.ann('placeholder_sig') !!
-                                                                [];
+            @params := $block.ann('placeholder_sig') || [];
+            $signature := self.create_signature_object($/,
+                nqp::hash('parameters', @params), $block, 'Any');
         }
-        my @params := %sig_info<parameters>;
-        my $signature := self.create_signature_object($<multisig> ?? $<multisig> !! $/,
-            %sig_info, $block, 'Any');
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;

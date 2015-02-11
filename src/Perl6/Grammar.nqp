@@ -2597,6 +2597,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
         :my $*CURPAD;
+        :my $*SIG_OBJ;
         :my $outer := $*W.cur_lexpad();
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
@@ -2619,7 +2620,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         <.newpad>
-        [ '(' <multisig> ')' ]?
+        [
+            '(' <multisig> ')' {
+                $*SIG_OBJ := $*ACTIONS.create_signature_object($<multisig>,
+                    $<multisig>.ast, $*W.cur_lexpad(), 'Any');
+            }
+        ]?
         <trait>* :!s
         { $*IN_DECL := ''; }
         [

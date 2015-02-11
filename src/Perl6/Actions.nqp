@@ -248,7 +248,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method comp_unit($/) {
         # Finish up code object for the mainline.
         if $*DECLARAND {
-            $*W.attach_signature($*DECLARAND, $*W.create_signature(nqp::hash('parameters', [])));
+            $*W.attach_signature($*DECLARAND, $*W.create_signature(
+                nqp::hash('parameter_objects', [])));
             $*W.finish_code_object($*DECLARAND, $*UNIT);
             $*W.add_phasers_handling_code($*DECLARAND, $*UNIT);
         }
@@ -898,7 +899,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
-        $*W.attach_signature($*DECLARAND, $*W.create_signature(nqp::hash('parameters', [])));
+        $*W.attach_signature($*DECLARAND,
+            $*W.create_signature(nqp::hash('parameter_objects', [])));
         $*W.finish_code_object($*DECLARAND, $block);
         $*W.add_phasers_handling_code($*DECLARAND, $block);
         my $ref := reference_to_code_object($*DECLARAND, $block);
@@ -1945,7 +1947,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $throwaway_block_past.annotate('outer', $block);
             $block[0].push($throwaway_block_past);
             my $throwaway_block := $*W.create_code_object($throwaway_block_past,
-                'Block', $*W.create_signature(nqp::hash('parameters', [])));
+                'Block', $*W.create_signature(nqp::hash('parameter_objects', [])));
             my $fixup := $*W.create_lexical_capture_fixup();
             $fixup.push(QAST::Op.new(
                 :op('callmethod'), :name('clone'),
@@ -1984,7 +1986,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             # Make a code object for the block.
             $*W.create_code_object($block, 'Block',
-                $*W.create_signature(nqp::hash('parameters', [])));
+                $*W.create_signature(nqp::hash('parameter_objects', [])));
         }
 
         # check up any private attribute usage
@@ -2644,7 +2646,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.pop_lexpad();
         $install_in.push(QAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_symbol(['Mu']) )];
-        my $p_sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($/, @p_params[0])]));
+        my $p_sig := $*W.create_signature(nqp::hash('parameter_objects',
+            [$*W.create_parameter($/, @p_params[0])]));
         add_signature_binding_code($p_past, $p_sig, @p_params);
         my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
         $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
@@ -4041,7 +4044,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Add it to the signature.
             @param_objs.push($param_obj);
         }
-        %signature_info<parameters> := @param_objs;
+        %signature_info<parameter_objects> := @param_objs;
         $*W.create_signature(%signature_info)
     }
 
@@ -6868,7 +6871,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $param_obj := $*W.create_parameter($/, $param);
         if $copy { $param_obj.set_copy() } else { $param_obj.set_rw() }
-        my $sig := $*W.create_signature(nqp::hash('parameters', [$param_obj]));
+        my $sig := $*W.create_signature(nqp::hash('parameter_objects', [$param_obj]));
         add_signature_binding_code($block, $sig, [$param]);
         reference_to_code_object(
             $*W.create_code_object($block, 'Block', $sig),
@@ -6899,7 +6902,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $param := hash(
             variable_name => '$_',
             nominal_type => $*W.find_symbol(['Mu']));
-        my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($/, $param)]));
+        my $sig := $*W.create_signature(nqp::hash('parameter_objects',
+            [$*W.create_parameter($/, $param)]));
         add_signature_binding_code($past, $sig, [$param]);
         $*W.create_code_object($past, 'Block', $sig)
     }
@@ -7042,7 +7046,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
             hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
         ];
-        my $sig := $*W.create_signature(nqp::hash('parameters', [
+        my $sig := $*W.create_signature(nqp::hash('parameter_objects', [
             $*W.create_parameter($/, @params[0]),
             $*W.create_parameter($/, @params[1])
         ]));
@@ -7780,7 +7784,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method create_regex_code_object($block) {
         $*W.create_code_object($block, 'Regex',
-            $*W.create_signature(nqp::hash('parameters', [])))
+            $*W.create_signature(nqp::hash('parameter_objects', [])))
     }
 
     method store_regex_nfa($code_obj, $block, $nfa) {
@@ -7791,7 +7795,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     method create_regex_code_object($block) {
         $*W.create_code_object($block, 'Regex',
-            $*W.create_signature(nqp::hash('parameters', [])))
+            $*W.create_signature(nqp::hash('parameter_objects', [])))
     }
 
     method p5metachar:sym<(?{ })>($/) {

@@ -1019,7 +1019,7 @@ class Perl6::World is HLL::World {
         # Create signature object now.
         my $sig_type   := self.find_symbol(['Signature']);
         my $signature  := nqp::create($sig_type);
-        my @parameters := %signature_info<parameters>;
+        my @parameters := %signature_info<parameter_objects>;
         self.add_object($signature);
 
         # Set parameters.
@@ -1078,7 +1078,7 @@ class Perl6::World is HLL::World {
     # Creates a simple code object with an empty signature
     method create_simple_code_object($block, $type) {
         self.cur_lexpad()[0].push($block);
-        my $sig := self.create_signature(nqp::hash('parameters', []));
+        my $sig := self.create_signature(nqp::hash('parameter_objects', []));
         return self.create_code_object($block, $type, $sig);
     }
     
@@ -1376,7 +1376,8 @@ class Perl6::World is HLL::World {
         # Add as phaser.
         $block[0].push($phaser_block);
         self.add_phaser($/, $phaser,
-            self.create_code_object($phaser_block, 'Code', self.create_signature(nqp::hash('parameters', []))));
+            self.create_code_object($phaser_block, 'Code',
+                self.create_signature(nqp::hash('parameter_objects', []))));
     }
     
     # Adds a multi candidate to a proto/dispatch.

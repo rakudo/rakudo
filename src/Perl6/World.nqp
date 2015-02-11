@@ -853,7 +853,21 @@ class Perl6::World is HLL::World {
         }
         nqp::die("Could not find container descriptor for $name");
     }
-    
+
+    # Hunts through scopes to find a lexical and returns if it is
+    # known to be read-only.
+    method is_lexical_marked_ro($name) {
+        my int $i := +@!BLOCKS;
+        while $i > 0 {
+            $i := $i - 1;
+            my %sym := @!BLOCKS[$i].symbol($name);
+            if %sym {
+                return nqp::existskey(%sym, 'ro');
+            }
+        }
+        0;
+    }
+
     # Installs a symbol into the package.
     method install_package_symbol($package, $name, $obj) {
         ($package.WHO){$name} := $obj;

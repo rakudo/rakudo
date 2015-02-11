@@ -607,6 +607,7 @@ class Perl6::World is HLL::World {
             for @($block[0]) {
                 if nqp::istype($_, QAST::Var) && $_.name eq $name {
                     $var := $_;
+                    $var.returns(%cont_info<bind_constraint>);
                     last;
                 }
             }

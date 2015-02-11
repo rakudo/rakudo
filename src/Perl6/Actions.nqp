@@ -2996,7 +2996,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
-        # Get signature and ensure it has an invocant and *%_ if needed.
+        # Get signature and ensure it has an invocant.
         my @params := %sig_info<parameters>;
         if $past.ann('placeholder_sig') {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
@@ -3008,20 +3008,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 is_multi_invocant => 1
             ));
         }
-        unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
-            unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
-                @params.push(hash(
-                    variable_name => '%_',
-                    nominal_type => $*W.find_symbol(['Mu']),
-                    named_slurpy => 1,
-                    is_multi_invocant => 1,
-                    sigil => '%'
-                ));
-                $past[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
-                $past.symbol('%_', :scope('lexical'));
-            }
-        }
-        my $signature := create_signature_object($/, %sig_info, $past, 'Any');
+        my $signature := create_signature_object($/, %sig_info, $past, 'Any',
+            :method);
         add_signature_binding_code($past, $signature, @params);
 
         # Place to store invocant.
@@ -3954,11 +3942,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # lexpad.
     my $SIG_ELEM_IS_RW := 256;
     sub create_signature_object($/, %signature_info, $lexpad, $default_type_name,
-            :$no_attr_check, :$rw) {
+            :$no_attr_check, :$rw, :$method) {
+        # If it's a method, add auto-slurpy.
+        my @params := %signature_info<parameters>;
+        if $method {
+            unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
+                unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
+                    @params.push(hash(
+                        variable_name => '%_',
+                        nominal_type => $*W.find_symbol(['Mu']),
+                        named_slurpy => 1,
+                        is_multi_invocant => 1,
+                        sigil => '%'
+                    ));
+                    $lexpad[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
+                    $lexpad.symbol('%_', :scope('lexical'));
+                }
+            }
+        }
+
+        # Walk parameters, setting up parameter objects.
         my $default_type := $*W.find_symbol([$default_type_name]);
-        my @parameters;
+        my @param_objs;
         my %seen_names;
-        for %signature_info<parameters> {
+        for @params {
             # Set default nominal type, if we lack one.
             unless nqp::existskey($_, 'nominal_type') {
                 $_<nominal_type> := $default_type;
@@ -4027,9 +4034,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Add it to the signature.
-            @parameters.push($param_obj);
+            @param_objs.push($param_obj);
         }
-        %signature_info<parameters> := @parameters;
+        %signature_info<parameters> := @param_objs;
         $*W.create_signature(%signature_info)
     }
 

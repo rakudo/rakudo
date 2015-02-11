@@ -118,12 +118,12 @@ my class Range is Iterable is Cool does Positional {
                 (nqp::isgt_n($ncount, 0e0) && nqp::islt_i(nqp::cmp_n($nvalue, $nmax), $icmpstop)),
                 nqp::stmts(
                     nqp::push($rpa, $ibox_int
-                        ?? nqp::p6box_i($nvalue)
+                        ?? nqp::p6box_i(nqp::decont_n($nvalue))
                         !! nqp::p6box_n($nvalue)),
                     ($nvalue = nqp::add_n($nvalue, 1e0)),
                     ($ncount = nqp::sub_n($ncount, 1e0))
                 ));
-            $value = nqp::p6box_i($nvalue);
+            $value = nqp::p6box_i(nqp::decont_n($nvalue));
         }
         else {
           SEQ(nqp::push($rpa, $value++); $count--)

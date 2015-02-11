@@ -231,35 +231,51 @@ my constant e  = 2.71828_18284_59045_235e0;
 
 my constant π := pi;
 
-multi sub prefix:<++>(Num:D \a is rw) {   # XXX
-    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0))
+multi sub prefix:<++>(Num:D $a is rw) {
+    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0))
 }
-multi sub prefix:<++>(Num:U \a is rw) {   # XXX
-    a = 1e0;
+multi sub prefix:<++>(Num:U $a is rw) {
+    $a = 1e0;
 }
-multi sub prefix:<-->(Num:D \a is rw) {   # XXX
-    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0))
+multi sub prefix:<++>(num $a is rw) {
+    $a = nqp::add_n($a, 1e0)
 }
-multi sub prefix:<-->(Num:U \a is rw) {   # XXX
-    a = -1e0;
+multi sub prefix:<-->(Num:D $a is rw) {
+    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1e0))
 }
-multi sub postfix:<++>(Num:D \a is rw) {  # XXX
-    my $b = a;
-    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0));
+multi sub prefix:<-->(Num:U $a is rw) {
+    $a = -1e0;
+}
+multi sub prefix:<-->(num $a is rw) {
+    $a = nqp::sub_n($a, 1e0)
+}
+multi sub postfix:<++>(Num:D $a is rw) {
+    my $b = $a;
+    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0));
     $b
 }
-multi sub postfix:<++>(Num:U \a is rw) {   # XXX
-    a = 1e0;
+multi sub postfix:<++>(Num:U $a is rw) {
+    $a = 1e0;
     0
 }
-multi sub postfix:<-->(Num:D \a is rw) {  # XXX
-    my $b = a;
-    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0));
+multi sub postfix:<++>(num $a is rw) {
+    my num $b = $a;
+    $a = nqp::add_n($a, 1e0);
     $b
 }
-multi sub postfix:<-->(Num:U \a is rw) {   # XXX
-    a = -1e0;
+multi sub postfix:<-->(Num:D $a is rw) {
+    my $b = $a;
+    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1e0));
+    $b
+}
+multi sub postfix:<-->(Num:U $a is rw) {
+    $a = -1e0;
     0e0
+}
+multi sub postfix:<-->(num $a is rw) {
+    my num $b = $a;
+    $a = nqp::sub_n($a, 1e0);
+    $b
 }
 
 multi sub prefix:<->(Num:D \a) {

@@ -867,10 +867,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Create signature object and set up binding.
-            if $<lambda> eq '<->' {
-                for @params { $_<is_rw> := 1 }
-            }
-            my $signature := create_signature_object($<signature>, %sig_info, $block, 'Mu');
+            my $signature := create_signature_object($<signature>, %sig_info,
+                $block, 'Mu', :rw($<lambda> eq '<->'));
             add_signature_binding_code($block, $signature, @params);
 
             # We'll install PAST in current block so it gets capture_lex'd.
@@ -3955,7 +3953,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # if needed. Parameters will be bound into the specified
     # lexpad.
     my $SIG_ELEM_IS_RW := 256;
-    sub create_signature_object($/, %signature_info, $lexpad, $default_type_name, :$no_attr_check) {
+    sub create_signature_object($/, %signature_info, $lexpad, $default_type_name,
+            :$no_attr_check, :$rw) {
         my $default_type := $*W.find_symbol([$default_type_name]);
         my @parameters;
         my %seen_names;
@@ -3963,6 +3962,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Set default nominal type, if we lack one.
             unless nqp::existskey($_, 'nominal_type') {
                 $_<nominal_type> := $default_type;
+            }
+
+            # Default to rw if needed.
+            if $rw {
+                $_<is_rw> := 1;
             }
 
             # Check we don't have duplicated named parameter names.

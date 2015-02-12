@@ -3506,8 +3506,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method type_declarator:sym<constant>($/) {
         # Get constant value.
-        my $con_block := $*W.pop_lexpad();
+        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
         my $value_ast := $<initializer>.ast;
+        if $<initializer><sym> eq '.=' {
+            $value_ast.unshift(QAST::WVal.new(:value($type)));
+        }
+        $value_ast.returns($type);
+
+        my $con_block := $*W.pop_lexpad();
         my $value;
         if $value_ast.has_compile_time_value {
             $value := $value_ast.compile_time_value;
@@ -3533,6 +3539,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $name := ~$<variable>;
         }
+
         if $name {
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
                 'constant', $*PACKAGE, $*W.cur_lexpad(), $value);
@@ -3544,7 +3551,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         });
 
         # Evaluate to the constant.
-        make QAST::WVal.new( :value($value) );
+        make QAST::WVal.new( :value($value), :returns($type) );
     }
     
     method initializer:sym<=>($/) {

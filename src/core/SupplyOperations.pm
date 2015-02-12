@@ -283,11 +283,11 @@ my class SupplyOperations is repr('Uninstantiable') {
         StableSupply.new(:$source, :$time, :$scheduler);
     }
 
-    method delay(Supply $source, $time, :$scheduler = $*SCHEDULER) {
+    method delayed(Supply $source, $time, :$scheduler = $*SCHEDULER) {
 
         return $source if !$time;  # nothing to do
 
-        my class DelaySupply does Supply does PrivatePublishing {
+        my class DelayedSupply does Supply does PrivatePublishing {
             has $!source;
             has $!time;
             has $!scheduler;
@@ -311,7 +311,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $tap
             }
         }
-        DelaySupply.new(:$source, :$time, :$scheduler);
+        DelayedSupply.new(:$source, :$time, :$scheduler);
     }
 
     method migrate(Supply $source) {

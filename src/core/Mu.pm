@@ -31,7 +31,8 @@ my class Mu { # declared in BOOTSTRAP
         take self;
     }
 
-    method WHY() {
+    proto method WHY(|) { * }
+    multi method WHY(Mu:) {
         my Mu $why;
 
         if nqp::can(self.HOW, 'WHY') {

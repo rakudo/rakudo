@@ -1556,10 +1556,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    token statement_control:sym<6> {
-        <?{ $*begin_compunit }> <sym> <?[;]> <.ws> <!!{ $*STRICT := 0; 1 }>
-    }
-
     token statement_control:sym<no> {
         :my $longname;
         <sym> <.ws>
@@ -3142,7 +3138,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<rand> {
         <sym> »
-        [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
+        [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
         <.end_keyword>
     }

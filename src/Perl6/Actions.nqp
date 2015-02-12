@@ -2287,7 +2287,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             # Twigil handling.
             if $twigil eq '.' {
-                self.add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
+                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
                 $name := $sigil ~ $desigilname;
             }
             elsif $twigil eq '!' {
@@ -2320,7 +2320,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past
     }
     
-    method add_lexical_accessor($/, $var_past, $meth_name, $install_in) {
+    sub add_lexical_accessor($/, $var_past, $meth_name, $install_in) {
         # Generate and install code block for accessor.
         my $a_past := $*W.push_lexpad($/);
         $a_past.name($meth_name);
@@ -2332,7 +2332,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Produce a code object and install it.
         my $invocant_type := $*W.find_symbol([$*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my %sig_info := hash(parameters => []);
-        my $code := self.methodize_block($/, $*W.stub_code_object('Method'), 
+        my $code := methodize_block($/, $*W.stub_code_object('Method'), 
             $a_past, %sig_info, $invocant_type);
         install_method($/, $meth_name, 'has', $code, $install_in);
     }
@@ -2816,7 +2816,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my %sig_info := $<multisig> ?? $<multisig>.ast !! hash(parameters => []);
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') && !$meta ?? '$?CLASS' !! 'Mu']);
-        my $code := self.methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
+        my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
 
         # If it's a proto but not an onlystar, need some variables for the
         # {*} implementation to use.
@@ -2965,7 +2965,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $closure;
     }
 
-    method methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
+    sub methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
         # Get signature and ensure it has an invocant.
         my @params := %sig_info<parameters>;
         unless @params[0]<is_invocant> {
@@ -3162,9 +3162,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('callmethod'), :name('!protoregex'),
                 QAST::Var.new( :name('self'), :scope('local') ),
                 QAST::SVal.new( :value($name) ));
-            $coderef := self.regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
+            $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
         } else {
-            $coderef := self.regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>) if $<nibble>.ast;
+            $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>) if $<nibble>.ast;
         }
 
         # Document it
@@ -3182,7 +3182,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $closure;
     }
 
-    method regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
+    sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
         # Regexes can't have place-holder signatures.
         if $qast.ann('placeholder_sig') {
             $/.CURSOR.panic('Placeholder variables cannot be used in a regex');
@@ -3220,7 +3220,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
             $name && $*SCOPE ne 'my' && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        self.methodize_block($/, $code, $past, %sig_info, $inv_type);
+        methodize_block($/, $code, $past, %sig_info, $inv_type);
 
         # Need to put self into a register for the regex engine.
         $past[0].push(QAST::Op.new(
@@ -5955,7 +5955,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym</ />($/) {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
-        my $coderef := self.regex_coderef($/, $*W.stub_code_object('Regex'),
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<nibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<nibble>.ast;
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
@@ -5967,7 +5967,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
         my %sig_info := hash(parameters => []);
-        my $coderef := self.regex_coderef($/, $*W.stub_code_object('Regex'),
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<quibble>.ast;
         my $past := block_closure($coderef);
         $past.annotate('sink_ast', QAST::Op.new(:op<callmethod>, :name<Bool>, $past));
@@ -5976,7 +5976,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym<m>($/) {
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
-        my $coderef := self.regex_coderef($/, $*W.stub_code_object('Regex'),
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<quibble>.ast;
 
         my $past := QAST::Op.new(
@@ -6078,7 +6078,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Build the regex.
         my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
-        my $rx_coderef := self.regex_coderef($/, $*W.stub_code_object('Regex'),
+        my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1)) if $<sibble><left>.ast;
 
         # Quote needs to be closure-i-fied.

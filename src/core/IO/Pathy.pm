@@ -54,8 +54,6 @@ my role IO::Pathy {
     method f(IO::Pathy:D:)   { FILETEST-f(  $!abspath) }
     method d(IO::Pathy:D:)   { FILETEST-d(  $!abspath) }
     method s(IO::Pathy:D:)   { FILETEST-s(  $!abspath) }
-    method i(IO::Pathy:D:)   { FILETEST-i(  $!abspath) }
-    method v(IO::Pathy:D:)   { FILETEST-v(  $!abspath) }
     method l(IO::Pathy:D:)   { FILETEST-l(  $!abspath) }
     method r(IO::Pathy:D:)   { FILETEST-r(  $!abspath) }
     method w(IO::Pathy:D:)   { FILETEST-w(  $!abspath) }
@@ -69,6 +67,8 @@ my role IO::Pathy {
     method modified(IO::Pathy:D:) { FILETEST-MODIFIED($!abspath) }
     method accessed(IO::Pathy:D:) { FILETEST-ACCESSED($!abspath) }
     method changed(IO::Pathy:D:)  { FILETEST-CHANGED( $!abspath) }
+    method device(IO::Pathy:D:)   { FILETEST-DEVICE(  $!abspath) }
+    method inode(IO::Pathy:D:)    { FILETEST-INODE(   $!abspath) }
 
     method rename(IO::Pathy:D: Str() $to, :$createonly) {
         my $topath := MAKE-ABSOLUTE-PATH($to,$*CWD.Str);

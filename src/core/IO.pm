@@ -375,12 +375,6 @@ sub FILETEST-f(Str $abspath) {
 sub FILETEST-s(Str $abspath) {
     nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE) );
 }
-sub FILETEST-i(Str $abspath) {
-    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_INODE) );
-}
-sub FILETEST-v(Str $abspath) {
-    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_DEV) );
-}
 sub FILETEST-l(Str $abspath) {
     nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));
 }
@@ -440,6 +434,12 @@ sub FILETEST-READLINK(Str $abspath) {
       nqp::p6box_s(nqp::readlink(nqp::unbox_s($abspath))),
       MAKE-PARENT($abspath),
     );
+}
+sub FILETEST-INODE(Str $abspath) {
+    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_INODE) );
+}
+sub FILETEST-DEVICE(Str $abspath) {
+    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_DEV) );
 }
 
 sub OBJECTIFY-ABSPATH(Str $abspath, |c) {

@@ -1,8 +1,7 @@
-my class Instant     { ... }
-my class IO::File    { ... }
-my class IO::Dir     { ... }
-my class IO::Symlink { ... }
-my class IO::Local   { ... }
+my class Instant   { ... }
+my class IO::File  { ... }
+my class IO::Dir   { ... }
+my class IO::Local { ... }
 
 my role IO {
     method umask { state $ = :8( qx/umask/.chomp ) }
@@ -555,9 +554,7 @@ sub OBJECTIFY-ABSPATH(Str $abspath, |c) {
       ?? IO::File.new(:$abspath, |c)
       !! FILETEST-d($abspath)
         ?? IO::Dir.new(:abspath($abspath ~ '/'), |c)
-        !! FILETEST-l($abspath)
-          ?? IO::Symlink.new(:$abspath, |c)
-          !! IO::Local.new(:$abspath, |c);
+        !! IO::Local.new(:$abspath, |c);
 }
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {

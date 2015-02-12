@@ -1718,7 +1718,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless $*HAS_SELF {
                     $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
                 }
-                my $attr := get_attribute_meta_object($/, $past.name(), $past);
+                my $attr := $*W.get_attribute_meta_object($/, $past.name(), $past);
                 my $type := $attr ?? $attr.type !! NQPMu;
                 $past.returns($type) if $attr;
                 $past.scope(nqp::objprimspec($type) ?? 'attributeref' !! 'attribute');
@@ -1831,41 +1831,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past
-    }
-    
-    sub get_attribute_meta_object($/, $name, $later?) {
-        unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
-            $/.CURSOR.panic("Cannot understand $name in this context");
-        }
-        my $attr;
-        my int $found := 0;
-        try {
-            $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
-            $found := 1;
-        }
-        unless $found {
-
-            # need to check later
-            if $later {
-                my $seen := %*ATTR_USAGES{$name};
-                unless $seen {
-                    %*ATTR_USAGES{$name} := $seen := nqp::list();
-                    $later.node($/); # only need $/ for first error
-                }
-                $seen.push($later);
-            }
-
-            # now is later
-            else {
-                $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
-                  symbol       => $name,
-                  package-kind => $*PKGDECL,
-                  package-name => $*PACKAGE.HOW.name($*PACKAGE),
-                  what         => 'attribute',
-                );
-            }
-        }
-        $attr
     }
 
     method package_declarator:sym<package>($/) { make $<package_def>.ast; }
@@ -1995,7 +1960,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @usages := $_.value;
             for @usages {
                 my $past := $_;
-                my $attr := get_attribute_meta_object($past.node, $name);
+                my $attr := $*W.get_attribute_meta_object($past.node, $name);
                 $past.returns($attr.type);
             }
         }
@@ -3998,7 +3963,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's !-twigil'd, ensure the attribute it mentions exists unless
             # we're in a context where we should not do that.
             if $_<bind_attr> && !$no_attr_check {
-                get_attribute_meta_object($/, $_<variable_name>, QAST::Var.new);
+                $*W.get_attribute_meta_object($/, $_<variable_name>, QAST::Var.new);
             }
             
             # If we have a sub-signature, create that.

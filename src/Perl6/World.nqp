@@ -1759,6 +1759,42 @@ class Perl6::World is HLL::World {
         # Return attribute that was built.
         $attr
     }
+
+    # Tries to locate an attribute meta-object; optionally panic right
+    # away if we cannot, otherwise add it to the post-resolution list.
+    method get_attribute_meta_object($/, $name, $later?) {
+        unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+            $/.CURSOR.panic("Cannot understand $name in this context");
+        }
+        my $attr;
+        my int $found := 0;
+        try {
+            $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+            $found := 1;
+        }
+        unless $found {
+            # Need to check later
+            if $later {
+                my $seen := %*ATTR_USAGES{$name};
+                unless $seen {
+                    %*ATTR_USAGES{$name} := $seen := nqp::list();
+                    $later.node($/); # only need $/ for first error
+                }
+                $seen.push($later);
+            }
+
+            # Now is later
+            else {
+                self.throw($/, ['X', 'Attribute', 'Undeclared'],
+                  symbol       => $name,
+                  package-kind => $*PKGDECL,
+                  package-name => $*PACKAGE.HOW.name($*PACKAGE),
+                  what         => 'attribute',
+                );
+            }
+        }
+        $attr
+    }
     
     # Adds a method to the meta-object.
     method pkg_add_method($/, $obj, $meta_method_name, $name, $code_object) {

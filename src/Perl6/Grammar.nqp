@@ -2622,7 +2622,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.newpad>
         [
             '(' <multisig> ')' {
-                $*SIG_OBJ := $*ACTIONS.create_signature_object($<multisig>,
+                $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,
                     $<multisig>.ast, $*W.cur_lexpad(), 'Any');
             }
         ]?

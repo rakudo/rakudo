@@ -868,7 +868,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Create signature object and set up binding.
-            my $signature := self.create_signature_object($<signature>, %sig_info,
+            my $signature := $*W.create_signature_and_params($<signature>, %sig_info,
                 $block, 'Mu', :rw($<lambda> eq '<->'));
             add_signature_binding_code($block, $signature, @params);
 
@@ -1897,7 +1897,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 is_multi_invocant => 1,
                 type_captures     => ['$?CLASS', '::?CLASS']
             ));
-            my $sig := self.create_signature_object($<signature>, %sig_info, $block, 'Mu');
+            my $sig := $*W.create_signature_and_params($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration_static');
 
@@ -2069,7 +2069,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     my %sig_info := $<signature>.ast;
-                    my $signature := self.create_signature_object($/, %sig_info, $*W.cur_lexpad(), 'Mu');
+                    my $signature := $*W.create_signature_and_params($/, %sig_info, $*W.cur_lexpad(), 'Mu');
                     $list := QAST::Op.new(
                         :op('p6bindcaptosig'),
                         QAST::WVal.new( :value($signature) ),
@@ -2385,7 +2385,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             @params := $block.ann('placeholder_sig') || [];
-            $signature := self.create_signature_object($/,
+            $signature := $*W.create_signature_and_params($/,
                 nqp::hash('parameters', @params), $block, 'Any');
         }
         add_signature_binding_code($block, $signature, @params);
@@ -2902,7 +2902,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                                                 [];
         }
         my @params := %sig_info<parameters>;
-        my $signature := self.create_signature_object($<multisig> ?? $<multisig> !! $/,
+        my $signature := $*W.create_signature_and_params($<multisig> ?? $<multisig> !! $/,
             %sig_info, $block, 'Any');
         add_signature_binding_code($block, $signature, @params);
 
@@ -2975,7 +2975,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 is_multi_invocant => 1
             ));
         }
-        my $signature := self.create_signature_object($/, %sig_info, $past, 'Any',
+        my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
             :method);
         add_signature_binding_code($past, $signature, @params);
 
@@ -3551,7 +3551,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method fakesignature($/) {
         my $fake_pad := $*W.pop_lexpad();
-        my $sig := self.create_signature_object($/, $<signature>.ast,
+        my $sig := $*W.create_signature_and_params($/, $<signature>.ast,
             $fake_pad, 'Mu', :no_attr_check(1));
 
         $*W.cur_lexpad()[0].push($fake_pad);
@@ -3907,112 +3907,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             %*PARAM_INFO<post_constraints>.push(make_where_block($/, $<EXPR>.ast));
         }
-    }
-
-    # Create Parameter objects, along with container descriptors
-    # if needed. Parameters will be bound into the specified
-    # lexpad.
-    my $SIG_ELEM_IS_RW := 256;
-    method create_signature_object($/, %signature_info, $lexpad, $default_type_name,
-            :$no_attr_check, :$rw, :$method) {
-        # If it's a method, add auto-slurpy.
-        my @params := %signature_info<parameters>;
-        if $method {
-            unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
-                unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
-                    @params.push(hash(
-                        variable_name => '%_',
-                        nominal_type => $*W.find_symbol(['Mu']),
-                        named_slurpy => 1,
-                        is_multi_invocant => 1,
-                        sigil => '%'
-                    ));
-                    $lexpad[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
-                    $lexpad.symbol('%_', :scope('lexical'));
-                }
-            }
-        }
-
-        # Walk parameters, setting up parameter objects.
-        my $default_type := $*W.find_symbol([$default_type_name]);
-        my @param_objs;
-        my %seen_names;
-        for @params {
-            # Set default nominal type, if we lack one.
-            unless nqp::existskey($_, 'nominal_type') {
-                $_<nominal_type> := $default_type;
-            }
-
-            # Default to rw if needed.
-            if $rw {
-                $_<is_rw> := 1;
-            }
-
-            # Check we don't have duplicated named parameter names.
-            if $_<named_names> {
-                for $_<named_names> {
-                    if %seen_names{$_} {
-                        $*W.throw($/, ['X', 'Signature', 'NameClash'],
-                            name => $_
-                        );
-                    }
-                    %seen_names{$_} := 1;
-                }
-            }
-            
-            # If it's !-twigil'd, ensure the attribute it mentions exists unless
-            # we're in a context where we should not do that.
-            if $_<bind_attr> && !$no_attr_check {
-                $*W.get_attribute_meta_object($/, $_<variable_name>, QAST::Var.new);
-            }
-            
-            # If we have a sub-signature, create that.
-            if nqp::existskey($_, 'sub_signature_params') {
-                $_<sub_signature> := self.create_signature_object($/,
-                    $_<sub_signature_params>, $lexpad, $default_type_name);
-            }
-            
-            # Add variable as needed.
-            my $varname := $_<variable_name>;
-            if $varname {
-                my %sym := $lexpad.symbol($varname);
-                if +%sym && !nqp::existskey(%sym, 'descriptor') {
-                    $_<container_descriptor> := $*W.create_container_descriptor(
-                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $varname);
-                    $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
-                }
-            }
-
-            # Create parameter object and apply any traits.
-            my $param_obj := $*W.create_parameter($/, $_);
-            if $_<traits> {
-                for $_<traits> {
-                    ($_.ast)($param_obj) if $_.ast;
-                }
-            }
-
-            # If it's natively typed and we got "is rw" set, need to mark the
-            # container as being a lexical ref.
-            if $varname && nqp::objprimspec($_<nominal_type>) {
-                my $param_type := $*W.find_symbol(['Parameter']);
-                my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
-                if $flags +& $SIG_ELEM_IS_RW {
-                    for @($lexpad[0]) {
-                        if nqp::istype($_, QAST::Var) && $_.name eq $varname {
-                            $_.scope('lexicalref');
-                        }
-                    }
-                }
-                else {
-                    $lexpad.symbol($varname, :ro(1));
-                }
-            }
-
-            # Add it to the signature.
-            @param_objs.push($param_obj);
-        }
-        %signature_info<parameter_objects> := @param_objs;
-        $*W.create_signature(%signature_info)
     }
 
     method trait($/) {
@@ -6338,6 +6232,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         0
     }
+    my $SIG_ELEM_IS_RW       := 256;
     my $SIG_ELEM_IS_PARCEL   := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
     my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s'];
@@ -7188,7 +7083,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $i++;
             }
             my %sig_info := hash(parameters => @params);
-            my $signature := self.create_signature_object($/, %sig_info, $block, 'Mu');
+            my $signature := $*W.create_signature_and_params($/, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));

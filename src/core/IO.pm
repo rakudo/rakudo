@@ -376,7 +376,12 @@ sub FILETEST-s(Str $abspath) {
     nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE) );
 }
 sub FILETEST-l(Str $abspath) {
-    nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));
+#?if moar
+    nqp::p6bool(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_ISLNK));
+#?endif
+#?if !moar
+    nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));  # no nqp::lstat yet
+#?endif
 }
 sub FILETEST-r(Str $abspath) {
     nqp::p6bool(nqp::filereadable(nqp::unbox_s($abspath)));
@@ -429,17 +434,120 @@ sub FILETEST-UID(Str $abspath) {
 sub FILETEST-GID(Str $abspath) {
     nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_GID) );
 }
+sub FILETEST-INODE(Str $abspath) {
+    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_INODE) );
+}
+sub FILETEST-DEVICE(Str $abspath) {
+    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_DEV) );
+}
 sub FILETEST-READLINK(Str $abspath) {
     MAKE-ABSOLUTE-PATH(
       nqp::p6box_s(nqp::readlink(nqp::unbox_s($abspath))),
       MAKE-PARENT($abspath),
     );
 }
-sub FILETEST-INODE(Str $abspath) {
-    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_INODE) );
+
+sub FILETEST-le(Str $abspath) {
+#?if moar
+    nqp::p6bool( nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_EXISTS) );
+#?endif
+#?if !moar
+    FILETEST-e($abspath);  # no nqp::lstat yet
+#?endif
 }
-sub FILETEST-DEVICE(Str $abspath) {
-    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_DEV) );
+sub FILETEST-ld(Str $abspath) {
+#?if moar
+    nqp::p6bool( nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_ISDIR) );
+#?endif
+#?if !moar
+    FILETEST-d($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-lf(Str $abspath) {
+#?if moar
+    nqp::p6bool( nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_ISREG) );
+#?endif
+#?if !moar
+    FILETEST-f($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-ls(Str $abspath) {
+#?if moar
+    nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE) );
+#?endif
+#?if !moar
+    FILETEST-s($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-lz(Str $abspath) {
+#?if moar
+    nqp::p6bool(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE)==0);
+#?endif
+#?if !moar
+    FILETEST-z($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-LMODIFIED(Str $abspath) {
+#?if moar
+    Instant.new( nqp::p6box_i(
+      nqp::lstat(nqp::unbox_s($abspath), nqp::const::STAT_MODIFYTIME)
+    ));
+#?endif
+#?if !moar
+    FILETEST-MODIFIED($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-LACCESSED(Str $abspath) {
+#?if moar
+    Instant.new( nqp::p6box_i(
+      nqp::lstat(nqp::unbox_s($abspath), nqp::const::STAT_ACCESSTIME)
+    ));
+#?endif
+#?if !moar
+    FILETEST-ACCESSED($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-LCHANGED(Str $abspath) {
+#?if moar
+    Instant.new( nqp::p6box_i(
+      nqp::lstat(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
+    ));
+#?endif
+#?if !moar
+    FILETEST-CHANGED($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-LUID(Str $abspath) {
+#?if moar
+    nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_UID) );
+#?endif
+#?if !moar
+    FILETEST-UID($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-LGID(Str $abspath) {
+#?if moar
+    nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_GID) );
+#?endif
+#?if !moar
+    FILETEST-GID($abspath);  # no nqp::lstat yet
+#?endif
+}
+sub FILETEST-LINODE(Str $abspath) {
+#?if moar
+    nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_INODE) );
+#?endif
+#?if !moar
+    FILETEST-INODE($abspath);  # no nqp::lstat yet
+#?endif
+}
+#?if moar
+sub FILETEST-LDEVICE(Str $abspath) {
+    nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_DEV) );
+#?endif
+#?if !moar
+    FILETEST-DEVICE($abspath);  # no nqp::lstat yet
+#?endif
 }
 
 sub OBJECTIFY-ABSPATH(Str $abspath, |c) {

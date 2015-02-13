@@ -81,16 +81,15 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method base($base) {
+    method base($base, $digits = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1)) {
         my $s = $!numerator < 0 ?? '-' !! '';
         my $r = self.abs;
         my $i = $r.floor;
         $r -= $i;
         $s ~= $i.base($base);
         if $r {
-            my $want = $!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1;
             my @f;
-            while $r and @f < $want {
+            while $r and @f < $digits {
                 $r *= $base;
                 $i = $r.floor;
                 push @f, $i;

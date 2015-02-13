@@ -119,7 +119,7 @@ my role Rational[::NuT, ::DeT] does Real {
             my @f;
             my %seen;
             my $rp = $r.perl;
-            while $r {
+            while $r and $r ~~ Rat {
                 %seen{$rp} = +@f;
                 $r *= $base;
                 $i = $r.floor;
@@ -133,7 +133,6 @@ my role Rational[::NuT, ::DeT] does Real {
             my $frac = @digits[@f].join;
             if $r {
                 my $seen = %seen{$r.perl};
-                note "RESULT $frac $seen %seen.perl()";
                 if $seen.defined {
                     $frac = substr($frac,0,$seen) ~ '(' ~ substr($frac,$seen) ~ ')';
                 }

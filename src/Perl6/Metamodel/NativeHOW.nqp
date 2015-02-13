@@ -49,11 +49,39 @@ class Perl6::Metamodel::NativeHOW
     method is_composed($obj) {
         $!composed
     }
-    
+
     method set_nativesize($obj, $nativesize) {
-        $!nativesize := $nativesize;
+        if $nativesize.HOW.name($nativesize) eq 'Str' {
+            if $nativesize eq 'char' {
+                $!nativesize := nqp::const::C_TYPE_CHAR;
+            }
+            elsif $nativesize eq 'short' {
+                $!nativesize := nqp::const::C_TYPE_SHORT;
+            }
+            elsif $nativesize eq 'int' {
+                $!nativesize := nqp::const::C_TYPE_INT;
+            }
+            elsif $nativesize eq 'long' {
+                $!nativesize := nqp::const::C_TYPE_LONG;
+            }
+            elsif $nativesize eq 'longlong' {
+                $!nativesize := nqp::const::C_TYPE_LONGLONG;
+            }
+            elsif $nativesize eq 'float' {
+                $!nativesize := nqp::const::C_TYPE_FLOAT;
+            }
+            elsif $nativesize eq 'double' {
+                $!nativesize := nqp::const::C_TYPE_DOUBLE;
+            }
+            elsif $nativesize eq 'longdouble' {
+                $!nativesize := nqp::const::C_TYPE_LONGDOUBLE;
+            }
+        }
+        else {
+            $!nativesize := $nativesize;
+        }
     }
-    
+
     method nativesize($obj) {
         $!nativesize
     }

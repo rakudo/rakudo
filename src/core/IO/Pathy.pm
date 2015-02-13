@@ -70,6 +70,14 @@ my role IO::Pathy {
     method device(IO::Pathy:D:)   { FILETEST-DEVICE(  $!abspath) }
     method inode(IO::Pathy:D:)    { FILETEST-INODE(   $!abspath) }
 
+    method l-e(IO::Pathy:D:)        { True }
+    method l-s(IO::Pathy:D:)        { FILETEST-ls(  $!abspath) }
+    method l-modified(IO::Pathy:D:) { FILETEST-LMODIFIED($!abspath) }
+    method l-accessed(IO::Pathy:D:) { FILETEST-LACCESSED($!abspath) }
+    method l-changed(IO::Pathy:D:)  { FILETEST-LCHANGED( $!abspath) }
+    method l-device(IO::Pathy:D:)   { FILETEST-LDEVICE(  $!abspath) }
+    method l-inode(IO::Pathy:D:)    { FILETEST-LINODE(   $!abspath) }
+
     method rename(IO::Pathy:D: Str() $to, :$createonly) {
         my $topath := MAKE-ABSOLUTE-PATH($to,$*CWD.Str);
         RENAME-PATH($!abspath,$topath,:$createonly);

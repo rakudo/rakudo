@@ -44,20 +44,20 @@ my class IOU does IO::Pathy {
 # at creation time.  We try to create the object again, call the method if
 # succeeds, or fail.  Wish there were a less verbose way to do this.
 
-    method e(IOU:D:)        { self!that ?? $!that.e        !! self!fail('e')   }
-    method f(IOU:D:)        { self!that ?? $!that.f        !! self!fail('f')   }
-    method d(IOU:D:)        { self!that ?? $!that.d        !! self!fail('d')   }
-    method s(IOU:D:)        { self!that ?? $!that.s        !! self!fail('s')   }
-    method l(IOU:D:)        { self!that ?? $!that.l        !! self!fail('l')   }
-    method r(IOU:D:)        { self!that ?? $!that.r        !! self!fail('r')   }
-    method w(IOU:D:)        { self!that ?? $!that.w        !! self!fail('w')   }
-    method rw(IOU:D:)       { self!that ?? $!that.rw       !! self!fail('rw')  }
-    method x(IOU:D:)        { self!that ?? $!that.x        !! self!fail('x')   }
-    method rx(IOU:D:)       { self!that ?? $!that.rx       !! self!fail('rx')  }
-    method wx(IOU:D:)       { self!that ?? $!that.wx       !! self!fail('wx')  }
-    method rwx(IOU:D:)      { self!that ?? $!that.rwx      !! self!fail('rwx') }
-    method o(IOU:D:)        { self!that ?? $!that.o        !! self!fail('o')   }
-    method z(IOU:D:)        { self!that ?? $!that.z        !! self!fail('z')   }
+    method e(IOU:D:)   { self!that ?? $!that.e   !! self!fail('e')   }
+    method f(IOU:D:)   { self!that ?? $!that.f   !! self!fail('f')   }
+    method d(IOU:D:)   { self!that ?? $!that.d   !! self!fail('d')   }
+    method s(IOU:D:)   { self!that ?? $!that.s   !! self!fail('s')   }
+    method l(IOU:D:)   { self!that ?? $!that.l   !! self!fail('l')   }
+    method r(IOU:D:)   { self!that ?? $!that.r   !! self!fail('r')   }
+    method w(IOU:D:)   { self!that ?? $!that.w   !! self!fail('w')   }
+    method rw(IOU:D:)  { self!that ?? $!that.rw  !! self!fail('rw')  }
+    method x(IOU:D:)   { self!that ?? $!that.x   !! self!fail('x')   }
+    method rx(IOU:D:)  { self!that ?? $!that.rx  !! self!fail('rx')  }
+    method wx(IOU:D:)  { self!that ?? $!that.wx  !! self!fail('wx')  }
+    method rwx(IOU:D:) { self!that ?? $!that.rwx !! self!fail('rwx') }
+    method o(IOU:D:)   { self!that ?? $!that.o   !! self!fail('o')   }
+    method z(IOU:D:)   { self!that ?? $!that.z   !! self!fail('z')   }
 
     method modified(IOU:D:) {
         self!that ?? $!that.modified !! self!fail('modified');
@@ -73,6 +73,25 @@ my class IOU does IO::Pathy {
     }
     method inode(IOU:D:)  {
         self!that ?? $!that.inode    !! self!fail('inode');
+    }
+
+    method l-e(IOU:D:) { self!that ?? $!that.l-e !! self!fail('l-e')   }
+    method l-s(IOU:D:) { self!that ?? $!that.l-s !! self!fail('l-s')   }
+
+    method l-modified(IOU:D:) {
+        self!that ?? $!that.l-modified !! self!fail('l-modified');
+    }
+    method l-accessed(IOU:D:) {
+        self!that ?? $!that.l-accessed !! self!fail('l-accessed');
+    }
+    method l-changed(IOU:D:)  {
+        self!that ?? $!that.l-changed  !! self!fail('l-changed');
+    }
+    method l-device(IOU:D:)  {
+        self!that ?? $!that.l-device   !! self!fail('l-device');
+    }
+    method l-inode(IOU:D:)  {
+        self!that ?? $!that.l-inode    !! self!fail('l-inode');
     }
 
 # private methods

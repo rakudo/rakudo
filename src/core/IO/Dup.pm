@@ -48,6 +48,15 @@ class IO::Dup does IO does PIO {
     method changed(IO::Dup:D:)  { Instant }
     method device(IO::Dup:D:)   { 0 }
     method inode(IO::Dup:D:)    { 0 }
+
+    method l-e(IO::Dup:D:)   { True }
+    method l-s(IO::Dup:D:)   { 0 }
+
+    method l-modified(IO::Dup:D:) { Instant }
+    method l-accessed(IO::Dup:D:) { Instant }
+    method l-changed(IO::Dup:D:)  { Instant }
+    method l-device(IO::Dup:D:)   { 0 }
+    method l-inode(IO::Dup:D:)    { 0 }
 }
 
 PROCESS::<$ERR> = IO::Dup.new( :fileno(2) );

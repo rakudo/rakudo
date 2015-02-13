@@ -32,8 +32,6 @@ class IO::Dup does IO does PIO {
     method d(IO::Dup:D:)   { False }
     method f(IO::Dup:D:)   { False }
     method s(IO::Dup:D:)   { 0 }
-    method i(IO::Dup:D:)   { 0 }
-    method v(IO::Dup:D:)   { 0 }
     method l(IO::Dup:D:)   { False }
     method r(IO::Dup:D:)   { $!fileno == 0 }
     method w(IO::Dup:D:)   { $!fileno  > 0 }
@@ -44,9 +42,12 @@ class IO::Dup does IO does PIO {
     method rwx(IO::Dup:D:) { False }
     method o(IO::Dup:D:)   { False }
     method z(IO::Dup:D:)   { False }
+
     method modified(IO::Dup:D:) { Instant }
     method accessed(IO::Dup:D:) { Instant }
     method changed(IO::Dup:D:)  { Instant }
+    method device(IO::Dup:D:)   { 0 }
+    method inode(IO::Dup:D:)    { 0 }
 }
 
 PROCESS::<$ERR> = IO::Dup.new( :fileno(2) );

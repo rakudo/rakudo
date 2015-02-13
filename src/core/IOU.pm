@@ -48,8 +48,6 @@ my class IOU does IO::Pathy {
     method f(IOU:D:)        { self!that ?? $!that.f        !! self!fail('f')   }
     method d(IOU:D:)        { self!that ?? $!that.d        !! self!fail('d')   }
     method s(IOU:D:)        { self!that ?? $!that.s        !! self!fail('s')   }
-    method i(IOU:D:)        { self!that ?? $!that.i        !! self!fail('i')   }
-    method v(IOU:D:)        { self!that ?? $!that.v        !! self!fail('v')   }
     method l(IOU:D:)        { self!that ?? $!that.l        !! self!fail('l')   }
     method r(IOU:D:)        { self!that ?? $!that.r        !! self!fail('r')   }
     method w(IOU:D:)        { self!that ?? $!that.w        !! self!fail('w')   }
@@ -69,6 +67,12 @@ my class IOU does IO::Pathy {
     }
     method changed(IOU:D:)  {
         self!that ?? $!that.changed  !! self!fail('changed');
+    }
+    method device(IOU:D:)  {
+        self!that ?? $!that.device   !! self!fail('device');
+    }
+    method inode(IOU:D:)  {
+        self!that ?? $!that.inode    !! self!fail('inode');
     }
 
 # private methods

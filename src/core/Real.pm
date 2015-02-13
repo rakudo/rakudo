@@ -79,13 +79,19 @@ my role Real does Numeric {
             $frac = $frac - $frac.Int;
         }
         if 2 * $frac >= 1 {
-            for @frac_digits-1 ... 0 -> $x {
-                last if ++@frac_digits[$x] < $base;
-                @frac_digits[$x] = 0;
-                $int_part++ if $x == 0
+            if @frac_digits {
+                for @frac_digits-1 ... 0 -> $x {
+                    last if ++@frac_digits[$x] < $base;
+                    @frac_digits[$x] = 0;
+                    $int_part++ if $x == 0
+                }
+            }
+            else {
+                $int_part++;
             }
         }
-        my Str $r = $int_part.base($base) ~ '.' ~ @conversion[@frac_digits].join;
+        my Str $r = $int_part.base($base);
+        $r ~= '.' ~ @conversion[@frac_digits].join if @frac_digits;
         # if $int_part is 0, $int_part.base doesn't see the sign of self
         $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
     }

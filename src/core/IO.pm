@@ -454,36 +454,12 @@ sub FILETEST-le(Str $abspath) {
     FILETEST-e($abspath);  # no nqp::lstat yet
 #?endif
 }
-sub FILETEST-ld(Str $abspath) {
-#?if moar
-    nqp::p6bool( nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_ISDIR) );
-#?endif
-#?if !moar
-    FILETEST-d($abspath);  # no nqp::lstat yet
-#?endif
-}
-sub FILETEST-lf(Str $abspath) {
-#?if moar
-    nqp::p6bool( nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_ISREG) );
-#?endif
-#?if !moar
-    FILETEST-f($abspath);  # no nqp::lstat yet
-#?endif
-}
 sub FILETEST-ls(Str $abspath) {
 #?if moar
     nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE) );
 #?endif
 #?if !moar
     FILETEST-s($abspath);  # no nqp::lstat yet
-#?endif
-}
-sub FILETEST-lz(Str $abspath) {
-#?if moar
-    nqp::p6bool(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE)==0);
-#?endif
-#?if !moar
-    FILETEST-z($abspath);  # no nqp::lstat yet
 #?endif
 }
 sub FILETEST-LMODIFIED(Str $abspath) {
@@ -514,22 +490,6 @@ sub FILETEST-LCHANGED(Str $abspath) {
 #?endif
 #?if !moar
     FILETEST-CHANGED($abspath);  # no nqp::lstat yet
-#?endif
-}
-sub FILETEST-LUID(Str $abspath) {
-#?if moar
-    nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_UID) );
-#?endif
-#?if !moar
-    FILETEST-UID($abspath);  # no nqp::lstat yet
-#?endif
-}
-sub FILETEST-LGID(Str $abspath) {
-#?if moar
-    nqp::p6box_i(nqp::lstat(nqp::unbox_s($abspath),nqp::const::STAT_GID) );
-#?endif
-#?if !moar
-    FILETEST-GID($abspath);  # no nqp::lstat yet
 #?endif
 }
 sub FILETEST-LINODE(Str $abspath) {

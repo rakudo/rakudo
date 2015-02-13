@@ -2638,6 +2638,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <statementlist(1)>
             { $*CURPAD := $*W.pop_lexpad() }
         || <onlystar>
+        || <!before '{'> <possibly_subname=.deflongname> { if self.parse($<deflongname>.Str, :rule('typename')) { $/.CURSOR.panic("Did you mean to write my $<deflongname> sub $<possibly_subname>?"); } }
         || <blockoid>
         ]
     }

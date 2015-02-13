@@ -19,26 +19,25 @@ sub MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
     my str $sabspath = nqp::unbox_s($abspath);
 
     # simple /path
-    if nqp::ordfirst($spath) == 47 {       # "/"
-        return nqp::chars($sabspath) > 2   #      can have C:/
-          && nqp::ordat($sabspath,1) == 58 # ":", assume C: something
-          && nqp::ordat($sabspath,2) == 47 # "/", assume C:/ like prefix
-          ?? nqp::box_s(nqp::concat(nqp::substr($sabspath,0,2),$spath),Str)
-          !! $path;
-    }
-
-    # potential relative path
-    if nqp::chars($spath) > 2 && nqp::ordat($spath,1) == 58 { # ":", like C:...
-        return $path if nqp::ordat($spath,2) == 47;           # "/", like C:/...
-
-        die "Can not set relative dir from different roots"
-          if nqp::isne_s(nqp::substr($sabspath,0,2),nqp::substr($spath,0,2));
-
-        return nqp::box_s(nqp::concat($sabspath,nqp::substr($spath,2)),Str);
-    }
+    return nqp::chars($sabspath) > 2   #      can have C:/
+      && nqp::ordat($sabspath,1) == 58 # ":", assume C: something
+      && nqp::ordat($sabspath,2) == 47 # "/", assume C:/ like prefix
+      ?? nqp::box_s(nqp::concat(nqp::substr($sabspath,0,2),$spath),Str)
+      !! $path
+      if nqp::ordfirst($spath) == 47;  # "/"
 
     # assume relative path
-    nqp::box_s(nqp::concat($sabspath,$spath),Str);
+    return nqp::box_s(nqp::concat($sabspath,$spath),Str)
+      if nqp::chars($spath) <= 2 || nqp::ordat($spath,1) != 58; # ":", like C:..
+
+    # absolute path
+    return $path if nqp::ordat($spath,2) == 47;           # "/", like C:/...
+
+    die "Can not set relative dir from different roots"
+      if nqp::isne_s(nqp::substr($sabspath,0,2),nqp::substr($spath,0,2));
+
+    # relative path on same drive
+    nqp::box_s(nqp::concat($sabspath,nqp::substr($spath,2)),Str);
 }
 
 sub FORWARD-SLASH(Str \path)  { TRANSPOSE-ONE(path,'\\','/') }

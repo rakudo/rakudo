@@ -113,6 +113,7 @@ my role Rational[::NuT, ::DeT] does Real {
         my $s = $!numerator < 0 ?? '-' !! '';
         my $r = self.abs;
         my $i = $r.floor;
+        my $reps = '';
         $r -= $i;
         $s ~= $i.base($base);
         if $r {
@@ -134,15 +135,16 @@ my role Rational[::NuT, ::DeT] does Real {
             if $r {
                 my $seen = %seen{$r.perl};
                 if $seen.defined {
-                    $frac = substr($frac,0,$seen) ~ '(' ~ substr($frac,$seen) ~ ')';
+                    $reps = substr($frac,$seen);
+                    $frac = substr($frac,0,$seen);
                 }
                 else {
-                    $frac ~= '...';
+                    $reps ~= '???';
                 }
             }
             $s ~= '.' ~ $frac;
         }
-        $s;
+        $s, $reps;
     }
 
     method succ {

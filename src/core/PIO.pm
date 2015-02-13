@@ -26,7 +26,7 @@ enum ProtocolType (
 
 my role PIO {
     has $!PIO;
-    has $.chomp;
+    has $.chomp is rw = True;
     has $.nl;
     has int $.ins;
 

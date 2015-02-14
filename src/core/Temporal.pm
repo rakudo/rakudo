@@ -219,19 +219,19 @@ my class DateTime does Dateish {
         }
     }
 
-    multi method new(Date :$date!, *%_) {
+    multi method new(Date:D :$date!, *%_) {
         self.new(year => $date.year, month => $date.month,
             day => $date.day, |%_)
     }
 
-    multi method new(Instant $i, :$timezone=0, :&formatter=&default-formatter) {
+    multi method new(Instant:D $i, :$timezone=0, :&formatter=&default-formatter) {
         my ($p, $leap-second) = $i.to-posix;
         my $dt = self.new: floor($p - $leap-second).Int, :&formatter;
         $dt.clone(second => ($dt.second + $p % 1 + $leap-second)
             ).in-timezone($timezone);
     }
 
-    multi method new(Int $time is copy, :$timezone=0, :&formatter=&default-formatter) {
+    multi method new(Int:D $time is copy, :$timezone=0, :&formatter=&default-formatter) {
         # Interpret $time as a POSIX time.
         my $second  = $time % 60; $time = $time div 60;
         my $minute  = $time % 60; $time = $time div 60;
@@ -258,7 +258,7 @@ my class DateTime does Dateish {
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',
-                    format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh::mm::ssZ or yyyy-mm-ddThh::mm::ss+0100)',
+                    format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+0100)',
                 ).throw;
         my $year   = (+$0).Int;
         my $month  = (+$1).Int;
@@ -281,7 +281,7 @@ my class DateTime does Dateish {
             :$second, :$timezone, :&formatter);
     }
 
-    method now(:$timezone=$*TZ, :&formatter=&default-formatter) {
+    method now(:$timezone=$*TZ, :&formatter=&default-formatter) returns DateTime:D {
         self.new(now, :$timezone, :&formatter)
     }
 

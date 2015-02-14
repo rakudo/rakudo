@@ -15,6 +15,18 @@ static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegist
     res->o = ((Rakudo_Scalar *)cont)->value;
 }
 
+static void rakudo_scalar_fetch_i(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {
+    res->i64 = MVM_repr_get_int(tc, ((Rakudo_Scalar *)cont)->value);
+}
+
+static void rakudo_scalar_fetch_n(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {
+    res->n64 = MVM_repr_get_num(tc, ((Rakudo_Scalar *)cont)->value);
+}
+
+static void rakudo_scalar_fetch_s(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {
+    res->s = MVM_repr_get_str(tc, ((Rakudo_Scalar *)cont)->value);
+}
+
 MVMObject * get_nil();
 MVMObject * get_mu();
 
@@ -149,6 +161,30 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
     finish_store(tc, cont, obj);
 }
 
+static void rakudo_scalar_store_i(MVMThreadContext *tc, MVMObject *cont, MVMint64 value) {
+    MVMObject *boxed;
+    MVMROOT(tc, cont, {
+        boxed = MVM_repr_box_int(tc, MVM_hll_current(tc)->int_box_type, value);
+    });
+    rakudo_scalar_store(tc, cont, boxed);
+}
+
+static void rakudo_scalar_store_n(MVMThreadContext *tc, MVMObject *cont, MVMnum64 value) {
+    MVMObject *boxed;
+    MVMROOT(tc, cont, {
+        boxed = MVM_repr_box_num(tc, MVM_hll_current(tc)->num_box_type, value);
+    });
+    rakudo_scalar_store(tc, cont, boxed);
+}
+
+static void rakudo_scalar_store_s(MVMThreadContext *tc, MVMObject *cont, MVMString *value) {
+    MVMObject *boxed;
+    MVMROOT(tc, cont, {
+        boxed = MVM_repr_box_str(tc, MVM_hll_current(tc)->str_box_type, value);
+    });
+    rakudo_scalar_store(tc, cont, boxed);
+}
+
 static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
     finish_store(tc, cont, obj);
 }
@@ -180,7 +216,13 @@ static void rakudo_scalar_spesh(MVMThreadContext *tc, MVMSTable *st, MVMSpeshGra
 static const MVMContainerSpec rakudo_scalar_spec = {
     "rakudo_scalar",
     rakudo_scalar_fetch,
+    rakudo_scalar_fetch_i,
+    rakudo_scalar_fetch_n,
+    rakudo_scalar_fetch_s,
     rakudo_scalar_store,
+    rakudo_scalar_store_i,
+    rakudo_scalar_store_n,
+    rakudo_scalar_store_s,
     rakudo_scalar_store_unchecked,
     rakudo_scalar_spesh,
     NULL,

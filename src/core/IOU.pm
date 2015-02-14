@@ -44,7 +44,7 @@ my class IOU does IO::Pathy {
 # at creation time.  We try to create the object again, call the method if
 # succeeds, or fail.  Wish there were a less verbose way to do this.
 
-    method e(IOU:D:)   { self!that ?? $!that.e   !! self!fail('e')   }
+    method e(IOU:D:)   { self!that ?? $!that.e   !! False }
     method f(IOU:D:)   { self!that ?? $!that.f   !! self!fail('f')   }
     method d(IOU:D:)   { self!that ?? $!that.d   !! self!fail('d')   }
     method s(IOU:D:)   { self!that ?? $!that.s   !! self!fail('s')   }

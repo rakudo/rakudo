@@ -52,10 +52,10 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
-    method base(Int:D: Cool $base) {
+    method base(Int:D: Cool $base, $digits = 0) {
         fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;
         my int $b = nqp::unbox_i($base.Int);
-        nqp::p6box_s(nqp::base_I(self, $b));
+        nqp::p6box_s(nqp::base_I(self, $b)) ~ ($digits ?? '.' ~ '0' x $digits !! '');
     }
 
     method expmod(Int:D: Int:D \base, Int:D \mod) {

@@ -5,7 +5,7 @@ my class IO::Handle does IO {
     has $.path;
     has $!PIO;
     has int $.ins;
-    has $.chomp = Bool::True;
+    has $.chomp is rw = Bool::True;
     has $.nl    = "\n";
     has int $!pipe;
 

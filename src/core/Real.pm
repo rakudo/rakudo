@@ -64,23 +64,34 @@ my role Real does Numeric {
     }
     method isNaN { Bool::False }
 
-    method base(Int:D $base) {
+    method base(Int:D $base, $digits = 1e8.log($base.Num).Int) {
         my Int $int_part = self.Int;
         my $frac = abs(self - $int_part);
         my @frac_digits;
-        my @conversion = qw/0 1 2 3 4 5 6 7 8 9
-                            A B C D E F G H I J
-                            K L M N O P Q R S T/;
-        # pretty arbitrary precision limit for now
-        # but better than endless loops
-        my $limit = 1e8.log($base.Num).Int;
-        for ^$limit {
+        my @conversion = <0 1 2 3 4 5 6 7 8 9
+                          A B C D E F G H I J
+                          K L M N O P Q R S T
+                          U V W X Y Z>;
+        for ^$digits {
             last if $frac == 0;
             $frac = $frac * $base;
-            push @frac_digits, @conversion[$frac.Int];
+            push @frac_digits, $frac.Int;
             $frac = $frac - $frac.Int;
         }
-        my Str $r = $int_part.base($base) ~ '.' ~ @frac_digits.join;
+        if 2 * $frac >= 1 {
+            if @frac_digits {
+                for @frac_digits-1 ... 0 -> $x {
+                    last if ++@frac_digits[$x] < $base;
+                    @frac_digits[$x] = 0;
+                    $int_part++ if $x == 0
+                }
+            }
+            else {
+                $int_part++;
+            }
+        }
+        my Str $r = $int_part.base($base);
+        $r ~= '.' ~ @conversion[@frac_digits].join if @frac_digits;
         # if $int_part is 0, $int_part.base doesn't see the sign of self
         $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
     }

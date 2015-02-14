@@ -102,9 +102,11 @@ my role Rational[::NuT, ::DeT] does Real {
                     $s ~= ($i+1).base($base) if $x == 0; # never happens?
                 }
             }
-            $s ~= '.';
-            state @digits = '0'..'9', 'A'..'Z';
-            $s ~= @digits[@f].join;
+            if @f {
+                $s ~= '.';
+                state @digits = '0'..'9', 'A'..'Z';
+                $s ~= @digits[@f].join;
+            }
         }
         $s;
     }

@@ -64,6 +64,21 @@ my role Real does Numeric {
     }
     method isNaN { Bool::False }
 
+    method polymod(Real:D: *@mods) {
+        my $more = self;
+        fail X::OutOfRange.new(what => 'invocant to polymod', got => $more, range => "0..*") if $more < 0;
+        gather {
+            for @mods -> $mod {
+                last unless $more;
+                fail X::Numeric::DivideByZero.new(using => 'polymod') unless $mod;
+                take my $rem = $more % $mod;
+                $more -= $rem;
+                $more /= $mod;
+            }
+            take $more;
+        }
+    }
+
     method base(Int:D $base, $digits = 1e8.log($base.Num).Int) {
         my Int $int_part = self.Int;
         my $frac = abs(self - $int_part);

@@ -27,25 +27,28 @@ class Distro does Systemic {
         }
     }
 
-    method tmpdir() {
-        my $ENV := %*ENV;
+    method !first-rwx-dir(\paths) {
         my $io;
-        for $!is-win
-              ?? <<
-  $ENV<TMPDIR> $ENV<TEMP> $ENV<TMP> SYS:/temp C:/system/temp C:/temp /tmp /
-                 >>
-              !! <<
-  $ENV<TMPDIR> /tmp
-                 >>
-        -> $path {
-            if $path.defined {
-                $io := $path.IO(:check);
-                return $io if $io.d && $io.rwx;
-            }
+        for paths.grep(*.defined) -> $path {
+            $io := $path.IO(:check);
+            return $io if $io.d && $io.rwx;
         }
 
         # alas, nothing worked, use current dir
         ".".IO;
+    }
+
+    method tmpdir() {
+        my $ENV := %*ENV;
+        self!first-rwx-dir(
+            self.is-win
+              ?? <<
+ $ENV<TMPDIR> $ENV<TEMP> $ENV<TMP> SYS:/temp C:/system/temp C:/temp /tmp /
+                 >>
+              !! <<
+ $ENV<TMPDIR> /tmp
+                 >>
+        );
     }
 }
 

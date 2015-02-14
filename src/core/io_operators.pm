@@ -226,17 +226,19 @@ sub indir(Str() $path, &what, Str() $CWD = $*CWD) {
 }
 
 sub tmpdir(Str() $path, Str() $CWD = $*CWD) {
-    my $newTMPDIR := CHANGE-DIRECTORY($path,$*TMPDIR.Str,&FILETEST-rwx);
+    my $newTMPDIR := CHANGE-DIRECTORY($path,$CWD,&FILETEST-rwx);
     return $newTMPDIR if nqp::istype($newTMPDIR,Failure);
 
+    $*TMPDIR; # make sure we have a PROCESS:: one
     $*TMPDIR = $newTMPDIR;
     True;
 }
 
 sub homedir(Str() $path, Str() $CWD = $*CWD) {
-    my $newHOME := CHANGE-DIRECTORY($path,$*HOME.Str,&FILETEST-rwx);
+    my $newHOME := CHANGE-DIRECTORY($path,$CWD,&FILETEST-rwx);
     return $newHOME if nqp::istype($newHOME,Failure);
 
+    $*HOME; # make sure we have a PROCESS:: one
     $*HOME = $newHOME;
     True;
 }

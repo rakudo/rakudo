@@ -1,4 +1,4 @@
-# A role for local file(path)s
+# A role for local file(path)s that are known to exist
 my role IO::Pathy {
     has $.abspath;
     has @!parts;

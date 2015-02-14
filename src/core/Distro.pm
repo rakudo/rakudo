@@ -39,7 +39,7 @@ class Distro does Systemic {
                  >>
         -> $path {
             if $path.defined {
-                $io := $path.IO;
+                $io := $path.IO(:check);
                 return $io if $io.d && $io.rwx;
             }
         }

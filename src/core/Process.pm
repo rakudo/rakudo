@@ -39,6 +39,10 @@ multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
     PROCESS::<$TMPDIR> = $*DISTRO.tmpdir;
 }
 
+multi sub INITIALIZE_DYNAMIC('$*HOME') {
+    PROCESS::<$HOME> = $*DISTRO.homedir;
+}
+
 {
     class IdName {
         has Int $!id;

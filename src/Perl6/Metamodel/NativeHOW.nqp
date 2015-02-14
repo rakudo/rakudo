@@ -50,36 +50,38 @@ class Perl6::Metamodel::NativeHOW
         $!composed
     }
 
-    method set_nativesize($obj, $nativesize) {
-        if $nativesize.HOW.name($nativesize) eq 'Str' {
-            if $nativesize eq 'char' {
-                $!nativesize := nqp::const::C_TYPE_CHAR;
-            }
-            elsif $nativesize eq 'short' {
-                $!nativesize := nqp::const::C_TYPE_SHORT;
-            }
-            elsif $nativesize eq 'int' {
-                $!nativesize := nqp::const::C_TYPE_INT;
-            }
-            elsif $nativesize eq 'long' {
-                $!nativesize := nqp::const::C_TYPE_LONG;
-            }
-            elsif $nativesize eq 'longlong' {
-                $!nativesize := nqp::const::C_TYPE_LONGLONG;
-            }
-            elsif $nativesize eq 'float' {
-                $!nativesize := nqp::const::C_TYPE_FLOAT;
-            }
-            elsif $nativesize eq 'double' {
-                $!nativesize := nqp::const::C_TYPE_DOUBLE;
-            }
-            elsif $nativesize eq 'longdouble' {
-                $!nativesize := nqp::const::C_TYPE_LONGDOUBLE;
-            }
+    method set_ctype($obj, $ctype) {
+        if $ctype eq 'char' {
+            $!nativesize := nqp::const::C_TYPE_CHAR;
+        }
+        elsif $ctype eq 'short' {
+            $!nativesize := nqp::const::C_TYPE_SHORT;
+        }
+        elsif $ctype eq 'int' {
+            $!nativesize := nqp::const::C_TYPE_INT;
+        }
+        elsif $ctype eq 'long' {
+            $!nativesize := nqp::const::C_TYPE_LONG;
+        }
+        elsif $ctype eq 'longlong' {
+            $!nativesize := nqp::const::C_TYPE_LONGLONG;
+        }
+        elsif $ctype eq 'float' {
+            $!nativesize := nqp::const::C_TYPE_FLOAT;
+        }
+        elsif $ctype eq 'double' {
+            $!nativesize := nqp::const::C_TYPE_DOUBLE;
+        }
+        elsif $ctype eq 'longdouble' {
+            $!nativesize := nqp::const::C_TYPE_LONGDOUBLE;
         }
         else {
-            $!nativesize := $nativesize;
+            nqp::die("Unhandled C type '$ctype'")
         }
+    }
+
+    method set_nativesize($obj, $nativesize) {
+        $!nativesize := $nativesize;
     }
 
     method nativesize($obj) {

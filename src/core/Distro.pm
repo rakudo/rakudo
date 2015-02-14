@@ -35,7 +35,7 @@ class Distro does Systemic {
         }
 
         # alas, nothing worked, use current dir
-        ".".IO;
+        ".".IO(:check);
     }
 
     method tmpdir() {

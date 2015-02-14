@@ -39,15 +39,23 @@ class Distro does Systemic {
     }
 
     method tmpdir() {
-        my $ENV := %*ENV;
-        self!first-rwx-dir(
-            self.is-win
-              ?? <<
- $ENV<TMPDIR> $ENV<TEMP> $ENV<TMP> SYS:/temp C:/system/temp C:/temp /tmp /
-                 >>
-              !! <<
- $ENV<TMPDIR> /tmp
-                 >>
+        my %ENV := %*ENV;
+        self!first-rwx-dir( self.is-win
+          ?? <<
+ %ENV<TMPDIR> %ENV<TEMP> %ENV<TMP> SYS:/temp C:/system/temp C:/temp /tmp /
+             >>
+          !! <<
+ %ENV<TMPDIR> /tmp
+             >>
+        );
+    }
+
+    method homedir() {
+        my %ENV  := %*ENV;
+        my $USER := $*USER.Str;
+        self!first-rwx-dir( self.is-win
+          ?? << %ENV<HOME> %ENV<HOMEDIR> >>
+          !! << %ENV<HOME> "/home/$USER" "/Users/$USER" >>
         );
     }
 }

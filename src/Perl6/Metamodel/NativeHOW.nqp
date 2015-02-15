@@ -37,10 +37,16 @@ class Perl6::Metamodel::NativeHOW
         if !$!composed && $!nativesize {
             my $info := nqp::hash();
             $info<integer> := nqp::hash();
-            $info<integer><bits> := nqp::unbox_i($!nativesize);
             $info<integer><unsigned> := 1 if $!unsigned;
             $info<float> := nqp::hash();
-            $info<float><bits> := nqp::unbox_i($!nativesize);
+            if nqp::objprimspec($!nativesize) {
+                $info<integer><bits> := $!nativesize;
+                $info<float><bits>   := $!nativesize;
+            }
+            else {
+                $info<integer><bits> := nqp::unbox_i($!nativesize);
+                $info<float><bits>   := nqp::unbox_i($!nativesize);
+            }
             nqp::composetype($obj, $info);
         }
         $!composed := 1;

@@ -37,10 +37,16 @@ class Perl6::Metamodel::NativeHOW
         if !$!composed && $!nativesize {
             my $info := nqp::hash();
             $info<integer> := nqp::hash();
-            $info<integer><bits> := nqp::unbox_i($!nativesize);
             $info<integer><unsigned> := 1 if $!unsigned;
             $info<float> := nqp::hash();
-            $info<float><bits> := nqp::unbox_i($!nativesize);
+            if nqp::objprimspec($!nativesize) {
+                $info<integer><bits> := $!nativesize;
+                $info<float><bits>   := $!nativesize;
+            }
+            else {
+                $info<integer><bits> := nqp::unbox_i($!nativesize);
+                $info<float><bits>   := nqp::unbox_i($!nativesize);
+            }
             nqp::composetype($obj, $info);
         }
         $!composed := 1;
@@ -49,11 +55,41 @@ class Perl6::Metamodel::NativeHOW
     method is_composed($obj) {
         $!composed
     }
-    
+
+    method set_ctype($obj, $ctype) {
+        if $ctype eq 'char' {
+            $!nativesize := nqp::const::C_TYPE_CHAR;
+        }
+        elsif $ctype eq 'short' {
+            $!nativesize := nqp::const::C_TYPE_SHORT;
+        }
+        elsif $ctype eq 'int' {
+            $!nativesize := nqp::const::C_TYPE_INT;
+        }
+        elsif $ctype eq 'long' {
+            $!nativesize := nqp::const::C_TYPE_LONG;
+        }
+        elsif $ctype eq 'longlong' {
+            $!nativesize := nqp::const::C_TYPE_LONGLONG;
+        }
+        elsif $ctype eq 'float' {
+            $!nativesize := nqp::const::C_TYPE_FLOAT;
+        }
+        elsif $ctype eq 'double' {
+            $!nativesize := nqp::const::C_TYPE_DOUBLE;
+        }
+        elsif $ctype eq 'longdouble' {
+            $!nativesize := nqp::const::C_TYPE_LONGDOUBLE;
+        }
+        else {
+            nqp::die("Unhandled C type '$ctype'")
+        }
+    }
+
     method set_nativesize($obj, $nativesize) {
         $!nativesize := $nativesize;
     }
-    
+
     method nativesize($obj) {
         $!nativesize
     }

@@ -231,7 +231,6 @@ sub tmpdir(Str() $path, Str() $CWD = $*CWD) {
 
     $*TMPDIR; # make sure we have a PROCESS:: one
     $*TMPDIR = $newTMPDIR;
-    True;
 }
 
 sub homedir(Str() $path, Str() $CWD = $*CWD) {
@@ -240,7 +239,6 @@ sub homedir(Str() $path, Str() $CWD = $*CWD) {
 
     $*HOME; # make sure we have a PROCESS:: one
     $*HOME = $newHOME;
-    True;
 }
 
 sub chmod($mode, *@filenames, Str() :$CWD = $*CWD) {

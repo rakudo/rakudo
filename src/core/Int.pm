@@ -71,7 +71,7 @@ my class Int does Real { # declared in BOOTSTRAP
                 take $more mod $mod;
                 $more div= $mod;
             }
-            take $more;
+            take $more unless $inf;
         }
     }
 

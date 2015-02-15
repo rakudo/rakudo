@@ -76,7 +76,7 @@ my role Real does Numeric {
                 $more -= $rem;
                 $more /= $mod;
             }
-            take $more;
+            take $more unless $inf;
         }
     }
 

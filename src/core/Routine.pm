@@ -26,6 +26,17 @@ my class Routine { # declared in BOOTSTRAP
     method onlystar() { nqp::p6bool($!onlystar) }
 
     method assuming($r: |curried) {
+        if my @holes := (^curried).grep: { curried[$_] ~~ Whatever } {
+            my $last-hole = @holes[*-1];
+            my @mixed;
+            @mixed[$_] := curried[$_] for 0 .. $last-hole;
+            my @curried := curried[$last-hole ^.. *];
+            return sub CURRIED (|direct) {
+                @mixed[@holes[$_]] := direct[$_] for ^@holes;
+                $r(|@mixed, |@curried, |@(direct[+@holes .. *]), |%(curried), |%(direct));
+            }
+        }
+
         return sub CURRIED (|direct) {
             $r(|curried, |direct)
         }

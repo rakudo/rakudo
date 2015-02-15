@@ -186,6 +186,7 @@ multi sub skip($reason, $count = 1) is export {
 
 sub skip_rest($reason = '<unknown>') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
+    die "A plan is required in order to use skip_rest" if $no_plan;
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
     $time_before = nqp::p6box_n(nqp::time_n);
 }

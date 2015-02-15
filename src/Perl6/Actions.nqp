@@ -2039,6 +2039,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $past.ann('metaattr'),
                             $<initializer>.ast, $*ATTR_INIT_BLOCK);
                     }
+                    elsif $<initializer><sym> eq '.=' {
+                        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
+                        my $dot_equals := $<initializer>.ast;
+                        $dot_equals.unshift(QAST::WVal.new(:value($type)));
+                        $dot_equals.returns($type);
+                        self.install_attr_init($<initializer>,
+                            $past.ann('metaattr'),
+                            $dot_equals, $*ATTR_INIT_BLOCK);
+                    }
                     else {
                         $/.CURSOR.panic("Cannot use " ~ $<initializer><sym> ~
                             " to initialize an attribute");

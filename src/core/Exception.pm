@@ -757,6 +757,10 @@ my class X::Parameter::Default does X::Comp {
     }
 }
 
+my class X::Parameter::MisplacedDefault does X::Syntax {
+    method message() { "Default expression must come last" }
+}
+
 my class X::Parameter::Placeholder does X::Comp {
     has $.parameter;
     has $.right;

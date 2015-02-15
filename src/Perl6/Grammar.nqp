@@ -2809,7 +2809,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         <trait>*
         <post_constraint>*
-        <default_value>**0..1
+        [
+            <default_value>
+            [<!before <[,;)\]{}-]> > { self.typed_panic("X::Parameter::MisplacedDefault") }]?
+        ]**0..1
 
         # enforce zone constraints
         {

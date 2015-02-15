@@ -58,6 +58,23 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::base_I(self, $b)) ~ ($digits ?? '.' ~ '0' x $digits !! '');
     }
 
+    # If self is Int, we assume mods are Ints also.  (div fails otherwise.)
+    # If do-not-want, user should cast invocant to proper domain.
+    method polymod(Int:D: *@mods) {
+        my $more = self;
+        my $inf = @mods.elems == Inf;
+        fail X::OutOfRange.new(what => 'invocant to polymod', got => $more, range => "0..*") if $more < 0;
+        gather {
+            for @mods -> $mod {
+                last if $inf and not $more;
+                fail X::Numeric::DivideByZero.new(using => 'polymod') unless $mod;
+                take $more mod $mod;
+                $more div= $mod;
+            }
+            take $more unless $inf;
+        }
+    }
+
     method expmod(Int:D: Int:D \base, Int:D \mod) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }

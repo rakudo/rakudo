@@ -757,6 +757,16 @@ my class X::Parameter::Default does X::Comp {
     }
 }
 
+my class X::Parameter::AfterDefault does X::Syntax {
+    has $.type;
+    has $.modifier;
+    has $.default;
+    method message() {
+        "The $.type \"$.modifier\" came after the default value\n"
+        ~ "(did you mean \"...$.modifier $.default\"?)"
+    }
+}
+
 my class X::Parameter::Placeholder does X::Comp {
     has $.parameter;
     has $.right;

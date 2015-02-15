@@ -2809,7 +2809,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         <trait>*
         <post_constraint>*
-        <default_value>**0..1
+        [
+            <default_value>
+            [ <modifier=.trait> {
+                self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default_value>
+            }]?
+            [ <modifier=.post_constraint> {
+                self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
+            }]?
+        ]**0..1
 
         # enforce zone constraints
         {

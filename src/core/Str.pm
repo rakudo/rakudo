@@ -1105,7 +1105,63 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method trans(Str:D: *@changes) {
+    proto method trans(|) { * }
+    multi method trans(Pair:D \what, *%n) {
+        my $from = what.key;
+        my $to   = what.value;
+        return self.trans(|%n, (what,))
+          if !nqp::istype($from,Str)   # from not a string
+          || !$from.defined            # or a type object
+          || !nqp::istype($to,Str)     # or to not a string
+          || !$to.defined              # or a type object
+          || !$to.chars                # or nothing to convert to
+          || %n;                       # or any named params passed
+
+        sub expand(Str:D \x) {
+            my str $s     = nqp::unbox_s(x);
+            my int $found = nqp::index($s,'..',1);
+            return x       #  not found or at the end without trail
+              if nqp::iseq_i($found,-1) || nqp::iseq_i($found,nqp::chars($s)-2);
+
+            my Mu $result := nqp::list();
+            my int $from   = nqp::ordat($s,$found - 1) + 1;
+            my int $to     = nqp::ordat($s,$found + 2);
+            my int $null   = nqp::not_i($from - $to - 1); # as in A..A
+
+            nqp::push($result,nqp::substr($s,0,$found));
+            while nqp::islt_i($from,$to) {
+                nqp::push($result,nqp::chr($from));
+                $from = $from + 1;
+            }
+            nqp::push($result,nqp::substr($s,$found + 2 + $null));
+
+            expand(nqp::p6box_s(nqp::join('',$result)));
+        }
+
+        my str $sfrom = nqp::unbox_s(expand($from));
+        my str $sto   = nqp::unbox_s(expand($to));
+        my int $sfl   = nqp::chars($sfrom);
+        $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
+
+        my str $str   = nqp::unbox_s(self);
+        my str $chars = nqp::chars($str);
+        my Mu $result := nqp::list();
+        my str $check;
+        my int $i;
+        my int $found;
+
+        while nqp::islt_i($i,$chars) {
+            $check = nqp::substr($str,$i,1);
+            $found = nqp::index($sfrom,$check);
+            nqp::push($result, nqp::iseq_i($found,-1)
+              ?? $check
+              !! nqp::substr($sto,$found,1)
+            );
+            $i = $i + 1;
+        }
+        nqp::p6box_s(nqp::join('',$result));
+    }
+    multi method trans(Str:D: *@changes) {
         my sub expand($s) {
             return $s.list
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);

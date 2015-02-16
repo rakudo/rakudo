@@ -118,7 +118,14 @@ sub guess_library_name($libname) {
     elsif $libname ~~ /\.<.alpha>+$/ { $libname }
     elsif $libname ~~ /\.so(\.<.digit>+)+$/ { $libname }
     elsif $*VM.config<load_ext> :exists { $libname ~ $*VM.config<load_ext> }
-    elsif $*VM.config<nativecall.so> :exists { $libname ~ '.' ~ $*VM.config<nativecall.so> }
+    elsif $*VM.config<nativecall.so> :exists {
+        if $*DISTRO.name eq 'darwin' {
+            ($libname ~ '.' ~ $*VM.config<nativecall.so>).IO.absolute
+        }
+        else {
+            $libname ~ '.' ~ $*VM.config<nativecall.so>
+        }
+    }
     elsif $*VM.config<dll> :exists {
         my $ext = $*VM.config<dll>;
         $ext ~~ s/^.*\%s//;

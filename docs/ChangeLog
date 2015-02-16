@@ -4,6 +4,8 @@ New in 2015.02
   containing them
 + optimizations to slices with adverbs
 + improved error messages from sprintf and fmt
++ improved error message when trying to inherit from a class that isn't
+  composed (like a stub)
 + Proc::Async polished (improved error reporting, relaxed type constraints)
 + LoL assignment is now autovivifying
 + Semicolon/"rest of file" form of the MAIN sub implemented
@@ -14,6 +16,8 @@ New in 2015.02
 + Added "polymod" method on numerical values
 + Made simple Str.trans / tr/// about 20x faster
 + File test operators now follow symlinks on systems that support them
++ New method Rational.base-repeating, optional precision argument for Real.base
++ Blob.bytes now returns actualy byte size, even for non-byte blobs
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

@@ -252,37 +252,37 @@ sub rmdir(*@filenames, Str() :$CWD = $*CWD) {
 
 proto sub mkdir(|) { * }
 multi sub mkdir(Int $mode, *@dirnames, Str() :$CWD = $*CWD) {
-    @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_,$CWD),$mode) } ).eager;
+    @dirnames.grep( { MAKE-DIR(MAKE-ABSOLUTE-PATH($_.Str,$CWD),$mode) } ).eager;
 }
-multi sub mkdir($path, $mode = 0o777, Str() :$CWD = $*CWD) {
+multi sub mkdir(Str() $path, Int $mode = 0o777, Str() :$CWD = $*CWD) {
     MAKE-DIR(MAKE-ABSOLUTE-PATH($path,$CWD),$mode);
 }
 
-sub rename($from, $to, Str() :$CWD = $*CWD, |c) {
+sub rename(Str() $from, Str() $to, Str() :$CWD = $*CWD, |c) {
     my $result := RENAME-PATH(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub move($from, $to, Str() :$CWD = $*CWD, |c) {
+sub move(Str() $from, Str() $to, Str() :$CWD = $*CWD, |c) {
     my $result := MOVE-PATH(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub copy($from, $to, Str() :$CWD = $*CWD, |c) {
+sub copy(Str() $from, Str() $to, Str() :$CWD = $*CWD, |c) {
     my $result := COPY-FILE(
       MAKE-ABSOLUTE-PATH($from,$CWD),MAKE-ABSOLUTE-PATH($to,$CWD),|c
     );
     $result // $result.throw;
 }
-sub symlink($target, $name, Str() :$CWD = $*CWD) {
+sub symlink(Str() $target, Str() $name, Str() :$CWD = $*CWD) {
     my $result := SYMLINK-PATH(
       MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
     );
     $result // $result.throw;
 }
-sub link($target, $name, Str() :$CWD = $*CWD) {
+sub link(Str() $target, Str() $name, Str() :$CWD = $*CWD) {
     my $result := LINK-FILE(
       MAKE-ABSOLUTE-PATH($target,$CWD),MAKE-ABSOLUTE-PATH($name,$CWD)
     );

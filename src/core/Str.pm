@@ -1114,7 +1114,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
           || !$from.defined            # or a type object
           || !nqp::istype($to,Str)     # or to not a string
           || !$to.defined              # or a type object
-          || !$to.chars                # or nothing to convert to
           || %n;                       # or any named params passed
 
         sub expand(Str:D \x) {
@@ -1137,29 +1136,43 @@ my class Str does Stringy { # declared in BOOTSTRAP
             expand(nqp::p6box_s(nqp::join('',$result)));
         }
 
-        my str $sfrom = nqp::unbox_s(expand($from));
-        my str $sto   = nqp::unbox_s(expand($to));
-        my int $sfl   = nqp::chars($sfrom);
-        $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
-
-        my str $str   = nqp::unbox_s(self);
-        my str $chars = nqp::chars($str);
+        my str $sfrom  = nqp::unbox_s(expand($from));
+        my str $str    = nqp::unbox_s(self);
+        my str $chars  = nqp::chars($str);
         my Mu $result := nqp::list();
-        nqp::setelems($result,$chars);
-
         my str $check;
         my int $i;
-        my int $found;
 
-        while nqp::islt_i($i,$chars) {
-            $check = nqp::substr($str,$i,1);
-            $found = nqp::index($sfrom,$check);
-            nqp::bindpos($result, $i, nqp::iseq_i($found,-1)
-              ?? $check
-              !! nqp::substr($sto,$found,1)
-            );
-            $i = $i + 1;
+        # something to convert to
+        if $to.chars {
+            my str $sto   = nqp::unbox_s(expand($to));
+            my int $sfl   = nqp::chars($sfrom);
+            my int $found;
+
+            $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
+            nqp::setelems($result,$chars);
+
+            while nqp::islt_i($i,$chars) {
+                $check = nqp::substr($str,$i,1);
+                $found = nqp::index($sfrom,$check);
+                nqp::bindpos($result, $i, nqp::iseq_i($found,-1)
+                  ?? $check
+                  !! nqp::substr($sto,$found,1)
+                );
+                $i = $i + 1;
+            }
         }
+
+        # just remove
+        else {
+            while nqp::islt_i($i,$chars) {
+                $check = nqp::substr($str,$i,1);
+                nqp::push($result, $check)
+                  if nqp::iseq_i(nqp::index($sfrom,$check),-1);
+                $i = $i + 1;
+            }
+        }
+
         nqp::p6box_s(nqp::join('',$result));
     }
     multi method trans(Str:D: *@changes) {

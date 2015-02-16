@@ -231,6 +231,32 @@ multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
     return $ok;
 }
 
+multi sub like(Str $got, Regex $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    $got.defined; # Hack to deal with Failures
+    my $test = $got ~~ $expected;
+    my $ok = proclaim(?$test, $desc);
+    if !$test {
+        diag sprintf "     expected: '%s'", $expected.perl;
+        diag "     got: '$got'";
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
+multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    $got.defined; # Hack to deal with Failures
+    my $test = !($got ~~ $expected);
+    my $ok = proclaim(?$test, $desc);
+    if !$test {
+        diag sprintf "     expected: '%s'", $expected.perl;
+        diag "     got: '$got'";
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
 multi sub dies_ok(Callable $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $death = 1;

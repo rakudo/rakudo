@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #ifdef WIN32
 #define DLLEXPORT __declspec(dllexport)

@@ -215,6 +215,7 @@ J_CLEANUPS = \
   blib/Perl6/*.jar \
   $(SETTING_JAR) \
   $(PERL6_JAR) \
+  lib/NativeCall.pm.jar \
   lib/Test.pm.jar \
   lib/nqp.pm6.jar \
   lib/lib.pm6.jar \
@@ -232,7 +233,7 @@ J_CLEANUPS = \
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 J_HARNESS = $(PERL) t/harness --jvm
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/nqp.pm6.jar lib/lib.pm6.jar lib/Pod/To/Text.pm.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/nqp.pm6.jar lib/lib.pm6.jar lib/Pod/To/Text.pm.jar lib/NativeCall.pm.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -310,7 +311,10 @@ $(PERL6_DEBUG_JAR): src/perl6-debug.nqp $(PERL6_JAR)
 $(J_DEBUG_RUNNER): tools/build/create-jvm-runner.pl $(PERL6_DEBUG_JAR)
 	$(PERL) tools/build/create-jvm-runner.pl dev-debug . . $(NQP_PREFIX) $(NQP_JARS)
 
-##  testing targets
+##  shipped modules
+lib/NativeCall.pm.jar: lib/NativeCall.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall.pm.jar lib/NativeCall.pm
+
 lib/Test.pm.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar lib/Test.pm
 
@@ -323,6 +327,7 @@ lib/lib.pm6.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 lib/Pod/To/Text.pm.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	.@slash@$(J_RUNNER) --target=jar --output=lib/Pod/To/Text.pm.jar lib/Pod/To/Text.pm
 
+##  testing targets
 j-test    : j-coretest
 
 j-fulltest: j-coretest j-stresstest
@@ -330,6 +335,7 @@ j-fulltest: j-coretest j-stresstest
 j-coretest: j-all
 	$(J_HARNESS) t/01-sanity
 	$(J_HARNESS) t/03-jvm
+	$(J_HARNESS) t/04-nativecall
 
 # Run the spectests that we know work.
 j-spectest: j-testable t/spectest.data
@@ -375,6 +381,8 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) lib/NativeCall.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) lib/NativeCall.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/Test.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/Test.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/nqp.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib

@@ -291,6 +291,7 @@ P_CLEANUPS = \
   perl6-p.c \
   perl6-p$(O) \
   perl6_group.* \
+  lib/NativeCall.pm.pir \
   lib/Test.pm.pir \
   lib/nqp.pm6.pir \
   lib/lib.pm6.pir \
@@ -319,7 +320,7 @@ P_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_IC
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/Test.pm.pir lib/nqp.pm6.pir lib/lib.pm6.pir lib/Pod/To/Text.pm.pir $(PERL6_DEBUG_EXE)
+p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/Test.pm.pir lib/nqp.pm6.pir lib/lib.pm6.pir lib/Pod/To/Text.pm.pir lib/NativeCall.pm.pir $(PERL6_DEBUG_EXE)
 
 # the install target
 p-install: p-all
@@ -339,6 +340,8 @@ p-install: p-all
 	$(CP)     $(PERL6_DEBUG_PBC)  $(DESTDIR)$(P_PERL6_LANG_DIR)
 	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/NativeCall.pm   $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/NativeCall.pm.pir $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm.pir     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/nqp.pm6         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
@@ -461,7 +464,10 @@ $(PERL6_DEBUG_PBC): $(PERL6_PBC) src/perl6-debug.nqp
 	    $(P_BUILD_DIR)/p-perl6-debug.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_DEBUG_PBC) src/gen/perl6-debug.pir
 
-##  testing targets
+##  shipped modules
+lib/NativeCall.pm.pir: lib/NativeCall.pm $(PERL6_EXE) $(SETTING_PBC)
+	./$(PERL6_EXE) --target=pir --output=lib/NativeCall.pm.pir lib/NativeCall.pm
+
 lib/Test.pm.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Test.pm.pir lib/Test.pm
 
@@ -474,12 +480,13 @@ lib/lib.pm6.pir: lib/lib.pm6 $(PERL6_EXE) $(SETTING_PBC)
 lib/Pod/To/Text.pm.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pm.pir lib/Pod/To/Text.pm
 
+##  testing targets
 p-test    : p-coretest
 
 p-fulltest: p-coretest p-stresstest
 
 p-coretest: p-all
-	$(PERL) t/harness t/00-parrot t/01-sanity
+	$(PERL) t/harness t/00-parrot t/01-sanity t/04-nativecall
 
 # Run the spectests that we know work.
 p-spectest: p-testable t/spectest.data

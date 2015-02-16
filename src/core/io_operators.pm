@@ -212,7 +212,6 @@ sub chdir(Str() $path, Str() $CWD = $*CWD) {
     return $newCWD if nqp::istype($newCWD,Failure);
 
     $*CWD = $newCWD;
-    True;
 }
 
 sub indir(Str() $path, &what, Str() $CWD = $*CWD) {

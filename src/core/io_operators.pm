@@ -82,7 +82,7 @@ multi sub dir(Str() $dir, :$Str!, Str() :$CWD = $*CWD, Mu :$test) {
 }
 
 proto sub open(|) { * }
-multi sub open( $path,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
+multi sub open(Str() $path,:$r,:$w,:$rw,:$a,:$p,:$enc,:$nodepr,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc and !$nodepr;
 

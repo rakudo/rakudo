@@ -44,7 +44,7 @@ sub gist(|) {
     nqp::p6parcel(nqp::p6argvmarray(), Mu).gist
 }
 
-sub prompt($msg) {
+sub prompt(Str() $msg) {
     my $out := $*OUT;
     $out.print($msg);
     $out.flush();
@@ -76,7 +76,7 @@ multi sub dir(Str() $dir, :$Str!, Str() :$CWD = $*CWD, Mu :$test) {
          )
       !! DIR-GATHER(
            MAKE-CLEAN-PARTS(
-             MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD.Str)
+             MAKE-ABSOLUTE-PATH(FORWARD-SLASH($dir),$CWD)
            ).join('/'),$test
          );
 }

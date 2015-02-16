@@ -3,6 +3,16 @@ nqp/
 install/
 install-jvm/
 Makefile
+*.pir
+*.lib
+*.dll
+*.so
+*.o
+*.obj
+*.exp
+*.pdb
+*.bundle
+*~
 .*.swp
 *.patch
 *.pdb

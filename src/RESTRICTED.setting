@@ -42,6 +42,7 @@ my class IO::Pipe         is RESTRICTED-CLASS { }
 my class IO::Socket       is RESTRICTED-CLASS { }
 my class IO::Socket::INET is RESTRICTED-CLASS { }
 my class IOU              is RESTRICTED-CLASS { }
+my class NativeCall       is RESTRICTED-CLASS { }
 my class Proc::Async      is RESTRICTED-CLASS { }
 
 my role RESTRICTED-ROLE {
@@ -52,7 +53,3 @@ my role RESTRICTED-ROLE {
 
 my role IO::Pathy does RESTRICTED-ROLE { }
 my role PIO       does RESTRICTED-ROLE { }
-
-multi sub trait_mod:<is>(Routine $r, :$native!) {
-    die "'is native' trait disallowed in restricted setting";
-}

@@ -124,7 +124,7 @@ sub guess_library_name($libname) {
         $ext ~~ s/^.*\%s//;
         "$libname$ext";
     }
-    elsif $*OS eq 'MSWin32' { "{$libname}.dll"; }
+    elsif $*DISTRO.is-win { "{$libname}.dll"; }
     # TODO: more extension guessing
     else { "{$libname}.so"; }
 }

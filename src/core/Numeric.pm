@@ -179,12 +179,7 @@ multi sub round($a)                 { $a.Numeric.round }
 multi sub round(Numeric $a)         { $a.round }
 multi sub round(Numeric $a, $scale) { $a.round($scale) }
 
-#?if parrot
-proto sub infix:<+>($?, $?) is pure   { * }
-#?endif
-#?if !parrot
 proto sub infix:<+>(Mu $?, Mu $?) is pure   { * }
-#?endif
 multi sub infix:<+>($x = 0)      { $x.Numeric }
 multi sub infix:<+>(\a, \b)    { a.Numeric + b.Numeric }
 

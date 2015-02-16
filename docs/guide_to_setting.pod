@@ -2,49 +2,18 @@
 
 =head1 NAME
 
-Guide to the C<src/setting/> library
+Guide to the C<src/core> setting.
 
 =head1 DESCRIPTION
 
-Why we write built-in methods and functions in Perl 6, and what you
-should know when you write more such subs or methods.
+Notes about writing code to go in Rakudo's setting.
 
-=head2 Reasons
-
-There are a few reasons to write built-in methods in Perl 6 and not in
-PIR, as done previously:
-
-=over
-
-=item Perl 6 is a much nicer language than PIR
-
-=item Typed Arrays/Lists are really parametric roles, and those are
-    much easier to write in Perl 6
-
-=item In order for Rakudo's multi-dispatchers to work properly,
-    the target subs have to have Signature objects attached to them.
-    This is far easier to do in Perl 6 than in PIR.
-
-=back
-
-There are two potential drawbacks:  (1) slower execution, and (2)
-some operations can be expressed in PIR that cannot yet be expressed
-in Rakudo (and sometimes not even in Perl 6!).  For cases where these
-drawbacks matter, we can use inline PIR or maintain the subroutines
-in PIR as needed.  
-
-=head2 Guidelines
-
-Your patches to migrate PIR builtins to Perl 6 are very welcome,
-especially if they follow these guidelines:
-
-=over
+=over 4
 
 =item Think of laziness
 
-At some point in the hopefully not-so-distant future Lists will become
-lazy by default. So you should try to avoid anything that forces eager
-evaluation of arrays, like querying their length.
+Avoid anything that forces eager evaluation of arrays, like querying their
+length.
 
 This is bad:
 
@@ -63,7 +32,7 @@ Some of the Synopsis documents list type constraints for some of the
 arguments, including the invocant. They are not always correct,
 when in doubt leave them out.
 
-=item When adding a new file in src/setting/
+=item When adding a new file in src/core/
 
 ... remember to add it to L<build/Makefile.in> to the C<SETTING>
 variable and re-generate the Makefile using L<Configure.pl>.
@@ -99,8 +68,6 @@ than implicit ones.
 =back
 
 =head1 SEE ALSO
-
-L<http://rakudo.org/2009/02/rakudo-built-ins-can-now-be-wr.html>
 
 L<http://perlgeek.de/blog-en/perl-6/tidings-2009-03.html>
 

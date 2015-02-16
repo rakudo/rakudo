@@ -23,6 +23,7 @@ New in 2015.02
 + Buffer types can now be passed to C functions via NativeCall
 + C types like "long" that depend on the architecture are now handled correctly
 + NativeCall is now shipped with rakudo, because it is coupled too tightly
++ Allow "constant" and "has" declarations to be initialized with .=
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

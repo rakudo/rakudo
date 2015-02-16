@@ -11,8 +11,8 @@ sub sanity($it) {
     isa_ok FILETEST-z($it), Bool,  "is the emptyness a Bool";
     ok FILETEST-r($it),   "can we r $it";
 
-    isa_ok FILETEST-i($it), Int, 'is the inode an Int';
-    isa_ok FILETEST-v($it), Int, 'is the device id an Int';
+    isa_ok FILETEST-INODE($it), Int, 'is the inode an Int';
+    isa_ok FILETEST-DEVICE($it), Int, 'is the device id an Int';
 
     isa_ok FILETEST-MODIFIED($it), Instant, "is modified on $it an Instant";
     isa_ok FILETEST-ACCESSED($it), Instant, "is accessed on $it an Instant";

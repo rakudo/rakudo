@@ -18,6 +18,11 @@ New in 2015.02
 + File test operators now follow symlinks on systems that support them
 + New method Rational.base-repeating, optional precision argument for Real.base
 + Blob.bytes now returns actualy byte size, even for non-byte blobs
++ "6;" at unit start is no longer a way to say "no strict;"
++ Anon variables in sink context warn now correctly
++ Buffer types can now be passed to C functions via NativeCall
++ C types like "long" that depend on the architecture are now handled correctly
++ NativeCall is now shipped with rakudo, because it is coupled too tightly
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

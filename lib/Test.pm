@@ -186,6 +186,7 @@ multi sub skip($reason, $count = 1) is export {
 
 sub skip_rest($reason = '<unknown>') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
+    die "A plan is required in order to use skip_rest" if $no_plan;
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
     $time_before = nqp::p6box_n(nqp::time_n);
 }
@@ -226,6 +227,32 @@ multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ok = proclaim($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.^name);
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
+multi sub like(Str $got, Regex $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    $got.defined; # Hack to deal with Failures
+    my $test = $got ~~ $expected;
+    my $ok = proclaim(?$test, $desc);
+    if !$test {
+        diag sprintf "     expected: '%s'", $expected.perl;
+        diag "     got: '$got'";
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
+multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    $got.defined; # Hack to deal with Failures
+    my $test = !($got ~~ $expected);
+    my $ok = proclaim(?$test, $desc);
+    if !$test {
+        diag sprintf "     expected: '%s'", $expected.perl;
+        diag "     got: '$got'";
+    }
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
 }

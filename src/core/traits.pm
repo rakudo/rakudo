@@ -67,6 +67,9 @@ multi sub trait_mod:<is>(Mu:U $type, :$rw!) {
 multi sub trait_mod:<is>(Mu:U $type, :$nativesize!) {
     $type.HOW.set_nativesize($type, $nativesize);
 }
+multi sub trait_mod:<is>(Mu:U $type, :$ctype!) {
+    $type.HOW.set_ctype($type, $ctype);
+}
 multi sub trait_mod:<is>(Mu:U $type, :$unsigned!) {
     $type.HOW.set_unsigned($type, $unsigned);
 }

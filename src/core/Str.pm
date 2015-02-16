@@ -1124,14 +1124,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             my int $from   = nqp::ordat($s,$found - 1);
             my int $to     = nqp::ordat($s,$found + 2);
-            my Mu $result := nqp::list();
+            my Mu $result := nqp::list_s();
 
-            nqp::push($result,nqp::substr($s,0,$found - 1));
+            nqp::push_s($result,nqp::substr($s,0,$found - 1));
             while nqp::isle_i($from,$to) {
-                nqp::push($result,nqp::chr($from));
+                nqp::push_s($result,nqp::chr($from));
                 $from = $from + 1;
             }
-            nqp::push($result,nqp::substr($s,$found + 3));
+            nqp::push_s($result,nqp::substr($s,$found + 3));
 
             expand(nqp::p6box_s(nqp::join('',$result)));
         }
@@ -1139,7 +1139,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $sfrom  = nqp::unbox_s(expand($from));
         my str $str    = nqp::unbox_s(self);
         my str $chars  = nqp::chars($str);
-        my Mu $result := nqp::list();
+        my Mu $result := nqp::list_s();
         my str $check;
         my int $i;
 
@@ -1155,7 +1155,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             while nqp::islt_i($i,$chars) {
                 $check = nqp::substr($str,$i,1);
                 $found = nqp::index($sfrom,$check);
-                nqp::bindpos($result, $i, nqp::iseq_i($found,-1)
+                nqp::bindpos_s($result, $i, nqp::iseq_i($found,-1)
                   ?? $check
                   !! nqp::substr($sto,$found,1)
                 );
@@ -1167,7 +1167,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         else {
             while nqp::islt_i($i,$chars) {
                 $check = nqp::substr($str,$i,1);
-                nqp::push($result, $check)
+                nqp::push_s($result, $check)
                   if nqp::iseq_i(nqp::index($sfrom,$check),-1);
                 $i = $i + 1;
             }

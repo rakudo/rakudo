@@ -235,7 +235,7 @@ sub run(*@args ($, *@)) {
     try {
         $status.status(nqp::p6box_i(nqp::spawn(
           CLONE-LIST-DECONTAINERIZED(@args),
-          $*CWD.chop,
+          $*CWD.abspath,
           CLONE-HASH-DECONTAINERIZED(%*ENV),
         )));
     }
@@ -247,7 +247,7 @@ sub shell($cmd) {
     try {
         $status.status(nqp::p6box_i(nqp::shell(
           $cmd,
-          $*CWD.chop,
+          $*CWD.abspath,
           CLONE-HASH-DECONTAINERIZED(%*ENV),
         )));
     }
@@ -259,7 +259,7 @@ constant NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
 #?if parrot    
-    nqp::chdir($*CWD.chop);
+    nqp::chdir($*CWD.abspath);
     my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
     fail "Unable to execute '$cmd'" unless $pio;
     $pio.encoding('utf8');
@@ -269,7 +269,7 @@ sub QX($cmd) {
 #?endif
 #?if !parrot
     my Mu $pio := nqp::openpipe(
-      nqp::unbox_s($cmd), $*CWD.chop, CLONE-HASH-DECONTAINERIZED(%*ENV), ''
+      nqp::unbox_s($cmd), $*CWD.abspath, CLONE-HASH-DECONTAINERIZED(%*ENV), ''
     );
     fail "Unable to execute '$cmd'" unless $pio;
     my $result = nqp::p6box_s(nqp::readallfh($pio));

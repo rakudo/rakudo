@@ -11,7 +11,6 @@ my role IO::Pathy {
         );
     }
 
-    method chop(IO::Pathy:D:)     { $!abspath.chop }
     method relpath(IO::Pathy:D: Str() $root = $*CWD) {
         REMOVE-ROOT($root,$!abspath);
     }
@@ -36,6 +35,12 @@ my role IO::Pathy {
         @!parts <= $levels + 1
           ?? self.new(:abspath( @!parts[0] ~ '/' ))
           !! self.new(:abspath( @!parts[0 .. *-($levels + 2)].join('/') ~ '/'));
+    }
+
+    method resolve(IO::Pathy:D:) {
+        FILETEST-l($!abspath)
+          ?? self.new(MAKE-CLEAN-PARTS(READLINK-ABSPATH($!abspath)).join('/'))
+          !! self;
     }
 
     method IO(IO::Pathy:D:)      { self }

@@ -191,7 +191,7 @@ my class Proc::Async {
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
             CLONE-LIST-DECONTAINERIZED($!path,@!args),
-            $*CWD.chop,
+            $*CWD.abspathp,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,
         );

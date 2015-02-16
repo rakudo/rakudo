@@ -118,7 +118,7 @@ multi sub pipe(Str() $command,:$enc,:$nodepr,|c) {
     # TODO: catch error, and fail()
     my $PIO := nqp::openpipe(
       nqp::unbox_s($command),
-      nqp::unbox_s($*CWD.chop),
+      nqp::unbox_s($*CWD.abspath),
       CLONE-HASH-DECONTAINERIZED(%*ENV),
       $errpath,
     );
@@ -291,7 +291,7 @@ sub link($target, $name, Str() :$CWD = $*CWD) {
 
 sub cwd() {
     DEPRECATED('$*CWD', |<2014.10 2015.10>);
-    $*CWD.chop;
+    $*CWD.abspath;
 }
 
 # vim: ft=perl6 expandtab sw=4

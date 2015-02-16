@@ -26,6 +26,9 @@ sub MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
       !! $path
       if nqp::ordfirst($spath) == 47;  # "/"
 
+    # need trailing slash for abspath from here on out (except if '/')
+    $sabspath = nqp::concat($abspath,'/') if nqp::chars($sabspath) > 1;
+
     # assume relative path
     return nqp::box_s(nqp::concat($sabspath,$spath),Str)
       if nqp::chars($spath) <= 2 || nqp::ordat($spath,1) != 58; # ":", like C:..
@@ -191,7 +194,8 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
 
     # need (at least) / at the end
     my $elems := @parts.elems;
-    @parts.push("") if $elems == 1 || @parts.at_pos($elems - 1) ne "";
+    @parts.push("") if $elems == 1;
+    @parts.pop      if @parts.at_pos($elems - 1) eq "";
     @parts;
 }
 
@@ -345,6 +349,13 @@ sub SPURT-PATH(Str $path,\what,:$encoding,:$append,:$createonly,:$bin,:$enc,|c) 
     $spurt;
 }
 
+sub READLINK-ABSPATH(Str $abspath) {
+    MAKE-ABSOLUTE-PATH(
+      nqp::p6box_s(nqp::readlink(nqp::unbox_s($abspath))),
+      MAKE-PARENT($abspath),
+    );
+}
+
 sub MAKE-DIR(Str $path, Int $mode) {
     nqp::mkdir(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {
@@ -438,12 +449,6 @@ sub FILETEST-INODE(Str $abspath) {
 sub FILETEST-DEVICE(Str $abspath) {
     nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_PLATFORM_DEV) );
 }
-sub FILETEST-READLINK(Str $abspath) {
-    MAKE-ABSOLUTE-PATH(
-      nqp::p6box_s(nqp::readlink(nqp::unbox_s($abspath))),
-      MAKE-PARENT($abspath),
-    );
-}
 
 sub FILETEST-le(Str $abspath) {
 #?if moar
@@ -508,17 +513,17 @@ sub FILETEST-LDEVICE(Str $abspath) {
 #?endif
 }
 
-sub OBJECTIFY-ABSPATH(Str $abspath, :$dontcheck) {
+sub OBJECTIFY-ABSPATH(Str $abspath, :$check = True) {
     FILETEST-f($abspath)
       ?? IO::File.new(:$abspath)
       !! FILETEST-d($abspath)
-        ?? IO::Dir.new(:abspath($abspath ~ '/'), :$dontcheck)
+        ?? IO::Dir.new(:abspath($abspath ~ '/'), :$check)
         !! IO::Local.new(:$abspath);
 }
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take OBJECTIFY-ABSPATH($elem,:dontcheck);
+            take OBJECTIFY-ABSPATH($elem,:!check);
         }
     }
 }

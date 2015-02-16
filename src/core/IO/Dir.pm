@@ -1,8 +1,8 @@
 # A class for directories that we know exist
 my class IO::Dir is Cool does IO::Pathy {
 
-    submethod BUILD(:$!abspath,:$dontcheck) {
-        unless $dontcheck {
+    submethod BUILD(:$!abspath,:$check = True) {
+        if $check {
             @!parts = MAKE-CLEAN-PARTS($!abspath);
             $!abspath = @!parts.join('/');
             fail "$!abspath is not a directory" unless FILETEST-d($!abspath);
@@ -11,32 +11,35 @@ my class IO::Dir is Cool does IO::Pathy {
 
     method child(IO::Dir:D: $child) {
         $child
-          ?? IOU.new($!abspath ~ $child)
+          ?? IOU.new($!abspath ~ '/' ~ $child)
           !! self;
     }
 
-    method chdir(IO::Dir:D: Str() $path, :$test = 'r') {
-        my $new := self.new( MAKE-ABSOLUTE-PATH($path,$!abspath) );
-        $new // $new.throw;
-        my $result := $new.all($test);   # XXX
-        $result // $result.throw;
-        $new;
+    proto method chdir(|) { * }
+    multi method chdir(IO::Dir:D:) {
+        CHANGE-DIRECTORY($!abspath);
+    }
+    multi method chdir(IO::Dir:D: Str() $path) {
+        CHANGE-DIRECTORY( MAKE-ABSOLUTE-PATH($path,$!abspath) );
     }
 
-    method rmdir(IO::Dir:D:) { REMOVE-DIR($!abspath) }
-
-    method dirname(IO::Dir:D:)   {
-        self!parts;
-        '/' ~ @!parts[1 .. *-3].join('/');
+    method mkdir(IO::Dir:D: Str() $path, Int $mode = 0o777) {
+        MAKE-DIR( MAKE-ABSOLUTE-PATH($path,$!abspath), $mode );
     }
-    method basename(IO::Dir:D:)  { MAKE-BASENAME($!abspath.chop) }
-    method extension(IO::Dir:D:) { MAKE-EXT(MAKE-BASENAME($!abspath.chop))}
-    method succ(IO::Dir:D:) { $!abspath.chop.succ ~ '/' }
-    method pred(IO::Dir:D:) { $!abspath.chop.pred ~ '/' }
+
+    proto method rmdir(|) { * }
+    multi method rmdir(IO::Dir:D:) {
+        REMOVE-DIR($!abspath);
+    }
+    multi method rmdir(IO::Dir:D: Str() $path) {
+        REMOVE-DIR( MAKE-ABSOLUTE-PATH($path,$!abspath) );
+    }
+
+    multi method Str(IO::Dir:D:)  { $!abspath ~ '/' }  # string has trailing /
+
     method d(IO::Dir:D:) { True }
     method f(IO::Dir:D:) { False }
     method s(IO::Dir:D:) { Nil }
-    method l(IO::Dir:D:) { False }
     method z(IO::Dir:D:) { Nil }
 }
 

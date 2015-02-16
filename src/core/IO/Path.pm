@@ -46,7 +46,7 @@ my class IO::Path is Cool {
     method abspath() {
         $!abspath //= substr($!path,0,1) eq '-'
           ?? ''
-          !! $!SPEC.rel2abs($!path,$!CWD.chop);
+          !! $!SPEC.rel2abs($!path,$!CWD.Str);
     }
     method is-absolute() {
         $!is-absolute //= $!SPEC.is-absolute($!path);
@@ -75,7 +75,7 @@ my class IO::Path is Cool {
     multi method perl(IO::Path:D:) {
         ($.is-absolute
           ?? "q|$.abspath|.IO(:SPEC({$!SPEC.^name}))"
-          !! "q|$.path|.IO(:SPEC({$!SPEC.^name}),:CWD<$!CWD.chop()>)"
+          !! "q|$.path|.IO(:SPEC({$!SPEC.^name}),:CWD<$!CWD.Str()>)"
         ).subst(:global, '\\', '\\\\');
     }
 

@@ -508,17 +508,17 @@ sub FILETEST-LDEVICE(Str $abspath) {
 #?endif
 }
 
-sub OBJECTIFY-ABSPATH(Str $abspath, |c) {
+sub OBJECTIFY-ABSPATH(Str $abspath, :$dontcheck) {
     FILETEST-f($abspath)
-      ?? IO::File.new(:$abspath, |c)
+      ?? IO::File.new(:$abspath)
       !! FILETEST-d($abspath)
-        ?? IO::Dir.new(:abspath($abspath ~ '/'), |c)
-        !! IO::Local.new(:$abspath, |c);
+        ?? IO::Dir.new(:abspath($abspath ~ '/'), :$dontcheck)
+        !! IO::Local.new(:$abspath);
 }
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take OBJECTIFY-ABSPATH($elem);
+            take OBJECTIFY-ABSPATH($elem,:dontcheck);
         }
     }
 }

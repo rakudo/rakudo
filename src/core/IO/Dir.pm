@@ -1,8 +1,8 @@
 # A class for directories that we know exist
 my class IO::Dir is Cool does IO::Pathy {
 
-    submethod BUILD(:$!abspath,:$check) {
-        if $check {   # should really be .resolve, but we don't have that yet
+    submethod BUILD(:$!abspath,:$dontcheck) {
+        unless $dontcheck {
             @!parts = MAKE-CLEAN-PARTS($!abspath);
             $!abspath = @!parts.join('/');
             fail "$!abspath is not a directory" unless FILETEST-d($!abspath);
@@ -11,12 +11,12 @@ my class IO::Dir is Cool does IO::Pathy {
 
     method child(IO::Dir:D: $child) {
         $child
-          ?? IOU.new($!abspath ~ $child,:check)
+          ?? IOU.new($!abspath ~ $child)
           !! self;
     }
 
     method chdir(IO::Dir:D: Str() $path, :$test = 'r') {
-        my $new := self.new( MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
+        my $new := self.new( MAKE-ABSOLUTE-PATH($path,$!abspath) );
         $new // $new.throw;
         my $result := $new.all($test);   # XXX
         $result // $result.throw;

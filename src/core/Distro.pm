@@ -30,12 +30,12 @@ class Distro does Systemic {
     method !first-rwx-dir(\paths) {
         my $io;
         for paths.grep(*.defined) -> $path {
-            $io := $path.IO(:check);
+            $io := $path.IO;
             return $io if $io.d && $io.rwx;
         }
 
         # alas, nothing worked, use current dir
-        ".".IO(:check);
+        ".".IO;
     }
 
     method tmpdir() {

@@ -4,10 +4,10 @@ use Test;
 
 plan 14;
 
-shell 'g++ --shared -fPIC -o 11-cpp.so t/11-cpp.cpp';
-#~ shell 'clang --shared -fPIC -o 11-cpp.so t/11-cpp.cpp';
+shell 'g++ --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
+#~ shell 'clang --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
 #~ shell 'nm 11-cpp.so';
-#~ shell 'clang -cc1 -fdump-record-layouts t/11-cpp.cpp';
+#~ shell 'clang -cc1 -fdump-record-layouts t/04-nativecall/11-cpp.cpp';
 
 class Point is repr<CStruct> {
     has num32 $.x;

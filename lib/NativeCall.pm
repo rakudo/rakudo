@@ -37,9 +37,11 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
 }
 
 # Builds the list of parameter information for a callback argument.
-sub param_list_for(Signature $sig, :$with-typeobj) {
+sub param_list_for(Signature $sig, &r?, :$with-typeobj) {
     my Mu $arg_info := nqp::list();
-    for $sig.params -> $p {
+    my @params = $sig.params;
+    @params.pop if &r ~~ Method && @params[*-1].name eq '%_';
+    for @params -> $p {
         nqp::push($arg_info, param_hash_for($p, :with-typeobj($with-typeobj)))
     }
 
@@ -83,6 +85,7 @@ my %type_map =
 
 my %repr_map =
     'CStruct'   => 'cstruct',
+    'CPPStruct' => 'cppstruct',
     'CPointer'  => 'cpointer',
     'CArray'    => 'carray',
     'VMArray'   => 'vmarray',
@@ -99,8 +102,17 @@ sub type_code_for(Mu ::T) {
     return 'vmarray'
         if T ~~ Blob;
     die "Unknown type {T.^name} used in native call.\n" ~
-        "If you want to pass a struct, be sure to use the CStruct representation.\n" ~
+        "If you want to pass a struct, be sure to use the CStruct or CPPStruct representation.\n" ~
         "If you want to pass an array, be sure to use the CArray type.";
+}
+
+sub mangle_symbol(Routine $r) {
+    if $r.package.REPR eq 'CPPStruct' {
+        mangle_cpp_symbol($r, $r.package.^name ~ '::' ~ $r.name)
+    }
+    else {
+        $r.name
+    }
 }
 
 multi sub map_return_type(Mu $type) { Mu }
@@ -145,11 +157,11 @@ my role Native[Routine $r, Str $libname] {
     
     method postcircumfix:<( )>(|args) {
         unless $!setup {
-            my Mu $arg_info := param_list_for($r.signature);
+            my Mu $arg_info := param_list_for($r.signature, $r);
             my str $conv = self.?native_call_convention || '';
             nqp::buildnativecall(self,
                 nqp::unbox_s(guess_library_name($libname)),    # library name
-                nqp::unbox_s(self.?native_symbol // $r.name),      # symbol to call
+                nqp::unbox_s(self.?native_symbol // mangle_symbol($r)),      # symbol to call
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
                 return_hash_for($r.signature, $r));
@@ -315,7 +327,7 @@ augment class CArray {
     }
     multi method PARAMETERIZE_TYPE(Mu:U \t) {
         die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
+            unless t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedCArray[t];
         typed.HOW.make_pun(typed);
     }
@@ -328,9 +340,13 @@ multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types
     @pos.map: { array.at_pos($_) };
 }
 
-
 multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
-    $r does NativeCallSymbol[$symbol];
+    if $r.package.REPR eq 'CPPStruct' {
+        $r does NativeCallSymbol[mangle_cpp_symbol($r, $symbol)];
+    }
+    else {
+        $r does NativeCallSymbol[$symbol];
+    }
 }
 
 # Specifies that the routine is actually a native call, into the
@@ -366,6 +382,41 @@ multi explicitly-manage(Str $x is rw, :$encoding = 'utf8') is export(:DEFAULT,
 multi refresh($obj) is export(:DEFAULT, :utils) {
     nqp::nativecallrefresh($obj);
     1;
+}
+
+sub mangle_cpp_symbol(Routine $r, $symbol) {
+    $r.signature.set_returns($r.package)
+        if $r.name eq 'new' && !$r.signature.has_returns;
+
+    my $mangled = '_ZN'
+                ~ $symbol.split('::').map({$_ eq 'new' ?? 'C1' !! $_.chars ~ $_}).join('')
+                ~ 'E';
+    my @params  = $r.signature.params;
+    if $r ~~ Method {
+        @params.shift;
+        @params.pop if @params[*-1].name eq '%_';
+    }
+
+    my $params = join '', do for @params».type {
+        when Bool {
+            'b'
+        }
+        when int32 {
+            'i'
+        }
+        when CArray {
+            # R = reference
+            # K = const
+            my $name  = .of.^name;
+            'RK' ~ $name.chars ~ $name;
+        }
+        default {
+            my $name  = .^name;
+            'RK' ~ # XXX not quite right
+            $name.chars ~ $name;
+        }
+    };
+    $mangled ~= $params || 'v';
 }
 
 sub nativecast($target-type, $source) is export(:DEFAULT) {

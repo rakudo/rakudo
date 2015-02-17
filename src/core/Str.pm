@@ -1535,6 +1535,62 @@ sub substr-rw($s is rw, $from, $length?) {
     );
 }
 
+sub TRANSPOSE(Str \string, Str \original, Str \final) {
+    my str $str    = nqp::unbox_s(string);
+    my int $chars  = nqp::chars($str);
+    my str $needle = nqp::unbox_s(original);
+    my int $skip   = nqp::chars($needle);
+    my int $from;
+    my int $to;
+    my Mu  $parts := nqp::list_s();
+
+    while $to < $chars {
+        $to = nqp::index($str,$needle,$from);
+        last if $to == -1;
+        nqp::push_s($parts, $to > $from
+              ?? nqp::substr($str,$from,$to - $from)
+              !! ''
+            );
+        $to = $from = $to + $skip;
+    }
+    nqp::push_s( $parts, $from < $chars
+      ?? nqp::substr($str,$from,$chars - $from)
+      !! ''
+    );
+
+    nqp::elems($parts)
+      ?? nqp::box_s(nqp::join(nqp::unbox_s(final),$parts),Str)
+      !! string;
+}
+
+sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
+    my str $str     = nqp::unbox_s(string);
+    my int $chars   = nqp::chars($str);
+    my int $ordinal = ord(original);
+    my int $from;
+    my int $to;
+    my $parts := nqp::list_s();
+
+    while $to < $chars {
+        if nqp::ordat($str,$to) == $ordinal {
+            nqp::push_s($parts, $to > $from
+              ?? nqp::substr($str,$from,$to - $from)
+              !! ''
+            );
+            $from = $to + 1;
+        }
+        $to = $to + 1;
+    }
+    nqp::push_s( $parts, $from < $chars
+      ?? nqp::substr($str,$from,$chars - $from)
+      !! ''
+    );
+
+    nqp::elems($parts)
+      ?? nqp::box_s(nqp::join(nqp::unbox_s(final),$parts),Str)
+      !! string;
+}
+
 # These probably belong in a separate unicodey file
 
 #?if parrot

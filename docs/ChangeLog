@@ -33,7 +33,6 @@ New in 2015.02
 + Fixed a pre-compilation bug when a multi-method in a subclass was installed
   in a cloned proto-method inherited from the base class, then called at BEGIN
   time
-  BEGIN time
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

@@ -654,7 +654,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $global ?? (@matches,).list !! @matches[0];
     }
 
-    multi method subst($matcher, $replacement,
+
+    multi method subst(Str:D: Str \from, Str \to, :$global!, *%adverbs) {
+        if $global {
+            TRANSPOSE(self,from,to);
+        }
+        else {
+            $/ := nqp::getlexdyn('$/');
+            self.subst(from, to, |%adverbs);
+        }
+    }
+    multi method subst(Str:D: $matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');

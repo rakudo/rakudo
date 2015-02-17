@@ -26,8 +26,9 @@ sub MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
       !! $path
       if nqp::ordfirst($spath) == 47;  # "/"
 
-    # need trailing slash for abspath from here on out (except if '/')
-    $sabspath = nqp::concat($abspath,'/') if nqp::chars($sabspath) > 1;
+    # need trailing slash for abspath now if there is none yet
+    $sabspath = nqp::concat($abspath,'/')
+      if nqp::ordat($sabspath,nqp::chars($sabspath) - 1) != 47;  # "/"
 
     # assume relative path
     return nqp::box_s(nqp::concat($sabspath,$spath),Str)

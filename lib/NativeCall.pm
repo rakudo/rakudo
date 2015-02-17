@@ -119,7 +119,7 @@ sub guess_library_name($libname) {
     elsif $libname ~~ /\.so(\.<.digit>+)+$/ { $libname }
     elsif $*VM.config<load_ext> :exists { $libname ~ $*VM.config<load_ext> }
     elsif $*VM.config<nativecall.so> :exists {
-        if $*DISTRO.name eq 'darwin' {
+        if $*KERNEL.name eq 'darwin' {
             ($libname ~ '.' ~ $*VM.config<nativecall.so>).IO.absolute
         }
         else {

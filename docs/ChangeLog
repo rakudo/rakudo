@@ -11,6 +11,8 @@ New in 2015.02
 + Semicolon/"rest of file" form of the MAIN sub implemented
 + Parsing for infixes like "$foo !and $bar" or "$foo !&& $bar" fixed
 + Coercion syntax for parameters: sub foo( Str(Any) $x ) { ... }
++ Str(Any) as a term now parses as a coercion type
++ Foo() works as a coercion type shortcut for Foo(Any)
 + Metaop "=" now respects the precedence of the op it's meta-ing
 + Enable term definitions via "my", e.g., "my \term:<∞> = Inf"
 + Added "polymod" method on numerical values
@@ -24,6 +26,13 @@ New in 2015.02
 + C types like "long" that depend on the architecture are now handled correctly
 + NativeCall is now shipped with rakudo, because it is coupled too tightly
 + Allow "constant" and "has" declarations to be initialized with .=
++ Types constructed for mixins ("does" and "but") are now cached, giving a 10x
+  speedup on repeated mixins of the same role to the same type and cutting
+  CORE.setting size down (by 700KB on MoarVM, for example)
++ Made .^can(...) aware of submethods
++ Fixed a pre-compilation bug when a multi-method in a subclass was installed
+  in a cloned proto-method inherited from the base class, then called at BEGIN
+  time
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

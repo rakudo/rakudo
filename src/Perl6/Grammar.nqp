@@ -2089,6 +2089,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> {} <!before \w | '('>
         <.obsvar('$?')>
     }
+
+    token special_variable:sym<$]> {
+        <sym> {} <!before \w | '('>
+        <.obsvar('$]')>
+    }
     
     regex special_variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'

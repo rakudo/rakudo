@@ -195,8 +195,12 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
 
     # need (at least) / at the end
     my $elems := @parts.elems;
-    @parts.push("") if $elems == 1;
-    @parts.pop      if @parts.at_pos($elems - 1) eq "";
+    if $elems == 1 {
+        @parts.push("");
+    }
+    elsif @parts.at_pos($elems - 1) eq "" {
+        @parts.pop;
+    }
     @parts;
 }
 

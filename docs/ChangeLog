@@ -30,6 +30,10 @@ New in 2015.02
   speedup on repeated mixins of the same role to the same type and cutting
   CORE.setting size down (by 700KB on MoarVM, for example)
 + Made .^can(...) aware of submethods
++ Fixed a pre-compilation bug when a multi-method in a subclass was installed
+  in a cloned proto-method inherited from the base class, then called at BEGIN
+  time
+  BEGIN time
 
 New in 2015.01
 + New simple way of creating an object hash: :{}

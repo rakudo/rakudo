@@ -35,7 +35,7 @@ DLLEXPORT void TakeStructCallback(void (*cb)(Struct *)) {
 
 DLLEXPORT int CheckReturnsFloat(double (*cb)()) {
     double num = cb();
-    if(num != 1.23) return 1;
+    if(1.23 - num > 0.001) return 1;
     return 6;
 }
 

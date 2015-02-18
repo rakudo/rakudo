@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan(5);
+plan(8);
 
 compile_test_lib('08-callbacks');
 
@@ -23,9 +23,9 @@ sub TakeIntCallback(&cb (int32)) is native('./08-callbacks') { * }
 sub TakeStringCallback(&cb (Str)) is native('./08-callbacks') { * }
 sub TakeStructCallback(&cb (Struct)) is native('./08-callbacks') { * }
 
-sub CheckReturnsFloat(&cb (--> num)) is native('./08-callbacks') { * }
-sub CheckReturnsStr(&cb (--> Str)) is native('./08-callbacks') { * }
-sub CheckReturnsStruct(&cb (--> Struct)) is native('./08-callbacks') { * }
+sub CheckReturnsFloat(&cb (--> num))     returns int32 is native('./08-callbacks') { * }
+sub CheckReturnsStr(&cb (--> Str))       returns int32 is native('./08-callbacks') { * }
+sub CheckReturnsStruct(&cb (--> Struct)) returns int32 is native('./08-callbacks') { * }
 
 sub simple_callback() {
     pass 'simple callback';
@@ -64,8 +64,8 @@ TakeIntCallback(&int_callback);
 TakeStringCallback(&str_callback);
 TakeStructCallback(&struct_callback);
 
-CheckReturnsFloat(&return_float);
-CheckReturnsStr(&return_str);
-CheckReturnsStruct(&return_struct);
+is CheckReturnsFloat(&return_float),   6, 'callback returned a float to C';
+is CheckReturnsStr(&return_str),       7, 'callback returned a string to C';
+is CheckReturnsStruct(&return_struct), 8, 'callback returned a struct to C';
 
 # vim:ft=perl6

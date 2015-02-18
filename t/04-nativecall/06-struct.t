@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 19;
+plan 22;
 
 compile_test_lib('06-struct');
 
@@ -91,16 +91,16 @@ class PointerStruct is repr('CStruct') {
     has PointerThing $.p;
 }
 
-sub ReturnAStruct() returns MyStruct2 is native('./06-struct') { * }
-sub TakeAStruct(MyStruct $arg)        is native('./06-struct') { * }
+sub ReturnAStruct()            returns MyStruct2 is native('./06-struct') { * }
+sub TakeAStruct(MyStruct $arg) returns int32     is native('./06-struct') { * }
 
-sub ReturnAStructStruct() returns StructStruct is native('./06-struct') { * }
-sub TakeAStructStruct(StructStruct $arg)       is native('./06-struct') { * }
+sub ReturnAStructStruct()                returns StructStruct is native('./06-struct') { * }
+sub TakeAStructStruct(StructStruct $arg) returns int32        is native('./06-struct') { * }
 
 sub ReturnAPointerStruct() returns PointerStruct is native('./06-struct') { * }
 
-sub ReturnAStringStruct() returns StringStruct is native('./06-struct') { * }
-sub TakeAStringStruct(StringStruct $arg)       is native('./06-struct') { * }
+sub ReturnAStringStruct()                returns StringStruct is native('./06-struct') { * }
+sub TakeAStringStruct(StringStruct $arg) returns int32        is native('./06-struct') { * }
 
 # Perl-side tests:
 my MyStruct $obj .= new;
@@ -137,17 +137,17 @@ my StringStruct $strstr = ReturnAStringStruct();
 is $strstr.first,  'OMG!',     'first string in struct';
 is $strstr.second, 'Strings!', 'second string in struct';
 
-TakeAStruct($obj);
+is TakeAStruct($obj), 11, 'C-side values in struct';
 
 my StructStruct $ss2 .= new();
 $ss2.init;
 
-TakeAStructStruct($ss2);
+is TakeAStructStruct($ss2), 22, 'C-side values in struct struct';
 
 my StringStruct $strstr2 .= new();
 $strstr2.init;
 #$strstr2.first  := "Lorem";
 #$strstr2.second := "ipsum";
-TakeAStringStruct($strstr2);
+is TakeAStringStruct($strstr2), 33, 'C-side strict values in struct';
 
 # vim:ft=perl6

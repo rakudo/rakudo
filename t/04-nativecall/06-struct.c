@@ -47,18 +47,14 @@ DLLEXPORT MyStruct *ReturnAStruct()
     return obj;
 }
 
-DLLEXPORT void TakeAStruct(MyStruct *obj)
+DLLEXPORT int TakeAStruct(MyStruct *obj)
 {
-    if(obj->intval != 42) printf("not ");
-    printf("    ok - C-side int value\n");
-    if(obj->numval != -3.7) printf("not ");
-    printf("    ok - C-side num value\n");
-    if(obj->byteval != 7) printf("not ");
-    printf("    ok - C-side int8 value\n");
-    if(!obj->arr || obj->arr[0] != 1) printf("not ");
-    printf("    ok - C-side array value, element 1\n");
-    if(!obj->arr || obj->arr[1] != 2) printf("not ");
-    printf("    ok - C-side array value, element 2\n");
+    if(obj->intval  != 42)            return 1;
+    if(obj->numval  != -3.7)          return 2;
+    if(obj->byteval != 7)             return 3;
+    if(!obj->arr || obj->arr[0] != 1) return 4;
+    if(!obj->arr || obj->arr[1] != 2) return 5;
+    return 11;
 }
 
 DLLEXPORT StructStruct *ReturnAStructStruct() {
@@ -73,15 +69,12 @@ DLLEXPORT StructStruct *ReturnAStructStruct() {
     return ss;
 }
 
-DLLEXPORT void TakeAStructStruct(StructStruct *obj) {
-    if(!obj->a || obj->a->first != 13) printf("not ");
-    printf("    ok - int 1 in struct 1 in struct\n");
-    if(!obj->a || obj->a->second != 17) printf("not ");
-    printf("    ok - int 2 in struct 1 in struct\n");
-    if(!obj->b || obj->b->first != 0.9) printf("not ");
-    printf("    ok - int 1 in struct 2 in struct\n");
-    if(!obj->b || obj->b->second != 3.14) printf("not ");
-    printf("    ok - int 2 in struct 2 in struct\n");
+DLLEXPORT int TakeAStructStruct(StructStruct *obj) {
+    if(!obj->a || obj->a->first  != 13)   return 1;
+    if(!obj->a || obj->a->second != 17)   return 2;
+    if(!obj->b || obj->b->first  != 0.9)  return 3;
+    if(!obj->b || obj->b->second != 3.14) return 4;
+    return 22;
 }
 
 DLLEXPORT PointerStruct *ReturnAPointerStruct() {
@@ -100,11 +93,10 @@ DLLEXPORT StringStruct *ReturnAStringStruct() {
     return obj;
 }
 
-DLLEXPORT void TakeAStringStruct(StringStruct *obj) {
-    if(strcmp(obj->first, "Lorem")) printf("not ");
-    printf("    ok - C-value of first string in struct\n");
-    if(strcmp(obj->second, "ipsum")) printf("not ");
-    printf("    ok - C-value of second string in struct\n");
+DLLEXPORT int TakeAStringStruct(StringStruct *obj) {
+    if(strcmp(obj->first,  "Lorem")) return 1;
+    if(strcmp(obj->second, "ipsum")) return 2;
+    return 33;
 }
 
 DLLEXPORT long _deref(long *ptr) {

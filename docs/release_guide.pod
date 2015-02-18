@@ -321,7 +321,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2014-12-18   Rakudo #83 "Cologne"            (lizmat)
   2014-12-19   2014.12.1                       (lizmat)
   2015-01-22   Rakudo #84 "Gotanda"            (Coke)
-  2015-02-19   Rakudo #85 "Parrotopia"         (lizmat)
+  2015-02-19   Rakudo #85 "Berlin"             (lizmat)
 
 =head1 COPYRIGHT
 

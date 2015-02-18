@@ -1157,22 +1157,42 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $i;
 
         # something to convert to
-        if $to.chars {
-            my str $sto   = nqp::unbox_s(expand($to));
-            my int $sfl   = nqp::chars($sfrom);
-            my int $found;
-
-            $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
+        if $to.chars -> $tochars {
             nqp::setelems($result,$chars);
 
-            while nqp::islt_i($i,$chars) {
-                $check = nqp::substr($str,$i,1);
-                $found = nqp::index($sfrom,$check);
-                nqp::bindpos_s($result, $i, nqp::iseq_i($found,-1)
-                  ?? $check
-                  !! nqp::substr($sto,$found,1)
-                );
-                $i = $i + 1;
+            # all convert to one char
+            if $tochars == 1 {
+                my str $sto = nqp::unbox_s($to);
+
+                while nqp::islt_i($i,$chars) {
+                    $check = nqp::substr($str,$i,1);
+                    nqp::bindpos_s(
+                      $result, $i, nqp::iseq_i(nqp::index($sfrom,$check),-1)
+                        ?? $check
+                        !! $sto
+                    );
+                    $i = $i + 1;
+                }
+            }
+
+            # multiple chars to convert to
+            else {
+                my str $sto   = nqp::unbox_s(expand($to));
+                my int $sfl   = nqp::chars($sfrom);
+                my int $found;
+
+                # repeat until mapping complete
+                $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
+
+                while nqp::islt_i($i,$chars) {
+                    $check = nqp::substr($str,$i,1);
+                    $found = nqp::index($sfrom,$check);
+                    nqp::bindpos_s($result, $i, nqp::iseq_i($found,-1)
+                      ?? $check
+                      !! nqp::substr($sto,$found,1)
+                    );
+                    $i = $i + 1;
+                }
             }
         }
 

@@ -16,7 +16,7 @@ New in 2015.02
 + Metaop "=" now respects the precedence of the op it's meta-ing
 + Enable term definitions via "my", e.g., "my \term:<∞> = Inf"
 + Added "polymod" method on numerical values
-+ Made simple Str.trans / tr/// about 20x faster
++ Made simple Str.trans / tr///, Str.subst about 20x faster
 + File test operators now follow symlinks on systems that support them
 + New method Rational.base-repeating, optional precision argument for Real.base
 + Blob.bytes now returns actualy byte size, even for non-byte blobs

@@ -63,6 +63,7 @@
 
     # normal start up
     else {
+        my %ENV := %*ENV; # only look up environment once
         my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
         if nqp::defined($I) {
             if nqp::islist($I) {
@@ -74,9 +75,11 @@
             }
         }
 
-        my $path-sep := $*DISTRO.path-sep;
-        add-curs(%*ENV<RAKUDOLIB>, $path-sep) if %*ENV<RAKUDOLIB>;
-        add-curs(%*ENV<PERL6LIB>, $path-sep)  if %*ENV<PERL6LIB>;
+        if %ENV<RAKUDOLIB> || %ENV<PERL6LIB> {
+            my $path-sep := $*DISTRO.path-sep;
+            add-curs(%ENV<RAKUDOLIB>, $path-sep) if %ENV<RAKUDOLIB>;
+            add-curs(%ENV<PERL6LIB>, $path-sep)  if %ENV<PERL6LIB>;
+        }
 
 #?if jvm
         for nqp::jvmclasspaths() -> $path {
@@ -120,8 +123,8 @@
             # XXX Various issues with this stuff on JVM
             my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
             try {
-                if %*ENV<HOME>
-                  // (%*ENV<HOMEDRIVE> // '') ~ (%*ENV<HOMEPATH> // '') -> $home {
+                if %ENV<HOME>
+                  // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
                     my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
                     if CompUnitRepo::Local::File.new("$home/.perl6/$ver/lib") -> $cur {
                         @INC.push: $cur;

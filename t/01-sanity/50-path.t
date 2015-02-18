@@ -4,9 +4,7 @@ use Test;
 
 my $e = \(X::AdHoc, message => 'Can not set relative dir from different roots');
 
-plan 143;
-
-is TRANSPOSE-ONE('abcb','b','d'),'adcd', 'does TRANSPOSE-ONE work';
+plan 142;
 
 is FORWARD-SLASH('/a/b/c'),    '/a/b/c', 'does FORWARD-SLASH leave /';
 is FORWARD-SLASH('\\a\\b\\c'), '/a/b/c', 'does FORWARD-SLASH convert \\';

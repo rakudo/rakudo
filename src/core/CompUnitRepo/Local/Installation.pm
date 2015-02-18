@@ -106,6 +106,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             }
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
+                    my $is-win := $*DISTRO.is-win;
                     mkdir "$path/bin" unless "$path/bin".IO.d;
                     my $basename   = $file.IO.basename;
                     my $withoutext = $basename;
@@ -113,7 +114,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
                     for '', < -p -j -m > -> $be {
                         "$path/bin/$withoutext$be".IO.spurt:
                             $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
-                        if $*DISTRO.is-win {
+                        if $is-win {
                             "$path/bin/$withoutext$be.bat".IO.spurt:
                                 $windows_wrapper.subst('#perl#', "perl6$be");
                         }

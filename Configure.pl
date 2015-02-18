@@ -70,6 +70,10 @@ MAIN: {
             if uc($options{backends}) eq 'ALL';
         for my $b (split /,\s*/, $options{backends}) {
             $b = lc $b;
+            if ($b eq 'parrot') {
+                die "The Parrot backend has been suspended.\n"
+                    . "Please use Rakudo 2015.02 (which still supports parrot), or the MoarVM backend instead\n";
+            }
             unless ($known_backends{$b}) {
                 die "Unknown backend '$b'; Supported backends are: " .
                     join(", ", sort keys %known_backends) .

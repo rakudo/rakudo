@@ -7,14 +7,17 @@
 #define DLLEXPORT extern
 #endif
 
-DLLEXPORT void Argless()
+DLLEXPORT Nothing()
 {
-    printf("ok 1 - Called argless function\n");
-    fflush(stdout);
+    /* we don't even print something */
 }
 
-DLLEXPORT void long_and_complicated_name()
+DLLEXPORT int Argless()
 {
-    printf("ok 3 - called long_and_complicated_name\n");
-    fflush(stdout);
+    return 2;
+}
+
+DLLEXPORT int long_and_complicated_name()
+{
+    return 3;
 }

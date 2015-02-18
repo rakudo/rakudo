@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 20;
+plan 23;
 
 compile_test_lib('05-arrays');
 
@@ -63,7 +63,7 @@ compile_test_lib('05-arrays');
     is @arr[1].val, 3, 'long in struct in element 1';
     is @arr[2].val, 5, 'long in struct in element 2';
 
-    sub TakeAStructArray(CArray[Struct] $obj) is native("./05-arrays") { * }
+    sub TakeAStructArray(CArray[Struct] $obj) returns int32 is native("./05-arrays") { * }
     @arr := CArray[Struct].new;
     @arr[0] = Struct.new();
     @arr[1] = Struct.new();
@@ -74,8 +74,7 @@ compile_test_lib('05-arrays');
 
     is_deeply @arr[100], Struct, 'out-of-bounds access on managed array';
 
-    # runs tests no 13, 14, 15
-    TakeAStructArray(@arr);
+    is TakeAStructArray(@arr), 14, 'struct in position 0..2, C-side';
 }
 
 {
@@ -85,21 +84,21 @@ compile_test_lib('05-arrays');
     is @rarr[1], 90,  'byte in element 1';
     is @rarr[2], 80,  'byte in element 2';
 
-    sub TakeAByteArray(CArray[int8]) is native("./05-arrays") { * }
+    sub TakeAByteArray(CArray[int8]) returns int32 is native("./05-arrays") { * }
     my @parr := CArray[int8].new;
     @parr[0] = 31;
     @parr[1] = 28;
     @parr[2] = 30;
-    TakeAByteArray(@parr);
+    is TakeAByteArray(@parr), 18, 'byte in position 0..2, C-side';
 }
     
 {
-    sub TakeAByteArray(Buf) is native("./05-arrays") { * }
+    sub TakeAByteArray(Buf) returns int32 is native("./05-arrays") { * }
     my $buf = buf8.new;
     $buf[0] = 31;
     $buf[1] = 28;
     $buf[2] = 30;
-    TakeAByteArray($buf);
+    is TakeAByteArray($buf), 18, 'byte in position 0..2, C-side';
 }
 
 {

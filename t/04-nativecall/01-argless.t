@@ -4,16 +4,18 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-say "1..3";
+plan 3;
 
 compile_test_lib('01-argless');
 
-sub Argless() is native('./01-argless') { * }
-sub short() is native('./01-argless') is symbol('long_and_complicated_name') { *}
+sub Nothing() is native('./01-argless') { * }
+sub Argless() is native('./01-argless') returns int32 { * }
+sub short()   is native('./01-argless') returns int32 is symbol('long_and_complicated_name') { * }
 
-# This emits the "ok 1"
-Argless();
+Nothing();
 
-say("ok 2 - survived the call");
+pass 'survived the call';
 
-short();
+is Argless(), 2, 'called argless function';
+
+is short(), 3, 'called long_and_complicated_name';

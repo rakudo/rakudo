@@ -75,13 +75,19 @@
             }
         }
 
+#?if !jvm
         if %ENV<RAKUDOLIB> || %ENV<PERL6LIB> {
             my $path-sep := $*DISTRO.path-sep;
             add-curs(%ENV<RAKUDOLIB>, $path-sep) if %ENV<RAKUDOLIB>;
             add-curs(%ENV<PERL6LIB>, $path-sep)  if %ENV<PERL6LIB>;
         }
-
+#?endif
 #?if jvm
+        my $path-sep := $*DISTRO.path-sep;
+        if %ENV<RAKUDOLIB> || %ENV<PERL6LIB> {
+            add-curs(%ENV<RAKUDOLIB>, $path-sep) if %ENV<RAKUDOLIB>;
+            add-curs(%ENV<PERL6LIB>, $path-sep)  if %ENV<PERL6LIB>;
+        }
         for nqp::jvmclasspaths() -> $path {
             add-curs($path, $path-sep)
               if nqp::stat($path, nqp::const::STAT_ISDIR);

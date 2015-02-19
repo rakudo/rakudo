@@ -260,6 +260,21 @@ m-runner-default-install: m-install
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
 
+manifest:
+	echo MANIFEST >MANIFEST
+	git ls-files | $(PERL) -ne '/^\./ || print' >>MANIFEST
+	cd t/spec && git clean -xdf
+	find t/spec -type f | grep -v '\.git' >>MANIFEST
+	sort -u -o MANIFEST MANIFEST
+
+release: manifest
+	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
+	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
+	$(PERL) -ne 'print "rakudo-$(VERSION)/$$_"' MANIFEST | \
+	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
+	rm rakudo-$(VERSION)
+
+
 ##  cleaning
 m-clean:
 	$(RM_F) $(M_CLEANUPS)

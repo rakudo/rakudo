@@ -1911,6 +1911,7 @@ BEGIN {
             my $many_res := $many ?? [] !! Mu;
             my @possibles;
             my int $done := 0;
+            my int $done_bind_check := 0;
             until $done {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
@@ -2017,6 +2018,12 @@ BEGIN {
                                 $new_possibles := [] unless nqp::islist($new_possibles);
                                 
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
+                                unless $done_bind_check {
+                                    # Need a copy of the capture, as we may later do a
+                                    # multi-dispatch when evaluating the constraint.
+                                    $capture := nqp::clone($capture);
+                                    $done_bind_check := 1;
+                                }
                                 if nqp::p6isbindable($sig, $capture) {
                                     nqp::push($new_possibles, nqp::atpos(@possibles, $i));
                                     unless $many {

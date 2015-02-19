@@ -42,6 +42,7 @@ my module tai-utc {
         2005-12-31
         2008-12-31
         2012-06-30
+        2015-06-30
         >
         #END leap-second-dates
     };
@@ -83,6 +84,7 @@ my module tai-utc {
         1136073600
         1230768000
         1341100800
+        1435708800
         >
         #END leap-second-posix
     };

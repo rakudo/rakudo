@@ -57,6 +57,9 @@ public:
         return foo + bar + p;
     }
     int Set_foo(int p);
+    virtual long All_The_Things(char c, short s, int i, long l, float f, double d) {
+        return c + s + i + l + f + d;
+    }
 protected:
   int bar, baz;
   Point a_point;

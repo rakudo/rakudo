@@ -2,7 +2,7 @@ use v6;
 use NativeCall;
 use Test;
 
-plan 14;
+plan 15;
 
 shell 'g++ --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
 #~ shell 'clang --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
@@ -51,6 +51,7 @@ class Derived2 is repr<CPPStruct> {
     has num64 $.cy;
     has uint8 $.c;
     method new()  is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
+    method All_The_Things(int8, int16, int32, long, num32, num64) returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
 }
 
 sub SizeofDerived2() is symbol('_Z14SizeofDerived2v') returns int32 is native("./11-cpp") { * }
@@ -63,3 +64,5 @@ is $d2.baz,   43,   'can read attribute baz';
 is $d2.cx,    3.14, 'can read attribute cx';
 is $d2.cy,    2.62, 'can read attribute cy';
 is $d2.c.chr, 'A',  'can read attribute c';
+
+is $d2.All_The_Things(1, 2, 3, 4, 5e0, 6e0), 21, 'can pass arguments to method';

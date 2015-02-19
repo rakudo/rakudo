@@ -60,6 +60,9 @@ public:
     virtual long All_The_Things(char c, short s, int i, long l, float f, double d) {
         return c + s + i + l + f + d;
     }
+    virtual long ConstInt(const int i)     { return 11; }
+    virtual long IntPtr(int *i)            { return 12; }
+    virtual long ConstIntPtr(const int *i) { return 13; }
 protected:
   int bar, baz;
   Point a_point;

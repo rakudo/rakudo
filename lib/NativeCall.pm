@@ -383,6 +383,11 @@ multi explicitly-manage(Str $x is rw, :$encoding = 'utf8') is export(:DEFAULT,
     $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont($class));
 }
 
+role CPPConst { }
+multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
+    $p does CPPConst;
+}
+
 multi refresh($obj) is export(:DEFAULT, :utils) {
     nqp::nativecallrefresh($obj);
     1;
@@ -401,44 +406,49 @@ sub mangle_cpp_symbol(Routine $r, $symbol) {
         @params.pop if @params[*-1].name eq '%_';
     }
 
-    my $params = join '', do for @params».type {
-        when Bool {
-            'b'
-        }
-        when int8 {
-            'c'
-        }
-        when int16 {
-            's'
-        }
-        when int32 {
-            'i'
-        }
-        when long {
-            'l'
-        }
-        #~ when longlong {
-            #~ 'x'
-        #~ }
-        when num32 {
-            'f'
-        }
-        when num64 {
-            'd'
-        }
-        #~ when longdouble {
-            #~ 'e'
-        #~ }
-        when CArray {
-            # R = reference
-            # K = const
-            my $name  = .of.^name;
-            'RK' ~ $name.chars ~ $name;
-        }
-        default {
-            my $name  = .^name;
-            'RK' ~ # XXX not quite right
-            $name.chars ~ $name;
+    my $params = join '', do for @params -> $p {
+        my $R = '';                                # reference
+        my $P = $p.rw                ?? 'P' !! ''; # pointer
+        my $K = $P && $p ~~ CPPConst ?? 'K' !! ''; # const
+        given $p.type {
+            when Bool {
+                $R ~ $K ~ 'b'
+            }
+            when int8 {
+                $R ~ $K ~ 'c'
+            }
+            when int16 {
+                $R ~ $K ~ 's'
+            }
+            when int32 {
+                $P ~ $K ~ 'i'
+            }
+            when long {
+                $R ~ $K ~ 'l'
+            }
+            #~ when longlong {
+                #~ $R ~ 'x'
+            #~ }
+            when num32 {
+                $R ~ $K ~ 'f'
+            }
+            when num64 {
+                $R ~ $K ~ 'd'
+            }
+            #~ when longdouble {
+                #~ $R ~ 'e'
+            #~ }
+            when Str {
+                'Rc'
+            }
+            when CArray {
+                my $name  = .of.^name;
+                'R' ~ $K ~ $name.chars ~ $name;
+            }
+            default {
+                my $name  = .^name;
+                $P ~ $K ~ $name.chars ~ $name;
+            }
         }
     };
     $mangled ~= $params || 'v';

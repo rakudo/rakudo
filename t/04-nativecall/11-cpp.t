@@ -2,7 +2,7 @@ use v6;
 use NativeCall;
 use Test;
 
-plan 15;
+plan 18;
 
 shell 'g++ --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
 #~ shell 'clang --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
@@ -52,6 +52,10 @@ class Derived2 is repr<CPPStruct> {
     has uint8 $.c;
     method new()  is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
     method All_The_Things(int8, int16, int32, long, num32, num64) returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
+
+    method ConstInt(int32 is cpp-const)          returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
+    method IntPtr(int32 is rw)                   returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
+    method ConstIntPtr(int32 is cpp-const is rw) returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
 }
 
 sub SizeofDerived2() is symbol('_Z14SizeofDerived2v') returns int32 is native("./11-cpp") { * }
@@ -66,3 +70,7 @@ is $d2.cy,    2.62, 'can read attribute cy';
 is $d2.c.chr, 'A',  'can read attribute c';
 
 is $d2.All_The_Things(1, 2, 3, 4, 5e0, 6e0), 21, 'can pass arguments to method';
+
+is $d2.ConstInt(123),    11, 'name mangling of parameter `const int`';
+is $d2.IntPtr(123),      12, 'name mangling of parameter `int *`';
+is $d2.ConstIntPtr(123), 13, 'name mangling of parameter `const int *`';

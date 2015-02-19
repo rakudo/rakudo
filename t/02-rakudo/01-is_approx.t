@@ -2,6 +2,7 @@ use v6;
 use lib 'lib';
 use Test;
 
+plan 11;
 
 # "large" numbers
 {
@@ -15,9 +16,11 @@ use Test;
 
     # expect to fail with current implementation
     $not_quite_sol = 2.99793e8;
-    is_approx($not_quite_sol, $speed_of_light,
-        "should fail; approx *not* within 1e-5");
+    my $message = "should fail; approx *not* within 1e-5";
+    todo $message;
+    my $ok = is_approx($not_quite_sol, $speed_of_light, $message);
     # however is not "within" 1e-5 but differ by 542
+    nok($ok);
 }
 
 # "normal" numbers
@@ -31,8 +34,10 @@ use Test;
 
     # expect to fail with current implementation
     $not_quite_ec = 2.71829;
-    is_approx($not_quite_ec, $eulers_constant,
-        "should fail; approx *not* within 1e-5");
+    my $message = "should fail; approx *not* within 1e-5";
+    todo $message;
+    my $ok = is_approx($not_quite_ec, $eulers_constant, $message);
+    nok($ok, $message);
 }
 
 # "small" numbers
@@ -46,18 +51,19 @@ use Test;
 
     # expect to fail with current implementation
     $not_quite_pc = 6.62608e-34;
-    is_approx($not_quite_pc, $plancks_constant,
-        "should fail; approx *not* within 1e-5");
+    my $message = "should fail; approx *not* within 1e-5";
+    todo $message;
+    my $ok = is_approx($not_quite_pc, $plancks_constant, $message);
+    nok($ok, $message);
     # however passes, since numbers themselves are smaller than 1e-5
 
     # *really* expect to fail with current implementation
     $not_quite_pc = 16.62608e-34;
-    is_approx($not_quite_pc, $plancks_constant,
-        "should fail; approx *not* within 1e-5");
+    $message = "should fail; approx *not* within 1e-5";
+    todo $message;
+    $ok = is_approx($not_quite_pc, $plancks_constant, $message);
+    nok($ok, $message);
     # however passes, since numbers themselves are smaller than 1e-5
 }
-
-done;
-
 
 # vim: expandtab shiftwidth=4 ft=perl6

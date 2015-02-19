@@ -1443,15 +1443,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Op.new( :op('exception') )
                         ),
                     ),
-                    QAST::VM.new(
-                        :parrot(QAST::VM.new(
-                            pirop => 'perl6_invoke_catchhandler 1PP',
-                            QAST::Op.new( :op('null') ),
-                            QAST::Op.new( :op('exception') )
-                        )),
-                        :jvm(QAST::Op.new( :op('null') )),
-                        :moar(QAST::Op.new( :op('null') ))
-                    ),
                     QAST::WVal.new(
                         :value( $*W.find_symbol(['Nil']) ),
                     ),
@@ -6955,13 +6946,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # code in our handler throws an exception.
         my $ex := QAST::Op.new( :op('exception') );
         if $handler.ann('past_block').ann('handlers') && nqp::existskey($handler.ann('past_block').ann('handlers'), $type) {
-            $ex := QAST::VM.new(
-                :parrot(QAST::VM.new(
-                    :pirop('perl6_skip_handlers_in_rethrow__0Pi'),
-                    $ex,
-                    QAST::IVal.new( :value(1) ))),
-                :jvm($ex),
-                :moar($ex));
         }
         else {
             my $prev_content := QAST::Stmts.new();
@@ -6971,20 +6955,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('handle'),
                 $prev_content,
                 'CATCH',
-                QAST::VM.new(
-                    :parrot(QAST::VM.new(
-                        :pirop('perl6_based_rethrow 1PP'),
-                        QAST::Op.new( :op('exception') ),
-                        QAST::Var.new( :name($exceptionreg), :scope('local') ),
-                    )),
-                    :jvm(QAST::Op.new(
-                        :op('rethrow'),
-                        QAST::Op.new( :op('exception') )
-                    )),
-                    :moar(QAST::Op.new(
-                        :op('rethrow'),
-                        QAST::Op.new( :op('exception') )
-                    )))));
+                QAST::Op.new(
+                    :op('rethrow'),
+                    QAST::Op.new( :op('exception') )
+                )));
                 
             # rethrow the exception if we reach the end of the handler
             # (if a when {} clause matches this will get skipped due
@@ -7297,8 +7271,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $n;
     }
 
-    # radix, $base, $exponent: parrot numbers (Integer or Float)
-    # $number: parrot string
+    # radix, $base, $exponent: native numbers (Integer or Float)
+    # $number: native string
     # return value: PAST for Int, Rat or Num
     sub radcalc($/, $radix, $number, $base?, $exponent?, :$num) {
         my int $sign := 1;

@@ -21,9 +21,6 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
     does Perl6::Metamodel::Finalization
-#?if parrot
-    does Perl6::Metamodel::ParrotInterop
-#?endif
 {
     has @!roles;
     has @!role_typecheck_list;
@@ -162,12 +159,6 @@ class Perl6::Metamodel::ClassHOW
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
         
-#?if parrot
-        # Install Parrot v-table mappings.
-        self.publish_parrot_vtable_mapping($obj);
-		self.publish_parrot_vtable_handler_mapping($obj);
-#?endif
-
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
         

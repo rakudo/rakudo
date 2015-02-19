@@ -1,5 +1,3 @@
-#!./parrot perl6.pbc
-
 # check literals
 
 use v6;

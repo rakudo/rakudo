@@ -1,5 +1,3 @@
-#!./parrot perl6.pbc
-
 # check inplace math ops
 
 use v6;

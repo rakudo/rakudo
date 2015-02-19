@@ -1,5 +1,3 @@
-#!./parrot perl6.pbc
-
 # check logical ops
 
 use v6;

@@ -9,16 +9,16 @@ GetOptions(
 );
 
 if ($backend) {
-    if ($backend =~ /^(parrot|jvm|moar)/i) {
+    if ($backend =~ /^(jvm|moar)/i) {
         $backend = lc $1;
     }
     else {
-        die "Unsupported backed '$backend'. Known backends: parrot, jvm, moar\n";
+        die "Unsupported backed '$backend'. Known backends: jvm, moar\n";
     }
 }
 else {
     my $version = `./perl6 --version`;
-    $backend = ($version =~ /jvm/i) ? "jvm" : (($version =~ /moar/i) ? "moar" : "parrot");
+    $backend = ($version =~ /jvm/i) ? "jvm" : 'moar';
 }
 
 my $impl = "rakudo.$backend";

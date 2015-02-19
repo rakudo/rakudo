@@ -17,9 +17,6 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
-#?if parrot
-    does Perl6::Metamodel::ParrotInterop
-#?endif
 {
     # Hash representing enumeration keys to values.
     has %!values;
@@ -113,12 +110,6 @@ class Perl6::Metamodel::EnumHOW
         # Publish type and method caches.
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
-        
-#?if parrot
-        # Install Parrot v-table mappings.
-        self.publish_parrot_vtable_mapping($obj);
-		self.publish_parrot_vtable_handler_mapping($obj);
-#?endif
         
         # Publish boolification spec.
         self.publish_boolification_spec($obj);

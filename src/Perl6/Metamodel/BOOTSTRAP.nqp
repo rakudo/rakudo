@@ -1011,22 +1011,6 @@ BEGIN {
     nqp::p6init();
 
     # class Mu { ... }
-#?if parrot
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_i($self.Int())
-        }));
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_number',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_n($self.Num())
-        }));
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_string',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_s($self.Str())
-        }));
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
-        nqp::getstaticcode(sub ($self) { nqp::istrue($self.defined()) }));
-#?endif
     Mu.HOW.compose_repr(Mu);
 
     # class Any is Mu { ... }
@@ -2034,14 +2018,12 @@ BEGIN {
                                 $new_possibles := [] unless nqp::islist($new_possibles);
                                 
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
-#?if !parrot
                                 unless $done_bind_check {
                                     # Need a copy of the capture, as we may later do a
                                     # multi-dispatch when evaluating the constraint.
                                     $capture := nqp::clone($capture);
                                     $done_bind_check := 1;
                                 }
-#?endif
                                 if nqp::p6isbindable($sig, $capture) {
                                     nqp::push($new_possibles, nqp::atpos(@possibles, $i));
                                     unless $many {
@@ -2471,12 +2453,6 @@ BEGIN {
     Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
     Str.HOW.set_boolification_mode(Str, 4);
     Str.HOW.publish_boolification_spec(Str);
-#?if parrot
-    Str.HOW.add_parrot_vtable_mapping(Str, 'get_string',
-        nqp::getstaticcode(sub ($self) {
-            nqp::unbox_s($self)
-        }));
-#?endif
     Str.HOW.compose_repr(Str);
 
     # class Int is Cool {
@@ -2736,28 +2712,6 @@ BEGIN {
 }
 EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
 
-#?if parrot
-# Publish Parrot v-table handler mappings.
-Mu.HOW.publish_parrot_vtable_mapping(Mu);
-Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
-Code.HOW.publish_parrot_vtable_handler_mapping(Code);
-Code.HOW.publish_parrot_vtable_mapping(Code);
-Block.HOW.publish_parrot_vtable_handler_mapping(Block);
-Block.HOW.publish_parrot_vtable_mapping(Block);
-Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
-Routine.HOW.publish_parrot_vtable_mapping(Routine);
-Sub.HOW.publish_parrot_vtable_handler_mapping(Sub);
-Sub.HOW.publish_parrot_vtable_mapping(Sub);
-Method.HOW.publish_parrot_vtable_handler_mapping(Method);
-Method.HOW.publish_parrot_vtable_mapping(Method);
-Submethod.HOW.publish_parrot_vtable_handler_mapping(Submethod);
-Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
-Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
-Regex.HOW.publish_parrot_vtable_mapping(Regex);
-Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
-Str.HOW.publish_parrot_vtable_handler_mapping(Str);
-#?endif
-
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);
 
@@ -2843,7 +2797,6 @@ nqp::sethllconfig('perl6', nqp::hash(
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
     },
-#?if !parrot
     'exit_handler', -> $coderef, $resultish {
         my $code := nqp::getcodeobj($coderef);
         my %phasers := nqp::getattr($code, Block, '$!phasers');
@@ -2880,14 +2833,12 @@ nqp::sethllconfig('perl6', nqp::hash(
                         }
                     }
                     if $run {
-#?endif
 #?if jvm
                         $phaser();
 #?endif
 #?if moar
                         nqp::p6capturelexwhere($phaser.clone())();
 #?endif
-#?if !parrot
                     }
                     $i++;
                 }
@@ -2898,7 +2849,6 @@ nqp::sethllconfig('perl6', nqp::hash(
                 my int $n := nqp::elems(@posts);
                 my int $i := 0;
                 while $i < $n {
-#?endif
 #?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
 #?endif
@@ -2906,13 +2856,11 @@ nqp::sethllconfig('perl6', nqp::hash(
                     nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
                         nqp::ifnull($resultish, Mu));
 #?endif
-#?if !parrot
                     $i++;
                 }
             }
         }
     },
-#?endif
 #?if moar
     'bind_error', -> $capture {
         # Get signature and lexpad.

@@ -24,12 +24,9 @@ compiled code.
   -v, --version        display version information
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
-  --profile            print profile information to standard error (Parrot)
-                       write profile information as HTML file (MoarVM)
+  --profile            write profile information as HTML file (MoarVM)
 
 Note that only boolean single-letter options may be bundled
-
-Output from C<--profile> can be visualized by C<kcachegrind> for the Parrot backend.
 
 The supported values for C<--target> are:
 
@@ -41,8 +38,6 @@ The supported values for C<--target> are:
 
  mbc        MoarVM   MoarVM byte code
  jar        JVM      JVM archive
- post       Parrot   an intermediate format representing the parrot opcode syntax tree
- pir        Parrot   the parrot intermediate representation
 
 
 =head1 List of env vars used in Rakudo
@@ -64,16 +59,6 @@ Controls whether to emit ANSI codes for error highlighting. Defaults to true if 
 Win32.
 
 =back
-
-
-=head1 PARROT OPTIONS
-
-To specify options to the underlying parrot VM, you must explicitly run
-parrot; you cannot specify these options by using the C<perl6> executable.
-
- parrot [parrot switches] perl6.pbc [switches] [--] [programfile] [arguments]
-
-See C<parrot --help> for a list of valid parrot options.
 
 =head1 AUTHORS
 

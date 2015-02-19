@@ -78,7 +78,13 @@ my class IO::Handle does IO {
         self;
     }
 
+
     method input-line-separator {
+        DEPRECATED("nl",|<2015.03 2016.03>);
+        self.nl;
+    }
+
+    method nl {
         Proxy.new(
           FETCH => {
               $!nl

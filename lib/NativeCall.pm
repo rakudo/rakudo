@@ -67,7 +67,9 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
     $result
 }
 
-my native long is repr("P6int") is Int is ctype("long") is export(:types, :DEFAULT) { };
+my native long       is repr("P6int") is Int is ctype("long")       is export(:types, :DEFAULT) { };
+#~ my native longlong   is repr("P6int") is Int is ctype("longlong")   is export(:types, :DEFAULT) { };
+#~ my native longdouble is repr("P6num") is Int is ctype("longdouble") is export(:types, :DEFAULT) { };
 
 # Gets the NCI type code to use based on a given Perl 6 type.
 my %type_map =
@@ -77,10 +79,12 @@ my %type_map =
     'long'     => 'long',
     'int'      => 'long',
     'Int'      => 'longlong',
+    'longlong' => 'longlong',
     'num32'    => 'float',
     'num64'    => 'double',
     'num'      => 'double',
     'Num'      => 'double',
+    'longdouble' => 'longdouble',
     'Callable' => 'callback';
 
 my %repr_map =
@@ -401,9 +405,30 @@ sub mangle_cpp_symbol(Routine $r, $symbol) {
         when Bool {
             'b'
         }
+        when int8 {
+            'c'
+        }
+        when int16 {
+            's'
+        }
         when int32 {
             'i'
         }
+        when long {
+            'l'
+        }
+        #~ when longlong {
+            #~ 'x'
+        #~ }
+        when num32 {
+            'f'
+        }
+        when num64 {
+            'd'
+        }
+        #~ when longdouble {
+            #~ 'e'
+        #~ }
         when CArray {
             # R = reference
             # K = const

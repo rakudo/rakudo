@@ -575,20 +575,6 @@ CRITIC_FILES=Configure.pl t/harness build/ tools/
 perlcritic:
 	perlcritic -1 --profile tools/util/perlcritic.conf $(CRITIC_FILES)
 
-manifest:
-	echo MANIFEST >MANIFEST
-	git ls-files | $(PERL) -ne '/^\./ || print' >>MANIFEST
-	cd t/spec && git clean -xdf
-	find t/spec -type f | grep -v '\.git' >>MANIFEST
-	sort -u -o MANIFEST MANIFEST
-
-release: manifest
-	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
-	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
-	$(PERL) -ne 'print "rakudo-$(VERSION)/$$_"' MANIFEST | \
-	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
-	rm rakudo-$(VERSION)
-
 $(DYNEXT_DYNOPS): $(DYNOPS)
 	$(CP) $(DYNOPS) $(DYNEXT_DIR)
 	$(CHMOD) 755 $(DYNEXT_DYNOPS)

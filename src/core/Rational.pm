@@ -81,15 +81,20 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method base($base, $digits = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1)) {
+    method base($base, $digits?) {
+        my $prec = $digits // ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
         my $s = $!numerator < 0 ?? '-' !! '';
         my $r = self.abs;
         my $i = $r.floor;
+        my @conversion := <0 1 2 3 4 5 6 7 8 9
+                           A B C D E F G H I J
+                           K L M N O P Q R S T
+                           U V W X Y Z>;
         $r -= $i;
         $s ~= $i.base($base);
-        if $r {
+        if $digits // $r {
             my @f;
-            while $r and @f < $digits {
+            while @f < $prec and ($digits // $r) {
                 $r *= $base;
                 $i = $r.floor;
                 push @f, $i;
@@ -104,8 +109,7 @@ my role Rational[::NuT, ::DeT] does Real {
             }
             if @f {
                 $s ~= '.';
-                state @digits = '0'..'9', 'A'..'Z';
-                $s ~= @digits[@f].join;
+                $s ~= @conversion[@f].join;
             }
         }
         $s;

@@ -80,16 +80,17 @@ my role Real does Numeric {
         }
     }
 
-    method base(Int:D $base, $digits = 1e8.log($base.Num).Int) {
+    method base(Int:D $base, $digits?) {
+        my $prec = $digits // 1e8.log($base.Num).Int;
         my Int $int_part = self.Int;
         my $frac = abs(self - $int_part);
         my @frac_digits;
-        my @conversion = <0 1 2 3 4 5 6 7 8 9
-                          A B C D E F G H I J
-                          K L M N O P Q R S T
-                          U V W X Y Z>;
-        for ^$digits {
-            last if $frac == 0;
+        my @conversion := <0 1 2 3 4 5 6 7 8 9
+                           A B C D E F G H I J
+                           K L M N O P Q R S T
+                           U V W X Y Z>;
+        for ^$prec {
+            last unless $digits // $frac;
             $frac = $frac * $base;
             push @frac_digits, $frac.Int;
             $frac = $frac - $frac.Int;

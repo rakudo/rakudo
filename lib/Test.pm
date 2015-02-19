@@ -151,11 +151,11 @@ multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     return $ok;
 }
 
-multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
+multi sub is_approx(Numeric $got, Numeric $expected, $desc = '') is export {
     return is_approx($got, $expected, 1e-6, $desc);
 }
 
-multi sub is_approx(Mu $got, Mu $expected, Num $tol, $desc = '') is export {
+multi sub is_approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $abs-diff = ($got - $expected).abs;
     my $abs-max = max($got.abs, $expected.abs);

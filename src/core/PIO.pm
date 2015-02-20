@@ -243,16 +243,8 @@ my role PIO {
         if $.chomp {
             gather {
                 until nqp::eoffh($!PIO) {
-#?if parrot
-                    my Mu $line := nqp::readlinefh($!PIO);
-                    last if nqp::eoffh($!PIO);
-                    $!ins = $!ins + 1;
-                    take nqp::p6box_s($line).chomp;
-#?endif
-#?if !parrot
                     $!ins = $!ins + 1;
                     take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
-#?endif
                 }
                 self.close if $close;
             }
@@ -260,16 +252,8 @@ my role PIO {
         else {
             gather {
                 until nqp::eoffh($!PIO) {
-#?if parrot
-                    my Mu $line := nqp::readlinefh($!PIO);
-                    last if nqp::eoffh($!PIO);
-                    $!ins = $!ins + 1;
-                    take nqp::p6box_s($line);
-#?endif
-#?if !parrot
                     $!ins = $!ins + 1;
                     take nqp::p6box_s(nqp::readlinefh($!PIO));
-#?endif
                 }
                 self.close if $close;
             }
@@ -282,26 +266,12 @@ my role PIO {
         my Mu $rpa := nqp::list();
         if $.chomp {
             until nqp::eoffh($!PIO) {
-#?if parrot
-                my Mu $line := nqp::readlinefh($!PIO);
-                last if nqp::eoffh($!PIO);
-                nqp::push($rpa, nqp::p6box_s($line).chomp);
-#?endif
-#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
-#?endif
             }
         }
         else {
             until nqp::eoffh($!PIO) {
-#?if parrot
-                my Mu $line := nqp::readlinefh($!PIO);
-                last if nqp::eoffh($!PIO);
-                nqp::push($rpa, nqp::p6box_s($line));
-#?endif
-#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
-#?endif
             }
         }
         $!ins = nqp::elems($rpa);
@@ -313,9 +283,6 @@ my role PIO {
 
         until nqp::eoffh($!PIO) {
             nqp::readlinefh($!PIO);
-#?if parrot
-            last if nqp::eoffh($!PIO);
-#?endif
             $!ins = $!ins + 1;
         }
         nqp::box_i($!ins, Int);
@@ -329,26 +296,12 @@ my role PIO {
         if $.chomp {
             while $count = $count - 1 {
                 last if nqp::eoffh($!PIO);
-#?if parrot
-                my Mu $line := nqp::readlinefh($!PIO);
-                last if nqp::eoffh($!PIO);
-                nqp::push($rpa, nqp::p6box_s($line).chomp);
-#?endif
-#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
-#?endif
             }
         }
         else {
             while $count = $count - 1 {
-#?if parrot
-                my Mu $line := nqp::readlinefh($!PIO);
-                last if nqp::eoffh($!PIO);
-                nqp::push($rpa, nqp::p6box_s($line));
-#?endif
-#?if !parrot
                 nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
-#?endif
             }
         }
         $!ins = nqp::elems($rpa);

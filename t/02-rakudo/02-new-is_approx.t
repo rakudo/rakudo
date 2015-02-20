@@ -2,7 +2,7 @@ use v6;
 use lib 'lib';
 use Test;
 
-plan 5;
+plan 6;
 
 # "large" numbers
 subtest {
@@ -82,6 +82,18 @@ subtest {
     $message = "should fail; cannot use a zero tolerance value";
     dies_ok { is_approx(1, 1, 0, $message) }, $message;
 }, "check tolerance input";
+
+# expected value is zero
+subtest {
+    is_approx(0.000001, 0, abs_tol => 1e-6, desc => "approximately zero");
+    is_approx(0.000001, 0, rel_tol => 1e-6, abs_tol => 1e-6,
+              desc => "approximately zero");
+
+    my $message = "should fail; not approximately zero";
+    todo $message;
+    my $ok = is_approx(0.00001, 0, abs_tol => 1e-6, desc => $message);
+    nok($ok, $message);
+}, "check behaviour when input values are around zero";
 
 # symmetry
 subtest {

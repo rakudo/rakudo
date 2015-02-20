@@ -667,31 +667,51 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method subst(Str:D: $matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
+
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
-        my @matches              = self.match($matcher, |%options);
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
 
-        return self unless @matches;
-        return self if @matches == 1 && !@matches[0];
+        # nothing to do
+        my @matches = self.match($matcher, |%options);
+        return self if !@matches || (@matches == 1 && !@matches[0]);
 
-        my $prev = 0;
-        my $result = '';
-        for @matches -> $m {
-            try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
-            $result ~= substr(self,$prev, $m.from - $prev);
+        my int $prev;
+        my str $str    = nqp::unbox_s(self);
+        my Mu $result := nqp::list_s();
 
-            my $real_replacement = ~(nqp::istype($replacement,Callable)
-                ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
-                !! $replacement);
-            $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
-            $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
-            $result ~= $real_replacement;
-            $prev = $m.to;
+        # need to do something special
+        if $SET_DOLLAR_SLASH || $samecase || $samespace || nqp::istype($replacement,Callable) {
+            for @matches -> $m {
+                try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
+                nqp::push_s(
+                  $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
+                );
+
+                my $real_replacement = ~(nqp::istype($replacement,Callable)
+                    ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
+                    !! $replacement);
+                $real_replacement = $real_replacement.samecase(~$m) if $samecase;
+                $real_replacement = $real_replacement.samespace(~$m) if $samespace;
+                nqp::push_s($result,nqp::unbox_s($real_replacement));
+                $prev = nqp::unbox_i($m.to);
+            }
+            my $last = @matches.pop;
+            nqp::push_s($result,nqp::substr($str,nqp::unbox_i($last.to)));
+            nqp::p6box_s(nqp::join('',$result));
         }
-        my $last = @matches.pop;
-        $result ~= substr(self,$last.to);
-        $result;
+
+        # simple string replacement
+        else {
+            for @matches -> $m {
+                nqp::push_s(
+                  $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
+                );
+                $prev = nqp::unbox_i($m.to);
+            }
+            nqp::push_s($result,nqp::substr($str,$prev));
+            nqp::p6box_s(nqp::join(nqp::unbox_s($replacement),$result));
+        }
     }
 
     method ords(Str:D:) {

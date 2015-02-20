@@ -157,6 +157,7 @@ multi sub is_approx(Numeric $got, Numeric $expected, $desc = '') is export {
 
 multi sub is_approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
+    die "Tolerance must be a positive number greater than zero" unless $tol > 0;
     my $abs-diff = ($got - $expected).abs;
     my $abs-max = max($got.abs, $expected.abs);
     my $test = $abs-diff/$abs-max <= $tol;

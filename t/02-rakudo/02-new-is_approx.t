@@ -2,7 +2,7 @@ use v6;
 use lib 'lib';
 use Test;
 
-plan 14;
+plan 16;
 
 # "large" numbers
 {
@@ -72,6 +72,15 @@ plan 14;
     todo $message;
     $ok = is_approx($not_quite_pc, $plancks_constant, 1e-7, $message);
     nok($ok, $message);
+}
+
+# check tolerance input
+{
+    my $message = "should fail; cannot use negative tolerance values";
+    dies_ok { is_approx(1, 1, -1, $message) }, $message;
+
+    $message = "should fail; cannot use a zero tolerance value";
+    dies_ok { is_approx(1, 1, 0, $message) }, $message;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

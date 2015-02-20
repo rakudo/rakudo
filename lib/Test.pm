@@ -160,7 +160,8 @@ multi sub is_approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') i
     die "Tolerance must be a positive number greater than zero" unless $tol > 0;
     my $abs-diff = ($got - $expected).abs;
     my $abs-max = max($got.abs, $expected.abs);
-    my $test = $abs-diff/$abs-max <= $tol;
+    my $rel-diff = $abs-max == 0 ?? 0 !! $abs-diff/$abs-max;
+    my $test = $rel-diff <= $tol;
     my $ok = proclaim(?$test, $desc);
     unless $test {
         diag("expected: $expected");

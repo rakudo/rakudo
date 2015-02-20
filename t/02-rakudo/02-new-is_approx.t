@@ -2,7 +2,7 @@ use v6;
 use lib 'lib';
 use Test;
 
-plan 6;
+plan 7;
 
 # "large" numbers
 subtest {
@@ -103,5 +103,11 @@ subtest {
     my $ok_ap_p = is_approx($almost_pi, $pi, "almost_pi is approximately pi");
     ok($ok_p_ap && $ok_ap_p, "is_approx is symmetric under argument change");
 }, "check symmetry with respect to argument swapping";
+
+# check behaviour of equal values
+subtest {
+    my $pi = 3.14159265358979;
+    is_approx($pi, 3.14159265358979, "equal values around one order of magnitude");
+}, "check behaviour of equal values";
 
 # vim: expandtab shiftwidth=4 ft=perl6

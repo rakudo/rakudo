@@ -257,6 +257,16 @@ multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
     return $ok;
 }
 
+multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    try {
+	EVAL ( "use $code" );
+    }
+    my $ok = proclaim((not defined $!), $msg) or diag($!);
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
 multi sub dies_ok(Callable $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $death = 1;

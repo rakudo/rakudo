@@ -649,7 +649,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method subst(Str:D: Str \from, Str \to, :$global!, *%adverbs) {
-        if $global {
+        if $global && !%adverbs {
             TRANSPOSE(self,from,to);
         }
         else {

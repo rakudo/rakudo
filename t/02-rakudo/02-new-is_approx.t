@@ -2,10 +2,10 @@ use v6;
 use lib 'lib';
 use Test;
 
-plan 19;
+plan 5;
 
 # "large" numbers
-{
+subtest {
     my $speed_of_light = 2.99792458e8;
     my $not_quite_sol = 2.997925e8;
 
@@ -19,10 +19,10 @@ plan 19;
     todo $message;
     my $ok = is_approx($not_quite_sol, $speed_of_light, $message);
     nok($ok, $message);
-}
+}, "check behaviour of 'large' numbers";
 
 # "normal" numbers
-{
+subtest {
     my $eulers_constant = 2.71828182;
     my $not_quite_ec = 2.71828;
 
@@ -36,10 +36,10 @@ plan 19;
     todo $message;
     my $ok = is_approx($not_quite_ec, $eulers_constant, $message);
     nok($ok, $message);
-}
+}, "check behaviour of 'normal' numbers";
 
 # "small" numbers
-{
+subtest {
     my $plancks_constant = 6.62609657e-34;
     my $not_quite_pc = 6.62609e-34;
 
@@ -72,24 +72,24 @@ plan 19;
     todo $message;
     $ok = is_approx($not_quite_pc, $plancks_constant, 1e-7, $message);
     nok($ok, $message);
-}
+}, "check behaviour of 'small' numbers";
 
 # check tolerance input
-{
+subtest {
     my $message = "should fail; cannot use negative tolerance values";
     dies_ok { is_approx(1, 1, -1, $message) }, $message;
 
     $message = "should fail; cannot use a zero tolerance value";
     dies_ok { is_approx(1, 1, 0, $message) }, $message;
-}
+}, "check tolerance input";
 
 # symmetry
-{
+subtest {
     my $pi = 3.14159265358979;
     my $almost_pi = 3.141592;
     my $ok_p_ap = is_approx($pi, $almost_pi, "pi is approximately almost_pi");
     my $ok_ap_p = is_approx($almost_pi, $pi, "almost_pi is approximately pi");
     ok($ok_p_ap && $ok_ap_p, "is_approx is symmetric under argument change");
-}
+}, "check symmetry with respect to argument swapping";
 
 # vim: expandtab shiftwidth=4 ft=perl6

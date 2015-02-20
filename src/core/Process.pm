@@ -4,9 +4,6 @@ multi sub INITIALIZE_DYNAMIC('$*PID') {
 
 multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE') {
     my $EXECUTABLE =
-#?if parrot
-        nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
-#?endif
 #?if jvm
         $*VM.properties<perl6.execname>
         // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j';

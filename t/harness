@@ -79,8 +79,6 @@ $tap_harness_class .= '::Archive' if $archive;
 
 my $extra_properties;
 if ($archive) {
-    $extra_properties->{'Parrot Revision'} = $parrot_revision
-    if $parrot_revision;
     $extra_properties->{'Submitter'} = $ENV{SMOLDER_SUBMITTER}
     if $ENV{SMOLDER_SUBMITTER};
 }
@@ -171,5 +169,4 @@ Options:
     --long - do long.
     --stress - perform the stress tests/
     --archive=[archive] - write to an archive.
-    --parrot_revision=[rev] - test with Parrot revision.
 

@@ -6,9 +6,6 @@ sub THROW(Mu \arg, int $type) {
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);
     nqp::setextype($ex, $type);
-#?if parrot
-    pir::setattribute__vPsP($ex, 'severity', pir::const::EXCEPT_NORMAL);
-#?endif
     nqp::throw($ex);
     0
 }
@@ -193,9 +190,6 @@ multi sub warn(*@msg) is hidden_from_backtrace {
     my $ex := nqp::newexception();
     nqp::setmessage($ex, nqp::unbox_s(@msg.join));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);
-#?if parrot
-    nqp::bindattr($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));
-#?endif
     nqp::throw($ex);
     0;
 }
@@ -258,16 +252,6 @@ constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
-#?if parrot    
-    nqp::chdir($*CWD.abspath);
-    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
-    fail "Unable to execute '$cmd'" unless $pio;
-    $pio.encoding('utf8');
-    my $result = nqp::p6box_s($pio.readall());
-    $pio.close();
-    $result;
-#?endif
-#?if !parrot
     my Mu $pio := nqp::openpipe(
       nqp::unbox_s($cmd), $*CWD.abspath, CLONE-HASH-DECONTAINERIZED(%*ENV), ''
     );
@@ -275,7 +259,6 @@ sub QX($cmd) {
     my $result = nqp::p6box_s(nqp::readallfh($pio));
     nqp::closefh($pio);
     $result;
-#?endif
 }
 
 sub EXHAUST(|) {

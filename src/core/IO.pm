@@ -561,35 +561,4 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
 }
 #?endif
 
-#?if parrot
-sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
-
-    CATCH { default {
-        fail X::IO::Dir.new(
-          :path(nqp::box_s($abspath,Str)), :os-error(.Str) );
-    } }
-
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($abspath));
-    my int $elems = nqp::elems($RSA);
-
-    if $test.defined {
-        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-            my Str $elem = FORWARD-SLASH(nqp::p6box_s(pir::trans_encoding__Ssi(
-              nqp::atpos_s($RSA, $i),
-              pir::find_encoding__Is('utf8'))));
-            take $abspath ~ $elem if $test.ACCEPTS($elem);
-        }
-    }
-    else {
-        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-            my str $elem_s = pir::trans_encoding__Ssi(
-              nqp::atpos_s($RSA, $i),
-              pir::find_encoding__Is('utf8'));
-            take $abspath ~ FORWARD-SLASH(nqp::box_s($elem_s,Str))
-              if nqp::isne_s($elem_s,'.') && nqp::isne_s($elem_s,'..');
-        }
-    }
-}
-#?endif
-
 # vim: ft=perl6 expandtab sw=4

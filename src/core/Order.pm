@@ -5,12 +5,7 @@ sub ORDER(int $i) {
     $i == 0 ?? Same !! $i <  0 ?? Less !! More
 }
 
-#?if parrot
-proto sub infix:<cmp>($, $) { * }
-#?endif
-#?if !parrot
 proto sub infix:<cmp>(Mu $, Mu $) { * }
-#?endif
 multi sub infix:<cmp>(\a, \b) {
     return Order::Less if a === -Inf || b === Inf;
     return Order::More if a ===  Inf || b === -Inf;

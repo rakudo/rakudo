@@ -2,7 +2,7 @@ use v6;
 use lib 'lib';
 use Test;
 
-plan 16;
+plan 19;
 
 # "large" numbers
 {
@@ -81,6 +81,15 @@ plan 16;
 
     $message = "should fail; cannot use a zero tolerance value";
     dies_ok { is_approx(1, 1, 0, $message) }, $message;
+}
+
+# symmetry
+{
+    my $pi = 3.14159265358979;
+    my $almost_pi = 3.141592;
+    my $ok_p_ap = is_approx($pi, $almost_pi, "pi is approximately almost_pi");
+    my $ok_ap_p = is_approx($almost_pi, $pi, "almost_pi is approximately pi");
+    ok($ok_p_ap && $ok_ap_p, "is_approx is symmetric under argument change");
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

@@ -670,9 +670,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
-        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
 
         # nothing to do
+        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches = self.match($matcher, |%options);
         return self if !@matches || (@matches == 1 && !@matches[0]);
 
@@ -682,6 +682,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # need to do something special
         if $SET_DOLLAR_SLASH || $samecase || $samespace || nqp::istype($replacement,Callable) {
+
             for @matches -> $m {
                 try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
                 nqp::push_s(
@@ -696,8 +697,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::push_s($result,nqp::unbox_s($real_replacement));
                 $prev = nqp::unbox_i($m.to);
             }
-            my $last = @matches.pop;
-            nqp::push_s($result,nqp::substr($str,nqp::unbox_i($last.to)));
+            nqp::push_s($result,nqp::substr($str,$prev));
             nqp::p6box_s(nqp::join('',$result));
         }
 

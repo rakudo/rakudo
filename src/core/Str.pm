@@ -1564,7 +1564,7 @@ sub substr(\what, \from, $chars?) {
     );
 
     if $from < 0 {
-        if nqp::istype($from, Callable) || -$from > $max {
+        if nqp::istype(from, Callable) || -$from > $max {
             X::OutOfRange.new(
               :what<Start argument to substr>,:got(from),:range("0..$max"),
             ).fail;

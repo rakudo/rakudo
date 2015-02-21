@@ -152,6 +152,23 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
     if +@matching_candidates {
         return $m(|@($p), |%($n));
     }
+    # if there aren't any, try to see if we can find a candidate that wants a named array param
+    # where we only got one occurence on command line invocation
+    else {
+        my $found = False;
+        for %($n).keys -> $named_arg {
+            for $m.candidates -> $cand {
+                for $cand.signature.params -> $param {
+                    if $param.named_names eq $named_arg && $param.type ~~ Positional {
+                        $found = True;
+                        %($n){$named_arg} = [%($n){$named_arg}];
+                        last;
+                    }
+                }
+            }
+        }
+        return $m(|@($p), |%($n)) if $found;
+    }
 
     # We could not find the correct MAIN to dispatch to!
     # Let's try to run a user defined USAGE sub

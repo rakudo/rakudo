@@ -1578,7 +1578,7 @@ sub substr(\what, \from, $chars?) {
     }
     elsif $from > $max {
         X::OutOfRange.new(
-          :what<Start of substr>,:got(from),:range("0..$max"),
+          :what<Start of substr>,:got($from),:range("0..$max"),
         ).fail;
     }
 

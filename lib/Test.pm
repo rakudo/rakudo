@@ -93,6 +93,21 @@ multi sub pass($desc = '') is export {
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 
+multi sub ok(Mu $cond, :$desc = '', :$todo = 0) is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    my $ok;
+    if $todo {
+	$todo_upto_test_num = $num_of_tests_run + 1;
+	$todo_reason = '# TODO ';
+	$ok = proclaim(!$cond, $desc);
+    }
+    else {
+	$ok = proclaim(?$cond, $desc);
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
 multi sub ok(Mu $cond, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ok = proclaim(?$cond, $desc);

@@ -374,7 +374,7 @@ sub nativecast($target-type, $source) is export(:DEFAULT) {
 }
 
 sub nativesizeof($obj) is export(:DEFAULT) {
-    nqp::nativecallsizeof(nqp::decont($obj))
+    nqp::nativecallsizeof($obj)
 }
 
 sub cglobal($libname, $symbol, $target-type) is export {

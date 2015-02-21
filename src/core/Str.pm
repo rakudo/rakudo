@@ -1556,8 +1556,8 @@ sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join;
 }
 
-sub substr(\what, \from, $chars?) {
-    my str $str  = nqp::unbox_s(nqp::istype(what,Str) ?? what !! what.Str);
+sub substr(Str() \what, \from, $chars?) {
+    my str $str  = nqp::unbox_s(what);
     my int $max  = nqp::chars($str);
     my int $from = nqp::unbox_i(
       nqp::istype(from, Callable) ?? (from)(nqp::p6box_i($max)) !! from.Int
@@ -1599,8 +1599,8 @@ sub substr(\what, \from, $chars?) {
     nqp::p6box_s(nqp::substr($str, $from, $length));
 }
 
-sub substr-rw($s is rw, $from, $length?) {
-    my str $str   = nqp::unbox_s(nqp::istype($s,Str) ?? $s !! $s.Str);
+sub substr-rw(Str() $s is rw, $from, $length?) {
+    my str $str   = nqp::unbox_s($s);
     my int $chars = nqp::unbox_i(
       nqp::defined($length) ?? $length !! $from - nqp::chars($str)
     );

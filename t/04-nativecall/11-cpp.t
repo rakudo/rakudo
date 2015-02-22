@@ -2,7 +2,7 @@ use v6;
 use NativeCall;
 use Test;
 
-plan 18;
+plan 20;
 
 shell 'g++ --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
 #~ shell 'clang --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
@@ -33,7 +33,7 @@ class Derived1 is repr<CPPStruct> {
 
 sub SizeofDerived1() is symbol('_Z14SizeofDerived1v') returns int32 is native("./11-cpp") { * }
 
-diag 'sizeof = ' ~ SizeofDerived1();
+is nativesizeof(Derived1), SizeofDerived1(), 'sizeof(Derived1)';
 ok my $d1 = Derived1.new, 'can instanciate C++ class';
 is $d1.foo,   11,   'can read attribute foo';
 is $d1.bar,   42,   'can read attribute bar';
@@ -60,7 +60,7 @@ class Derived2 is repr<CPPStruct> {
 
 sub SizeofDerived2() is symbol('_Z14SizeofDerived2v') returns int32 is native("./11-cpp") { * }
 
-diag 'sizeof = ' ~ SizeofDerived2();
+is nativesizeof(Derived2), SizeofDerived2(), 'sizeof(Derived2)';
 ok my $d2 = Derived2.new, 'can instanciate C++ class with vtable';
 is $d2.foo,   11,   'can read attribute foo';
 is $d2.bar,   42,   'can read attribute bar';

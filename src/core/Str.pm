@@ -1175,7 +1175,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           || !$to.defined              # or a type object
           || %n;                       # or any named params passed
 
-        return TRANSPOSE-ONE(self, $from, $to.substr(0,1))  # 1 char to 1 char
+        return TRANSPOSE-ONE(self, $from, substr($to,0,1))  # 1 char to 1 char
           if $from.chars == 1 && $to.chars;
 
         sub expand(Str:D \x) {

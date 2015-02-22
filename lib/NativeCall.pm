@@ -67,9 +67,13 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
     $result
 }
 
-my native long       is repr("P6int") is Int is ctype("long")       is export(:types, :DEFAULT) { };
-#~ my native longlong   is repr("P6int") is Int is ctype("longlong")   is export(:types, :DEFAULT) { };
-#~ my native longdouble is repr("P6num") is Int is ctype("longdouble") is export(:types, :DEFAULT) { };
+my native long       is Int is ctype("long")       is repr("P6int")    is export(:types, :DEFAULT) { };
+#~ my native longlong   is Int is ctype("longlong")   is repr("P6int")    is export(:types, :DEFAULT) { };
+#~ my native longdouble is Int is ctype("longdouble") is repr("P6num")    is export(:types, :DEFAULT) { };
+my class void                                      is repr('CPointer') is export(:types, :DEFAULT) { };
+my role Pointer[::TValue = void]                   is repr('CPointer') is export(:types, :DEFAULT) {
+    method of() { ::TValue }
+}
 
 # Gets the NCI type code to use based on a given Perl 6 type.
 my %type_map =
@@ -103,8 +107,8 @@ sub type_code_for(Mu ::T) {
     # the REPR of a Buf or Blob type object is Uninstantiable, so
     # needs an extra special case here that isn't covered in the
     # hash lookup above.
-    return 'vmarray'
-        if T ~~ Blob;
+    return 'vmarray'  if T ~~ Blob;
+    return 'cpointer' if T ~~ Pointer;
     die "Unknown type {T.^name} used in native call.\n" ~
         "If you want to pass a struct, be sure to use the CStruct or CPPStruct representation.\n" ~
         "If you want to pass an array, be sure to use the CArray type.";
@@ -406,52 +410,61 @@ sub mangle_cpp_symbol(Routine $r, $symbol) {
         @params.pop if @params[*-1].name eq '%_';
     }
 
-    my $params = join '', do for @params -> $p {
+    my $params = join '', @params.map: {
         my $R = '';                                # reference
-        my $P = $p.rw                ?? 'P' !! ''; # pointer
-        my $K = $P && $p ~~ CPPConst ?? 'K' !! ''; # const
-        given $p.type {
-            when Bool {
-                $R ~ $K ~ 'b'
-            }
-            when int8 {
-                $R ~ $K ~ 'c'
-            }
-            when int16 {
-                $R ~ $K ~ 's'
-            }
-            when int32 {
-                $P ~ $K ~ 'i'
-            }
-            when long {
-                $R ~ $K ~ 'l'
-            }
-            #~ when longlong {
-                #~ $R ~ 'x'
-            #~ }
-            when num32 {
-                $R ~ $K ~ 'f'
-            }
-            when num64 {
-                $R ~ $K ~ 'd'
-            }
-            #~ when longdouble {
-                #~ $R ~ 'e'
-            #~ }
-            when Str {
-                'Rc'
-            }
-            when CArray {
-                my $name  = .of.^name;
-                'R' ~ $K ~ $name.chars ~ $name;
-            }
-            default {
-                my $name  = .^name;
-                $P ~ $K ~ $name.chars ~ $name;
-            }
-        }
+        my $P = .rw                  ?? 'P' !! ''; # pointer
+        my $K = $P && $_ ~~ CPPConst ?? 'K' !! ''; # const
+        cpp_param_letter(.type, :$R, :$P, :$K)
     };
     $mangled ~= $params || 'v';
+}
+
+sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
+    given $type {
+        when void {
+            $R ~ $K ~ 'v'
+        }
+        when Bool {
+            $R ~ $K ~ 'b'
+        }
+        when int8 {
+            $R ~ $K ~ 'c'
+        }
+        when int16 {
+            $R ~ $K ~ 's'
+        }
+        when int32 {
+            $P ~ $K ~ 'i'
+        }
+        when long {
+            $R ~ $K ~ 'l'
+        }
+        #~ when longlong {
+            #~ $R ~ 'x'
+        #~ }
+        when num32 {
+            $R ~ $K ~ 'f'
+        }
+        when num64 {
+            $R ~ $K ~ 'd'
+        }
+        #~ when longdouble {
+            #~ $R ~ 'e'
+        #~ }
+        when Str {
+            'Rc'
+        }
+        when CArray {
+            'R' ~ $K ~ cpp_param_letter(.of);
+        }
+        when Pointer {
+            'P' ~ $K ~ cpp_param_letter(.of);
+        }
+        default {
+            my $name  = .^name;
+            $P ~ $K ~ $name.chars ~ $name;
+        }
+    }
 }
 
 sub nativecast($target-type, $source) is export(:DEFAULT) {

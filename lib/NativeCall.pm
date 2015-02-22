@@ -77,7 +77,7 @@ my class Pointer                                   is repr('CPointer') is export
 # inherit from types that haven't been properly composed.
 use MONKEY_TYPING;
 augment class Pointer {
-    my role TypedPointer[::TValue = void] is repr('CPointer') {
+    my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
         method of() { ::TValue }
         method deref(::?CLASS:D \ptr:) { nativecast(::TValue, ptr) }
     }

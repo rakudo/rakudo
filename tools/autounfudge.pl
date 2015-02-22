@@ -93,8 +93,7 @@ my $impl_re = quotemeta $impl;
 
 if ($impl eq 'rakudo') {
     my $postfix = $jvm  ? 'jvm'   :
-                  $moar ? 'moar'  :
-                          'parrot';
+                           'moar' ;
     $impl_re = qr{rakudo(?:\.$postfix)?(?=\s)};
 }
 

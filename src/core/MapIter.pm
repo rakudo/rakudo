@@ -54,106 +54,6 @@ my class MapIter is Iterator {
             my int $did_iterate = 0;
             my Mu $label       := $!label;
 
-#?if parrot
-            Q:PIR {
-                .local int argc, count, NEXT, is_sink
-                .local pmc handler, self, MapIter, items, args, result, block, rpa
-                $P0      = find_lex '$argc'
-                argc     = repr_unbox_int $P0
-                $P0      = find_lex '$count'
-                count    = repr_unbox_int $P0
-                self     = find_lex 'self'
-                rpa      = find_lex '$rpa'
-                MapIter = find_lex 'MapIter'
-                items    = getattribute self, MapIter, '$!items'
-                args     = new 'QRPA'
-                block    = find_lex '$block'
-                handler  = root_new ['parrot';'ExceptionHandler']
-                NEXT     = find_lex '$NEXT'
-                is_sink  = find_lex '$is_sink'
-
-                set_addr handler, catch
-            };
-            $!label ??
-                Q:PIR {
-                    handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO, 512, 513, 514)
-                    %r = 42
-                } !!
-                Q:PIR {
-                    handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO)
-                    %r = 42
-                };
-            Q:PIR {
-                push_eh handler
-
-              iter_loop:
-                $I0 = elements rpa
-                unless $I0 < count goto iter_done
-                $I0 = elements items
-                if $I0 >= argc goto have_items
-                $I0 = argc - $I0
-                $P0 = getattribute self, MapIter, '$!listiter'
-                unless $P0 goto have_items
-                $P0.'reify'($I0)
-              have_items:
-                args = 0
-                perl6_shiftpush args, items, argc
-                unless args goto iter_done
-              redo:
-                result = block(args :flat)
-                if is_sink goto sink_result
-                push rpa, result
-                goto next
-              sink_result:
-                $I0 = repr_defined result
-                unless $I0 goto next
-                $I0 = can result, 'sink'
-                unless $I0 goto next
-                $I0 = defined result
-                unless $I0 goto next
-                result.'sink'()
-                store_lex '$did_iterate', 1
-                goto next
-              catch:
-                .local pmc exception, type
-                .get_results (exception)
-                null $P0
-                perl6_invoke_catchhandler $P0, exception
-                result = getattribute exception, 'payload'
-                push rpa, result
-                type = getattribute exception, 'type'
-                if type == .CONTROL_LOOP_REDO goto redo
-                if type == .CONTROL_LOOP_LAST goto last
-            };
-            $!label &&
-                Q:PIR {
-                    .local int id1_reg, id2_reg
-                    .local pmc label
-                    label = find_lex '$label'
-                    id1_reg = get_id result
-                    id2_reg = label
-                    if id1_reg != id2_reg goto rethrow
-                    if type == 512 goto next
-                    if type == 513 goto redo
-                    if type == 514 goto last
-                  rethrow:
-                    rethrow exception # XXX Should that be perl6_based_rethrow?
-                    %r = 42
-                };
-            Q:PIR {
-              next:
-                unless NEXT goto iter_loop
-                block.'fire_phasers'('NEXT')
-                goto iter_loop
-              last:
-                $P0 = find_lex 'Any'
-                setattribute self, MapIter, '$!items', $P0
-                setattribute self, MapIter, '$!listiter', $P0
-              iter_done:
-                pop_eh
-            };
-#?endif
-#?if !parrot
             my int $state = 1;
             my int $itmp;
             my Mu $items := $!items;
@@ -284,7 +184,6 @@ my class MapIter is Iterator {
                     'NEXT', $state = 3
                 ));
             }
-#?endif
 
             if $!items || $!listiter {
                 my $nextiter := nqp::create(self).BUILD($!listiter, $!block, $!flattens, False, :$!label);

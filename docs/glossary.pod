@@ -16,57 +16,15 @@ is to be passed to the action method.
 =item NQP - Not Quite Perl
 
 NQP is a primitive language for writing subroutines and methods
-in Parrot using a Perl 6 syntax.  It's not intended to be a
+using a subset of the Perl 6 syntax.  It's not intended to be a
 full-fledged programming language, nor does it provide a runtime
-environment beyond the basic Parrot primitives.  Compilers typically
+environment beyond the basic VM primitives.  Compilers typically
 use NQP to compile "action methods" that convert a parse
 tree into its equivalent abstract syntax tree representation.
 
-=item Parrot design documents (PDDs)
-
-Parrot design documents are the specifications for Parrot's
-interface to its "outside world".  The PDDs serve basically
-the same purpose for Parrot that the Synopses serve for Perl 6.
-(See L<https://github.com/parrot/parrot/tree/master/docs/pdds/>).
-
-=item parse grammar
-
-A "parse grammar" is the set of rules and subroutines that are
-used to parse source code into an equivalent parse tree
-representation.  In most computer science circles we would
-simply call this a "grammar", but in Parrot the term "grammar"
-is also used occasionally to specify other sets of transformation
-rules (that aren't necessarily performing parsing).  Within
-the Rakudo compiler the terms "parse grammar" and "grammar"
-are pretty much interchangeable.
-
-=item PAST - Parrot Abstract Syntax Tree
-
-PAST is a set of classes used to represent the abstract
-semantics of a compiled program.  Normally a compiler will
-convert source code into an equivalent PAST, and then allow
-the compiler toolkit to take care of the code generation.
-PAST is documented in PDD 26 - Parrot Abstract Syntax Tree
-(L<http://svn.parrot.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
-
-=item PCT - Parrot Compiler Toolkit
-
-The Parrot Compiler Toolkit is a suite of components that are useful
-for building compilers in Parrot.  It consists of a base grammar
-for parsers ( C<PCT::Grammar> ), a base class for compilers
-( C<PCT::HLLCompiler> ), an abstract syntax tree representation
-(PAST), and a PAST compiler.
-
-=item PGE - Parse Grammar Engine
-
-The Parse Grammar Engine is the primarily regular expression
-engine for Rakudo and Parrot.  It's the component that handles
-grammars and regular expressions in Rakudo, as well as being
-the primary foundation for parsing Perl 6 itself.
-
 =item Rakudo
 
-Rakudo is the name of a Perl 6 implementation that runs on Parrot.
+Rakudo is the name of a Perl 6 implementation that runs on MoarVM and the JVM.
 An abbreviation of "Rakuda-do," which, when translated from Japanese,
 means "The Way of the Camel". In Japanese, "Rakudo" means "Paradise."
 For more info, see L<http://use.perl.org/~pmichaud/journal/35400>.
@@ -80,14 +38,6 @@ proscriptive sense -- it's more of a guideline or model for
 Perl 6 implementations to follow.  The goal is that eventually
 the various implementations will converge on a common grammar
 (that will probably look a lot like STD.pm).
-
-=item Tree Grammar Engine (TGE)
-
-Early versions of compilers for Parrot, including Rakudo, made
-use of the "Tree Grammar Engine" (F<compilers/tge>) to transform
-parse trees into an abstract syntax tree and then into executable
-code.  For Rakudo, this has been obsoleted in favor of using
-action methods and NQP for transformation into PAST.
 
 =back
 

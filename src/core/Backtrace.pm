@@ -34,25 +34,15 @@ my class Backtrace is List {
     proto method new(|) {*}
 
     multi method new(Exception $e, Int $offset = 0) {
-#?if parrot
-        self.new(nqp::getattr(nqp::decont($e), Exception, '$!ex').backtrace, $offset);
-#?endif
-#?if !parrot
         self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
-#?endif
     }
 
     multi method new() {
         try { die() };
-#?if parrot
-        self.new($!, 3);
-#?endif
-#?if !parrot
         self.new($!, 2);
-#?endif
     }
 
-    # note that parrot backtraces are RPAs, marshalled to us as Parcel
+    # note that backtraces are nqp::list()s, marshalled to us as Parcel
     multi method new(Parcel $bt, Int $offset = 0) {
         my $new = self.bless();
         for $offset .. $bt.elems - 1 {
@@ -72,13 +62,10 @@ my class Backtrace is List {
                     $file eq 'src/gen/m-BOOTSTRAP.nqp' ||
                     $file eq 'src\\gen\\BOOTSTRAP.nqp' ||
                     $file eq 'src\\gen\\m-BOOTSTRAP.nqp' ||
-                    $file eq 'gen/parrot/stage2/QRegex.nqp' ||
                     $file eq 'gen/jvm/stage2/QRegex.nqp' ||
                     $file eq 'gen/moar/stage2/QRegex.nqp';
             last if $file eq 'src/stage2/gen/NQPHLL.nqp' ||
                     $file eq 'src\\stage2\\gen\\NQPHLL.nqp' ||
-                    $file eq 'gen/parrot/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\parrot\\stage2\\NQPHLL.nqp' ||
                     $file eq 'gen/jvm/stage2/NQPHLL.nqp' ||
                     $file eq 'gen\\jvm\\stage2\\NQPHLL.nqp' ||
                     $file eq 'gen/moar/stage2/NQPHLL.nqp' ||

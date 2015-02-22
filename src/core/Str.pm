@@ -628,35 +628,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $global = %options<g> || %options<global>;
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
-        my @matches              = self.match($matcher, |%options);
+
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+        my @matches              = self.match($matcher, |%options);
 
-        return Nil unless @matches;
-        return Nil if @matches == 1 && !@matches[0];
-
-        my $prev = 0;
-        my $result = '';
-        for @matches -> $m {
-            try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
-            $result ~= substr(self,$prev, $m.from - $prev);
-
-            my $real_replacement = ~(nqp::istype($replacement,Callable)
-                ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
-                !! $replacement);
-            $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
-            $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
-            $result ~= $real_replacement;
-            $prev = $m.to;
+        if !@matches || (@matches == 1 && !@matches[0]) {
+            Nil;
         }
-        my $last = @matches[@matches-1];
-        $result ~= substr(self,$last.to);
-        $self = $result;
-        $global ?? (@matches,).list !! @matches[0];
+        else {
+            $self = $self!APPLY-MATCHES(
+              @matches,
+              $replacement,
+              $caller_dollar_slash,
+              $SET_DOLLAR_SLASH,
+              $samecase,
+              $samespace,
+            );
+            $global ?? (@matches,).list !! @matches[0];
+        }
     }
 
-
     multi method subst(Str:D: Str \from, Str \to, :$global!, *%adverbs) {
-        if $global {
+        if $global && !%adverbs {
             TRANSPOSE(self,from,to);
         }
         else {
@@ -667,31 +660,87 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method subst(Str:D: $matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
+
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
-        my @matches              = self.match($matcher, |%options);
+
+        # nothing to do
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+        my @matches = self.match($matcher, |%options);
 
-        return self unless @matches;
-        return self if @matches == 1 && !@matches[0];
+        !@matches || (@matches == 1 && !@matches[0])
+          ?? self
+          !! self!APPLY-MATCHES(
+               @matches,
+               $replacement,
+               $caller_dollar_slash,
+               $SET_DOLLAR_SLASH,
+               $samecase,
+               $samespace,
+             );
+    }
 
-        my $prev = 0;
-        my $result = '';
-        for @matches -> $m {
-            try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
-            $result ~= substr(self,$prev, $m.from - $prev);
+    method !APPLY-MATCHES(\matches,$replacement,\cds,\SDS,\case,\space) {
+        my \callable       := nqp::istype($replacement,Callable);
 
-            my $real_replacement = ~(nqp::istype($replacement,Callable)
-                ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
-                !! $replacement);
-            $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
-            $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
-            $result ~= $real_replacement;
-            $prev = $m.to;
+        my int $prev;
+        my str $str    = nqp::unbox_s(self);
+        my Mu $result := nqp::list_s();
+        try cds = $/ if SDS;
+
+        # need to do something special
+        if SDS || case || space || callable {
+            my \noargs         := callable ?? $replacement.count == 0 !! False;
+            my \case-or-space  := case || space;
+            my \case-and-space := case && space;
+
+            for matches -> $m {
+                try cds = $m if SDS;
+                nqp::push_s(
+                  $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
+                );
+
+                if case-or-space {
+                    my $it := ~(callable
+                      ?? (noargs ?? $replacement() !! $replacement($m))
+                      !! $replacement
+                    );
+                    if case-and-space {
+                        my $mstr := $m.Str;
+                        nqp::push_s($result,nqp::unbox_s(
+                          $it.samecase($mstr).samespace($mstr)
+                        ) );
+                    }
+                    elsif case {
+                        nqp::push_s($result,nqp::unbox_s($it.samecase(~$m)));
+                    }
+                    else { # space
+                        nqp::push_s($result,nqp::unbox_s($it.samespace(~$m)));
+                    }
+                }
+                else {
+                    nqp::push_s($result,nqp::unbox_s( ~(callable
+                      ?? (noargs ?? $replacement() !! $replacement($m))
+                      !! $replacement
+                    ) ) );
+                }
+                $prev = nqp::unbox_i($m.to);
+            }
+            nqp::push_s($result,nqp::substr($str,$prev));
+            nqp::p6box_s(nqp::join('',$result));
         }
-        my $last = @matches.pop;
-        $result ~= substr(self,$last.to);
-        $result;
+
+        # simple string replacement
+        else {
+            for matches -> $m {
+                nqp::push_s(
+                  $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
+                );
+                $prev = nqp::unbox_i($m.to);
+            }
+            nqp::push_s($result,nqp::substr($str,$prev));
+            nqp::p6box_s(nqp::join(nqp::unbox_s($replacement),$result));
+        }
     }
 
     method ords(Str:D:) {
@@ -1507,17 +1556,17 @@ sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join;
 }
 
-sub substr(\what, \from, $chars?) {
-    my str $str  = nqp::unbox_s(nqp::istype(what,Str) ?? what !! what.Str);
+sub substr(Str() $what, \from, $chars?) {
+    my str $str  = nqp::unbox_s($what);
     my int $max  = nqp::chars($str);
     my int $from = nqp::unbox_i(
       nqp::istype(from, Callable) ?? (from)(nqp::p6box_i($max)) !! from.Int
     );
 
     if $from < 0 {
-        if nqp::istype($from, Callable) || -$from > $max {
+        if nqp::istype(from, Callable) || -$from > $max {
             X::OutOfRange.new(
-              :what<Start argument to substr>,:got(from),:range("0..$max"),
+              :what<Start argument to substr>,:got($from),:range("0..$max"),
             ).fail;
         }
         else {
@@ -1529,7 +1578,7 @@ sub substr(\what, \from, $chars?) {
     }
     elsif $from > $max {
         X::OutOfRange.new(
-          :what<Start of substr>,:got(from),:range("0..$max"),
+          :what<Start of substr>,:got($from),:range("0..$max"),
         ).fail;
     }
 
@@ -1550,8 +1599,8 @@ sub substr(\what, \from, $chars?) {
     nqp::p6box_s(nqp::substr($str, $from, $length));
 }
 
-sub substr-rw($s is rw, $from, $length?) {
-    my str $str   = nqp::unbox_s(nqp::istype($s,Str) ?? $s !! $s.Str);
+sub substr-rw(Str() $s is rw, $from, $length?) {
+    my str $str   = nqp::unbox_s($s);
     my int $chars = nqp::unbox_i(
       nqp::defined($length) ?? $length !! $from - nqp::chars($str)
     );
@@ -1626,14 +1675,6 @@ sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
 
 # These probably belong in a separate unicodey file
 
-#?if parrot
-multi sub uniname(|)  { die 'uniname NYI on parrot backend' }
-multi sub uniprop(|)  { die 'uniprop NYI on parrot backend' }
-multi sub unibool(|)  { die 'unibool NYI on parrot backend' }
-multi sub unival(|)   { die 'unival NYI on parrot backend' }
-multi sub univals(|)  { die 'univals NYI on parrot backend' }
-multi sub unimatch(|) { die 'unimatch NYI on parrot backend' }
-#?endif
 #?if jvm
 multi sub uniname(|)  { die 'uniname NYI on jvm backend' }
 multi sub uniprop(|)  { die 'uniprop NYI on jvm backend' }

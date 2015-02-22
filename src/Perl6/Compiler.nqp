@@ -75,21 +75,16 @@ class Perl6::Compiler is HLL::Compiler {
           -M module            loads the module prior to running the program
           --target=[stage]     specify compilation stage to emit
           --optimize=[level]   use the given level of optimization (0..3)
-          -t, --trace=[flags]  enable trace flags, see 'parrot --help-debug'
           --encoding=[mode]    specify string encoding mode
           -o, --output=[name]  specify name of output file
           -v, --version        display version information
           --stagestats         display time spent in the compilation stages
           --ll-exception       display a low level backtrace on errors
-          --profile            print profile information to standard error (Parrot)
-                               write profile information as HTML file (MoarVM)
+          --profile            write profile information as HTML file (MoarVM)
           --doc=[module]       Use Pod::To::[module] to render inline documentation.
 
 
         Note that only boolean single-letter options may be bundled.
-
-        Output from --profile can be visualized by kcachegrind for the Parrot backend.
-
 
         To modify the include path, you can set the PERL6LIB environment variable:
         

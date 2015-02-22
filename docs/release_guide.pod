@@ -209,9 +209,16 @@ If there are any problems, fix them and go back to step 10.
 
 Tag the release by its release month ("YYYY.MM") and its code name.
 
-  $ git tag -a -m"tag release #nn" YYYY.MM    # e.g., 2013.08
-  $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
+  $ git tag -s -a -m"tag release #nn" YYYY.MM    # e.g., 2013.08
+  $ git tag -s -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
   $ git push --tags
+
+The C<-s> tells git to sign the release with your PGP/GPG key, so it will
+likely ask you for the passphrase of your secrect key.
+
+If you have no PGP key, you might need to
+L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should
+that prove impossible, you can omit the C<-s> from the command line.
 
 =item 14.
 

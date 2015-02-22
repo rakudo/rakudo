@@ -1050,14 +1050,6 @@ class Perl6::Optimizer {
             }
         }
 
-# Can't do it on parrot currently, because we'd get:
-#   Type check failed for return value; expected 'Bool' but got 'Sub'
-# or
-#   maximum recursion depth exceeded (about infix:<-> / nqp::sub_I)
-# of
-#   perl6-p -e 'my int $foo; say $foo + 1 + nqp::add_i(0,0)' # 0
-#   perl6-p -e 'my int $foo; say $foo + 1 + nqp::add_i(0,1)' # 2
-#?if !parrot
         # May be able to eliminate some decontrv operations.
         if $optype eq 'p6decontrv' {
             # Natives don't need it.
@@ -1083,10 +1075,6 @@ class Perl6::Optimizer {
         # Some ops have first boolean arg, and we may be able to get rid of
         # a p6bool if there's already an integer result behind it.
         elsif $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
-#?endif
-#?if parrot
-        if $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
-#?endif
             my $update := $op;
             my $target := $op[0];
             while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && +@($target) == 1 {

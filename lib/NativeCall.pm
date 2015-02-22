@@ -71,8 +71,22 @@ my native long       is Int is ctype("long")       is repr("P6int")    is export
 #~ my native longlong   is Int is ctype("longlong")   is repr("P6int")    is export(:types, :DEFAULT) { };
 #~ my native longdouble is Int is ctype("longdouble") is repr("P6num")    is export(:types, :DEFAULT) { };
 my class void                                      is repr('CPointer') is export(:types, :DEFAULT) { };
-my role Pointer[::TValue = void]                   is repr('CPointer') is export(:types, :DEFAULT) {
-    method of() { ::TValue }
+my class Pointer                                   is repr('CPointer') is export(:types, :DEFAULT) { };
+
+# need to introduce the roles in there in an augment, because you can't
+# inherit from types that haven't been properly composed.
+use MONKEY_TYPING;
+augment class Pointer {
+    my role TypedPointer[::TValue = void] is repr('CPointer') {
+        method of() { ::TValue }
+        method deref(::?CLASS:D \ptr:) { nativecast(::TValue, ptr) }
+    }
+    multi method PARAMETERIZE_TYPE(Mu:U \t) {
+        die "A types pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
+            unless t ~~ Int || t ~~ Num || t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CPointer' | 'CArray';
+        my \typed := TypedPointer[t];
+        typed.HOW.make_pun(typed);
+    }
 }
 
 # Gets the NCI type code to use based on a given Perl 6 type.

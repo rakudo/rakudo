@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #ifdef WIN32
 #define DLLEXPORT __declspec(dllexport)
 #else
@@ -67,6 +69,7 @@ protected:
   int bar, baz;
   Point a_point;
   char c;
+  int *intptr;
 };
 
 DLLEXPORT int SizeofDerived2() {
@@ -81,8 +84,11 @@ Derived2::Derived2()
     a_point.cx = 3.14;
     a_point.cy = 2.62;
     c          = 'A';
+    intptr     = (int *)malloc(sizeof(int));
+    *intptr    = 666;
 }
 
 Derived2::~Derived2()
 {
+    free(intptr);
 }

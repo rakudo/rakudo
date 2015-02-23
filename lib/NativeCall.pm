@@ -373,6 +373,10 @@ sub nativecast($target-type, $source) is export(:DEFAULT) {
         nqp::decont(map_return_type($target-type)), nqp::decont($source));
 }
 
+sub nativesizeof($obj) is export(:DEFAULT) {
+    nqp::nativecallsizeof($obj)
+}
+
 sub cglobal($libname, $symbol, $target-type) is export {
     Proxy.new(
         FETCH => -> $ {

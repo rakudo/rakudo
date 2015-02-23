@@ -48,14 +48,14 @@ class Perl6::Metamodel::Archetypes {
     # Are we allowed to augment the type?
     has $!augmentable;
     
-    method nominal() { $!nominal }
-    method nominalizable() { $!nominalizable }
-    method inheritable() { $!inheritable }
-    method inheritalizable() { $!inheritalizable }
-    method composable() { $!composable }
-    method composalizable() { $!composalizable }
-    method generic() { $!generic }
-    method parametric() { $!parametric }
-    method coercive() { $!coercive }
-    method augmentable() { $!augmentable }
+    method nominal() { $!nominal // 0 }
+    method nominalizable() { $!nominalizable // 0 }
+    method inheritable() { $!inheritable // 0 }
+    method inheritalizable() { $!inheritalizable // 0 }
+    method composable() { $!composable // 0 }
+    method composalizable() { $!composalizable // 0 }
+    method generic() { $!generic // 0 }
+    method parametric() { $!parametric // 0 }
+    method coercive() { $!coercive // 0 }
+    method augmentable() { $!augmentable // 0 }
 }

@@ -45,10 +45,10 @@ sub SizeofInt() returns int32 is native('./12-sizeof') { * }
 sub SizeofLng() returns int32 is native('./12-sizeof') { * }
 sub SizeofPtr() returns int32 is native('./12-sizeof') { * }
 
-is nativesizeof(Foo),           SizeofFoo(), 'sizeof(Foo)';
-is nativesizeof(Bar),           SizeofBar(), 'sizeof(Bar)';
-is nativesizeof(Baz),           SizeofBaz(), 'sizeof(Baz)';
-is nativesizeof(Buz),           SizeofBuz(), 'sizeof(Buz)';
-is nativesizeof(int32),         SizeofInt(), 'sizeof(int)';
-is nativesizeof(long),          SizeofLng(), 'sizeof(long)';
-is nativesizeof(OpaquePointer), SizeofPtr(), 'sizeof(void *)';
+is nativesizeof(Foo),     SizeofFoo(), 'sizeof(Foo)';
+is nativesizeof(Bar),     SizeofBar(), 'sizeof(Bar)';
+is nativesizeof(Baz),     SizeofBaz(), 'sizeof(Baz)';
+is nativesizeof(Buz),     SizeofBuz(), 'sizeof(Buz)';
+is nativesizeof(int32),   SizeofInt(), 'sizeof(int)';
+is nativesizeof(long),    SizeofLng(), 'sizeof(long)';
+is nativesizeof(Pointer), SizeofPtr(), 'sizeof(void *)';

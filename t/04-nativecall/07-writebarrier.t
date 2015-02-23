@@ -24,7 +24,7 @@ class Structy is repr('CStruct') {
 sub make_ptr() returns IntPtr  is native('./07-writebarrier') { * }
 sub array_twiddle(CArray[IntPtr] $a) is native('./07-writebarrier') { * }
 sub struct_twiddle(Structy $s) is native('./07-writebarrier') { * }
-sub dummy(CArray[OpaquePointer] $a) is native('./07-writebarrier') { * }
+sub dummy(CArray[Pointer] $a) is native('./07-writebarrier') { * }
 sub save_ref(Structy $s) is native('./07-writebarrier') { * }
 sub atadistance() is native('./07-writebarrier') { * }
 

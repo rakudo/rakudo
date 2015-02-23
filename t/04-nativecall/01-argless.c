@@ -7,7 +7,7 @@
 #define DLLEXPORT extern
 #endif
 
-DLLEXPORT Nothing()
+DLLEXPORT void Nothing()
 {
     /* we don't even print something */
 }

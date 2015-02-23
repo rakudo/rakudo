@@ -183,17 +183,17 @@ my class Parameter { # declared in BOOTSTRAP
             }
         } else {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
-            $name = '|';
+                $name = '|';
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-            $name = '\\';
+                $name = '\\';
             } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
-            $name = '@';
+                $name = '@';
             } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-            $name = '%';
+                $name = '%';
             } elsif $type ~~ /^^ Callable >> / {
-            $name = '&';
+                $name = '&';
             } else {
-            $name = '$';
+                $name = '$';
             }
         }
         my $default = self.default();

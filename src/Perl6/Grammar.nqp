@@ -268,7 +268,7 @@ role STD {
         );
     }
     method worryobs($old, $new, $when = 'in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+        self.typed_worry('X::Obsolete',
             old         => $old,
             replacement => $new,
             when        => $when,
@@ -3243,11 +3243,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
                                 if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
                             if $trap == 1 {        # probably misused P5ism
-                                $<longname>.CURSOR.sorryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
+                                $<longname>.CURSOR.worryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
                             }
                             elsif $trap == 2 {        # probably misused P6ism
-                                $<longname>.CURSOR.sorry("The '$name' listop may not be called without arguments (please use () or whitespace to clarify)");
+                                $<longname>.CURSOR.worry("The '$name' listop may not be called without arguments (please use () or whitespace to clarify)");
                             }
+                            $<longname>.CURSOR.sorry("No valid term seen where one is required");
                         }
                     }
                 }

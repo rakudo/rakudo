@@ -2332,8 +2332,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Produce a code object and install it.
         my $invocant_type := $*W.find_symbol([$*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my %sig_info := hash(parameters => []);
+        my $signature := $*W.create_signature_and_params($/, %sig_info, $a_past, 'Any',
+            :method, :$invocant_type);
         my $code := methodize_block($/, $*W.stub_code_object('Method'), 
-            $a_past, %sig_info, $invocant_type);
+            $a_past, $signature, %sig_info);
         install_method($/, $meth_name, 'has', $code, $install_in);
     }
 
@@ -2380,7 +2382,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
                 );
             }
-            @params    := $<multisig>.ast<parameters>;
+            @params    := %*SIG_INFO<parameters>;
             $signature := $*SIG_OBJ;
         }
         else {
@@ -2814,9 +2816,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Do the various tasks to trun the block into a method code object.
         my $meta := $<specials> && ~$<specials> eq '^';
         my %sig_info := $<multisig> ?? $<multisig>.ast !! hash(parameters => []);
-        my $inv_type  := $*W.find_symbol([
+        my $invocant_type := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') && !$meta ?? '$?CLASS' !! 'Mu']);
-        my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
+        my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
+            :method, :$invocant_type);
+        my $code := methodize_block($/, $*DECLARAND, $past, $signature, %sig_info, :yada(is_yada($/)));
 
         # If it's a proto but not an onlystar, need some variables for the
         # {*} implementation to use.
@@ -2965,10 +2969,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $closure;
     }
 
-    sub methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
-        # Get signature and ensure it has an invocant.
-        my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
-            :method, :$invocant_type);
+    sub methodize_block($/, $code, $past, $signature, %sig_info, :$yada) {
+        # Add signature binding code.
         add_signature_binding_code($past, $signature, %sig_info<parameters>);
 
         # Place to store invocant.
@@ -3210,9 +3212,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $block.symbol('$?REGEX', :scope<lexical>);
 
         # Do the various tasks to turn the block into a method code object.
-        my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
+        my $invocant_type := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
             $name && $*SCOPE ne 'my' && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        methodize_block($/, $code, $past, %sig_info, $inv_type);
+        my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
+            :method, :$invocant_type);
+        methodize_block($/, $code, $past, $signature, %sig_info);
 
         # Need to put self into a register for the regex engine.
         $past[0].push(QAST::Op.new(

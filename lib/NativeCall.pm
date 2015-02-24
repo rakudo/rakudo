@@ -461,9 +461,9 @@ sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
         when long {
             $R ~ $K ~ 'l'
         }
-        #~ when longlong {
-            #~ $R ~ 'x'
-        #~ }
+        when longlong {
+            $R ~ 'x'
+        }
         when num32 {
             $R ~ $K ~ 'f'
         }

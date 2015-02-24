@@ -474,12 +474,9 @@ sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
             #~ $R ~ 'e'
         #~ }
         when Str {
-            'Rc'
+            'Pc'
         }
-        when CArray {
-            'R' ~ $K ~ cpp_param_letter(.of);
-        }
-        when Pointer {
+        when CArray | Pointer {
             'P' ~ $K ~ cpp_param_letter(.of);
         }
         default {

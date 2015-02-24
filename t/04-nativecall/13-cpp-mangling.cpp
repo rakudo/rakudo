@@ -20,7 +20,8 @@ public:
     virtual int TakeAFloat(float i) { return 7; }
     virtual int TakeADouble(double i) { return 8; }
     virtual int TakeAString(char *i) { return 9; }
-    virtual int TakeAnArray(int *i) { return 10; }
+    virtual int TakeAnArray(int i[]) { return 10; }
+    virtual int TakeAPointer(void *i) { return 11; }
 };
 
 Foo::Foo(){};

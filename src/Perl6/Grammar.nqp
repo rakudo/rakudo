@@ -3248,7 +3248,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             elsif $trap == 2 {        # probably misused P6ism
                                 $<longname>.CURSOR.worry("The '$name' listop may not be called without arguments (please use () or whitespace to clarify)");
                             }
-                            $<longname>.CURSOR.panic("No valid term seen where one is required");
+                            $<longname>.CURSOR.sorry("No valid term seen where one is required");
                         }
                     }
                 }

@@ -118,7 +118,7 @@ augment class Pointer {
     }
     multi method PARAMETERIZE_TYPE(Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t ~~ Int || t ~~ Num || t === Str || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
+            unless t ~~ Int || t ~~ Num || t ~~ Bool || t === Str || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedPointer[t];
         typed.HOW.make_pun(typed);
     }
@@ -128,6 +128,7 @@ my constant OpaquePointer is export(:types, :DEFAULT) = Pointer;
 # Gets the NCI type code to use based on a given Perl 6 type.
 my %type_map =
     'int8'     => 'char',
+    'Bool'     => 'char',
     'int16'    => 'short',
     'int32'    => 'int',
     'long'     => 'long',

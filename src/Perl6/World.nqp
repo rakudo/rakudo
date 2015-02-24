@@ -1032,10 +1032,17 @@ class Perl6::World is HLL::World {
     # for all of the given parameter descriptors. Then make a Signature
     # object wrapping them.
     method create_signature_and_params($/, %signature_info, $lexpad, $default_type_name,
-            :$no_attr_check, :$rw, :$method) {
+            :$no_attr_check, :$rw, :$method, :$invocant_type) {
         # If it's a method, add auto-slurpy.
         my @params := %signature_info<parameters>;
         if $method {
+            unless @params[0]<is_invocant> {
+                @params.unshift(hash(
+                    nominal_type => $invocant_type,
+                    is_invocant => 1,
+                    is_multi_invocant => 1
+                ));
+            }
             unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
                 unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
                     @params.push(hash(

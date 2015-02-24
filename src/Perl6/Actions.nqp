@@ -2967,17 +2967,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
         # Get signature and ensure it has an invocant.
-        my @params := %sig_info<parameters>;
-        unless @params[0]<is_invocant> {
-            @params.unshift(hash(
-                nominal_type => $invocant_type,
-                is_invocant => 1,
-                is_multi_invocant => 1
-            ));
-        }
         my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
-            :method);
-        add_signature_binding_code($past, $signature, @params);
+            :method, :$invocant_type);
+        add_signature_binding_code($past, $signature, %sig_info<parameters>);
 
         # Place to store invocant.
         $past[0].unshift(QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') ));

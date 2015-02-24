@@ -2780,14 +2780,22 @@ class Perl6::World is HLL::World {
                 }
                 else {
                     my $expected_infix := 0;
+                    my $expected_term := 0;
                     for @expected {
                         if nqp::index($_, "infix") >= 0 {
                             $expected_infix := 1;
-                            last;
+                        }
+                        elsif nqp::index($_, "prefix or term") >= 0 {
+                            $expected_term := 1;
                         }
                     }
                     if $expected_infix {
-                        %opts<reason> := "Two terms in a row";
+			if $expected_term {
+			    %opts<reason> := "Bogus term";
+			}
+			else {
+			    %opts<reason> := "Two terms in a row";
+			}
                     }
                 }
             }

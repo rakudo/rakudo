@@ -5239,8 +5239,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # rather than at runtime since we'll innevitably fail.
             my $scope := $lhs_ast.scope;
             if $scope ne 'lexicalref' && $scope ne 'attributeref' {
-                # XXX Typed exception, only sorry?
-                $/.CURSOR.panic('Cannot assign to a readonly variable');
+                $lhs_ast.node.CURSOR.typed_sorry('X::Assignment::RO::Comp',
+                    variable => $lhs_ast.name);
             }
             $past := QAST::Op.new(
                 :op(@native_assign_ops[$spec]), :returns($lhs_ast.returns),

@@ -49,7 +49,8 @@ my class IO::Handle does IO {
             return self;
         }
 
-        fail (X::IO::Directory.new(:$!path, :trying<open>)) if $!path.d;
+        fail (X::IO::Directory.new(:$!path, :trying<open>))
+          if $!path.e && $!path.d;
         $r = $w = True if $rw;
 
         if $p {

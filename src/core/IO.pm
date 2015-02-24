@@ -72,7 +72,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
 
         # something to check
         elsif @parts.at_pos($index - 1) -> $part {
-            if $part.ord == 46 { # fast $part.substr(0,1) eq '.'
+            if $part.ord == 46 { # fast substr($part,0,1) eq '.'
                 if $part eq '..' {
                     return updirs($index - 1);
                 }

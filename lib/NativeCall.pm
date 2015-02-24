@@ -67,27 +67,63 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
     $result
 }
 
-my native long       is Int is ctype("long")       is repr("P6int")    is export(:types, :DEFAULT) { };
-#~ my native longlong   is Int is ctype("longlong")   is repr("P6int")    is export(:types, :DEFAULT) { };
-#~ my native longdouble is Int is ctype("longdouble") is repr("P6num")    is export(:types, :DEFAULT) { };
-my class void                                      is repr('CPointer') is export(:types, :DEFAULT) { };
-my class Pointer                                   is repr('CPointer') is export(:types, :DEFAULT) { };
+my native long     is Int is ctype("long")     is repr("P6int")    is export(:types, :DEFAULT) { };
+my native longlong is Int is ctype("longlong") is repr("P6int")    is export(:types, :DEFAULT) { };
+my class void                                  is repr('CPointer') is export(:types, :DEFAULT) { };
+# Expose a Pointer class for working with raw pointers.
+my class Pointer                               is repr('CPointer') is export(:types, :DEFAULT) { };
 
 # need to introduce the roles in there in an augment, because you can't
 # inherit from types that haven't been properly composed.
 use MONKEY_TYPING;
 augment class Pointer {
+    method of() { void }
+
+    method ^name() { 'Pointer' }
+
+    multi method new() {
+        self.CREATE()
+    }
+    multi method new(int $addr) {
+        nqp::box_i($addr, ::?CLASS)
+    }
+    multi method new(Int $addr) {
+        nqp::box_i(nqp::unbox_i(nqp::decont($addr)), ::?CLASS)
+    }
+
+    method Numeric(::?CLASS:D:) { self.Int }
+    method Int(::?CLASS:D:) {
+        nqp::p6box_i(nqp::unbox_i(nqp::decont(self)))
+    }
+
+    method deref(::?CLASS:D \ptr:) { nativecast(void, ptr) }
+
+    multi method gist(::?CLASS:U:) { '(' ~ self.^name ~ ')' }
+    multi method gist(::?CLASS:D:) {
+        if self.Int -> $addr {
+            self.^name ~ '<' ~ $addr.fmt('%#x') ~ '>'
+        }
+        else {
+            self.^name ~ '<NULL>'
+        }
+    }
+
+    multi method perl(::?CLASS:U:) { self.^name }
+    multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
+
     my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
         method of() { ::TValue }
+        method ^name() { 'Pointer[' ~ ::TValue.^name ~ ']' }
         method deref(::?CLASS:D \ptr:) { nativecast(::TValue, ptr) }
     }
     multi method PARAMETERIZE_TYPE(Mu:U \t) {
-        die "A types pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t ~~ Int || t ~~ Num || t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CPointer' | 'CArray';
+        die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
+            unless t ~~ Int || t ~~ Num || t === Str || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedPointer[t];
         typed.HOW.make_pun(typed);
     }
 }
+my constant OpaquePointer is export(:types, :DEFAULT) = Pointer;
 
 # Gets the NCI type code to use based on a given Perl 6 type.
 my %type_map =
@@ -204,36 +240,8 @@ my role NativeCallEncoded[$name] {
     method native_call_encoded() { $name };
 }
 
-# Expose an OpaquePointer class for working with raw pointers.
-my class OpaquePointer is export(:types, :DEFAULT) is repr('CPointer') {
-    multi method new() {
-        self.CREATE()
-    }
-    multi method new(int $addr) {
-        nqp::box_i($addr, OpaquePointer)
-    }
-    multi method new(Int $addr) {
-        nqp::box_i(nqp::unbox_i(nqp::decont($addr)), OpaquePointer)
-    }
-    method Int(OpaquePointer:D:) {
-        nqp::p6box_i(nqp::unbox_i(nqp::decont(self)))
-    }
-    method Numeric(OpaquePointer:D:) { self.Int }
-    multi method gist(OpaquePointer:U:) { '(OpaquePointer)' }
-    multi method gist(OpaquePointer:D:) {
-        if self.Int -> $addr {
-            'OpaquePointer<' ~ $addr.fmt('%#x') ~ '>'
-        }
-        else {
-            'OpaquePointer<NULL>'
-        }
-    }
-    multi method perl(OpaquePointer:U:) { 'OpaquePointer' }
-    multi method perl(OpaquePointer:D:) { 'OpaquePointer.new(' ~ self.Int ~ ')' }
-}
-
 # CArray class, used to represent C arrays.
-my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(OpaquePointer) { };
+my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(Pointer) { };
 
 # need to introduce the roles in there in an augment, because you can't 
 # inherit from types that haven't been properly composed.

@@ -1175,7 +1175,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           || !$to.defined              # or a type object
           || %n;                       # or any named params passed
 
-        return TRANSPOSE-ONE(self, $from, $to.substr(0,1))  # 1 char to 1 char
+        return TRANSPOSE-ONE(self, $from, substr($to,0,1))  # 1 char to 1 char
           if $from.chars == 1 && $to.chars;
 
         sub expand(Str:D \x) {
@@ -1556,65 +1556,112 @@ sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join;
 }
 
-sub substr(Str() $what, \from, $chars?) {
-    my str $str  = nqp::unbox_s($what);
-    my int $max  = nqp::chars($str);
-    my int $from = nqp::unbox_i(
-      nqp::istype(from, Callable) ?? (from)(nqp::p6box_i($max)) !! from.Int
-    );
-
-    if $from < 0 {
-        if nqp::istype(from, Callable) || -$from > $max {
-            X::OutOfRange.new(
-              :what<Start argument to substr>,:got($from),:range("0..$max"),
-            ).fail;
-        }
-        else {
-            X::OutOfRange.new(
-              :what<Start argument to substr>,:got(from),:range<0..Inf>,
-              :comment("use *$from if you want to index relative to the end")
-            ).fail;
-        }
-    }
-    elsif $from > $max {
-        X::OutOfRange.new(
-          :what<Start of substr>,:got($from),:range("0..$max"),
-        ).fail;
-    }
-
-    my int $length = nqp::unbox_i(
-      $chars.defined
-        ?? $chars === Inf
-          ?? $max - $from
-          !! nqp::istype($chars,Callable)
-            ?? $chars($max - $from)
-            !! (nqp::istype($chars,Int) ?? $chars !! $chars.Int)
-        !! $max - $from
-    );
+sub SUBSTR-START-OOR(\from,\max) {
     X::OutOfRange.new(
-      :what<Length argument to substr>,:got($chars),:range<0..Inf>,
-      :comment("use *$length if you want to index relative to the end")
-    ).fail if $length < 0;
+      :what<Start argument to substr>,
+      :got(from),
+      :range("0.." ~ max),
+      :comment( nqp::istype(from, Callable) || -from > max
+        ?? ''
+        !! "use *{from} if you want to index relative to the end"),
+    );
+}
+sub SUBSTR-CHARS-OOR(\chars) {
+    X::OutOfRange.new(
+      :what<Number of characters argument to substr>,
+      :got(chars),
+      :range("0..Inf"),
+      :comment("use *{chars} if you want to index relative to the end"),
+    );
+}
+sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) is hidden_from_backtrace {
+    my Int $max := what.chars;
+    from = nqp::istype($start, Callable) ?? $start($max) !! $start.Int;
+    SUBSTR-START-OOR(from,$max).fail
+      if from < 0 || from > $max;
 
-    nqp::p6box_s(nqp::substr($str, $from, $length));
+    chars = $want.defined
+      ?? $want === Inf
+        ?? $max - from
+        !! nqp::istype($want,Callable)
+          ?? $want($max - from)
+          !! (nqp::istype($want,Int) ?? $want !! $want.Int)
+      !! $max - from;
+    chars < 0 ?? SUBSTR-CHARS-OOR(chars).fail !! 1;
 }
 
-sub substr-rw(Str() $s is rw, $from, $length?) {
-    my str $str   = nqp::unbox_s($s);
-    my int $chars = nqp::unbox_i(
-      nqp::defined($length) ?? $length !! $from - nqp::chars($str)
-    );
-    my str $substr = nqp::substr($str,$from,$chars);
-    Proxy.new(
-        FETCH   => sub ($) { nqp::p6box_s($substr) },
-        STORE   => sub ($, $new) {
-            $s = nqp::p6box_s(
-              nqp::substr($str,0,$from)
-              ~ nqp::unbox_s($new)
-              ~ nqp::substr($str,$from + $chars)
-            );
-        }
-    );
+proto sub substr(|) { * }
+multi sub substr(Str:D \what, Int:D \start) {
+    my str $str  = nqp::unbox_s(what);
+    my int $max  = nqp::chars($str);
+    my int $from = nqp::unbox_i(start);
+
+    SUBSTR-START-OOR($from,$max).fail
+      if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
+
+    nqp::p6box_s(nqp::substr($str,$from));
+}
+multi sub substr(Str:D \what, Callable:D \start) {
+    my str $str  = nqp::unbox_s(what);
+    my int $max  = nqp::chars($str);
+    my int $from = nqp::unbox_i((start)(nqp::p6box_i($max)));
+
+    SUBSTR-START-OOR($from,$max).fail
+      if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
+
+    nqp::p6box_s(nqp::substr($str,$from));
+}
+multi sub substr(Str:D \what, Int:D \start, Int:D \want) {
+    my str $str   = nqp::unbox_s(what);
+    my int $max   = nqp::chars($str);
+    my int $from  = nqp::unbox_i(start);
+
+    SUBSTR-START-OOR($from,$max).fail
+     if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
+
+    my int $chars = nqp::unbox_i(want);
+    SUBSTR-CHARS-OOR($chars).fail
+      if nqp::islt_i($chars,0);
+
+    nqp::p6box_s(nqp::substr($str,$from,$chars));
+}
+multi sub substr(Str() $what, \start, $want?) {
+
+    # should really be int, but \ then doesn't work for rw access
+    my $r := SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
+    $r.defined
+      ?? nqp::p6box_s(nqp::substr(
+           nqp::unbox_s($what),nqp::unbox_i($from),nqp::unbox_i($chars)
+         ))
+      !! $r;
+}
+
+sub substr-rw(\what, \start, $want?) {
+    my $Str := nqp::istype(what,Str) ?? what !! what.Str;
+    
+    # should really be int, but \ then doesn't work for rw access
+    my $r := SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
+    $r.defined
+      ?? Proxy.new(
+           FETCH => sub ($) {
+               nqp::p6box_s(nqp::substr(
+                 nqp::unbox_s($Str), nqp::unbox_i($from), nqp::unbox_i($chars)
+               ));
+           },
+           STORE => sub ($, $new) {
+               my $str = nqp::unbox_s($Str);
+               what = nqp::p6box_s(
+                 nqp::concat(
+                   nqp::substr($str,0,nqp::unbox_i($from)),
+                   nqp::concat(
+                     nqp::unbox_s($new),
+                     nqp::substr($str,nqp::unbox_i($from + $chars))
+                   )
+                 )
+               );
+           },
+         )
+      !! $r;
 }
 
 sub TRANSPOSE(Str \string, Str \original, Str \final) {

@@ -2662,6 +2662,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
+        :my $*SIG_OBJ;
+        :my %*SIG_INFO;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2684,7 +2686,27 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <trait>*
             | <?>
             ]
-            { $*IN_DECL := ''; }
+            {
+                $*IN_DECL := '';
+
+                my $meta := $<specials> && ~$<specials> eq '^';
+                my $invocant_type := $*W.find_symbol([
+                    $<longname> && $*W.is_lexical('$?CLASS') && !$meta
+                        ?? '$?CLASS'
+                        !! 'Mu']);
+                if $<multisig> {
+                    %*SIG_INFO := $<multisig>.ast;
+                    $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,
+                        %*SIG_INFO, $*W.cur_lexpad(), 'Any', :method,
+                        :$invocant_type);
+                }
+                else {
+                    %*SIG_INFO := hash(parameters => []);
+                    $*SIG_OBJ := $*W.create_signature_and_params($/,
+                        %*SIG_INFO, $*W.cur_lexpad(), 'Any', :method,
+                        :$invocant_type);
+                }
+            }
             [
             || <onlystar>
             || <blockoid>

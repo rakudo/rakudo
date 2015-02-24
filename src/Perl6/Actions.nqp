@@ -2813,14 +2813,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $past.name($name ?? $name !! '<anon>');
 
-        # Do the various tasks to trun the block into a method code object.
-        my $meta := $<specials> && ~$<specials> eq '^';
-        my %sig_info := $<multisig> ?? $<multisig>.ast !! hash(parameters => []);
-        my $invocant_type := $*W.find_symbol([
-            $<longname> && $*W.is_lexical('$?CLASS') && !$meta ?? '$?CLASS' !! 'Mu']);
-        my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
-            :method, :$invocant_type);
-        my $code := methodize_block($/, $*DECLARAND, $past, $signature, %sig_info, :yada(is_yada($/)));
+        my $code := methodize_block($/, $*DECLARAND, $past, $*SIG_OBJ,
+            %*SIG_INFO, :yada(is_yada($/)));
 
         # If it's a proto but not an onlystar, need some variables for the
         # {*} implementation to use.
@@ -2863,6 +2857,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Install method.
         if $name {
+            my $meta := $<specials> && ~$<specials> eq '^';
             install_method($/, $name, $*SCOPE, $code, $outer, :$meta,
                 :private($<specials> && ~$<specials> eq '!'));
         }

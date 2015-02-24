@@ -1358,13 +1358,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pblock($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :my $*SIG_OBJ;
+        :my %*SIG_INFO;
         :dba('parameterized block')
         [
         | <lambda>
             <.newpad>
             :my $*SCOPE := 'my';
             :my $*GOAL := '{';
-            <signature>
+            <signature> {
+                %*SIG_INFO := $<signature>.ast;
+                $*SIG_OBJ := $*W.create_signature_and_params($<signature>,
+                    %*SIG_INFO, $*W.cur_lexpad(), 'Mu', :rw($<lambda> eq '<->'));
+            }
             <blockoid>
         | <?[{]>
             <.newpad>

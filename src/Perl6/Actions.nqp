@@ -830,7 +830,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             elsif $<signature> {
-                %sig_info := $<signature>.ast;
+                %sig_info := %*SIG_INFO;
                 @params := %sig_info<parameters>;
                 if $*IMPLICIT {
                     my int $declares_topic := 0;
@@ -867,9 +867,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %sig_info<parameters> := @params;
             }
 
-            # Create signature object and set up binding.
-            my $signature := $*W.create_signature_and_params($<signature>, %sig_info,
-                $block, 'Mu', :rw($<lambda> eq '<->'));
+            # Create signature object if we didn't already, and set up binding.
+            my $signature := $*SIG_OBJ // $*W.create_signature_and_params(
+                $<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
 
             # We'll install PAST in current block so it gets capture_lex'd.

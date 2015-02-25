@@ -116,8 +116,8 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
         diag "     got: '$got'";
     }
     else {
-        my $test = so $got === $expected;
-        $ok = proclaim($test, $desc);
+        my $test = $got === $expected;
+        $ok = proclaim(?$test, $desc);
         if !$test {
             diag "expected: ($expected.^name())";
             diag "     got: ($got.^name())";
@@ -131,8 +131,8 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ok;
     if $got.defined { # also hack to deal with Failures
-        my $test = so $got eq $expected;
-        $ok = proclaim($test, $desc);
+        my $test = $got eq $expected;
+        $ok = proclaim(?$test, $desc);
         if !$test {
             diag "expected: '$expected'";
             diag "     got: '$got'";
@@ -155,7 +155,7 @@ multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
     }
     else {
         my $test = $got !=== $expected;
-        $ok = proclaim($test, $desc);
+        $ok = proclaim(?$test, $desc);
         if !$test {
             diag "twice: ($got.^name())";
         }
@@ -169,7 +169,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
     my $ok;
     if $got.defined { # also hack to deal with Failures
         my $test = $got ne $expected;
-        $ok = proclaim($test, $desc);
+        $ok = proclaim(?$test, $desc);
         if !$test {
             diag "twice: '$got'";
         }

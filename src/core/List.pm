@@ -350,10 +350,6 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    multi method invert(List:D:) {
-        self.map: { $_ => (state $)++ }
-    }
-
     method reverse() {
         self.gimme(*);
         fail 'Cannot .reverse from an infinite list' if $!nextiter.defined;

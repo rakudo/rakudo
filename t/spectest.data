@@ -413,6 +413,7 @@ S06-other/main-usage.t
 S06-other/main-semicolon.t
 S06-other/misc.t
 S06-routine-modifiers/lvalue-subroutines.t
+S06-routine-modifiers/native-lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t

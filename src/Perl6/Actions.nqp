@@ -2361,12 +2361,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $block.node($/);
             }
             if is_clearly_returnless($block) {
-                unless nqp::objprimspec($block[1].returns) {
-                    $block[1] := QAST::Op.new(
-                        :op('p6decontrv'),
-                        QAST::WVal.new( :value($*DECLARAND) ),
-                        $block[1]);
-                }
+                $block[1] := QAST::Op.new(
+                    :op('p6decontrv'),
+                    QAST::WVal.new( :value($*DECLARAND) ),
+                    $block[1]);
                 $block[1] := wrap_return_type_check($block[1], $*DECLARAND);
             }
             else {

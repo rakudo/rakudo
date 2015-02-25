@@ -1054,16 +1054,21 @@ class Perl6::Optimizer {
 
         # May be able to eliminate some decontrv operations.
         if $optype eq 'p6decontrv' {
-            # Natives don't need it.
+            # Boolifications don't need it, nor do _I/_i/_n/_s ops except
+            # assignment.
             my $value := $op[1];
-            return $value if nqp::objprimspec($value.returns);
-
-            # Boolifications don't need it, nor do _I ops.
             my $last_stmt := get_last_stmt($value);
             if nqp::istype($last_stmt, QAST::Op) {
                 my str $op := $last_stmt.op;
                 if $op eq 'p6bool' || nqp::eqat($op, 'I', -1) {
                     return $value;
+                }
+                if !nqp::eqat($op, 'assign_', 0) {
+                    if nqp::eqat($op, '_i', -2) || 
+                       nqp::eqat($op, '_n', -2) ||
+                       nqp::eqat($op, '_s', -2) {
+                        return $value;
+                    }
                 }
             }
         }

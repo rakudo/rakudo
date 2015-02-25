@@ -119,8 +119,8 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
         my $test = $got === $expected;
         $ok = proclaim($test, $desc);
         if !$test {
-            diag "expected: '$expected'";
-            diag "     got: '$got'";
+            diag "expected: ($expected.^name())";
+            diag "     got: ($got.^name())";
         }
     }
     $time_before = nqp::p6box_n(nqp::time_n);

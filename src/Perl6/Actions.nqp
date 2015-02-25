@@ -6905,7 +6905,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         ]));
         $block[0].push(QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') ));
         $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
-        $block.push(QAST::Stmts.new( $initializer ));
+        $block.push(QAST::Stmts.new( $initializer, :node($/) ));
         $block.symbol('self', :scope('lexical'));
         add_signature_binding_code($block, $sig, @params);
         $block.blocktype('declaration_static');

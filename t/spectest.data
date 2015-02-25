@@ -450,6 +450,7 @@ S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
 S06-traits/misc.t
+S06-traits/native-is-copy.t
 S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S06-traits/slurpy-is-rw.t

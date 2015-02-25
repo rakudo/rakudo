@@ -1128,7 +1128,7 @@ class Perl6::World is HLL::World {
                         }
                     }
                 }
-                else {
+                elsif !($flags +& $SIG_ELEM_IS_COPY) {
                     $lexpad.symbol($varname, :ro(1));
                 }
             }

@@ -6914,8 +6914,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Block should go in current lexpad, in correct lexical context.
         ($*W.cur_lexpad())[0].push($block);
 
-        # Dispatch trait. XXX Should really be Bool::True, not Int here...
-        my $true := ($*W.add_constant('Int', 'int', 1)).compile_time_value;
+        # Dispatch trait.
         $*W.apply_trait($/, '&trait_mod:<will>', $attr, :build($code));
     }
 

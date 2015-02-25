@@ -581,7 +581,10 @@ my class List does Positional { # declared in BOOTSTRAP
         self.values.map: { (state $)++ }
     }
     multi method kv(List:D:) {
-        self.values.map: { ((state $)++, $_) }
+        gather for self.values {
+            take (state $)++;
+            take-rw $_;
+        }
     }
     multi method values(List:D:) {
         my Mu $rpa := nqp::clone(nqp::p6listitems(self));

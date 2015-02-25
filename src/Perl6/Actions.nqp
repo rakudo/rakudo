@@ -3127,7 +3127,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub is_yada($/) {
         if $<blockoid><statementlist> && +$<blockoid><statementlist><statement> == 1 {
             my $btxt := ~$<blockoid><statementlist><statement>[0];
-            if $btxt ~~ /^ \s* ['...'|'???'|'!!!'] \s* $/ {
+            if $btxt ~~ /^ \s* ['...'|'???'|'!!!'|'…'] \s* $/ {
                 return 1;
             }
         }

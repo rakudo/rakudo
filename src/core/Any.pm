@@ -79,7 +79,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method invert(|) { * }
     multi method invert(Any:U:) { ().list }
-    multi method invert(Any:D:) { self.list.invert }
+    multi method invert(Any:D:) { self.hash.invert }
 
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }

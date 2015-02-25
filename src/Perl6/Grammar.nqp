@@ -2630,6 +2630,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             '(' <multisig> ')' {
                 %*SIG_INFO := $<multisig>.ast;
+                my $*PRECEDING_DECL_LINE;
+                my $*PRECEDING_DECL;
                 $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,
                     %*SIG_INFO, $*W.cur_lexpad(), 'Any');
             }
@@ -2702,6 +2704,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $<longname> && $*W.is_lexical('$?CLASS') && !$meta
                         ?? '$?CLASS'
                         !! 'Mu']);
+                my $*PRECEDING_DECL_LINE;
+                my $*PRECEDING_DECL;
                 if $<multisig> {
                     %*SIG_INFO := $<multisig>.ast;
                     $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,

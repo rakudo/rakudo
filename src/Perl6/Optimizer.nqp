@@ -481,8 +481,10 @@ my class BlockVarOptimizer {
 
     method is_flattenable() {
         for %!decls {
-            return 0 if $_.value.scope eq 'lexical';
-            return 0 if $_.value.decl eq 'param';
+            my $var := $_.value;
+            my str $scope := $var.scope;
+            return 0 if $scope eq 'lexical' || $scope eq 'lexicalref';
+            return 0 if $var.decl eq 'param';
         }
         1
     }
@@ -623,6 +625,18 @@ my class BlockVarOptimizer {
                     next unless nqp::chars($name) >= 2 &&
                                 nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
                 }
+
+                # Also must not lexicalref it.
+                my int $ref'd := 0;
+                if %!usages_flat{$name} {
+                    for %!usages_flat{$name} {
+                        if $_.scope eq 'lexicalref' {
+                            $ref'd := 1;
+                            last;
+                        }
+                    }
+                }
+                next if $ref'd;
 
                 # Seems good; lower it. Note we need to retain a lexical in
                 # case of binder failover to generate errors.
@@ -1508,10 +1522,6 @@ class Perl6::Optimizer {
             }
             else {
                 @!block_var_stack[$top].add_usage($var);
-                if $var.scope eq 'lexicalref' {
-                    # XXX Workaround until we can be smarter about these.
-                    self.poison_var_lowering();
-                }
             }
         }
 

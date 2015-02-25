@@ -1715,15 +1715,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
-                unless $*HAS_SELF {
-                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
-                }
-                my $attr := $*W.get_attribute_meta_object($/, $past.name(), $past);
-                my $type := $attr ?? $attr.type !! NQPMu;
-                $past.returns($type) if $attr;
-                $past.scope(nqp::objprimspec($type) ?? 'attributeref' !! 'attribute');
-                $past.unshift(instantiated_type(['$?CLASS'], $/));
-                $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
+                setup_attr_var($/, $past);
             }
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
@@ -1806,9 +1798,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $*IN_DECL ne 'variable' && (my $attr_alias := $*W.is_attr_alias($past.name)) {
             $past.name($attr_alias);
-            $past.scope('attribute');
-            $past.unshift(instantiated_type(['$?CLASS'], $/));
-            $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
+            setup_attr_var($/, $past);
         }
         elsif $*IN_DECL ne 'variable' {
             # Expect variable to have been declared somewhere.
@@ -1831,6 +1821,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past
+    }
+
+    sub setup_attr_var($/, $past) {
+        unless $*HAS_SELF {
+            $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
+        }
+        my $attr := $*W.get_attribute_meta_object($/, $past.name(), $past);
+        my $type := $attr ?? $attr.type !! NQPMu;
+        $past.returns($type) if $attr;
+        $past.scope(nqp::objprimspec($type) ?? 'attributeref' !! 'attribute');
+        $past.unshift(instantiated_type(['$?CLASS'], $/));
+        $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
     }
 
     method package_declarator:sym<package>($/) { make $<package_def>.ast; }

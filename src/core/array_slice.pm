@@ -252,7 +252,7 @@ multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is rw {
 
 # @a[]
 multi sub postcircumfix:<[ ]>( \SELF ) is rw {
-    SELF.list;
+    SELF;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;

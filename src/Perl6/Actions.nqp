@@ -3541,8 +3541,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         if $name {
+            my $cur_pad := $*W.cur_lexpad();
+            if $cur_pad.symbol($name) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
+            }
+
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
-                'constant', $*PACKAGE, $*W.cur_lexpad(), $value);
+                'constant', $*PACKAGE, $cur_pad, $value);
         }
         $*W.ex-handle($/, {
             for $<trait> -> $t {

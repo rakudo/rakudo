@@ -463,11 +463,13 @@ sub FILETEST-LDEVICE(Str $abspath) {
 }
 
 sub OBJECTIFY-ABSPATH(Str $abspath, :$check = True) {
-    FILETEST-f($abspath)
-      ?? IO::File.new(:$abspath)
-      !! FILETEST-d($abspath)
-        ?? IO::Dir.new(:abspath($abspath ~ '/'), :$check)
-        !! IO::Local.new(:$abspath);
+    FILETEST-e($abspath)
+      ?? FILETEST-f($abspath)
+        ?? IO::File.new(:$abspath)
+        !! FILETEST-d($abspath)
+          ?? IO::Dir.new(:abspath($abspath ~ '/'), :$check)
+          !! IO::Local.new(:$abspath)  # block device, unix socket, etc.
+      !! IO::Local.new(:$abspath);     # broken symlink
 }
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {

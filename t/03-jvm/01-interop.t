@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 24;
+plan 25;
 
 {
     # still supported
@@ -44,6 +44,14 @@ plan 24;
             $crc32.update($_);
         }
         is $crc32.getValue, 1072431491, "([B)V candidate for CRC32 is recognized correctly";
+    }
+
+    {
+        my $crc32 = CRC32.new;
+        for 'Hello, Java'.encode('utf-8') {
+            $crc32."method/update/([B)V"($_);
+        }
+        is $crc32.getValue, 1072431491, "([B)V candidate for CRC32 works when explicitly specified";
     }
 }
 

@@ -19,23 +19,23 @@ Deprecations in 2012.12
     another statement after it, or by writing 'eager do for LIST BLOCK'.
     This change will take effect in 2013.01.
     
-    warnings will start being issued for unused parameters to pointy blocks
+    Warnings will start being issued for unused parameters to pointy blocks
     and routines. At present, they do not warn at all. Planned for 2013.01.
     
-    constructs like "my $a; { $a; my $a; }", where the meaning of the first
+    Constructs like "my $a; { $a; my $a; }", where the meaning of the first
     mention of $a in the block would create confusion as to what was being
     referred to, will become an error as in STD. This change will take
     effect in 2013.01.
 
 Deprecations in 2012.11
 
-    at present, a reference to an &foo that does not exist evalutes to
+    At present, a reference to an &foo that does not exist evaluates to
     Nil. This will become a CHECK-time failure, in line with STD.
     Planned for the 2012.12 release.
 
 Deprecations in 2012.10
 
-    protos for built-in routines are now mostly as generic as possible,
+    Protos for built-in routines are now mostly as generic as possible,
     and will be changed to be specific to the arity of the routine.
     For example 'proto sub chr(|) {*}' will become 'proto sub chr($) {*}'
     This affects everybody who adds multis with unusual arity to built-in
@@ -59,12 +59,12 @@ Deprecations in 2012.10
 Deprecations in 2012.09
 
     Str.capitalize and &capitalize are deprecated in favor
-    of the the Str.wordcase and &wordcase routines.
+    of the Str.wordcase and &wordcase routines.
     They will uncondtionally warn in 2012.10, and be removed in 2012.11.
 
 Deprecations in 2012.08
 
-    Parameters preceeded by a | or \ may not have a sigil anymore.
+    Parameters preceded by a | or \ may not have a sigil anymore.
         sub f(\$x) { say $x }
     must be changed to 
         sub f(\x) { say x }

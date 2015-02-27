@@ -670,7 +670,7 @@ class Perl6::World is HLL::World {
         $cd
     }
 
-    # Given a sigil and the the value type specified, works out the
+    # Given a sigil and the value type specified, works out the
     # container type (what should we instantiate and bind into the
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value

@@ -110,7 +110,13 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         self
     }
 
-    method STORE_AT_KEY(\key, Mu \value) is rw {
+    proto method STORE_AT_KEY(|) is rw { * }
+    multi method STORE_AT_KEY(Str \key, Mu \value) is rw {
+        nqp::defined($!storage) ||
+            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+        nqp::bindkey($!storage, nqp::unbox_s(key), value)
+    }
+    multi method STORE_AT_KEY(\key, Mu \value) is rw {
         nqp::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)

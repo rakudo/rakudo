@@ -54,8 +54,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
         public static CallFrame scf;
 
         public DispatchCallSite(String methname, MethodType type, Object[] handleList) {
-        super(type);
-        this.methname = methname;
+            super(type);
+            this.methname = methname;
             this.fallback = FALLBACK.bindTo(this);
             this.handleList = handleList;
             this.forCtors = false;

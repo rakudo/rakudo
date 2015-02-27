@@ -4187,7 +4187,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<,>    {
         <.unsp>? <sym> <O('%comma, :fiddly<0>')>
         # TODO: should be <.worry>, not <.panic>
-        [ <?before \h*'...'> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
+        [ <?before \h*['...'|'…']> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
         { $*INVOCANT_OK := 0 }
     }
     token infix:sym<:>    {
@@ -4200,8 +4200,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<Z>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
     token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 
-    token infix:sym<...>  { [<sym>|'…']  <O('%list_infix')> }
-    token infix:sym<...^> { [<sym>|'…^']  <O('%list_infix')> }
+    token infix:sym<...>  { <sym> <O('%list_infix')> }
+    token infix:sym<…>    { <sym> <O('%list_infix')> }
+    token infix:sym<...^> { <sym>  <O('%list_infix')> }
+    token infix:sym<…^>   { <sym>  <O('%list_infix')> }
     # token term:sym<...>   { <sym> <args>**0..1 <O(|%list_prefix)> }
 
     token infix:sym<?>    { <sym> {} <![?]> <?before <-[;]>*?':'> <.obs('? and : for the ternary conditional operator', '?? and !!')> <O('%conditional')> }

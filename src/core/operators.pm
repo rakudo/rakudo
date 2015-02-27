@@ -247,6 +247,9 @@ multi sub infix:<...>(**@lol) {
 proto sub infix:<...^>(|) { * }
 multi sub infix:<...^>($a, Mu $b) { SEQUENCE($a, $b, :exclude_end(1)) }
 
+my &infix:<…> = &infix:<...>;
+my &infix:<…^> = &infix:<...^>;
+
 sub undefine(Mu \x) { x = Nil }
 
 sub prefix:<temp>(\cont) is rw {

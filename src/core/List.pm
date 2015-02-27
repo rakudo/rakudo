@@ -592,7 +592,10 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6list($rpa, List, self.flattens);
     }
     multi method pairs(List:D:) {
-        self.values.map: {; (state $)++ => $_ }
+        self.values.map: { (state $)++ => $_ }
+    }
+    multi method exchange(List:D:) {
+        self.values.map: { $_ => (state $)++ }
     }
 
     method reduce(List: &with) {

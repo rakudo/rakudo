@@ -57,19 +57,22 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     method list(EnumMap:) { self.pairs }
 
     multi method keys(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.keys(self)   !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.keys(self)     !! ()).list;
     }
     multi method kv(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.kv(self)     !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.kv(self)       !! ()).list;
     }
     multi method values(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.values(self) !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.values(self)   !! ()).list;
     }
     multi method pairs(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.pairs(self)  !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.pairs(self)    !! ()).list;
+    }
+    multi method exchange(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.exchange(self) !! ()).list;
     }
     multi method invert(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.invert(self) !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.invert(self)   !! ()).list;
     }
 
     multi method at_key(EnumMap:D: \key) is rw {

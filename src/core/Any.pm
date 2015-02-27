@@ -75,7 +75,11 @@ my class Any { # declared in BOOTSTRAP
 
     proto method pairs(|) { * }
     multi method pairs(Any:U:) { ().list }
-    multi method pairs(Any:D:)  { self.list.pairs }
+    multi method pairs(Any:D:) { self.list.pairs }
+
+    proto method exchange(|) { * }
+    multi method exchange(Any:U:) { ().list }
+    multi method exchange(Any:D:) { self.list.pairs }
 
     proto method invert(|) { * }
     multi method invert(Any:U:) { ().list }

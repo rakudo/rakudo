@@ -13,11 +13,12 @@ my class HashIter is Iterator {
             $invert ?? 4 !!
                        0);
     }
-    method pairs($h,$keystore?)  { nqp::create(self).BUILD($h,$keystore,0) }
-    method kv($h,$keystore?)     { nqp::create(self).BUILD($h,$keystore,1) }
-    method keys($h,$keystore?)   { nqp::create(self).BUILD($h,$keystore,2) }
-    method values($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,3) }
-    method invert($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,4) }
+    method pairs($h,$keystore?)    { nqp::create(self).BUILD($h,$keystore,0) }
+    method kv($h,$keystore?)       { nqp::create(self).BUILD($h,$keystore,1) }
+    method keys($h,$keystore?)     { nqp::create(self).BUILD($h,$keystore,2) }
+    method values($h,$keystore?)   { nqp::create(self).BUILD($h,$keystore,3) }
+    method invert($h,$keystore?)   { nqp::create(self).BUILD($h,$keystore,4) }
+    method exchange($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,4) }
 
     submethod BUILD($hash, $keystore, Int $mode) {
         $!hashiter :=
@@ -89,7 +90,7 @@ my class HashIter is Iterator {
                     nqp::push($rpa, nqp::hllize(nqp::iterval($pairish)).item);
                 }
             }
-            elsif $mode == 4 {  # :invert
+            elsif $mode == 4 {  # :invert & :exchange
                 if nqp::defined($!keystore) {
                     while $it {
                         $pairish := nqp::shift($it);

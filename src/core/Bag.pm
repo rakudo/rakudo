@@ -1,7 +1,6 @@
 my class Bag does Baggy {
     has Int $!total;
     has $!WHICH;
-    has @!pairs;  # should be Parcel, but .Parcel doesn't do what we need
 
     method total (--> Int) { $!total //= [+] self.values }
 
@@ -17,8 +16,11 @@ my class Bag does Baggy {
           ?? %!elems{$key}.value
           !! 0;
     }
-    multi method pairs() {   # need to copy, otherwise we would change the Bag
-        @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
+    multi method pairs(Bag:D:) {    # must copy, else we would change the Bag
+        %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
+    }
+    multi method exchange(Bag:D:) { # must copy, else we would change the Bag
+        %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
     }
 
     method delete_key($a) is hidden_from_backtrace {

@@ -5930,6 +5930,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $str_longname eq '::' {
                     $/.CURSOR.panic("Cannot use :: as a type name");
                 }
+                if $*W.cur_lexpad.symbol(nqp::substr($str_longname, 2)) {
+                    $*W.throw($/, ['X', 'Redeclaration'],
+                        symbol => nqp::substr($str_longname, 2));
+                }
                 make $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name(nqp::substr($str_longname, 2)));
             }
         }

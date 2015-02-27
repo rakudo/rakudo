@@ -18,15 +18,15 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
-        so self.exists_key($topic.any);
+        self.exists_key($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
-        so self.exists_key($topic);
+        self.exists_key($topic);
     }
 
     multi method ACCEPTS(EnumMap:D: Positional $topic) {
-        so self.exists_key($topic.any);
+        self.exists_key($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Regex $topic) {

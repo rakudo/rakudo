@@ -10,7 +10,7 @@ my class Mix does Mixy {
     multi method pairs(Mix:D:) {    # copy values else we can change the Mix
         %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
-    multi method exchange(Mix:D:) { # copy values else we can change the Mix
+    multi method antipairs(Mix:D:) { # copy values else we can change the Mix
         %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
     }
 

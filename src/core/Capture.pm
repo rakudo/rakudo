@@ -133,8 +133,8 @@ my class Capture { # declared in BOOTSTRAP
     multi method pairs(Capture:D:) {
         (self.list.pairs, self.hash.pairs).flat;
     }
-    multi method exchange(Capture:D:) {
-        (self.list.exchange, self.hash.exchange).flat;
+    multi method antipairs(Capture:D:) {
+        (self.list.antipairs, self.hash.antipairs).flat;
     }
 }
 

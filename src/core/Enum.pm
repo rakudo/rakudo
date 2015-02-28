@@ -16,13 +16,14 @@ my class Enum does Associative {
 
     method key(Enum:D:)   { $!key }
     method value(Enum:D:) { $!value }
+    method antipair(Enum:D:) { self.new(key => $!value, value => $!key) }
 
-    multi method keys(Enum:D:)     { ($!key,).list }
-    multi method kv(Enum:D:)       { $!key, $!value }
-    multi method values(Enum:D:)   { ($!value,).list }
-    multi method pairs(Enum:D:)    { (self,).list }
-    multi method exchange(Enum:D:) { self.new(key => $!value, value => $!key) }
-    multi method invert(Enum:D:)   { self.new(key => $!value, value => $!key) }
+    multi method keys(Enum:D:)      { ($!key,).list }
+    multi method kv(Enum:D:)        { $!key, $!value }
+    multi method values(Enum:D:)    { ($!value,).list }
+    multi method pairs(Enum:D:)     { (self,).list }
+    multi method antipairs(Enum:D:) { self.new(key => $!value, value => $!key) }
+    multi method invert(Enum:D:)    { $!value »=>» $!key }
 
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
 

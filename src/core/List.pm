@@ -594,7 +594,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method pairs(List:D:) {
         self.values.map: { (state $)++ => $_ }
     }
-    multi method exchange(List:D:) {
+    multi method antipairs(List:D:) {
         self.values.map: { $_ => (state $)++ }
     }
 

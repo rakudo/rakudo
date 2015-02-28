@@ -68,8 +68,8 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     multi method pairs(EnumMap:D:) {
         (nqp::defined($!storage) ?? HashIter.pairs(self)    !! ()).list;
     }
-    multi method exchange(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.exchange(self) !! ()).list;
+    multi method antipairs(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.antipairs(self) !! ()).list;
     }
     multi method invert(EnumMap:D:) {
         (nqp::defined($!storage) ?? HashIter.invert(self)   !! ()).list;

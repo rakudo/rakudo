@@ -77,13 +77,13 @@ my class Any { # declared in BOOTSTRAP
     multi method pairs(Any:U:) { ().list }
     multi method pairs(Any:D:) { self.list.pairs }
 
-    proto method exchange(|) { * }
-    multi method exchange(Any:U:) { ().list }
-    multi method exchange(Any:D:) { self.list.pairs }
+    proto method antipairs(|) { * }
+    multi method antipairs(Any:U:) { ().list }
+    multi method antipairs(Any:D:) { self.list.pairs }
 
     proto method invert(|) { * }
     multi method invert(Any:U:) { ().list }
-    multi method invert(Any:D:) { self.hash.invert }
+    multi method invert(Any:D:) { self.list.invert }
 
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }

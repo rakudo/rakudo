@@ -374,9 +374,9 @@ my class Hash { # declared in BOOTSTRAP
             return unless self.DEFINITE && nqp::defined($!keys);
             HashIter.pairs(self,$!keys).list
         }
-        method exchange(EnumMap:) {
+        method antipairs(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.exchange(self,$!keys).list
+            HashIter.antipairs(self,$!keys).list
         }
         method invert(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);

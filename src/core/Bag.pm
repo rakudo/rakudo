@@ -19,7 +19,7 @@ my class Bag does Baggy {
     multi method pairs(Bag:D:) {    # must copy, else we would change the Bag
         %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
     }
-    multi method exchange(Bag:D:) { # must copy, else we would change the Bag
+    multi method antipairs(Bag:D:) { # must copy, else we would change the Bag
         %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
     }
 

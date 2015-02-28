@@ -8,8 +8,8 @@ my role Baggy does QuantHash {
     multi method kv(Baggy:D:)       { %!elems.values.map( {.key, .value} ) }
     multi method values(Baggy:D:)   { %!elems.values.map( {.value} ) }
     multi method pairs(Baggy:D:)    { %!elems.values.map: { (.key => .value) } }
-    multi method exchange(Baggy:D:) { %!elems.values.map: { (.value => .key) } }
-    multi method invert(Baggy:D:)   { %!elems.values.map: { (.value => .key) } }
+    multi method antipairs(Baggy:D:) { %!elems.values.map: { (.value => .key) } }
+    multi method invert(Baggy:D:)   { %!elems.values.map: { (.value => .key) } } # NB value can't be listy
 
     method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }

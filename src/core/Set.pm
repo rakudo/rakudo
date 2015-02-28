@@ -29,7 +29,7 @@ my class Set does Setty {
     multi method pairs(Set:D:) {    # must copy else we can change the Set
         %!elems.values.map: { Enum.new(:key($_),:value(True)) };
     }
-    multi method exchange(Set:D:) { # must copy else we can change the Set
+    multi method antipairs(Set:D:) { # must copy else we can change the Set
         %!elems.values.map: { Enum.new(:key(True),:value($_)) };
     }
 

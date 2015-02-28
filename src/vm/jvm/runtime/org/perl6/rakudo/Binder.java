@@ -216,8 +216,42 @@ public final class Binder {
         
         /* Check if boxed/unboxed expections are met. */
         int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
+        boolean is_rw = (paramFlags & SIG_ELEM_IS_RW) != 0;
         int gotNative = origFlag & 7;
-        if (desiredNative == 0 && gotNative == CallSiteDescriptor.ARG_OBJ) {
+        if (is_rw && desiredNative != 0) {
+            switch (desiredNative) {
+            case SIG_ELEM_NATIVE_INT_VALUE:
+                if (gotNative != 0 || Ops.iscont_i((SixModelObject)origArg) == 0) {
+                    if (error != null)
+                        error[0] = String.format(
+                            "Expected a native int argument for '%s'",
+                            varName);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+            case SIG_ELEM_NATIVE_NUM_VALUE:
+                if (gotNative != 0 || Ops.iscont_n((SixModelObject)origArg) == 0) {
+                    if (error != null)
+                        error[0] = String.format(
+                            "Expected a native num argument for '%s'",
+                            varName);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+            case SIG_ELEM_NATIVE_STR_VALUE:
+                if (gotNative != 0 || Ops.iscont_s((SixModelObject)origArg) == 0) {
+                    if (error != null)
+                        error[0] = String.format(
+                            "Expected a native str argument for '%s'",
+                            varName);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+            }
+            flag = CallSiteDescriptor.ARG_OBJ;
+            arg_o = (SixModelObject)origArg;
+        }
+        else if (desiredNative == 0 && gotNative == CallSiteDescriptor.ARG_OBJ) {
             flag = gotNative;
             arg_o = (SixModelObject)origArg;
         }
@@ -295,7 +329,7 @@ public final class Binder {
          * bind if it passes the type check, or a native value that needs no
          * further checking. */
         SixModelObject decontValue = null;
-        if (flag == CallSiteDescriptor.ARG_OBJ) {
+        if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
             /* We need to work on the decontainerized value. */
             decontValue = Ops.decont(arg_o, tc);
             
@@ -439,7 +473,7 @@ public final class Binder {
             }
             
             /* Otherwise it's some objecty case. */
-            else if ((paramFlags & SIG_ELEM_IS_RW) != 0) {
+            else if (is_rw) {
                 /* XXX TODO Check if rw flag is set; also need to have a
                  * wrapper container that carries extra constraints. */
                 cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;

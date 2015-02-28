@@ -598,6 +598,10 @@ my class List does Positional { # declared in BOOTSTRAP
         self.values.map: { $_ => (state $)++ }
     }
 
+    multi method invert(List:D:) {
+        self.map: { .value »=>» .key }
+    }
+
     method reduce(List: &with) {
         fail('can only reduce with arity 2')
             unless &with.arity <= 2 <= &with.count;

@@ -82,8 +82,6 @@ my class Any { # declared in BOOTSTRAP
     multi method antipairs(Any:D:) { self.list.pairs }
 
     proto method invert(|) { * }
-    multi method invert(Any:U:) { ().list }
-    multi method invert(Any:D:) { self.list.invert }
 
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }

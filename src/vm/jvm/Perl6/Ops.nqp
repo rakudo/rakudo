@@ -254,4 +254,24 @@ $ops.add_hll_box('perl6', $RT_STR, -> $qastcomp {
         'p6box_s', $TYPE_SMO, $TYPE_STR, $TYPE_TC ));
     $il
 });
-#$ops.force_return_boxing_for_hll('perl6');
+QAST::OperationsJAST.add_hll_unbox('perl6', $RT_INT, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
+        'decont_i', 'Long', $TYPE_SMO, $TYPE_TC ));
+    $il
+});
+QAST::OperationsJAST.add_hll_unbox('perl6', $RT_NUM, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
+        'decont_n', 'Double', $TYPE_SMO, $TYPE_TC ));
+    $il
+});
+QAST::OperationsJAST.add_hll_unbox('perl6', $RT_STR, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
+        'decont_s', $TYPE_STR, $TYPE_SMO, $TYPE_TC ));
+    $il
+});

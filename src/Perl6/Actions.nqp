@@ -6634,7 +6634,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.throw($/, ['X', 'Placeholder', 'NonPlaceholder'],
                 placeholder   => $full_name,
                 variable_name => $name,
-                decl          => $block.ann('IN_DECL'),
+                decl          => ~$block.ann('IN_DECL'),
             )
         }
         for @params {

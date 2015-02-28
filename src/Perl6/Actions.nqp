@@ -7134,6 +7134,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     if $was_chain && $old.has_ann("chain_args") {
                         $new := QAST::Op.new( :op<chain>, :name($old.ann('chain_name')), :node($/) );
                         $old.ann('chain_block')[1] := QAST::Op.new( :op<die>, QAST::SVal.new( :value('This WhateverCode has been inlined into another WhateverCode and should not have been called!') ) );
+                        $old.ann('chain_block')[0] := QAST::Stmts.new( );
                         for $old.ann('chain_past') {
                             $new.push($_);
                         }

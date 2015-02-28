@@ -79,7 +79,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method antipairs(|) { * }
     multi method antipairs(Any:U:) { ().list }
-    multi method antipairs(Any:D:) { self.list.pairs }
+    multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) { * }
 

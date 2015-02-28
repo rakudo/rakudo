@@ -3426,6 +3426,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.setup_quotepair>
         ]*
     }
+
+    token qok($x) {
+        » <![(]>
+        [ <?[:]> || <!{ my $n := ~$x; $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> ]
+        <.ws>
+    }
     
     proto token quote_mod   {*}
     token quote_mod:sym<w>  { <sym> }
@@ -3451,24 +3457,24 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $qm;
         'q'
         [
-        | <quote_mod> » <![(]> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Q>, 'q', $qm)>
-        | » <![(]> <.ws> <quibble(%*LANG<Q>, 'q')>
+        | <quote_mod> {} <.qok($/)> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Q>, 'q', $qm)>
+        | {} <.qok($/)> <quibble(%*LANG<Q>, 'q')>
         ]
     }
     token quote:sym<qq> {
         :my $qm;
         'qq'
         [
-        | <quote_mod> » <![(]> { $qm := $<quote_mod>.Str } <.ws> <quibble(%*LANG<Q>, 'qq', $qm)>
-        | » <![(]> <.ws> <quibble(%*LANG<Q>, 'qq')>
+        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(%*LANG<Q>, 'qq', $qm)>
+        | {} <.qok($/)> <quibble(%*LANG<Q>, 'qq')>
         ]
     }
     token quote:sym<Q> {
         :my $qm;
         'Q'
         [
-        | <quote_mod> » <![(]> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Q>, $qm)>
-        | » <![(]> <.ws> <quibble(%*LANG<Q>)>
+        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(%*LANG<Q>, $qm)>
+        | {} <.qok($/)> <quibble(%*LANG<Q>)>
         ]
     }
     token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quibble(%*LANG<Q>)> }
@@ -3481,26 +3487,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.old_rx_mods>?
     }
     token quote:sym<rx>   {
-        <sym> >> 
+        <sym>
         :my %*RX;
         :my $*INTERPOLATE := 1;
+        {} <.qok($/)>
         <rx_adverbs>
         <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
         <!old_rx_mods>
     }
 
     token quote:sym<m> {
-        <sym> (s)**0..1>>
+        <sym> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
         { %*RX<s> := 1 if $/[0] }
+        <.qok($/)>
         <rx_adverbs>
         <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
         <!old_rx_mods>
     }
 
     token quote:sym<qr> {
-        <sym> <.end_keyword> <.obs('qr for regex quoting', 'rx//')>
+        <sym> {} <.qok($/)> <.obs('qr for regex quoting', 'rx//')>
     }
 
     token setup_quotepair { '' }
@@ -3527,12 +3535,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token quote:sym<s> {
-        <sym> (s)**0..1 >>
+        <sym> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
         {
             %*RX<s> := 1 if $/[0]
         }
+        <.qok($/)>
         <rx_adverbs>
         <sibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['qq'])>
         [ <?{ $<sibble><infixish> }> || <.old_rx_mods>? ]
@@ -3560,16 +3569,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym>
         :my %*RX;
         :my $*INTERPOLATE := 1;
+        {} <.qok($/)>
         <rx_adverbs>
         <tribble(%*LANG<Q>, %*LANG<Q>, ['cc'])>
         <.old_rx_mods>?
     }
 
     token quote:sym<y> {
-        <sym> »
-        # could be defined as a function or constant
-        <!{ $*W.is_lexical('&y') || $*W.is_lexical('y') }>
-        <!before '('> <?before \h*\W>
+        <sym>
+        <?before \h*\W>
+        {} <.qok($/)>
         <.obs('y///','tr///')>
     }
 

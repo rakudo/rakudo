@@ -54,7 +54,7 @@ my $bootclasspath = join($cpsep,
     
 my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
 my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $bootclasspath 
-          . ' -cp ' . ($^O eq 'MSWin32' ? '%CLASSPATH%' : '$CLASSPATH') . ":" . $classpath
+          . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . $prefix
           . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
 

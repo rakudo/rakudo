@@ -840,6 +840,9 @@ class Perl6::Optimizer {
     # Are we in a declaration?
     has int $!in_declaration;
 
+    # one shared QAST tree we'll put into every block we've eliminated
+    has $!eliminated_block_contents;
+
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
@@ -857,6 +860,9 @@ class Perl6::Optimizer {
         $!level := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
         %!adverbs := %adverbs;
+
+        $!eliminated_block_contents := QAST::Op.new( :op('die_s'),
+            QAST::SVal.new( :value('INTERNAL ERROR: Execution of block eliminated by optimizer') ) );
 
         # Walk and optimize the program.
         self.visit_block($!symbols.UNIT);
@@ -1670,7 +1676,7 @@ class Perl6::Optimizer {
             $!in_declaration := $outer_decl;
         }
     }
-    
+
     # Inlines an immediate block.
     method inline_immediate_block($block, $outer, $preserve_topic) {
         # Sanity check.
@@ -1685,10 +1691,9 @@ class Perl6::Optimizer {
         # will still want it to be there). Marked as "raw" to avoid any kind
         # of lexical capture/closure happening.
         $block.blocktype('raw');
-        $block[0] := QAST::Op.new( :op('die_s'),
-            QAST::SVal.new( :value('INTERNAL ERROR: Execution of block eliminated by optimizer') ) );
+        $block[0] := $!eliminated_block_contents;
         $outer[0].push($block);
-        
+
         # Copy over interesting stuff in declaration section.
         for @($decls) {
             if nqp::istype($_, QAST::Op) && ($_.op eq 'p6bindsig' || 

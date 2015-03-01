@@ -607,6 +607,7 @@ class Perl6::World is HLL::World {
             for @($block[0]) {
                 if nqp::istype($_, QAST::Var) && $_.name eq $name {
                     $var := $_;
+                    $var.returns(%cont_info<bind_constraint>);
                     last;
                 }
             }
@@ -852,7 +853,21 @@ class Perl6::World is HLL::World {
         }
         nqp::die("Could not find container descriptor for $name");
     }
-    
+
+    # Hunts through scopes to find a lexical and returns if it is
+    # known to be read-only.
+    method is_lexical_marked_ro($name) {
+        my int $i := +@!BLOCKS;
+        while $i > 0 {
+            $i := $i - 1;
+            my %sym := @!BLOCKS[$i].symbol($name);
+            if %sym {
+                return nqp::existskey(%sym, 'ro');
+            }
+        }
+        0;
+    }
+
     # Installs a symbol into the package.
     method install_package_symbol($package, $name, $obj) {
         ($package.WHO){$name} := $obj;
@@ -1012,13 +1027,125 @@ class Perl6::World is HLL::World {
         # Return created parameter.
         $parameter
     }
-    
+
+    # Create Parameter objects, along with container descriptors if needed,
+    # for all of the given parameter descriptors. Then make a Signature
+    # object wrapping them.
+    method create_signature_and_params($/, %signature_info, $lexpad, $default_type_name,
+            :$no_attr_check, :$rw, :$method, :$invocant_type) {
+        # If it's a method, add auto-slurpy.
+        my @params := %signature_info<parameters>;
+        if $method {
+            unless @params[0]<is_invocant> {
+                @params.unshift(hash(
+                    nominal_type => $invocant_type,
+                    is_invocant => 1,
+                    is_multi_invocant => 1
+                ));
+            }
+            unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
+                unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
+                    @params.push(hash(
+                        variable_name => '%_',
+                        nominal_type => self.find_symbol(['Mu']),
+                        named_slurpy => 1,
+                        is_multi_invocant => 1,
+                        sigil => '%'
+                    ));
+                    $lexpad[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
+                    $lexpad.symbol('%_', :scope('lexical'));
+                }
+            }
+        }
+
+        # Walk parameters, setting up parameter objects.
+        my $default_type := self.find_symbol([$default_type_name]);
+        my @param_objs;
+        my %seen_names;
+        for @params {
+            # Set default nominal type, if we lack one.
+            unless nqp::existskey($_, 'nominal_type') {
+                $_<nominal_type> := $default_type;
+            }
+
+            # Default to rw if needed.
+            if $rw {
+                $_<is_rw> := 1;
+            }
+
+            # Check we don't have duplicated named parameter names.
+            if $_<named_names> {
+                for $_<named_names> {
+                    if %seen_names{$_} {
+                        self.throw($/, ['X', 'Signature', 'NameClash'],
+                            name => $_
+                        );
+                    }
+                    %seen_names{$_} := 1;
+                }
+            }
+            
+            # If it's !-twigil'd, ensure the attribute it mentions exists unless
+            # we're in a context where we should not do that.
+            if $_<bind_attr> && !$no_attr_check {
+                self.get_attribute_meta_object($/, $_<variable_name>, QAST::Var.new);
+            }
+            
+            # If we have a sub-signature, create that.
+            if nqp::existskey($_, 'sub_signature_params') {
+                $_<sub_signature> := self.create_signature_and_params($/,
+                    $_<sub_signature_params>, $lexpad, $default_type_name);
+            }
+            
+            # Add variable as needed.
+            my $varname := $_<variable_name>;
+            if $varname {
+                my %sym := $lexpad.symbol($varname);
+                if +%sym && !nqp::existskey(%sym, 'descriptor') {
+                    $_<container_descriptor> := self.create_container_descriptor(
+                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $varname);
+                    $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
+                }
+            }
+
+            # Create parameter object and apply any traits.
+            my $param_obj := self.create_parameter($/, $_);
+            if $_<traits> {
+                for $_<traits> {
+                    ($_.ast)($param_obj) if $_.ast;
+                }
+            }
+
+            # If it's natively typed and we got "is rw" set, need to mark the
+            # container as being a lexical ref.
+            if $varname && nqp::objprimspec($_<nominal_type>) {
+                my $param_type := self.find_symbol(['Parameter']);
+                my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
+                if $flags +& $SIG_ELEM_IS_RW {
+                    for @($lexpad[0]) {
+                        if nqp::istype($_, QAST::Var) && $_.name eq $varname {
+                            $_.scope('lexicalref');
+                        }
+                    }
+                }
+                elsif !($flags +& $SIG_ELEM_IS_COPY) {
+                    $lexpad.symbol($varname, :ro(1));
+                }
+            }
+
+            # Add it to the signature.
+            @param_objs.push($param_obj);
+        }
+        %signature_info<parameter_objects> := @param_objs;
+        self.create_signature(%signature_info)
+    }
+
     # Creates a signature object from a set of parameters.
     method create_signature(%signature_info) {
         # Create signature object now.
         my $sig_type   := self.find_symbol(['Signature']);
         my $signature  := nqp::create($sig_type);
-        my @parameters := %signature_info<parameters>;
+        my @parameters := %signature_info<parameter_objects>;
         self.add_object($signature);
 
         # Set parameters.
@@ -1077,7 +1204,7 @@ class Perl6::World is HLL::World {
     # Creates a simple code object with an empty signature
     method create_simple_code_object($block, $type) {
         self.cur_lexpad()[0].push($block);
-        my $sig := self.create_signature(nqp::hash('parameters', []));
+        my $sig := self.create_signature(nqp::hash('parameter_objects', []));
         return self.create_code_object($block, $type, $sig);
     }
     
@@ -1375,7 +1502,8 @@ class Perl6::World is HLL::World {
         # Add as phaser.
         $block[0].push($phaser_block);
         self.add_phaser($/, $phaser,
-            self.create_code_object($phaser_block, 'Code', self.create_signature(nqp::hash('parameters', []))));
+            self.create_code_object($phaser_block, 'Code',
+                self.create_signature(nqp::hash('parameter_objects', []))));
     }
     
     # Adds a multi candidate to a proto/dispatch.
@@ -1741,6 +1869,42 @@ class Perl6::World is HLL::World {
         self.add_object($attr);
         
         # Return attribute that was built.
+        $attr
+    }
+
+    # Tries to locate an attribute meta-object; optionally panic right
+    # away if we cannot, otherwise add it to the post-resolution list.
+    method get_attribute_meta_object($/, $name, $later?) {
+        unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+            $/.CURSOR.panic("Cannot understand $name in this context");
+        }
+        my $attr;
+        my int $found := 0;
+        try {
+            $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+            $found := 1;
+        }
+        unless $found {
+            # Need to check later
+            if $later {
+                my $seen := %*ATTR_USAGES{$name};
+                unless $seen {
+                    %*ATTR_USAGES{$name} := $seen := nqp::list();
+                    $later.node($/); # only need $/ for first error
+                }
+                $seen.push($later);
+            }
+
+            # Now is later
+            else {
+                self.throw($/, ['X', 'Attribute', 'Undeclared'],
+                  symbol       => $name,
+                  package-kind => $*PKGDECL,
+                  package-name => $*PACKAGE.HOW.name($*PACKAGE),
+                  what         => 'attribute',
+                );
+            }
+        }
         $attr
     }
     

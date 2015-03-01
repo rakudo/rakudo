@@ -156,6 +156,27 @@ my class Mu { # declared in BOOTSTRAP
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
+            elsif nqp::iseq_i($code, 8) {
+                my int $cur_value = nqp::getattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
+                if nqp::iseq_i($cur_value, 0) {
+                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
+                        nqp::atpos($task, 3)(self, $cur_value));
+                }
+            }
+            elsif nqp::iseq_i($code, 9) {
+                my num $cur_value = nqp::getattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
+                if nqp::iseq_n($cur_value, 0e0) {
+                    nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
+                        nqp::atpos($task, 3)(self, $cur_value));
+                }
+            }
+            elsif nqp::iseq_i($code, 10) {
+                my str $cur_value = nqp::getattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
+                if nqp::isnull_s($cur_value) {
+                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
+                        nqp::atpos($task, 3)(self, $cur_value));
+                }
+            }
             else {
                 die "Invalid BUILDALLPLAN";
             }

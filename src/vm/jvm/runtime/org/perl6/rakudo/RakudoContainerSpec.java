@@ -17,6 +17,15 @@ public class RakudoContainerSpec extends ContainerSpec {
     public SixModelObject fetch(ThreadContext tc, SixModelObject cont) {
         return cont.get_attribute_boxed(tc, RakOps.key.getGC(tc).Scalar, "$!value", HINT_value);
     }
+    public long fetch_i(ThreadContext tc, SixModelObject cont) {
+        return fetch(tc, cont).get_int(tc);
+    }
+    public double fetch_n(ThreadContext tc, SixModelObject cont) {
+        return fetch(tc, cont).get_num(tc);
+    }
+    public String fetch_s(ThreadContext tc, SixModelObject cont) {
+        return fetch(tc, cont).get_str(tc);
+    }
     
     /* Stores a value in a container. Used for assignment. */
     private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
@@ -62,6 +71,15 @@ public class RakudoContainerSpec extends ContainerSpec {
                 WHENCE, new Object[] { });
         
         cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, value);
+    }
+    public void store_i(ThreadContext tc, SixModelObject cont, long value) {
+        store(tc, cont, RakOps.p6box_i(value, tc));
+    }
+    public void store_n(ThreadContext tc, SixModelObject cont, double value) {
+        store(tc, cont, RakOps.p6box_n(value, tc));
+    }
+    public void store_s(ThreadContext tc, SixModelObject cont, String value) {
+        store(tc, cont, RakOps.p6box_s(value, tc));
     }
     
     /* Stores a value in a container, without any checking of it (this

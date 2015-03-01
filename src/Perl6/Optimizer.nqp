@@ -428,13 +428,15 @@ my class BlockVarOptimizer {
     has int $!uses_bindsig;
 
     method add_decl($var) {
-        if $var.scope eq 'lexical' {
+        my str $scope := $var.scope;
+        if $scope eq 'lexical' || $scope eq 'lexicalref' {
             %!decls{$var.name} := $var;
         }
     }
 
     method add_usage($var) {
-        if $var.scope eq 'lexical' {
+        my str $scope := $var.scope;
+        if $scope eq 'lexical' || $scope eq 'lexicalref' {
             my $name   := $var.name;
             my @usages := %!usages_flat{$name};
             unless @usages {
@@ -479,8 +481,10 @@ my class BlockVarOptimizer {
 
     method is_flattenable() {
         for %!decls {
-            return 0 if $_.value.scope eq 'lexical';
-            return 0 if $_.value.decl eq 'param';
+            my $var := $_.value;
+            my str $scope := $var.scope;
+            return 0 if $scope eq 'lexical' || $scope eq 'lexicalref';
+            return 0 if $var.decl eq 'param';
         }
         1
     }
@@ -621,6 +625,18 @@ my class BlockVarOptimizer {
                     next unless nqp::chars($name) >= 2 &&
                                 nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
                 }
+
+                # Also must not lexicalref it.
+                my int $ref'd := 0;
+                if %!usages_flat{$name} {
+                    for %!usages_flat{$name} {
+                        if $_.scope eq 'lexicalref' {
+                            $ref'd := 1;
+                            last;
+                        }
+                    }
+                }
+                next if $ref'd;
 
                 # Seems good; lower it. Note we need to retain a lexical in
                 # case of binder failover to generate errors.
@@ -1058,16 +1074,21 @@ class Perl6::Optimizer {
 
         # May be able to eliminate some decontrv operations.
         if $optype eq 'p6decontrv' {
-            # Natives don't need it.
+            # Boolifications don't need it, nor do _I/_i/_n/_s ops except
+            # assignment.
             my $value := $op[1];
-            return $value if nqp::objprimspec($value.returns);
-
-            # Boolifications don't need it, nor do _I ops.
             my $last_stmt := get_last_stmt($value);
             if nqp::istype($last_stmt, QAST::Op) {
                 my str $op := $last_stmt.op;
                 if $op eq 'p6bool' || nqp::eqat($op, 'I', -1) {
                     return $value;
+                }
+                if !nqp::eqat($op, 'assign_', 0) {
+                    if nqp::eqat($op, '_i', -2) || 
+                       nqp::eqat($op, '_n', -2) ||
+                       nqp::eqat($op, '_s', -2) {
+                        return $value;
+                    }
                 }
             }
         }
@@ -1261,13 +1282,17 @@ class Perl6::Optimizer {
                 if +@ct_arg_info {
                     my @types := @ct_arg_info[0];
                     my @flags := @ct_arg_info[1];
-                    my $ct_result := nqp::p6trialbind($obj.signature, @types, @flags);
+                    my $sig := $obj.signature;
+                    my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     if $ct_result == 1 {
                         if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                         #say("# trial bind worked!");
                         if $!level >= 2 {
                             if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
                                 return self.inline_call($op, $obj);
+                            }
+                            else {
+                                self.simplify_refs($op, $sig);
                             }
                             copy_returns($op, $obj);
                         }
@@ -1299,6 +1324,7 @@ class Perl6::Optimizer {
         return NQPMu;
     }
 
+    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
     method optimize_nameless_call($op) {
         if +@($op) > 0 {
             # if we know we're directly calling the result, we can be smarter
@@ -1309,8 +1335,8 @@ class Perl6::Optimizer {
                         my str $sigil := nqp::substr($op[1].name, 0, 1);
                         my str $assignop;
 
-                        if nqp::objprimspec($op[1].returns) {
-                            $assignop := 'bind';
+                        if nqp::objprimspec($op[1].returns) -> $spec {
+                            $assignop := @native_assign_ops[$spec];
                         } elsif $sigil eq '$' {
                             $assignop := 'assign';
                         } else {
@@ -1338,7 +1364,7 @@ class Perl6::Optimizer {
                                         QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
                                     $operand));
 
-                        if $assignop eq 'bind' && nqp::objprimspec($target_var.returns) {
+                        if $assignop ne 'assign' && nqp::objprimspec($target_var.returns) {
                             $op.returns($target_var.returns);
                         }
                     }
@@ -1487,7 +1513,7 @@ class Perl6::Optimizer {
     method visit_var($var) {
         # Track usage.
         my str $scope := $var.scope;
-        if $scope eq 'attribute' || $scope eq 'positional' || $scope eq 'associative' {
+        if $scope eq 'attribute' || $scope eq 'attributeref' || $scope eq 'positional' || $scope eq 'associative' {
             self.visit_children($var);
         } else {
             my int $top := nqp::elems(@!block_var_stack) - 1;
@@ -1779,15 +1805,19 @@ class Perl6::Optimizer {
         $!symbols.faking_top_routine($code_obj,
             { self.visit_children($inlined) });
 
-        
+        # Annotate return type.
+        $inlined.returns($code_obj.returns);
+
         $inlined
     }
     
     # If we decide a dispatch at compile time, this emits the direct call.
     # Note that we do not do this on MoarVM, since it can actually make a
     # much better job of these than we are able to here and we don't have a
-    # way to convey the choice.
+    # way to convey the choice. We also simplify any lexicalref/attributeref
+    # we may be passing.
     method call_ct_chosen_multi($call, $proto, $chosen) {
+        self.simplify_refs($call, $chosen.signature);
         if nqp::getcomp('perl6').backend.name ne 'moar' {
             my @cands := $proto.dispatchees();
             my int $idx := 0;
@@ -1818,6 +1848,38 @@ class Perl6::Optimizer {
             }
         }
         $call
+    }
+
+    # Looks through positional args for any lexicalref or attributeref, and
+    # if we find them check if the expectation is for an non-rw argument.
+    method simplify_refs($call, $sig) {
+        if $sig.arity == $sig.count {
+            my @args   := $call.list;
+            my int $i  := $call.name eq '' ?? 1 !! 0;
+            my int $n  := nqp::elems(@args);
+            my int $p  := 0;
+            while $i < $n {
+                my $arg := @args[$i];
+                unless $arg.named || $arg.flat {
+                    if nqp::istype($arg, QAST::Var) {
+                        my str $scope := $arg.scope;
+                        my int $lref  := $scope eq 'lexicalref';
+                        my int $aref  := $scope eq 'attributeref';
+                        if $lref || $aref {
+                            my $Signature := $!symbols.find_in_setting("Signature");
+                            my $param := nqp::getattr($sig, $Signature, '$!params')[$p];
+                            if nqp::can($param, 'rw') {
+                                unless $param.rw {
+                                    $arg.scope($lref ?? 'lexical' !! 'attribute');
+                                }
+                            }
+                        }
+                    }
+                    $p++;
+                }
+                $i++;
+            }
+        }
     }
     
     my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];

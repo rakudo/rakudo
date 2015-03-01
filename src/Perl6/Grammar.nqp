@@ -1358,13 +1358,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pblock($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :my $*SIG_OBJ;
+        :my %*SIG_INFO;
         :dba('parameterized block')
         [
         | <lambda>
             <.newpad>
             :my $*SCOPE := 'my';
             :my $*GOAL := '{';
-            <signature>
+            <signature> {
+                %*SIG_INFO := $<signature>.ast;
+                $*SIG_OBJ := $*W.create_signature_and_params($<signature>,
+                    %*SIG_INFO, $*W.cur_lexpad(), 'Mu', :rw($<lambda> eq '<->'));
+            }
             <blockoid>
         | <?[{]>
             <.newpad>
@@ -2597,6 +2603,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
         :my $*CURPAD;
+        :my $*SIG_OBJ;
+        :my %*SIG_INFO;
         :my $outer := $*W.cur_lexpad();
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
@@ -2619,7 +2627,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         <.newpad>
-        [ '(' <multisig> ')' ]?
+        [
+            '(' <multisig> ')' {
+                %*SIG_INFO := $<multisig>.ast;
+                my $*PRECEDING_DECL_LINE;
+                my $*PRECEDING_DECL;
+                $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,
+                    %*SIG_INFO, $*W.cur_lexpad(), 'Any');
+            }
+        ]?
         <trait>* :!s
         { $*IN_DECL := ''; }
         [
@@ -2656,6 +2672,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
+        :my $*SIG_OBJ;
+        :my %*SIG_INFO;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2678,7 +2696,29 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <trait>*
             | <?>
             ]
-            { $*IN_DECL := ''; }
+            {
+                $*IN_DECL := '';
+
+                my $meta := $<specials> && ~$<specials> eq '^';
+                my $invocant_type := $*W.find_symbol([
+                    $<longname> && $*W.is_lexical('$?CLASS') && !$meta
+                        ?? '$?CLASS'
+                        !! 'Mu']);
+                my $*PRECEDING_DECL_LINE;
+                my $*PRECEDING_DECL;
+                if $<multisig> {
+                    %*SIG_INFO := $<multisig>.ast;
+                    $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,
+                        %*SIG_INFO, $*W.cur_lexpad(), 'Any', :method,
+                        :$invocant_type);
+                }
+                else {
+                    %*SIG_INFO := hash(parameters => []);
+                    $*SIG_OBJ := $*W.create_signature_and_params($/,
+                        %*SIG_INFO, $*W.cur_lexpad(), 'Any', :method,
+                        :$invocant_type);
+                }
+            }
             [
             || <onlystar>
             || <blockoid>

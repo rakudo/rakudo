@@ -413,6 +413,7 @@ S06-other/main-usage.t
 S06-other/main-semicolon.t
 S06-other/misc.t
 S06-routine-modifiers/lvalue-subroutines.t
+S06-routine-modifiers/native-lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
@@ -450,6 +451,8 @@ S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
 S06-traits/misc.t
+S06-traits/native-is-copy.t
+S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
@@ -479,6 +482,7 @@ S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t
 S12-attributes/mutators.t
+S12-attributes/native.t
 S12-attributes/recursive.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t

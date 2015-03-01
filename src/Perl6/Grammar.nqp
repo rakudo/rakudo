@@ -3450,8 +3450,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token quote { <...> }
     token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
     token quote:sym<sapos> { :dba('smart single quotes') "‘" ~ "’" <nibble(self.quote_lang(%*LANG<Q>, "‘", "’", ['q']))> }
+    token quote:sym<lapos> { :dba('low smart single quotes') "‚" ~ "’" <nibble(self.quote_lang(%*LANG<Q>, "‚", "’", ['q']))> }
     token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
     token quote:sym<sdblq> { :dba('smart double quotes') '“' ~ '”' <nibble(self.quote_lang(%*LANG<Q>, '“', '”', ['qq']))> }
+    token quote:sym<ldblq> { :dba('low smart double quotes') '„' ~ '”' <nibble(self.quote_lang(%*LANG<Q>, '„', '”', ['qq']))> }
     token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(%*LANG<Q>, '｢', '｣'))> }
     token quote:sym<q> {
         :my $qm;

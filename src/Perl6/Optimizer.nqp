@@ -1796,7 +1796,9 @@ class Perl6::Optimizer {
         $!symbols.faking_top_routine($code_obj,
             { self.visit_children($inlined) });
 
-        
+        # Annotate return type.
+        $inlined.returns($code_obj.returns);
+
         $inlined
     }
     

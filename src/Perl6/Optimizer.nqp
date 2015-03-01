@@ -1276,13 +1276,17 @@ class Perl6::Optimizer {
                 if +@ct_arg_info {
                     my @types := @ct_arg_info[0];
                     my @flags := @ct_arg_info[1];
-                    my $ct_result := nqp::p6trialbind($obj.signature, @types, @flags);
+                    my $sig := $obj.signature;
+                    my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     if $ct_result == 1 {
                         if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                         #say("# trial bind worked!");
                         if $!level >= 2 {
                             if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
                                 return self.inline_call($op, $obj);
+                            }
+                            else {
+                                self.simplify_refs($op, $sig);
                             }
                             copy_returns($op, $obj);
                         }
@@ -1805,8 +1809,10 @@ class Perl6::Optimizer {
     # If we decide a dispatch at compile time, this emits the direct call.
     # Note that we do not do this on MoarVM, since it can actually make a
     # much better job of these than we are able to here and we don't have a
-    # way to convey the choice.
+    # way to convey the choice. We also simplify any lexicalref/attributeref
+    # we may be passing.
     method call_ct_chosen_multi($call, $proto, $chosen) {
+        self.simplify_refs($call, $chosen.signature);
         if nqp::getcomp('perl6').backend.name ne 'moar' {
             my @cands := $proto.dispatchees();
             my int $idx := 0;
@@ -1837,6 +1843,38 @@ class Perl6::Optimizer {
             }
         }
         $call
+    }
+
+    # Looks through positional args for any lexicalref or attributeref, and
+    # if we find them check if the expectation is for an non-rw argument.
+    method simplify_refs($call, $sig) {
+        if $sig.arity == $sig.count {
+            my @args   := $call.list;
+            my int $i  := $call.name eq '' ?? 1 !! 0;
+            my int $n  := nqp::elems(@args);
+            my int $p  := 0;
+            while $i < $n {
+                my $arg := @args[$i];
+                unless $arg.named || $arg.flat {
+                    if nqp::istype($arg, QAST::Var) {
+                        my str $scope := $arg.scope;
+                        my int $lref  := $scope eq 'lexicalref';
+                        my int $aref  := $scope eq 'attributeref';
+                        if $lref || $aref {
+                            my $Signature := $!symbols.find_in_setting("Signature");
+                            my $param := nqp::getattr($sig, $Signature, '$!params')[$p];
+                            if nqp::can($param, 'rw') {
+                                unless $param.rw {
+                                    $arg.scope($lref ?? 'lexical' !! 'attribute');
+                                }
+                            }
+                        }
+                    }
+                    $p++;
+                }
+                $i++;
+            }
+        }
     }
     
     my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];

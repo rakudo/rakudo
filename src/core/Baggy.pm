@@ -27,7 +27,7 @@ my role Baggy does QuantHash {
         -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
         nqp::create(self).BUILD(:elems(%e));
     }
-    method new-from-pairs(*@pairs --> Baggy) {
+    method new-from-pairs(*@pairs) {
         my %e;
         for @pairs {
             when Pair {

@@ -6979,10 +6979,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %curried{'&postcircumfix:<{ }>'} := 2;
     }
     method whatever_curry($/, $past, $upto_arity) {
-        my $Whatever := $*W.find_symbol(['Whatever']);
-        my $WhateverCode := $*W.find_symbol(['WhateverCode']);
-        my $HyperWhatever := $*W.find_symbol(['HyperWhatever']);
-        my $curried :=
+        my int $curried :=
             # It must be an op and...
             nqp::istype($past, QAST::Op) && (
 
@@ -7002,10 +6999,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 || ($past.op eq 'call' && nqp::eqat($past.name, '&postcircumfix:', 0) &&
                     %curried{$past.name} // 0)
             );
+
+        return $past unless $curried;
+
         my int $i := 0;
         my int $whatevers := 0;
         my int $hyperwhatever := 0;
-        while $curried && $i < $upto_arity {
+
+        my $Whatever := $*W.find_symbol(['Whatever']);
+        my $WhateverCode := $*W.find_symbol(['WhateverCode']);
+        my $HyperWhatever := $*W.find_symbol(['HyperWhatever']);
+
+        while $i < $upto_arity {
             my $check := $past[$i];
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) || 
                                     nqp::istype($check, QAST::Stmt)) &&

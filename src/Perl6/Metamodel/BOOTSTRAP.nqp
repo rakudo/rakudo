@@ -954,6 +954,9 @@ my class Binder {
             unless nqp::isnull(nqp::getattr($param, Parameter, '$!type_captures')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
+            unless nqp::isnull(nqp::getattr($param, Parameter, '$!coerce_type')) {
+                return $TRIAL_BIND_NOT_SURE;
+            }
 
             # Do we have an argument for this parameter?
             if $cur_pos_arg >= $num_pos_args {

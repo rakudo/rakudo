@@ -1015,6 +1015,10 @@ public final class Binder {
                 gcx.Parameter, "$!type_captures", HINT_type_captures);
             if (typeCaptures != null)
                 return TRIAL_BIND_NOT_SURE;
+            SixModelObject coerceType = param.get_attribute_boxed(tc,
+                gcx.Parameter, "$!coerce_type", HINT_coerce_type);
+            if (coerceType != null)
+                return TRIAL_BIND_NOT_SURE;
 
             /* Do we have an argument for this parameter? */
             if (curPosArg >= numPosArgs) {

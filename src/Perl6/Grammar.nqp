@@ -2183,49 +2183,49 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<module> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'module';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<class> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'class';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<grammar> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'grammar';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<role> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'role';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<knowhow> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'knowhow';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<native> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'native';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <package_def>
+        <sym><.kok> <package_def>
     }
     token package_declarator:sym<trusts> {
         <sym><.kok> <typename>
@@ -2246,7 +2246,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*POD_BLOCK;
         { $*DECLARATOR_DOCS := '' }
-        <.kok>
         <.attach_leading_docs>
         
         # Type-object will live in here; also set default REPR (a trait
@@ -4100,8 +4099,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<(-)>  { <sym> <O('%junctive_or')> }
     token infix:sym«∖»    { <sym> <O('%junctive_or')> }
 
-    token prefix:sym<let>  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
-    token prefix:sym<temp> { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
+    token prefix:sym<let>  { <sym><.kok> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
+    token prefix:sym<temp> { <sym><.kok> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
 
     token infix:sym«==»   { <sym>  <O('%chaining')> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O('%chaining')> }
@@ -4246,8 +4245,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym«=>» { <sym> <O('%item_assignment')> }
 
-    token prefix:sym<so> { <sym> >> <O('%loose_unary')> }
-    token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
+    token prefix:sym<so> { <sym><.end_keyword> <O('%loose_unary')> }
+    token prefix:sym<not>  { <sym><.end_keyword> <O('%loose_unary')> }
 
     token infix:sym<,>    {
         <.unsp>? <sym> <O('%comma, :fiddly<0>')>

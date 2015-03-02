@@ -95,7 +95,7 @@ my class Any { # declared in BOOTSTRAP
                 take $it.key => $it.value;
             }
             elsif nqp::istype($it,EnumMap) and !nqp::iscont($it) {
-                take .key => .value for $it.list;
+                take $it.pairs;
             }
             elsif $items {
                 take $it => $items.shift;

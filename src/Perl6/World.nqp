@@ -2916,10 +2916,13 @@ class Perl6::World is HLL::World {
 
         if $type_found {
             # If the highwater is beyond the current position, force the cursor to
-            # that location.
+            # that location.  (Maybe.)
             my $c := $/.CURSOR;
             my @expected;
-            if %opts<expected> {
+            if %opts<precursor> {
+		$c := $/.PRECURSOR;
+	    }
+            elsif %opts<expected> {
                 @expected := %opts<expected>;
             }
             elsif $c.'!highwater'() >= $c.pos() {

@@ -815,6 +815,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $block := $<blockoid>.ast;
             if $block.ann('placeholder_sig') && $<signature> {
                 $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+                    precursor => '1',
                     placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
                 );
             }
@@ -2379,6 +2380,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*SIG_OBJ {
             if $block.ann('placeholder_sig') {
                 $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+                    precursor => '1',
                     placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
                 );
             }
@@ -2889,6 +2891,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # call binder.
         if $block.ann('placeholder_sig') && $<multisig> {
             $*W.throw($/, 'X::Signature::Placeholder',
+                precursor => '1',
                 placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
             );
         }

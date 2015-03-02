@@ -2772,7 +2772,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $past := $<blockoid>.ast;
             if $past.ann('placeholder_sig') {
-                $/.CURSOR.panic('Placeholder variables cannot be used in a method');
+                $/.PRECURSOR.panic('Placeholder variables cannot be used in a method');
             }
             $past[1] := wrap_return_handler($past[1]);
         }
@@ -2808,7 +2808,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $<sigil> eq '%' { $name := 'postcircumfix:<{ }>' }
             elsif $<sigil> eq '&' { $name := 'postcircumfix:<( )>' }
             else {
-                $/.CURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
+                $/.PRECURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
             }
         }
         $past.name($name ?? $name !! '<anon>');
@@ -2928,7 +2928,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $name := '&' ~ ~$<deflongname>.ast;
             # Install.
             if $outer.symbol($name) {
-                $/.CURSOR.panic("Illegal redeclaration of macro '" ~
+                $/.PRECURSOR.panic("Illegal redeclaration of macro '" ~
                     ~$<deflongname>.ast ~ "'");
             }
             if $*SCOPE eq '' || $*SCOPE eq 'my' {
@@ -2946,11 +2946,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ));
             }
             else {
-                $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a macro");
+                $/.PRECURSOR.panic("Cannot use '$*SCOPE' scope with a macro");
             }
         }
         elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous macro');
+            $/.PRECURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous macro');
         }
 
         # Apply traits.
@@ -2991,11 +2991,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta) {
         my $meta_meth;
         if $private {
-            if $*MULTINESS { $/.CURSOR.panic("Private multi-methods are not supported"); }
+            if $*MULTINESS { $/.PRECURSOR.panic("Private multi-methods are not supported"); }
             $meta_meth := 'add_private_method';
         }
         elsif $meta {
-            if $*MULTINESS { $/.CURSOR.panic("Meta multi-methods are not supported"); }
+            if $*MULTINESS { $/.PRECURSOR.panic("Meta multi-methods are not supported"); }
             $meta_meth := 'add_meta_method';
         }
         else {
@@ -3009,7 +3009,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
-                $/.CURSOR.worry(
+                $/.PRECURSOR.worry(
                     "Useless declaration of a has-scoped $nocando in " ~
                     ($*PKGDECL || "mainline") ~ " (did you mean 'my $*METHODTYPE $name'?)");
             }
@@ -3145,7 +3145,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if $*MULTINESS eq 'proto' {
             unless $<onlystar> {
-                $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
+                $/.PRECURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
             }
             my $proto_body := QAST::Op.new(
                 :op('callmethod'), :name('!protoregex'),
@@ -3174,7 +3174,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
         # Regexes can't have place-holder signatures.
         if $qast.ann('placeholder_sig') {
-            $/.CURSOR.panic('Placeholder variables cannot be used in a regex');
+            $/.PRECURSOR.panic('Placeholder variables cannot be used in a regex');
         }
 
         # Create a code reference from a regex qast tree

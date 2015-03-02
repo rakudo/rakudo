@@ -67,7 +67,7 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
 
 my native long     is Int is ctype("long")     is repr("P6int")    is export(:types, :DEFAULT) { };
 my native longlong is Int is ctype("longlong") is repr("P6int")    is export(:types, :DEFAULT) { };
-my class void                                  is repr('CPointer') is export(:types, :DEFAULT) { };
+my class void                                  is repr('Uninstantiable') is export(:types, :DEFAULT) { };
 # Expose a Pointer class for working with raw pointers.
 my class Pointer                               is repr('CPointer') is export(:types, :DEFAULT) { };
 
@@ -116,7 +116,7 @@ augment class Pointer {
     }
     multi method PARAMETERIZE_TYPE(Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t ~~ Int || t ~~ Num || t === Str || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
+            unless t ~~ Int || t ~~ Num || t === Str || t === void || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedPointer[t];
         typed.HOW.make_pun(typed);
     }

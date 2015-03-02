@@ -130,11 +130,12 @@ my class IO::Path is Cool {
         my str $up        = $!SPEC.updir;
         my str $empty     = '';
         my str $resolved  = $empty;
-        my Mu  $res-list := nqp::list();
+        my Mu  $res-list := nqp::list_s();
 
         my Mu $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
         while $parts {
-            fail "Resolved path too deep!" if $max-depth < $res-list + $parts;
+            fail "Resolved path too deep!"
+                if $max-depth < nqp::elems($res-list) + nqp::elems($parts);
 
             # Grab next unprocessed part, check for '', '.', '..'
             my str $part = nqp::shift($parts);
@@ -142,7 +143,7 @@ my class IO::Path is Cool {
             next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
             if nqp::iseq_s($part, $up) {
                 next unless $res-list;
-                nqp::pop($res-list);
+                nqp::pop_s($res-list);
                 $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
                                       !! $empty;
                 next;
@@ -169,15 +170,16 @@ my class IO::Path is Cool {
                 # Symlink to absolute path
                 if nqp::iseq_s($link-parts[0], $empty) {
                     $resolved  = nqp::shift($link-parts);
-                    $res-list := nqp::list();
+                    $res-list := nqp::list_s();
                 }
 
-                nqp::unshift($parts, nqp::pop($link-parts)) while $link-parts;
+                nqp::unshift($parts, nqp::pop($link-parts))
+                    while $link-parts;
             }
             # Just a plain old path part, so append it and go on
             else {
                 $resolved = $next;
-                nqp::push($res-list, $part);
+                nqp::push_s($res-list, $part);
             }
         }
         $resolved = $sep unless nqp::chars($resolved);

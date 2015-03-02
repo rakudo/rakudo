@@ -1160,6 +1160,10 @@ my class X::Hash::Store::OddNumber is Exception {
     method message() { "Odd number of elements found where hash initializer expected" }
 }
 
+my class X::Pairup::OddNumber is Exception {
+    method message() { "Odd number of elements found for .pairup()" }
+}
+
 my class X::Match::Bool is Exception {
     has $.type;
     method message() { "Cannot use Bool as Matcher with '" ~ $.type ~ "'.  Did you mean to use \$_ inside a block?" }

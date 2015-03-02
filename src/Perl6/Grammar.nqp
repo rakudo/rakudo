@@ -446,6 +446,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token end_keyword {
         » <!before <[ \( \\ ' \- ]> || \h* '=>'>
     }
+    token end_prefix {
+        » <!before <[ \\ ' \- ]> || \h* '=>'>
+    }
     token spacey { <?[\s#]> }
 
     token kok {
@@ -4245,8 +4248,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym«=>» { <sym> <O('%item_assignment')> }
 
-    token prefix:sym<so> { <sym><.end_keyword> <O('%loose_unary')> }
-    token prefix:sym<not>  { <sym><.end_keyword> <O('%loose_unary')> }
+    token prefix:sym<so> { <sym><.end_prefix> <O('%loose_unary')> }
+    token prefix:sym<not>  { <sym><.end_prefix> <O('%loose_unary')> }
 
     token infix:sym<,>    {
         <.unsp>? <sym> <O('%comma, :fiddly<0>')>

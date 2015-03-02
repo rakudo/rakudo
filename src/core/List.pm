@@ -640,7 +640,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 }
 
-sub eager(|) {
+# internal, caps to not hide 'eager' keyword
+sub EAGER(|) {
     nqp::p6parcel(nqp::p6argvmarray(), Any).eager
 }
 

@@ -453,16 +453,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token kok {
         <.end_keyword>
-        :my $n;
-        {
-            my str $orig := self.orig();
-            my $f := self.from;
-            my $l := self.pos - $f;
-            $n := nqp::substr($orig, $f, $l);
-        }
-        [ <!{ $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> || <?before <[ \s \# ]> > ]
-        [ <?before <[ \s \# ]> > || <.sorry: "Whitespace required after keyword '$n'"> ]
-        <.ws>
+        [
+        || <?before <[ \s \# ]> > <.ws>
+        || <?{
+                my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
+                $*W.is_name([$n]) || $*W.is_name(['&' ~ $n])
+                    ?? False
+                    !! self.sorry("Whitespace required after keyword '$n'")
+           }>
+        ]
     }
     
 

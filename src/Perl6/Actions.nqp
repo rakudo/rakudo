@@ -1398,13 +1398,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_prefix:sym<eager>($/) {
         my $blast := QAST::Op.new( :op('call'), $<blorst>.ast );
-        make QAST::Op.new( :name('&eager'), :op('call'), :node($/), $blast );
+        make QAST::Op.new( :name('&EAGER'), :op('call'), :node($/), $blast );
     }
 
     method statement_prefix:sym<sink>($/) {
         my $blast := QAST::Op.new( :op('call'), $<blorst>.ast );
         make QAST::Stmts.new(
-            QAST::Op.new( :name('&eager'), :op('call'), $blast ),
+            QAST::Op.new( :name('&EAGER'), :op('call'), $blast ),
             QAST::Var.new( :name('Nil'), :scope('lexical')),
             :node($/)
         );

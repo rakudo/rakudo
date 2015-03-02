@@ -444,9 +444,24 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token end_keyword {
-        <!before <[ \( \\ ' \- ]> || \h* '=>'> »
+        » <!before <[ \( \\ ' \- ]> || \h* '=>'>
     }
     token spacey { <?[\s#]> }
+
+    token kok {
+        <.end_keyword>
+        :my $n;
+        {
+            my str $orig := self.orig();
+            my $f := self.from;
+            my $l := self.pos - $f;
+            $n := nqp::substr($orig, $f, $l);
+        }
+        [ <!{ $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> || <?before <[ \s \# ]> > ]
+        [ <?before <[ \s \# ]> > || <.sorry: "Whitespace required after keyword '$n'"> ]
+        <.ws>
+    }
+    
 
     token ENDSTMT {
         [
@@ -1437,13 +1452,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token terminator:sym<]> { <?[\]]> }
     token terminator:sym<}> { <?[}]> }
     token terminator:sym<ang> { <?[>]> <?{ $*IN_REGEX_ASSERTION }> }
-    token terminator:sym<if>     { 'if'     <.end_keyword> }
-    token terminator:sym<unless> { 'unless' <.end_keyword> }
-    token terminator:sym<while>  { 'while'  <.end_keyword> }
-    token terminator:sym<until>  { 'until'  <.end_keyword> }
-    token terminator:sym<for>    { 'for'    <.end_keyword> }
-    token terminator:sym<given>  { 'given'  <.end_keyword> }
-    token terminator:sym<when>   { 'when'   <.end_keyword> }
+    token terminator:sym<if>     { 'if'     <.kok> }
+    token terminator:sym<unless> { 'unless' <.kok> }
+    token terminator:sym<while>  { 'while'  <.kok> }
+    token terminator:sym<until>  { 'until'  <.kok> }
+    token terminator:sym<for>    { 'for'    <.kok> }
+    token terminator:sym<given>  { 'given'  <.kok> }
+    token terminator:sym<when>   { 'when'   <.kok> }
     token terminator:sym<arrow>  { '-->' }
     
 
@@ -1462,41 +1477,41 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto rule statement_control { <...> }
 
     rule statement_control:sym<if> {
-        <sym><.end_keyword> {}
+        <sym><.kok>
         <xblock>
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elif' { $/.CURSOR.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
-            | 'elsif'\s <xblock>
+            | 'elsif' <xblock>
             ]
         ]*
-        [ 'else'\s <else=.pblock> ]?
+        [ 'else' <else=.pblock> ]?
     }
 
     rule statement_control:sym<unless> {
-        <sym><.end_keyword> {}
+        <sym><.kok> {}
         <xblock>
         [ <!before 'else'> || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
     rule statement_control:sym<while> {
-        $<sym>=[while|until]<.end_keyword> {}
+        $<sym>=[while|until]<.kok> {}
         <xblock>
     }
 
     rule statement_control:sym<repeat> {
-        <sym><.end_keyword> {}
+        <sym><.kok> {}
         [
-        | $<wu>=[while|until]\s <xblock>
+        | $<wu>=[while|until]<.kok> <xblock>
         | <pblock>
-          [$<wu>=['while'|'until']\s || <.missing('"while" or "until"')>]
+          [$<wu>=['while'|'until']<.kok> || <.missing('"while" or "until"')>]
           <EXPR>
         ]
     }
 
     rule statement_control:sym<for> {
-        <sym><.end_keyword> {}
+        <sym><.kok> {}
         [ <?before 'my'? '$'\w+ '(' >
             <.typed_panic: 'X::Syntax::P5'> ]?
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
@@ -1509,8 +1524,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token statement_control:sym<loop> {
-        <sym><.end_keyword>
-        [ <?[({]> <.sorry: "Whitespace required after 'loop'"> ]?
+        <sym><.kok>
         :s''
         [ '('
             <e1=.EXPR>? ';'
@@ -1750,50 +1764,50 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statement_control:sym<given> {
-        <sym><.end_keyword> <xblock(1)>
+        <sym><.kok> <xblock(1)>
     }
     rule statement_control:sym<when> {
-        <sym><.end_keyword> <xblock>
+        <sym><.kok> <xblock>
     }
     rule statement_control:sym<default> {
-        <sym><.end_keyword> <block>
+        <sym><.kok> <block>
     }
 
     rule statement_control:sym<CATCH> {<sym> <block(1)> }
     rule statement_control:sym<CONTROL> {<sym> <block(1)> }
 
     proto token statement_prefix { <...> }
-    token statement_prefix:sym<BEGIN>   { <sym> <blorst> }
-    token statement_prefix:sym<COMPOSE> { <sym> <blorst> }
-    token statement_prefix:sym<TEMP>    { <sym> <blorst> }
-    token statement_prefix:sym<CHECK>   { <sym> <blorst> }
-    token statement_prefix:sym<INIT>    { <sym> <blorst> }
-    token statement_prefix:sym<ENTER>   { <sym> <blorst> }
-    token statement_prefix:sym<FIRST>   { <sym> <blorst> }
+    token statement_prefix:sym<BEGIN>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<COMPOSE> { <sym><.kok> <blorst> }
+    token statement_prefix:sym<TEMP>    { <sym><.kok> <blorst> }
+    token statement_prefix:sym<CHECK>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<INIT>    { <sym><.kok> <blorst> }
+    token statement_prefix:sym<ENTER>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<FIRST>   { <sym><.kok> <blorst> }
     
-    token statement_prefix:sym<END>   { <sym> <blorst> }
-    token statement_prefix:sym<LEAVE> { <sym> <blorst> }
-    token statement_prefix:sym<KEEP>  { <sym> <blorst> }
-    token statement_prefix:sym<UNDO>  { <sym> <blorst> }
-    token statement_prefix:sym<NEXT>  { <sym> <blorst> }
-    token statement_prefix:sym<LAST>  { <sym> <blorst> }
-    token statement_prefix:sym<PRE>   { <sym> <blorst> }
-    token statement_prefix:sym<POST>  { <sym> <blorst> }
+    token statement_prefix:sym<END>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<LEAVE> { <sym><.kok> <blorst> }
+    token statement_prefix:sym<KEEP>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<UNDO>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<NEXT>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<LAST>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<PRE>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<POST>  { <sym><.kok> <blorst> }
     
-    token statement_prefix:sym<eager> { <sym> <blorst> }
-    token statement_prefix:sym<lazy>  { <sym> <blorst> }
-    token statement_prefix:sym<sink>  { <sym> <blorst> }
-    token statement_prefix:sym<try>   { <sym> <blorst> }
-    token statement_prefix:sym<gather>{ <sym> <blorst> }
-    token statement_prefix:sym<once>  { <sym> <blorst> }
-    token statement_prefix:sym<do>    { <sym> <blorst> }
+    token statement_prefix:sym<eager> { <sym><.kok> <blorst> }
+    token statement_prefix:sym<lazy>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<sink>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<try>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<gather>{ <sym><.kok> <blorst> }
+    token statement_prefix:sym<once>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<do>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<DOC>   {
-        <sym> \s <.ws> $<phase>=['BEGIN' || 'CHECK' || 'INIT']
+        <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
         <blorst>
     }
 
     token blorst {
-        \s <.ws> [ <?[{]> <block> | <![;]> <statement> || <.missing: 'block or statement'> ]
+        [ <?[{]> <block> | <![;]> <statement> || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers
@@ -1802,16 +1816,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token modifier_expr { <EXPR> }
 
-    rule statement_mod_cond:sym<if>     { <sym> <modifier_expr> }
-    rule statement_mod_cond:sym<unless> { <sym> <modifier_expr> }
-    rule statement_mod_cond:sym<when>   { <sym> <modifier_expr> }
+    rule statement_mod_cond:sym<if>     { <sym><.kok> <modifier_expr> }
+    rule statement_mod_cond:sym<unless> { <sym><.kok> <modifier_expr> }
+    rule statement_mod_cond:sym<when>   { <sym><.kok> <modifier_expr> }
 
     proto rule statement_mod_loop { <...> }
 
-    rule statement_mod_loop:sym<while> { <sym> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<until> { <sym> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<for>   { <sym> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<given> { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<while> { <sym><.kok> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<until> { <sym><.kok> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<for>   { <sym><.kok> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<given> { <sym><.kok> <smexpr=.EXPR> }
 
     ## Terms
 
@@ -2169,55 +2183,55 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<module> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'module';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<class> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'class';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<grammar> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'grammar';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<role> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'role';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<knowhow> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'knowhow';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<native> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'native';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> <.end_keyword> <package_def>
+        <sym> <package_def>
     }
     token package_declarator:sym<trusts> {
-        <sym> <.ws> <typename>
+        <sym><.kok> <typename>
     }
     rule package_declarator:sym<also> {
-        <sym>
+        <sym><.kok>
         [ <trait>+ || <.panic: "No valid trait found after also"> ]
     }
 
@@ -2232,6 +2246,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*POD_BLOCK;
         { $*DECLARATOR_DOCS := '' }
+        <.kok>
         <.attach_leading_docs>
         
         # Type-object will live in here; also set default REPR (a trait
@@ -2451,26 +2466,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule term:sym<winner>   { <sym><.end_keyword> <xblock> }   # DEPRECATED
     rule term:sym<earliest> { <sym><.end_keyword> <xblock> }
     rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
-    rule statement_control:sym<more>   { <sym><.end_keyword> <xblock(1)> }
-    rule statement_control:sym<done>   { <sym><.end_keyword> <xblock(1)> }
-    rule statement_control:sym<quit>   { <sym><.end_keyword> <xblock(1)> }
-    rule statement_control:sym<wait>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<more>   { <sym><.kok> <xblock(1)> }
+    rule statement_control:sym<done>   { <sym><.kok> <xblock(1)> }
+    rule statement_control:sym<quit>   { <sym><.kok> <xblock(1)> }
+    rule statement_control:sym<wait>   { <sym><.kok> <xblock(1)> }
 
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
+        <sym><.kok> :my $*MULTINESS := 'multi';
+        [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
     token multi_declarator:sym<proto> {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> :my $*MULTINESS := 'proto'; :my $*IN_PROTO := 1; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
+        <sym><.kok> :my $*MULTINESS := 'proto'; :my $*IN_PROTO := 1;
+        [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<only> {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        <sym> :my $*MULTINESS := 'only'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('only')>]
+        <sym><.kok> :my $*MULTINESS := 'only';
+        [ <declarator> || <routine_def('sub')> || <.malformed('only')>]
     }
     token multi_declarator:sym<null> {
         :my $*MULTINESS := '';
@@ -2974,7 +2989,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token regex_declarator { <...> }
     token regex_declarator:sym<rule> {
-        <sym>
+        <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'rule';
@@ -2987,7 +3002,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <regex_def>
     }
     token regex_declarator:sym<token> {
-        <sym>
+        <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'token';
@@ -2999,7 +3014,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <regex_def>
     }
     token regex_declarator:sym<regex> {
-        <sym>
+        <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'regex';
@@ -3009,7 +3024,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule regex_def {
-        <.end_keyword>
         :my $*CURPAD;
         :my $*HAS_SELF := 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
@@ -3042,7 +3056,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token type_declarator { <...> }
 
     token type_declarator:sym<enum> {
-        <sym>  <.end_keyword> <.ws>
+        <sym><.kok>
         :my $*IN_DECL := 'enum';
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
@@ -3077,7 +3091,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule type_declarator:sym<subset> {
-        <sym><.end_keyword> :my $*IN_DECL := 'subset';
+        <sym><.kok> :my $*IN_DECL := 'subset';
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
@@ -3114,7 +3128,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token type_declarator:sym<constant> {
         :my $*IN_DECL := 'constant';
-        <sym> <.end_keyword> <.ws>
+        <sym><.kok>
 
         [
         | '\\'? <defterm>

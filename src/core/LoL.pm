@@ -64,7 +64,7 @@ sub infix:<X>(|lol) {
     # Don't care if a finite Range is lazy
     my $policy = &list;
     if nqp::istype(lol[0],Range) {
-        $policy = &eager unless $Inf || lol[0].infinite;
+        $policy = &EAGER unless $Inf || lol[0].infinite;
     }
 
     if $Inf {  # general case treats all lists as potentially lazy

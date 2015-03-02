@@ -25,4 +25,15 @@ my class Scalar { # declared in BOOTSTRAP
     }
 }
 
+# Also compose native reference classes declared in BOOTSTRAP.
+my class IntLexRef  { }
+my class NumLexRef  { }
+my class StrLexRef  { }
+my class IntAttrRef { }
+my class NumAttrRef { }
+my class StrAttrRef { }
+my class IntPosRef  { }
+my class NumPosRef  { }
+my class StrPosRef  { }
+
 # vim: ft=perl6 expandtab sw=4

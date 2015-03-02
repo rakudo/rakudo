@@ -2,6 +2,10 @@ my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
 my class Label { ... }
 
+# Make sure if we get this set early, else any fail calls in setting load will
+# recurse infinitely looking for it.
+$PROCESS::FATAL = False;
+
 sub THROW(Mu \arg, int $type) {
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);

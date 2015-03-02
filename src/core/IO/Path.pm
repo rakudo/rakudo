@@ -122,8 +122,71 @@ my class IO::Path is Cool {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
     method resolve (IO::Path:D:) {
+#?if moar
+        # XXXX: Not portable yet; assumes POSIX semantics
+        my int $max-depth = 256;
+        my str $sep       = $!SPEC.dir-sep;
+        my str $cur       = $!SPEC.curdir;
+        my str $up        = $!SPEC.updir;
+        my str $empty     = '';
+        my str $resolved  = $empty;
+        my Mu  $res-list := nqp::list();
+
+        my Mu $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
+        while $parts {
+            fail "Resolved path too deep!" if $max-depth < $res-list + $parts;
+
+            # Grab next unprocessed part, check for '', '.', '..'
+            my str $part = nqp::shift($parts);
+
+            next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
+            if nqp::iseq_s($part, $up) {
+                next unless $res-list;
+                nqp::pop($res-list);
+                $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
+                                      !! $empty;
+                next;
+            }
+
+            # Normal part, set as next path to test
+            my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
+
+            # Path part doesn't exist; handle rest in non-resolving mode
+            if !nqp::stat($next, nqp::const::STAT_EXISTS) {
+                $resolved = $next;
+                while $parts {
+                    $part = nqp::shift($parts);
+                    next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
+                    $resolved = nqp::concat($resolved, nqp::concat($sep, $part));
+                }
+            }
+            # Symlink; read it and act on absolute or relative link
+            elsif nqp::fileislink($next) {
+                my str $link        = nqp::readlink($next);
+                my Mu  $link-parts := nqp::split($sep, $link);
+                next unless $link-parts;
+
+                # Symlink to absolute path
+                if nqp::iseq_s($link-parts[0], $empty) {
+                    $resolved  = nqp::shift($link-parts);
+                    $res-list := nqp::list();
+                }
+
+                nqp::unshift($parts, nqp::pop($link-parts)) while $link-parts;
+            }
+            # Just a plain old path part, so append it and go on
+            else {
+                $resolved = $next;
+                nqp::push($res-list, $part);
+            }
+        }
+        $resolved = $sep unless nqp::chars($resolved);
+        $resolved;
+#?endif
+#?if !moar
         # NYI: requires readlink()
         X::NYI.new(feature=>'IO::Path.resolve').fail;
+#?endif
     }
 
     method parent(IO::Path:D:) {    # XXX needs work

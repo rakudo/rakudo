@@ -25,32 +25,37 @@ my class Attribute { # declared in BOOTSTRAP
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
                         method (Mu \fles:) is rw {
-                            nqp::getattr(
-                                nqp::decont(fles),
-                                $dcpkg,
-                                $name)
+                            nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        nqp::die("Cannot create rw-accessors for natively typed attribute '$name'");
+                        nqp::p6bool(nqp::iseq_i($attr_type, 1))
+                        ??
+                        method (Mu \fles:) is rw {
+                            nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
+                        }
+                        !!
+                        nqp::p6bool(nqp::iseq_i($attr_type, 2))
+                        ??
+                        method (Mu \fles:) is rw {
+                            nqp::getattrref_n(nqp::decont(fles), $dcpkg, $name)
+                        }
+                        !!
+                        method (Mu \fles:) is rw {
+                            nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
+                        }
                 } else {
                     # ro accessor
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
                         method (Mu \fles:) {
-                            nqp::getattr(
-                                nqp::decont(fles),
-                                $dcpkg,
-                                $name)
+                            nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 1))
                         ??
                         method (Mu \fles:) {
                             nqp::p6box_i(
-                                nqp::getattr_i(
-                                    nqp::decont(fles),
-                                    $dcpkg,
-                                    $name)
+                                nqp::getattr_i(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
                         !!
@@ -58,22 +63,15 @@ my class Attribute { # declared in BOOTSTRAP
                         ??
                         method (Mu \fles:) {
                             nqp::p6box_n(
-                                nqp::getattr_n(
-                                    nqp::decont(fles),
-                                    $dcpkg,
-                                    $name)
+                                nqp::getattr_n(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
                         !!
                         method (Mu \fles:) {
                             nqp::p6box_s(
-                                nqp::getattr_s(
-                                    nqp::decont(fles),
-                                    $dcpkg,
-                                    $name)
+                                nqp::getattr_s(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
-
                 }
                 $meth.set_name($meth_name);
                 $package.HOW.add_method($package, $meth_name, $meth);

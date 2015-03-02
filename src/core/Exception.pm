@@ -965,7 +965,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$@'  => '$!',
       '$#'  => '.fmt',
       '$['  => 'user-defined array indices',
-      '$]'  => '$*PERL_VERSION',
+      '$]'  => '$*PERL.version or $*PERL.compiler.version',
 
       '$^C' => 'COMPILING namespace',
       '$^D' => '$*DEBUGGING',
@@ -979,7 +979,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
       '$^T' => '$*BASETIME',
-      '$^V' => '$*PERL_VERSION',
+      '$^V' => '$*PERL.version or $*PERL.compiler.version',
       '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE_NAME',
 
@@ -1342,6 +1342,13 @@ my class X::Assignment::RO is Exception {
     has $.typename = "value";
     method message {
         "Cannot modify an immutable {$.typename}";
+    }
+}
+
+my class X::Assignment::RO::Comp does X::Comp {
+    has $.variable;
+    method message {
+        "Cannot assign to readonly variable {$.variable}"
     }
 }
 

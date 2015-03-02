@@ -330,6 +330,9 @@ my class DateTime does Dateish {
         die "More than one time unit supplied"
             if %unit.keys > 1;
 
+        die "No time unit supplied"
+            unless %unit.keys;
+
         my ($unit, $amount) = %unit.kv;
 
         X::DateTime::InvalidDeltaUnit.new(:$unit).throw

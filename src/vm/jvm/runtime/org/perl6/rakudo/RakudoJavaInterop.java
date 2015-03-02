@@ -18,6 +18,7 @@ import org.perl6.rakudo.RakOps.GlobalExt;
 
 import java.lang.invoke.*;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.lang.reflect.Constructor;
@@ -43,6 +44,10 @@ public class RakudoJavaInterop extends BootJavaInterop {
         private Object[] handleList;
         private boolean forCtors;
         private String declaringClass;
+        private String[] handleDescs = null;
+        private int handlePos = -1;
+        private int offset;
+        private ThreadContext tc = null;
 
         final MethodHandle fallback;
 
@@ -64,280 +69,278 @@ public class RakudoJavaInterop extends BootJavaInterop {
             this.declaringClass = declaringClass;
         }
 
-        Object[] parseArgs(Object[] inArgs, ThreadContext tc) {
+        Object[] parseArgArray(Object[] inArgs) throws Throwable {
             // XXX: checking the first arg for concreteness is a hack to identify static methods
-            int offset = ( forCtors || Ops.isconcrete((SixModelObject) inArgs[0], tc) == 0 ) ? 1 : 0;
+            offset = ( forCtors || Ops.isconcrete((SixModelObject) inArgs[0], tc) == 0 ) ? 1 : 0;
             GlobalExt gcx = RakOps.key.getGC(tc);
             Object[] outArgs = new Object[inArgs.length - offset];
             int i = offset;
             for(; i < inArgs.length; ++i) {
-                // there doesn't seem to be an actual type Bool in gc or gcx
-                if( !Ops.typeName((SixModelObject) inArgs[i], tc).equals("Bool") ) {
-                    // one decont for native types...
-                    StorageSpec outerSS = Ops.decont((SixModelObject) inArgs[i], tc)
-                        .st.REPR.get_storage_spec(tc, ((SixModelObject)inArgs[i]).st);
-                    // ...and two for boxeds
-                    StorageSpec innerSS = Ops.decont(Ops.decont((SixModelObject) inArgs[i], tc), tc)
-                        .st.REPR.get_storage_spec(tc, Ops.decont((SixModelObject)inArgs[i], tc).st);
-                    if( (outerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
-                        outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
-                    }
-                    else if( (outerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
-                        outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
-                    }
-                    else if( (outerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
-                        outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
-                    }
-                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
-                        outArgs[i - offset] = Ops.unbox_n((SixModelObject) inArgs[i], tc);
-                    }
-                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
-                        outArgs[i - offset] = Ops.unbox_s((SixModelObject) inArgs[i], tc);
-                    }
-                    else if( (innerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
-                        outArgs[i - offset] = Ops.unbox_i((SixModelObject) inArgs[i], tc);
-                    }
-                    else {
-                        if( Ops.islist( (SixModelObject) inArgs[i], tc ) == 1 ) {
-                            outArgs[i - offset] = null;
-                            // XXX: obviously breaks for arrays with elems > Integer.MAX_VALUE
-                            // more precisely, breaks already at Integer.MAX_VALUE - 5 elems
-                            int elems = (int) Ops.elems((SixModelObject) inArgs[i], tc);
-                            SixModelObject argsContent = (SixModelObject) inArgs[i];
-                            for( int j = 0; j < elems; ++j ) {
-                                argsContent.at_pos_native(tc, j);
-                                if( tc.native_type == ThreadContext.NATIVE_NUM ) {
-                                    if( outArgs[i - offset] == null )
-                                        outArgs[i - offset] = new double[elems];
-                                    ((double[])outArgs[i - offset])[j] = tc.native_n;
-                                }
-                                else if( tc.native_type == ThreadContext.NATIVE_STR ) {
-                                    if( outArgs[i - offset] == null )
-                                        outArgs[i - offset] = new String[elems];
-                                    ((String[])outArgs[i - offset])[j] = tc.native_s;
-                                }
-                                else if( tc.native_type == ThreadContext.NATIVE_INT ) {
-                                    if( outArgs[i - offset] == null )
-                                        outArgs[i - offset] = new long[elems];
-                                    ((long[])outArgs[i - offset])[j] = tc.native_i;
-                                }
-                            }
-                        }
-                        else {
-                            try {
-                                outArgs[i - offset] = RuntimeSupport.unboxJava(Ops.decont((SixModelObject) inArgs[i], tc));
-                            } catch (Exception e) {
-                                throw ExceptionHandling.dieInternal(tc,
-                                    "Couldn't parse arguments in Java call. (Did you pass a type object?)");
-                            }
-                        }
-                    }
+                // /* debug
+                if( Ops.islist( (SixModelObject) inArgs[i], tc ) == 1 ) {
+                    outArgs[i - offset] = BootJavaInterop.marshalOutRecursive( (SixModelObject) inArgs[i], tc, null);
+                }
+                else if(Ops.istype( (SixModelObject) inArgs[i], gcx.List, tc ) == 1
+                     || Ops.istype( (SixModelObject) inArgs[i], gcx.Array, tc ) == 1 ) {
+                    outArgs[i - offset] = RakudoJavaInterop.marshalOutRecursive( (SixModelObject) inArgs[i], tc, null);
                 }
                 else {
-                    if( Ops.istrue((SixModelObject) inArgs[i], tc) == 1 ) {
-                        outArgs[i - offset] = new Boolean(true);
-                    }
-                    else if( Ops.isfalse((SixModelObject) inArgs[i], tc) == 1 ) {
-                        outArgs[i - offset] = new Boolean(false);
-                    }
+                    outArgs[i - offset] = RakudoJavaInterop.parseSingleArg( (SixModelObject) inArgs[i], tc);
                 }
             }
             return outArgs;
         }
 
-        int findHandle(Object[] parsedArgs, ThreadContext tc) throws Throwable {
-            int handlePos = -1;
-            Type[] argTypes = null;
-            OUTER: for( int i = 0; i < handleList.length; ++i ) {
-                if(forCtors) {
-                    argTypes = Type.getArgumentTypes(Type.getConstructorDescriptor((Constructor<?>) handleList[i]));
-                }
-                else {
-                    argTypes = Type.getArgumentTypes(((MethodHandle)handleList[i]).type().toMethodDescriptorString());
-                }
-                if(argTypes.length != parsedArgs.length) {
-                    continue OUTER;
-                }
-                INNER: for( int j = 0; j < parsedArgs.length; ++j ) {
-                    switch (argTypes[j].getSort()) {
-                        case Type.BOOLEAN:
-                            if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                parsedArgs[j] = parsedArgs[j] != null
-                                    ? ((Long) parsedArgs[j]) == 0
-                                        ? new Boolean(false)
-                                        : new Boolean(true)
-                                    : null;
-                                continue INNER;
-                            }
-                            else if( parsedArgs[j].getClass().equals(Boolean.class) ) {
-                                continue INNER;
-                            }
-                            break;
-                        case Type.BYTE:
-                            if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).byteValue() : null;
-                                continue INNER;
-                            }
-                            break;
-                        case Type.SHORT:
-                            if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).shortValue() : null;
-                                continue INNER;
-                            }
-                            break;
-                        case Type.INT:
-                            if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                parsedArgs[j] = parsedArgs[j] != null ? ((Long)parsedArgs[j]).intValue() : null;
-                                continue INNER;
-                            }
-                            break;
-                        case Type.LONG:
-                            if( parsedArgs[j].getClass().equals(Long.class) ) {
-                                continue INNER;
-                            }
-                            break;
-                        case Type.CHAR:
-                            if( parsedArgs[j].getClass().equals(String.class) ) {
-                                continue INNER;
-                            }
-                            break;
-                        case Type.FLOAT:
-                            if( parsedArgs[j].getClass().equals(Double.class) ) {
-                                parsedArgs[j] = parsedArgs[j] != null ? ((Double)parsedArgs[j]).floatValue() : null;
-                                continue INNER;
-                            }
-                            break;
-                        case Type.DOUBLE:
-                            if( parsedArgs[j].getClass().equals(Double.class) ) {
-                                continue INNER;
-                            }
-                            break;
-                        case Type.OBJECT:
-                            Class<?> argType = Class.forName(argTypes[j].getInternalName().replace('/', '.'),
-                                false, tc.gc.byteClassLoader);
-                            if( argType.isAssignableFrom(parsedArgs[j].getClass()) ) {
-                                // we can coerce
-                                continue INNER;
-                            }
-                            break;
-                        case Type.ARRAY:
-                            // check that we actually have an array as argument
-                            if( parsedArgs[j].getClass().getComponentType() != null ) {
-                                // and then check types again
-                                switch( argTypes[j].getElementType().getSort() ) {
-                                    case Type.BOOLEAN:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
-                                            boolean[] converted = new boolean[((Object[])parsedArgs[j]).length];
-                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
-                                                converted[k] = ((Long) ((long[])parsedArgs[j])[k]) == 0 ? false : true;
-                                            parsedArgs[j] = converted;
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.BYTE:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
-                                            byte[] converted = new byte[((long[])parsedArgs[j]).length];
-                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
-                                                converted[k] = ((Long)((long[])parsedArgs[j])[k]).byteValue();
-                                            parsedArgs[j] = converted;
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.SHORT:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
-                                            short[] converted = new short[((long[])parsedArgs[j]).length];
-                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
-                                                converted[k] = ((Long)((long[])parsedArgs[j])[k]).shortValue();
-                                            parsedArgs[j] = converted;
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.INT:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
-                                            int[] converted = new int[((long[])parsedArgs[j]).length];
-                                            for( int k = 0; k < ((long[])parsedArgs[j]).length; ++k )
-                                                converted[k] = ((Long)((long[])parsedArgs[j])[k]).intValue();
-                                            parsedArgs[j] = converted;
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.LONG:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(long.class) ) {
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.CHAR:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(String.class) ) {
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.FLOAT:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(double.class) ) {
-                                            float[] converted = new float[((double[])parsedArgs[j]).length];
-                                            for( int k = 0; k < ((double[])parsedArgs[j]).length; ++k )
-                                                converted[k] = ((Double)((double[])parsedArgs[j])[k]).floatValue();
-                                            parsedArgs[j] = converted;
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.DOUBLE:
-                                        if( parsedArgs[j].getClass().getComponentType().equals(double.class) ) {
-                                            continue INNER;
-                                        }
-                                        break;
-                                    case Type.OBJECT:
-                                        Class<?> innerArgType = Class.forName(argTypes[j].getElementType()
-                                            .getInternalName().replace('/', '.'), false, tc.gc.byteClassLoader);
-                                        if( innerArgType.isAssignableFrom(parsedArgs[j].getClass()) ) {
-                                            // not sure how unboxing of Object[] is gonna work...
-                                            continue INNER;
-                                        }
-                                        break;
-                                }
-                            }
-
-                        default:
-                            /* debug
-                            System.out.print("skipping handle with ");
-                            for(Type type : argTypes)
-                                System.out.print(type.toString() + ", ");
-                            System.out.println();
-                            */
-                            // if we didn't continue INNER we failed to match types
-
+        int findHandle(Object[] parsedArgs) throws Throwable {
+            handlePos = -1;
+            if( handleDescs == null ) {
+                handleDescs = new String[handleList.length];
+                for( int i = 0; i < handleList.length; ++i ) {
+                    if(forCtors) {
+                        handleDescs[i] = Type.getConstructorDescriptor((Constructor<?>) handleList[i]);
                     }
-                    continue OUTER;
+                    else {
+                        handleDescs[i] = ((MethodHandle)handleList[i]).type().toMethodDescriptorString();
+                    }
                 }
-                handlePos = i;
-                break;
             }
-            if( handlePos == -1 ) {
-                String types = "void";
-                boolean first = true;
-                if( parsedArgs != null ) {
-                    for( Object arg : parsedArgs ) {
-                        if( first ) {
-                            types = arg.getClass().toString();
-                            first = false;
-                        }
-                        else {
-                            types += ", " + arg.getClass().toString();
-                        }
+            for( int i = 0; i < handleDescs.length; ++i ) {
+                if( argsMatch(handleDescs[i], parsedArgs) ) {
+                    handlePos = i;
+                }
+            }
+            return handlePos;
+        }
+
+        void failDispatch(Object[] parsedArgs) {
+            String types = "void";
+            boolean first = true;
+            if( parsedArgs != null ) {
+                for( Object arg : parsedArgs ) {
+                    if( first ) {
+                        types = arg.getClass().toString();
+                        first = false;
+                    }
+                    else {
+                        types += ", " + arg.getClass().toString();
                     }
                 }
-                throw ExceptionHandling.dieInternal(tc,
-                    "Couldn't find a " + (forCtors ? "constructor" : "method" ) + " with types " + types +".");
+            }
+            throw ExceptionHandling.dieInternal(tc,
+                "Couldn't find a " + (forCtors ? "constructor" : "method" ) + " with types " + types +".");
+        }
+
+        boolean argsMatch(String desc, Object[] parsedArgs) {
+            String fakeDesc = "";
+            for( Object arg : parsedArgs ) {
+                fakeDesc += Type.getType(arg.getClass());
+            }
+            desc = desc.substring(desc.indexOf("(") + 1, desc.lastIndexOf(")"));
+            return desc.equals(fakeDesc);
+        }
+
+        Object deepArrayCast(Object obj, Type type) throws Throwable {
+            Type elemType = type;
+            int typeDepth = type.getDimensions();
+            elemType = elemType.getElementType();
+
+            int objDepth = 0;
+            Object val = obj;
+            while( val.getClass().getComponentType() != null ) {
+                val = ((Object[])val)[0];
+                objDepth++;
+            }
+
+            if( objDepth != typeDepth ) {
+                return null;
+            }
+
+            Object targetType = castObjectToType(val, elemType);
+            if( targetType != null ) {
+                return deepArrayCast(obj, elemType, type.getDimensions());
+            }
+
+            return null;
+        }
+
+        Object deepArrayCast(Object obj, Type type, int depth) throws Throwable {
+            Object retVal = null;
+            Class<?> klass = null;
+            switch( type.getSort() ) {
+                case Type.BOOLEAN:
+                    klass = boolean.class;
+                    break;
+                case Type.BYTE:
+                    klass = byte.class;
+                    break;
+                case Type.SHORT:
+                    klass = short.class;
+                    break;
+                case Type.INT:
+                    klass = int.class;
+                    break;
+                case Type.LONG:
+                    klass = long.class;
+                    break;
+                case Type.CHAR:
+                    klass = char.class;
+                    break;
+                case Type.FLOAT:
+                    klass = float.class;
+                    break;
+                case Type.DOUBLE:
+                    klass = double.class;
+                    break;
+                case Type.OBJECT:
+                    klass = Class.forName(type.getInternalName().replace('/', '.'), false, tc.gc.byteClassLoader);
+                    break;
+                case Type.ARRAY:
+                default:
+
+            }
+            if( depth == 1 ) {
+                retVal = Array.newInstance(klass, ((Object[]) obj).length);
+                for( int i = 0; i < ((Object[]) obj).length; ++i ) {
+                    Object val = castObjectToType(((Object[]) obj)[i], type);
+                    Array.set(retVal, i, val);
+                }
             }
             else {
-                return handlePos;
+                for( int i = 0; i < ((Object[]) obj).length; ++i ) {
+                    Object val = deepArrayCast(((Object[]) obj)[i], type, depth - 1);
+                    if( retVal == null )
+                        retVal = Array.newInstance(val.getClass(), ((Object[]) obj).length);
+                    Array.set(retVal, i, val);
+                }
             }
+            return retVal;
+        }
+
+        Object castObjectToType(Object obj, Type type) throws Throwable {
+            Object retVal = null;
+            switch( type.getSort() ) {
+                case Type.BOOLEAN:
+                    if( obj.getClass().equals(Long.class) ) {
+                        retVal = obj != null
+                            ? ((Long) obj) == 0
+                                ? new Boolean(false)
+                                : new Boolean(true)
+                            : null;
+                    }
+                    else if( obj.getClass().equals(Boolean.class) ) {
+                        retVal = obj;
+                    }
+                break;
+                case Type.BYTE:
+                    if( obj.getClass().equals(Long.class) ) {
+                        retVal = obj != null ? ((Long)obj).byteValue() : null;
+                    }
+                    break;
+                case Type.SHORT:
+                    if( obj.getClass().equals(Long.class) ) {
+                        retVal = obj != null ? ((Long)obj).shortValue() : null;
+                    }
+                    break;
+                case Type.INT:
+                    if( obj.getClass().equals(Long.class) ) {
+                        retVal = obj != null ? ((Long)obj).intValue() : null;
+                    }
+                    break;
+                case Type.LONG:
+                    if( obj.getClass().equals(Long.class) ) {
+                        retVal = obj;
+                    }
+                    break;
+                case Type.CHAR:
+                    if( obj.getClass().equals(String.class) ) {
+                        retVal = obj;
+                    }
+                    break;
+                case Type.FLOAT:
+                    if( obj.getClass().equals(Double.class) ) {
+                        retVal = obj != null ? ((Double)obj).floatValue() : null;
+                    }
+                    break;
+                case Type.DOUBLE:
+                    if( obj.getClass().equals(Double.class) ) {
+                        retVal = obj;
+                    }
+                    break;
+                case Type.OBJECT:
+                    Class<?> argType = Class.forName(type.getInternalName().replace('/', '.'), false, tc.gc.byteClassLoader);
+                    if( argType.isAssignableFrom(obj.getClass()) ) {
+                        retVal = obj;
+                    }
+                    else if( argType.equals(Boolean.class) && obj.getClass().equals(Long.class) ){
+                        retVal = new Boolean( ((Long)obj) == 0 ? false : true);
+                    }
+                    else if( argType.equals(Byte.class) && obj.getClass().equals(Long.class) ){
+                        retVal = new Byte( ((Long)obj).byteValue() );
+                    }
+                    else if( argType.equals(Short.class) && obj.getClass().equals(Long.class) ){
+                        retVal = new Short( ((Long)obj).shortValue() );
+                    }
+                    else if( argType.equals(Integer.class) && obj.getClass().equals(Long.class) ){
+                        retVal = new Integer( ((Long)obj).intValue() );
+                    }
+                    else if( argType.equals(Long.class) && obj.getClass().equals(Long.class) ){
+                        retVal = (Long) obj;
+                    }
+                    else if( argType.equals(Float.class) && obj.getClass().equals(Double.class) ){
+                        retVal = new Float( ((Double)obj).floatValue() );
+                    }
+                    else if( argType.equals(Double.class) && obj.getClass().equals(Double.class) ){
+                        retVal = (Double) obj;
+                    }
+                    else if( argType.equals(Character.class) && obj.getClass().equals(String.class) ){
+                        retVal = new Character( ((String)obj).charAt(0));
+                    }
+                    else if( argType.equals(String.class) && obj.getClass().equals(String.class) ){
+                        retVal = (String) obj;
+                    }
+                    break;
+                case Type.ARRAY:
+                    if( obj.getClass().getComponentType() != null ) {
+                        retVal = deepArrayCast(obj, type);
+                    }
+                    break;
+                default:
+
+            }
+
+            return retVal;
+        }
+
+        int findHandleWithArgsCasting(Object[] parsedArgs) throws Throwable {
+            for( int j = 0; j < handleDescs.length; ++j ) {
+                boolean possible = false;
+                Type[] mtypes = Type.getArgumentTypes(handleDescs[j]);
+                if( mtypes.length != parsedArgs.length ) continue;
+
+                for( int i = 0; i < mtypes.length; ++i ) {
+                    Object newValue = castObjectToType(parsedArgs[i], mtypes[i]);
+
+                    if( newValue != null ) {
+                        possible = true;
+                        parsedArgs[i] = newValue;
+                    }
+                    else {
+                        possible = false;
+                        break;
+                    }
+                }
+                if(possible) {
+                    return j;
+                }
+            }
+            return -1;
         }
 
         Object fallback(Object intc, Object incf, Object incsd, Object[] args) throws Throwable {
-            ThreadContext tc = (ThreadContext) intc;
+            tc = (ThreadContext) intc;
             CallFrame cf = (CallFrame) incf;
             CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
-            Object[] parsedArgs = parseArgs(args, tc);
+            Object[] parsedArgs = parseArgArray(args);
 
             /* debug
             for(int i = 0; i < parsedArgs.length; ++i ) {
@@ -350,7 +353,19 @@ public class RakudoJavaInterop extends BootJavaInterop {
                     false, tc.gc.byteClassLoader).getConstructors();
             }
 
-            int handlePos = findHandle(parsedArgs, tc);
+            // first, check for a cached handle, only recheck if it doesn't match
+            if( handlePos == -1 || handleDescs != null && !argsMatch(handleDescs[handlePos], parsedArgs) ) {
+                handlePos = -1;
+                handlePos = findHandle(parsedArgs);
+            }
+            // we should have a handle now, unless we have to cast arguments around
+            if( handlePos == -1 ) {
+                handlePos = findHandleWithArgsCasting(parsedArgs);
+            }
+            // that should have worked, if not there's nothing we can dispatch to
+            if( handlePos == -1 ) {
+                failDispatch(parsedArgs);
+            }
 
             /* debug
             if(forCtors) {
@@ -374,11 +389,11 @@ public class RakudoJavaInterop extends BootJavaInterop {
             Object out;
             if(forCtors) {
                 Object instance = ((Constructor) handleList[handlePos]).newInstance(parsedArgs);
-                out = rfh.invokeExact(instance, tc);
+                out = rfh.invoke(instance, tc);
             }
             else {
                 Object retVal = ((MethodHandle) handleList[handlePos]).invokeWithArguments(parsedArgs);
-                out = rfh.invokeExact(retVal, tc);
+                out = rfh.invoke(retVal, tc);
             }
 
             return out;
@@ -399,6 +414,116 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
     public RakudoJavaInterop(GlobalContext gc) {
         super(gc);
+    }
+
+    /**
+     * Helper for not having to write recursive bytecode generation.
+     * Public because of runtime visibility.
+     */
+    public static Object marshalOutRecursive(SixModelObject in, ThreadContext tc, Class<?> what) throws Throwable {
+        Object out = null;
+        GlobalExt gcx = RakOps.key.getGC(tc);
+        long size = 0;
+        if( Ops.islist(in, tc) == 1 ) {
+            return BootJavaInterop.marshalOutRecursive(in, tc, what);
+        }
+        else if(Ops.istype(in, gcx.List, tc) == 1
+            || Ops.istype(in, gcx.Array, tc) == 1) {
+            SixModelObject list = null;
+            list = RakOps.p6listitems(Ops.decont(in, tc), tc);
+            size = Ops.elems(list, tc);
+            for( int i = 0; i < size; ++i ) {
+                Object cur = Ops.atpos(Ops.decont(list, tc), i, tc);
+                Object value = null;
+                if(Ops.islist((SixModelObject) cur, tc) == 1) {
+                    ((Object[]) out)[i] = BootJavaInterop.marshalOutRecursive(in, tc, what);
+                }
+                else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1
+                    ||  Ops.istype((SixModelObject) cur, gcx.Array, tc) == 1) {
+                    value = marshalOutRecursive((SixModelObject) cur, tc, what);
+                }
+                else {
+                    value = parseSingleArg((SixModelObject) cur, tc);
+                }
+                if( out == null ) {
+                    out = Array.newInstance(value.getClass(), (int)size);
+                }
+                Array.set(out, i, value);
+            }
+        }
+        return out;
+    }
+
+    public static Object parseSingleArg(SixModelObject inArg, ThreadContext tc) {
+        Object outArg = null;;
+        // there doesn't seem to be an actual type Bool in gc or gcx
+        if( !Ops.typeName((SixModelObject) inArg, tc).equals("Bool") ) {
+            // one decont for native types...
+            StorageSpec outerSS = Ops.decont((SixModelObject) inArg, tc)
+                .st.REPR.get_storage_spec(tc, ((SixModelObject)inArg).st);
+            // ...and two for boxeds
+            StorageSpec innerSS = Ops.decont(Ops.decont((SixModelObject) inArg, tc), tc)
+                .st.REPR.get_storage_spec(tc, Ops.decont((SixModelObject)inArg, tc).st);
+            if( (outerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
+                Double value = Ops.unbox_n((SixModelObject) inArg, tc);
+                outArg = value;
+            }
+            else if( (outerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
+                String value = Ops.unbox_s((SixModelObject) inArg, tc);
+                outArg = value;
+            }
+            else if( (outerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
+                Long value = Ops.unbox_i((SixModelObject) inArg, tc);
+                outArg = value;
+            }
+            else if( (innerSS.can_box & StorageSpec.CAN_BOX_NUM) != 0 ) {
+                Double value = Ops.unbox_n((SixModelObject) inArg, tc);
+                outArg = value;
+            }
+            else if( (innerSS.can_box & StorageSpec.CAN_BOX_STR) != 0 ) {
+                String value = Ops.unbox_s((SixModelObject) inArg, tc);
+                outArg = value;
+            }
+            else if( (innerSS.can_box & StorageSpec.CAN_BOX_INT) != 0 ) {
+                Long value = Ops.unbox_i((SixModelObject) inArg, tc);
+                outArg = value;
+            }
+            else {
+                try {
+                    outArg = RuntimeSupport.unboxJava(Ops.decont((SixModelObject) inArg, tc));
+                } catch (Exception e) {
+                    throw ExceptionHandling.dieInternal(tc,
+                        "Couldn't parse arguments in Java call. (Did you pass a type object?)");
+                }
+            }
+        }
+        else {
+            if( Ops.istrue((SixModelObject) inArg, tc) == 1 ) {
+                Boolean value = new Boolean(true);
+                outArg = value;
+            }
+            else if( Ops.isfalse((SixModelObject) inArg, tc) == 1 ) {
+                Boolean value = new Boolean(false);
+                outArg = value;
+            }
+        }
+        return outArg;
+    }
+
+    @Override
+    protected void marshalOut(MethodContext c, Class<?> what, int ix) {
+        MethodVisitor mv = c.mv;
+
+        if(what.getComponentType() != null) {
+            emitGetFromNQP(c, ix, storageForType(what));
+            mv.visitVarInsn(Opcodes.ALOAD, c.tcLoc);
+            mv.visitLdcInsn(Type.getType(what));
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "marshalOutRecursive",
+                Type.getMethodDescriptor(Type.getType(Object.class), TYPE_SMO, TYPE_TC, Type.getType(Class.class)));
+        }
+        else {
+            super.marshalOut(c, what, ix);
+        }
     }
 
     public static Object filterReturnValueMethod(Object in, ThreadContext tc) {
@@ -649,7 +774,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         for (Method m : target.getMethods()) {
             if( m.isSynthetic() ) {
                 // synthetics don't get their own perl6-level method, because
-                // they only exist as a visibility aid for the class we're 
+                // they only exist as a visibility aid for the class we're
                 // generating an adaptor for
                 continue;
             }
@@ -669,7 +794,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 continue;
             createAdaptorField(cc, f);
         }
-        for (Constructor<?> c : target.getConstructors()) { 
+        for (Constructor<?> c : target.getConstructors()) {
             if( c.isSynthetic() )
                 continue;
             createAdaptorConstructor(cc, c);

@@ -77,6 +77,15 @@ my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub IntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub NumAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 
 #?if moar
 # On MoarVM, implement the signature binder.
@@ -144,7 +153,7 @@ my class Binder {
 
             $param_i++;
         }
-	my str $s := $arity == 1 ?? "" !! "s";
+        my str $s := $arity == 1 ?? "" !! "s";
 
         if $arity == $count {
             return "$error_prefix positionals passed; expected $arity argument$s but got $num_pos_args";
@@ -174,7 +183,34 @@ my class Binder {
 
         # Check if boxed/unboxed expections are met.
         my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
-        unless $desired_native == $got_native {
+        my int $is_rw          := $flags +& $SIG_ELEM_IS_RW;
+        if $is_rw && $desired_native {
+            if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                unless !$got_native && nqp::iscont_i($oval) {
+                    if nqp::defined($error) {
+                        $error[0] := "Expected a native int argument for '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+            elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                unless !$got_native && nqp::iscont_n($oval) {
+                    if nqp::defined($error) {
+                        $error[0] := "Expected a native num argument for '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+            elsif $desired_native == $SIG_ELEM_NATIVE_STR_VALUE {
+                unless !$got_native && nqp::iscont_s($oval) {
+                    if nqp::defined($error) {
+                        $error[0] := "Expected a native str argument for '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+        }
+        elsif $desired_native != $got_native {
             # Maybe we need to box the native.
             if $desired_native == 0 {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
@@ -220,7 +256,7 @@ my class Binder {
         # bind if it passes the type check, or a native value that needs no
         # further checking.
         my $nom_type;
-        unless $got_native {
+        unless $got_native || ($is_rw && $desired_native) {
             # HLL-ize.
             $oval := nqp::hllizefor($oval, 'perl6');
 
@@ -339,7 +375,7 @@ my class Binder {
             }
             
             # Otherwise it's some objecty case.
-            elsif $flags +& $SIG_ELEM_IS_RW {
+            elsif $is_rw {
                 # XXX TODO Check if rw flag is set; also need to have a
                 # wrapper container that carries extra constraints.
                 nqp::bindkey($lexpad, $varname, $oval);
@@ -918,6 +954,9 @@ my class Binder {
             unless nqp::isnull(nqp::getattr($param, Parameter, '$!type_captures')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
+            unless nqp::isnull(nqp::getattr($param, Parameter, '$!coerce_type')) {
+                return $TRIAL_BIND_NOT_SURE;
+            }
 
             # Do we have an argument for this parameter?
             if $cur_pos_arg >= $num_pos_args {
@@ -1214,6 +1253,24 @@ BEGIN {
 
     # Scalar needs to be registered as a container type.
     nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::null());
+
+    # Set up various native reference types.
+    sub setup_native_ref_type($type, $primitive, $ref_kind) {
+        $type.HOW.add_parent($type, Any);
+        $type.HOW.set_native_type($type, $primitive);
+        $type.HOW.set_ref_kind($type, $ref_kind);
+        $type.HOW.compose_repr($type);
+        nqp::setcontspec($type, 'native_ref', nqp::null());
+    }
+    setup_native_ref_type(IntLexRef, int, 'lexical');
+    setup_native_ref_type(NumLexRef, num, 'lexical');
+    setup_native_ref_type(StrLexRef, str, 'lexical');
+    setup_native_ref_type(IntAttrRef, int, 'attribute');
+    setup_native_ref_type(NumAttrRef, num, 'attribute');
+    setup_native_ref_type(StrAttrRef, str, 'attribute');
+    setup_native_ref_type(IntPosRef, int, 'positional');
+    setup_native_ref_type(NumPosRef, num, 'positional');
+    setup_native_ref_type(StrPosRef, str, 'positional');
 
     # class Proxy is Any {
     #    has Mu &!FETCH;
@@ -1933,8 +1990,13 @@ BEGIN {
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
                                 if $got_prim == $BIND_VAL_OBJ {
-                                    # Object; won't do.
-                                    $type_mismatch := 1;
+                                    # Object, but could be a native container. If not, mismatch.
+                                    my $contish := nqp::captureposarg($capture, $i);
+                                    unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
+                                           (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
+                                           (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
+                                        $type_mismatch := 1;
+                                    }
                                 }
                                 elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
                                    (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
@@ -1945,21 +2007,25 @@ BEGIN {
                             }
                             else {
                                 my $param;
+                                my int $primish := 0;
                                 if $got_prim == $BIND_VAL_OBJ {
-                                    $param := nqp::hllizefor(
-                                        nqp::captureposarg($capture, $i),
-                                        'perl6');
+                                    $param := nqp::captureposarg($capture, $i);
+                                    if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
+                                    elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
+                                    elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
+                                    else { $param := nqp::hllizefor($param, 'perl6') }
                                 }
                                 else {
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!
                                               $got_prim == $BIND_VAL_NUM ?? Num !!
                                                                             Str;
+                                    $primish := 1;
                                 }
                                 unless nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
                                     $type_mismatch := 1;
                                 }
                                 if !$type_mismatch && $type_flags +& $DEFCON_MASK {
-                                    my int $defined := $got_prim != $BIND_VAL_OBJ || nqp::isconcrete($param);
+                                    my int $defined := $primish || nqp::isconcrete($param);
                                     my int $desired := $type_flags +& $DEFCON_MASK;
                                     if ($defined && $desired == $DEFCON_UNDEFINED) ||
                                        (!$defined && $desired == $DEFCON_DEFINED) {
@@ -2589,6 +2655,7 @@ BEGIN {
     Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
+    Perl6::Metamodel::NativeRefHOW.set_stash_type(Stash, EnumMap);
 
     # Give everything we've set up so far a Stash.
     Perl6::Metamodel::ClassHOW.add_stash(Mu);
@@ -2606,6 +2673,15 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Int);
     Perl6::Metamodel::ClassHOW.add_stash(Num);
     Perl6::Metamodel::ClassHOW.add_stash(Scalar);
+    Perl6::Metamodel::NativeRefHOW.add_stash(IntLexRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(NumLexRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(StrLexRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(IntAttrRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(NumAttrRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(StrAttrRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
     Perl6::Metamodel::ClassHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(List);
@@ -2666,43 +2742,52 @@ BEGIN {
     }
 
     # Fill out EXPORT namespace.
-    EXPORT::DEFAULT.WHO<Mu>        := Mu;
-    EXPORT::DEFAULT.WHO<Any>       := Any;
-    EXPORT::DEFAULT.WHO<Cool>      := Cool;
-    EXPORT::DEFAULT.WHO<Nil>       := Nil;
-    EXPORT::DEFAULT.WHO<Attribute> := Attribute;
-    EXPORT::DEFAULT.WHO<Signature> := Signature;
-    EXPORT::DEFAULT.WHO<Parameter> := Parameter;
-    EXPORT::DEFAULT.WHO<Code>      := Code;
-    EXPORT::DEFAULT.WHO<Block>     := Block;
-    EXPORT::DEFAULT.WHO<Routine>   := Routine;
-    EXPORT::DEFAULT.WHO<Sub>       := Sub;
-    EXPORT::DEFAULT.WHO<Method>    := Method;
-    EXPORT::DEFAULT.WHO<Submethod> := Submethod;
-    EXPORT::DEFAULT.WHO<Regex>     := Regex;
-    EXPORT::DEFAULT.WHO<Str>       := Str;
-    EXPORT::DEFAULT.WHO<Int>       := Int;
-    EXPORT::DEFAULT.WHO<Num>       := Num;
-    EXPORT::DEFAULT.WHO<Parcel>    := Parcel;  
-    EXPORT::DEFAULT.WHO<Iterable>  := Iterable;
-    EXPORT::DEFAULT.WHO<Iterator>  := Iterator;
-    EXPORT::DEFAULT.WHO<ListIter>  := ListIter;
-    EXPORT::DEFAULT.WHO<List>      := List;
-    EXPORT::DEFAULT.WHO<Array>     := Array;
-    EXPORT::DEFAULT.WHO<LoL>       := LoL;
-    EXPORT::DEFAULT.WHO<EnumMap>   := EnumMap;
-    EXPORT::DEFAULT.WHO<Hash>      := Hash;
-    EXPORT::DEFAULT.WHO<Capture>   := Capture;
-    EXPORT::DEFAULT.WHO<ObjAt>     := ObjAt;
-    EXPORT::DEFAULT.WHO<Stash>     := Stash;
-    EXPORT::DEFAULT.WHO<Scalar>    := Scalar;
-    EXPORT::DEFAULT.WHO<Proxy>     := Proxy;
-    EXPORT::DEFAULT.WHO<Grammar>   := Grammar;
-    EXPORT::DEFAULT.WHO<Junction>  := Junction;
-    EXPORT::DEFAULT.WHO<PROCESS>   := $PROCESS;
-    EXPORT::DEFAULT.WHO<Bool>      := Bool;
-    EXPORT::DEFAULT.WHO<False>     := $false;
-    EXPORT::DEFAULT.WHO<True>      := $true;
+    EXPORT::DEFAULT.WHO<Mu>         := Mu;
+    EXPORT::DEFAULT.WHO<Any>        := Any;
+    EXPORT::DEFAULT.WHO<Cool>       := Cool;
+    EXPORT::DEFAULT.WHO<Nil>        := Nil;
+    EXPORT::DEFAULT.WHO<Attribute>  := Attribute;
+    EXPORT::DEFAULT.WHO<Signature>  := Signature;
+    EXPORT::DEFAULT.WHO<Parameter>  := Parameter;
+    EXPORT::DEFAULT.WHO<Code>       := Code;
+    EXPORT::DEFAULT.WHO<Block>      := Block;
+    EXPORT::DEFAULT.WHO<Routine>    := Routine;
+    EXPORT::DEFAULT.WHO<Sub>        := Sub;
+    EXPORT::DEFAULT.WHO<Method>     := Method;
+    EXPORT::DEFAULT.WHO<Submethod>  := Submethod;
+    EXPORT::DEFAULT.WHO<Regex>      := Regex;
+    EXPORT::DEFAULT.WHO<Str>        := Str;
+    EXPORT::DEFAULT.WHO<Int>        := Int;
+    EXPORT::DEFAULT.WHO<Num>        := Num;
+    EXPORT::DEFAULT.WHO<Parcel>     := Parcel;  
+    EXPORT::DEFAULT.WHO<Iterable>   := Iterable;
+    EXPORT::DEFAULT.WHO<Iterator>   := Iterator;
+    EXPORT::DEFAULT.WHO<ListIter>   := ListIter;
+    EXPORT::DEFAULT.WHO<List>       := List;
+    EXPORT::DEFAULT.WHO<Array>      := Array;
+    EXPORT::DEFAULT.WHO<LoL>        := LoL;
+    EXPORT::DEFAULT.WHO<EnumMap>    := EnumMap;
+    EXPORT::DEFAULT.WHO<Hash>       := Hash;
+    EXPORT::DEFAULT.WHO<Capture>    := Capture;
+    EXPORT::DEFAULT.WHO<ObjAt>      := ObjAt;
+    EXPORT::DEFAULT.WHO<Stash>      := Stash;
+    EXPORT::DEFAULT.WHO<Scalar>     := Scalar;
+    EXPORT::DEFAULT.WHO<IntLexRef>  := IntLexRef;
+    EXPORT::DEFAULT.WHO<NumLexRef>  := NumLexRef;
+    EXPORT::DEFAULT.WHO<StrLexRef>  := StrLexRef;
+    EXPORT::DEFAULT.WHO<IntAttrRef> := IntAttrRef;
+    EXPORT::DEFAULT.WHO<NumAttrRef> := NumAttrRef;
+    EXPORT::DEFAULT.WHO<StrAttrRef> := StrAttrRef;
+    EXPORT::DEFAULT.WHO<IntPosRef>  := IntPosRef;
+    EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
+    EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
+    EXPORT::DEFAULT.WHO<Proxy>      := Proxy;
+    EXPORT::DEFAULT.WHO<Grammar>    := Grammar;
+    EXPORT::DEFAULT.WHO<Junction>   := Junction;
+    EXPORT::DEFAULT.WHO<PROCESS>    := $PROCESS;
+    EXPORT::DEFAULT.WHO<Bool>       := Bool;
+    EXPORT::DEFAULT.WHO<False>      := $false;
+    EXPORT::DEFAULT.WHO<True>       := $true;
     EXPORT::DEFAULT.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
     EXPORT::DEFAULT.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
     EXPORT::DEFAULT.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
@@ -2923,7 +3008,16 @@ nqp::sethllconfig('perl6', nqp::hash(
                 $d($o)
             }
         }
-    }
+    },
+    'int_lex_ref', IntLexRef,
+    'num_lex_ref', NumLexRef,
+    'str_lex_ref', StrLexRef,
+    'int_attr_ref', IntAttrRef,
+    'num_attr_ref', NumAttrRef,
+    'str_attr_ref', StrAttrRef,
+    'int_pos_ref', IntPosRef,
+    'num_pos_ref', NumPosRef,
+    'str_pos_ref', StrPosRef,
 ));
 
 #?if jvm

@@ -1,7 +1,6 @@
 my class Set does Setty {
     has Int $!total;
     has $!WHICH;
-    has @!pairs;
 
     method total (--> Int) { $!total //= %!elems.elems }
     multi method WHICH (Set:D:) {
@@ -14,7 +13,7 @@ my class Set does Setty {
     }
 
     multi method at_key(Set:D: \k --> Bool) {
-        so %!elems.exists_key(k.WHICH);
+        %!elems.exists_key(k.WHICH);
     }
 
     method delete_key($k --> Bool) is hidden_from_backtrace {
@@ -27,8 +26,11 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    multi method pairs(Set:D:) { # need to copy otherwise we can change the Set
-        @!pairs ||= %!elems.values.map: { Enum.new(:key($_),:value(True)) };
+    multi method pairs(Set:D:) {    # must copy else we can change the Set
+        %!elems.values.map: { Enum.new(:key($_),:value(True)) };
+    }
+    multi method antipairs(Set:D:) { # must copy else we can change the Set
+        %!elems.values.map: { Enum.new(:key(True),:value($_)) };
     }
 
     method Set { self }

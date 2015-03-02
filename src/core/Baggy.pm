@@ -4,11 +4,12 @@ my role Baggy does QuantHash {
     method BUILD (:%!elems) { self }
     method default(--> Int) { 0 }
 
-    multi method keys(Baggy:D:)   { %!elems.values.map( {.key} ) }
-    multi method kv(Baggy:D:)     { %!elems.values.map( {.key, .value} ) }
-    multi method values(Baggy:D:) { %!elems.values.map( {.value} ) }
-    multi method pairs(Baggy:D:)  { %!elems.values.map: { (.key => .value) } }
-    multi method invert(Baggy:D:) { %!elems.values.map: { ( .value => .key ) } }
+    multi method keys(Baggy:D:)     { %!elems.values.map( {.key} ) }
+    multi method kv(Baggy:D:)       { %!elems.values.map( {.key, .value} ) }
+    multi method values(Baggy:D:)   { %!elems.values.map( {.value} ) }
+    multi method pairs(Baggy:D:)    { %!elems.values.map: { (.key => .value) } }
+    multi method antipairs(Baggy:D:) { %!elems.values.map: { (.value => .key) } }
+    multi method invert(Baggy:D:)   { %!elems.values.map: { (.value => .key) } } # NB value can't be listy
 
     method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }
@@ -26,7 +27,7 @@ my role Baggy does QuantHash {
         -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
         nqp::create(self).BUILD(:elems(%e));
     }
-    method new-from-pairs(*@pairs --> Baggy) {
+    method new-from-pairs(*@pairs) {
         my %e;
         for @pairs {
             when Pair {

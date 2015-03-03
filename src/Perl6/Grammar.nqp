@@ -3720,7 +3720,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('prefix or term')
         [
         ||  [
-            | <prefixish>+ <term>
+            | <prefixish>+ [ <term> || {} <.panic("Prefix " ~ $<prefixish>[-1].Str ~ " requires a term, but no valid term found")> ]
             | <term>
             ]
         || <!{ $*QSIGIL }> <?before <infixish> {

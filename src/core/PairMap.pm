@@ -43,6 +43,13 @@ my class PairMap is Hash {
               !! self.assign_key($key, [ $value, $pair.value ]);
         }
     }
+
+    multi method perl(PairMap:D:) {
+        self.^name
+          ~ '.new('
+          ~ self.pairs.pick(*).map({.perl}).join(', ')
+          ~ ')';
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -3668,14 +3668,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Depending on sigil, use appropriate role.
             my int $need_role;
+            my int $need_defined;
             my $role_type;
             if $sigil eq '@' {
                 $role_type := $*W.find_symbol(['Positional']);
                 $need_role := 1;
+                $need_defined := 1;
             }
             elsif $sigil eq '%' {
                 $role_type := $*W.find_symbol(['Associative']);
                 $need_role := 1;
+                $need_defined := 1;
             }
             elsif $sigil eq '&' {
                 $role_type := $*W.find_symbol(['Callable']);
@@ -3689,6 +3692,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 else {
                     %*PARAM_INFO<nominal_type> := $role_type;
                 }
+                %*PARAM_INFO<defined_only> := 1 if $need_defined;
             }
 
             # Handle twigil.

@@ -168,7 +168,8 @@ my class Parameter { # declared in BOOTSTRAP
         else {
             $perl = $type;
         }
-        if $!flags +& $SIG_ELEM_DEFINED_ONLY {
+        if $!flags +& $SIG_ELEM_DEFINED_ONLY &&
+           !($!flags +& ($SIG_ELEM_ARRAY_SIGIL +| $SIG_ELEM_HASH_SIGIL)) {
             $perl ~= ':D';
         } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
             $perl ~= ':U';

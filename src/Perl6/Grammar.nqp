@@ -274,6 +274,11 @@ role STD {
             when        => $when,
         );
     }
+
+    method dupprefix($bad) {
+        my $c := nqp::substr($bad, 0, 1);
+        self.panic("Expecting a term, but found either infix $bad or redundant prefix $c\n  (to suppress this message, please use space between $c $c)");
+    }
     
     method check_variable($var) {
         my $varast := $var.ast;
@@ -4035,13 +4040,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 
     token prefix:sym<+>   { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<~~>  { <sym> <.dupprefix('~~')> <O('%symbolic_unary')> }
     token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary')> }
+    token prefix:sym<??>  { <sym> <.dupprefix('??')> <O('%symbolic_unary')> }
     token prefix:sym<?>   { <sym> <!before '??'> <O('%symbolic_unary')> }
     token prefix:sym<!>   { <sym> <!before '!!'> <O('%symbolic_unary')> }
     token prefix:sym<+^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<^^>  { <sym> <.dupprefix('^^')> <O('%symbolic_unary')> }
     token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
 

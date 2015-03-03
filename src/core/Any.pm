@@ -87,18 +87,21 @@ my class Any { # declared in BOOTSTRAP
     proto method pairup(|) { * }
     multi method pairup(Any:U:) { ().list }
     multi method pairup(Any:D:) {
-        my $items := self.flat.eager;
 
-        gather while $items {
-            my Mu $it := $items.shift;
+        my $list := self.list;
+        my int $i;
+        my int $elems = self.elems;
+
+        gather while $i < $elems {
+            my Mu $it := $list.at_pos($i++);
             if nqp::istype($it,Enum) {
                 take $it.key => $it.value;
             }
             elsif nqp::istype($it,EnumMap) and !nqp::iscont($it) {
                 take $it.pairs;
             }
-            elsif $items {
-                take $it => $items.shift;
+            elsif $i < $elems {
+                take $it => $list.at_pos($i++);
             }
             else {
                 X::Pairup::OddNumber.new.throw;

@@ -111,7 +111,7 @@ augment class Pointer {
 
     my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
         method of() { TValue }
-        method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
+        # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
         method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
     }
     multi method PARAMETERIZE_TYPE(Mu:U \t) {

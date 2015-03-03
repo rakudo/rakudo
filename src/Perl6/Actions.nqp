@@ -100,7 +100,6 @@ role STDActions {
 class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
-    our $FORBID_PIR;
     our $STATEMENT_PRINT;
 
     INIT {
@@ -108,7 +107,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # @MAX_PERL_VERSION to [6, 1, 2].
         @MAX_PERL_VERSION[0] := 6;
 
-        $FORBID_PIR := 0;
         $STATEMENT_PRINT := 0;
     }
 
@@ -1143,9 +1141,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
                     QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) )
                 );
-            }
-            elsif ~$<module_name> eq 'FORBID_PIR' {
-                $FORBID_PIR := 1;
             }
             elsif ~$<module_name> eq 'Devel::Trace' {
                 $STATEMENT_PRINT := 1;
@@ -4477,29 +4472,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method term:sym<pir::op>($/) {
-        if $FORBID_PIR {
-            nqp::die("pir::op forbidden in safe mode\n");
-        }
-        my $pirop := nqp::join(' ', nqp::split('__', ~$<op>));
-        unless nqp::index($pirop, ' ') > 0 {
-            nqp::die("pir::$pirop missing a signature");
-        }
-        my $past := QAST::VM.new( :pirop($pirop), :node($/) );
-        if $<args> {
-            for $<args>.ast.list {
-                $past.push($_);
-            }
-        }
-        make $past;
-    }
-
-    method term:sym<pir::const>($/) {
-        make QAST::VM.new( :pirconst(~$<const>) );
-    }
-
     method term:sym<nqp::op>($/) {
-        $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
         my @args := $<args> ?? $<args>.ast.list !! [];
         my $past := QAST::Op.new( :op(~$<op>), |@args );
         if $past.op eq 'want' || $past.op eq 'handle' {
@@ -5950,13 +5923,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym<qq>($/)   { make $<quibble>.ast; }
     method quote:sym<q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q>($/)    { make $<quibble>.ast; }
-    method quote:sym<Q:PIR>($/) {
-        if $FORBID_PIR {
-            nqp::die("Q:PIR forbidden in safe mode\n");
-        }
-        my $pir := compile_time_value_str($<quibble>.ast, "Q:PIR", $/);
-        make QAST::VM.new( :pir($pir), :node($/) );
-    }
     method quote:sym</ />($/) {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));

@@ -1002,7 +1002,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*METAOPGEN;                           # hash of generated metaops
         :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
-        :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
         :my $*OFTYPE;
         :my $*VMARGIN    := 0;                     # pod stuff
@@ -1642,8 +1641,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*STRICT  := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'FORBID_PIR' ||
-                      $longname.Str eq 'Devel::Trace' ||
+                elsif $longname.Str eq 'Devel::Trace' ||
                       $longname.Str eq 'fatal' {
                     $longname := "";
                 }
@@ -3238,14 +3236,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
     
-    token term:sym<pir::op> {
-        'pir::' $<op>=[\w+] <args>?
-    }
-
-    token term:sym<pir::const> {
-        'pir::const::' $<const>=[\w+]
-    }
-
     token term:sym<nqp::op> {
         'nqp::' $<op>=[\w+] <args>?
     }
@@ -3539,7 +3529,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | {} <.qok($/)> <quibble(%*LANG<Q>)>
         ]
     }
-    token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quibble(%*LANG<Q>)> }
     
     token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
     token quote:sym</ />  {

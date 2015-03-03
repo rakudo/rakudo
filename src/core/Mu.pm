@@ -672,6 +672,10 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     }
 }
 
+# These must collapse Junctions
+multi sub so(Mu $x)  { ?$x }
+multi sub not(Mu $x) { !$x }
+
 Metamodel::ClassHOW.exclude_parent(Mu);
 
 # vim: ft=perl6 expandtab sw=4

@@ -452,7 +452,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         » <!before <[ \( \\ ' \- ]> || \h* '=>'>
     }
     token end_prefix {
-        » <!before <[ \\ ' \- ]> || \h* '=>'>
+        <.end_keyword> \s*
     }
     token spacey { <?[\s#]> }
 
@@ -3719,20 +3719,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*VAR;
         :dba('prefix or term')
         [
-        || <prefixish>* <term>
-            :dba('postfix')
-            [
-            || <?{ $*QSIGIL }>
-                [
-                || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]**0..1
-                ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
-                || { $*VAR := 0 } <!>
-                ]
-            || <!{ $*QSIGIL }> <postfixish>*
+        ||  [
+            | <prefixish>+ <term>
+            | <term>
             ]
         || <!{ $*QSIGIL }> <?before <infixish> {
             $/.CURSOR.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
         || <!>
+        ]
+        :dba('postfix')
+        [
+        || <?{ $*QSIGIL }>
+            [
+            || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]**0..1
+            ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+            || { $*VAR := 0 } <!>
+            ]
+        || <!{ $*QSIGIL }> <postfixish>*
         ]
         { self.check_variable($*VAR) if $*VAR; }
     }

@@ -1644,4 +1644,19 @@ my class X::SemicolonForm::TooLate does X::Syntax {
     }
 }
 
+my class X::PairMap::DoesNotExist is Exception {
+    has $.key;
+    has $.method;
+    method message() {
+        "Cannot do PairMap.$.method on non-existing key: '$.key'"
+    }
+}
+
+my class X::PairMap::NotAllowed is Exception {
+    has $.method;
+    method message() {
+        "Not allowed to do PairMap.$.method"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

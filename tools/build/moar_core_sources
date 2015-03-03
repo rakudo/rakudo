@@ -97,6 +97,7 @@ src/core/Duration.pm
 src/core/Temporal.pm
 src/core/EXPORTHOW.pm
 src/core/Pod.pm
+src/core/PairMap.pm
 src/core/QuantHash.pm
 src/core/Setty.pm
 src/core/Set.pm

@@ -202,7 +202,7 @@ class Array { # declared in BOOTSTRAP
                 );
             }
         }
-        multi method at_pos(int $pos, TValue $v? is copy) is rw {
+        multi method at_pos(int $pos) is rw {
             if self.exists_pos($pos) {
                 nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
             }

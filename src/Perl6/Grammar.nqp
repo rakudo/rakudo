@@ -275,9 +275,8 @@ role STD {
         );
     }
 
-    method dupprefix($bad) {
-        my $c := nqp::substr($bad, 0, 1);
-        self.panic("Expecting a term, but found either infix $bad or redundant prefix $c\n  (to suppress this message, please use space between $c $c)");
+    method dupprefix($prefixes) {
+        self.typed_panic('X::Syntax::DuplicatedPrefix', :$prefixes);
     }
     
     method check_variable($var) {

@@ -1080,9 +1080,16 @@ my class X::Syntax::Term::MissingInitializer does X::Syntax {
     method message { 'Term definition requires an initializer' }
 }
 
-my class X::Syntax::AddCategorial::MissingSeparator does X::Syntax {
-    has $.opname;
-    method message() { "Unable to identify both starter and stopper from $.opname\nPerhaps you forgot to separate them with whitespace?" }
+my class X::Syntax::AddCategorical::TooFewParts does X::Syntax {
+    has $.category;
+    has $.needs;
+    method message() { "Not enough symbols provided for categorical of type $.category; needs $.needs" }
+}
+
+my class X::Syntax::AddCategorical::TooManyParts does X::Syntax {
+    has $.category;
+    has $.needs;
+    method message() { "Too many symbols provided for categorical of type $.category; needs only $.needs" }
 }
 
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {

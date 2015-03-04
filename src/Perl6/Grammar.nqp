@@ -4448,10 +4448,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         else {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
+        my @parts := nqp::split(' ', $opname);
 
         if $is_term {
             my role Term[$meth_name, $op] {
                 token ::($meth_name) { $<sym>=[$op] }
+            }
+            if +@parts > 1 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
             }
             self.HOW.mixin(self, Term.HOW.curry(Term, $canname, $opname));
         }
@@ -4460,15 +4464,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my role Oper[$meth_name, $op, $precedence, $declarand] {
                 token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
             }
+            if +@parts > 1 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
+            }
             self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec, $declarand));
         }
         elsif $category eq 'postcircumfix' {
             # Find opener and closer and parse an EXPR between them.
             # XXX One day semilist would be nice, but right now that
             # runs us into fun with terminators.
-            my @parts := nqp::split(' ', $opname);
-            if +@parts != 2 {
-                self.typed_panic('X::Syntax::AddCategorial::MissingSeparator', :$opname);
+            if +@parts < 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
+            }
+            elsif +@parts > 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
             }
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -4482,9 +4491,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         else {
             # Find opener and closer and parse an EXPR between them.
-            my @parts := nqp::split(' ', $opname);
-            if +@parts != 2 {
-                self.typed_panic('X::Syntax::AddCategorial::MissingSeparator', :$opname);
+            if +@parts < 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
+            }
+            elsif +@parts > 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
             }
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {

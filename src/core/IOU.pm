@@ -37,7 +37,7 @@ my class IOU does IO::Pathy {
     }
 
     multi method Str(IOU:D:)  { $!this }
-    multi method gist(IOU:D:) { qq|"$!this".IO| }
+    multi method gist(IOU:D:) { qq|"{ REMOVE-ROOT($*CWD.Str,$!this) }".IO| }
     multi method perl(IOU:D:) { "q|$!this|.IO" }
 
 # Methods that we expect to work on an IOU of which the abspath did not exist

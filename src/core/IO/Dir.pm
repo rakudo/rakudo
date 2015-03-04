@@ -11,7 +11,7 @@ my class IO::Dir is Cool does IO::Pathy {
 
     method child(IO::Dir:D: $child) {
         $child
-          ?? IOU.new($!abspath ~ '/' ~ $child)
+          ?? CREATE-IO-OBJECT($!abspath ~ '/' ~ $child)
           !! self;
     }
 

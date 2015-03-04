@@ -5,7 +5,7 @@ my @UNITS = <second minute hour day week month year> X~ '', 's';
 
 my role Dateish {
 
-    method IO(|c) { IOU.new(self, |c) }
+    method IO(|c) { CREATE-IO-OBJECT(self,|c) }
 
     method is-leap-year($y = $.year) {
         $y %% 4 and not $y %% 100 or $y %% 400

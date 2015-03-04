@@ -209,7 +209,7 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method IO(|) { * }
-    multi method IO(|c) { IOU.new(FORWARD-SLASH(self.Str), |c) }
+    multi method IO(|c) { CREATE-IO-OBJECT(self,|c) }
 
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };

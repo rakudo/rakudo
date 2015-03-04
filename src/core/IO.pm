@@ -462,6 +462,11 @@ sub FILETEST-LDEVICE(Str $abspath) {
 #?endif
 }
 
+sub CREATE-IO-OBJECT(Str() $this, Str() :$CWD = $*CWD, |c ) {
+    my $abspath := MAKE-ABSOLUTE-PATH(FORWARD-SLASH($this),$CWD);
+    OBJECTIFY-ABSPATH($abspath, |c) // IOU.new(:$this,:$abspath);
+}
+
 sub OBJECTIFY-ABSPATH(Str $abspath, :$check = True) {
     FILETEST-e($abspath)               # can haz broken symlink :-(
       ?? FILETEST-f($abspath)

@@ -1389,7 +1389,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method path(Str:D: |c) {
         DEPRECATED('IO', |<2014.11 2015.11>);
-        IOU.new(self, |c);
+        CREATE-IO-OBJECT(self, |c);
     }
 
     method unival(Str:D:)  { unival(self.ord) };

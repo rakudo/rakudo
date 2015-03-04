@@ -94,7 +94,7 @@ my class IO::Path is Cool {
         );
     }
 
-    method IO(IO::Path:D: |c) { IOU.new($.abspath,|c) }
+    method IO(IO::Path:D: |c) { CREATE-IO-OBJECT($.abspath,|c) }
 
     method open(IO::Path:D: |c) { open(:$.abspath,|c) }
 

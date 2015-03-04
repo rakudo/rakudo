@@ -3289,15 +3289,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $ok := 1 if $<args><semiarglist>;
                         unless $ok {
                             my $trap := %deftrap{$name};
+                            my $missing := $/.CURSOR.terminator() || $/.CURSOR.infixish();
                             $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
                                 if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
+                            my $orry := $missing ?? "sorry" !! "worry";
                             if $trap == 1 {        # probably misused P5ism
-                                $<longname>.CURSOR.worryobs("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
+                                $<longname>.CURSOR."{$orry}obs"("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
                             }
                             elsif $trap == 2 {        # probably misused P6ism
-                                $<longname>.CURSOR.worry("The '$name' listop may not be called without arguments (please use () or whitespace to clarify)");
+                                $<longname>.CURSOR."$orry"("Function '$name' may not be called without arguments (please use () or whitespace to denote arguments)");
                             }
-                            $<longname>.CURSOR.sorry("No valid term seen where one is required");
+                            $<longname>.CURSOR.sorry("Argument to '$name' seems to be malformed") if $orry eq 'worry';
                         }
                     }
                 }

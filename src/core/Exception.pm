@@ -1118,6 +1118,15 @@ my class X::Syntax::InfixInTermPosition does X::Syntax {
     }
 }
 
+my class X::Syntax::DuplicatedPrefix does X::Syntax {
+    has $.prefixes;
+    method message() {
+        my $prefix = $.prefixes.substr(0, 1);
+        "Expected a term, but found either infix $.prefixes or redundant prefix $prefix\n"
+        ~ "  (to surppress this message, please use a space like $prefix $prefix)";
+    }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-kind;
     has $.name;

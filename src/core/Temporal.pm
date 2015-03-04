@@ -17,10 +17,8 @@ my role Dateish {
         !! 31
     }
 
-    method daycount-from-ymd($y is copy, $m is copy, $d) {
+    method daycount-from-ymd(Int() $y is copy, Int() $m is copy, $d) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        $y .= Int;
-        $m .= Int;
         if $m < 3 {
             $m += 12;
             --$y;

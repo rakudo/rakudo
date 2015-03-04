@@ -1,6 +1,7 @@
 my class Instant   { ... }
 my class IO::File  { ... }
 my class IO::Dir   { ... }
+my class IO::Huh   { ... }
 my class IO::Local { ... }
 
 my role IO {
@@ -464,7 +465,7 @@ sub FILETEST-LDEVICE(Str $abspath) {
 
 sub CREATE-IO-OBJECT(Str() $this, Str() :$CWD = $*CWD, |c ) {
     my $abspath := MAKE-ABSOLUTE-PATH(FORWARD-SLASH($this),$CWD);
-    OBJECTIFY-ABSPATH($abspath, |c) // IOU.new(:$this,:$abspath);
+    OBJECTIFY-ABSPATH($abspath, |c) // IO::Huh.new(:$this,:$abspath);
 }
 
 sub OBJECTIFY-ABSPATH(Str $abspath, :$check = True) {
@@ -480,7 +481,7 @@ sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $this {
             take OBJECTIFY-ABSPATH($this,:!check)
-              // IOU.bless(:$this,:abspath($this));
+              // IO::Huh.new(:$this,:abspath($this));
         }
     }
 }

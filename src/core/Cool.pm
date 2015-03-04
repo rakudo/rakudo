@@ -1,5 +1,4 @@
-my role  IO  { ... }
-my class IOU { ... }
+my role IO { ... }
 
 my class SprintfHandler {
     method mine($x) { nqp::reprname($x) eq "P6opaque"; }

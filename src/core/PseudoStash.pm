@@ -105,8 +105,7 @@ my class PseudoStash is EnumMap {
                 '$?PACKAGE')
         };
 
-    multi method at_key(PseudoStash:D: $key is copy) is rw {
-        $key = $key.Str;
+    multi method at_key(PseudoStash:D: Str() $key) is rw {
         my Mu $nkey := nqp::unbox_s($key);
         if %pseudoers.exists_key($key) {
             %pseudoers{$key}(self)
@@ -139,8 +138,7 @@ my class PseudoStash is EnumMap {
         }
     }
 
-    method bind_key($key is copy, \value) {
-        $key = $key.Str;
+    method bind_key(Str() $key, \value) {
         if %pseudoers.exists_key($key) {
             X::Bind.new(target => "pseudo-package $key").throw;
         }
@@ -156,8 +154,7 @@ my class PseudoStash is EnumMap {
         }
     }
     # for some reason we get a ambiguous dispatch error by making this a multi
-    method exists_key(PseudoStash:D: $key is copy) {
-        $key = $key.Str;
+    method exists_key(PseudoStash:D: Str() $key) {
         if %pseudoers.exists_key($key) {
             True
         }

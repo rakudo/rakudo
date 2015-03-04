@@ -100,7 +100,7 @@ my class Backtrace is List {
         Int;
     }
 
-    method outer-caller-idx(Backtrace:D: Int $startidx is copy) {
+    method outer-caller-idx(Backtrace:D: Int $startidx) {
         my %print;
         my $start   = self.at_pos($startidx).code;
         return $startidx.list unless $start;

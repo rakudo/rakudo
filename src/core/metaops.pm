@@ -251,9 +251,9 @@ multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
 
     (@alist Z @blist).map(
         -> \x, \y {
-            Iterable.ACCEPTS(x)
+            Iterable.ACCEPTS(x) && x.defined
               ?? x.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-              !! (Iterable.ACCEPTS(y)
+              !! (Iterable.ACCEPTS(y) && y.defined
                     ?? y.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
                     !! op.(x, y))
         }

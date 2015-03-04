@@ -50,7 +50,7 @@ my class IO::ArgFiles is IO::Handle {
           FETCH => {
               $!nl
           },
-          STORE => -> $, $nl is copy {
+          STORE => -> $, $nl {
               if $!io.defined {
                   nqp::setinputlinesep($!io, nqp::unbox_s($!nl = $nl));
               }

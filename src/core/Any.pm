@@ -5,6 +5,7 @@ my class X::Bind::Slice         { ... }
 my class X::Bind::ZenSlice      { ... }
 my class X::Item                { ... }
 my class X::Match::Bool         { ... }
+my class X::Pairup::OddNumber   { ... }
 my class X::Subscript::Negative { ... }
 
 my role  Numeric { ... }
@@ -82,6 +83,31 @@ my class Any { # declared in BOOTSTRAP
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) { * }
+
+    proto method pairup(|) { * }
+    multi method pairup(Any:U:) { ().list }
+    multi method pairup(Any:D:) {
+
+        my $list := self.list;
+        my int $i;
+        my int $elems = self.elems;
+
+        gather while $i < $elems {
+            my Mu $it := $list.at_pos($i++);
+            if nqp::istype($it,Enum) {
+                take $it.key => $it.value;
+            }
+            elsif nqp::istype($it,EnumMap) and !nqp::iscont($it) {
+                take $it.pairs;
+            }
+            elsif $i < $elems {
+                take $it => $list.at_pos($i++);
+            }
+            else {
+                X::Pairup::OddNumber.new.throw;
+            }
+        }
+    }
 
     method squish(|c) { self.list.squish(|c) }
     method rotor(|c) { self.list.rotor(|c) }

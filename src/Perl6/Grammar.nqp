@@ -274,6 +274,10 @@ role STD {
             when        => $when,
         );
     }
+
+    method dupprefix($prefixes) {
+        self.typed_panic('X::Syntax::DuplicatedPrefix', :$prefixes);
+    }
     
     method check_variable($var) {
         my $varast := $var.ast;
@@ -447,22 +451,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         » <!before <[ \( \\ ' \- ]> || \h* '=>'>
     }
     token end_prefix {
-        » <!before <[ \\ ' \- ]> || \h* '=>'>
+        <.end_keyword> \s*
     }
     token spacey { <?[\s#]> }
 
     token kok {
         <.end_keyword>
-        :my $n;
-        {
-            my str $orig := self.orig();
-            my $f := self.from;
-            my $l := self.pos - $f;
-            $n := nqp::substr($orig, $f, $l);
-        }
-        [ <!{ $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> || <?before <[ \s \# ]> > ]
-        [ <?before <[ \s \# ]> > || <.sorry: "Whitespace required after keyword '$n'"> ]
-        <.ws>
+        [
+        || <?before <[ \s \# ]> > <.ws>
+        || <?{
+                my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
+                $*W.is_name([$n]) || $*W.is_name(['&' ~ $n])
+                    ?? False
+                    !! self.sorry("Whitespace required after keyword '$n'")
+           }>
+        ]
     }
     
 
@@ -998,7 +1001,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*METAOPGEN;                           # hash of generated metaops
         :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
-        :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
         :my $*OFTYPE;
         :my $*VMARGIN    := 0;                     # pod stuff
@@ -1638,8 +1640,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*STRICT  := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'FORBID_PIR' ||
-                      $longname.Str eq 'Devel::Trace' ||
+                elsif $longname.Str eq 'Devel::Trace' ||
                       $longname.Str eq 'fatal' {
                     $longname := "";
                 }
@@ -3234,14 +3235,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
     
-    token term:sym<pir::op> {
-        'pir::' $<op>=[\w+] <args>?
-    }
-
-    token term:sym<pir::const> {
-        'pir::const::' $<const>=[\w+]
-    }
-
     token term:sym<nqp::op> {
         'nqp::' $<op>=[\w+] <args>?
     }
@@ -3535,7 +3528,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | {} <.qok($/)> <quibble(%*LANG<Q>)>
         ]
     }
-    token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quibble(%*LANG<Q>)> }
     
     token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
     token quote:sym</ />  {
@@ -3726,20 +3718,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*VAR;
         :dba('prefix or term')
         [
-        || <prefixish>* <term>
-            :dba('postfix')
-            [
-            || <?{ $*QSIGIL }>
-                [
-                || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]**0..1
-                ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
-                || { $*VAR := 0 } <!>
-                ]
-            || <!{ $*QSIGIL }> <postfixish>*
+        ||  [
+            | <prefixish>+ [ <term> || {} <.panic("Prefix " ~ $<prefixish>[-1].Str ~ " requires an argument, but no valid term found")> ]
+            | <term>
             ]
         || <!{ $*QSIGIL }> <?before <infixish> {
             $/.CURSOR.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
         || <!>
+        ]
+        :dba('postfix')
+        [
+        || <?{ $*QSIGIL }>
+            [
+            || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]**0..1
+            ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+            || { $*VAR := 0 } <!>
+            ]
+        || <!{ $*QSIGIL }> <postfixish>*
         ]
         { self.check_variable($*VAR) if $*VAR; }
     }
@@ -4036,13 +4031,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 
     token prefix:sym<+>   { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<~~>  { <sym> <.dupprefix('~~')> <O('%symbolic_unary')> }
     token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary')> }
+    token prefix:sym<??>  { <sym> <.dupprefix('??')> <O('%symbolic_unary')> }
     token prefix:sym<?>   { <sym> <!before '??'> <O('%symbolic_unary')> }
     token prefix:sym<!>   { <sym> <!before '!!'> <O('%symbolic_unary')> }
     token prefix:sym<+^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<^^>  { <sym> <.dupprefix('^^')> <O('%symbolic_unary')> }
     token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
 
@@ -4449,10 +4447,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         else {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
+        my @parts := nqp::split(' ', $opname);
 
         if $is_term {
             my role Term[$meth_name, $op] {
                 token ::($meth_name) { $<sym>=[$op] }
+            }
+            if +@parts > 1 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
             }
             self.HOW.mixin(self, Term.HOW.curry(Term, $canname, $opname));
         }
@@ -4461,15 +4463,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my role Oper[$meth_name, $op, $precedence, $declarand] {
                 token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
             }
+            if +@parts > 1 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
+            }
             self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec, $declarand));
         }
         elsif $category eq 'postcircumfix' {
             # Find opener and closer and parse an EXPR between them.
             # XXX One day semilist would be nice, but right now that
             # runs us into fun with terminators.
-            my @parts := nqp::split(' ', $opname);
-            if +@parts != 2 {
-                self.typed_panic('X::Syntax::AddCategorial::MissingSeparator', :$opname);
+            if +@parts < 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
+            }
+            elsif +@parts > 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
             }
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -4483,9 +4490,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         else {
             # Find opener and closer and parse an EXPR between them.
-            my @parts := nqp::split(' ', $opname);
-            if +@parts != 2 {
-                self.typed_panic('X::Syntax::AddCategorial::MissingSeparator', :$opname);
+            if +@parts < 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
+            }
+            elsif +@parts > 2 {
+                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
             }
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {

@@ -110,9 +110,9 @@ augment class Pointer {
     multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
 
     my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
-        method of() { ::TValue }
-        method ^name() { 'Pointer[' ~ ::TValue.^name ~ ']' }
-        method deref(::?CLASS:D \ptr:) { nativecast(::TValue, ptr) }
+        method of() { TValue }
+        # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
+        method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
     }
     multi method PARAMETERIZE_TYPE(Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"

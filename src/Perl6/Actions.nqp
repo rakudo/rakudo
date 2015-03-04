@@ -100,7 +100,6 @@ role STDActions {
 class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
-    our $FORBID_PIR;
     our $STATEMENT_PRINT;
 
     INIT {
@@ -108,7 +107,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # @MAX_PERL_VERSION to [6, 1, 2].
         @MAX_PERL_VERSION[0] := 6;
 
-        $FORBID_PIR := 0;
         $STATEMENT_PRINT := 0;
     }
 
@@ -815,6 +813,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $block := $<blockoid>.ast;
             if $block.ann('placeholder_sig') && $<signature> {
                 $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+                    precursor => '1',
                     placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
                 );
             }
@@ -1142,9 +1141,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
                     QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) )
                 );
-            }
-            elsif ~$<module_name> eq 'FORBID_PIR' {
-                $FORBID_PIR := 1;
             }
             elsif ~$<module_name> eq 'Devel::Trace' {
                 $STATEMENT_PRINT := 1;
@@ -2379,6 +2375,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*SIG_OBJ {
             if $block.ann('placeholder_sig') {
                 $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+                    precursor => '1',
                     placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
                 );
             }
@@ -2772,7 +2769,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $past := $<blockoid>.ast;
             if $past.ann('placeholder_sig') {
-                $/.CURSOR.panic('Placeholder variables cannot be used in a method');
+                $/.PRECURSOR.panic('Placeholder variables cannot be used in a method');
             }
             $past[1] := wrap_return_handler($past[1]);
         }
@@ -2808,7 +2805,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $<sigil> eq '%' { $name := 'postcircumfix:<{ }>' }
             elsif $<sigil> eq '&' { $name := 'postcircumfix:<( )>' }
             else {
-                $/.CURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
+                $/.PRECURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
             }
         }
         $past.name($name ?? $name !! '<anon>');
@@ -2889,6 +2886,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # call binder.
         if $block.ann('placeholder_sig') && $<multisig> {
             $*W.throw($/, 'X::Signature::Placeholder',
+                precursor => '1',
                 placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
             );
         }
@@ -2928,7 +2926,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $name := '&' ~ ~$<deflongname>.ast;
             # Install.
             if $outer.symbol($name) {
-                $/.CURSOR.panic("Illegal redeclaration of macro '" ~
+                $/.PRECURSOR.panic("Illegal redeclaration of macro '" ~
                     ~$<deflongname>.ast ~ "'");
             }
             if $*SCOPE eq '' || $*SCOPE eq 'my' {
@@ -2946,11 +2944,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ));
             }
             else {
-                $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a macro");
+                $/.PRECURSOR.panic("Cannot use '$*SCOPE' scope with a macro");
             }
         }
         elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous macro');
+            $/.PRECURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous macro');
         }
 
         # Apply traits.
@@ -2991,11 +2989,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta) {
         my $meta_meth;
         if $private {
-            if $*MULTINESS { $/.CURSOR.panic("Private multi-methods are not supported"); }
+            if $*MULTINESS { $/.PRECURSOR.panic("Private multi-methods are not supported"); }
             $meta_meth := 'add_private_method';
         }
         elsif $meta {
-            if $*MULTINESS { $/.CURSOR.panic("Meta multi-methods are not supported"); }
+            if $*MULTINESS { $/.PRECURSOR.panic("Meta multi-methods are not supported"); }
             $meta_meth := 'add_meta_method';
         }
         else {
@@ -3009,9 +3007,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
-                nqp::printfh(nqp::getstderr(),
+                $/.PRECURSOR.worry(
                     "Useless declaration of a has-scoped $nocando in " ~
-                    ($*PKGDECL || "mainline") ~ " (did you mean 'my $*METHODTYPE $name'?)\n");
+                    ($*PKGDECL || "mainline") ~ " (did you mean 'my $*METHODTYPE $name'?)");
             }
         }
         elsif $scope eq 'my' {
@@ -3145,7 +3143,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if $*MULTINESS eq 'proto' {
             unless $<onlystar> {
-                $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
+                $/.PRECURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
             }
             my $proto_body := QAST::Op.new(
                 :op('callmethod'), :name('!protoregex'),
@@ -3174,7 +3172,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
         # Regexes can't have place-holder signatures.
         if $qast.ann('placeholder_sig') {
-            $/.CURSOR.panic('Placeholder variables cannot be used in a regex');
+            $/.PRECURSOR.panic('Placeholder variables cannot be used in a regex');
         }
 
         # Create a code reference from a regex qast tree
@@ -4474,29 +4472,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method term:sym<pir::op>($/) {
-        if $FORBID_PIR {
-            nqp::die("pir::op forbidden in safe mode\n");
-        }
-        my $pirop := nqp::join(' ', nqp::split('__', ~$<op>));
-        unless nqp::index($pirop, ' ') > 0 {
-            nqp::die("pir::$pirop missing a signature");
-        }
-        my $past := QAST::VM.new( :pirop($pirop), :node($/) );
-        if $<args> {
-            for $<args>.ast.list {
-                $past.push($_);
-            }
-        }
-        make $past;
-    }
-
-    method term:sym<pir::const>($/) {
-        make QAST::VM.new( :pirconst(~$<const>) );
-    }
-
     method term:sym<nqp::op>($/) {
-        $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
         my @args := $<args> ?? $<args>.ast.list !! [];
         my $past := QAST::Op.new( :op(~$<op>), |@args );
         if $past.op eq 'want' || $past.op eq 'handle' {
@@ -5947,13 +5923,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym<qq>($/)   { make $<quibble>.ast; }
     method quote:sym<q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q>($/)    { make $<quibble>.ast; }
-    method quote:sym<Q:PIR>($/) {
-        if $FORBID_PIR {
-            nqp::die("Q:PIR forbidden in safe mode\n");
-        }
-        my $pir := compile_time_value_str($<quibble>.ast, "Q:PIR", $/);
-        make QAST::VM.new( :pir($pir), :node($/) );
-    }
     method quote:sym</ />($/) {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));

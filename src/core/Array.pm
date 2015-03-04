@@ -75,8 +75,7 @@ class Array { # declared in BOOTSTRAP
     }
 
     proto method bind_pos(|) { * }
-    multi method bind_pos($pos is copy, Mu \bindval) is rw {
-        $pos = $pos.Int;
+    multi method bind_pos(Int() $pos, Mu \bindval) is rw {
         self.gimme($pos + 1);
         nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval);
     }
@@ -185,8 +184,7 @@ class Array { # declared in BOOTSTRAP
 
             $list;
         }
-        multi method at_pos($pos is copy) is rw {
-            $pos = $pos.Int;
+        multi method at_pos(Int() $pos) is rw {
             if self.exists_pos($pos) {
                 nqp::atpos(
                   nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos)
@@ -215,8 +213,7 @@ class Array { # declared in BOOTSTRAP
                 );
             }
         }
-        multi method bind_pos($pos is copy, TValue \bindval) is rw {
-            $pos = $pos.Int;
+        multi method bind_pos(Int() $pos, TValue \bindval) is rw {
             self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval)
         }

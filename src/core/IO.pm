@@ -463,7 +463,7 @@ sub FILETEST-LDEVICE(Str $abspath) {
 }
 
 sub OBJECTIFY-ABSPATH(Str $abspath, :$check = True) {
-    FILETEST-e($abspath)
+    FILETEST-e($abspath)               # can haz broken symlink :-(
       ?? FILETEST-f($abspath)
         ?? IO::File.new(:$abspath)
         !! FILETEST-d($abspath)
@@ -483,7 +483,9 @@ sub DIR-GATHER(Str $abspath,Mu $test) {
 sub DIR-GATHER-STR(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take FILETEST-d($elem) ?? $elem ~ '/' !! $elem;
+            take FILETEST-e($elem) && FILETEST-d($elem) # can haz broken symlink
+              ?? $elem ~ '/'
+              !! $elem;
         }
     }
 }

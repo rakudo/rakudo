@@ -469,12 +469,13 @@ sub OBJECTIFY-ABSPATH(Str $abspath, :$check = True) {
         !! FILETEST-d($abspath)
           ?? IO::Dir.new(:abspath($abspath ~ '/'), :$check)
           !! IO::Local.new(:$abspath)  # block device, unix socket, etc.
-      !! IO::Local.new(:$abspath);     # broken symlink
+      !! Mu;                           # probably broken symlink
 }
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
-        for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take OBJECTIFY-ABSPATH($elem,:!check);
+        for MAKE-DIR-LIST($abspath,$test) -> $this {
+            take OBJECTIFY-ABSPATH($this,:!check)
+              // IOU.bless(:$this,:abspath($this));
         }
     }
 }

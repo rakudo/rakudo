@@ -3284,7 +3284,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         }
                     }
                     my $nextch := nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1);
-                    if nqp::index('$@%&\'"', $nextch) >= 0 {
+                    if nqp::index($nextch, '$@%&\'"') >= 0 {
                         $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
                     }
                     elsif %deftrap{$name} {

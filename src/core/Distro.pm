@@ -25,7 +25,7 @@ class Distro does Systemic {
 
     method release {
         $!release //= do {
-            given $*DISTRO.name {
+            given self.name {
                 when any <linux macosx freebsd openbsd netbsd> { # needs adapting
                     qx/uname -r/.chomp;
                 }

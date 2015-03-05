@@ -63,11 +63,40 @@ my class PseudoStash is EnumMap {
                 Metamodel::ModuleHOW.new_type(:name('OUTER')),
                 $stash);
         },
+        'LEXICAL' => sub ($cur) {
+            my $stash := nqp::clone($cur);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('LEXICAL')),
+                $stash);
+        },
+        'OUTERS' => sub ($cur) {
+            my Mu $ctx := nqp::ctxouterskipthunks(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('OUTER')),
+                $stash);
+        },
         'DYNAMIC' => sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),
+                $stash);
+        },
+        'CALLERS' => sub ($cur) {
+            my Mu $ctx := nqp::ctxcallerskipthunks(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('CALLER')),
                 $stash);
         },
         'UNIT' => sub ($cur) {

@@ -3294,10 +3294,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $ok := 1 if $<args><semiarglist>;
                         unless $ok {
                             my $trap := %deftrap{$name};
-                            if nqp::index('<[{', $nextch) >= 0 {
+                            if nqp::index($nextch, '<[{') >= 0 {
                                 $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "Use of non-subscript brackets after \"$name\" where postfix is expected; please use whitespace before any arguments")
                             }
-                            elsif nqp::index('+-/*', $nextch) >= 0 {
+                            elsif nqp::index($nextch, '+-/*') >= 0 {
                                 $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
                             }
                             else {

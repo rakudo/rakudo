@@ -17,7 +17,7 @@ DLLEXPORT short ReturnShort()
     return 102;
 }
 
-DLLEXPORT char ReturnByte()
+DLLEXPORT signed char ReturnByte()
 {
     return -103;
 }

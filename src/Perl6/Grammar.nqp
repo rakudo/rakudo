@@ -3282,24 +3282,34 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $*BORG<name> := $*BORG<name> // $name;
                         }
                     }
-                    if %deftrap{$name} {
+                    my $nextch := nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1);
+                    if nqp::index('$@%&\'"', $nextch) >= 0 {
+                        $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
+                    }
+                    elsif %deftrap{$name} {
                         my $al := $<args><arglist>;
                         my int $ok := 0;
                         $ok := 1 unless $al<EXPR> eq '';
                         $ok := 1 if $<args><semiarglist>;
                         unless $ok {
                             my $trap := %deftrap{$name};
-                            my $missing := $/.CURSOR.terminator() || $/.CURSOR.infixish();
-                            $/.CURSOR.worry("Use of non-subscript <...> where postfix is expected; please use whitespace")
-                                if $trap && nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) eq '<';
-                            my $orry := $missing ?? "sorry" !! "worry";
-                            if $trap == 1 {        # probably misused P5ism
-                                $<longname>.CURSOR."{$orry}obs"("bare '$name'", ".$name if you meant \$_, or use an explicit invocant or argument");
+                            if nqp::index('<[{', $nextch) >= 0 {
+                                $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "Use of non-subscript brackets after \"$name\" where postfix is expected; please use whitespace before any arguments")
                             }
-                            elsif $trap == 2 {        # probably misused P6ism
-                                $<longname>.CURSOR."$orry"("Function '$name' may not be called without arguments (please use () or whitespace to denote arguments)");
+                            elsif nqp::index('+-/*', $nextch) >= 0 {
+                                $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
                             }
-                            $<longname>.CURSOR.sorry("Argument to '$name' seems to be malformed") if $orry eq 'worry';
+                            else {
+                                my $missing := $/.CURSOR.terminator() || $/.CURSOR.infixish();
+                                my $orry := $missing ?? "sorry" !! "worry";
+                                if $trap == 1 {        # probably misused P5ism
+                                    $<longname>.CURSOR."{$orry}obs"("bare \"$name\"", ".$name if you meant \$_, or use an explicit invocant or argument");
+                                }
+                                elsif $trap == 2 {        # probably misused P6ism
+                                    $<longname>.CURSOR."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments)");
+                                }
+                                $<longname>.CURSOR.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
+                            }
                         }
                     }
                 }

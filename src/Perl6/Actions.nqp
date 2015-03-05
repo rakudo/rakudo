@@ -3150,8 +3150,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Var.new( :name('self'), :scope('local') ),
                 QAST::SVal.new( :value($name) ));
             $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
-        } else {
-            $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>) if $<nibble>.ast;
+        } elsif $<nibble>.ast {
+            $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
+        }
+        else {
+            $/.CURSOR.typed_panic("X::Syntax::Regex::NullRegex");
         }
 
         # Document it

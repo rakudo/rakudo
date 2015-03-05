@@ -2919,15 +2919,16 @@ class Perl6::World is HLL::World {
             # that location.  (Maybe.)
             my $c := $/.CURSOR;
             my @expected;
+	    my $high := $c.'!highwater'();
             if %opts<precursor> {
 		$c := $/.PRECURSOR;
 	    }
             elsif %opts<expected> {
                 @expected := %opts<expected>;
             }
-            elsif $c.'!highwater'() >= $c.pos() {
+            elsif $high >= $c.pos() {
                 my @raw_expected := $c.'!highexpect'();
-                $c.'!cursor_pos'($c.'!highwater'());
+                $c.'!cursor_pos'($high);
                 my %seen;
                 for @raw_expected {
                     unless %seen{$_} {
@@ -2936,6 +2937,10 @@ class Perl6::World is HLL::World {
                     }
                 }
             }
+	    my $marked := $c.MARKED('ws');
+	    if $marked {
+                $c.'!cursor_pos'($marked.from);
+	    }
             
             # Try and better explain "Confused".
             my @locprepost := self.locprepost($c);

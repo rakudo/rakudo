@@ -8,7 +8,15 @@ class Distro does Systemic {
     has Bool $.is-win;
     has Str $.path-sep;
 
-    submethod BUILD (:$name, :$version, :$!release, :$!auth, :$!path-sep) {
+    submethod BUILD (
+      :$name,
+      :$version,
+      :$!release,
+      :$!auth,
+      :$!path-sep,
+      :$!signature = Blob,
+      :$!desc      = Str,
+    ) {
         $!name = $name.lc;    # lowercase
         $!name ~~ s:g/" "//;  # spaceless
         $!version = Version.new($version);

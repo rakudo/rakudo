@@ -2403,12 +2403,14 @@ class Perl6::World is HLL::World {
         }
 
         # Checks if a name component is a pseudo-package.
+	my %pseudo := nqp::hash(
+	    'PROCESS', 1, 'GLOBAL', 1, 'OUR', 1, 'MY', 1,
+	    'CORE', 1, 'SETTING', 1, 'UNIT', 1,
+	    'OUTER', 1, 'OUTERS', 1, 'LEXICAL', 1,
+	    'CALLER', 1, 'CALLERS', 1, 'DYNAMIC', 1,
+	    'COMPILING', 1, 'PARENT', 1, );
         method is_pseudo_package($comp) {
-            !nqp::istype($comp, QAST::Node) && (
-            $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
-            $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
-            $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
-            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT')
+            !nqp::istype($comp, QAST::Node) && %pseudo{$comp};
         }
 
         # Checks if the name starts with GLOBAL.

@@ -1367,7 +1367,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <?before ')' | ']' | '}' >
         || $
         || <?stopper>
-        || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon." ) }
+        || <?before [if|while|for|loop|repeat|given|when] » > { self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
+        || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -3301,6 +3302,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             }
                             else {
                                 my $missing := $/.CURSOR.terminator() || $/.CURSOR.infixish();
+                                $/.CURSOR.'!clear_highwater'();  # don't have suppose
                                 my $orry := $missing ?? "sorry" !! "worry";
                                 if $trap == 1 {        # probably misused P5ism
                                     $<longname>.CURSOR."{$orry}obs"("bare \"$name\"", ".$name if you meant \$_, or use an explicit invocant or argument");

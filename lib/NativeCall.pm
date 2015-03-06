@@ -379,12 +379,7 @@ multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types
 }
 
 multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
-    if $r.package.REPR eq 'CPPStruct' {
-        $r does NativeCallSymbol[mangle_cpp_symbol($r, $symbol)];
-    }
-    else {
-        $r does NativeCallSymbol[$symbol];
-    }
+    $r does NativeCallSymbol[$symbol];
 }
 
 # Specifies that the routine is actually a native call, into the

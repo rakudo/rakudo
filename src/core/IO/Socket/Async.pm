@@ -127,7 +127,7 @@ my class IO::Socket::Async {
         True;
     }
 
-    method connect(IO::Socket::Async:U: Str() $host, Int(Any) $port,
+    method connect(IO::Socket::Async:U: Str() $host, Int() $port,
                    :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
@@ -147,7 +147,7 @@ my class IO::Socket::Async {
         $p
     }
 
-    method listen(IO::Socket::Async:U: Str() $host, Int(Any) $port,
+    method listen(IO::Socket::Async:U: Str() $host, Int() $port,
                   :$scheduler = $*SCHEDULER) {
         my $cancellation;
         Supply.on_demand(-> $s {

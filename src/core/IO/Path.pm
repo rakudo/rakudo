@@ -336,7 +336,7 @@ my class IO::Path is Cool {
         self.copy($to.IO(:$!SPEC,:$CWD),|c);
     }
 
-    method chmod(IO::Path:D: Int(Any) $mode) {
+    method chmod(IO::Path:D: Int() $mode) {
         nqp::chmod($.abspath, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(

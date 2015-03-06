@@ -24,7 +24,7 @@ role Perl6::Metamodel::MetaMethodContainer {
             for %!meta_methods {
                 $role.HOW.add_method($role, $_.key, $_.value);
             }
-            $role.HOW.set_body_block($role, -> $class {
+            $role.HOW.set_body_block($role, sub ($class) {
                 nqp::list($role, nqp::hash('$?CLASS', $class))
             });
             $role.HOW.compose($role);

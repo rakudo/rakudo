@@ -1074,21 +1074,41 @@ class Perl6::Optimizer {
 
         # May be able to eliminate some decontrv operations.
         if $optype eq 'p6decontrv' {
-            # Boolifications don't need it, nor do _I/_i/_n/_s ops except
-            # assignment.
+            # If it's rw, don't need to decont at all.
             my $value := $op[1];
+            return $value if $op[0].value.rw;
+
+            # Boolifications don't need it, nor do _I/_i/_n/_s ops, with
+            # the exception of native assignment, which can decont_[ins]
+            # as appropriate, which may avoid a boxing.
             my $last_stmt := get_last_stmt($value);
             if nqp::istype($last_stmt, QAST::Op) {
-                my str $op := $last_stmt.op;
-                if $op eq 'p6bool' || nqp::eqat($op, 'I', -1) {
+                my str $last_op := $last_stmt.op;
+                if $last_op eq 'p6bool' || nqp::eqat($last_op, 'I', -1) {
                     return $value;
                 }
-                if !nqp::eqat($op, 'assign_', 0) {
-                    if nqp::eqat($op, '_i', -2) || 
-                       nqp::eqat($op, '_n', -2) ||
-                       nqp::eqat($op, '_s', -2) {
-                        return $value;
-                    }
+                if nqp::eqat($last_op, 'assign_', 0) {
+                    if    $last_op eq 'assign_i' { $op.op('decont_i') }
+                    elsif $last_op eq 'assign_n' { $op.op('decont_n') }
+                    elsif $last_op eq 'assign_s' { $op.op('decont_s') }
+                    $op.shift; # The QAST::WVal of the routine
+                    return $op;
+                }
+                if nqp::eqat($last_op, '_i', -2) || 
+                      nqp::eqat($last_op, '_n', -2) ||
+                      nqp::eqat($last_op, '_s', -2) {
+                    return $value;
+                }
+            }
+            elsif nqp::istype($last_stmt, QAST::Var) {
+                my str $scope := $last_stmt.scope;
+                if $scope eq 'lexicalref' {
+                    $last_stmt.scope('lexical');
+                    return $value;
+                }
+                if $scope eq 'attributeref' {
+                    $last_stmt.scope('attribute');
+                    return $value;
                 }
             }
         }

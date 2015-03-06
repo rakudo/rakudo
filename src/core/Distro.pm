@@ -8,7 +8,15 @@ class Distro does Systemic {
     has Bool $.is-win;
     has Str $.path-sep;
 
-    submethod BUILD (:$name, :$version, :$!release, :$!auth, :$!path-sep) {
+    submethod BUILD (
+      :$name,
+      :$version,
+      :$!release,
+      :$!auth,
+      :$!path-sep,
+      :$!signature  = Blob,
+      :$!desc = Str,
+    ) {
         $!name = TRANSPOSE-ONE($name.lc," ",""); # lowercase and spaceless
         $!version = Version.new($version);
         $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
@@ -60,62 +68,66 @@ class Distro does Systemic {
     }
 }
 
-# set up $*DISTRO and deprecated $*OS and $*OSVER
-multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
-    PROCESS::<$DISTRO> := do {
+sub INITIALIZE-A-DISTRO-NOW() {
 #?if jvm
-        my $properties := $*VM.properties;
-        my $name       := $properties<os.name>;
-        my $version    := $properties<os.version>;
-        my $path-sep   := $properties<path.separator>;
+    my $properties := INITIALIZE-A-VM-NOW.properties;
+    my $name       := $properties<os.name>;
+    my $version    := $properties<os.version>;
+    my $path-sep   := $properties<path.separator>;
 #?endif
 #?if !jvm
-        my $config   := $*VM.config;
-        my $name     := $config<osname>;
-        my $version  := $config<osvers>;
-        my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';
+    my $config   := INITIALIZE-A-VM-NOW.config;
+    my $name     := $config<osname>;
+    my $version  := $config<osvers>;
+    my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';
 #?endif
-        my Str $release := "unknown";
-        my Str $auth    := "unknown";
+    my Str $release := "unknown";
+    my Str $auth    := "unknown";
 
-        # darwin specific info
-        if $name eq 'darwin' {
-            if qx/sw_vers/ ~~ m/^
-            ProductName\: \s+ (<[\w\ ]>+) \s+
-            ProductVersion\: \s+ (<[\d\.]>+) \s+
-            BuildVersion\: \s+ (<[\w\d]>+)
-            / {
-                $name    := ~$0;
-                $version := ~$1;
-                $release := ~$2;
-            }
-            else {
-                $name    := 'Mac OS X'; # we assume
-                $version := "unknown";
-            }
-            $auth := 'Apple Computer, Inc.'; # presumably
+    # darwin specific info
+    if $name eq 'darwin' {
+        if qx/sw_vers/ ~~ m/^
+        ProductName\: \s+ (<[\w\ ]>+) \s+
+        ProductVersion\: \s+ (<[\d\.]>+) \s+
+        BuildVersion\: \s+ (<[\w\d]>+)
+        / {
+            $name    := ~$0;
+            $version := ~$1;
+            $release := ~$2;
         }
-        elsif '/etc/os-release'.IO.e {
-            $_ := '/etc/os-release'.IO.slurp.subst(:g, /'"'/,'');
-            $auth    := ~$0 if m/^^ HOME_URL   \= (\N*) /;
-            $name    := ~$0 if m/^^ ID         \= (\N*) /;
-            $version := ~$0 if m/^^ VERSION    \= (\N*) /;
-            $release := ~$0 if m/^^ VERSION_ID \= (\N*) /;
+        else {
+            $name    := 'Mac OS X'; # we assume
+            $version := "unknown";
+            $release := qx/uname -r/.chomp;
         }
-        elsif $name eq 'linux' {
-            if qx{lsb_release -a 2> /dev/null} ~~ m/
-                Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+
-                Description\: \s+ (<[\w\ ]>+) \s+ (<[\d\.]>+) \s+
-                Release\: \s+ (<[\d\.]>+)
-            / {
-                $auth    := ~$0;
-                $name    := ~$1;
-                $version := ~$2;
-                $release := ~$3;
-            }
+        $auth := 'Apple Computer, Inc.'; # presumably
+    }
+    elsif '/etc/os-release'.IO.e {
+        $_ := '/etc/os-release'.IO.slurp.subst(:g, /'"'/,'');
+        $auth    := ~$0 if m/^^ HOME_URL   \= (\N*) /;
+        $name    := ~$0 if m/^^ ID         \= (\N*) /;
+        $version := ~$0 if m/^^ VERSION    \= (\N*) /;
+        $release := ~$0 if m/^^ VERSION_ID \= (\N*) /;
+    }
+    elsif $name eq 'linux' {
+        if qx{lsb_release -a 2> /dev/null} ~~ m/
+            Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+
+            Description\: \s+ (<[\w\ ]>+) \s+ (<[\d\.]>+) \s+
+            Release\: \s+ (<[\d\.]>+)
+        / {
+            $auth    := ~$0;
+            $name    := ~$1;
+            $version := ~$2;
+            $release := ~$3;
         }
-        Distro.new( :$name, :$version, :$release, :$auth, :$path-sep )
-    };
+    }
+    my $desc := DateTime.now.Str;
+    Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
+}
+
+# set up $*DISTRO and deprecated $*OS and $*OSVER
+multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
+    PROCESS::<$DISTRO> := INITIALIZE-A-DISTRO-NOW();
 }
 
 multi sub INITIALIZE_DYNAMIC('$*OS') {

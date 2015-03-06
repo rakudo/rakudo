@@ -371,11 +371,12 @@ my role X::Comp is Exception {
     has @.highexpect;
     multi method gist(::?CLASS:D: :$sorry = True, :$expect = True) {
         if $.is-compile-time {
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*DISTRO.name ne 'mswin32';
+            my $is-win := $*DISTRO.is-win;
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
             my ($red, $green, $yellow, $clear) = $color
                 ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
                 !! ("", "", "", "");
-            my $eject = $*DISTRO.name eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
+            my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
             my $r = $sorry ?? self.sorry_heading() !! "";
             $r ~= "$.message\nat $.filename():$.line\n------> ";
             $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
@@ -398,7 +399,7 @@ my role X::Comp is Exception {
         }
     }
     method sorry_heading() {
-        my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*DISTRO.name ne 'mswin32';
+        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
         my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
         "$red==={$clear}SORRY!$red===$clear Error while compiling $.filename\n"
     }
@@ -419,7 +420,7 @@ my class X::Comp::Group is Exception {
     multi method gist(::?CLASS:D:) {
         my $r = "";
         if $.panic || @.sorrows {
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*DISTRO.name ne 'mswin32';
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
             my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
             $r ~= "$red==={$clear}SORRY!$red===$clear\n";
             for @.sorrows {

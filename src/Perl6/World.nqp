@@ -2403,12 +2403,14 @@ class Perl6::World is HLL::World {
         }
 
         # Checks if a name component is a pseudo-package.
+        my %pseudo := nqp::hash(
+            'PROCESS', 1, 'GLOBAL', 1, 'OUR', 1, 'MY', 1,
+            'CORE', 1, 'SETTING', 1, 'UNIT', 1,
+            'OUTER', 1, 'OUTERS', 1, 'LEXICAL', 1,
+            'CALLER', 1, 'CALLERS', 1, 'DYNAMIC', 1,
+            'COMPILING', 1, 'PARENT', 1, );
         method is_pseudo_package($comp) {
-            !nqp::istype($comp, QAST::Node) && (
-            $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
-            $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
-            $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
-            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT')
+            !nqp::istype($comp, QAST::Node) && %pseudo{$comp};
         }
 
         # Checks if the name starts with GLOBAL.
@@ -2919,15 +2921,16 @@ class Perl6::World is HLL::World {
             # that location.  (Maybe.)
             my $c := $/.CURSOR;
             my @expected;
+            my $high := $c.'!highwater'();
             if %opts<precursor> {
-		$c := $/.PRECURSOR;
-	    }
+                $c := $/.PRECURSOR;
+            }
             elsif %opts<expected> {
                 @expected := %opts<expected>;
             }
-            elsif $c.'!highwater'() >= $c.pos() {
+            elsif $high >= $c.pos() {
                 my @raw_expected := $c.'!highexpect'();
-                $c.'!cursor_pos'($c.'!highwater'());
+                $c.'!cursor_pos'($high);
                 my %seen;
                 for @raw_expected {
                     unless %seen{$_} {
@@ -2957,12 +2960,12 @@ class Perl6::World is HLL::World {
                         }
                     }
                     if $expected_infix {
-			if $expected_term {
-			    %opts<reason> := "Bogus term";
-			}
-			else {
-			    %opts<reason> := "Two terms in a row";
-			}
+                        if $expected_term {
+                            %opts<reason> := "Bogus term";
+                        }
+                        else {
+                            %opts<reason> := "Two terms in a row";
+                        }
                     }
                 }
             }
@@ -3034,7 +3037,8 @@ class Perl6::World is HLL::World {
     }
     
     method locprepost($c) {
-        my $pos  := $c.pos;
+        my $marked := $c.MARKED('ws');
+        my $pos  := $marked ?? $marked.from !! $c.pos;
         my $orig := $c.orig;
 
         my $prestart := $pos - 40;
@@ -3100,3 +3104,5 @@ class Perl6::World is HLL::World {
         $p6ex.rethrow();
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

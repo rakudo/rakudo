@@ -165,12 +165,15 @@ sub type_code_for(Mu ::T) {
         "If you want to pass an array, be sure to use the CArray type.";
 }
 
-sub mangle_symbol(Routine $r) {
+sub gen_native_symbol(Routine $r) {
     if $r.package.REPR eq 'CPPStruct' {
-        mangle_cpp_symbol($r, $r.package.^name ~ '::' ~ $r.name)
+        mangle_cpp_symbol($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name))
+    }
+    elsif $r.?native_call_mangled {
+        mangle_cpp_symbol($r, $r.?native_symbol // $r.name)
     }
     else {
-        $r.name
+        $r.?native_symbol // $r.name
     }
 }
 
@@ -220,7 +223,7 @@ my role Native[Routine $r, Str $libname] {
             my str $conv = self.?native_call_convention || '';
             nqp::buildnativecall(self,
                 nqp::unbox_s(guess_library_name($libname)),    # library name
-                nqp::unbox_s(self.?native_symbol // mangle_symbol($r)),      # symbol to call
+                nqp::unbox_s(gen_native_symbol($r)),      # symbol to call
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
                 return_hash_for($r.signature, $r));
@@ -239,6 +242,10 @@ my role NativeCallingConvention[$name] {
 # Role for carrying extra string encoding information.
 my role NativeCallEncoded[$name] {
     method native_call_encoded() { $name };
+}
+
+my role NativeCallMangled[$name] {
+    method native_call_mangled() { $name }
 }
 
 # CArray class, used to represent C arrays.
@@ -399,6 +406,10 @@ multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded[$encoded];
 }
 
+multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
+    $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
+}
+
 role ExplicitlyManagedString {
     has $.cstr is rw;
 }
@@ -422,11 +433,12 @@ multi refresh($obj) is export(:DEFAULT, :utils) {
 
 sub mangle_cpp_symbol(Routine $r, $symbol) {
     $r.signature.set_returns($r.package)
-        if $r.name eq 'new' && !$r.signature.has_returns;
+        if $r.name eq 'new' && !$r.signature.has_returns && $r.package !~~ GLOBAL;
 
-    my $mangled = '_ZN'
+    my $mangled = '_Z'
+                ~ ($r.package.REPR eq 'CPPStruct' ?? 'N' !! '')
                 ~ $symbol.split('::').map({$_ eq 'new' ?? 'C1' !! $_.chars ~ $_}).join('')
-                ~ 'E';
+                ~ ($r.package.REPR eq 'CPPStruct' ?? 'E' !! '');
     my @params  = $r.signature.params;
     if $r ~~ Method {
         @params.shift;

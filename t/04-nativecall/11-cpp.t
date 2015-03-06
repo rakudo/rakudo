@@ -31,7 +31,7 @@ class Derived1 is repr<CPPStruct> {
     method new()  is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
 }
 
-sub SizeofDerived1() is symbol('_Z14SizeofDerived1v') returns int32 is native("./11-cpp") { * }
+sub SizeofDerived1() returns int32 is mangled is native("./11-cpp") { * }
 
 is nativesizeof(Derived1), SizeofDerived1(), 'sizeof(Derived1)';
 ok my $d1 = Derived1.new, 'can instanciate C++ class';
@@ -59,7 +59,7 @@ class Derived2 is repr<CPPStruct> {
     method ConstIntPtr(int32 is cpp-const is rw) returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
 }
 
-sub SizeofDerived2() is symbol('_Z14SizeofDerived2v') returns int32 is native("./11-cpp") { * }
+sub SizeofDerived2() returns int32 is mangled is native("./11-cpp") { * }
 
 is nativesizeof(Derived2), SizeofDerived2(), 'sizeof(Derived2)';
 ok my $d2 = Derived2.new, 'can instanciate C++ class with vtable';

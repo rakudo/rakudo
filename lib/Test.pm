@@ -134,8 +134,15 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
         my $test = $got eq $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            diag "expected: '$expected'";
-            diag "     got: '$got'";
+            if [eq] ($got, $expected)>>.subst(/\s/, '', :g) {
+                # only white space differs, so better show it to the user
+                diag "expected: {$expected.perl}";
+                diag "     got: {$got.perl}";
+            }
+            else {
+                diag "expected: '$expected'";
+                diag "     got: '$got'";
+            }
         }
     }
     else {

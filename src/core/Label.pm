@@ -23,11 +23,12 @@ my class Label {
     # XXX method leave(@args)
 
     multi method gist(Label:D:) {
-        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
+        my $is-win := $*DISTRO.is-win;
+        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
         my ($red, $green, $yellow, $clear) = $color
             ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
             !! ("", "", "", "");
-        my $eject = $*DISTRO.is-win ?? "<HERE>" !! "\x[23CF]";
+        my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
 
         "Label<$!name>(at $!file:$!line, '$green$!prematch$yellow$eject$red$!name$green$!postmatch$clear')"
     }

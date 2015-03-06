@@ -43,7 +43,7 @@ my role Real does Numeric {
     multi method round(Real:D:) {
         (self + 1/2).floor; # Rat NYI here, so no .5
     }
-    multi method round(Real:D: Real(Any) $scale) {
+    multi method round(Real:D: Real() $scale) {
         (self / $scale + 1/2).floor * $scale;
     }
 

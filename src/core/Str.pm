@@ -1298,12 +1298,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     proto method indent($) {*}
     # Zero indent does nothing
-    multi method indent(Int(Any) $steps where { $_ == 0 }) {
+    multi method indent(Int() $steps where { $_ == 0 }) {
         self;
     }
 
     # Positive indent does indent
-    multi method indent(Int(Any) $steps where { $_ > 0 }) {
+    multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
         return self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
@@ -1330,7 +1330,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Negative indent (outdent)
-    multi method indent(Int(Any) $steps where { $_ < 0 }) {
+    multi method indent(Int() $steps where { $_ < 0 }) {
         return outdent(self, $steps);
     }
 

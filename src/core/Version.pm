@@ -2,7 +2,7 @@ class Version {
     has @.parts;
     has Bool $.plus = False;
 
-    multi method new(Str:D $s) {
+    multi method new(Str() $s) {
         my @parts = $s.comb(/:r '*' || \d+ || <.alpha>+/);
         for @parts {
             $_ .= Numeric if .Numeric.defined ;

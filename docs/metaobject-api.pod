@@ -88,7 +88,7 @@ ClassHOW since grammars are really just slightly specialized classes.
 
 =head3 NativeHOW
 
-Meta-object for a native type (only accesible via the type object, perhaps).
+Meta-object for a native type (only accessible via the type object, perhaps).
 
 =head3 SubsetHOW
 
@@ -111,5 +111,5 @@ Composes one or more roles into another role, creating a kind of role
 
 =head3 RoleToObjectComposer
 
-Compoes a role into an object - essentially doing a mix-in.
+Composes a role into an object - essentially doing a mix-in.
 

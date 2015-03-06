@@ -957,7 +957,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$@'  => '$!',
       '$#'  => '.fmt',
       '$['  => 'user-defined array indices',
-      '$]'  => '$*PERL_VERSION',
+      '$]'  => '$*PERL.version or $*PERL.compiler.version',
 
       '$^C' => 'COMPILING namespace',
       '$^D' => '$*DEBUGGING',
@@ -971,7 +971,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
       '$^T' => '$*BASETIME',
-      '$^V' => '$*PERL_VERSION',
+      '$^V' => '$*PERL.version or $*PERL.compiler.version',
       '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE_NAME',
 
@@ -1080,9 +1080,16 @@ my class X::Syntax::Term::MissingInitializer does X::Syntax {
     method message { 'Term definition requires an initializer' }
 }
 
-my class X::Syntax::AddCategorial::MissingSeparator does X::Syntax {
-    has $.opname;
-    method message() { "Unable to identify both starter and stopper from $.opname\nPerhaps you forgot to separate them with whitespace?" }
+my class X::Syntax::AddCategorical::TooFewParts does X::Syntax {
+    has $.category;
+    has $.needs;
+    method message() { "Not enough symbols provided for categorical of type $.category; needs $.needs" }
+}
+
+my class X::Syntax::AddCategorical::TooManyParts does X::Syntax {
+    has $.category;
+    has $.needs;
+    method message() { "Too many symbols provided for categorical of type $.category; needs only $.needs" }
 }
 
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
@@ -1108,6 +1115,15 @@ my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
         "Preceding context expects a term, but found infix $.infix instead";
+    }
+}
+
+my class X::Syntax::DuplicatedPrefix does X::Syntax {
+    has $.prefixes;
+    method message() {
+        my $prefix = $.prefixes.substr(0, 1);
+        "Expected a term, but found either infix $.prefixes or redundant prefix $prefix\n"
+        ~ "  (to suppress this message, please use a space like $prefix $prefix)";
     }
 }
 
@@ -1158,6 +1174,10 @@ my class X::Constructor::Positional is Exception {
 
 my class X::Hash::Store::OddNumber is Exception {
     method message() { "Odd number of elements found where hash initializer expected" }
+}
+
+my class X::Pairup::OddNumber is Exception {
+    method message() { "Odd number of elements found for .pairup()" }
 }
 
 my class X::Match::Bool is Exception {
@@ -1334,6 +1354,13 @@ my class X::Assignment::RO is Exception {
     has $.typename = "value";
     method message {
         "Cannot modify an immutable {$.typename}";
+    }
+}
+
+my class X::Assignment::RO::Comp does X::Comp {
+    has $.variable;
+    method message {
+        "Cannot assign to readonly variable {$.variable}"
     }
 }
 
@@ -1630,6 +1657,21 @@ my class X::SemicolonForm::TooLate does X::Syntax {
     method message() {
         "Too late for semicolon form of $.what definitions;\n"
         ~ "Please use the block form."
+    }
+}
+
+my class X::PairMap::DoesNotExist is Exception {
+    has $.key;
+    has $.method;
+    method message() {
+        "Cannot do PairMap.$.method on non-existing key: '$.key'"
+    }
+}
+
+my class X::PairMap::NotAllowed is Exception {
+    has $.method;
+    method message() {
+        "Not allowed to do PairMap.$.method"
     }
 }
 

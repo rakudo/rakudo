@@ -18,15 +18,15 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
-        so self.exists_key($topic.any);
+        self.exists_key($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
-        so self.exists_key($topic);
+        self.exists_key($topic);
     }
 
     multi method ACCEPTS(EnumMap:D: Positional $topic) {
-        so self.exists_key($topic.any);
+        self.exists_key($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Regex $topic) {
@@ -57,19 +57,22 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     method list(EnumMap:) { self.pairs }
 
     multi method keys(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.keys(self)   !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.keys(self)     !! ()).list;
     }
     multi method kv(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.kv(self)     !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.kv(self)       !! ()).list;
     }
     multi method values(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.values(self) !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.values(self)   !! ()).list;
     }
     multi method pairs(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.pairs(self)  !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.pairs(self)    !! ()).list;
+    }
+    multi method antipairs(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.antipairs(self) !! ()).list;
     }
     multi method invert(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.invert(self) !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.invert(self)   !! ()).list;
     }
 
     multi method at_key(EnumMap:D: \key) is rw {
@@ -110,7 +113,13 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         self
     }
 
-    method STORE_AT_KEY(\key, Mu \value) is rw {
+    proto method STORE_AT_KEY(|) is rw { * }
+    multi method STORE_AT_KEY(Str \key, Mu \value) is rw {
+        nqp::defined($!storage) ||
+            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+        nqp::bindkey($!storage, nqp::unbox_s(key), value)
+    }
+    multi method STORE_AT_KEY(\key, Mu \value) is rw {
         nqp::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)

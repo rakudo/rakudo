@@ -4,20 +4,22 @@ my class HashIter is Iterator {
     has Mu $!keystore;         # key store, if it's a typed hash
     has int $!mode;            # pair = 0, kv = 1, k = 2, v = 3, invert = 4
 
-    method new($hash, :$keystore, :$pairs, :$kv, :$k, :$v, :$invert) {
+    method new($hash, :$keystore, :$pairs, :$kv, :$k, :$v, :$anti, :$invert) {
         nqp::create(self).BUILD($hash, $keystore,
             $pairs  ?? 0 !!
             $kv     ?? 1 !!
             $k      ?? 2 !!
             $v      ?? 3 !!
-            $invert ?? 4 !!
+            $anti   ?? 4 !!
+            $invert ?? 5 !!
                        0);
     }
-    method pairs($h,$keystore?)  { nqp::create(self).BUILD($h,$keystore,0) }
-    method kv($h,$keystore?)     { nqp::create(self).BUILD($h,$keystore,1) }
-    method keys($h,$keystore?)   { nqp::create(self).BUILD($h,$keystore,2) }
-    method values($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,3) }
-    method invert($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,4) }
+    method pairs($h,$keystore?)     { nqp::create(self).BUILD($h,$keystore,0) }
+    method kv($h,$keystore?)        { nqp::create(self).BUILD($h,$keystore,1) }
+    method keys($h,$keystore?)      { nqp::create(self).BUILD($h,$keystore,2) }
+    method values($h,$keystore?)    { nqp::create(self).BUILD($h,$keystore,3) }
+    method antipairs($h,$keystore?) { nqp::create(self).BUILD($h,$keystore,4) }
+    method invert($h,$keystore?)    { nqp::create(self).BUILD($h,$keystore,5) }
 
     submethod BUILD($hash, $keystore, Int $mode) {
         $!hashiter :=
@@ -89,7 +91,7 @@ my class HashIter is Iterator {
                     nqp::push($rpa, nqp::hllize(nqp::iterval($pairish)).item);
                 }
             }
-            elsif $mode == 4 {  # :invert
+            elsif $mode == 4 {  # :anti
                 if nqp::defined($!keystore) {
                     while $it {
                         $pairish := nqp::shift($it);
@@ -104,6 +106,28 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :value(nqp::p6box_s(nqp::iterkey_s($pairish))),
                             :key(nqp::hllize(nqp::iterval($pairish)))));
+                    }
+                }
+            }
+            elsif $mode == 5 {  # :invert
+                if nqp::defined($!keystore) {
+                    while $it {
+                        $pairish := nqp::shift($it);
+                        my $k := nqp::atkey($!keystore, nqp::iterkey_s($pairish));
+                        nqp::push($rpa, Pair.new(
+                            :value($k),
+                            :key($_)))
+                                for nqp::hllize(nqp::iterval($pairish)).list;
+                    }
+                }
+                else {
+                    while $it {
+                        $pairish := nqp::shift($it);
+                        my $k := nqp::p6box_s(nqp::iterkey_s($pairish));
+                        nqp::push($rpa, Pair.new(
+                            :value($k),
+                            :key($_)))
+                                for nqp::hllize(nqp::iterval($pairish)).list;
                     }
                 }
             }

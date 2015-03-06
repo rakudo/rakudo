@@ -739,7 +739,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $prev = nqp::unbox_i($m.to);
             }
             nqp::push_s($result,nqp::substr($str,$prev));
-            nqp::p6box_s(nqp::join(nqp::unbox_s($replacement),$result));
+            nqp::p6box_s(nqp::join(nqp::unbox_s(~$replacement),$result));
         }
     }
 

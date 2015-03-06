@@ -3,6 +3,7 @@ my class IO::ArgFiles is IO::Handle {
     has $.filename;
     has $!io;
     has $.ins;
+    has $!nl = "\n";
 
     method eof() {
         ! $!args && $!io.opened && $!io.eof
@@ -11,7 +12,7 @@ my class IO::ArgFiles is IO::Handle {
     method get() {
         unless $!io.defined && $!io.opened {
             $!filename = $!args ?? $!args.shift !! '-';
-            $!io = open($!filename, :r) ||
+            $!io = open($!filename, :r, :nl($!nl)) ||
                 fail "Unable to open file '$!filename'";
         }
         my $x = $!io.get;
@@ -42,6 +43,20 @@ my class IO::ArgFiles is IO::Handle {
         }
         return $*IN.slurp-rest unless @chunks;
         @chunks.join;
+    }
+
+    method nl {
+        Proxy.new(
+          FETCH => {
+              $!nl
+          },
+          STORE => -> $, $nl {
+              if $!io.defined {
+                  nqp::setinputlinesep($!io, nqp::unbox_s($!nl = $nl));
+              }
+              $!nl = $nl;
+          }
+        );
     }
 }
 

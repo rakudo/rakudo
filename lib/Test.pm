@@ -107,25 +107,82 @@ multi sub nok(Mu $cond, $desc = '') is export {
     return $ok;
 }
 
-multi sub is(Mu $got, Mu $expected, $desc = '') is export {
+multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    $got.defined; # Hack to deal with Failures
-    my $test = $got eq $expected;
-    my $ok = proclaim(?$test, $desc);
-    if !$test {
-        diag "expected: '$expected'";
+    my $ok;
+    if $got.defined { # also hack to deal with Failures
+        $ok = proclaim(False, $desc);
+        diag "expected: ($expected.^name())";
         diag "     got: '$got'";
+    }
+    else {
+        my $test = $got === $expected;
+        $ok = proclaim(?$test, $desc);
+        if !$test {
+            diag "expected: ($expected.^name())";
+            diag "     got: ($got.^name())";
+        }
     }
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;
 }
 
-multi sub isnt(Mu $got, Mu $expected, $desc = '') is export {
+multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    my $test = !($got eq $expected);
-    my $ok = proclaim($test, $desc);
-    if !$test {
-        diag "twice: '$got'";
+    my $ok;
+    if $got.defined { # also hack to deal with Failures
+        my $test = $got eq $expected;
+        $ok = proclaim(?$test, $desc);
+        if !$test {
+            if [eq] ($got, $expected)>>.subst(/\s/, '', :g) {
+                # only white space differs, so better show it to the user
+                diag "expected: {$expected.perl}";
+                diag "     got: {$got.perl}";
+            }
+            else {
+                diag "expected: '$expected'";
+                diag "     got: '$got'";
+            }
+        }
+    }
+    else {
+        $ok = proclaim(False, $desc);
+        diag "expected: '$expected'";
+        diag "     got: ($got.^name())";
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
+multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    my $ok;
+    if $got.defined { # also hack to deal with Failures
+        $ok = proclaim(True, $desc);
+    }
+    else {
+        my $test = $got !=== $expected;
+        $ok = proclaim(?$test, $desc);
+        if !$test {
+            diag "twice: ($got.^name())";
+        }
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
+multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    my $ok;
+    if $got.defined { # also hack to deal with Failures
+        my $test = $got ne $expected;
+        $ok = proclaim(?$test, $desc);
+        if !$test {
+            diag "twice: '$got'";
+        }
+    }
+    else {
+        $ok = proclaim(True, $desc);
     }
     $time_before = nqp::p6box_n(nqp::time_n);
     return $ok;

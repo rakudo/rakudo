@@ -441,23 +441,31 @@ static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (MVM_is_null(tc, retval)) {
        retval = Mu;
     }
-    else if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
-        Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
-            ((Rakudo_Scalar *)retval)->descriptor;
-        if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
-            MVMObject *value = ((Rakudo_Scalar *)retval)->value;
-            if (MVM_6model_istype_cache_only(tc, value, Iterable)
-                || MVM_6model_istype_cache_only(tc, value, Parcel)) {
-                MVMROOT(tc, value, {
-                    MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
-                    MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
-                        value);
-                    retval = cont;
-                });
+    else if (IS_CONCRETE(retval)) {
+        const MVMContainerSpec *spec = STABLE(retval)->container_spec;
+        if (spec == Rakudo_containers_get_scalar()) {
+            Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
+                ((Rakudo_Scalar *)retval)->descriptor;
+            if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
+                MVMObject *value = ((Rakudo_Scalar *)retval)->value;
+                if (MVM_6model_istype_cache_only(tc, value, Iterable)
+                    || MVM_6model_istype_cache_only(tc, value, Parcel)) {
+                    MVMROOT(tc, value, {
+                        MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
+                        MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
+                            value);
+                        retval = cont;
+                    });
+                }
+                else {
+                    retval = value;
+                }
             }
-            else {
-                retval = value;
-            }
+        }
+        else if (spec && spec->fetch_never_invokes) {
+            MVMRegister res;
+            spec->fetch(tc, retval, &res);
+            retval = res.o;
         }
     }
     GET_REG(tc, 0).o = retval;

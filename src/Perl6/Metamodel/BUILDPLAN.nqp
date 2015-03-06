@@ -15,6 +15,9 @@ role Perl6::Metamodel::BUILDPLAN {
     #   5 class name attr_name = set a native int attribute
     #   6 class name attr_name = set a native num attribute
     #   7 class name attr_name = set a native str attribute
+    #   8 class attr_name code = call default value closure if needed, int attr
+    #   9 class attr_name code = call default value closure if needed, num attr
+    #   10 class attr_name code = call default value closure if needed, str attr
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -35,11 +38,11 @@ role Perl6::Metamodel::BUILDPLAN {
                     my $attr_name := $_.name;
                     my $name      := nqp::substr($attr_name, 2);
                     my $typespec  := nqp::objprimspec($_.type);
-                    if $typespec == 1 || $typespec == 2 || $typespec == 3 {
-                        @plan[+@plan] :=  [nqp::add_i(4, $typespec),
+                    if $typespec {
+                        @plan[+@plan] := [nqp::add_i(4, $typespec),
                                               $obj, $name, $attr_name];
                     } else {
-                        @plan[+@plan] :=  [1, $obj, $name, $attr_name];
+                        @plan[+@plan] := [1, $obj, $name, $attr_name];
                     }
                 }
             }
@@ -50,7 +53,13 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'build') {
                 my $default := $_.build;
                 if !nqp::isnull($default) && $default {
-                    @plan[+@plan] := [4, $obj, $_.name, $default];
+                    my $typespec := nqp::objprimspec($_.type);
+                    if $typespec {
+                        @plan[+@plan] := [nqp::add_i(7, $typespec), $obj, $_.name, $default];
+                    }
+                    else {
+                        @plan[+@plan] := [4, $obj, $_.name, $default];
+                    }
                 }
             }
         }

@@ -17,10 +17,8 @@ my role Dateish {
         !! 31
     }
 
-    method daycount-from-ymd($y is copy, $m is copy, $d) {
+    method daycount-from-ymd(Int() $y is copy, Int() $m is copy, $d) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        $y .= Int;
-        $m .= Int;
         if $m < 3 {
             $m += 12;
             --$y;
@@ -329,6 +327,9 @@ my class DateTime does Dateish {
     method later(*%unit) {
         die "More than one time unit supplied"
             if %unit.keys > 1;
+
+        die "No time unit supplied"
+            unless %unit.keys;
 
         my ($unit, $amount) = %unit.kv;
 

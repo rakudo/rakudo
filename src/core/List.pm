@@ -581,7 +581,10 @@ my class List does Positional { # declared in BOOTSTRAP
         self.values.map: { (state $)++ }
     }
     multi method kv(List:D:) {
-        self.values.map: { ((state $)++, $_) }
+        gather for self.values {
+            take (state $)++;
+            take-rw $_;
+        }
     }
     multi method values(List:D:) {
         my Mu $rpa := nqp::clone(nqp::p6listitems(self));
@@ -589,7 +592,14 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6list($rpa, List, self.flattens);
     }
     multi method pairs(List:D:) {
-        self.values.map: {; (state $)++ => $_ }
+        self.values.map: { (state $)++ => $_ }
+    }
+    multi method antipairs(List:D:) {
+        self.values.map: { $_ => (state $)++ }
+    }
+
+    multi method invert(List:D:) {
+        self.map: { .value »=>» .key }
     }
 
     method reduce(List: &with) {
@@ -630,7 +640,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 }
 
-sub eager(|) {
+# internal, caps to not hide 'eager' keyword
+sub EAGER(|) {
     nqp::p6parcel(nqp::p6argvmarray(), Any).eager
 }
 

@@ -14,6 +14,7 @@ src/Perl6/Metamodel/Finalization.nqp
 src/Perl6/Metamodel/MethodContainer.nqp
 src/Perl6/Metamodel/PrivateMethodContainer.nqp
 src/Perl6/Metamodel/MultiMethodContainer.nqp
+src/Perl6/Metamodel/MetaMethodContainer.nqp
 src/Perl6/Metamodel/RoleContainer.nqp
 src/Perl6/Metamodel/MultipleInheritance.nqp
 src/Perl6/Metamodel/DefaultParent.nqp
@@ -37,6 +38,7 @@ src/Perl6/Metamodel/RoleToClassApplier.nqp
 src/Perl6/Metamodel/ClassHOW.nqp
 src/Perl6/Metamodel/GrammarHOW.nqp
 src/Perl6/Metamodel/NativeHOW.nqp
+src/Perl6/Metamodel/NativeRefHOW.nqp
 src/Perl6/Metamodel/SubsetHOW.nqp
 src/Perl6/Metamodel/EnumHOW.nqp
 src/Perl6/Metamodel/CoercionHOW.nqp

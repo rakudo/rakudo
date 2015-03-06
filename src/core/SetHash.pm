@@ -3,7 +3,7 @@ my class SetHash does Setty {
     multi method at_key(SetHash:D: $k --> Bool) {
         Proxy.new(
           FETCH => {
-              so %!elems.exists_key($k.WHICH);
+              %!elems.exists_key($k.WHICH);
           },
           STORE => -> $, $value {
               if $value {

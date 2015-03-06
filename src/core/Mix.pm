@@ -1,15 +1,17 @@
 my class Mix does Mixy {
     has Real $!total;
     has $!WHICH;
-    has @!pairs;
 
     multi method WHICH (Mix:D:) {
         $!WHICH //= self.^name
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
-    multi method pairs(Mix:D:) { # copy values otherwise we can change the Mix
-        @!pairs ||= %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
+    multi method pairs(Mix:D:) {    # copy values else we can change the Mix
+        %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
+    }
+    multi method antipairs(Mix:D:) { # copy values else we can change the Mix
+        %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
     }
 
     method total (--> Real) { $!total //= [+] self.values }

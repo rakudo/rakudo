@@ -6,6 +6,8 @@ multi sub infix:<eqv>(Stringy:D $a, Stringy:D $b) {
 
 proto sub prefix:<~>($) is pure { * }
 multi sub prefix:<~>(\a)          { a.Stringy }
+multi sub prefix:<~>(int $a)      { nqp::p6box_s($a) }
+multi sub prefix:<~>(num $a)      { nqp::p6box_s($a) }
 
 proto sub infix:<~>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<~>($x = '')       { $x.Stringy }

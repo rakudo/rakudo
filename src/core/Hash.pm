@@ -228,8 +228,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     my role TypedHash[::TValue] does Associative[TValue] {
-        method at_key(::?CLASS:D: $key is copy) is rw {
-            $key = $key.Str;
+        method at_key(::?CLASS:D: Str() $key) is rw {
             if self.exists_key($key) {
                 nqp::findmethod(EnumMap, 'at_key')(self, $key);
             }
@@ -373,6 +372,10 @@ my class Hash { # declared in BOOTSTRAP
         method pairs(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
             HashIter.pairs(self,$!keys).list
+        }
+        method antipairs(EnumMap:) {
+            return unless self.DEFINITE && nqp::defined($!keys);
+            HashIter.antipairs(self,$!keys).list
         }
         method invert(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);

@@ -69,7 +69,7 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
 
 my native long     is Int is ctype("long")     is repr("P6int")    is export(:types, :DEFAULT) { };
 my native longlong is Int is ctype("longlong") is repr("P6int")    is export(:types, :DEFAULT) { };
-my class void                                  is repr('CPointer') is export(:types, :DEFAULT) { };
+my class void                                  is repr('Uninstantiable') is export(:types, :DEFAULT) { };
 # Expose a Pointer class for working with raw pointers.
 my class Pointer                               is repr('CPointer') is export(:types, :DEFAULT) { };
 
@@ -112,13 +112,13 @@ augment class Pointer {
     multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
 
     my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
-        method of() { ::TValue }
-        method ^name() { 'Pointer[' ~ ::TValue.^name ~ ']' }
-        method deref(::?CLASS:D \ptr:) { nativecast(::TValue, ptr) }
+        method of() { TValue }
+        # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
+        method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
     }
     multi method PARAMETERIZE_TYPE(Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t ~~ Int || t ~~ Num || t ~~ Bool || t === Str || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
+            unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
         my \typed := TypedPointer[t];
         typed.HOW.make_pun(typed);
     }

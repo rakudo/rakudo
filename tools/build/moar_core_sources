@@ -74,7 +74,7 @@ src/core/IO/Pathy.pm
 src/core/IO/Local.pm
 src/core/IO/Dir.pm
 src/core/IO/File.pm
-src/core/IOU.pm
+src/core/IO/Huh.pm
 src/core/IO/Spec.pm
 src/core/IO/Spec/Unix.pm
 src/core/IO/Spec/Win32.pm
@@ -97,6 +97,7 @@ src/core/Duration.pm
 src/core/Temporal.pm
 src/core/EXPORTHOW.pm
 src/core/Pod.pm
+src/core/PairMap.pm
 src/core/QuantHash.pm
 src/core/Setty.pm
 src/core/Set.pm

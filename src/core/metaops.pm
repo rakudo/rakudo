@@ -43,7 +43,7 @@ sub METAOP_CROSS(\op, &reduce) {
         # Don't care if a finite Range is lazy
         my $policy = &list;
         if nqp::istype(lol[0],Range) {
-            $policy = &eager unless $Inf || lol[0].infinite;
+            $policy = &EAGER unless $Inf || lol[0].infinite;
         }
 
         $i = 0;
@@ -251,9 +251,9 @@ multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
 
     (@alist Z @blist).map(
         -> \x, \y {
-            Iterable.ACCEPTS(x)
+            Iterable.ACCEPTS(x) && x.defined
               ?? x.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-              !! (Iterable.ACCEPTS(y)
+              !! (Iterable.ACCEPTS(y) && y.defined
                     ?? y.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
                     !! op.(x, y))
         }

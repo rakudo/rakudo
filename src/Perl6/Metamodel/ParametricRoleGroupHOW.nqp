@@ -38,6 +38,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method new_type(:$name!, :$repr) {
+        # Build and configure the type's basic details.
         my $meta := self.new(:selector($selector_creator()));
         my $type_obj := self.add_stash(nqp::settypehll(
             nqp::newtype($meta, 'Uninstantiable'), 'perl6'));
@@ -45,11 +46,44 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);
         $meta.publish_boolification_spec($type_obj);
+
+        # We use 6model parametrics to make this a parametric type on the
+        # arguments we curry with. This means we'll make the curries unique.
+        nqp::setparameterizer($type_obj, sub ($type, @packed) {
+            $type.HOW.'!produce_parameterization'($type, @packed);
+        });
+
         $type_obj
     }
-    
-    method parameterize($obj, *@pos_args, *%named_args) {
-        my $curried := $currier.new_type($obj, |@pos_args, |%named_args);
+
+    # We only take positional args into account for the parametric key. If
+    # there are no nameds, we push this class in place of them so as to make
+    # an otherwise equal key always the same, and named args make it always
+    # unequal.
+    my class NO_NAMEDS { }
+
+    method parameterize($obj, *@args, *%named_args) {
+        my int $i := 0;
+        my int $n := nqp::elems(@args);
+        while $i < $n {
+            @args[$i] := nqp::decont(@args[$i]);
+            $i++;
+        }
+        nqp::push(@args, %named_args || NO_NAMEDS);
+        nqp::parameterizetype($obj, @args);
+    }
+
+    method !produce_parameterization($obj, @packed) {
+        my @args := nqp::clone(@packed);
+        my $maybe_nameds := nqp::pop(@args);
+        my $curried;
+        if $maybe_nameds {
+            my %nameds := $maybe_nameds;
+            $curried := $currier.new_type($obj, |@args, |%nameds);
+        }
+        else {
+            $curried := $currier.new_type($obj, |@args);
+        }
         $curried.HOW.set_pun_repr($curried, self.pun_repr($obj));
         $curried
     }

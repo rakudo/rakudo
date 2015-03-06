@@ -74,6 +74,9 @@ class Kernel does Systemic {
     method arch {
         $!arch //= do {
             given $*DISTRO.name {
+                when 'raspbian' {
+                    uname '-m';
+                }
                 default {
                     uname '-p';
                 }

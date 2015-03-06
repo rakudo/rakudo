@@ -5033,4 +5033,4 @@ grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
     }
 }
 
-# vim: ft=perl6 et
+# vim: ft=perl6 et sw=4

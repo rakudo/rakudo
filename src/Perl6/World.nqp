@@ -2939,10 +2939,6 @@ class Perl6::World is HLL::World {
                     }
                 }
             }
-	    my $marked := $c.MARKED('ws');
-	    if $marked {
-                $c.'!cursor_pos'($marked.from);
-	    }
             
             # Try and better explain "Confused".
             my @locprepost := self.locprepost($c);
@@ -3041,7 +3037,8 @@ class Perl6::World is HLL::World {
     }
     
     method locprepost($c) {
-        my $pos  := $c.pos;
+	my $marked := $c.MARKED('ws');
+        my $pos  := $marked ?? $marked.from !! $c.pos;
         my $orig := $c.orig;
 
         my $prestart := $pos - 40;

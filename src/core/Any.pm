@@ -462,7 +462,7 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
 
-    method at_pos(|c) {
+    method at_pos(|c) is rw {
         DEPRECATED('AT-POS',|<2014.03 2015.03>);
         self.AT-POS(|c);
     }
@@ -512,7 +512,7 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
 
-    method bind_pos(|c) {
+    method bind_pos(|c) is rw {
         DEPRECATED('BIND-POS',|<2014.03 2015.03>);
         self.BIND-POS(|c);
     }
@@ -550,7 +550,7 @@ my class Any { # declared in BOOTSTRAP
     method one() { one(self.list) }
     method none() { none(self.list) }
 
-    method at_key(|c) {
+    method at_key(|c) is rw {
         DEPRECATED('AT-KEY',|<2014.03 2015.03>);
         self.AT-KEY(|c);
     }
@@ -567,7 +567,7 @@ my class Any { # declared in BOOTSTRAP
         $v
     }
 
-    method bind_key(|c) {
+    method bind_key(|c) is rw {
         DEPRECATED('BIND-KEY',|<2014.03 2015.03>);
         self.BIND-KEY(|c);
     }

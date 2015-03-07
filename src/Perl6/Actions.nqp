@@ -2765,19 +2765,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.apply_trait($/, '&trait_mod:<is>', $code, inlinable => $inline_info)
     }
 
-    my %deprecated_postcircumfix := nqp::hash(
-        '[ ]', 'AT-POS, ASSIGN-POS, or BIND-POS',
-        '{ }', 'AT-KEY, ASSIGN-KEY, or BIND-KEY',
-        '( )', 'invoke', # INVOKE…
-    );
-    #my %deprecated_methodname := nqp::hash(
-    #    'at_key', 'AT-KEY',
-    #    'assign_key', 'ASSIGN-KEY',
-    #    'bind_key', 'BIND-KEY',
-    #    'at_pos', 'AT-POS',
-    #    'assign_pos', 'ASSIGN-POS',
-    #    'bind_pos', 'BIND-POS',
-    #);
     method method_def($/) {
         my $past;
         if $<onlystar> {
@@ -2804,15 +2791,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 if $ln<colonpair>[0]<coloncircumfix> -> $cf {
                     if $cf<circumfix> -> $op_name {
-                        my $circumfix := $*W.colonpair_nibble_to_str(
-                            $ln, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>);
-                        my $fullname := $name ~ '<' ~ $circumfix ~ '>';
-                        if $name eq 'postcircumfix:' && my $depr := %deprecated_postcircumfix{$circumfix} {
-                            $/.PRECURSOR.worryobs("method $fullname",
-                                "method $depr, or use sub postcircumfix:<$circumfix>",
-                                "to represent $circumfix delegation");
-                        }
-                        $name := $fullname;
+                        $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str(
+                            $ln, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>) ~ '>';
                     }
                     else {
                         $name := $name ~ '<>';
@@ -2822,10 +2802,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 my $longname := $*W.dissect_longname($<longname>);
                 $name := $longname.name(:dba('method name'), :decl<routine>);
-                # XXX Tries to warn when compiling CORE.setting
-                #if my $depr := %deprecated_methodname{$name} {
-                #    $/.PRECURSOR.worryobs($name, $depr);
-                #}
+            }
+        }
+        elsif $<sigil> {
+            if $<sigil> eq '@'    { $name := 'postcircumfix:<[ ]>' }
+            elsif $<sigil> eq '%' { $name := 'postcircumfix:<{ }>' }
+            elsif $<sigil> eq '&' { $name := 'postcircumfix:<( )>' }
+            else {
+                $/.PRECURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
             }
         }
         $past.name($name ?? $name !! '<anon>');

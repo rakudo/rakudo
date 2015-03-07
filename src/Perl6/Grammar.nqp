@@ -2712,7 +2712,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 | '[' ~ ']' <multisig>
                 | '{' ~ '}' <multisig>
                 ]:s
-                <trait>*
+                {
+                    my $brackets;
+                    if $<sigil> eq '@' {
+                        $brackets := '[ ]';
+                    } elsif $<sigil> eq '%' {
+                        $brackets := '{ }';
+                    } elsif $<sigil> eq '&' {
+                        $brackets := '( )';
+                    } else {
+                        $/.CURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
+                    }
+                    $/.CURSOR.sorryobs('method '~$<sigil>~'.( )', "sub postcircumfix:<$brackets>", "to overload $brackets");
+                }
             | <?>
             ]
             {

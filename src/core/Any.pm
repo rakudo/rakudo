@@ -16,7 +16,7 @@ my class Any { # declared in BOOTSTRAP
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
     method exists_key(|c) {
-        DEPRECATED('EXISTS-KEY',|<2014.03 2015.03>);
+        DEPRECATED('EXISTS-KEY',|<2015.03 2016.03>);
         self.EXISTS-KEY(|c);
     }
 
@@ -25,7 +25,7 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-KEY(Any:D: $) { False }
 
     method delete_key(|c) {
-        DEPRECATED('DELETE-KEY',|<2014.03 2015.03>);
+        DEPRECATED('DELETE-KEY',|<2015.03 2016.03>);
         self.DELETE-KEY(|c);
     }
 
@@ -36,7 +36,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     method delete_pos(|c) {
-        DEPRECATED('DELETE-POS',|<2014.03 2015.03>);
+        DEPRECATED('DELETE-POS',|<2015.03 2016.03>);
         self.DELETE-POS(|c);
     }
 
@@ -433,7 +433,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     method exists_pos(|c) {
-        DEPRECATED('EXISTS-POS',|<2014.03 2015.03>);
+        DEPRECATED('EXISTS-POS',|<2015.03 2016.03>);
         self.EXISTS-POS(|c);
     }
 
@@ -463,7 +463,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     method at_pos(|c) is rw {
-        DEPRECATED('AT-POS',|<2014.03 2015.03>);
+        DEPRECATED('AT-POS',|<2015.03 2016.03>);
         self.AT-POS(|c);
     }
 
@@ -513,12 +513,12 @@ my class Any { # declared in BOOTSTRAP
     }
 
     method bind_pos(|c) is rw {
-        DEPRECATED('BIND-POS',|<2014.03 2015.03>);
+        DEPRECATED('BIND-POS',|<2015.03 2016.03>);
         self.BIND-POS(|c);
     }
 
     method assign_pos(|c) {
-        DEPRECATED('ASSIGN-POS',|<2014.03 2015.03>);
+        DEPRECATED('ASSIGN-POS',|<2015.03 2016.03>);
         self.ASSIGN-POS(|c);
     }
 
@@ -551,7 +551,7 @@ my class Any { # declared in BOOTSTRAP
     method none() { none(self.list) }
 
     method at_key(|c) is rw {
-        DEPRECATED('AT-KEY',|<2014.03 2015.03>);
+        DEPRECATED('AT-KEY',|<2015.03 2016.03>);
         self.AT-KEY(|c);
     }
 
@@ -568,7 +568,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     method bind_key(|c) is rw {
-        DEPRECATED('BIND-KEY',|<2014.03 2015.03>);
+        DEPRECATED('BIND-KEY',|<2015.03 2016.03>);
         self.BIND-KEY(|c);
     }
 
@@ -583,7 +583,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     method assign_key(|c) {
-        DEPRECATED('ASSIGN-KEY',|<2014.03 2015.03>);
+        DEPRECATED('ASSIGN-KEY',|<2015.03 2016.03>);
         self.ASSIGN-KEY(|c);
     }
 

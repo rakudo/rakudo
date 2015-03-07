@@ -2567,7 +2567,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $*SOFT {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
-            elsif !nqp::can($code, 'postcircumfix:<( )>') {
+            elsif !nqp::can($code, 'invoke') && !nqp::can($code, 'postcircumfix:<( )>') {
                 my $phasers :=
                   nqp::getattr($code,$*W.find_symbol(['Block']),'$!phasers');
                 if nqp::isnull($phasers) || !nqp::p6bool($phasers) {

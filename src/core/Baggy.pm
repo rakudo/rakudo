@@ -14,8 +14,8 @@ my role Baggy does QuantHash {
     method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
-    multi method exists_key(Baggy:D: $k --> Bool) {
-        %!elems.exists_key($k.WHICH);
+    multi method EXISTS-KEY(Baggy:D: $k --> Bool) {
+        %!elems.EXISTS-KEY($k.WHICH);
     }
     method Bool { %!elems.Bool }
 
@@ -41,7 +41,7 @@ my role Baggy does QuantHash {
         for %e -> $p {
             my $pair := $p.value;
             @toolow.push( $pair.key ) if $pair.value <  0;
-            %e.delete_key($p.key)     if $pair.value <= 0;
+            %e.DELETE-KEY($p.key)     if $pair.value <= 0;
         }
         fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
         self.bless(:elems(%e));
@@ -77,7 +77,7 @@ my role Baggy does QuantHash {
 
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
-        %!elems.delete_key(%!elems.keys.pick);
+        %!elems.DELETE-KEY(%!elems.keys.pick);
     }
     multi method grabpairs(Baggy:D: $count) {
         if nqp::istype($count,Whatever) || $count == Inf {
@@ -92,7 +92,7 @@ my role Baggy does QuantHash {
 
     proto method pickpairs(|) { * }
     multi method pickpairs(Baggy:D:) {
-        %!elems.at_key(%!elems.keys.pick);
+        %!elems.AT-KEY(%!elems.keys.pick);
     }
     multi method pickpairs(Baggy:D: $count) {
         %!elems{ %!elems.keys.pick(
@@ -105,8 +105,8 @@ my role Baggy does QuantHash {
     proto method grab(|) { * }
     multi method grab(Baggy:D:) {
         my \grabbed := ROLLPICKGRAB1(self,%!elems.values);
-        %!elems.delete_key(grabbed.WHICH)
-          if %!elems.at_key(grabbed.WHICH).value-- == 1;
+        %!elems.DELETE-KEY(grabbed.WHICH)
+          if %!elems.AT-KEY(grabbed.WHICH).value-- == 1;
         grabbed;
     }
     multi method grab(Baggy:D: $count) {
@@ -118,8 +118,8 @@ my role Baggy does QuantHash {
         else {
             my @grabbed = ROLLPICKGRABN(self,$count,%!elems.values);
             for @grabbed {
-                if %!elems.at_key(.WHICH) -> $pair {
-                    %!elems.delete_key(.WHICH) unless $pair.value;
+                if %!elems.AT-KEY(.WHICH) -> $pair {
+                    %!elems.DELETE-KEY(.WHICH) unless $pair.value;
                 }
             }
             @grabbed;

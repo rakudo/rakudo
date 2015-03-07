@@ -15,15 +15,15 @@ my class Mix does Mixy {
     }
 
     method total (--> Real) { $!total //= [+] self.values }
-    multi method at_key(Mix:D: $k --> Real) {
+    multi method AT-KEY(Mix:D: $k --> Real) {
         my $key := $k.WHICH;
-        %!elems.exists_key($key)
+        %!elems.EXISTS-KEY($key)
           ?? %!elems{$key}.value
           !! 0;
     }
 
-    method delete_key($a --> Real) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
+    method DELETE-KEY($a --> Real) is hidden_from_backtrace {
+        X::Immutable.new( method => 'DELETE-KEY', typename => self.^name ).throw;
     }
     multi method grab($count? --> Real) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;

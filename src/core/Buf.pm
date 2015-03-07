@@ -13,7 +13,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $i;
         nqp::setelems($buf, $n);
         while $i < $n {
-            nqp::bindpos_i($buf, $i, @values.at_pos($i));
+            nqp::bindpos_i($buf, $i, @values.AT-POS($i));
             $i = $i + 1;
         }
         $buf
@@ -22,16 +22,16 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.new(@values)
     }
 
-    multi method exists_pos(Blob:D: int \pos) {
+    multi method EXISTS-POS(Blob:D: int \pos) {
         nqp::p6bool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }
-    multi method exists_pos(Blob:D: Int:D \pos) {
+    multi method EXISTS-POS(Blob:D: Int:D \pos) {
         pos < nqp::elems(self) && pos >= 0;
     }
 
-    multi method at_pos(Blob:D: int \pos) {
+    multi method AT-POS(Blob:D: int \pos) {
         fail X::OutOfRange.new(
           :what<Index>,
           :got(pos),
@@ -39,7 +39,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         ) if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
         nqp::atpos_i(self, pos);
     }
-    multi method at_pos(Blob:D: Int:D \pos) {
+    multi method AT-POS(Blob:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(
           :what<Index>,
@@ -251,24 +251,24 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 }
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
-    multi method at_pos(Buf:D: int \pos) {
+    multi method AT-POS(Buf:D: int \pos) {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::atposref_i(self, pos);
     }
-    multi method at_pos(Buf:D: Int:D \pos) {
+    multi method AT-POS(Buf:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
         nqp::atposref_i(self,$pos);
     }
 
-    multi method assign_pos(Buf:D: int \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
         X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
           if nqp::islt_i(pos,0);
         nqp::bindpos_i(self,\pos,assignee)
     }
-    multi method assign_pos(Buf:D: Int:D \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) is rw {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);

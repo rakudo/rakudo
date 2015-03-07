@@ -88,16 +88,16 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method Supply(List:D:) { Supply.from-list(self) }
 
-    multi method at_pos(List:D: int \pos) is rw {
+    multi method AT-POS(List:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
-        self.exists_pos(pos) ?? nqp::atpos($!items,pos) !! Nil;
+        self.EXISTS-POS(pos) ?? nqp::atpos($!items,pos) !! Nil;
     }
-    multi method at_pos(List:D: Int:D \pos) is rw {
+    multi method AT-POS(List:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
-        self.exists_pos($pos) ?? nqp::atpos($!items,$pos) !! Nil;
+        self.EXISTS-POS($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }
 
     method eager() { self.gimme(*); self }
@@ -111,14 +111,14 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::defined($!nextiter) ?? Inf !! $n
     }
 
-    multi method exists_pos(List:D: int $pos) {
+    multi method EXISTS-POS(List:D: int $pos) {
         return False if nqp::islt_i($pos,0);
         self.gimme($pos + 1);
         nqp::p6bool(
           nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
         );
     }
-    multi method exists_pos(List:D: Int:D $pos) {
+    multi method EXISTS-POS(List:D: Int:D $pos) {
         return False if $pos < 0;
         self.gimme($pos + 1);
         nqp::p6bool(
@@ -174,7 +174,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method pick() {
         fail "Cannot .pick from infinite list" if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
     multi method pick($n is copy) {
         fail "Cannot .pick from infinite list" if self.infinite;
@@ -185,7 +185,7 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless $elems;
         $n = Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
-        return self.at_pos($elems.rand.floor) if $n == 1;
+        return self.AT-POS($elems.rand.floor) if $n == 1;
         my Mu $rpa := nqp::clone($!items);
         my $i;
         my Mu $v;
@@ -335,14 +335,14 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method roll() {
         fail "Cannot .roll from infinite list" if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
     multi method roll($n is copy) {
         fail "Cannot .roll from infinite list" if self.infinite;
         my $elems = self.elems;
         return unless $elems;
         $n = Inf if nqp::istype($n, Whatever);
-        return self.at_pos($elems.rand.floor) if $n == 1;
+        return self.AT-POS($elems.rand.floor) if $n == 1;
 
         gather while $n > 0 {
             take nqp::atpos($!items, nqp::unbox_i($elems.rand.floor.Int));
@@ -430,11 +430,11 @@ my class List does Positional { # declared in BOOTSTRAP
         # for sorting.
         if ($by.?count // 2) < 2 {
             my $list = self.map($by).eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $list.at_pos($a) cmp $list.at_pos($b) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
         }
         else {
             my $list = self.eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $by($list.at_pos($a), $list.at_pos($b)) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
         }
         self[$index];
     }

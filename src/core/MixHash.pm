@@ -1,28 +1,28 @@
 my class MixHash does Mixy {
 
-    multi method at_key(MixHash:D: $k) {
+    multi method AT-KEY(MixHash:D: $k) {
         Proxy.new(
           FETCH => {
               my $key := $k.WHICH;
-              %!elems.exists_key($key) ?? %!elems{$key}.value !! 0;
+              %!elems.EXISTS-KEY($key) ?? %!elems{$key}.value !! 0;
           },
           STORE => -> $, $value {
               if $value != 0 {
                   (%!elems{$k.WHICH} //= ($k => 0)).value = $value;
               }
               else {
-                  self.delete_key($k);
+                  self.DELETE-KEY($k);
               }
               $value;
           }
         );
     }
 
-    method delete_key($k) {
+    method DELETE-KEY($k) {
         my $key   := $k.WHICH;
-        if %!elems.exists_key($key) {
+        if %!elems.EXISTS-KEY($key) {
             my $value = %!elems{$key}.value;
-            %!elems.delete_key($key);
+            %!elems.DELETE-KEY($key);
             $value;
         }
         else {

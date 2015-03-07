@@ -96,7 +96,7 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
                 if nqp::istype($type,Failure) {
 
                     # it's a short-id
-                    if %CURLID2CLASS.exists_key($class) {
+                    if %CURLID2CLASS.EXISTS-KEY($class) {
                         $class = %CURLID2CLASS{$class}
                     }
 

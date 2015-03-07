@@ -1,26 +1,26 @@
 my class SetHash does Setty {
 
-    multi method at_key(SetHash:D: $k --> Bool) {
+    multi method AT-KEY(SetHash:D: $k --> Bool) {
         Proxy.new(
           FETCH => {
-              %!elems.exists_key($k.WHICH);
+              %!elems.EXISTS-KEY($k.WHICH);
           },
           STORE => -> $, $value {
               if $value {
                   %!elems{$k.WHICH} = $k;
               }
               else {
-                  %!elems.delete_key($k.WHICH);
+                  %!elems.DELETE-KEY($k.WHICH);
               }
               so $value;
           });
     }
 
-    method delete_key($k --> Bool) {
+    method DELETE-KEY($k --> Bool) {
         my $key   := $k.WHICH;
-        return False unless %!elems.exists_key($key);
+        return False unless %!elems.EXISTS-KEY($key);
 
-        %!elems.delete_key($key);
+        %!elems.DELETE-KEY($key);
         True;
     }
 

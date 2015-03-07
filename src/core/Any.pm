@@ -489,22 +489,22 @@ my class Any { # declared in BOOTSTRAP
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method AT-POS(Any:D: int \pos) {
+    multi method AT-POS(Any:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           unless nqp::not_i(pos);
         self;
     }
-    multi method AT-POS(Any:D: Int:D \pos) {
+    multi method AT-POS(Any:D: Int:D \pos) is rw {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           if pos != 0;
         self;
     }
-    multi method AT-POS(Any:D: Num:D \pos) {
+    multi method AT-POS(Any:D: Num:D \pos) is rw {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method AT-POS(Any:D: Any:D \pos) {
+    multi method AT-POS(Any:D: Any:D \pos) is rw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
@@ -557,7 +557,7 @@ my class Any { # declared in BOOTSTRAP
 
     # internals
     proto method AT-KEY(|) { * }
-    multi method AT-KEY(Any:D: $key) {
+    multi method AT-KEY(Any:D: $key) is rw {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
     multi method AT-KEY(Any:U \SELF: $key) is rw {
@@ -573,7 +573,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) { * }
-    multi method BIND-KEY(Any:D: $key, $BIND ) {
+    multi method BIND-KEY(Any:D: $key, $BIND ) is rw {
         fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
     }
     multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw {

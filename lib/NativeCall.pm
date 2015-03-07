@@ -233,10 +233,10 @@ my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(Poin
 # inherit from types that haven't been properly composed.
 use MONKEY_TYPING;
 augment class CArray {
-    method at_pos(CArray:D: $pos) { die "CArray cannot be used without a type" }
+    method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
     
     my role IntTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), nqp::unbox_i($pos.Int)))
@@ -246,7 +246,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), $pos))
@@ -256,16 +256,16 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_i($assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
     }
@@ -275,7 +275,7 @@ augment class CArray {
     }
     
     my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), nqp::unbox_i($pos.Int)))
@@ -285,7 +285,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), $pos))
@@ -295,16 +295,16 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_n($assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
         }
     }
@@ -314,7 +314,7 @@ augment class CArray {
     }
     
     my role TypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), nqp::unbox_i($pos.Int))
@@ -324,7 +324,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), $pos)
@@ -334,10 +334,10 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, \assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), $pos, nqp::decont(assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, \assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
         }
     }
@@ -350,10 +350,10 @@ augment class CArray {
 }
 
 multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) {
-    $pos ~~ Iterable ?? $pos.map: { array.at_pos($_) } !! array.at_pos($pos);
+    $pos ~~ Iterable ?? $pos.map: { array.AT-POS($_) } !! array.AT-POS($pos);
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types) {
-    @pos.map: { array.at_pos($_) };
+    @pos.map: { array.AT-POS($_) };
 }
 
 

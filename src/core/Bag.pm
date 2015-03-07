@@ -10,9 +10,9 @@ my class Bag does Baggy {
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
 
-    multi method at_key(Bag:D: $k --> Int) {
+    multi method AT-KEY(Bag:D: $k --> Int) {
         my $key := $k.WHICH;
-        %!elems.exists_key($key)
+        %!elems.EXISTS-KEY($key)
           ?? %!elems{$key}.value
           !! 0;
     }
@@ -23,8 +23,8 @@ my class Bag does Baggy {
         %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
     }
 
-    method delete_key($a) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
+    method DELETE-KEY($a) is hidden_from_backtrace {
+        X::Immutable.new( method => 'DELETE-KEY', typename => self.^name ).throw;
     }
     multi method grab(Bag:D: $count?) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;

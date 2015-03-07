@@ -12,12 +12,12 @@ my class Set does Setty {
         self;
     }
 
-    multi method at_key(Set:D: \k --> Bool) {
-        %!elems.exists_key(k.WHICH);
+    multi method AT-KEY(Set:D: \k --> Bool) {
+        %!elems.EXISTS-KEY(k.WHICH);
     }
 
-    method delete_key($k --> Bool) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
+    method DELETE-KEY($k --> Bool) is hidden_from_backtrace {
+        X::Immutable.new( method => 'DELETE-KEY', typename => self.^name ).throw;
     }
     method grab ($count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;

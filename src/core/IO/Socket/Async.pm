@@ -70,7 +70,7 @@ my class IO::Socket::Async {
 
                 if $in_charge {
                     my int $done;
-                    while @buffer.exists_pos($done) {
+                    while @buffer.EXISTS-POS($done) {
 #say "emitting { $next_seq + $done }: {@buffer[$done]}";
                         supply.emit( @buffer[$done] );
                         $done = $done + 1;

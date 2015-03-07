@@ -4,7 +4,7 @@ multi sub infix:<(elem)>($a, Any $b --> Bool) {
     $a (elem) $b.Set(:view);
 }
 multi sub infix:<(elem)>($a, Set $b --> Bool) {
-    $b.exists_key($a);
+    $b.EXISTS-KEY($a);
 }
 # U+2208 ELEMENT OF
 only sub infix:<<"\x2208">>($a, $b --> Bool) {
@@ -20,7 +20,7 @@ multi sub infix:<(cont)>(Any $a, $b --> Bool) {
     $a.Set(:view) (cont) $b;
 }
 multi sub infix:<(cont)>(Set $a, $b --> Bool) {
-    $a.exists_key($b);
+    $a.EXISTS-KEY($b);
 }
 # U+220B CONTAINS AS MEMBER
 only sub infix:<<"\x220B">>($a, $b --> Bool) {
@@ -67,7 +67,7 @@ only sub infix:<(&)>(**@p) {
         for @p.map(*.Mix(:view)) -> $mix {
             $mix{$_}
               ?? $mixhash{$_} min= $mix{$_}
-              !! $mixhash.delete_key($_)
+              !! $mixhash.DELETE-KEY($_)
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
@@ -78,7 +78,7 @@ only sub infix:<(&)>(**@p) {
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $baghash{$_} min= $bag{$_}
-              !! $baghash.delete_key($_)
+              !! $baghash.DELETE-KEY($_)
               for $baghash.keys;
         }
         $baghash.Bag(:view);
@@ -87,7 +87,7 @@ only sub infix:<(&)>(**@p) {
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} || $sethash.delete_key($_) for $sethash.keys;
+            $set{$_} || $sethash.DELETE-KEY($_) for $sethash.keys;
         }
         $sethash.Set(:view);
     }
@@ -107,7 +107,7 @@ only sub infix:<(-)>(**@p) {
         for @p.map(*.Mix(:view)) -> $mix {
             $mix{$_} < $mixhash{$_}
               ?? $mixhash{$_} -= $mix{$_}
-              !! $mixhash.delete_key($_)
+              !! $mixhash.DELETE-KEY($_)
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
@@ -118,7 +118,7 @@ only sub infix:<(-)>(**@p) {
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_} < $baghash{$_}
               ?? $baghash{$_} -= $bag{$_}
-              !! $baghash.delete_key($_)
+              !! $baghash.DELETE-KEY($_)
               for $baghash.keys;
         }
         $baghash.Bag(:view);
@@ -127,7 +127,7 @@ only sub infix:<(-)>(**@p) {
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} && $sethash.delete_key($_) for $sethash.keys;
+            $set{$_} && $sethash.DELETE-KEY($_) for $sethash.keys;
         }
         $sethash.Set(:view);
     }
@@ -226,7 +226,7 @@ only sub infix:<(.)>(**@p) {
         for @p.map(*.Mix(:view)) -> $mix {
             $mix{$_}
               ?? $mixhash{$_} *= $mix{$_}
-              !! $mixhash.delete_key($_)
+              !! $mixhash.DELETE-KEY($_)
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
@@ -237,7 +237,7 @@ only sub infix:<(.)>(**@p) {
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $baghash{$_} *= $bag{$_}
-              !! $baghash.delete_key($_)
+              !! $baghash.DELETE-KEY($_)
               for $baghash.keys;
         }
         $baghash.Bag(:view);

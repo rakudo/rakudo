@@ -13,7 +13,7 @@ my role Mixy does Baggy  {
             }
         }
         for %e -> $p {
-            %e.delete_key($p.key) if $p.value.value == 0;
+            %e.DELETE-KEY($p.key) if $p.value.value == 0;
         }
         nqp::create(self).BUILD(:elems(%e));
     }

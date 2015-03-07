@@ -39,7 +39,7 @@ my role Enumeration {
     }
 
     method invoke(|) {
-        my $x := nqp::atpos(nqp::p6argvmarray(), 1).at_pos(0);
+        my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
         nqp::istype($x, ::?CLASS)
             ?? $x
             !! self.HOW.enum_from_value(self, $x)

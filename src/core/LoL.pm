@@ -8,10 +8,10 @@ class LoL { # declared in BOOTSTRAP
         nqp::p6list($args, self.WHAT, Mu);
     }
 
-    method at_pos($pos is copy) {
+    method AT-POS($pos is copy) {
         $pos = $pos.Int;
-        self.exists_pos($pos)
-          ?? nqp::findmethod(List, 'at_pos')(self, $pos)
+        self.EXISTS-POS($pos)
+          ?? nqp::findmethod(List, 'AT-POS')(self, $pos)
           !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
                  -> { nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v) } )
     }

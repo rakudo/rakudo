@@ -1,17 +1,17 @@
 my class BagHash does Baggy {
 
-    multi method at_key(BagHash:D: $k) {
+    multi method AT-KEY(BagHash:D: $k) {
         Proxy.new(
           FETCH => {
               my $key   := $k.WHICH;
-              %!elems.exists_key($key) ?? %!elems{$key}.value !! 0;
+              %!elems.EXISTS-KEY($key) ?? %!elems{$key}.value !! 0;
           },
           STORE => -> $, $value is copy {
               if $value > 0 {
                   (%!elems{$k.WHICH} //= ($k => 0)).value = $value;
               }
               elsif $value == 0 {
-                  self.delete_key($k);
+                  self.DELETE-KEY($k);
               }
               else {
                   $value = 0;
@@ -21,11 +21,11 @@ my class BagHash does Baggy {
         );
     }
 
-    method delete_key($k) {
+    method DELETE-KEY($k) {
         my $key   := $k.WHICH;
-        if %!elems.exists_key($key) {
+        if %!elems.EXISTS-KEY($key) {
             my $value = %!elems{$key}.value;
-            %!elems.delete_key($key);
+            %!elems.DELETE-KEY($key);
             $value;
         }
         else {

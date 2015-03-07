@@ -2148,7 +2148,7 @@ class Perl6::World is HLL::World {
                     self.create_container_descriptor($mu, 1, '!INIT_VALUES'));
             }
             $*UNIT[0].push(QAST::Op.new(
-                :op('callmethod'), :name('bind_key'),
+                :op('callmethod'), :name('BIND-KEY'),
                 QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
                 QAST::SVal.new( :value($phaser_past.cuid) ),
                 QAST::Op.new(
@@ -2156,7 +2156,7 @@ class Perl6::World is HLL::World {
                     QAST::WVal.new( :value($block) )
                 )));
             return QAST::Op.new(
-                :op('callmethod'), :name('at_key'),
+                :op('callmethod'), :name('AT-KEY'),
                 QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
                 QAST::SVal.new( :value($phaser_past.cuid) )
             );
@@ -2703,10 +2703,10 @@ class Perl6::World is HLL::World {
             }
         }
         
-        # The final lookup will always be just an at_key call on a Stash.
+        # The final lookup will always be just an AT-KEY call on a Stash.
         my $final_name := @name.pop();
         my $lookup := QAST::Op.new(
-            :op('callmethod'), :name('at_key'),
+            :op('callmethod'), :name('AT-KEY'),
             self.add_constant('Str', 'str', $final_name));
         
         # If there's no explicit qualification, then look it up in the

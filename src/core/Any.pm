@@ -15,19 +15,34 @@ my class Any { # declared in BOOTSTRAP
 
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
-    proto method exists_key(|){ * }
-    multi method exists_key(Any:U: $) { False }
-    multi method exists_key(Any:D: $) { False }
+    method exists_key(|c) {
+        DEPRECATED('EXISTS-KEY',|<2014.03 2015.03>);
+        self.EXISTS-KEY(|c);
+    }
 
-    proto method delete_key(|) { * }
-    multi method delete_key(Any:U: $) { Nil }
-    multi method delete_key(Any:D: $) {
+    proto method EXISTS-KEY(|){ * }
+    multi method EXISTS-KEY(Any:U: $) { False }
+    multi method EXISTS-KEY(Any:D: $) { False }
+
+    method delete_key(|c) {
+        DEPRECATED('DELETE-KEY',|<2014.03 2015.03>);
+        self.DELETE-KEY(|c);
+    }
+
+    proto method DELETE-KEY(|) { * }
+    multi method DELETE-KEY(Any:U: $) { Nil }
+    multi method DELETE-KEY(Any:D: $) {
         fail "Can not remove values from a {self.^name}";
     }
 
-    proto method delete_pos(|) { * }
-    multi method delete_pos(Any:U: $pos) { Nil }
-    multi method delete_pos(Any:D: $pos) {
+    method delete_pos(|c) {
+        DEPRECATED('DELETE-POS',|<2014.03 2015.03>);
+        self.DELETE-POS(|c);
+    }
+
+    proto method DELETE-POS(|) { * }
+    multi method DELETE-POS(Any:U: $pos) { Nil }
+    multi method DELETE-POS(Any:D: $pos) {
         fail "Can not remove elements from a {self.^name}";
     }
 
@@ -93,7 +108,7 @@ my class Any { # declared in BOOTSTRAP
         my int $elems = self.elems;
 
         gather while $i < $elems {
-            my Mu $it := $list.at_pos($i++);
+            my Mu $it := $list.AT-POS($i++);
             if nqp::istype($it,Enum) {
                 take $it.key => $it.value;
             }
@@ -101,7 +116,7 @@ my class Any { # declared in BOOTSTRAP
                 take $it.pairs;
             }
             elsif $i < $elems {
-                take $it => $list.at_pos($i++);
+                take $it => $list.AT-POS($i++);
             }
             else {
                 X::Pairup::OddNumber.new.throw;
@@ -300,7 +315,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = $elems;
         while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Int) if self.at_pos($index).match($test);
+            return nqp::box_i($index,Int) if self.AT-POS($index).match($test);
         }
         Nil;
     }
@@ -311,7 +326,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = $elems;
         while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Int) if $test(self.at_pos($index));
+            return nqp::box_i($index,Int) if $test(self.AT-POS($index));
         }
         Nil;
     }
@@ -322,7 +337,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = $elems;
         while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Int) if self.at_pos($index) ~~ $test;
+            return nqp::box_i($index,Int) if self.AT-POS($index) ~~ $test;
         }
         Nil;
     }
@@ -417,96 +432,116 @@ my class Any { # declared in BOOTSTRAP
                   :excludes-max($excludes-max));
     }
 
-    proto method exists_pos(|) { * }
-    multi method exists_pos(Any:U: Any:D $) { False }
-    multi method exists_pos(Any:U: Any:U $pos) is rw {
+    method exists_pos(|c) {
+        DEPRECATED('EXISTS-POS',|<2014.03 2015.03>);
+        self.EXISTS-POS(|c);
+    }
+
+    proto method EXISTS-POS(|) { * }
+    multi method EXISTS-POS(Any:U: Any:D $) { False }
+    multi method EXISTS-POS(Any:U: Any:U $pos) is rw {
         die "Cannot use '{$pos.^name}' as an index";
     }
 
-    multi method exists_pos(Any:D: int \pos) {
+    multi method EXISTS-POS(Any:D: int \pos) {
         nqp::p6bool(nqp::iseq_i(pos,0));
     }
-    multi method exists_pos(Any:D: Int:D \pos) {
+    multi method EXISTS-POS(Any:D: Int:D \pos) {
         pos == 0;
     }
-    multi method exists_pos(Any:D: Num:D \pos) {
+    multi method EXISTS-POS(Any:D: Num:D \pos) {
         X::Item.new(aggregate => self, index => pos).throw
           if nqp::isnanorinf(pos);
-        self.at_pos(nqp::unbox_i(pos.Int));
+        self.AT-POS(nqp::unbox_i(pos.Int));
         pos == 0;
     }
-    multi method exists_pos(Any:D: Any:D \pos) {
+    multi method EXISTS-POS(Any:D: Any:D \pos) {
         pos.Int == 0;
     }
-    multi method exists_pos(Any:D: Any:U \pos) {
+    multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
 
-    proto method at_pos(|) {*}
-    multi method at_pos(Any:U \SELF: int \pos) is rw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.bind_pos(pos, $v) });
-        $v
-    }
-    multi method at_pos(Any:U \SELF: Int:D \pos) is rw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.bind_pos(nqp::unbox_i(pos), $v) });
-        $v
-    }
-    multi method at_pos(Any:U: Num:D \pos) is rw {
-        fail X::Item.new(aggregate => self, index => pos)
-          if nqp::isnanorinf(pos);
-        self.at_pos(nqp::unbox_i(pos.Int));
-    }
-    multi method at_pos(Any:U: Any:D \pos) is rw {
-        self.at_pos(nqp::unbox_i(pos.Int));
+    method at_pos(|c) {
+        DEPRECATED('AT-POS',|<2014.03 2015.03>);
+        self.AT-POS(|c);
     }
 
-    multi method at_pos(Any:D: int \pos) {
+    proto method AT-POS(|) {*}
+    multi method AT-POS(Any:U \SELF: int \pos) is rw {
+        nqp::bindattr(my $v, Scalar, '$!whence',
+            -> { SELF.defined || (SELF = Array.new);
+                 SELF.BIND-POS(pos, $v) });
+        $v
+    }
+    multi method AT-POS(Any:U \SELF: Int:D \pos) is rw {
+        nqp::bindattr(my $v, Scalar, '$!whence',
+            -> { SELF.defined || (SELF = Array.new);
+                 SELF.BIND-POS(nqp::unbox_i(pos), $v) });
+        $v
+    }
+    multi method AT-POS(Any:U: Num:D \pos) is rw {
+        fail X::Item.new(aggregate => self, index => pos)
+          if nqp::isnanorinf(pos);
+        self.AT-POS(nqp::unbox_i(pos.Int));
+    }
+    multi method AT-POS(Any:U: Any:D \pos) is rw {
+        self.AT-POS(nqp::unbox_i(pos.Int));
+    }
+
+    multi method AT-POS(Any:D: int \pos) {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           unless nqp::not_i(pos);
         self;
     }
-    multi method at_pos(Any:D: Int:D \pos) {
+    multi method AT-POS(Any:D: Int:D \pos) {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           if pos != 0;
         self;
     }
-    multi method at_pos(Any:D: Num:D \pos) {
+    multi method AT-POS(Any:D: Num:D \pos) {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
-        self.at_pos(nqp::unbox_i(pos.Int));
+        self.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method at_pos(Any:D: Any:D \pos) {
-        self.at_pos(nqp::unbox_i(pos.Int));
+    multi method AT-POS(Any:D: Any:D \pos) {
+        self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method at_pos(Any:   Any:U \pos) is rw {
+    multi method AT-POS(Any:   Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
     }
 
-    proto method assign_pos(|) { * }
-    multi method assign_pos(Any:U \SELF: \pos, Mu \assignee) {
-       SELF.at_pos(pos) = assignee;                     # defer < 0 check
+    method bind_pos(|c) {
+        DEPRECATED('BIND-POS',|<2014.03 2015.03>);
+        self.BIND-POS(|c);
     }
 
-    multi method assign_pos(Any:D: int \pos, Mu \assignee) {
-        self.at_pos(pos) = assignee;                    # defer < 0 check
+    method assign_pos(|c) {
+        DEPRECATED('ASSIGN-POS',|<2014.03 2015.03>);
+        self.ASSIGN-POS(|c);
     }
-    multi method assign_pos(Any:D: Int:D \pos, Mu \assignee) {
-        self.at_pos(pos) = assignee;                    # defer < 0 check
+
+    proto method ASSIGN-POS(|) { * }
+    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
+       SELF.AT-POS(pos) = assignee;                     # defer < 0 check
     }
-    multi method assign_pos(Any:D: Num:D \pos, Mu \assignee) {
+
+    multi method ASSIGN-POS(Any:D: int \pos, Mu \assignee) {
+        self.AT-POS(pos) = assignee;                    # defer < 0 check
+    }
+    multi method ASSIGN-POS(Any:D: Int:D \pos, Mu \assignee) {
+        self.AT-POS(pos) = assignee;                    # defer < 0 check
+    }
+    multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
-        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+        self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
-    multi method assign_pos(Any:D: Any:D \pos, Mu \assignee) {
-        self.at_pos(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+    multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) {
+        self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
-    multi method assign_pos(Any:D: Any:U \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
 
@@ -515,29 +550,46 @@ my class Any { # declared in BOOTSTRAP
     method one() { one(self.list) }
     method none() { none(self.list) }
 
+    method at_key(|c) {
+        DEPRECATED('AT-KEY',|<2014.03 2015.03>);
+        self.AT-KEY(|c);
+    }
+
     # internals
-    proto method at_key(|) { * }
-    multi method at_key(Any:D: $key) {
+    proto method AT-KEY(|) { * }
+    multi method AT-KEY(Any:D: $key) {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
-    multi method at_key(Any:U \SELF: $key) is rw {
+    multi method AT-KEY(Any:U \SELF: $key) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Hash.new);
-                 SELF.bind_key($key, $v) });
+                 SELF.BIND-KEY($key, $v) });
         $v
     }
-    proto method bind_key(|) { * }
-    multi method bind_key(Any:D: $key, $BIND ) {
+
+    method bind_key(|c) {
+        DEPRECATED('BIND-KEY',|<2014.03 2015.03>);
+        self.BIND-KEY(|c);
+    }
+
+    proto method BIND-KEY(|) { * }
+    multi method BIND-KEY(Any:D: $key, $BIND ) {
         fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
     }
-    multi method bind_key(Any:U \SELF: $key, $BIND ) is rw {
+    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw {
         SELF = Hash.new;
-        SELF.bind_key($key, $BIND);
+        SELF.BIND-KEY($key, $BIND);
         $BIND
     }
-    proto method assign_key(|) { * }
-    multi method assign_key(\SELF: \key, Mu \assignee) {
-        SELF.at_key(key) = assignee;
+
+    method assign_key(|c) {
+        DEPRECATED('ASSIGN-KEY',|<2014.03 2015.03>);
+        self.ASSIGN-KEY(|c);
+    }
+
+    proto method ASSIGN-KEY(|) { * }
+    multi method ASSIGN-KEY(\SELF: \key, Mu \assignee) {
+        SELF.AT-KEY(key) = assignee;
     }
 
     method FLATTENABLE_LIST() {
@@ -710,7 +762,7 @@ multi sub squish(*@values, |c) { @values.squish(|c) }
 
 proto sub sort(|) {*}
 multi sub sort(*@values)      {
-    nqp::istype(@values.at_pos(0), Callable)
+    nqp::istype(@values.AT-POS(0), Callable)
         ?? SEQ(my $cmp := @values.shift; @values.sort($cmp) )
         !! @values.sort;
 }
@@ -736,7 +788,7 @@ sub OBJECT_HUH (\SELF) {
 
 sub SLICE_HUH ( \SELF, @nogo, Mu $d, %adv ) is hidden_from_backtrace {
     @nogo.unshift('delete')  # recover any :delete if necessary
-      if @nogo && @nogo[0] ne 'delete' && %adv.exists_key('delete');
+      if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
     for <delete exists kv p k v> -> $valid { # check all valid params
         if nqp::existskey($d,nqp::unbox_s($valid)) {
             nqp::deletekey($d,nqp::unbox_s($valid));

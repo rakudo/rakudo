@@ -22,9 +22,9 @@ for 1, 0 -> $array {  # 1 = [], 0 = {}
 # logic to get confused by seeing [](...) .
 
     my @TYPE   = $array ?? <LIST(>       !! <HASH(>;
-    my @AT     = $array ?? <at_pos(>     !! <at_key(>;
-    my @DELETE = $array ?? <delete_pos(> !! <delete_key(>;
-    my @EXISTS = $array ?? <exists_pos(> !! <exists_key(>;
+    my @AT     = $array ?? <AT-POS(>     !! <AT-KEY(>;
+    my @DELETE = $array ?? <DELETE-POS(> !! <DELETE-KEY(>;
+    my @EXISTS = $array ?? <EXISTS-POS(> !! <EXISTS-KEY(>;
 
 # Below here is the actual source code template that is generated.  By only
 # interpolating arrays (:a), we can put the right strings in the right place

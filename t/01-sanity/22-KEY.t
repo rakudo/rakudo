@@ -2,7 +2,7 @@ use v6;
 
 use Test;
 
-plan 57;
+plan 72;
 
 my %h            = a => 42, b => 666;
 my Int %hi       = a => 42, b => 666;
@@ -39,4 +39,41 @@ for $%h, Any, $%hi, Int, $%hia, Int -> \h, \T {
     ok !h.EXISTS-KEY("a"),     "!$name.EXISTS-KEY (existing DELETE-KEY)";
     is h.DELETE-KEY("e"),   T, "$name.DELETE-KEY (non-existing)";
     ok !h.EXISTS-KEY("e"),     "!$name.EXISTS-KEY (non-existing DELETE-KEY)";
+}
+
+{
+    my $a;
+    ok !$a.EXISTS-KEY("a"),       "\$a.EXISTS-KEY (undefined)";
+    is $a.AT-KEY("a"),       Any, "\$a.AT-KEY (undefined)";
+    is ($a.AT-KEY("a") = 42), 42, "\$a.AT-KEY = (undefined)";
+    is $a.AT-KEY("a"),        42, "\$a.AT-KEY (defined)";
+    ok $a.EXISTS-KEY("a"),        "\$a.EXISTS-KEY (defined)";
+    is $a.DELETE-KEY("a"),    42, "\$a.DELETE-KEY (defined)";
+    ok !$a.EXISTS-KEY("a"),       "\$a.EXISTS-KEY (after delete)";
+}
+
+{
+    my $a;
+    is ($a.ASSIGN-KEY("a",42)), 42, "\$a.ASSIGN-KEY (undefined)";
+    is $a.AT-KEY("a"),          42, "\$a.AT-KEY (defined)";
+    is $a.DELETE-KEY("a"),      42, "\$a.DELETE-KEY (defined)";
+    ok !$a.EXISTS-KEY("a"),         "\$a.EXISTS-KEY (after delete)";
+}
+
+{
+    my $a;
+    my $b = 42;
+    is ($a.BIND-KEY("a",$b)), 42, "\$a.BIND-KEY (undefined)";
+    is $a.AT-KEY("a"),        42, "\$a.AT-KEY (defined)";
+    $b = 65;
+# todo, no fudging in sanity
+#    is $a.AT-KEY("a"),        65, "\$a.AT-KEY (defined)";
+#    is $a.DELETE-KEY("a"),    65, "\$a.DELETE-KEY (defined)";
+#    ok !$a.EXISTS-KEY("a"),       "\$a.EXISTS-KEY (after delete)";
+}
+
+{
+    my $a;
+    is $a.DELETE-KEY("a"), Nil, "\$a.DELETE-KEY (undefined)";  # not sure ok
+    ok !$a.EXISTS-KEY("a"),     "\$a.EXISTS-KEY (after delete)";
 }

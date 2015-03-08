@@ -79,15 +79,15 @@ my class Hash { # declared in BOOTSTRAP
     method keyof () { Any }
     method of() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.of;
+        nqp::isnull($d) ?? Any !! $d.of;
     }
     method default() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.default;
+        nqp::isnull($d) ?? Any !! $d.default;
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! so $d.dynamic;
+        nqp::isnull($d) ?? Bool !! so $d.dynamic;
     }
 
     multi method DELETE-KEY(Hash:U:) { Nil }

@@ -371,4 +371,5 @@ multi sub lsb(Int:D \i) { i.lsb }
 proto sub msb($) {*}
 multi sub msb(Int:D \i) { i.msb }
 
+my subset UInt of Int where * >= 0;
 # vim: ft=perl6 expandtab sw=4

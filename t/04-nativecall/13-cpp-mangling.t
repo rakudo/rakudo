@@ -4,7 +4,18 @@ use Test;
 
 plan 20;
 
-shell 'g++ --shared -fPIC -o 13-cpp-mangling.so t/04-nativecall/13-cpp-mangling.cpp';
+my $cmd    = $*DISTRO.is-win
+           ?? 'cl /LD /EHsc /Fe13-cpp-mangling.dll t/04-nativecall/13-cpp-mangling.cpp'
+           !! 'g++ --shared -fPIC -o 13-cpp-mangling.so t/04-nativecall/13-cpp-mangling.cpp';
+my $handle = pipe("$cmd 2>&1", :r);
+my $output = $handle.lines.join("\n");
+if $handle.close.status -> $status {
+    diag "Error while compiling C++ script:\n$output";
+    skip_rest 'Failed to compile C++ script';
+    exit $status
+}
+
+# shell 'dumpbin /exports 13-cpp-mangling.dll';
 
 class Foo is repr<CPPStruct> {
     has Pointer $.vtable;

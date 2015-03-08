@@ -1,12 +1,12 @@
 #include <stdlib.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
 #else
 #define DLLEXPORT extern
 #endif
 
-class Foo {
+class DLLEXPORT Foo {
 public:
     Foo();
     ~Foo();

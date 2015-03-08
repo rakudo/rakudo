@@ -1,12 +1,12 @@
 #include <stdlib.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
 #else
 #define DLLEXPORT extern
 #endif
 
-class Base {
+class DLLEXPORT Base {
 protected:
   int foo;
 public:
@@ -19,7 +19,7 @@ struct Point {
   double cx, cy;
 };
 
-class Derived1 : public Base {
+class DLLEXPORT Derived1 : public Base {
 public:
     Derived1();
     ~Derived1();
@@ -51,7 +51,7 @@ Derived1::~Derived1()
 {
 }
 
-class Derived2 : public Base {
+class DLLEXPORT Derived2 : public Base {
 public:
     Derived2();
     ~Derived2();

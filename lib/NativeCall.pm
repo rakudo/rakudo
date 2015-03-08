@@ -1,5 +1,23 @@
 module NativeCall;
 
+use NativeCall::Types;
+use NativeCall::Compiler::GNU;
+use NativeCall::Compiler::MSVC;
+
+my constant long          is export(:types, :DEFAULT) = NativeCall::Types::long;
+my constant longlong      is export(:types, :DEFAULT) = NativeCall::Types::longlong;
+my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
+my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
+my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
+my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
+
+multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) {
+    $pos ~~ Iterable ?? $pos.map: { array.at_pos($_) } !! array.at_pos($pos);
+}
+multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types) {
+    @pos.map: { array.at_pos($_) };
+}
+
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
 my class native_callsite is repr('NativeCall') { }
@@ -66,64 +84,6 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
     }
     $result
 }
-
-my native long     is Int is ctype("long")     is repr("P6int")    is export(:types, :DEFAULT) { };
-my native longlong is Int is ctype("longlong") is repr("P6int")    is export(:types, :DEFAULT) { };
-my class void                                  is repr('Uninstantiable') is export(:types, :DEFAULT) { };
-# Expose a Pointer class for working with raw pointers.
-my class Pointer                               is repr('CPointer') is export(:types, :DEFAULT) { };
-
-# need to introduce the roles in there in an augment, because you can't
-# inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
-augment class Pointer {
-    method of() { void }
-
-    method ^name() { 'Pointer' }
-
-    multi method new() {
-        self.CREATE()
-    }
-    multi method new(int $addr) {
-        nqp::box_i($addr, ::?CLASS)
-    }
-    multi method new(Int $addr) {
-        nqp::box_i(nqp::unbox_i(nqp::decont($addr)), ::?CLASS)
-    }
-
-    method Numeric(::?CLASS:D:) { self.Int }
-    method Int(::?CLASS:D:) {
-        nqp::p6box_i(nqp::unbox_i(nqp::decont(self)))
-    }
-
-    method deref(::?CLASS:D \ptr:) { nativecast(void, ptr) }
-
-    multi method gist(::?CLASS:U:) { '(' ~ self.^name ~ ')' }
-    multi method gist(::?CLASS:D:) {
-        if self.Int -> $addr {
-            self.^name ~ '<' ~ $addr.fmt('%#x') ~ '>'
-        }
-        else {
-            self.^name ~ '<NULL>'
-        }
-    }
-
-    multi method perl(::?CLASS:U:) { self.^name }
-    multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
-
-    my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
-        method of() { TValue }
-        # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
-        method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
-    }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
-        die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
-        my \typed := TypedPointer[t];
-        typed.HOW.make_pun(typed);
-    }
-}
-my constant OpaquePointer is export(:types, :DEFAULT) = Pointer;
 
 # Gets the NCI type code to use based on a given Perl 6 type.
 my %type_map =
@@ -248,136 +208,6 @@ my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
 
-# CArray class, used to represent C arrays.
-my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(Pointer) { };
-
-# need to introduce the roles in there in an augment, because you can't 
-# inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
-augment class CArray {
-    method at_pos(CArray:D: $pos) { die "CArray cannot be used without a type" }
-    
-    my role IntTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), nqp::unbox_i($pos.Int)))
-                },
-                STORE => method (int $v) {
-                    nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos.Int), $v);
-                    self
-                }
-        }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), $pos))
-                },
-                STORE => method (int $v) {
-                    nqp::bindpos_i(nqp::decont(arr), $pos, $v);
-                    self
-                }
-        }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, int $assignee) {
-            nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
-        }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, int $assignee) {
-            nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
-        }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Int $assignee) {
-            nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_i($assignee));
-        }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Int $assignee) {
-            nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
-        }
-    }
-    multi method PARAMETERIZE_TYPE(Int:U $t) {
-        my \typed := IntTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
-    
-    my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), nqp::unbox_i($pos.Int)))
-                },
-                STORE => method (num $v) {
-                    nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos.Int), $v);
-                    self
-                }
-        }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), $pos))
-                },
-                STORE => method (num $v) {
-                    nqp::bindpos_n(nqp::decont(arr), $pos, $v);
-                    self
-                }
-        }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, num $assignee) {
-            nqp::bindpos_n(nqp::decont(arr), $pos, $assignee);
-        }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, num $assignee) {
-            nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
-        }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Num $assignee) {
-            nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_n($assignee));
-        }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Num $assignee) {
-            nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
-        }
-    }
-    multi method PARAMETERIZE_TYPE(Num:U $t) {
-        my \typed := NumTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
-    
-    my role TypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::atpos(nqp::decont(arr), nqp::unbox_i($pos.Int))
-                },
-                STORE => method ($v) {
-                    nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos.Int), nqp::decont($v));
-                    self
-                }
-        }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::atpos(nqp::decont(arr), $pos)
-                },
-                STORE => method ($v) {
-                    nqp::bindpos(nqp::decont(arr), $pos, nqp::decont($v));
-                    self
-                }
-        }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, \assignee) {
-            nqp::bindpos(nqp::decont(arr), $pos, nqp::decont(assignee));
-        }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, \assignee) {
-            nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
-        }
-    }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
-        die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CPointer' | 'CArray';
-        my \typed := TypedCArray[t];
-        typed.HOW.make_pun(typed);
-    }
-}
-
-multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) {
-    $pos ~~ Iterable ?? $pos.map: { array.at_pos($_) } !! array.at_pos($pos);
-}
-multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types) {
-    @pos.map: { array.at_pos($_) };
-}
-
 multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
     $r does NativeCallSymbol[$symbol];
 }
@@ -416,7 +246,9 @@ multi explicitly-manage(Str $x is rw, :$encoding = 'utf8') is export(:DEFAULT,
     $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont($class));
 }
 
-role CPPConst { }
+role CPPConst {
+    method cpp-const() { 1 }
+}
 multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }
@@ -427,71 +259,9 @@ multi refresh($obj) is export(:DEFAULT, :utils) {
 }
 
 sub mangle_cpp_symbol(Routine $r, $symbol) {
-    $r.signature.set_returns($r.package)
-        if $r.name eq 'new' && !$r.signature.has_returns && $r.package !~~ GLOBAL;
-
-    my $mangled = '_Z'
-                ~ ($r.package.REPR eq 'CPPStruct' ?? 'N' !! '')
-                ~ $symbol.split('::').map({$_ eq 'new' ?? 'C1' !! $_.chars ~ $_}).join('')
-                ~ ($r.package.REPR eq 'CPPStruct' ?? 'E' !! '');
-    my @params  = $r.signature.params;
-    if $r ~~ Method {
-        @params.shift;
-        @params.pop if @params[*-1].name eq '%_';
-    }
-
-    my $params = join '', @params.map: {
-        my $R = '';                                # reference
-        my $P = .rw                  ?? 'P' !! ''; # pointer
-        my $K = $P && $_ ~~ CPPConst ?? 'K' !! ''; # const
-        cpp_param_letter(.type, :$R, :$P, :$K)
-    };
-    $mangled ~= $params || 'v';
-}
-
-sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
-    given $type {
-        when void {
-            $R ~ $K ~ 'v'
-        }
-        when Bool {
-            $R ~ $K ~ 'b'
-        }
-        when int8 {
-            $R ~ $K ~ 'c'
-        }
-        when int16 {
-            $R ~ $K ~ 's'
-        }
-        when int32 {
-            $P ~ $K ~ 'i'
-        }
-        when long {
-            $R ~ $K ~ 'l'
-        }
-        when longlong {
-            $R ~ 'x'
-        }
-        when num32 {
-            $R ~ $K ~ 'f'
-        }
-        when num64 {
-            $R ~ $K ~ 'd'
-        }
-        #~ when longdouble {
-            #~ $R ~ 'e'
-        #~ }
-        when Str {
-            'Pc'
-        }
-        when CArray | Pointer {
-            'P' ~ $K ~ cpp_param_letter(.of);
-        }
-        default {
-            my $name  = .^name;
-            $P ~ $K ~ $name.chars ~ $name;
-        }
-    }
+    $*DISTRO.is-win
+        ?? NativeCall::Compiler::MSVC::mangle_cpp_symbol($r, $symbol)
+        !! NativeCall::Compiler::GNU::mangle_cpp_symbol($r, $symbol)
 }
 
 sub nativecast($target-type, $source) is export(:DEFAULT) {

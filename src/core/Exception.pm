@@ -952,6 +952,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$\'' => '$/.postmatch',
       '$,'  => '$*OUT.output_field_separator()',
       '$.'  => "the filehandle's .line method",
+      '$/'  => "the filehandle's .nl attribute",
       '$\\' => "the filehandle's .nl attribute",
       '$|'  => ':autoflush on open',
       '$?'  => '$! for handling child errors also',

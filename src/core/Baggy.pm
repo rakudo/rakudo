@@ -14,9 +14,6 @@ my role Baggy does QuantHash {
     method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
-    multi method EXISTS-KEY(Baggy:D: $k --> Bool) {
-        %!elems.EXISTS-KEY($k.WHICH);
-    }
     method Bool { %!elems.Bool }
 
     method hash(--> Hash) { %!elems.values.hash }
@@ -31,10 +28,10 @@ my role Baggy does QuantHash {
         my %e;
         for @pairs {
             when Pair {
-                (%e{$_.key.WHICH} //= ($_.key => 0)).value += $_.value.Int;
+                (%e.AT-KEY($_.key.WHICH) //= ($_.key => 0)).value += $_.value.Int;
             }
             default {
-                (%e{$_.WHICH} //= ($_ => 0)).value++;
+                (%e.AT-KEY($_.WHICH) //= ($_ => 0)).value++;
             }
         }
         my @toolow;
@@ -296,6 +293,19 @@ my role Baggy does QuantHash {
 
     method Set()     {     Set.new(self.keys) }
     method SetHash() { SetHash.new(self.keys) }
+
+    # all read/write candidates, to be shared with Mixes
+    multi method DELETE-KEY(Baggy:D: \k) {
+        my \v := %!elems.DELETE-KEY(k.WHICH);
+        nqp::istype(v,Pair) ?? v.value !! 0;
+    }
+    multi method EXISTS-KEY(Baggy:D: \k)    { %!elems.EXISTS-KEY(k.WHICH) }
+    multi method ASSIGN-KEY(Baggy:D: \k,\v) { self.AT-KEY(k) = v }
+
+    # alas, we cannot bind
+    multi method BIND-KEY(Baggy:D: \k) is hidden_from_backtrace {
+        fail X::Bind.new(target => self.^name);
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -15,16 +15,7 @@ my class Mix does Mixy {
     }
 
     method total (--> Real) { $!total //= [+] self.values }
-    multi method AT-KEY(Mix:D: $k --> Real) {
-        my $key := $k.WHICH;
-        %!elems.EXISTS-KEY($key)
-          ?? %!elems{$key}.value
-          !! 0;
-    }
 
-    method DELETE-KEY($a --> Real) is hidden_from_backtrace {
-        X::Immutable.new( method => 'DELETE-KEY', typename => self.^name ).throw;
-    }
     multi method grab($count? --> Real) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
@@ -36,6 +27,18 @@ my class Mix does Mixy {
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
     method Bag     {     Bag.new-from-pairs(%!elems.values) }
     method BagHash { BagHash.new-from-pairs(%!elems.values) }
+
+    # identical to Bag.pm
+    multi method AT-KEY(Mix:D: \k) {
+        my \v := %!elems.AT-KEY(k.WHICH);
+        nqp::istype(v,Pair) ?? v.value !! 0;
+    }
+    multi method ASSIGN-KEY(Mix:D: \k,\v) is hidden_from_backtrace {
+        fail X::Assignment::RO.new(typename => self.^name);
+    }
+    multi method DELETE-KEY(Mix:D: \k) is hidden_from_backtrace {
+        fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

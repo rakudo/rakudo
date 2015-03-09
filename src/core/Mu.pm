@@ -99,7 +99,7 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     # XXX Should not really need the decontainerize, but seems
                     # that slurpy hashes sometimes lead to double containers
                     # somehow...
@@ -109,7 +109,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -120,7 +120,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -137,21 +137,21 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 5) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 6) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 7) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
@@ -201,14 +201,14 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -219,7 +219,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -236,21 +236,21 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 5) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 6) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 7) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
@@ -410,7 +410,7 @@ my class Mu { # declared in BOOTSTRAP
                     if nqp::iscont($attr_val);
             }
             my $acc_name := substr($name,2);
-            if $attr.has-accessor && %twiddles.exists_key($acc_name) {
+            if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
                 nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
             }
         }
@@ -422,7 +422,7 @@ my class Mu { # declared in BOOTSTRAP
         for self.^attributes -> $attr {
             if $attr.has-accessor {
                 my $name = substr($attr.name,2);
-                unless %attrs.exists_key($name) {
+                unless %attrs.EXISTS-KEY($name) {
                     %attrs{$name} = self."$name"();
                 }
             }
@@ -606,7 +606,7 @@ multi sub infix:<eqv>(@a, @b) {
     }
     my int $i = 0;
     while $i < $n {
-        return Bool::False unless @a.at_pos($i) eqv @b.at_pos($i);
+        return Bool::False unless @a.AT-POS($i) eqv @b.AT-POS($i);
         $i = $i + 1;
     }
     Bool::True

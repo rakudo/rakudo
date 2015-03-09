@@ -16,31 +16,31 @@ my class PairMap is Hash {
         nqp::create(self).BUILD(@params.pairup);
     }
 
-    multi method at_key(PairMap:D: \key) is rw {
-        self.exists_key(key)
+    multi method AT-KEY(PairMap:D: \key) is rw {
+        self.EXISTS-KEY(key)
           ?? nextsame()
-          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<at_key>);
+          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<AT-KEY>);
     }
-    multi method bind_key(PairMap:D: \key) is rw {
-        self.exists_key(key)
+    multi method BIND-KEY(PairMap:D: \key) is rw {
+        self.EXISTS-KEY(key)
           ?? nextsame()
-          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<bind_key>);
+          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<BIND-KEY>);
     }
-    multi method assign_key(PairMap:D: \key, Mu \assignval) {
-        self.exists_key(key)
+    multi method ASSIGN-KEY(PairMap:D: \key, Mu \assignval) {
+        self.EXISTS-KEY(key)
           ?? nextsame()
-          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<assign_key>);
+          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<ASSIGN-KEY>);
     }
-    multi method delete_key(PairMap:D: \key) {
-        fail X::PairMap::NotAllowed.new(:method<delete_key>);
+    multi method DELETE-KEY(PairMap:D: \key) {
+        fail X::PairMap::NotAllowed.new(:method<DELETE-KEY>);
     }
     multi method push(PairMap:D: *@values) {
         for @values.pairup -> $pair {
             my $key   := $pair.key;
-            my $value := self.at_key($key);
+            my $value := self.AT-KEY($key);
             nqp::istype($value,Array)
               ?? $value.push($pair.value)
-              !! self.assign_key($key, [ $value, $pair.value ]);
+              !! self.ASSIGN-KEY($key, [ $value, $pair.value ]);
         }
     }
 

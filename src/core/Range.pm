@@ -138,11 +138,11 @@ my class Range is Iterable is Cool does Positional {
         nqp::p6parcel($rpa, nqp::null());
     }
 
-    multi method at_pos(Range:D: int \pos) {
-        self.flat.at_pos(pos);
+    multi method AT-POS(Range:D: int \pos) {
+        self.flat.AT-POS(pos);
     }
-    multi method at_pos(Range:D: Int:D \pos) {
-        self.flat.at_pos(nqp::unbox_i(pos));
+    multi method AT-POS(Range:D: Int:D \pos) {
+        self.flat.AT-POS(nqp::unbox_i(pos));
     }
 
     multi method perl(Range:D:) {

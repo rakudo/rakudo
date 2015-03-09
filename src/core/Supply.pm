@@ -770,7 +770,7 @@ my role Supply {
             @s => do {
                 {
                 emit => -> $val, $index {
-                    if $uninitialised > 0 && not @values.exists_pos($index) {
+                    if $uninitialised > 0 && not @values.EXISTS-POS($index) {
                         --$uninitialised;
                     }
                     @values[$index] = $val;

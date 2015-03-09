@@ -6,14 +6,14 @@ my role Mixy does Baggy  {
         my %e;
         for @pairs {
             when Pair {
-                (%e{$_.key.WHICH} //= ($_.key => 0)).value += $_.value;
+                (%e.AT-KEY($_.key.WHICH) //= ($_.key => 0)).value += $_.value;
             }
             default {
-                (%e{$_.WHICH} //= ($_ => 0)).value++;
+                (%e.AT-KEY($_.WHICH) //= ($_ => 0)).value++;
             }
         }
         for %e -> $p {
-            %e.delete_key($p.key) if $p.value.value == 0;
+            %e.DELETE-KEY($p.key) if $p.value.value == 0;
         }
         nqp::create(self).BUILD(:elems(%e));
     }

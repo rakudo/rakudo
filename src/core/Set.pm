@@ -12,13 +12,6 @@ my class Set does Setty {
         self;
     }
 
-    multi method at_key(Set:D: \k --> Bool) {
-        %!elems.exists_key(k.WHICH);
-    }
-
-    method delete_key($k --> Bool) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
-    }
     method grab ($count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
@@ -35,6 +28,16 @@ my class Set does Setty {
 
     method Set { self }
     method SetHash { SetHash.new(self.keys) }
+
+    multi method AT-KEY(Set:D: \k --> Bool) {
+        %!elems.EXISTS-KEY(k.WHICH);
+    }
+    multi method ASSIGN-KEY(Set:D: \k,\v) is hidden_from_backtrace {
+        fail X::Assignment::RO.new(typename => self.^name);
+    }
+    multi method DELETE-KEY(Set:D: \k) is hidden_from_backtrace {
+        fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

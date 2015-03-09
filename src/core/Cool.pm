@@ -224,8 +224,21 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     multi method Real() { self.Numeric.Real }
+
     proto method Int(|) { * }
     multi method Int()  { self.Numeric.Int }
+
+    proto method UInt(|) { * }
+    multi method UInt()  {
+        my $got := self.Int;
+        fail X::OutOfRange.new(
+          :what<Coercion to UInt>,
+          :$got,
+          :range("0..Inf")
+        ) if $got < 0;
+        $got;
+    }
+
     method Num()  { self.Numeric.Num }
     method Rat()  { self.Numeric.Rat }
 }

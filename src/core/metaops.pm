@@ -364,7 +364,7 @@ multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) 
         %k{$_} = 1 for a.keys;
     }
     else {
-        %k{$_} = 1 if b.exists_key($_) for a.keys;
+        %k{$_} = 1 if b.EXISTS-KEY($_) for a.keys;
     }
     if !$dwim-right {
         %k{$_} = 1 for b.keys;

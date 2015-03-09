@@ -79,12 +79,12 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
     # handle //unc/ on win
     @parts.unshift( @parts.splice(0,3).join('/') )
       if @parts.elems >= 3        # //unc
-      && @parts.at_pos(1) eq ''   # //
-      && @parts.at_pos(0) eq '';  # and no C: like stuff
+      && @parts.AT-POS(1) eq ''   # //
+      && @parts.AT-POS(0) eq '';  # and no C: like stuff
 
     # front part cleanup
     @parts.splice(1,1)
-      while %CLEAN-PARTS-NUL.exists_key(@parts.at_pos(1).WHICH);
+      while %CLEAN-PARTS-NUL.EXISTS-KEY(@parts.AT-POS(1).WHICH);
 
     # recursive ".." and "." handling
     sub updirs($index is copy) {
@@ -96,7 +96,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
         }
 
         # something to check
-        elsif @parts.at_pos($index - 1) -> $part {
+        elsif @parts.AT-POS($index - 1) -> $part {
             if $part.ord == 46 { # fast substr($part,0,1) eq '.'
                 if $part eq '..' {
                     return updirs($index - 1);
@@ -120,7 +120,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
     # back part cleanup
     my Int $checks = @parts.end;
     while $checks > 1 {
-        if @parts.at_pos($checks) -> $part {
+        if @parts.AT-POS($checks) -> $part {
             $part eq '..'
               ?? $checks = updirs($checks)
               !! $part eq '.'

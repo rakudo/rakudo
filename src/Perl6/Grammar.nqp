@@ -2070,6 +2070,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('%-')>
     }
 
+    token special_variable:sym<$/> {
+        <sym> <?before \h* '=' \h* <[ ' " ]> >
+        <.obsvar('$/')>
+    }
+
     token special_variable:sym<$\\> {
         '$\\' <?before \s | ',' | '=' | <terminator> >
         <.obsvar('$\\')>

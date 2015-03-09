@@ -26,7 +26,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
       ) {
 
         # sorry, cannot handle this one
-        return () unless %extensions.exists_key($from);
+        return () unless %extensions.EXISTS-KEY($from);
 
         my $base := $!IO.abspath ~ "/" ~ TRANSPOSE($name,"::","/") ~ '.';
         if %seen{$base} -> $found {

@@ -146,11 +146,6 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method rindex(|) {*}
     multi method rindex(Cool $needle, Cool $pos?) {
-        if $needle eq '' {
-            return $pos.defined && $pos < self.chars
-                    ?? $pos
-                    !! self.chars;
-        }
         my $result = $pos.defined
             ?? nqp::p6box_i(
                 nqp::rindex(

@@ -3289,10 +3289,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         }
                     }
                     my $nextch := nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) || ' ';
-                    if nqp::index('$@%&\'"', $nextch) >= 0 {
-                        $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
-                    }
-                    elsif %deftrap{$name} {
+                    if %deftrap{$name} {
                         my $al := $<args><arglist>;
                         my int $ok := 0;
                         $ok := 1 unless $al<EXPR> eq '';
@@ -3302,7 +3299,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             if nqp::index('<[{', $nextch) >= 0 {
                                 $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "Use of non-subscript brackets after \"$name\" where postfix is expected; please use whitespace before any arguments")
                             }
-                            elsif nqp::index('+-/*', $nextch) >= 0 {
+                            elsif nqp::index('$@%&+-/*', $nextch) >= 0 {
                                 $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
                             }
                             else {

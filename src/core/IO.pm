@@ -136,14 +136,14 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
     # back part cleanup
     @parts.pop
       while $checks
-        && %CLEAN-PARTS-NUL.exists_key(@parts.at_pos($checks--).WHICH);
+        && %CLEAN-PARTS-NUL.EXISTS-KEY(@parts.AT-POS($checks--).WHICH);
 
     # need (at least) / at the end
     my $elems := @parts.elems;
     if $elems == 1 {
         @parts.push("");
     }
-    elsif @parts.at_pos($elems - 1) eq "" {
+    elsif @parts.AT-POS($elems - 1) eq "" {
         @parts.pop;
     }
     @parts;

@@ -7,7 +7,7 @@ my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
 my class X::Numeric::Confused { ... }
 
-my $?TABSTOP := 8;
+my constant $?TABSTOP = 8;
 
 sub NORMALIZE_ENCODING(Str:D $s) {
     state %map = (

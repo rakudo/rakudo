@@ -3495,6 +3495,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token qok($x) {
         » <![(]>
         [ <?[:]> || <!{ my $n := ~$x; $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> ]
+        [ \s* '#' <.panic: "# not allowed as delimiter"> ]?
         <.ws>
     }
     

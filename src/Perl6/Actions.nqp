@@ -3491,7 +3491,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<variable> {
             # Don't handle twigil'd case yet.
-            if $<variable><twigil> {
+            if $<variable><twigil> && $<variable><twigil> ne '?' {
                 $*W.throw($/, 'X::Comp::NYI',
                     feature => "Twigil-Variable constants"
                 );

@@ -159,9 +159,9 @@ for $%h, Any, $%hi, Int, $%hia, Int -> \h, \T {
 {
     my $a = 42.5;
     my $mh = <a b b c c c>.BagHash;
-    ok $mh.EXISTS-KEY("a"),   "\$bh.EXISTS-KEY";
-    ok !$mh.EXISTS-KEY("d"),  "!\$bh.EXISTS-KEY";
-    is $mh.AT-KEY("a"), 1, "\$bh.AT-KEY";
+    ok $mh.EXISTS-KEY("a"),  "\$mh.EXISTS-KEY";
+    ok !$mh.EXISTS-KEY("d"), "!\$mh.EXISTS-KEY";
+    is $mh.AT-KEY("a"), 1,   "\$mh.AT-KEY";
     throws_like { $mh.BIND-KEY("a",$a) },
       X::Bind,:target<MixHash>,"\$mh.BIND-KEY";
     is $mh.AT-KEY("a"),          1, "\$mh.AT-KEY (after bind)";

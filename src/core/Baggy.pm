@@ -300,7 +300,6 @@ my role Baggy does QuantHash {
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
     multi method EXISTS-KEY(Baggy:D: \k)    { %!elems.EXISTS-KEY(k.WHICH) }
-    multi method ASSIGN-KEY(Baggy:D: \k,\v) { self.AT-KEY(k) = v }
 }
 
 # vim: ft=perl6 expandtab sw=4

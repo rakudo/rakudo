@@ -303,7 +303,7 @@ my role Baggy does QuantHash {
     multi method ASSIGN-KEY(Baggy:D: \k,\v) { self.AT-KEY(k) = v }
 
     # alas, we cannot bind
-    multi method BIND-KEY(Baggy:D: \k) is hidden_from_backtrace {
+    multi method BIND-KEY(Baggy:D: \k, \v) is rw {
         fail X::Bind.new(target => self.^name);
     }
 }

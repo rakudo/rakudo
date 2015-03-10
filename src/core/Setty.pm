@@ -85,7 +85,7 @@ my role Setty does QuantHash {
     }
 
     # alas, we cannot bind
-    multi method BIND-KEY(Setty:D: \k) is hidden_from_backtrace {
+    multi method BIND-KEY(Setty:D: \k, \v) is rw {
         fail X::Bind.new(target => self.^name);
     }
 

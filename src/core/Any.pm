@@ -1,6 +1,7 @@
 my class MapIter                { ... }
 my class Pair                   { ... }
 my class Range                  { ... }
+my class X::Bind                { ... }
 my class X::Bind::Slice         { ... }
 my class X::Bind::ZenSlice      { ... }
 my class X::Item                { ... }
@@ -573,8 +574,8 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) { * }
-    multi method BIND-KEY(Any:D: $key, $BIND ) is rw {
-        fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
+    multi method BIND-KEY(Any:D: \k, \v) is rw {
+        fail X::Bind.new(target => self.^name);
     }
     multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw {
         SELF = Hash.new;

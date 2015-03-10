@@ -23,14 +23,14 @@ DLLEXPORT int GetLongOfStruct(MyStruct *obj) {
     return obj->longval;
 }
 
-DLLEXPORT int GetDoubleOfStruct(MyStruct *obj) {
+DLLEXPORT double GetDoubleOfStruct(MyStruct *obj) {
     return obj->doubleval;
 }
 
-DLLEXPORT int GetCharOfStruct(MyStruct *obj) {
+DLLEXPORT char GetCharOfStruct(MyStruct *obj) {
     return obj->charval;
 }
 
-DLLEXPORT int GetFloatOfStruct(MyStruct *obj) {
+DLLEXPORT float GetFloatOfStruct(MyStruct *obj) {
     return obj->floatval;
 }

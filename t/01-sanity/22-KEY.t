@@ -158,7 +158,7 @@ for $%h, Any, $%hi, Int, $%hia, Int -> \h, \T {
 
 {
     my $a = 42.5;
-    my $mh = <a b b c c c>.BagHash;
+    my $mh = <a b b c c c>.MixHash;
     ok $mh.EXISTS-KEY("a"),  "\$mh.EXISTS-KEY";
     ok !$mh.EXISTS-KEY("d"), "!\$mh.EXISTS-KEY";
     is $mh.AT-KEY("a"), 1,   "\$mh.AT-KEY";

@@ -638,6 +638,10 @@ my class List does Positional { # declared in BOOTSTRAP
         # need block on Moar because of RT#121830
         gather { take [self[@$_]] for permutations(self.elems).eager }
     }
+
+    method invoke(List:U: |c) {
+        self.new(|c);
+    }
 }
 
 # internal, caps to not hide 'eager' keyword

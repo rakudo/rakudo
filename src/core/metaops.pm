@@ -269,43 +269,80 @@ multi sub hyper(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right
 
 multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
     my @result;
-    # Determine the number of elements we need
-    my int $elems;
+
+    # Check if a dwimmy side ends *. If so, that's considered a replication of the final element
     my $left-elems  = left.elems;
     my $right-elems = right.elems;
+    my $left-whatev = 0;
+    my $right-whatev = 0;
+    if $dwim-left and 1 < $left-elems < Inf and left[$left-elems - 1] ~~ Whatever {
+        $left-whatev++; $left-elems--;
+    }
+    if $dwim-right and 1 < $right-elems < Inf and right[$right-elems - 1] ~~ Whatever {
+        $right-whatev++; $right-elems--;
+    }
+
+    # Determine the number of elements we need, and how many we non-dwimmily have
+    my int $max-elems;
+    my int $min-elems;
     if $left-elems == $right-elems {
         X::HyperOp::Infinite.new(:side<both>, :&operator).throw
             if $left-elems == Inf;
-        $elems = $left-elems;
+        $max-elems = $min-elems = $left-elems;
     }
     elsif $dwim-left && $dwim-right {
         X::HyperOp::Infinite.new(:side($left-elems == Inf ?? "left" !! "right"), :&operator).throw
             if $left-elems | $right-elems == Inf;
-        $elems = $left-elems max $right-elems
+        $max-elems = $left-elems max $right-elems;
+        $min-elems = $left-elems min $right-elems;
     }
     elsif $dwim-left {
         X::HyperOp::Infinite.new(:side<right>, :&operator).throw
             if $right-elems == Inf;
-        $elems = $right-elems
+        $max-elems = $right-elems;
+        $min-elems = $left-elems min $right-elems; # could be truncation
     }
     elsif $dwim-right {
         X::HyperOp::Infinite.new(:side<left>, :&operator).throw
             if $left-elems == Inf;
-        $elems = $left-elems
+        $max-elems = $left-elems;
+        $min-elems = $left-elems min $right-elems; # could be truncation
     }
     else {
         X::HyperOp::NonDWIM.new(:&operator, :$left-elems, :$right-elems).throw
     }
 
-    my @left  := left.eager;
-    my @right := right.eager;
-    # If either side is empty and dwimmy (or both are empty),
-    # we just want to leave @result empty.
-    if $left-elems and $right-elems {
-        @left  := (@left  xx *).munch($elems) if $left-elems  < $elems;
-        @right := (@right xx *).munch($elems) if $right-elems < $elems;
-        for ^$elems {
-            @result[$_] := hyper(&operator, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
+    # Generate all of the non-dwimmmy results
+    my @left  :=  left.eager;# XXX Should be .list.munch($max-elems) but that seems to be destructive
+    my @right := right.eager;# same
+    for ^$min-elems {
+        @result[$_] := hyper(&operator, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
+    }
+
+    # Check if 0 < $elems since if either side is empty and dwimmy (or both are empty),
+    # and so @result should just remain empty.
+    # If $elems < $max-elems, on the other hand, we still have more dwimmy results to generate
+    if 0 < $left-elems < $max-elems {
+        if $left-whatev {
+            my $last-elem := @left[$left-elems - 1];
+            for $left-elems..^$max-elems {
+                @result[$_] := hyper(&operator, $last-elem, @right[$_], :$dwim-left, :$dwim-right);
+            }
+        } else {
+            for $left-elems..^$max-elems {
+                @result[$_] := hyper(&operator, @left[$_ % $left-elems], @right[$_], :$dwim-left, :$dwim-right);
+            }
+        }
+    } elsif 0 < $right-elems < $max-elems {
+        if $right-whatev {
+            my $last-elem := @right[$right-elems - 1];
+            for $right-elems..^$max-elems {
+                @result[$_] := hyper(&operator, @left[$_], $last-elem, :$dwim-left, :$dwim-right);
+            }
+        } else {
+            for $right-elems..^$max-elems {
+                @result[$_] := hyper(&operator, @left[$_], @right[$_ % $right-elems], :$dwim-left, :$dwim-right);
+            }
         }
     }
 

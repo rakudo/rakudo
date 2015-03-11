@@ -23,8 +23,6 @@ class IO::Dup does IO does PIO {
         self!set-PIO-attributes(:$PIO,|c);
     }
 
-    multi method slurp(IO::Dup:D: |c) { self.slurp-rest(|c) }
-
     multi method WHICH(IO::Dup:D:) { "IO::Dup($!fileno)" }
     multi method Str(IO::Dup:D:)   { @name[$!fileno] // "Dup#$!fileno" }
 

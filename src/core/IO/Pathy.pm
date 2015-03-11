@@ -26,7 +26,16 @@ my role IO::Pathy {
         @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
         @!parts[1 .. *-2].join('/');
     }
-    method basename(IO::Pathy:D:)  { MAKE-BASENAME($!abspath) }
+
+    proto method basename (|) { * }
+    multi method basename(IO::Pathy:D:)  { MAKE-BASENAME($!abspath) }
+    multi method basename(IO::Pathy:D: :$strip!)  {
+        my $basename := MAKE-BASENAME($!abspath);
+        my $ext      := MAKE-EXT($basename);
+        $ext ~~ $strip.any
+          ?? $basename.substr(0,*-($ext.chars + 1))
+          !! $basename;
+    }
     method extension(IO::Pathy:D:) { MAKE-EXT(MAKE-BASENAME($!abspath))}
 
     method parent(IO::Pathy:D: $levels = 1) {

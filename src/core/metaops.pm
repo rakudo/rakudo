@@ -237,50 +237,64 @@ multi sub hyper(&op, \left, \right, :$dwim-left, :$dwim-right) {
 }
 
 # XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
-multi sub hyper(&op, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
+multi sub hyper(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
     my @result;
-    my $elems = left.elems;
-    X::HyperOp::NonDWIM.new(:operator(&op), :left-elems($elems), :right-elems(1)).throw
+    X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.infinite;
+    my int $elems = left.elems;
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1)).throw
         unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
     my @left := left.eager;
     for ^$elems {
-        @result[$_] := hyper(&op, @left[$_], right, :$dwim-left, :$dwim-right);
+        @result[$_] := hyper(&operator, @left[$_], right, :$dwim-left, :$dwim-right);
     }
     # Coerce to the original type
     my $type = left.WHAT;
     nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
 }
 
-multi sub hyper(&op, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+multi sub hyper(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
     my @result;
-    my $elems = right.elems;
-    X::HyperOp::NonDWIM.new(:operator(&op), :left-elems(1), :right-elems($elems)).throw
+    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right.infinite;
+    my int $elems = right.elems;
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems(1), :right-elems($elems)).throw
         unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;
     my @right := right.eager;
     for ^$elems {
-        @result[$_] := hyper(&op, left, @right[$_], :$dwim-left, :$dwim-right);
+        @result[$_] := hyper(&operator, left, @right[$_], :$dwim-left, :$dwim-right);
     }
     # Coerce to the original type
     my $type = right.WHAT;
     nqp::iscont(right) ?? $type(@result.eager).item !! $type(@result.eager)
 }
 
-multi sub hyper(&op, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
     my @result;
     # Determine the number of elements we need
-    my $elems;
+    my int $elems;
     my $left-elems  = left.elems;
     my $right-elems = right.elems;
     if $left-elems == $right-elems {
+        X::HyperOp::Infinite.new(:side<both>, :&operator).throw
+            if $left-elems == Inf;
         $elems = $left-elems;
     }
     elsif $dwim-left && $dwim-right {
+        X::HyperOp::Infinite.new(:side($left-elems == Inf ?? "left" !! "right"), :&operator).throw
+            if $left-elems | $right-elems == Inf;
         $elems = $left-elems max $right-elems
     }
-    elsif $dwim-left { $elems = $right-elems }
-    elsif $dwim-right { $elems = $left-elems }
+    elsif $dwim-left {
+        X::HyperOp::Infinite.new(:side<right>, :&operator).throw
+            if $right-elems == Inf;
+        $elems = $right-elems
+    }
+    elsif $dwim-right {
+        X::HyperOp::Infinite.new(:side<left>, :&operator).throw
+            if $left-elems == Inf;
+        $elems = $left-elems
+    }
     else {
-        X::HyperOp::NonDWIM.new(:operator(&op), :$left-elems, :$right-elems).throw
+        X::HyperOp::NonDWIM.new(:&operator, :$left-elems, :$right-elems).throw
     }
 
     my @left  := left.eager;
@@ -288,10 +302,10 @@ multi sub hyper(&op, Positional:D \left, Positional:D \right, :$dwim-left, :$dwi
     # If either side is empty and dwimmy (or both are empty),
     # we just want to leave @result empty.
     if $left-elems and $right-elems {
-        @left  := (@left  xx *).munch($elems) if left  < $elems;
-        @right := (@right xx *).munch($elems) if right < $elems;
+        @left  := (@left  xx *).munch($elems) if $left-elems  < $elems;
+        @right := (@right xx *).munch($elems) if $right-elems < $elems;
         for ^$elems {
-            @result[$_] := hyper(&op, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
+            @result[$_] := hyper(&operator, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
         }
     }
 

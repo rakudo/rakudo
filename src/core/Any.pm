@@ -57,10 +57,10 @@ my class Any { # declared in BOOTSTRAP
 
     proto method eager(|) { * }
     multi method eager(Any:U:) {
-        nqp::p6list(nqp::list(),     List, Mu).eager;
+        nqp::p6list(nqp::list(),     List, Bool::True).eager;
     }
     multi method eager(Any:D:) {
-        nqp::p6list(nqp::list(self), List, Mu).eager;
+        nqp::p6list(nqp::list(self), List, Bool::True).eager;
     }
 
     proto method hash(|) { * }

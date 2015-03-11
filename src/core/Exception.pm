@@ -583,6 +583,13 @@ my class X::Attribute::Undeclared is X::Undeclared {
     }
 }
 
+my class X::Attribute::Regex is X::Undeclared {
+    method message() {
+        "Attribute $.symbol not available inside of a regex, since regexes are methods on Cursor.\n" ~
+            "Consider storing the attribute in a lexical, and using that in the regex.";
+    }
+}
+
 my class X::Undeclared::Symbols does X::Comp {
     has %.post_types;
     has %.unk_types;

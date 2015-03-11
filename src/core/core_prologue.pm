@@ -5,6 +5,7 @@ my class Pair { ... }
 my class Whatever { ... }
 my class HyperWhatever { ... }
 my class WhateverCode { ... }
+my class Cursor { ... }
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }

@@ -231,33 +231,73 @@ sub METAOP_HYPER_PREFIX(\op, \obj) { deepmap(op, obj) }
 sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
 proto sub hyper(|) { * }
-multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
-    my @alist := a.DEFINITE ?? a.flat !! (a,).list;
-    my @blist := b.DEFINITE ?? b.flat !! (b,).list;
-    my $elems = 0;
-    if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
-    elsif $dwim-left { $elems = @blist.elems }
-    elsif $dwim-right { $elems = @alist.elems }
-    else {
-        X::HyperOp::NonDWIM.new(
-                operator    => op,
-                left-elems  => @alist.elems,
-                right-elems => @blist.elems,
-        ).throw
-            if @alist.elems != @blist.elems
-    }
-    @alist := (@alist xx *).munch($elems) if @alist.elems < $elems;
-    @blist := (@blist xx *).munch($elems) if @blist.elems < $elems;
 
-    (@alist Z @blist).map(
-        -> \x, \y {
-            Iterable.ACCEPTS(x) && x.defined
-              ?? x.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-              !! (Iterable.ACCEPTS(y) && y.defined
-                    ?? y.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-                    !! op.(x, y))
+multi sub hyper(&op, \left, \right, :$dwim-left, :$dwim-right) {
+    op(left, right);
+}
+
+# XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
+multi sub hyper(&op, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
+    my @result;
+    my $elems = left.elems;
+    X::HyperOp::NonDWIM.new(:operator(&op), :left-elems($elems), :right-elems(1)).throw
+        unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
+    my @left := left.eager;
+    for ^$elems {
+        @result[$_] := hyper(&op, @left[$_], right, :$dwim-left, :$dwim-right);
+    }
+    # Coerce to the original type
+    my $type = left.WHAT;
+    nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
+}
+
+multi sub hyper(&op, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+    my @result;
+    my $elems = right.elems;
+    X::HyperOp::NonDWIM.new(:operator(&op), :left-elems(1), :right-elems($elems)).throw
+        unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;
+    my @right := right.eager;
+    for ^$elems {
+        @result[$_] := hyper(&op, left, @right[$_], :$dwim-left, :$dwim-right);
+    }
+    # Coerce to the original type
+    my $type = right.WHAT;
+    nqp::iscont(right) ?? $type(@result.eager).item !! $type(@result.eager)
+}
+
+multi sub hyper(&op, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+    my @result;
+    # Determine the number of elements we need
+    my $elems;
+    my $left-elems  = left.elems;
+    my $right-elems = right.elems;
+    if $left-elems == $right-elems {
+        $elems = $left-elems;
+    }
+    elsif $dwim-left && $dwim-right {
+        $elems = $left-elems max $right-elems
+    }
+    elsif $dwim-left { $elems = $right-elems }
+    elsif $dwim-right { $elems = $left-elems }
+    else {
+        X::HyperOp::NonDWIM.new(:operator(&op), :$left-elems, :$right-elems).throw
+    }
+
+    my @left  := left.eager;
+    my @right := right.eager;
+    # If either side is empty and dwimmy (or both are empty),
+    # we just want to leave @result empty.
+    if $left-elems and $right-elems {
+        @left  := (@left  xx *).munch($elems) if left  < $elems;
+        @right := (@right xx *).munch($elems) if right < $elems;
+        for ^$elems {
+            @result[$_] := hyper(&op, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
         }
-    ).eager
+    }
+
+    # Coerce to the original type
+    my $type = left.WHAT;
+    nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
 }
 
 multi sub hyper(\op, \obj) {
@@ -358,29 +398,35 @@ multi sub duckmap(\op, Associative \h) {
     hash @keys Z duckmap(op, h{@keys})
 }
 
-multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) {
-    my %k;
+multi sub hyper(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+    my %keyset;
     if !$dwim-left {
-        %k{$_} = 1 for a.keys;
+        %keyset{$_} = 1 for left.keys;
     }
     else {
-        %k{$_} = 1 if b.EXISTS-KEY($_) for a.keys;
+        %keyset{$_} = 1 if right.EXISTS-KEY($_) for left.keys;
     }
     if !$dwim-right {
-        %k{$_} = 1 for b.keys;
+        %keyset{$_} = 1 for right.keys;
     }
-    my @keys := %k.keys;
-    hash @keys Z hyper(op, a{@keys}, b{@keys}, :$dwim-left, :$dwim-right)
+    my @keys := %keyset.keys;
+    my $type = left.WHAT;
+    my %result := $type(@keys Z hyper(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
+    nqp::iscont(left) ?? $%result !! %result;
 }
 
-multi sub hyper(\op, Associative \a, \b, :$dwim-left, :$dwim-right) {
-    my @keys = a.keys;
-    hash @keys Z hyper(op, a{@keys}, b, :$dwim-left, :$dwim-right);
+multi sub hyper(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
+    my @keys = left.keys;
+    my $type = left.WHAT;
+    my %result := $type(@keys Z hyper(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
+    nqp::iscont(left) ?? $%result !! %result;
 }
 
-multi sub hyper(\op, \a, Associative \b, :$dwim-left, :$dwim-right) {
-    my @keys = b.keys;
-    hash @keys Z hyper(op, a, b{@keys}, :$dwim-left, :$dwim-right);
+multi sub hyper(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+    my @keys = right.keys;
+    my $type = right.WHAT;
+    my %result := $type(@keys Z hyper(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
+    nqp::iscont(right) ?? $%result !! %result;
 }
 
 # vim: ft=perl6 expandtab sw=4

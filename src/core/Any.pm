@@ -66,9 +66,11 @@ my class Any { # declared in BOOTSTRAP
     proto method hash(|) { * }
     multi method hash(Any:U:) { my % = () }
     multi method hash(Any:D:) { my % = self }
+    method Hash() { self.hash }
 
     # derived from .list
     method Parcel() { self.list.Parcel }
+    method List() { self.list }
 
     proto method elems(|) { * }
     multi method elems(Any:U:) { 0 }

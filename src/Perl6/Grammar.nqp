@@ -4923,7 +4923,25 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 }
 
-grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
+my role CursorPackageNibbler {
+    method nibble-in-cursor($parent) {
+        my $*PACKAGE := $*W.find_symbol(['Cursor']);
+        my %*ATTR_USAGES;
+        my $cur := nqp::findmethod($parent, 'nibbler')(self);
+        for %*ATTR_USAGES {
+            my $name := $_.key;
+            my $node := $_.value[0].node;
+            $node.CURSOR.typed_sorry('X::Attribute::Regex', symbol => $name);
+        }
+        $cur
+    }
+}
+
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPackageNibbler {
+    method nibbler() {
+        self.nibble-in-cursor(QRegex::P6Regex::Grammar)
+    }
+
     method throw_unrecognized_metachar ($metachar) {
         self.typed_sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
     }
@@ -5016,7 +5034,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 }
 
-grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
+grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does CursorPackageNibbler {
+    method nibbler() {
+        self.nibble-in-cursor(QRegex::P5Regex::Grammar)
+    }
+
     token rxstopper { <stopper> }
     
     token p5metachar:sym<(?{ })> {

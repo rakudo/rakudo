@@ -1444,8 +1444,18 @@ my class X::HyperOp::NonDWIM is Exception {
     has $.left-elems;
     has $.right-elems;
     method message() {
-        "Lists on both side of non-dwimmy hyperop of &.operator.name() are not of the same length\n"
+        "Lists on either side of non-dwimmy hyperop of &.operator.name() are not of the same length\n"
         ~ "left: $.left-elems elements, right: $.right-elems elements";
+    }
+}
+
+my class X::HyperOp::Infinite is Exception {
+    has &.operator;
+    has $.side;
+    method message() {
+        $.side eq "both"
+            ?? "Lists on both sides of hyperop of &.operator.name() are known to be infinite"
+            !! "List on $.side side of hyperop of &.operator.name() is known to be infinite"
     }
 }
 

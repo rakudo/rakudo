@@ -35,7 +35,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
     }
 
-    method on_demand(&producer, :&closing, :$scheduler = CurrentThreadScheduler) {
+    method on-demand(&producer, :&closing, :$scheduler = CurrentThreadScheduler) {
         my class OnDemandSupply does Supply {
             has &!producer;
             has &!closing;
@@ -191,7 +191,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         MapSupply.new(:$source, :&mapper)
     }
 
-    method schedule_on(Supply $source, Scheduler $scheduler) {
+    method schedule-on(Supply $source, Scheduler $scheduler) {
         my class ScheduleSupply does Supply does PrivatePublishing {
             has $!source;
             has $!scheduler;

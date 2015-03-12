@@ -253,7 +253,7 @@ multi sub infix:<…>(|c) { infix:<...>(|c) }
 proto sub infix:<…^>(|) { * }
 multi sub infix:<…^>(|c) { infix:<...^>(|c) }
 
-sub undefine(Mu \x) { x = Nil }
+sub undefine(Mu \x) is rw { x = Nil }
 
 sub prefix:<temp>(\cont) is rw {
     my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');

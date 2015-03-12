@@ -1,6 +1,7 @@
 my class MapIter                { ... }
 my class Pair                   { ... }
 my class Range                  { ... }
+my class X::Bind                { ... }
 my class X::Bind::Slice         { ... }
 my class X::Bind::ZenSlice      { ... }
 my class X::Item                { ... }
@@ -56,18 +57,20 @@ my class Any { # declared in BOOTSTRAP
 
     proto method eager(|) { * }
     multi method eager(Any:U:) {
-        nqp::p6list(nqp::list(),     List, Bool::True).eager;
+        nqp::p6list(nqp::list(),     List, Mu).eager;
     }
     multi method eager(Any:D:) {
-        nqp::p6list(nqp::list(self), List, Bool::True).eager;
+        nqp::p6list(nqp::list(self), List, Mu).eager;
     }
 
     proto method hash(|) { * }
     multi method hash(Any:U:) { my % = () }
     multi method hash(Any:D:) { my % = self }
+    method Hash() { self.hash }
 
     # derived from .list
     method Parcel() { self.list.Parcel }
+    method List() { self.list }
 
     proto method elems(|) { * }
     multi method elems(Any:U:) { 0 }
@@ -408,11 +411,11 @@ my class Any { # declared in BOOTSTRAP
 
             if .isa(Range) {
                 if !$min.defined || $cmp($_.min, $min) < 0 {
-                    $min = $_;
+                    $min = .min;
                     $excludes-min = $_.excludes-min;
                 }
                 if !$max.defined || $cmp($_.max, $max) > 0 {
-                    $max = $_;
+                    $max = .max;
                     $excludes-max = $_.excludes-max;
                 }
             } else {
@@ -573,8 +576,8 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) { * }
-    multi method BIND-KEY(Any:D: $key, $BIND ) is rw {
-        fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
+    multi method BIND-KEY(Any:D: \k, \v) is rw {
+        fail X::Bind.new(target => self.^name);
     }
     multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw {
         SELF = Hash.new;

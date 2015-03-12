@@ -134,10 +134,6 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method index(|) {*}
     multi method index(Cool $needle, Cool $pos = 0) {
-        if $needle eq '' {
-            my $chars = self.chars;
-            return $pos < $chars ?? $pos !! $chars;
-        }
         my int $result = nqp::index(
                 nqp::unbox_s(self.Str),
                 nqp::unbox_s($needle.Str),
@@ -149,11 +145,6 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method rindex(|) {*}
     multi method rindex(Cool $needle, Cool $pos?) {
-        if $needle eq '' {
-            return $pos.defined && $pos < self.chars
-                    ?? $pos
-                    !! self.chars;
-        }
         my $result = $pos.defined
             ?? nqp::p6box_i(
                 nqp::rindex(

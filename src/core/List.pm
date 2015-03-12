@@ -638,11 +638,15 @@ my class List does Positional { # declared in BOOTSTRAP
         # need block on Moar because of RT#121830
         gather { take [self[@$_]] for permutations(self.elems).eager }
     }
+
+    method invoke(List:U: |c) {
+        self.new(|c);
+    }
 }
 
 # internal, caps to not hide 'eager' keyword
 sub EAGER(|) {
-    nqp::p6parcel(nqp::p6argvmarray(), Any).eager
+    nqp::p6list(nqp::p6argvmarray(), List, Bool::True).eager
 }
 
 sub flat(|) {
@@ -655,26 +659,24 @@ sub list(|) {
 
 proto sub infix:<xx>(|)       { * }
 multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
-multi sub infix:<xx>(Mu \x)   {x }
-multi sub infix:<xx>(Mu \x, $n is copy, :$thunked!) {
-    $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? Inf !! $n.Int;
+multi sub infix:<xx>(Mu \x)   { x }
+multi sub infix:<xx>(Mu \x, Real() $n is copy, :$thunked!) {
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
-    GatherIter.new({ loop { take x.() } }, :infinite(True)).flat
+    GatherIter.new({ loop { take x.() } }, :infinite(True)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    GatherIter.new({ loop { take x } }, :infinite(True)).flat
+    GatherIter.new({ loop { take x } }, :infinite(True)).list
 }
-multi sub infix:<xx>(Mu \x, $n) {
-    my int $size = $n.Int;
+multi sub infix:<xx>(Mu \x, Int() $n) {
+    my int $size = $n + 1;
 
     my Mu $rpa := nqp::list();
-    if $size > 0 {
+    if $size > 1 {
         nqp::setelems($rpa, $size);
         nqp::setelems($rpa, 0);
 
-        $size = $size + 1;
         nqp::push($rpa,x) while $size = $size - 1;
     }
 

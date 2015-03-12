@@ -84,11 +84,6 @@ my role Setty does QuantHash {
         );
     }
 
-    # alas, we cannot bind
-    multi method BIND-KEY(Setty:D: \k) is hidden_from_backtrace {
-        fail X::Bind.new(target => self.^name);
-    }
-
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 

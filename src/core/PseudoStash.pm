@@ -167,7 +167,7 @@ my class PseudoStash is EnumMap {
         }
     }
 
-    method BIND-KEY(Str() $key, \value) {
+    method BIND-KEY(Str() $key, \value) is rw {
         if %pseudoers.EXISTS-KEY($key) {
             X::Bind.new(target => "pseudo-package $key").throw;
         }

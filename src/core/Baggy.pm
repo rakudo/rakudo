@@ -300,12 +300,6 @@ my role Baggy does QuantHash {
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
     multi method EXISTS-KEY(Baggy:D: \k)    { %!elems.EXISTS-KEY(k.WHICH) }
-    multi method ASSIGN-KEY(Baggy:D: \k,\v) { self.AT-KEY(k) = v }
-
-    # alas, we cannot bind
-    multi method BIND-KEY(Baggy:D: \k) is hidden_from_backtrace {
-        fail X::Bind.new(target => self.^name);
-    }
 }
 
 # vim: ft=perl6 expandtab sw=4

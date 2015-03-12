@@ -641,7 +641,7 @@ S17-supply/delayed.t
 S17-supply/do.t
 S17-supply/elems.t
 S17-supply/flat.t
-S17-supply/for.t
+S17-supply/from-list.t
 S17-supply/grab.t
 S17-supply/grep.t
 S17-supply/interval.t

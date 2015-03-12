@@ -659,7 +659,7 @@ S17-supply/Promise.t
 S17-supply/reduce.t
 S17-supply/reverse.t
 S17-supply/rotor.t
-S17-supply/schedule_on.t
+S17-supply/schedule-on.t
 S17-supply/sort.t
 S17-supply/squish.t
 S17-supply/stable.t

@@ -423,23 +423,21 @@ my class Hash { # declared in BOOTSTRAP
         }
 
     }
-    method PARAMETERIZE_TYPE(Mu $t, |c) {
+    method ^parameterize(Mu \hash, Mu \t, |c) {
         if c.elems == 0 {
-#            my $what := self but TypedHash[$t.WHAT]; # too early in bootstrap
-            my $what := self.HOW.mixin(self.WHAT, TypedHash[$t.WHAT]);
+            my $what := hash.HOW.mixin(hash.WHAT, TypedHash[t.WHAT]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)}]");
+            $what.HOW.set_name(self, "{hash.HOW.name(hash)}[{t.HOW.name(t)}]");
             $what;
         }
         elsif c.elems == 1 {
-            my $what := self.HOW.mixin(self.WHAT, TypedHash[$t.WHAT,c[0]]);
-#            my $what := self but TypedHash[$t.WHAT, c[0]]; # too early in bootstrap
+            my $what := hash.HOW.mixin(hash.WHAT, TypedHash[t.WHAT, c[0]]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)},{c[0].HOW.name(c[0])}]");
+            $what.HOW.set_name(hash, "{hash.HOW.name(hash)}[{t.HOW.name(t)},{c[0].HOW.name(c[0])}]");
             $what;
         }
         else {
-            die "Can only type-constraint Hash with [ValueType] or [ValueType,KeyType]";
+            die "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]";
         }
     }
 }

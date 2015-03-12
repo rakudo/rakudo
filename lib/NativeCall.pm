@@ -77,7 +77,7 @@ use MONKEY_TYPING;
 augment class Pointer {
     method of() { void }
 
-    method ^name() { 'Pointer' }
+    method ^name($) { 'Pointer' }
 
     multi method new() {
         self.CREATE()

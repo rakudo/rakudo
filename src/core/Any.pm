@@ -411,11 +411,11 @@ my class Any { # declared in BOOTSTRAP
 
             if .isa(Range) {
                 if !$min.defined || $cmp($_.min, $min) < 0 {
-                    $min = $_;
+                    $min = .min;
                     $excludes-min = $_.excludes-min;
                 }
                 if !$max.defined || $cmp($_.max, $max) > 0 {
-                    $max = $_;
+                    $max = .max;
                     $excludes-max = $_.excludes-max;
                 }
             } else {

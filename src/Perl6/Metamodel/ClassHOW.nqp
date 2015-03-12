@@ -163,12 +163,13 @@ class Perl6::Metamodel::ClassHOW
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
         
-        # Compose the representation and meta-methods, unless we already
-        # did so once.
+        # Compose the representation, provided this isn't an augment.
         unless $was_composed {
             self.compose_repr($obj);
-            self.compose_meta_methods($obj);
         }
+
+        # Compose the meta-methods.
+        self.compose_meta_methods($obj);
         
         # Compose invocation protocol.
         self.compose_invocation($obj);

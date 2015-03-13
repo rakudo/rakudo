@@ -33,7 +33,7 @@ for 1, 0 -> $array {  # 1 = [], 0 = {}
 
     say Q:a:to/SOURCE/;
 # internal 1 element @TYPE[].chop.lc() access with adverbs
-sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) is hidden_from_backtrace {
+sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) is hidden-from-backtrace {
     my $d := CLONE-HASH-DECONTAINERIZED(%adv);
 
     my @nogo;
@@ -214,7 +214,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) is hidden_from_backtrace {
 } #SLICE_ONE_@TYPE[].chop()
 
 # internal >1 element @TYPE[].chop.lc() access with adverbs
-sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) is hidden_from_backtrace {
+sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) is hidden-from-backtrace {
     my $d := CLONE-HASH-DECONTAINERIZED(%adv);
     my @nogo;
 

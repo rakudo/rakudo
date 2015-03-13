@@ -23,7 +23,7 @@ my class Backtrace::Frame {
         "  in {$s}$.subname at {$.file}:$.line\n"
     }
 
-    method is-hidden(Backtrace::Frame:D:)  { $!code.?is_hidden_from_backtrace }
+    method is-hidden(Backtrace::Frame:D:)  { $!code.?is-hidden-from-backtrace }
     method is-routine(Backtrace::Frame:D:) { nqp::istype($!code,Routine) }
     method is-setting(Backtrace::Frame:D:) {
         $!file.chars > 12 && substr($!file,*-12) eq 'CORE.setting'

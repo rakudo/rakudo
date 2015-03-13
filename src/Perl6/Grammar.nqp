@@ -2966,8 +2966,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('named parameter')
         ':'
         [
-        | <name=.identifier> '(' <.ws>
-            [ <named_param> | <param_var> <.ws> ]
+        | <name=.identifier> '('
+            <.ws> [ <named_param> | <param_var> ] <.ws>
             [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
         | <param_var>
         ]

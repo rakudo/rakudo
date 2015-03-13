@@ -11,7 +11,7 @@ my class CurrentThreadScheduler does Scheduler {
           if $at.defined and $in.defined;
         die "Cannot specify :every and :times at the same time"
           if $every.defined and $times > 1;
-        die "Cannot specify :every in {self.HOW.name(self)}"
+        die "Cannot specify :every in {self.^name}"
           if $every;
 
         my $delay = $at ?? $at - now !! $in;

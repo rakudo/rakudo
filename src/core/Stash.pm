@@ -28,7 +28,7 @@ my class Stash { # declared in BOOTSTRAP
         }
         else {
             my $pkg := Metamodel::PackageHOW.new_type(:name($key));
-            $pkg.HOW.compose($pkg);
+            $pkg.^compose;
             nqp::bindkey($storage, $key, $pkg)
         }
     }

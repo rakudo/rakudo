@@ -19,7 +19,7 @@ my class SetHash does Setty {
           },
           STORE => -> $, $value {
               $value
-                ?? (%!elems.AT-KEY(k.WHICH) = k)
+                ?? %!elems.ASSIGN-KEY(k.WHICH,k)
                 !! %!elems.DELETE-KEY(k.WHICH);
               so $value;
           });

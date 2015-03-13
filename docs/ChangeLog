@@ -26,6 +26,8 @@ using the new names as described above.
 - Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
 - Many native improvements, e.g. allowing ++ on native ints.
 - Deprecated Supply.on_demand/schedule_on in favour of on-demand/schedule-on.
+- Deprecated is hidden_from_(backtrace|USAGE) for hidden-from-(backtrace|USAGE).
+- Deprecated use MONKEY_TYPING for use MONKEY-TYPING.
 - Various compile time error message improvements.
 
 New in 2015.02

@@ -623,7 +623,7 @@ class Perl6::World is HLL::World {
             
         # If it's a native type, no container as we inline natives straight
         # into registers. Do need to take care of initial value though.
-        my $prim := nqp::objprimspec($descriptor.of);
+        my $prim := %cont_info<sigil> eq '$' && nqp::objprimspec($descriptor.of);
         if $prim {
             if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
             if $prim == 1 {
@@ -646,10 +646,12 @@ class Perl6::World is HLL::World {
         
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
-        nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if nqp::existskey(%cont_info, 'scalar_value') {
-            nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                %cont_info<scalar_value>);
+        if %cont_info<container_type>.REPR eq 'P6opaque' {
+            nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+            if nqp::existskey(%cont_info, 'scalar_value') {
+                nqp::bindattr($cont, %cont_info<container_base>, '$!value',
+                    %cont_info<scalar_value>);
+            }
         }
         self.add_object($cont);
         $block.symbol($name, :value($cont));
@@ -678,18 +680,22 @@ class Perl6::World is HLL::World {
     # and a default value.
     method container_type_info($/, $sigil, @value_type, $shape?) {
         my %info;
+        %info<sigil> := $sigil;
         if $sigil eq '@' {
-            %info<container_base>  := $*W.find_symbol(['Array']);
             %info<bind_constraint> := $*W.find_symbol(['Positional']);
             if @value_type {
+                my $vtype              := @value_type[0];
+                my $base_type_name     := nqp::objprimspec($vtype) ?? 'array' !! 'Array';
+                %info<container_base>  := $*W.find_symbol([$base_type_name]);
                 %info<container_type>  := $*W.parameterize_type_with_args(
-                    %info<container_base>, [@value_type[0]], nqp::hash());
+                    %info<container_base>, [$vtype], nqp::hash());
                 %info<bind_constraint> := $*W.parameterize_type_with_args(
-                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
-                %info<value_type>      := @value_type[0];
-                %info<default_value>   := @value_type[0];
+                    %info<bind_constraint>, [$vtype], nqp::hash());
+                %info<value_type>      := $vtype;
+                %info<default_value>   := $vtype;
             }
             else {
+                %info<container_base> := $*W.find_symbol(['Array']);
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := $*W.find_symbol(['Mu']);
                 %info<default_value>  := $*W.find_symbol(['Any']);

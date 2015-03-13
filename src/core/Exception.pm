@@ -154,7 +154,7 @@ do {
             try {
                 my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
                 my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
-                my $is_nqp = $codeobj && $codeobj.HOW.name($codeobj) eq 'NQPRoutine';
+                my $is_nqp = $codeobj && $codeobj.^name eq 'NQPRoutine';
                 return True if nqp::iseq_s(nqp::getcodename($sub), 'eval') && $is_nqp;
                 return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
             }
@@ -219,7 +219,7 @@ do {
     }
 
     my Mu $comp := nqp::getcomp('perl6');
-    $comp.HOW.add_method($comp, 'handle-exception',
+    $comp.^add_method('handle-exception',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
             print_exception($ex);
@@ -227,7 +227,7 @@ do {
             0;
         }
     );
-    $comp.HOW.add_method($comp, 'handle-control',
+    $comp.^add_method('handle-control',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
             print_control($ex);

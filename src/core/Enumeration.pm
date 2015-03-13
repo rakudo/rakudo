@@ -42,7 +42,7 @@ my role Enumeration {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
         nqp::istype($x, ::?CLASS)
             ?? $x
-            !! self.HOW.enum_from_value(self, $x)
+            !! self.^enum_from_value($x)
     }
 }
 
@@ -78,17 +78,16 @@ sub ANON_ENUM(*@args) {
 
 Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
     my Mu $r := Metamodel::ParametricRoleHOW.new_type(:name($name));
-    $r.HOW.add_attribute($r, Attribute.new(
+    $r.^add_attribute(Attribute.new(
         :name('$!' ~ $name), :type(nqp::decont($type)),
         :has_accessor(1), :package($r)));
     for %enum_values.kv -> $key, $value {
         my $meth = method () { self."$name"() === $value }
         $meth.set_name($key);
-        $r.HOW.add_method($r, $key, $meth);
+        $r.^add_method($key, $meth);
     }
-    $r.HOW.set_body_block($r,
-        -> |c { nqp::list($r, nqp::hash('$?CLASS', c<$?CLASS>)) });
-    $r.HOW.compose($r);
+    $r.^set_body_block( -> |c {nqp::list($r,nqp::hash('$?CLASS',c<$?CLASS>))});
+    $r.^compose;
     $r
 });
 

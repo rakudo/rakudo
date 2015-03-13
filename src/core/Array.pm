@@ -230,11 +230,11 @@ class Array { # declared in BOOTSTRAP
         }
         # XXX some methods to come here...
     }
-    method ^parameterize(Mu \arr, Mu \t, |c) {
+    method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
         if c.elems == 0 {
-            my $what := arr.HOW.mixin(arr.WHAT, TypedArray[t.WHAT]);
+            my $what := arr.^mixin(TypedArray[t]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(arr, "{arr.HOW.name(arr)}[{t.HOW.name(t)}]");
+            $what.^set_name("{arr.^name}[{t.^name}]");
             $what;
         }
         else {

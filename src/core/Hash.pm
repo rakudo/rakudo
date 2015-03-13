@@ -423,17 +423,17 @@ my class Hash { # declared in BOOTSTRAP
         }
 
     }
-    method ^parameterize(Mu \hash, Mu \t, |c) {
+    method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {
-            my $what := hash.HOW.mixin(hash.WHAT, TypedHash[t.WHAT]);
+            my $what := hash.^mixin(TypedHash[t]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(self, "{hash.HOW.name(hash)}[{t.HOW.name(t)}]");
+            $what.^set_name("{hash.^name}[{t.^name}]");
             $what;
         }
         elsif c.elems == 1 {
-            my $what := hash.HOW.mixin(hash.WHAT, TypedHash[t.WHAT, c[0]]);
+            my $what := hash.^mixin(TypedHash[t, c[0].WHAT]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(hash, "{hash.HOW.name(hash)}[{t.HOW.name(t)},{c[0].HOW.name(c[0])}]");
+            $what.^set_name("{hash.^name}[{t.^name},{c[0].^name}]");
             $what;
         }
         else {

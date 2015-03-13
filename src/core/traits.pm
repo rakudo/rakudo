@@ -133,7 +133,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => ' ' ~ lc( $r.^name ),
-      highexpect => ('rw parcel hidden-from-backtrace hidden_from_USAGE',
+      highexpect => ('rw parcel hidden-from-backtrace hidden-from-USAGE',
                      'pure default DEPRECATED inlinable',
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
@@ -355,14 +355,21 @@ multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
     );
     $r.^mixin( role { method is-hidden-from-backtrace { True } } );
 }
-
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
     $r.^mixin( role { method is-hidden-from-backtrace { True } } );
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_USAGE!) {
+    DEPRECATED(
+      'is hidden-from-USAGE',
+      |<2015.03 2016.03>,
+      :what<Routine trait "is hidden_from_USAGE">,
+    );
+    $r.^mixin( role { method is-hidden-from-USAGE { True } });
+}
+multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
     $r.^mixin( role {
-        method is_hidden_from_USAGE { True }
+        method is-hidden-from-USAGE { True }
     });
 }
 

@@ -19,9 +19,24 @@ role Perl6::Metamodel::MetaMethodContainer {
     # Applies the added meta-methods to the current meta-object instance by
     # building a role containing them, and mixing it in.
     method compose_meta_methods($obj) {
-        if %!meta_methods {
+        # Build flattened meta-methods set.
+        my %meta;
+        for self.mro($obj) {
+            if nqp::can($_.HOW, 'meta_method_table') {
+                for $_.HOW.meta_method_table($obj) -> $meth_info {
+                    my str $name := $meth_info.key;
+                    unless nqp::existskey(%meta, $name) {
+                        %meta{$name} := $meth_info.value;
+                    }
+                }
+            }
+        }
+
+        # If we have any meta-methods, build a role for them to go in and
+        # compose it into the meta-object..
+        if %meta {
             my $role := $?PACKAGE.HOW.new_type();
-            for %!meta_methods {
+            for %meta {
                 $role.HOW.add_method($role, $_.key, $_.value);
             }
             $role.HOW.set_body_block($role, sub ($class) {

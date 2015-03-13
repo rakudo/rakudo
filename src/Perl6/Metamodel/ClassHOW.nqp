@@ -51,18 +51,6 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
     
-    method parameterize($obj, *@pos_args, *%named_args) {
-        # XXX This mechanism may well change. For now we pass these along
-        # to a PARAMETERIZE_TYPE method on the object if it has one. If
-        # not, we complain.
-        if nqp::can($obj, 'PARAMETERIZE_TYPE') {
-            $obj.PARAMETERIZE_TYPE(|@pos_args, |%named_args)
-        }
-        else {
-            nqp::die("Type " ~ self.name($obj) ~ " cannot accept type arguments")
-        }
-    }
-    
     # Adds a new fallback for method dispatch. Expects the specified
     # condition to have been met (passes it the object and method name),
     # and if it is calls $calculator with the object and method name to
@@ -163,12 +151,13 @@ class Perl6::Metamodel::ClassHOW
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
         
-        # Compose the representation and meta-methods, unless we already
-        # did so once.
+        # Compose the representation, provided this isn't an augment.
         unless $was_composed {
             self.compose_repr($obj);
-            self.compose_meta_methods($obj);
         }
+
+        # Compose the meta-methods.
+        self.compose_meta_methods($obj);
         
         # Compose invocation protocol.
         self.compose_invocation($obj);

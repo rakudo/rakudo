@@ -3,18 +3,24 @@ class array is Iterable is repr('VMArray') {
         multi method AT-POS(array:D: int $idx) is rw {
             nqp::atposref_i(self, $idx)
         }
-        multi method AT-POS(array:D: Int $idx) is rw {
+        multi method AT-POS(array:D: Int:D $idx) is rw {
             nqp::atposref_i(self, $idx)
         }
 
         multi method ASSIGN-POS(array:D: int $idx, int $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Int $idx, int $value) {
+        multi method ASSIGN-POS(array:D: Int:D $idx, int $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Int $idx, $value) {
+        multi method ASSIGN-POS(array:D: int $idx, Int:D $value) {
             nqp::bindpos_i(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(array:D: Int:D $idx, Mu \value) {
+            nqp::bindpos_i(self, $idx, value)
+        }
+        multi method ASSIGN-POS(array:D: Any:D $idx, Mu \value) {
+            nqp::bindpos_i(self, $idx.Int, value)
         }
 
         method STORE(array:D: @values) {
@@ -167,11 +173,17 @@ class array is Iterable is repr('VMArray') {
         multi method ASSIGN-POS(array:D: int $idx, num $value) {
             nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Int $idx, num $value) {
+        multi method ASSIGN-POS(array:D: Int:D $idx, num $value) {
             nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Int $idx, $value) {
+        multi method ASSIGN-POS(array:D: int $idx, Num:D $value) {
             nqp::bindpos_n(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(array:D: Int:D $idx, Mu \value) {
+            nqp::bindpos_n(self, $idx, value)
+        }
+        multi method ASSIGN-POS(array:D: Any:D $idx, Mu \value) {
+            nqp::bindpos_n(self, $idx.Int, value)
         }
 
         method STORE(array:D: @values) {
@@ -346,6 +358,14 @@ class array is Iterable is repr('VMArray') {
 
     method BIND-POS(|) {
         die "Cannot bind to a natively typed array";
+    }
+
+    proto method ASSIGN-POS(|) { * } # Hide candidates from Any
+    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) { # auto-viv
+       SELF.AT-POS(pos) = assignee;
+    }
+    multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) { # undefined idx
+        die "Cannot use '{pos.^name}' as an index";
     }
 
     multi method EXISTS-POS(array:D: int $idx) {

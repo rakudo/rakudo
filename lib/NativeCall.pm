@@ -73,7 +73,7 @@ my class Pointer                               is repr('CPointer') is export(:ty
 
 # need to introduce the roles in there in an augment, because you can't
 # inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
+use MONKEY-TYPING;
 augment class Pointer {
     method of() { void }
 
@@ -231,7 +231,7 @@ my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(Poin
 
 # need to introduce the roles in there in an augment, because you can't 
 # inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
+use MONKEY-TYPING;
 augment class CArray {
     method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
     

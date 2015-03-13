@@ -891,7 +891,7 @@ my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
 }
 
 my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
-    method message() { "augment not allowed without 'use MONKEY_TYPING'" };
+    method message() { "augment not allowed without 'use MONKEY-TYPING'" };
 }
 
 my class X::Syntax::Augment::Illegal does X::Syntax {

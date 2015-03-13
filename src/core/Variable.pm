@@ -108,7 +108,7 @@ multi sub trait_mod:<of>(Variable:D $v, Mu:U $of ) {
               :type<of>, :subtype($of.^name) ); # can't find out native type yet
         }
     }
-    # probably can go if we have a COMPOSE phaser for PARAMETERIZE
+    # probably can go if we have a COMPOSE phaser
     $how.set_name($what,"{$how.name($what)}[{$of.^name}]");
 }
 

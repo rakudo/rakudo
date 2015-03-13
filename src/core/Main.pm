@@ -15,7 +15,7 @@
 #   * Allow exact Perl 6 forms, quoted away from shell
 # * Fix remaining XXXX
 
-my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
+my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
     # Do we have a MAIN at all?
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
@@ -85,7 +85,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
 
         my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! strip_path_prefix($*PROGRAM_NAME);
         for $m.candidates -> $sub {
-            next if $sub.?is_hidden_from_USAGE;
+            next if $sub.?is-hidden-from-USAGE;
             my (@required-named, @optional-named, @positional, $docs);
             for $sub.signature.params -> $param {
                 my $argument;

@@ -20,7 +20,7 @@ my class Exception {
         return $str;
     }
 
-    method throw() is hidden_from_backtrace {
+    method throw() is hidden-from-backtrace {
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
@@ -29,7 +29,7 @@ my class Exception {
             if $msg.defined;
         nqp::throw($!ex)
     }
-    method rethrow() is hidden_from_backtrace {
+    method rethrow() is hidden-from-backtrace {
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
@@ -154,7 +154,7 @@ do {
             try {
                 my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
                 my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
-                my $is_nqp = $codeobj && $codeobj.HOW.name($codeobj) eq 'NQPRoutine';
+                my $is_nqp = $codeobj && $codeobj.^name eq 'NQPRoutine';
                 return True if nqp::iseq_s(nqp::getcodename($sub), 'eval') && $is_nqp;
                 return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
             }
@@ -163,7 +163,7 @@ do {
     }
 
 
-    sub print_exception(|) is hidden_from_backtrace {
+    sub print_exception(|) is hidden-from-backtrace {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         try {
             my $e := EXCEPTION($ex);
@@ -186,7 +186,7 @@ do {
         }
     }
 
-    sub print_control(|) is hidden_from_backtrace {
+    sub print_control(|) is hidden-from-backtrace {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my int $type = nqp::getextype($ex);
         if ($type == nqp::const::CONTROL_WARN) {
@@ -219,7 +219,7 @@ do {
     }
 
     my Mu $comp := nqp::getcomp('perl6');
-    $comp.HOW.add_method($comp, 'handle-exception',
+    $comp.^add_method('handle-exception',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
             print_exception($ex);
@@ -227,7 +227,7 @@ do {
             0;
         }
     );
-    $comp.HOW.add_method($comp, 'handle-control',
+    $comp.^add_method('handle-control',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
             print_control($ex);
@@ -899,7 +899,7 @@ my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
 }
 
 my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
-    method message() { "augment not allowed without 'use MONKEY_TYPING'" };
+    method message() { "augment not allowed without 'use MONKEY-TYPING'" };
 }
 
 my class X::Syntax::Augment::Illegal does X::Syntax {
@@ -1604,37 +1604,37 @@ my class X::Inheritance::NotComposed is Exception {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden_from_backtrace {
+    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden-from-backtrace {
             X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, $expected) is hidden_from_backtrace {
+    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, $expected) is hidden-from-backtrace {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
-    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden_from_backtrace {
+    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden-from-backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
-    %c_ex<X::Assignment::RO> := sub ($typename = "value") is hidden_from_backtrace {
+    %c_ex<X::Assignment::RO> := sub ($typename = "value") is hidden-from-backtrace {
             X::Assignment::RO.new(:$typename).throw;
         };
-    %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {
+    %c_ex{'X::ControlFlow::Return'} := sub () is hidden-from-backtrace {
             X::ControlFlow::Return.new().throw;
         };
-    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden_from_backtrace {
+    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden-from-backtrace {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
-    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous) is hidden_from_backtrace {
+    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous) is hidden-from-backtrace {
             X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous).throw
         };
-    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher) is hidden_from_backtrace {
+    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher) is hidden-from-backtrace {
             X::Multi::NoMatch.new(:$dispatcher).throw
         };
-    %c_ex{'X::Role::Initialization'} := sub ($role) is hidden_from_backtrace {
+    %c_ex{'X::Role::Initialization'} := sub ($role) is hidden-from-backtrace {
             X::Role::Initialization.new(:$role).throw
         }
-    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) is hidden_from_backtrace {
+    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) is hidden-from-backtrace {
         X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
         }
-    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) is hidden_from_backtrace {
+    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) is hidden-from-backtrace {
         X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
     }
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));

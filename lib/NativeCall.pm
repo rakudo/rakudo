@@ -73,11 +73,11 @@ my class Pointer                               is repr('CPointer') is export(:ty
 
 # need to introduce the roles in there in an augment, because you can't
 # inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
+use MONKEY-TYPING;
 augment class Pointer {
     method of() { void }
 
-    method ^name() { 'Pointer' }
+    method ^name($) { 'Pointer' }
 
     multi method new() {
         self.CREATE()
@@ -114,11 +114,11 @@ augment class Pointer {
         # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
         method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
     }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
+    method ^parameterize($, Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
             unless t ~~ Int || t ~~ Num || t === Str || t === void || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedPointer[t];
-        typed.HOW.make_pun(typed);
+        typed.^make_pun;
     }
 }
 my constant OpaquePointer is export(:types, :DEFAULT) = Pointer;
@@ -231,7 +231,7 @@ my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(Poin
 
 # need to introduce the roles in there in an augment, because you can't 
 # inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
+use MONKEY-TYPING;
 augment class CArray {
     method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
     
@@ -269,10 +269,6 @@ augment class CArray {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Int:U $t) {
-        my \typed := IntTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
     
     my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
@@ -308,10 +304,6 @@ augment class CArray {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Num:U $t) {
-        my \typed := NumTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
     
     my role TypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
@@ -341,11 +333,20 @@ augment class CArray {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
-        die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
-        my \typed := TypedCArray[t];
-        typed.HOW.make_pun(typed);
+    method ^parameterize($, Mu:U \t) {
+        my $typed;
+        if t ~~ Int {
+            $typed := IntTypedCArray[t.WHAT];
+        }
+        elsif t ~~ Num {
+            $typed := NumTypedCArray[t.WHAT];
+        }
+        else {
+            die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
+                unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
+            $typed := TypedCArray[t];
+        }
+        $typed.^make_pun();
     }
 }
 

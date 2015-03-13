@@ -230,16 +230,15 @@ class Array { # declared in BOOTSTRAP
         }
         # XXX some methods to come here...
     }
-    method PARAMETERIZE_TYPE(Mu $t, |c) {
+    method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
         if c.elems == 0 {
-#            my $what := self but TypedArray[$t.WHAT]; # too early in bootstrap
-            my $what := self.HOW.mixin(self.WHAT, TypedArray[$t.WHAT]);
+            my $what := arr.^mixin(TypedArray[t]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)}]");
+            $what.^set_name("{arr.^name}[{t.^name}]");
             $what;
         }
         else {
-            die "Can only type-constraint Array with [ValueType]"
+            die "Can only type-constrain Array with [ValueType]"
         }
     }
     multi method ACCEPTS(Array:D: $topic) {

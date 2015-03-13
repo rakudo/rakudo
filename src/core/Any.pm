@@ -151,7 +151,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method classify(|) { * }
     multi method classify($test)   {
-        Hash.PARAMETERIZE_TYPE(Any,Any).new.classify-list( $test, self.list );
+        Hash.^parameterize(Any,Any).new.classify-list( $test, self.list );
     }
     multi method classify($test, :$into!)   {
         ( $into // $into.new ).classify-list( $test, self.list );
@@ -159,7 +159,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method categorize(|) { * }
     multi method categorize($test) {
-        Hash.PARAMETERIZE_TYPE(Any,Any).new.categorize-list( $test, self.list );
+        Hash.^parameterize(Any,Any).new.categorize-list( $test, self.list );
     }
     multi method categorize($test, :$into!) {
         ( $into // $into.new ).categorize-list( $test, self.list );
@@ -740,13 +740,13 @@ proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
 proto sub classify(|) { * }
-multi sub classify( $test, *@items ) { Hash.PARAMETERIZE_TYPE(Any,Any).new.classify-list( $test, @items ) }
+multi sub classify( $test, *@items ) { Hash.^parameterize(Any,Any).new.classify-list( $test, @items ) }
 #multi sub classify( $test, *@items, :$into! ) {   # problem in MMD
 #    ( $into // $into.new).classify-list( $test, @items );
 #}
 
 proto sub categorize(|) { * }
-multi sub categorize( $test, *@items ) { Hash.PARAMETERIZE_TYPE(Any,Any).new.categorize-list( $test, @items ) }
+multi sub categorize( $test, *@items ) { Hash.^parameterize(Any,Any).new.categorize-list( $test, @items ) }
 #multi sub categorize( $test, *@items, :$into! ) {   # problem in MMD
 #    ( $into // $into.new).categorize-list( $test, @items );
 #}
@@ -789,7 +789,7 @@ sub OBJECT_HUH (\SELF) {
     $huh;
 }
 
-sub SLICE_HUH ( \SELF, @nogo, Mu $d, %adv ) is hidden_from_backtrace {
+sub SLICE_HUH ( \SELF, @nogo, Mu $d, %adv ) is hidden-from-backtrace {
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
     for <delete exists kv p k v> -> $valid { # check all valid params

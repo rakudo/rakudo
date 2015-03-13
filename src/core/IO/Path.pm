@@ -122,7 +122,6 @@ my class IO::Path is Cool {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
     method resolve (IO::Path:D:) {
-#?if moar
         # XXXX: Not portable yet; assumes POSIX semantics
         my int $max-depth = 256;
         my str $sep       = $!SPEC.dir-sep;
@@ -184,11 +183,6 @@ my class IO::Path is Cool {
         }
         $resolved = $sep unless nqp::chars($resolved);
         $resolved;
-#?endif
-#?if !moar
-        # NYI: requires readlink()
-        X::NYI.new(feature=>'IO::Path.resolve').fail;
-#?endif
     }
 
     method parent(IO::Path:D:) {    # XXX needs work

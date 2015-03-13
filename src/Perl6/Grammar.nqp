@@ -1623,26 +1623,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <module_name>
             {
                 $longname := $<module_name><longname>;
+                my $longnameStr := $longname.Str;
                 
                 # Some modules are handled in the actions are just turn on a
                 # setting of some kind.
-                if $longname.Str eq 'MONKEY_TYPING' {
+                if $longnameStr eq 'MONKEY_TYPING' ||
+                   $longnameStr eq 'MONKEY-TYPING' {
                     $*MONKEY_TYPING := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'soft' {
+                elsif $longnameStr eq 'soft' {
                     # This is an approximation; need to pay attention to argument
                     # list really.
                     $*SOFT := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'strict' {
+                elsif $longnameStr eq 'strict' {
                     # Turn off lax mode.
                     $*STRICT  := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'Devel::Trace' ||
-                      $longname.Str eq 'fatal' {
+                elsif $longnameStr eq 'Devel::Trace' ||
+                      $longnameStr eq 'fatal' {
                     $longname := "";
                 }
             }
@@ -2966,7 +2968,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <name=.identifier> '(' <.ws>
             [ <named_param> | <param_var> <.ws> ]
-            [ ')' || <.panic: 'Unable to parse named parameter; couldnt find right parenthesis'> ]
+            [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
         | <param_var>
         ]
     }

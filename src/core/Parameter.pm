@@ -154,7 +154,7 @@ my class Parameter { # declared in BOOTSTRAP
     multi method perl(Parameter:D:) {
         my $perl = '';
         my $rest = '';
-        my $type = $!nominal_type.HOW.name($!nominal_type);
+        my $type = $!nominal_type.^name;
         my $truemu='';
 
         # XXX Need a CODE_SIGIL too?

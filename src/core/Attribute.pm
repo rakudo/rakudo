@@ -17,7 +17,7 @@ my class Attribute { # declared in BOOTSTRAP
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
             my $meth_name := nqp::substr($name, 2);
-            unless $package.HOW.declares_method($package, $meth_name) {
+            unless $package.^declares_method($meth_name) {
                 my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
@@ -74,7 +74,7 @@ my class Attribute { # declared in BOOTSTRAP
                         }
                 }
                 $meth.set_name($meth_name);
-                $package.HOW.add_method($package, $meth_name, $meth);
+                $package.^add_method($meth_name, $meth);
             }
         }
 

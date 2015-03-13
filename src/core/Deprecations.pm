@@ -93,9 +93,7 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
       !! Deprecation.new(
         file    => $deprecated.file,
         type    => $deprecated.subtype.tc,
-        package => try {
-            $deprecated.package.HOW.name($deprecated)
-        } // 'unknown',
+        package => try { $deprecated.package.^name } // 'unknown',
         name    => $deprecated.subname,
         :$alternative,
         :from($vfrom),
@@ -108,7 +106,7 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
 }
 
 END {
-    unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
+    unless %*ENV<RAKUDO-NO-DEPRECATIONS> {
         if Deprecation.report -> $message {
             note $message;   # q:to/TEXT/ doesn't work in settings
             note 'Please contact the author to have these calls to deprecated code adapted,

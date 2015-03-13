@@ -156,19 +156,14 @@ my role Supply {
         self.Channel.list;
     }
 
-    method for(Supply:U: |c) {
-        DEPRECATED('from-list',|<2015.01 2016.01>);
-        SupplyOperations.from-list(|c);
-    }
-
-    method on_demand(Supply:U: |c)       { SupplyOperations.on_demand(|c) }
+    method on-demand(Supply:U: |c)       { SupplyOperations.on-demand(|c) }
     method from-list(Supply:U: |c)       { SupplyOperations.from-list(|c) }
     method interval(Supply:U: |c)        { SupplyOperations.interval(|c) }
     method flat(Supply:D: )              { SupplyOperations.flat(self) }
     method grep(Supply:D: Mu $test)      { SupplyOperations.grep(self, $test) }
     method map(Supply:D: &mapper)        { SupplyOperations.map(self, &mapper) }
-    method schedule_on(Supply:D: Scheduler $scheduler) {
-        SupplyOperations.schedule_on(self, $scheduler);
+    method schedule-on(Supply:D: Scheduler $scheduler) {
+        SupplyOperations.schedule-on(self, $scheduler);
     }
     method start(Supply:D: &startee)     { SupplyOperations.start(self, &startee) }
     method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
@@ -212,11 +207,6 @@ my role Supply {
         on -> $res {
             $self => -> \val { side_effect(val); $res.emit(val) }
         }
-    }
-
-    method uniq(Supply:D: |c) {
-        DEPRECATED('unique', |<2014.11 2015.11>);
-        self.unique(|c);
     }
 
     method unique(Supply:D $self: :&as, :&with, :$expires) {
@@ -782,6 +772,23 @@ my role Supply {
                 }
             }
         }
+    }
+
+    method for(Supply:U: |c) {
+        DEPRECATED('from-list',|<2015.01 2016.01>);
+        SupplyOperations.from-list(|c);
+    }
+    method on_demand(Supply:U: |c)       {
+        DEPRECATED('on-demand',|<2015.03 2016.03>);
+        SupplyOperations.on-demand(|c);
+    }
+    method schedule_on(Supply:D: Scheduler $scheduler) {
+        DEPRECATED('schedule-on',|<2015.03 2016.03>);
+        SupplyOperations.schedule-on(self, $scheduler);
+    }
+    method uniq(Supply:D: |c) {
+        DEPRECATED('unique', |<2014.11 2015.11>);
+        self.unique(|c);
     }
 }
 

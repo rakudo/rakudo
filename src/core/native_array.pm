@@ -3,6 +3,9 @@ class array is Iterable is repr('VMArray') {
     proto method STORE(|) { * }
     multi method STORE(array:D: *@values) { self.STORE(@values) }
 
+    multi method push(array:D: *@values)    { self.push(@values) }
+    multi method unshift(array:D: *@values) { self.unshift(@values) }
+
     my role intarray[::T] does Positional[T] is array_type(T) {
         multi method AT-POS(array:D: int $idx) is rw {
             nqp::atposref_i(self, $idx)
@@ -51,7 +54,7 @@ class array is Iterable is repr('VMArray') {
             nqp::push_i(self, $value);
             self
         }
-        multi method push(array:D: *@values) {
+        multi method push(array:D: @values) {
             fail 'Cannot .push an infinite list' if @values.infinite;
             nqp::push_i(self, $_) for @values;
             self
@@ -77,7 +80,7 @@ class array is Iterable is repr('VMArray') {
             nqp::unshift_i(self, $value);
             self
         }
-        multi method unshift(array:D: *@values) {
+        multi method unshift(array:D: @values) {
             fail 'Cannot .unshift an infinite list' if @values.infinite;
             nqp::unshift_i(self, @values.pop) while @values;
             self
@@ -219,7 +222,7 @@ class array is Iterable is repr('VMArray') {
             nqp::push_n(self, $value);
             self
         }
-        multi method push(array:D: *@values) {
+        multi method push(array:D: @values) {
             fail 'Cannot .push an infinite list' if @values.infinite;
             nqp::push_n(self, $_) for @values;
             self
@@ -245,7 +248,7 @@ class array is Iterable is repr('VMArray') {
             nqp::unshift_n(self, $value);
             self
         }
-        multi method unshift(array:D: *@values) {
+        multi method unshift(array:D: @values) {
             fail 'Cannot .unshift an infinite list' if @values.infinite;
             nqp::unshift_n(self, @values.pop) while @values;
             self

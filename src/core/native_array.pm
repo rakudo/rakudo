@@ -347,13 +347,21 @@ class array is Iterable is repr('VMArray') {
 
     proto method new(|) {*}
     multi method new() {
+        self!validate-parameterized();
         nqp::create(self)
     }
     multi method new(@values) {
+        self!validate-parameterized();
         nqp::create(self).STORE(@values)
     }
     multi method new(*@values) {
+        self!validate-parameterized();
         nqp::create(self).STORE(@values)
+    }
+
+    method !validate-parameterized() {
+        nqp::isnull(nqp::typeparameterized(self)) &&
+            die "Must parameterize array[T] with a type before creating it";
     }
 
     method BIND-POS(|) {

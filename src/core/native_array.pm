@@ -385,6 +385,7 @@ class array is Iterable is repr('VMArray') {
 
     multi method Bool(array:D:)    { nqp::p6bool(nqp::elems(self)) }
     multi method Numeric(array:D:) { nqp::elems(self) }
+    multi method Str(array:D:)     { self.join(' ') }
 
     multi method elems(array:D:)    { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
@@ -393,6 +394,21 @@ class array is Iterable is repr('VMArray') {
     method eager() { self }
     method flat()  { self }
     method list()  { self }
+
+    multi method gist(array:D:) {
+        self.map(-> $elem {
+            given ++$ {
+                when 101 { '...' }
+                when 102 { last }
+                default  { $elem.gist }
+            }
+        } ).join: ' ';
+    }
+
+    multi method perl(array:D:) {
+        'array[' ~ self.of.perl ~ '].new(' ~
+            self.map(*.perl).join(', ') ~ ')'
+    }
 
     method gimme($) {
         # Native arrays aren't lazy, so nothing to do.

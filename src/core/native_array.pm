@@ -428,4 +428,7 @@ class array is Iterable is repr('VMArray') {
         # Native arrays aren't lazy, so nothing to do.
         nqp::elems(self)
     }
+
+    method FLATTENABLE_LIST() { self }
+    method FLATTENABLE_HASH() { nqp::hash() }
 }

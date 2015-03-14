@@ -1,4 +1,8 @@
 class array is Iterable is repr('VMArray') {
+
+    proto method STORE(|) { * }
+    multi method STORE(array:D: *@values) { self.STORE(@values) }
+
     my role intarray[::T] does Positional[T] is array_type(T) {
         multi method AT-POS(array:D: int $idx) is rw {
             nqp::atposref_i(self, $idx)
@@ -23,23 +27,12 @@ class array is Iterable is repr('VMArray') {
             nqp::bindpos_i(self, $idx.Int, value)
         }
 
-        proto method STORE(|) { * }
         multi method STORE(array:D: $value) {
             nqp::setelems(self, 0);
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
         multi method STORE(array:D: @values) {
-            nqp::setelems(self, 0);
-            my int $i = 0;
-            my int $n = @values.elems;
-            while $i < $n {
-                nqp::bindpos_i(self, $i, nqp::unbox_i(@values.AT-POS($i)));
-                $i = $i + 1;
-            }
-            self
-        }
-        multi method STORE(array:D: *@values) {
             nqp::setelems(self, 0);
             my int $i = 0;
             my int $n = @values.elems;
@@ -202,23 +195,12 @@ class array is Iterable is repr('VMArray') {
             nqp::bindpos_n(self, $idx.Int, value)
         }
 
-        proto method STORE(|) { * }
         multi method STORE(array:D: $value) {
             nqp::setelems(self, 0);
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
         multi method STORE(array:D: @values) {
-            nqp::setelems(self, 0);
-            my int $i = 0;
-            my int $n = @values.elems;
-            while $i < $n {
-                nqp::bindpos_n(self, $i, nqp::unbox_n(@values.AT-POS($i)));
-                $i = $i + 1;
-            }
-            self
-        }
-        multi method STORE(array:D: *@values) {
             nqp::setelems(self, 0);
             my int $i = 0;
             my int $n = @values.elems;

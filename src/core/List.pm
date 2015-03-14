@@ -331,12 +331,6 @@ my class List does Positional { # declared in BOOTSTRAP
         Nil;
     }
 
-    proto method roll(|) { * }
-    multi method roll() {
-        fail "Cannot .roll from infinite list" if self.infinite;
-        my $elems = self.elems;
-        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
-    }
     multi method roll($n is copy) {
         fail "Cannot .roll from infinite list" if self.infinite;
         my $elems = self.elems;

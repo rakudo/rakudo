@@ -1,5 +1,7 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my class X::Cannot::Infinite { ... }
+my class X::Cannot::Empty { ... }
 my role Supply { ... }
 
 my sub combinations($n, $k) {
@@ -205,18 +207,19 @@ my class List does Positional { # declared in BOOTSTRAP
         fail 'Cannot .pop from an infinite list' if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
-          !! fail 'Element popped from empty list';
+          !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
     }
 
     method shift() is parcel {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items)
-          !! fail 'Element shifted from empty list';
+          !! fail X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
     }
 
     my &list_push = multi method push(List:D: *@values) {
-        fail 'Cannot .push an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
         fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
@@ -280,7 +283,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method unshift(List:D: *@values) {
-        fail 'Cannot .unshift an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
 
         # don't bother with type checks

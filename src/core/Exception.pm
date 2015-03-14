@@ -1278,7 +1278,7 @@ my class X::Cannot::Infinite {
 }
 my class X::Cannot::Empty {
     has $.action;
-    has $.what = "array";
+    has $.what;
     method message() {
         "Cannot $.action from an empty $.what";
     }

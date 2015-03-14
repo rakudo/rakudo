@@ -123,6 +123,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method push(*@values) {
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
         my $previous;
         my $has_previous;
         for @values -> $e {

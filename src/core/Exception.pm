@@ -1273,7 +1273,9 @@ my class X::Cannot::Infinite is Exception {
     has $.action;
     has $.what;
     method message() {
-        "Cannot $.action an infinite list onto a $.what";
+        $.what
+          ?? "Cannot $.action an infinite list onto a $.what"
+          !! "Cannot $.action an infinite list";
     }
 }
 my class X::Cannot::Empty is Exception {

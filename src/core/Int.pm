@@ -1,6 +1,9 @@
 my class Rat { ... }
 my class X::Numeric::DivideByZero { ... }
 
+my class Int { ... }
+my subset UInt of Int where * >= 0;
+
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool {
     #     has bigint $!value is box_target;
@@ -140,7 +143,11 @@ my class Int does Real { # declared in BOOTSTRAP
             when uint2  { Range.new( 0, 3                    ) }
             when uint1  { Range.new( 0, 1                    ) }
 
-            when Int    { Range.new( -Inf, Inf ) }
+            when Int    {  # smartmatch matches both UInt and Int
+                .^name eq 'UInt'
+                  ?? Range.new(    0, Inf )
+                  !! Range.new( -Inf, Inf )
+                }
 
             default {
                 fail "Unknown integer type: {self.^name}";
@@ -371,5 +378,4 @@ multi sub lsb(Int:D \i) { i.lsb }
 proto sub msb($) {*}
 multi sub msb(Int:D \i) { i.msb }
 
-my subset UInt of Int where * >= 0;
 # vim: ft=perl6 expandtab sw=4

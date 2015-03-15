@@ -48,6 +48,7 @@ src/core/GatherIter.pm
 src/core/List.pm
 src/core/LoL.pm
 src/core/Array.pm
+src/core/native_array.pm
 src/core/Enum.pm
 src/core/Pair.pm
 src/core/HashIter.pm

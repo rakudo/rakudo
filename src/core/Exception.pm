@@ -1277,6 +1277,23 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
+my class X::Cannot::Infinite is Exception {
+    has $.action;
+    has $.what;
+    method message() {
+        $.what
+          ?? "Cannot $.action an infinite list onto a $.what"
+          !! "Cannot $.action an infinite list";
+    }
+}
+my class X::Cannot::Empty is Exception {
+    has $.action;
+    has $.what;
+    method message() {
+        "Cannot $.action from an empty $.what";
+    }
+}
+
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;
     method message() { "Unrecognized backslash sequence: '\\$.sequence'" }

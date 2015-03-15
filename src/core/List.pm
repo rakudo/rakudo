@@ -1,5 +1,7 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my class X::Cannot::Infinite { ... }
+my class X::Cannot::Empty { ... }
 my role Supply { ... }
 
 my sub combinations($n, $k) {
@@ -172,12 +174,12 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method pick(|) { * }
     multi method pick() {
-        fail "Cannot .pick from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
     multi method pick($n is copy) {
-        fail "Cannot .pick from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
@@ -202,24 +204,25 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method pop() is parcel {
         my $elems = self.gimme(*);
-        fail 'Cannot .pop from an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.pop from>) if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
-          !! fail 'Element popped from empty list';
+          !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
     }
 
     method shift() is parcel {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items)
-          !! fail 'Element shifted from empty list';
+          !! fail X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
     }
 
     my &list_push = multi method push(List:D: *@values) {
-        fail 'Cannot .push an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
+        fail X::Cannot::Infinite.new(:action<.push to>) if $!nextiter.DEFINITE;
 
         # push is always eager
         @values.gimme(*);
@@ -245,7 +248,8 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method push(List:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
-            fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
+            fail X::Cannot::Infinite.new(:action<.push to>)
+              if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
             nqp::istype(value, self.of)
                 ?? nqp::push($!items, nqp::assign(nqp::p6scalarfromdesc(nqp::null), value))
@@ -280,7 +284,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method unshift(List:D: *@values) {
-        fail 'Cannot .unshift an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
 
         # don't bother with type checks
@@ -314,7 +319,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method plan(List:D: |args) {
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail 'Cannot add plan to an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.plan to>) if $!nextiter.defined;
 
 #        # need type checks?
 #        my $of := self.of;
@@ -333,12 +338,12 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method roll(|) { * }
     multi method roll() {
-        fail "Cannot .roll from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
     multi method roll($n is copy) {
-        fail "Cannot .roll from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         return unless $elems;
         $n = Inf if nqp::istype($n, Whatever);
@@ -352,7 +357,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method reverse() {
         self.gimme(*);
-        fail 'Cannot .reverse from an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.reverse>) if $!nextiter.defined;
         my Mu $rev  := nqp::list();
         my Mu $orig := nqp::clone($!items);
         nqp::push($rev, nqp::pop($orig)) while $orig;
@@ -363,7 +368,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method rotate(Int $n is copy = 1) {
         self.gimme(*);
-        fail 'Cannot .rotate an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.rotate>) if $!nextiter.defined;
         my $items = nqp::p6box_i(nqp::elems($!items));
         return self if !$items;
 
@@ -409,7 +414,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method sort($by = &infix:<cmp>) {
-        fail 'Cannot .sort an infinite list' if self.infinite; #MMD?
+        fail X::Cannot::Infinite.new(:action<.sort>) if self.infinite; #MMD?
 
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as

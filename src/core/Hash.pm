@@ -123,6 +123,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method push(*@values) {
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
         my $previous;
         my $has_previous;
         for @values -> $e {
@@ -144,7 +146,7 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
-        fail 'Cannot .classify an infinite list' if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<.classify>) if @list.infinite;
         if @list {
 
             # multi-level classify
@@ -177,7 +179,7 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method categorize-list(|) { * }
     multi method categorize-list( &test, *@list ) {
-        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<.categorize>) if @list.infinite;
         if @list {
 
             # multi-level categorize

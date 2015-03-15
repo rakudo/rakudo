@@ -348,14 +348,15 @@ class array is Iterable is repr('VMArray') {
     }
 
     method ^parameterize(Mu:U \arr, Mu:U \t) {
-        my int $kind = nqp::objprimspec(t);
+        my $t := nqp::decont(t);
+        my int $kind = nqp::objprimspec($t);
         if $kind == 1 {
-            my $what := arr.^mixin(intarray[t]);
+            my $what := arr.^mixin(intarray[$t]);
             $what.^set_name("{arr.^name}[{t.^name}]");
             $what;
         }
         elsif $kind == 2 {
-            my $what := arr.^mixin(numarray[t]);
+            my $what := arr.^mixin(numarray[$t]);
             $what.^set_name("{arr.^name}[{t.^name}]");
             $what;
         }

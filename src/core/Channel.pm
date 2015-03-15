@@ -91,12 +91,23 @@ my class Channel {
         }
     }
 
-    method list($self: :$wait = 0 ) {
+    multi method list(Channel:D $self:) {
         gather {
             loop {
                 earliest $self {
                   more * { take $_ }
                   done * { last }
+                }
+            }
+        }
+    }
+    multi method list(Channel:D $self: :$wait! ) {
+        gather {
+            loop {
+                earliest $self {
+                  more * { take $_ }
+                  done * { last }
+                  wait $wait { Nil }
                 }
             }
         }

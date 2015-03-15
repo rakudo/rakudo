@@ -39,6 +39,8 @@ my class Channel {
     }
 
     method receive(Channel:D:) {
+        X::Channel::ReceiveOnClosed.new(channel => self).throw if $!closed;
+
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
             $!closed_promise_vow.keep(Nil);

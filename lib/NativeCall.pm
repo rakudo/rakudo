@@ -199,7 +199,7 @@ my role Native[Routine $r, Str $libname] {
     has native_callsite $!call is box_target;
     has Mu $!rettype;
     
-    method invoke(|args) {
+    method CALL-ME(|args) {
         unless $!setup {
             my Mu $arg_info := param_list_for($r.signature);
             my str $conv = self.?native_call_convention || '';

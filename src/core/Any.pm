@@ -16,6 +16,11 @@ my class Any { # declared in BOOTSTRAP
 
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
+    method invoke(|c) {
+        DEPRECATED('CALL-ME',|<2015.03 2016.03>);
+        self.CALL-ME(|c);
+    }
+
     method exists_key(|c) {
         DEPRECATED('EXISTS-KEY',|<2015.03 2016.03>);
         self.EXISTS-KEY(|c);

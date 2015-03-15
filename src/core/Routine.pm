@@ -93,7 +93,7 @@ my class Routine { # declared in BOOTSTRAP
                 nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
                 $handle
             }
-            method invoke(|c) is rw {
+            method CALL-ME(|c) is rw {
                 $!dispatcher.enter(|c);
             }
             method soft() { True }

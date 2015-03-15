@@ -38,7 +38,7 @@ my role Enumeration {
         self.value.Int
     }
 
-    method invoke(|) {
+    method CALL-ME(|) {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
         nqp::istype($x, ::?CLASS)
             ?? $x

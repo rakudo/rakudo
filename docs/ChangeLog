@@ -1,5 +1,5 @@
 New in 2015.03
-- Incompatibility change: rename internal hash/array accessor methods:
+- Incompatibility change: rename internal hash/array/code methods:
     OLD             NEW
     at_pos          AT-POS
     exists_pos      EXISTS-POS
@@ -11,6 +11,7 @@ New in 2015.03
     delete_key      DELETE-KEY
     assign_key      ASSIGN-KEY
     bind_key        BIND-KEY
+    invoke          CALL-ME
 Any code *calling* the old method names, will be given a deprecation warning,
 and will continue to work.  Any module that *implements* MMD candidates for
 any of these methods with their old name, will probably break.  Please start

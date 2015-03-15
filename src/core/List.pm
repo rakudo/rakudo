@@ -644,7 +644,7 @@ my class List does Positional { # declared in BOOTSTRAP
         gather { take [self[@$_]] for permutations(self.elems).eager }
     }
 
-    method invoke(List:U: |c) {
+    method CALL-ME(List:U: |c) {
         self.new(|c);
     }
 }

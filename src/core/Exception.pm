@@ -1269,14 +1269,14 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
-my class X::Cannot::Infinite {
+my class X::Cannot::Infinite is Exception {
     has $.action;
     has $.what;
     method message() {
         "Cannot $.action an infinite list onto a $.what";
     }
 }
-my class X::Cannot::Empty {
+my class X::Cannot::Empty is Exception {
     has $.action;
     has $.what;
     method message() {

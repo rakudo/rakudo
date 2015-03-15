@@ -143,8 +143,11 @@ my class Int does Real { # declared in BOOTSTRAP
             when uint2  { Range.new( 0, 3                    ) }
             when uint1  { Range.new( 0, 1                    ) }
 
-            when UInt   { Range.new(    0, Inf ) }  # must be before Int
-            when Int    { Range.new( -Inf, Inf ) }
+            when Int    {  # smartmatch matches both UInt and Int
+                .^name eq 'UInt'
+                  ?? Range.new(    0, Inf )
+                  !! Range.new( -Inf, Inf )
+                }
 
             default {
                 fail "Unknown integer type: {self.^name}";

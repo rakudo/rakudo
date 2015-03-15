@@ -41,12 +41,12 @@ my class Channel {
     method receive(Channel:D:) {
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
-            nqp::push($!queue, CHANNEL_CLOSE); # make sure other readers see it
+            nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.keep(Nil);
             X::Channel::ReceiveOnClosed.new(channel => self).throw
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
-            nqp::push($!queue, msg);           # make sure other readers see it
+            nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.break(msg.error);
             die msg.error;
         }

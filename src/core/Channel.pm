@@ -39,16 +39,14 @@ my class Channel {
     }
 
     method receive(Channel:D:) {
-        X::Channel::ReceiveOnClosed.new(channel => self).throw if $!closed;
-
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
-            $!closed = 1;
+            nqp::push($!queue, CHANNEL_CLOSE); # make sure other readers see it
             $!closed_promise_vow.keep(Nil);
             X::Channel::ReceiveOnClosed.new(channel => self).throw
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
-            $!closed = 1;
+            nqp::push($!queue, msg);           # make sure other readers see it
             $!closed_promise_vow.break(msg.error);
             die msg.error;
         }
@@ -105,6 +103,7 @@ my class Channel {
     }
 
     method close() {
+        $!closed = 1;
         nqp::push($!queue, CHANNEL_CLOSE);
         # if $!queue is otherwise empty, make sure that $!closed_promise
         # learns about the new value

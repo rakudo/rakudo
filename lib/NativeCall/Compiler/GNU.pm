@@ -17,9 +17,9 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     }
 
     my $params = join '', @params.map: {
-        my $R = '';                               # reference
-        my $P = .rw                 ?? 'P' !! ''; # pointer
-        my $K = $P && $_.?cpp-const ?? 'K' !! ''; # const
+        my $R = $_.?cpp-ref                 ?? 'R' !! ''; # reference
+        my $P = .rw                         ?? 'P' !! ''; # pointer
+        my $K = ($R || $P) && $_.?cpp-const ?? 'K' !! ''; # const
         cpp_param_letter(.type, :$R, :$P, :$K)
     };
     $mangled ~= $params || 'v';
@@ -28,31 +28,31 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
 sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
     given $type {
         when NativeCall::Types::void {
-            $R ~ $K ~ 'v'
+            $R ~ $P ~ $K ~ 'v'
         }
         when Bool {
-            $R ~ $K ~ 'b'
+            $R ~ $P ~ $K ~ 'b'
         }
         when int8 {
-            $R ~ $K ~ 'c'
+            $R ~ $P ~ $K ~ 'c'
         }
         when int16 {
-            $R ~ $K ~ 's'
+            $R ~ $P ~ $K ~ 's'
         }
         when int32 {
-            $P ~ $K ~ 'i'
+            $R ~ $P ~ $K ~ 'i'
         }
         when NativeCall::Types::long {
-            $R ~ $K ~ 'l'
+            $R ~ $P ~ $K ~ 'l'
         }
         when NativeCall::Types::longlong {
-            $R ~ 'x'
+            $R ~ $P ~ $K ~ 'x'
         }
         when num32 {
-            $R ~ $K ~ 'f'
+            $R ~ $P ~ $K ~ 'f'
         }
         when num64 {
-            $R ~ $K ~ 'd'
+            $R ~ $P ~ $K ~ 'd'
         }
         when Str {
             'Pc'
@@ -62,7 +62,7 @@ sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
         }
         default {
             my $name  = .^name;
-            $P ~ $K ~ $name.chars ~ $name;
+            $R ~ $P ~ $K ~ $name.chars ~ $name;
         }
     }
 }

@@ -398,7 +398,7 @@ public final class Binder {
                     if ((paramFlags & SIG_ELEM_DEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) != 1) {
                         if (error != null) {
                             if ((paramFlags & SIG_ELEM_INVOCANT) != 0) {
-                                error[0] = "Invocant requires a instance, but a type object was passed";
+                                error[0] = "Invocant requires an instance, but a type object was passed";
                             }
                             else {
                                 error[0] = String.format(

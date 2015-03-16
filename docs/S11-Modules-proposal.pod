@@ -63,7 +63,7 @@ to use your modules, don't use Unicode in your module names.
 Rakudo effectively gives the following output to -e'.say for @*INC'
 
     ~/.perl6/lib
-    parrot_install/lib/2.1.0-devel/languages/perl6/lib
+    parrot_install/lib/2.1.0-devel/share/perl6/lib
     .
 
 The . entry may be removed from the default @*INC because it creates a

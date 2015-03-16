@@ -4,11 +4,6 @@ my class X::Numeric::DivideByZero { ... }
 my class Int { ... }
 my subset UInt of Int where * >= 0;
 
-my constant $?BITS = do {
-    my int $a = 0x1ffffffff;
-    nqp::iseq_i($a,8589934591) ?? 64 !! 32;
-}
-
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool {
     #     has bigint $!value is box_target;
@@ -120,6 +115,11 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     method narrow(Int:D:) { self }
+
+    my constant $?BITS = do {
+        my int $a = 0x1ffffffff;
+        nqp::iseq_i($a,8589934591) ?? 64 !! 32;
+    }
 
     method Range(Int:U:) {
         given self {

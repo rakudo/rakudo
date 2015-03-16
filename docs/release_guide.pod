@@ -16,7 +16,7 @@ end of this document.
 
   2015-03-19   Rakudo #86 FROGGS
   2015-04-23   Rakudo #87 Coke
-  2015-05-21   Rakudo #88
+  2015-05-21   Rakudo #88 lizmat
   2015-06-18   Rakudo #89
   2015-07-23   Rakudo #90
   2015-08-20   Rakudo #91

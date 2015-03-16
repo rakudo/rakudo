@@ -422,7 +422,7 @@ my class BlockVarOptimizer {
     has $!takedispatcher;
 
     # If lowering is, for some reason, poisoned.
-    has $!poisoned;
+    has int $!poisoned;
 
     # If p6bindsig is used.
     has int $!uses_bindsig;

@@ -8,7 +8,7 @@ NQP_PREFIX = @nqp_prefix@
 
 J_BUILD_DIR = gen/jvm
 
-PERL6_LANG_DIR = $(PREFIX)/languages/perl6
+PERL6_LANG_DIR = $(PREFIX)/share/perl6
 
 NQP_JARS = @nqp_jars@
 

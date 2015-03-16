@@ -253,6 +253,13 @@ multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }
 
+role CPPRef {
+    method cpp-ref() { 1 }
+}
+multi trait_mod:<is>(Parameter $p, :$cpp-ref!) is export(:DEFAULT, :traits) {
+    $p does CPPRef;
+}
+
 multi refresh($obj) is export(:DEFAULT, :utils) {
     nqp::nativecallrefresh($obj);
     1;

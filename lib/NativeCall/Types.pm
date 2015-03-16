@@ -12,7 +12,7 @@ use MONKEY_TYPING;
 augment class Pointer {
     method of() { void }
 
-    method ^name() { 'Pointer' }
+    method ^name($) { 'Pointer' }
 
     multi method new() {
         self.CREATE()
@@ -49,11 +49,11 @@ augment class Pointer {
         # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
         method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
     }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
+    method ^parameterize($, Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
             unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
         my \typed := TypedPointer[t];
-        typed.HOW.make_pun(typed);
+        typed.^make_pun;
     }
 }
 
@@ -64,10 +64,10 @@ our class CArray is repr('CArray') is array_type(Pointer) { };
 # inherit from types that haven't been properly composed.
 use MONKEY_TYPING;
 augment class CArray {
-    method at_pos(CArray:D: $pos) { die "CArray cannot be used without a type" }
+    method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
     
     my role IntTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), nqp::unbox_i($pos.Int)))
@@ -77,7 +77,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), $pos))
@@ -87,26 +87,22 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_i($assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Int:U $t) {
-        my \typed := IntTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
     
     my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), nqp::unbox_i($pos.Int)))
@@ -116,7 +112,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), $pos))
@@ -126,26 +122,22 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_n($assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Num:U $t) {
-        my \typed := NumTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
     
     my role TypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), nqp::unbox_i($pos.Int))
@@ -155,7 +147,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), $pos)
@@ -165,18 +157,27 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, \assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), $pos, nqp::decont(assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, \assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
-        die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CPointer' | 'CArray';
-        my \typed := TypedCArray[t];
-        typed.HOW.make_pun(typed);
+    method ^parameterize($, Mu:U \t) {
+        my $typed;
+        if t ~~ Int {
+            $typed := IntTypedCArray[t.WHAT];
+        }
+        elsif t ~~ Num {
+            $typed := NumTypedCArray[t.WHAT];
+        }
+        else {
+            die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
+                unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
+            $typed := TypedCArray[t];
+        }
+        $typed.^make_pun();
     }
 }
 

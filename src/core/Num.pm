@@ -15,6 +15,7 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     method Num() { self }
     method Bridge(Num:D:) { self }
+    method Range(Num:U:) { Range.new(-Inf,Inf) }
 
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self)) ??

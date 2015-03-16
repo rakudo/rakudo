@@ -41,10 +41,12 @@ my class Channel {
     method receive(Channel:D:) {
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
+            nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.keep(Nil);
             X::Channel::ReceiveOnClosed.new(channel => self).throw
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
+            nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.break(msg.error);
             die msg.error;
         }
@@ -89,12 +91,23 @@ my class Channel {
         }
     }
 
-    method list($self: :$wait = 0 ) {
+    multi method list(Channel:D $self:) {
         gather {
             loop {
                 earliest $self {
                   more * { take $_ }
                   done * { last }
+                }
+            }
+        }
+    }
+    multi method list(Channel:D $self: :$wait! ) {
+        gather {
+            loop {
+                earliest $self {
+                  more * { take $_ }
+                  done * { last }
+                  wait $wait { Nil }
                 }
             }
         }

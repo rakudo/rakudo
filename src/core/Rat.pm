@@ -2,6 +2,7 @@
 my class Rat is Cool does Rational[Int, Int] {
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($.numerator, $.denominator); }
+    method Range(Rat:U:) { Range.new(-Inf,Inf) }
     multi method perl(Rat:D:) {
         my $d = $.denominator;
         return $.numerator ~ '.0' if $d == 1;

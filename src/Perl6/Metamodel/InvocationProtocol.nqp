@@ -49,7 +49,7 @@ role Perl6::Metamodel::InvocationProtocol {
         # Check if we have a invoke, and if so install
         # the default invocation forwarder. Otherwise, see if we or
         # a parent has an invocation attr.
-        my $pcmeth := self.find_method($obj, 'invoke', :no_fallback(1));
+        my $pcmeth := self.find_method($obj, 'CALL-ME', :no_fallback(1));
         if !nqp::isnull($pcmeth) && nqp::defined($pcmeth) {
             nqp::die('Default invocation handler is not invokable')
                 unless nqp::isinvokable($default_invoke_handler);

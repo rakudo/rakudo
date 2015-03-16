@@ -136,7 +136,7 @@ class array is Iterable is repr('VMArray') {
                 $!array := nqp::decont($array);
             }
 
-            method reify($n, :$sink) {
+            method reify($n) {   # :$sink is not needed here
                 unless nqp::isconcrete($!reified) {
                     my $rpa := nqp::list();
                     my int $i = $!idx;

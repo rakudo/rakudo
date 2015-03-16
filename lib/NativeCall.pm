@@ -183,7 +183,17 @@ my role Native[Routine $r, Str $libname] {
             $!setup = 1;
             $!rettype := nqp::decont(map_return_type($r.returns));
         }
-        nqp::nativecall($!rettype, self, nqp::getattr(nqp::decont(args), Capture, '$!list'))
+
+        my Mu $args := nqp::getattr(nqp::decont(args), Capture, '$!list');
+        if nqp::elems($args) != $r.signature.arity {
+            X::TypeCheck::Argument.new(
+                :objname($.name),
+                :arguments(nqp::p6list($args, Array, Mu).map(*.^name))
+                :signature("    Expected: " ~ try $r.signature.perl),
+            ).throw
+        }
+
+        nqp::nativecall($!rettype, self, $args)
     }
 }
 

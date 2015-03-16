@@ -46,6 +46,21 @@ class array is Iterable is repr('VMArray') {
             }
             self
         }
+        multi method STORE(array:D: Range:D $range) {
+            my int $val = $range.min;
+            $val = $val + 1 if $range.excludes-min;
+            my int $max = $range.max;
+            $max = $max - 1 if $range.excludes-max;
+            nqp::setelems(self, $max - $val + 1);
+
+            my int $i;
+            while $val <= $max {
+                nqp::bindpos_i(self, $i, $val);
+                $val = $val + 1;
+                $i   = $i   + 1;
+            }
+            self
+        }
 
         multi method push(array:D: int $value) {
             nqp::push_i(self, $value);

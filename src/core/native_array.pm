@@ -32,14 +32,14 @@ class array is Iterable is repr('VMArray') {
         }
 
         multi method STORE(array:D: $value) {
-            nqp::setelems(self, 0);
+            nqp::setelems(self, 1);
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
         multi method STORE(array:D: @values) {
-            nqp::setelems(self, 0);
             my int $i = 0;
             my int $n = @values.elems;
+            nqp::setelems(self, $n);
             while $i < $n {
                 nqp::bindpos_i(self, $i, nqp::unbox_i(@values.AT-POS($i)));
                 $i = $i + 1;
@@ -202,14 +202,14 @@ class array is Iterable is repr('VMArray') {
         }
 
         multi method STORE(array:D: $value) {
-            nqp::setelems(self, 0);
+            nqp::setelems(self, 1);
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
         multi method STORE(array:D: @values) {
-            nqp::setelems(self, 0);
             my int $i = 0;
             my int $n = @values.elems;
+            nqp::setelems(self, $n);
             while $i < $n {
                 nqp::bindpos_n(self, $i, nqp::unbox_n(@values.AT-POS($i)));
                 $i = $i + 1;

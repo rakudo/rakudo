@@ -106,7 +106,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             }
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
-                    my $is-win := $*DISTRO.is-win;
+                    state $is-win //= $*DISTRO.is-win; # only look up once
                     mkdir "$path/bin" unless "$path/bin".IO.d;
                     my $basename   = $file.IO.basename;
                     my $withoutext = $basename;

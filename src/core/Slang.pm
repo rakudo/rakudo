@@ -4,8 +4,8 @@ class Slang {
     multi method gist(Slang:D:) {
         # Handle NQP objects like Perl6::Grammar
         'Slang.new('
-            ~ (':grammar('~$!grammar.HOW.name($!grammar)~')',
-               ':actions('~$!actions.HOW.name($!actions)~')').join(', ')
+            ~ (':grammar(' ~ $!grammar.^name ~ ')',
+               ':actions(' ~ $!actions.^name ~ ')').join(', ')
             ~ ')'
     }
     method parse (|c) {

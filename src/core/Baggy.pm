@@ -14,9 +14,6 @@ my role Baggy does QuantHash {
     method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
-    multi method exists_key(Baggy:D: $k --> Bool) {
-        %!elems.exists_key($k.WHICH);
-    }
     method Bool { %!elems.Bool }
 
     method hash(--> Hash) { %!elems.values.hash }
@@ -31,17 +28,17 @@ my role Baggy does QuantHash {
         my %e;
         for @pairs {
             when Pair {
-                (%e{$_.key.WHICH} //= ($_.key => 0)).value += $_.value.Int;
+                (%e.AT-KEY($_.key.WHICH) //= ($_.key => 0)).value += $_.value.Int;
             }
             default {
-                (%e{$_.WHICH} //= ($_ => 0)).value++;
+                (%e.AT-KEY($_.WHICH) //= ($_ => 0)).value++;
             }
         }
         my @toolow;
         for %e -> $p {
             my $pair := $p.value;
             @toolow.push( $pair.key ) if $pair.value <  0;
-            %e.delete_key($p.key)     if $pair.value <= 0;
+            %e.DELETE-KEY($p.key)     if $pair.value <= 0;
         }
         fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
         self.bless(:elems(%e));
@@ -77,7 +74,7 @@ my role Baggy does QuantHash {
 
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
-        %!elems.delete_key(%!elems.keys.pick);
+        %!elems.DELETE-KEY(%!elems.keys.pick);
     }
     multi method grabpairs(Baggy:D: $count) {
         if nqp::istype($count,Whatever) || $count == Inf {
@@ -92,7 +89,7 @@ my role Baggy does QuantHash {
 
     proto method pickpairs(|) { * }
     multi method pickpairs(Baggy:D:) {
-        %!elems.at_key(%!elems.keys.pick);
+        %!elems.AT-KEY(%!elems.keys.pick);
     }
     multi method pickpairs(Baggy:D: $count) {
         %!elems{ %!elems.keys.pick(
@@ -105,8 +102,8 @@ my role Baggy does QuantHash {
     proto method grab(|) { * }
     multi method grab(Baggy:D:) {
         my \grabbed := ROLLPICKGRAB1(self,%!elems.values);
-        %!elems.delete_key(grabbed.WHICH)
-          if %!elems.at_key(grabbed.WHICH).value-- == 1;
+        %!elems.DELETE-KEY(grabbed.WHICH)
+          if %!elems.AT-KEY(grabbed.WHICH).value-- == 1;
         grabbed;
     }
     multi method grab(Baggy:D: $count) {
@@ -118,8 +115,8 @@ my role Baggy does QuantHash {
         else {
             my @grabbed = ROLLPICKGRABN(self,$count,%!elems.values);
             for @grabbed {
-                if %!elems.at_key(.WHICH) -> $pair {
-                    %!elems.delete_key(.WHICH) unless $pair.value;
+                if %!elems.AT-KEY(.WHICH) -> $pair {
+                    %!elems.DELETE-KEY(.WHICH) unless $pair.value;
                 }
             }
             @grabbed;
@@ -147,7 +144,7 @@ my role Baggy does QuantHash {
           !! ROLLPICKGRABN(self,$count, %!elems.values, :keep);
     }
 
-    sub ROLLPICKGRAB1($self,@pairs) is hidden_from_backtrace { # one time
+    sub ROLLPICKGRAB1($self,@pairs) is hidden-from-backtrace { # one time
         my Int $rand = $self.total.rand.Int;
         my Int $seen = 0;
         for @pairs -> $pair {
@@ -158,7 +155,7 @@ my role Baggy does QuantHash {
 
     sub ROLLPICKGRABN(                                        # N times
       $self, $count, @pairs is rw, :$keep
-    ) is hidden_from_backtrace {
+    ) is hidden-from-backtrace {
         my Int $total = $self.total;
         my Int $rand;
         my Int $seen;
@@ -197,7 +194,7 @@ my role Baggy does QuantHash {
 #?endif
     }
 
-    sub ROLLPICKGRABW($self,@pairs) is hidden_from_backtrace { # keep going
+    sub ROLLPICKGRABW($self,@pairs) is hidden-from-backtrace { # keep going
         my Int $total = $self.total;
         my Int $rand;
         my Int $seen;
@@ -232,7 +229,7 @@ my role Baggy does QuantHash {
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
-        fail 'Cannot .classify an infinite list' if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<.classify>) if @list.infinite;
         if @list {
 
             # multi-level classify
@@ -262,7 +259,7 @@ my role Baggy does QuantHash {
 
     proto method categorize-list(|) { * }
     multi method categorize-list( &test, *@list ) {
-        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<.categorize>) if @list.infinite;
         if @list {
 
             # multi-level categorize
@@ -296,6 +293,13 @@ my role Baggy does QuantHash {
 
     method Set()     {     Set.new(self.keys) }
     method SetHash() { SetHash.new(self.keys) }
+
+    # all read/write candidates, to be shared with Mixes
+    multi method DELETE-KEY(Baggy:D: \k) {
+        my \v := %!elems.DELETE-KEY(k.WHICH);
+        nqp::istype(v,Pair) ?? v.value !! 0;
+    }
+    multi method EXISTS-KEY(Baggy:D: \k)    { %!elems.EXISTS-KEY(k.WHICH) }
 }
 
 # vim: ft=perl6 expandtab sw=4

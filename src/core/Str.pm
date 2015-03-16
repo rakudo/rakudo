@@ -7,7 +7,7 @@ my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
 my class X::Numeric::Confused { ... }
 
-my $?TABSTOP = 8;
+my constant $?TABSTOP = 8;
 
 sub NORMALIZE_ENCODING(Str:D $s) {
     state %map = (
@@ -1077,7 +1077,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;
     method encode(Str:D $encoding = 'utf8') {
         my $enc      := NORMALIZE_ENCODING($encoding);
-        my $enc_type := %enc_type.exists_key($enc) ?? %enc_type{$enc} !! blob8;
+        my $enc_type := %enc_type.EXISTS-KEY($enc) ?? %enc_type{$enc} !! blob8;
         nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
@@ -1298,12 +1298,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     proto method indent($) {*}
     # Zero indent does nothing
-    multi method indent(Int(Any) $steps where { $_ == 0 }) {
+    multi method indent(Int() $steps where { $_ == 0 }) {
         self;
     }
 
     # Positive indent does indent
-    multi method indent(Int(Any) $steps where { $_ > 0 }) {
+    multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
         return self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
@@ -1330,7 +1330,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Negative indent (outdent)
-    multi method indent(Int(Any) $steps where { $_ < 0 }) {
+    multi method indent(Int() $steps where { $_ < 0 }) {
         return outdent(self, $steps);
     }
 
@@ -1516,10 +1516,10 @@ sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }
-multi sub UNBASE(Int:D $base, Cool:D $num) is hidden_from_backtrace {
+multi sub UNBASE(Int:D $base, Cool:D $num) is hidden-from-backtrace {
     X::Numeric::Confused.new(:what($num)).throw;
 }
-multi sub UNBASE(Int:D $base, Str:D $str) is hidden_from_backtrace {
+multi sub UNBASE(Int:D $base, Str:D $str) is hidden-from-backtrace {
     my Str $prefix = substr($str,0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
@@ -1532,7 +1532,7 @@ multi sub UNBASE(Int:D $base, Str:D $str) is hidden_from_backtrace {
 }
 
 # for :16[1, 2, 3]
-sub UNBASE_BRACKET($base, @a) is hidden_from_backtrace {
+sub UNBASE_BRACKET($base, @a) is hidden-from-backtrace {
     my $v = 0;
     my $denom = 1;
     my Bool $seen-dot = False;
@@ -1574,7 +1574,7 @@ sub SUBSTR-CHARS-OOR(\chars) {
       :comment("use *{chars} if you want to index relative to the end"),
     );
 }
-sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) is hidden_from_backtrace {
+sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) is hidden-from-backtrace {
     my Int $max := what.chars;
     from = nqp::istype($start, Callable) ?? $start($max) !! $start.Int;
     SUBSTR-START-OOR(from,$max).fail

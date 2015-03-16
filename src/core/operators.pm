@@ -18,14 +18,14 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
-    obj.HOW.mixin(obj, $role).BUILD_LEAST_DERIVED({});
+    obj.^mixin($role).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
-    my \mixedin = obj.HOW.mixin(obj, $role, :need-mixin-attribute);
+    my \mixedin = obj.^mixin($role, :need-mixin-attribute);
     mixedin.BUILD_LEAST_DERIVED({ substr(mixedin.^mixin_attribute.Str,2) => $value });
 }
 multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
@@ -33,7 +33,7 @@ multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
 }
 multi sub infix:<does>(Mu:D \obj, @roles) is rw {
     # XXX Mutability check.
-    obj.HOW.mixin(obj, |@roles).BUILD_LEAST_DERIVED({});
+    obj.^mixin(|@roles).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<does>(Mu:U \obj, @roles) is rw {
     X::Does::TypeObject.new(type => obj).throw
@@ -44,13 +44,13 @@ multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
-    obj.HOW.mixin(obj.clone(), $role).BUILD_LEAST_DERIVED({});
+    obj.clone.^mixin($role).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
-    my \mixedin = obj.HOW.mixin(obj.clone(), $role, :need-mixin-attribute);
+    my \mixedin = obj.clone.^mixin($role, :need-mixin-attribute);
     my \attr = mixedin.^mixin_attribute;
     my $mixin-value := $value;
     unless nqp::istype($value, attr.type) {
@@ -64,23 +64,23 @@ multi sub infix:<but>(Mu:U \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
-    obj.HOW.mixin(obj, $role);
+    obj.^mixin($role);
 }
 multi sub infix:<but>(Mu \obj, Mu:D $val) is rw {
     my $role := Metamodel::ParametricRoleHOW.new_type();
     my $meth := method () { $val };
     $meth.set_name($val.^name);
-    $role.HOW.add_method($role, $meth.name, $meth);
-    $role.HOW.set_body_block($role,
-        -> |c { nqp::list($role, nqp::hash('$?CLASS', c<$?CLASS>)) });
-    $role.HOW.compose($role);
-    obj.HOW.mixin(obj.clone(), $role);
+    $role.^add_method($meth.name, $meth);
+    $role.^set_body_block(
+      -> |c { nqp::list($role, nqp::hash('$?CLASS', c<$?CLASS>)) });
+    $role.^compose;
+    obj.clone.^mixin($role);
 }
 multi sub infix:<but>(Mu:D \obj, @roles) {
-    obj.HOW.mixin(obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
+    obj.clone.^mixin(|@roles).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<but>(Mu:U \obj, @roles) {
-    obj.HOW.mixin(obj, |@roles)
+    obj.^mixin(|@roles)
 }
 
 sub SEQUENCE($left, Mu $right, :$exclude_end) {
@@ -198,7 +198,12 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                         last if $value ~~ $endpoint;
                     }
                     $tail.push($value);
-                    take $value;
+                    if $value {
+                        take $value.flat
+                    }
+                    else { ## special case for returning ()
+                        take $value;
+                    }
                 }
             }
             elsif $badseq {
@@ -253,7 +258,7 @@ multi sub infix:<…>(|c) { infix:<...>(|c) }
 proto sub infix:<…^>(|) { * }
 multi sub infix:<…^>(|c) { infix:<...^>(|c) }
 
-sub undefine(Mu \x) { x = Nil }
+sub undefine(Mu \x) is rw { x = Nil }
 
 sub prefix:<temp>(\cont) is rw {
     my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');
@@ -325,11 +330,11 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
             $name = @chunks.join('::');
         }
     }
-    my Mu $thing := $root.exists_key($first) ?? $root{$first} !!
-                    GLOBAL::.exists_key($first) ?? GLOBAL::{$first} !!
+    my Mu $thing := $root.EXISTS-KEY($first) ?? $root{$first} !!
+                    GLOBAL::.EXISTS-KEY($first) ?? GLOBAL::{$first} !!
                     X::NoSuchSymbol.new(symbol => $name).fail;
     for @parts {
-        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.exists_key($_);
+        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.EXISTS-KEY($_);
         $thing := $thing.WHO{$_};
     }
     $thing;
@@ -338,13 +343,13 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
 sub REQUIRE_IMPORT($package-name, *@syms) {
     my $package = CALLER::OUR::($package-name);
     my $who     = $package.WHO;
-    unless $who.exists_key('EXPORT') {
+    unless $who.EXISTS-KEY('EXPORT') {
         die "Trying to import symbols @syms.join(', ') from '$package-name', but it does not export anything";
     }
     $who := $who<EXPORT>.WHO<DEFAULT>.WHO;
     my @missing;
     for @syms {
-        unless $who.exists_key($_) {
+        unless $who.EXISTS-KEY($_) {
             @missing.push: $_;
             next;
         }

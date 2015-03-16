@@ -115,42 +115,20 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method base-repeating($base) {
-        my $s = $!numerator < 0 ?? '-' !! '';
-        my $r = self.abs;
-        my $i = $r.floor;
-        my $reps = '';
-        $r -= $i;
-        $s ~= $i.base($base);
-        if $r {
-            my @f;
-            my %seen;
-            my $rp = $r.perl;
-            while $r and $r ~~ Rat {
-                %seen{$rp} = +@f;
-                $r *= $base;
-                $i = $r.floor;
-                $r -= $i;
-                $rp = $r.perl;
-                push @f, $i;
-                last if %seen{$rp}.defined;
-                last if +@f >= 100000;  # sanity
-            }
-            state @digits = '0'..'9', 'A'..'Z';
-            my $frac = @digits[@f].join;
-            if $r {
-                my $seen = %seen{$r.perl};
-                if $seen.defined {
-                    $reps = substr($frac,$seen);
-                    $frac = substr($frac,0,$seen);
-                }
-                else {
-                    $reps ~= '???';
-                }
-            }
-            $s ~= '.' ~ $frac;
-        }
-        $s, $reps;
+    method base-repeating($base = 10) {
+	return ~self, '' if self.narrow ~~ Int;
+	my (@quotients, @remainders, %remainders);
+	push @quotients, [div] my ($nu, $de) = self.nude;
+	loop {
+	    push @remainders, $nu %= $de;
+	    last if %remainders{$nu}++ or $nu == 0;
+	    $nu *= $base;
+	    push @quotients, $nu div $de;
+	}
+	@quotients.=map(*.base($base));
+	my @cycle = $nu ?? splice(@quotients, @remainders.first-index($nu) + 1) !! ();
+	splice @quotients, 1, 0, '.';
+	return @quotients.join, @cycle.join;
     }
 
     method succ {

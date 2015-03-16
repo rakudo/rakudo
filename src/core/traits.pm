@@ -44,14 +44,14 @@ sub SET_TRAILING_DOCS($obj, $docs) {
 proto sub trait_mod:<is>(|) { * }
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
-        $child.HOW.add_parent($child, $parent);
+        $child.^add_parent($parent);
     }
     elsif $parent.HOW.archetypes.inheritalizable() {
-        $child.HOW.add_parent($child, $parent.HOW.inheritalize($parent))
+        $child.^add_parent($parent.^inheritalize)
     }
     else {
         X::Inheritance::Unsupported.new(
-            :child-typename($child.HOW.name($child)),
+            :child-typename($child.^name),
             :$parent,
         ).throw;
     }
@@ -62,27 +62,27 @@ multi sub trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
 # and a nextsame.
 }
 multi sub trait_mod:<is>(Mu:U $type, :$rw!) {
-    $type.HOW.set_rw($type);
+    $type.^set_rw;
 }
 multi sub trait_mod:<is>(Mu:U $type, :$nativesize!) {
-    $type.HOW.set_nativesize($type, $nativesize);
+    $type.^set_nativesize($nativesize);
 }
 multi sub trait_mod:<is>(Mu:U $type, :$ctype!) {
-    $type.HOW.set_ctype($type, $ctype);
+    $type.^set_ctype($ctype);
 }
 multi sub trait_mod:<is>(Mu:U $type, :$unsigned!) {
-    $type.HOW.set_unsigned($type, $unsigned);
+    $type.^set_unsigned($unsigned);
 }
 multi sub trait_mod:<is>(Mu:U $type, :$hidden!) {
-    $type.HOW.set_hidden($type);
+    $type.^set_hidden;
 }
 multi sub trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
-    $type.HOW.set_array_type($type, $array_type);
+    $type.^set_array_type($array_type);
 }
 multi sub trait_mod:<is>(Mu:U $type, *%fail) {
-    if %fail.keys[0] !eq $type.HOW.name($type) {
+    if %fail.keys[0] !eq $type.^name {
         X::Inheritance::UnknownParent.new(
-            :child($type.HOW.name($type)),
+            :child($type.^name),
             :parent(%fail.keys[0]),
             :suggestions([])
         ).throw;
@@ -133,7 +133,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => ' ' ~ lc( $r.^name ),
-      highexpect => ('rw parcel hidden_from_backtrace hidden_from_USAGE',
+      highexpect => ('rw parcel hidden-from-backtrace hidden-from-USAGE',
                      'pure default DEPRECATED inlinable',
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
@@ -169,7 +169,7 @@ multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
         }
     }
     else {
-        $r.HOW.mixin($r, Precedence);
+        $r.^mixin(Precedence);
         nqp::bindattr(nqp::decont($r), $r.WHAT, '%!prec', %spec);
     }
     0;
@@ -244,7 +244,7 @@ my $_;
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
     for nqp::hllize(@*PACKAGES) {
-        unless .WHO.exists_key('EXPORT') {
+        unless .WHO.EXISTS-KEY('EXPORT') {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;
         }
@@ -253,15 +253,15 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     for @export_packages -> $p {
         for @tags -> $tag {
             my $install_in;
-            if $p.WHO.exists_key($tag) {
+            if $p.WHO.EXISTS-KEY($tag) {
                 $install_in := $p.WHO.{$tag};
             }
             else {
                 $install_in := Metamodel::PackageHOW.new_type(:name($tag));
-                $install_in.HOW.compose($install_in);
+                $install_in.^compose;
                 $p.WHO{$tag} := $install_in;
             }
-            if $install_in.WHO.exists_key(exp_name) {
+            if $install_in.WHO.EXISTS-KEY(exp_name) {
                 unless ($install_in.WHO){exp_name} =:= sym {
                     X::Export::NameClash.new(symbol => exp_name).throw;
                 }
@@ -280,13 +280,13 @@ multi sub trait_mod:<is>(Routine:D \r, :$export!) {
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
-    my $exp_name := type.HOW.name(type);
+    my $exp_name := type.^name;
     my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                        nqp::istype($export,Positional) ?? @($export)>>.key !!
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, type);
     if nqp::istype(type.HOW, Metamodel::EnumHOW) {
-        type.HOW.set_export_callback(type, {
+        type.^set_export_callback( {
             for type.^enum_values.keys -> $value_name {
                 EXPORT_SYMBOL($value_name, @tags, type.WHO{$value_name});
             }
@@ -321,14 +321,14 @@ multi sub trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
 proto sub trait_mod:<does>(|) { * }
 multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     if $role.HOW.archetypes.composable() {
-        $doee.HOW.add_role($doee, $role)
+        $doee.^add_role($role)
     }
     elsif $role.HOW.archetypes.composalizable() {
-        $doee.HOW.add_role($doee, $role.HOW.composalize($role))
+        $doee.^add_role($role.HOW.composalize($role))
     }
     else {
         X::Composition::NotComposable.new(
-            target-name => $doee.HOW.name($doee),
+            target-name => $doee.^name,
             composer    => $role,
         ).throw;
     }
@@ -337,7 +337,7 @@ multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
 proto sub trait_mod:<of>(|) { * }
 multi sub trait_mod:<of>(Mu:U $target, Mu:U $type) {
     # XXX Ensure we can do this, die if not.
-    $target.HOW.set_of($target, $type);
+    $target.^set_of($type);
 }
 multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
@@ -348,19 +348,33 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
-    $r.HOW.mixin($r, role {
-        method is_hidden_from_backtrace { True }
-    });
+    DEPRECATED(
+      'is hidden-from-backtrace',
+      |<2015.03 2016.03>,
+      :what<Routine trait "is hidden_from_backtrace">,
+    );
+    $r.^mixin( role { method is-hidden-from-backtrace { True } } );
+}
+multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
+    $r.^mixin( role { method is-hidden-from-backtrace { True } } );
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_USAGE!) {
-    $r.HOW.mixin($r, role {
-        method is_hidden_from_USAGE { True }
+    DEPRECATED(
+      'is hidden-from-USAGE',
+      |<2015.03 2016.03>,
+      :what<Routine trait "is hidden_from_USAGE">,
+    );
+    $r.^mixin( role { method is-hidden-from-USAGE { True } });
+}
+multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
+    $r.^mixin( role {
+        method is-hidden-from-USAGE { True }
     });
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
-    $r.HOW.mixin($r, role {
+    $r.^mixin( role {
         method IS_PURE { True }
     });
 }
@@ -394,7 +408,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                 $attr.get_value(self)."$call_name"(|c)
             };
             $meth.set_name($meth_name);
-            $pkg.HOW.add_method($pkg, $meth_name, $meth);
+            $pkg.^add_method($meth_name, $meth);
         }
 
         method apply_handles($attr: Mu $pkg) {
@@ -413,7 +427,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                         0;
                     }
                     elsif $expr.isa(Whatever) {
-                        $pkg.HOW.add_fallback($pkg,
+                        $pkg.^add_fallback(
                             -> $obj, $name {
                                 so $attr.get_value($obj).can($name);
                             },
@@ -424,7 +438,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                             });
                     }
                     elsif $expr.isa(HyperWhatever) {
-                        $pkg.HOW.add_fallback($pkg,
+                        $pkg.^add_fallback(
                             -> $obj, $name { True },
                             -> $obj, $name {
                                 -> $self, |c {
@@ -433,7 +447,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                             });
                     }
                     else {
-                        $pkg.HOW.add_fallback($pkg,
+                        $pkg.^add_fallback(
                             -> $obj, $name {
                                 ?($name ~~ $expr)
                             },
@@ -445,7 +459,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                     }
                 }
                 else {
-                    $pkg.HOW.add_fallback($pkg,
+                    $pkg.^add_fallback(
                         -> $obj, $name {
                             ?$expr.can($name)
                         },
@@ -470,7 +484,7 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
             self."$call_name"()."$meth_name"(|c);
         }
         $meth.set_name($meth_name);
-        $pkg.HOW.add_method($pkg, $meth_name, $meth);
+        $pkg.^add_method($meth_name, $meth);
     }
     0;
 }
@@ -482,20 +496,20 @@ multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {
 
 proto sub trait_mod:<trusts>(|) { * }
 multi sub trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
-    $truster.HOW.add_trustee($truster, $trustee);
+    $truster.^add_trustee($trustee);
 }
 
 proto sub trait_mod:<hides>(|) { * }
 multi sub trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
-        $child.HOW.add_parent($child, $parent, :hides);
+        $child.^add_parent($parent, :hides);
     }
     elsif $parent.HOW.archetypes.inheritalizable() {
-        $child.HOW.add_parent($child, $parent.HOW.inheritalize($parent), :hides)
+        $child.^add_parent($parent.^inheritalize, :hides)
     }
     else {
         X::Inheritance::Unsupported.new(
-            :child-typename($child.HOW.name($child)),
+            :child-typename($child.^name),
             :$parent,
         ).throw;
     }

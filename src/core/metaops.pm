@@ -231,33 +231,124 @@ sub METAOP_HYPER_PREFIX(\op, \obj) { deepmap(op, obj) }
 sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
 proto sub hyper(|) { * }
-multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
-    my @alist := a.DEFINITE ?? a.flat !! (a,).list;
-    my @blist := b.DEFINITE ?? b.flat !! (b,).list;
-    my $elems = 0;
-    if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
-    elsif $dwim-left { $elems = @blist.elems }
-    elsif $dwim-right { $elems = @alist.elems }
-    else {
-        X::HyperOp::NonDWIM.new(
-                operator    => op,
-                left-elems  => @alist.elems,
-                right-elems => @blist.elems,
-        ).throw
-            if @alist.elems != @blist.elems
-    }
-    @alist := (@alist xx *).munch($elems) if @alist.elems < $elems;
-    @blist := (@blist xx *).munch($elems) if @blist.elems < $elems;
 
-    (@alist Z @blist).map(
-        -> \x, \y {
-            Iterable.ACCEPTS(x) && x.defined
-              ?? x.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-              !! (Iterable.ACCEPTS(y) && y.defined
-                    ?? y.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-                    !! op.(x, y))
+multi sub hyper(&op, \left, \right, :$dwim-left, :$dwim-right) {
+    op(left, right);
+}
+
+# XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
+multi sub hyper(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
+    my @result;
+    X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.infinite;
+    my int $elems = left.elems;
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1)).throw
+        unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
+    my @left := left.eager;
+    for ^$elems {
+        @result[$_] := hyper(&operator, @left[$_], right, :$dwim-left, :$dwim-right);
+    }
+    # Coerce to the original type
+    my $type = left.WHAT;
+    nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
+}
+
+multi sub hyper(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+    my @result;
+    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right.infinite;
+    my int $elems = right.elems;
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems(1), :right-elems($elems)).throw
+        unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;
+    my @right := right.eager;
+    for ^$elems {
+        @result[$_] := hyper(&operator, left, @right[$_], :$dwim-left, :$dwim-right);
+    }
+    # Coerce to the original type
+    my $type = right.WHAT;
+    nqp::iscont(right) ?? $type(@result.eager).item !! $type(@result.eager)
+}
+
+multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+    my @result;
+
+    # Check if a dwimmy side ends *. If so, that's considered a replication of the final element
+    my $left-elems  = left.elems;
+    my $right-elems = right.elems;
+    my $left-whatev = 0;
+    my $right-whatev = 0;
+    if $dwim-left and 1 < $left-elems < Inf and left[$left-elems - 1] ~~ Whatever {
+        $left-whatev++; $left-elems--;
+    }
+    if $dwim-right and 1 < $right-elems < Inf and right[$right-elems - 1] ~~ Whatever {
+        $right-whatev++; $right-elems--;
+    }
+
+    # Determine the number of elements we need, and how many we non-dwimmily have
+    my int $max-elems;
+    my int $min-elems;
+    if $left-elems == $right-elems {
+        X::HyperOp::Infinite.new(:side<both>, :&operator).throw
+            if $left-elems == Inf;
+        $max-elems = $min-elems = $left-elems;
+    }
+    elsif $dwim-left && $dwim-right {
+        X::HyperOp::Infinite.new(:side($left-elems == Inf ?? "left" !! "right"), :&operator).throw
+            if $left-elems | $right-elems == Inf;
+        $max-elems = $left-elems max $right-elems;
+        $min-elems = $left-elems min $right-elems;
+    }
+    elsif $dwim-left {
+        X::HyperOp::Infinite.new(:side<right>, :&operator).throw
+            if $right-elems == Inf;
+        $max-elems = $right-elems;
+        $min-elems = $left-elems min $right-elems; # could be truncation
+    }
+    elsif $dwim-right {
+        X::HyperOp::Infinite.new(:side<left>, :&operator).throw
+            if $left-elems == Inf;
+        $max-elems = $left-elems;
+        $min-elems = $left-elems min $right-elems; # could be truncation
+    }
+    else {
+        X::HyperOp::NonDWIM.new(:&operator, :$left-elems, :$right-elems).throw
+    }
+
+    # Generate all of the non-dwimmmy results
+    my @left  :=  left.eager;# XXX Should be .list.munch($max-elems) but that seems to be destructive
+    my @right := right.eager;# same
+    for ^$min-elems {
+        @result[$_] := hyper(&operator, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
+    }
+
+    # Check if 0 < $elems since if either side is empty and dwimmy (or both are empty),
+    # and so @result should just remain empty.
+    # If $elems < $max-elems, on the other hand, we still have more dwimmy results to generate
+    if 0 < $left-elems < $max-elems {
+        if $left-whatev {
+            my $last-elem := @left[$left-elems - 1];
+            for $left-elems..^$max-elems {
+                @result[$_] := hyper(&operator, $last-elem, @right[$_], :$dwim-left, :$dwim-right);
+            }
+        } else {
+            for $left-elems..^$max-elems {
+                @result[$_] := hyper(&operator, @left[$_ % $left-elems], @right[$_], :$dwim-left, :$dwim-right);
+            }
         }
-    ).eager
+    } elsif 0 < $right-elems < $max-elems {
+        if $right-whatev {
+            my $last-elem := @right[$right-elems - 1];
+            for $right-elems..^$max-elems {
+                @result[$_] := hyper(&operator, @left[$_], $last-elem, :$dwim-left, :$dwim-right);
+            }
+        } else {
+            for $right-elems..^$max-elems {
+                @result[$_] := hyper(&operator, @left[$_], @right[$_ % $right-elems], :$dwim-left, :$dwim-right);
+            }
+        }
+    }
+
+    # Coerce to the original type
+    my $type = left.WHAT;
+    nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
 }
 
 multi sub hyper(\op, \obj) {
@@ -358,29 +449,35 @@ multi sub duckmap(\op, Associative \h) {
     hash @keys Z duckmap(op, h{@keys})
 }
 
-multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) {
-    my %k;
+multi sub hyper(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+    my %keyset;
     if !$dwim-left {
-        %k{$_} = 1 for a.keys;
+        %keyset{$_} = 1 for left.keys;
     }
     else {
-        %k{$_} = 1 if b.exists_key($_) for a.keys;
+        %keyset{$_} = 1 if right.EXISTS-KEY($_) for left.keys;
     }
     if !$dwim-right {
-        %k{$_} = 1 for b.keys;
+        %keyset{$_} = 1 for right.keys;
     }
-    my @keys := %k.keys;
-    hash @keys Z hyper(op, a{@keys}, b{@keys}, :$dwim-left, :$dwim-right)
+    my @keys := %keyset.keys;
+    my $type = left.WHAT;
+    my %result := $type(@keys Z hyper(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
+    nqp::iscont(left) ?? $%result !! %result;
 }
 
-multi sub hyper(\op, Associative \a, \b, :$dwim-left, :$dwim-right) {
-    my @keys = a.keys;
-    hash @keys Z hyper(op, a{@keys}, b, :$dwim-left, :$dwim-right);
+multi sub hyper(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
+    my @keys = left.keys;
+    my $type = left.WHAT;
+    my %result := $type(@keys Z hyper(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
+    nqp::iscont(left) ?? $%result !! %result;
 }
 
-multi sub hyper(\op, \a, Associative \b, :$dwim-left, :$dwim-right) {
-    my @keys = b.keys;
-    hash @keys Z hyper(op, a, b{@keys}, :$dwim-left, :$dwim-right);
+multi sub hyper(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+    my @keys = right.keys;
+    my $type = right.WHAT;
+    my %result := $type(@keys Z hyper(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
+    nqp::iscont(right) ?? $%result !! %result;
 }
 
 # vim: ft=perl6 expandtab sw=4

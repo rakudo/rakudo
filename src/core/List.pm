@@ -1,5 +1,7 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my class X::Cannot::Infinite { ... }
+my class X::Cannot::Empty { ... }
 my role Supply { ... }
 
 my sub combinations($n, $k) {
@@ -88,16 +90,16 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method Supply(List:D:) { Supply.from-list(self) }
 
-    multi method at_pos(List:D: int \pos) is rw {
+    multi method AT-POS(List:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
-        self.exists_pos(pos) ?? nqp::atpos($!items,pos) !! Nil;
+        self.EXISTS-POS(pos) ?? nqp::atpos($!items,pos) !! Nil;
     }
-    multi method at_pos(List:D: Int:D \pos) is rw {
+    multi method AT-POS(List:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
-        self.exists_pos($pos) ?? nqp::atpos($!items,$pos) !! Nil;
+        self.EXISTS-POS($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }
 
     method eager() { self.gimme(*); self }
@@ -111,14 +113,14 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::defined($!nextiter) ?? Inf !! $n
     }
 
-    multi method exists_pos(List:D: int $pos) {
+    multi method EXISTS-POS(List:D: int $pos) {
         return False if nqp::islt_i($pos,0);
         self.gimme($pos + 1);
         nqp::p6bool(
           nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
         );
     }
-    multi method exists_pos(List:D: Int:D $pos) {
+    multi method EXISTS-POS(List:D: Int:D $pos) {
         return False if $pos < 0;
         self.gimme($pos + 1);
         nqp::p6bool(
@@ -172,12 +174,12 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method pick(|) { * }
     multi method pick() {
-        fail "Cannot .pick from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
     multi method pick($n is copy) {
-        fail "Cannot .pick from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
@@ -185,7 +187,7 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless $elems;
         $n = Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
-        return self.at_pos($elems.rand.floor) if $n == 1;
+        return self.AT-POS($elems.rand.floor) if $n == 1;
         my Mu $rpa := nqp::clone($!items);
         my $i;
         my Mu $v;
@@ -202,24 +204,25 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method pop() is parcel {
         my $elems = self.gimme(*);
-        fail 'Cannot .pop from an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.pop from>) if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
-          !! fail 'Element popped from empty list';
+          !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
     }
 
     method shift() is parcel {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items)
-          !! fail 'Element shifted from empty list';
+          !! fail X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
     }
 
     my &list_push = multi method push(List:D: *@values) {
-        fail 'Cannot .push an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
+        fail X::Cannot::Infinite.new(:action<.push to>) if $!nextiter.DEFINITE;
 
         # push is always eager
         @values.gimme(*);
@@ -245,7 +248,8 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method push(List:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
-            fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
+            fail X::Cannot::Infinite.new(:action<.push to>)
+              if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
             nqp::istype(value, self.of)
                 ?? nqp::push($!items, nqp::assign(nqp::p6scalarfromdesc(nqp::null), value))
@@ -280,7 +284,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method unshift(List:D: *@values) {
-        fail 'Cannot .unshift an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
 
         # don't bother with type checks
@@ -314,7 +319,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method plan(List:D: |args) {
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail 'Cannot add plan to an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.plan to>) if $!nextiter.defined;
 
 #        # need type checks?
 #        my $of := self.of;
@@ -333,16 +338,16 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method roll(|) { * }
     multi method roll() {
-        fail "Cannot .roll from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
     multi method roll($n is copy) {
-        fail "Cannot .roll from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         return unless $elems;
         $n = Inf if nqp::istype($n, Whatever);
-        return self.at_pos($elems.rand.floor) if $n == 1;
+        return self.AT-POS($elems.rand.floor) if $n == 1;
 
         gather while $n > 0 {
             take nqp::atpos($!items, nqp::unbox_i($elems.rand.floor.Int));
@@ -352,7 +357,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method reverse() {
         self.gimme(*);
-        fail 'Cannot .reverse from an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.reverse>) if $!nextiter.defined;
         my Mu $rev  := nqp::list();
         my Mu $orig := nqp::clone($!items);
         nqp::push($rev, nqp::pop($orig)) while $orig;
@@ -363,7 +368,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method rotate(Int $n is copy = 1) {
         self.gimme(*);
-        fail 'Cannot .rotate an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.rotate>) if $!nextiter.defined;
         my $items = nqp::p6box_i(nqp::elems($!items));
         return self if !$items;
 
@@ -409,7 +414,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method sort($by = &infix:<cmp>) {
-        fail 'Cannot .sort an infinite list' if self.infinite; #MMD?
+        fail X::Cannot::Infinite.new(:action<.sort>) if self.infinite; #MMD?
 
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as
@@ -430,11 +435,11 @@ my class List does Positional { # declared in BOOTSTRAP
         # for sorting.
         if ($by.?count // 2) < 2 {
             my $list = self.map($by).eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $list.at_pos($a) cmp $list.at_pos($b) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
         }
         else {
             my $list = self.eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $by($list.at_pos($a), $list.at_pos($b)) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
         }
         self[$index];
     }
@@ -638,11 +643,15 @@ my class List does Positional { # declared in BOOTSTRAP
         # need block on Moar because of RT#121830
         gather { take [self[@$_]] for permutations(self.elems).eager }
     }
+
+    method CALL-ME(List:U: |c) {
+        self.new(|c);
+    }
 }
 
 # internal, caps to not hide 'eager' keyword
 sub EAGER(|) {
-    nqp::p6parcel(nqp::p6argvmarray(), Any).eager
+    nqp::p6list(nqp::p6argvmarray(), List, Bool::True).eager
 }
 
 sub flat(|) {
@@ -655,26 +664,24 @@ sub list(|) {
 
 proto sub infix:<xx>(|)       { * }
 multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
-multi sub infix:<xx>(Mu \x)   {x }
-multi sub infix:<xx>(Mu \x, $n is copy, :$thunked!) {
-    $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? Inf !! $n.Int;
+multi sub infix:<xx>(Mu \x)   { x }
+multi sub infix:<xx>(Mu \x, Real() $n is copy, :$thunked!) {
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
-    GatherIter.new({ loop { take x.() } }, :infinite(True)).flat
+    GatherIter.new({ loop { take x.() } }, :infinite(True)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    GatherIter.new({ loop { take x } }, :infinite(True)).flat
+    GatherIter.new({ loop { take x } }, :infinite(True)).list
 }
-multi sub infix:<xx>(Mu \x, $n) {
-    my int $size = $n.Int;
+multi sub infix:<xx>(Mu \x, Int() $n) {
+    my int $size = $n + 1;
 
     my Mu $rpa := nqp::list();
-    if $size > 0 {
+    if $size > 1 {
         nqp::setelems($rpa, $size);
         nqp::setelems($rpa, 0);
 
-        $size = $size + 1;
         nqp::push($rpa,x) while $size = $size - 1;
     }
 

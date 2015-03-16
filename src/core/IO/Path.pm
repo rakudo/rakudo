@@ -140,7 +140,6 @@ my class IO::Path is Cool {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
     method resolve (IO::Path:D:) {
-#?if moar
         # XXXX: Not portable yet; assumes POSIX semantics
         my int $max-depth = 256;
         my str $sep       = $!SPEC.dir-sep;
@@ -202,11 +201,6 @@ my class IO::Path is Cool {
         }
         $resolved = $sep unless nqp::chars($resolved);
         $resolved;
-#?endif
-#?if !moar
-        # NYI: requires readlink()
-        X::NYI.new(feature=>'IO::Path.resolve').fail;
-#?endif
     }
 
     method parent(IO::Path:D:) {    # XXX needs work
@@ -336,7 +330,7 @@ my class IO::Path is Cool {
         self.copy($to.IO(:$!SPEC,:$CWD),|c);
     }
 
-    method chmod(IO::Path:D: Int(Any) $mode) {
+    method chmod(IO::Path:D: Int() $mode) {
         nqp::chmod($.abspath, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
@@ -520,21 +514,21 @@ my class IO::Path is Cool {
       e => -> $p { True }, # if we get here, it exists
       d => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISDIR)) },
       f => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISREG)) },
-      s => -> $p { %t.at_key("f")($p) && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
+      s => -> $p { %t.AT-KEY("f")($p) && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
       l => -> $p { nqp::p6bool(nqp::fileislink(nqp::unbox_s($p))) },
       r => -> $p { nqp::p6bool(nqp::filereadable(nqp::unbox_s($p))) },
       w => -> $p { nqp::p6bool(nqp::filewritable(nqp::unbox_s($p))) },
       x => -> $p { nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($p))) },
-      z => -> $p { %t.at_key("f")($p) && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
+      z => -> $p { %t.AT-KEY("f")($p) && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
 
       "!e" => -> $p { False }, # if we get here, it exists
-      "!d" => -> $p { !%t.at_key("d")($p) },
-      "!f" => -> $p { !%t.at_key("f")($p) },
-      "!l" => -> $p { !%t.at_key("l")($p) },
-      "!r" => -> $p { !%t.at_key("r")($p) },
-      "!w" => -> $p { !%t.at_key("w")($p) },
-      "!x" => -> $p { !%t.at_key("x")($p) },
-      "!z" => -> $p { !%t.at_key("z")($p) },
+      "!d" => -> $p { !%t.AT-KEY("d")($p) },
+      "!f" => -> $p { !%t.AT-KEY("f")($p) },
+      "!l" => -> $p { !%t.AT-KEY("l")($p) },
+      "!r" => -> $p { !%t.AT-KEY("r")($p) },
+      "!w" => -> $p { !%t.AT-KEY("w")($p) },
+      "!x" => -> $p { !%t.AT-KEY("x")($p) },
+      "!z" => -> $p { !%t.AT-KEY("z")($p) },
     ;
 
     method all(*@tests) {
@@ -542,8 +536,8 @@ my class IO::Path is Cool {
 
         my $result = True;
         for @tests -> $t {
-            die "Unknown test $t" unless %t.exists_key($t);
-            last unless $result = $result && %t.at_key($t)($!abspath);
+            die "Unknown test $t" unless %t.EXISTS-KEY($t);
+            last unless $result = $result && %t.AT-KEY($t)($!abspath);
         }
 
         $result;

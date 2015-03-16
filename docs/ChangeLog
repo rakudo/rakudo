@@ -1,3 +1,36 @@
+New in 2015.03
+- Incompatibility change: rename internal hash/array/code methods:
+    OLD             NEW
+    at_pos          AT-POS
+    exists_pos      EXISTS-POS
+    delete_pos      DELETE-POS
+    assign_pos      ASSIGN-POS
+    bind_pos        BIND-POS
+    at_key          AT-KEY
+    exists_key      EXISTS-KEY
+    delete_key      DELETE-KEY
+    assign_key      ASSIGN-KEY
+    bind_key        BIND-KEY
+    invoke          CALL-ME
+Any code *calling* the old method names, will be given a deprecation warning,
+and will continue to work.  Any module that *implements* MMD candidates for
+any of these methods with their old name, will probably break.  Please start
+using the new names as described above.
+- Incompatibility change: spaces are no longer allowed in operators.
+- Fix "is DEPRECATED" in routines without phasers of their own.
+- Several improvements in Test.is() wrt to handling type objects and whitespace.
+- Implemented PairMap (the simple case only, for now).
+- Implemented .antipairs (pairs with value => key).
+- Implemented .pairup for creating pairs from lists.
+- Implemented LEXICAL, OUTERS and CALLERS pseudo-packages
+- Implemented UInt (sub)type and coercer.
+- Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
+- Many native improvements, e.g. allowing ++ on native ints.
+- Deprecated Supply.on_demand/schedule_on in favour of on-demand/schedule-on.
+- Deprecated is hidden_from_(backtrace|USAGE) for hidden-from-(backtrace|USAGE).
+- Deprecated use MONKEY_TYPING for use MONKEY-TYPING.
+- Various compile time error message improvements.
+
 New in 2015.02
 + Overriding invoke/postcircumfix:<( )> for type coercions (ex. MyType(...))
   now passes the function arguments as-is, rather than just passing a Capture

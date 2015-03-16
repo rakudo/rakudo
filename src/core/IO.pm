@@ -54,12 +54,12 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
 
     # handle //unc/ on win
     @parts.unshift( @parts.splice(0,3).join('/') )
-      if @parts.at_pos(1) eq ''    # //
-      and @parts.at_pos(0) eq '';  # and no C: like stuff
+      if @parts.AT-POS(1) eq ''    # //
+      and @parts.AT-POS(0) eq '';  # and no C: like stuff
 
     # front part cleanup
     @parts.splice(1,1)
-      while %CLEAN-PARTS-NUL.exists_key(@parts.at_pos(1).WHICH);
+      while %CLEAN-PARTS-NUL.EXISTS-KEY(@parts.AT-POS(1).WHICH);
 
     # recursive ".." and "." handling
     sub updirs($index is copy) {
@@ -71,7 +71,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
         }
 
         # something to check
-        elsif @parts.at_pos($index - 1) -> $part {
+        elsif @parts.AT-POS($index - 1) -> $part {
             if $part.ord == 46 { # fast substr($part,0,1) eq '.'
                 if $part eq '..' {
                     return updirs($index - 1);
@@ -95,7 +95,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
     # back part cleanup
     my Int $checks = @parts.end;
     while $checks > 1 {
-        if @parts.at_pos($checks) -> $part {
+        if @parts.AT-POS($checks) -> $part {
             $part eq '..'
               ?? $checks = updirs($checks)
               !! $part eq '.'
@@ -274,23 +274,23 @@ my %FILETEST-HASH =
   e => -> $p { True },
   d => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISDIR)) },
   f => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISREG)) },
-  s => -> $p { %FILETEST-HASH.at_key("f")($p)
+  s => -> $p { %FILETEST-HASH.AT-KEY("f")($p)
     && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
   l => -> $p { nqp::p6bool(nqp::fileislink(nqp::unbox_s($p))) },
   r => -> $p { nqp::p6bool(nqp::filereadable(nqp::unbox_s($p))) },
   w => -> $p { nqp::p6bool(nqp::filewritable(nqp::unbox_s($p))) },
   x => -> $p { nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($p))) },
-  z => -> $p { %FILETEST-HASH.at_key("f")($p)
+  z => -> $p { %FILETEST-HASH.AT-KEY("f")($p)
     && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
 
   "!e" => -> $p { False },
-  "!d" => -> $p { !%FILETEST-HASH.at_key("d")($p) },
-  "!f" => -> $p { !%FILETEST-HASH.at_key("f")($p) },
-  "!l" => -> $p { !%FILETEST-HASH.at_key("l")($p) },
-  "!r" => -> $p { !%FILETEST-HASH.at_key("r")($p) },
-  "!w" => -> $p { !%FILETEST-HASH.at_key("w")($p) },
-  "!x" => -> $p { !%FILETEST-HASH.at_key("x")($p) },
-  "!z" => -> $p { !%FILETEST-HASH.at_key("z")($p) },
+  "!d" => -> $p { !%FILETEST-HASH.AT-KEY("d")($p) },
+  "!f" => -> $p { !%FILETEST-HASH.AT-KEY("f")($p) },
+  "!l" => -> $p { !%FILETEST-HASH.AT-KEY("l")($p) },
+  "!r" => -> $p { !%FILETEST-HASH.AT-KEY("r")($p) },
+  "!w" => -> $p { !%FILETEST-HASH.AT-KEY("w")($p) },
+  "!x" => -> $p { !%FILETEST-HASH.AT-KEY("x")($p) },
+  "!z" => -> $p { !%FILETEST-HASH.AT-KEY("z")($p) },
 ;
 
 sub FILETEST-ALL(Str $path, *@tests) {
@@ -309,8 +309,8 @@ sub FILETEST-ALL(Str $path, *@tests) {
 
     my $result = True;
     for @tests -> $t {
-        die "Unknown test $t" unless %FILETEST-HASH.exists_key($t);
-        last unless $result = $result && %FILETEST-HASH.at_key($t)($path);
+        die "Unknown test $t" unless %FILETEST-HASH.EXISTS-KEY($t);
+        last unless $result = $result && %FILETEST-HASH.AT-KEY($t)($path);
     }
 
     $result;

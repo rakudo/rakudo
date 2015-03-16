@@ -55,7 +55,7 @@ my class Junction { # declared in BOOTSTRAP
         $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
     }
 
-    method invoke(|c) {
+    method CALL-ME(|c) {
         self.AUTOTHREAD(
             -> $obj, |c { $obj(|c) },
             self, |c);
@@ -74,10 +74,10 @@ my class Junction { # declared in BOOTSTRAP
             my @states := nqp::getattr(nqp::decont($arg), Junction, '$!storage');
 
             my Mu $res := nqp::list();
-            for @states -> $s {
+            for @states -> \st {
                 # Next line is Officially Naughty, since captures are meant to be
                 # immutable. But hey, it's our capture to be naughty with...
-                nqp::bindpos($pos_rpa, $i, $s);
+                nqp::bindpos($pos_rpa, $i, st);
                 nqp::push($res, call(|args));
                 Nil;
             }
@@ -118,8 +118,8 @@ my class Junction { # declared in BOOTSTRAP
                 my @states := nqp::getattr(nqp::decont($v), Junction, '$!storage');
                 my $type   := nqp::getattr(nqp::decont($v), Junction, '$!type');
                 my Mu $res := nqp::list();
-                for @states -> $s {
-                    nqp::bindkey($nam_hash, $k, $s);
+                for @states -> \st {
+                    nqp::bindkey($nam_hash, $k, st);
                     nqp::push($res, call(|args));
                     Nil;
                 }

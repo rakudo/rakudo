@@ -1,6 +1,9 @@
 my class Rat { ... }
 my class X::Numeric::DivideByZero { ... }
 
+my class Int { ... }
+my subset UInt of Int where * >= 0;
+
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool {
     #     has bigint $!value is box_target;
@@ -113,16 +116,15 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method narrow(Int:D:) { self }
 
+    my constant $?BITS = do {
+        my int $a = 0x1ffffffff;
+        nqp::iseq_i($a,8589934591) ?? 64 !! 32;
+    }
+
     method Range(Int:U:) {
         given self {
-            when int {
-                my int $a = 0x1ffffffff;
-                $a == 8589934591 ??  int64.Range !!  int32.Range;
-            }
-            when uint {
-                my uint $a = 0x1ffffffff;
-                $a == 8589934591 ?? uint64.Range !! uint32.Range;
-            }
+            when int  { $?BITS == 64 ??  int64.Range !!  int32.Range }
+            when uint { $?BITS == 64 ?? uint64.Range !! uint32.Range }
 
             when int64  { Range.new(-9223372036854775808, 9223372036854775807) }
             when int32  { Range.new(         -2147483648, 2147483647         ) }
@@ -140,7 +142,11 @@ my class Int does Real { # declared in BOOTSTRAP
             when uint2  { Range.new( 0, 3                    ) }
             when uint1  { Range.new( 0, 1                    ) }
 
-            when Int    { Range.new( -Inf, Inf ) }
+            when Int    {  # smartmatch matches both UInt and Int
+                .^name eq 'UInt'
+                  ?? Range.new(    0, Inf )
+                  !! Range.new( -Inf, Inf )
+                }
 
             default {
                 fail "Unknown integer type: {self.^name}";

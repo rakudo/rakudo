@@ -93,7 +93,7 @@ my class Routine { # declared in BOOTSTRAP
                 nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
                 $handle
             }
-            method invoke(|c) is rw {
+            method CALL-ME(|c) is rw {
                 $!dispatcher.enter(|c);
             }
             method soft() { True }
@@ -149,7 +149,7 @@ multi sub trait_mod:<is>(Routine $r, :$cached!) {
       if $r.onlystar; # disable optimization
     $r.wrap(-> |c {
         my $key := c.gist;
-        %cache.exists_key($key)
+        %cache.EXISTS-KEY($key)
           ?? %cache{$key}
           !! (%cache{$key} := callsame);
     });

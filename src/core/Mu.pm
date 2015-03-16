@@ -15,12 +15,12 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method WHICH(|) {*}
     multi method WHICH(Mu:U:) {
-        nqp::box_s(nqp::unbox_s(self.HOW.name(self)), ObjAt);
+        nqp::box_s(nqp::unbox_s(self.^name), ObjAt);
     }
     multi method WHICH(Mu:D:) {
         nqp::box_s(
             nqp::concat(
-                nqp::concat(nqp::unbox_s(self.HOW.name(self)), '|'),
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
                 nqp::objectid(self)
             ),
             ObjAt
@@ -99,7 +99,7 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     # XXX Should not really need the decontainerize, but seems
                     # that slurpy hashes sometimes lead to double containers
                     # somehow...
@@ -109,7 +109,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -120,7 +120,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -137,21 +137,21 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 5) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 6) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 7) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
@@ -201,14 +201,14 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -219,7 +219,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -236,21 +236,21 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 5) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 6) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
             }
             elsif nqp::iseq_i($code, 7) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists_key($key_name) {
+                if %attrinit.EXISTS-KEY($key_name) {
                     nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
@@ -264,12 +264,12 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method Numeric(|) { * }
     multi method Numeric(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.HOW.name(self)} in numeric context";
+        warn "use of uninitialized value of type {self.^name} in numeric context";
         0
     }
     proto method Real(|) { * }
     multi method Real(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.HOW.name(self)} in numeric context";
+        warn "use of uninitialized value of type {self.^name} in numeric context";
         0
     }
 
@@ -277,11 +277,11 @@ my class Mu { # declared in BOOTSTRAP
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
-        warn "use of uninitialized value {$name}of type {self.HOW.name(self)} in string context";
+        warn "use of uninitialized value {$name}of type {self.^name} in string context";
         ''
     }
     multi method Str(Mu:D:) {
-        self.HOW.name(self) ~ '<' ~ nqp::tostr_I(self.WHERE) ~ '>'
+        self.^name ~ '<' ~ nqp::tostr_I(self.WHERE) ~ '>'
     }
 
     proto method Stringy(|) { * }
@@ -300,11 +300,11 @@ my class Mu { # declared in BOOTSTRAP
     method note() { note(self) }
 
     proto method gist(|) { * }
-    multi method gist(Mu:U:) { '(' ~ self.HOW.name(self) ~ ')' }
+    multi method gist(Mu:U:) { '(' ~ self.^name ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
     proto method perl(|) { * }
-    multi method perl(Mu:U:) { self.HOW.name(self) }
+    multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
         my @attrs;
         for self.^attributes().grep: { .has_accessor } -> $attr {
@@ -313,7 +313,7 @@ my class Mu { # declared in BOOTSTRAP
                         ~ ' => '
                         ~ self."$name"().perl
         }
-        self.HOW.name(self) ~ '.new(' ~  @attrs.join(', ') ~ ')';
+        self.^name ~ '.new(' ~  @attrs.join(', ') ~ ')';
     }
 
     proto method DUMP(|) { * }
@@ -322,7 +322,7 @@ my class Mu { # declared in BOOTSTRAP
         return DUMP(self, :$indent-step) unless %ctx;
 
         my Mu $attrs := nqp::list();
-        for self.HOW.attributes(self) -> $attr {
+        for self.^attributes -> $attr {
             my str $name       = $attr.name;
             my str $acc_name   = nqp::substr($name, 2, nqp::chars($name) - 2);
             my str $build_name = $attr.has_accessor ?? $acc_name !! $name;
@@ -362,7 +362,7 @@ my class Mu { # declared in BOOTSTRAP
     method DUMP-OBJECT-ATTRS(|args (*@args, :$indent-step, :%ctx, :$flags?)) {
         my Mu  $attrs := nqp::clone(nqp::captureposarg(nqp::usecapture(), 1));
         my str $where  = nqp::base_I(nqp::where(self), 16);
-        my str $before = ($flags if defined $flags) ~ self.HOW.name(self) ~ '<' ~ %ctx{$where} ~ '>(';
+        my str $before = ($flags if defined $flags) ~ self.^name ~ '<' ~ %ctx{$where} ~ '>(';
 
         my @pieces;
         while $attrs {
@@ -375,15 +375,15 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method isa(|) { * }
     multi method isa(Mu \SELF: Mu $type) {
-        nqp::p6bool(SELF.HOW.isa(SELF, $type.WHAT))
+        nqp::p6bool(SELF.^isa($type.WHAT))
     }
     multi method isa(Mu \SELF: Str:D $name) {
-        my @mro = SELF.HOW.mro(SELF);
+        my @mro = SELF.^mro;
         my int $mro_count = +@mro;
         my int $i = 0;
         while $i < $mro_count {
             my $obj = @mro[$i];
-            if $obj.HOW.name($obj) eq $name {
+            if $obj.^name eq $name {
                 return Bool::True;
             }
             $i = $i + 1;
@@ -396,7 +396,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method can(Mu \SELF: $name) {
-        SELF.HOW.can(SELF, $name)
+        SELF.^can($name)
     }
 
     method clone(*%twiddles) {
@@ -410,7 +410,7 @@ my class Mu { # declared in BOOTSTRAP
                     if nqp::iscont($attr_val);
             }
             my $acc_name := substr($name,2);
-            if $attr.has-accessor && %twiddles.exists_key($acc_name) {
+            if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
                 nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
             }
         }
@@ -422,7 +422,7 @@ my class Mu { # declared in BOOTSTRAP
         for self.^attributes -> $attr {
             if $attr.has-accessor {
                 my $name = substr($attr.name,2);
-                unless %attrs.exists_key($name) {
+                unless %attrs.EXISTS-KEY($name) {
                     %attrs{$name} = self."$name"();
                 }
             }
@@ -431,7 +431,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \SELF: $var, |c) is rw is hidden_from_backtrace {
+    method dispatch:<var>(Mu \SELF: $var, |c) is rw is hidden-from-backtrace {
         $var(SELF, |c)
     }
 
@@ -444,22 +444,22 @@ my class Mu { # declared in BOOTSTRAP
 
             ).throw;
         }
-        self.HOW.find_method_qualified(self, $type, $name)(SELF, |c)
+        self.^find_method_qualified($type, $name)(SELF, |c)
     }
 
-    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw is hidden_from_backtrace {
-        my $meth := $type.HOW.find_private_method($type, $name);
+    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw is hidden-from-backtrace {
+        my $meth := $type.^find_private_method($name);
         $meth ??
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
               invocant => SELF,
               method   => '!' ~ $name,
-              typename => $type.HOW.name($type),
+              typename => $type.^name,
               :private,
             ).throw;
     }
 
-    method dispatch:<.^>(Mu \SELF: $name, |c) is rw is hidden_from_backtrace {
+    method dispatch:<.^>(Mu \SELF: $name, |c) is rw is hidden-from-backtrace {
         self.HOW."$name"(SELF, |c)
     }
 
@@ -468,7 +468,7 @@ my class Mu { # declared in BOOTSTRAP
         mutate = mutate."$name"(|c)
     }
 
-    method dispatch:<.?>(Mu \SELF: $name, |c) is rw is hidden_from_backtrace {
+    method dispatch:<.?>(Mu \SELF: $name, |c) is rw is hidden-from-backtrace {
         nqp::can(SELF, $name) ??
             SELF."$name"(|c) !!
             Nil
@@ -480,22 +480,22 @@ my class Mu { # declared in BOOTSTRAP
             X::Method::NotFound.new(
               invocant => SELF,
               method   => $name,
-              typename => SELF.HOW.name(SELF),
+              typename => SELF.^name,
             ).throw;
         }
         @result
     }
 
     method dispatch:<.*>(Mu \SELF: $name, |c) {
-        my @mro = SELF.HOW.mro(SELF);
+        my @mro = SELF.^mro;
         my int $mro_count = +@mro;
         my @results;
         my int $i = 0;
         while $i < $mro_count {
             my $obj = @mro[$i];
-            my $meth = ($obj.HOW.method_table($obj)){$name};
+            my $meth = ($obj.^method_table){$name};
             if !$meth && $i == 0 {
-                $meth = ($obj.HOW.submethod_table($obj)){$name};
+                $meth = ($obj.^submethod_table){$name};
             }
             if $meth {
                 @results.push($meth(SELF, |c));
@@ -606,7 +606,7 @@ multi sub infix:<eqv>(@a, @b) {
     }
     my int $i = 0;
     while $i < $n {
-        return Bool::False unless @a.at_pos($i) eqv @b.at_pos($i);
+        return Bool::False unless @a.AT-POS($i) eqv @b.AT-POS($i);
         $i = $i + 1;
     }
     Bool::True
@@ -620,7 +620,7 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         if nqp::iscont($topic);
     return '(null)' if nqp::isnull($topic);
 
-    my str $type  = $topic.HOW.name($topic);
+    my str $type  = $topic.^name;
     my str $where = nqp::base_I(nqp::where($topic), 16);
 
     if %ctx{$where} -> $obj_num {

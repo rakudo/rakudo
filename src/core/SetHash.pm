@@ -1,29 +1,5 @@
 my class SetHash does Setty {
 
-    multi method at_key(SetHash:D: $k --> Bool) {
-        Proxy.new(
-          FETCH => {
-              %!elems.exists_key($k.WHICH);
-          },
-          STORE => -> $, $value {
-              if $value {
-                  %!elems{$k.WHICH} = $k;
-              }
-              else {
-                  %!elems.delete_key($k.WHICH);
-              }
-              so $value;
-          });
-    }
-
-    method delete_key($k --> Bool) {
-        my $key   := $k.WHICH;
-        return False unless %!elems.exists_key($key);
-
-        %!elems.delete_key($key);
-        True;
-    }
-
     method Set (:$view) {
         if $view {
             my $set := nqp::create(Set);
@@ -34,8 +10,27 @@ my class SetHash does Setty {
             Set.new(self.keys);
         }
     }
-
     method SetHash { self }
+
+    multi method AT-KEY(SetHash:D: \k --> Bool) {
+        Proxy.new(
+          FETCH => {
+              %!elems.EXISTS-KEY(k.WHICH);
+          },
+          STORE => -> $, $value {
+              $value
+                ?? %!elems.ASSIGN-KEY(k.WHICH,k)
+                !! %!elems.DELETE-KEY(k.WHICH);
+              so $value;
+          });
+    }
+    multi method DELETE-KEY(SetHash:D: \k --> Bool) {
+        my $key := k.WHICH;
+        return False unless %!elems.EXISTS-KEY($key);
+
+        %!elems.DELETE-KEY($key);
+        True;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

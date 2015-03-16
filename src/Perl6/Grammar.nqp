@@ -1623,26 +1623,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <module_name>
             {
                 $longname := $<module_name><longname>;
+                my $longnameStr := $longname.Str;
                 
                 # Some modules are handled in the actions are just turn on a
                 # setting of some kind.
-                if $longname.Str eq 'MONKEY_TYPING' {
+                if $longnameStr eq 'MONKEY_TYPING' ||
+                   $longnameStr eq 'MONKEY-TYPING' {
                     $*MONKEY_TYPING := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'soft' {
+                elsif $longnameStr eq 'soft' {
                     # This is an approximation; need to pay attention to argument
                     # list really.
                     $*SOFT := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'strict' {
+                elsif $longnameStr eq 'strict' {
                     # Turn off lax mode.
                     $*STRICT  := 1;
                     $longname := "";
                 }
-                elsif $longname.Str eq 'Devel::Trace' ||
-                      $longname.Str eq 'fatal' {
+                elsif $longnameStr eq 'Devel::Trace' ||
+                      $longnameStr eq 'fatal' {
                     $longname := "";
                 }
             }
@@ -2068,6 +2070,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token special_variable:sym<%-{ }> {
         '@-{'
         <.obsvar('%-')>
+    }
+
+    token special_variable:sym<$/> {
+        <sym> <?before \h* '=' \h* <[ ' " ]> >
+        <.obsvar('$/')>
     }
 
     token special_variable:sym<$\\> {
@@ -2959,9 +2966,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('named parameter')
         ':'
         [
-        | <name=.identifier> '(' <.ws>
-            [ <named_param> | <param_var> <.ws> ]
-            [ ')' || <.panic: 'Unable to parse named parameter; couldnt find right parenthesis'> ]
+        | <name=.identifier> '('
+            <.ws> [ <named_param> | <param_var> ] <.ws>
+            [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
         | <param_var>
         ]
     }
@@ -3283,11 +3290,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $*BORG<name> := $*BORG<name> // $name;
                         }
                     }
-                    my $nextch := nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1);
-                    if nqp::index('$@%&\'"', $nextch) >= 0 {
-                        $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
-                    }
-                    elsif %deftrap{$name} {
+                    my $nextch := nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) || ' ';
+                    if %deftrap{$name} {
                         my $al := $<args><arglist>;
                         my int $ok := 0;
                         $ok := 1 unless $al<EXPR> eq '';
@@ -3297,7 +3301,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             if nqp::index('<[{', $nextch) >= 0 {
                                 $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "Use of non-subscript brackets after \"$name\" where postfix is expected; please use whitespace before any arguments")
                             }
-                            elsif nqp::index('+-/*', $nextch) >= 0 {
+                            elsif nqp::index('$@%&+-/*', $nextch) >= 0 {
                                 $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
                             }
                             else {
@@ -3493,6 +3497,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token qok($x) {
         » <![(]>
         [ <?[:]> || <!{ my $n := ~$x; $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> ]
+        [ \s* '#' <.panic: "# not allowed as delimiter"> ]?
         <.ws>
     }
     
@@ -4920,7 +4925,25 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 }
 
-grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
+my role CursorPackageNibbler {
+    method nibble-in-cursor($parent) {
+        my $*PACKAGE := $*W.find_symbol(['Cursor']);
+        my %*ATTR_USAGES;
+        my $cur := nqp::findmethod($parent, 'nibbler')(self);
+        for %*ATTR_USAGES {
+            my $name := $_.key;
+            my $node := $_.value[0].node;
+            $node.CURSOR.typed_sorry('X::Attribute::Regex', symbol => $name);
+        }
+        $cur
+    }
+}
+
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPackageNibbler {
+    method nibbler() {
+        self.nibble-in-cursor(QRegex::P6Regex::Grammar)
+    }
+
     method throw_unrecognized_metachar ($metachar) {
         self.typed_sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
     }
@@ -5013,7 +5036,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 }
 
-grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
+grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does CursorPackageNibbler {
+    method nibbler() {
+        self.nibble-in-cursor(QRegex::P5Regex::Grammar)
+    }
+
     token rxstopper { <stopper> }
     
     token p5metachar:sym<(?{ })> {

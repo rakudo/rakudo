@@ -2693,7 +2693,7 @@ BEGIN {
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
-            if !nqp::isconcrete($self) && !nqp::can($self, 'invoke') && !nqp::can($self, 'postcircumfix:<( )>') {
+            if !nqp::isconcrete($self) && !nqp::can($self, 'CALL-ME') && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
                 nqp::die("Cannot coerce to $coercer_name with named parameters")
                   if +%named;
@@ -2707,7 +2707,7 @@ BEGIN {
                 }
             }
             else {
-                nqp::can($self, 'invoke') ?? $self.invoke(|@pos, |%named) !! $self.postcircumfix:<( )>(|@pos, |%named);
+                nqp::can($self, 'CALL-ME') ?? $self.CALL-ME(|@pos, |%named) !! $self.postcircumfix:<( )>(|@pos, |%named);
             }
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);
@@ -2816,19 +2816,17 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 
 # Roles pretend to be narrower than certain types for the purpose
 # of type checking. Also, they pun to classes.
+my %excluded := nqp::hash('ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu);
 Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu, item => Mu ));
+    Perl6::Metamodel::ClassHOW, %excluded);
 Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu, item => Mu ));
+    Perl6::Metamodel::ClassHOW, %excluded);
 Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::CurriedRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu, item => Mu ));
-    
+    Perl6::Metamodel::ClassHOW, %excluded);
+
 # Similar for packages and modules, but just has methods from Any.
 Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);

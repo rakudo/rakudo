@@ -2567,8 +2567,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $*SOFT {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
-            elsif !nqp::can($code, 'postcircumfix:<( )>') {
-                self.add_inlining_info_if_possible($/, $code, $signature, $block, @params);
+            elsif !nqp::can($code, 'CALL-ME') && !nqp::can($code, 'postcircumfix:<( )>') {
+                my $phasers :=
+                  nqp::getattr($code,$*W.find_symbol(['Block']),'$!phasers');
+                if nqp::isnull($phasers) || !nqp::p6bool($phasers) {
+                    self.add_inlining_info_if_possible($/, $code, $signature, $block, @params);
+                }
             }
         }
         
@@ -3487,7 +3491,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<variable> {
             # Don't handle twigil'd case yet.
-            if $<variable><twigil> {
+            if $<variable><twigil> && $<variable><twigil> ne '?' {
                 $*W.throw($/, 'X::Comp::NYI',
                     feature => "Twigil-Variable constants"
                 );

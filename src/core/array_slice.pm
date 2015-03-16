@@ -30,13 +30,13 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is rw {
 
 # @a[int 1]
 multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
-    SELF.at_pos($pos);
+    SELF.AT-POS($pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Mu \assignee ) is rw {
-    SELF.assign_pos($pos, assignee);
+    SELF.ASSIGN-POS($pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
-    SELF.bind_pos($pos, $BIND);
+    SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is rw {
     SLICE_ONE_LIST( SELF, $pos, :$SINK, |%other );
@@ -62,13 +62,13 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
 
 # @a[Int 1]
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos ) is rw {
-    SELF.at_pos($pos);
+    SELF.AT-POS($pos);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Mu \assignee ) is rw {
-    SELF.assign_pos($pos, assignee);
+    SELF.ASSIGN-POS($pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is parcel) is rw {
-    SELF.bind_pos($pos, $BIND);
+    SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$SINK!, *%other ) is rw {
     SLICE_ONE_LIST( SELF, $pos, :$SINK, |%other );
@@ -94,13 +94,13 @@ multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$v!, *%other ) is rw {
 
 # @a[$x]
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos ) is rw {
-    SELF.at_pos(pos.Int);
+    SELF.AT-POS(pos.Int);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Mu \assignee ) is rw {
-    SELF.assign_pos(pos.Int, assignee);
+    SELF.ASSIGN-POS(pos.Int, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is parcel) is rw {
-    SELF.bind_pos(pos.Int, $BIND);
+    SELF.BIND-POS(pos.Int, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$SINK!, *%other ) is rw {
     SLICE_ONE_LIST( SELF, pos.Int, :$SINK, |%other );
@@ -127,12 +127,12 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is rw {
 # @a[@i]
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos ) is rw {
     nqp::iscont(pos)
-      ?? SELF.at_pos(pos.Int)
+      ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
 }
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \assignee ) is rw {
     nqp::iscont(pos)
-      ?? SELF.assign_pos(pos.Int,assignee)
+      ?? SELF.ASSIGN-POS(pos.Int,assignee)
       !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {

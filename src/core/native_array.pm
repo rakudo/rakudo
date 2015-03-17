@@ -236,8 +236,10 @@ class array is Iterable is repr('VMArray') {
             $val = $val + 1 if $range.excludes-min;
             my num $max = $range.max;
             $max = $max - 1 if $range.excludes-max;
-            nqp::setelems(self, ($max - $val + 1).Int );
+            fail X::Cannot::Infinite.new(:action<initialize>,:what(self.^name))
+              if $val == -Inf || $max == Inf;
 
+            nqp::setelems(self, ($max - $val + 1).Int );
             my int $i;
             while $val <= $max {
                 nqp::bindpos_n(self, $i, $val);

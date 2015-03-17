@@ -468,7 +468,7 @@ S09-subscript/multidim-assignment.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 S09-typed-arrays/native.t       # moar
-S09-typed-arrays/native-decl.t
+S09-typed-arrays/native-decl.t  # moar
 S09-typed-arrays/native-int.t   # moar
 S09-typed-arrays/native-num.t   # moar
 S10-packages/basic.t

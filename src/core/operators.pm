@@ -187,6 +187,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 my $count = $code.count;
                 while 1 {
                     $tail.munch($tail.elems - $count);
+                    $value := Nil;  ## reset; $code can end loop via 'last'
                     $value := $code(|$tail);
                     if $end_code_arity != 0 {
                         $end_tail.push($value);

@@ -187,7 +187,13 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 my $count = $code.count;
                 while 1 {
                     $tail.munch($tail.elems - $count);
-                    $value := $code(|$tail);
+                    $value := Nil;  ## reset; $code can end loop via 'last'
+                    try {
+                        $value := $code(|$tail);
+                        CATCH {
+                            when X::TypeCheck::Binding { last };
+                        }
+                    };
                     if $end_code_arity != 0 {
                         $end_tail.push($value);
                         if $end_tail.elems >= $end_code_arity {

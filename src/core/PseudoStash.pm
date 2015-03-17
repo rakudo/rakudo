@@ -145,7 +145,7 @@ my class PseudoStash is EnumMap {
                             nqp::atkey($store, $nkey) !!
                             Any;
             if !($res =:= Any) && nqp::bitand_i($!mode, REQUIRE_DYNAMIC) {
-                if !$res.VAR.dynamic {
+                if try !$res.VAR.dynamic {
                     X::Caller::NotDynamic.new(
                         symbol => $key,
                     ).throw;

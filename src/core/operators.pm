@@ -198,11 +198,11 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                         last if $value ~~ $endpoint;
                     }
                     $tail.push($value);
-                    if ! $value or $value ~~ Array {
-                        take $value;
+                    if $value {
+                        take flat $value;
                     }
-                    else {
-                        take $value.flat
+                    else { ## special case for returning ()
+                        take $value;
                     }
                 }
             }

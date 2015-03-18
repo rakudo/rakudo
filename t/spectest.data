@@ -467,10 +467,10 @@ S09-subscript/slice.t
 S09-subscript/multidim-assignment.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
-S09-typed-arrays/native.t
-S09-typed-arrays/native-decl.t
-S09-typed-arrays/native-int.t
-S09-typed-arrays/native-num.t
+S09-typed-arrays/native.t       # moar
+S09-typed-arrays/native-decl.t  # moar
+S09-typed-arrays/native-int.t   # moar
+S09-typed-arrays/native-num.t   # moar
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
 S10-packages/precompilation.t
@@ -732,6 +732,7 @@ S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
 S32-basics/xxKEY.t
+S32-basics/xxPOS.t
 S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t

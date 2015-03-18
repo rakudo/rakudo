@@ -16,6 +16,8 @@ Any code *calling* the old method names, will be given a deprecation warning,
 and will continue to work.  Any module that *implements* MMD candidates for
 any of these methods with their old name, will probably break.  Please start
 using the new names as described above.
+- Native array's (int/num) are now available on MoarVM only (for now).
+- Other native improvements, e.g. my int $a; $a++, also MoarVM only (for now).
 - Incompatibility change: spaces are no longer allowed in operators.
 - Fix "is DEPRECATED" in routines without phasers of their own.
 - Several improvements in Test.is() wrt to handling type objects and whitespace.
@@ -25,7 +27,6 @@ using the new names as described above.
 - Implemented LEXICAL, OUTERS and CALLERS pseudo-packages
 - Implemented UInt (sub)type and coercer.
 - Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
-- Many native improvements, e.g. allowing ++ on native ints.
 - Deprecated Supply.on_demand/schedule_on in favour of on-demand/schedule-on.
 - Deprecated is hidden_from_(backtrace|USAGE) for hidden-from-(backtrace|USAGE).
 - Deprecated use MONKEY_TYPING for use MONKEY-TYPING.

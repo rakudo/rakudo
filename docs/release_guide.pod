@@ -14,7 +14,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-03-19   Rakudo #86 FROGGS
   2015-04-23   Rakudo #87 Coke
   2015-05-21   Rakudo #88 lizmat
   2015-06-18   Rakudo #89
@@ -329,6 +328,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2014-12-19   2014.12.1                       (lizmat)
   2015-01-22   Rakudo #84 "Gotanda"            (Coke)
   2015-02-19   Rakudo #85 "Berlin"             (lizmat)
+  2015-03-19   Rakudo #86 "Cluj"               (FROGGS)
 
 =head1 COPYRIGHT
 

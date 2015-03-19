@@ -170,7 +170,7 @@ Make sure any locally modified files have been pushed back to github.
 Make sure everything compiles and runs from a known clean state:
 
   $ make realclean
-  $ perl Configure.pl --gen-parrot --gen-moar --backends=ALL
+  $ perl Configure.pl --gen-moar --backends=ALL
   $ make
   $ make test
   $ make stresstest

@@ -5,23 +5,23 @@ New in 2015.03
   any of these methods with their old name, will probably break. Please start
   using the new names as described below.
   + renamed internal hash/array/code/* methods:
-    OLD                    NEW
-    at_pos                 AT-POS
-    exists_pos             EXISTS-POS
-    delete_pos             DELETE-POS
-    assign_pos             ASSIGN-POS
-    bind_pos               BIND-POS
-    at_key                 AT-KEY
-    exists_key             EXISTS-KEY
-    delete_key             DELETE-KEY
-    assign_key             ASSIGN-KEY
-    bind_key               BIND-KEY
-    invoke                 CALL-ME
-    Supply.on_demand       Supply.on-demand
-    Supply.schedule_on     Supply.schedule-on
+    - OLD                    NEW
+    - at_pos                 AT-POS
+    - exists_pos             EXISTS-POS
+    - delete_pos             DELETE-POS
+    - assign_pos             ASSIGN-POS
+    - bind_pos               BIND-POS
+    - at_key                 AT-KEY
+    - exists_key             EXISTS-KEY
+    - delete_key             DELETE-KEY
+    - assign_key             ASSIGN-KEY
+    - bind_key               BIND-KEY
+    - invoke                 CALL-ME
+    - Supply.on_demand       Supply.on-demand
+    - Supply.schedule_on     Supply.schedule-on
   + renamed traits
-    hidden_from_backtrace  hidden-from-backtrace
-    hidden_from_USAGE      hidden-from-USAGE
+    - hidden_from_backtrace  hidden-from-backtrace
+    - hidden_from_USAGE      hidden-from-USAGE
   + Deprecated use MONKEY_TYPING for use MONKEY-TYPING.
   + Incompatibility change: spaces are no longer allowed in operators.
   + Disallow redeclaring constants in the same scope

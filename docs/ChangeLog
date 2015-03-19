@@ -32,6 +32,10 @@ using the new names as described above.
 + Deprecated is hidden_from_(backtrace|USAGE) for hidden-from-(backtrace|USAGE).
 + Deprecated use MONKEY_TYPING for use MONKEY-TYPING.
 + Various compile time error message improvements.
++ Hyper-infixes (like »~») are faster and have more features.
++ Errors like "expected Array[Str] but got Array[Str]" have been fixed.
++ not() and so() are functions as well as prefixes.
++ Custom class metamethods ("method ^foo { … }") now work with inheritance.
 
 New in 2015.02
 + Overriding invoke/postcircumfix:<( )> for type coercions (ex. MyType(...))

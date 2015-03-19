@@ -313,8 +313,10 @@ multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
     }
 
     # Generate all of the non-dwimmmy results
-    my @left  :=  left.eager;# XXX Should be .list.munch($max-elems) but that seems to be destructive
-    my @right := right.eager;# same
+    my @left  :=  left.list;
+    my @right := right.list;
+    @left.gimme($max-elems);
+    @right.gimme($max-elems);
     for ^$min-elems {
         @result[$_] := hyper(&operator, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
     }
@@ -323,23 +325,27 @@ multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
     # and so @result should just remain empty.
     # If $elems < $max-elems, on the other hand, we still have more dwimmy results to generate
     if 0 < $left-elems < $max-elems {
-        if $left-whatev {
+        if $left-whatev || $left-elems == 1 {
+            # Repeat last element
             my $last-elem := @left[$left-elems - 1];
             for $left-elems..^$max-elems {
                 @result[$_] := hyper(&operator, $last-elem, @right[$_], :$dwim-left, :$dwim-right);
             }
         } else {
+            # Cycle through the elements
             for $left-elems..^$max-elems {
                 @result[$_] := hyper(&operator, @left[$_ % $left-elems], @right[$_], :$dwim-left, :$dwim-right);
             }
         }
     } elsif 0 < $right-elems < $max-elems {
-        if $right-whatev {
+        if $right-whatev || $right-elems == 1 {
+            # Repeat last element
             my $last-elem := @right[$right-elems - 1];
             for $right-elems..^$max-elems {
                 @result[$_] := hyper(&operator, @left[$_], $last-elem, :$dwim-left, :$dwim-right);
             }
         } else {
+            # Cycle through the elements
             for $right-elems..^$max-elems {
                 @result[$_] := hyper(&operator, @left[$_], @right[$_ % $right-elems], :$dwim-left, :$dwim-right);
             }
@@ -462,21 +468,21 @@ multi sub hyper(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$d
     }
     my @keys := %keyset.keys;
     my $type = left.WHAT;
-    my %result := $type(@keys Z hyper(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
+    my %result := $type(@keys Z=> hyper(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
     nqp::iscont(left) ?? $%result !! %result;
 }
 
 multi sub hyper(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
     my @keys = left.keys;
     my $type = left.WHAT;
-    my %result := $type(@keys Z hyper(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
+    my %result := $type(@keys Z=> hyper(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
     nqp::iscont(left) ?? $%result !! %result;
 }
 
 multi sub hyper(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
     my @keys = right.keys;
     my $type = right.WHAT;
-    my %result := $type(@keys Z hyper(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
+    my %result := $type(@keys Z=> hyper(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
     nqp::iscont(right) ?? $%result !! %result;
 }
 

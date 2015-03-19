@@ -1,5 +1,5 @@
 New in 2015.03
-+ Incompatibility change and deprecations:
++ Incompatible changes and deprecations:
   Any code *calling* the old method names, will be given a deprecation warning,
   and will continue to work. Any module that *implements* MMD candidates for
   any of these methods with their old name, will probably break. Please start

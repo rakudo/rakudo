@@ -38,7 +38,7 @@ New in 2015.03
   + Implemented LEXICAL, OUTERS and CALLERS pseudo-packages
   + Implemented UInt (sub)type and coercer.
   + Add a array[T], usable for native int/num (MoarVM only for now)
-  + Other native improvements, e.g. my int $a; $a++ (MoarVM only for now)
+  + Other native improvements, e.g. my int $a; $a++
   + Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
   + Improve and test support for Listy types in JVM Interop.
   + Hyper-infixes (like »~») are faster and have more features.

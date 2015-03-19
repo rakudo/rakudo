@@ -42,7 +42,6 @@ New in 2015.03
   + Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
   + Improve and test support for Listy types in JVM Interop.
   + Hyper-infixes (like »~») are faster and have more features.
-  + Errors like "expected Array[Str] but got Array[Str]" have been fixed.
   + Make token prefix properly compete with term in LTM
   + not() and so() are functions as well as prefixes.
   + substr-rw() now accepts the same range of parameters as substr()
@@ -61,6 +60,7 @@ New in 2015.03
   + fix $*KERNEL.arch for raspbian, ugexe++
   + Make $?TABSTOP immutable
   + Make CALLER::<&?ROUTINE> work
+  + Errors like "expected Array[Str] but got Array[Str]" have been fixed.
 + Optimizations
   + Make my int/num @a = Range about 1000x faster
   + Make generic Str.subst between 5 - 10% faster

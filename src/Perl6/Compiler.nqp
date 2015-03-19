@@ -3,6 +3,9 @@ use QRegex;
 use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
+    has $!linenoise;
+    has $!linenoise_add_history;
+
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';
@@ -48,6 +51,13 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method interactive(*%adverbs) {
+        try {
+            $!linenoise             := self.eval("use Linenoise; &linenoise");
+            $!linenoise_add_history := self.eval("use Linenoise; &linenoiseHistoryAdd");
+
+            CATCH {} # it's ok if we can't load Linenoise
+        }
+
         my $*moreinput := sub ($cursor) {
             my str $more := self.readline(nqp::getstdin(), nqp::getstdout(), '* ');
             if nqp::isnull_s($more) || $more eq '' {
@@ -108,4 +118,16 @@ class Perl6::Compiler is HLL::Compiler {
         For more information, see the perl6(1) man page.\n"); 
         nqp::exit(0);
     }
+
+    method readline($stdin, $stdout, $prompt) {
+        if $!linenoise {
+            my $line := $!linenoise($prompt);
+            $!linenoise_add_history($line) if $line.defined;
+            $line
+        } else {
+            my $super := nqp::findmethod(HLL::Compiler, 'readline');
+            $super(self, $stdin, $stdout, $prompt);
+        }
+    }
+
 }

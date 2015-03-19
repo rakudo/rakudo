@@ -106,7 +106,7 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
 }
 
 END {
-    unless %*ENV<RAKUDO-NO-DEPRECATIONS> {
+    unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
         if Deprecation.report -> $message {
             note $message;   # q:to/TEXT/ doesn't work in settings
             note 'Please contact the author to have these calls to deprecated code adapted,

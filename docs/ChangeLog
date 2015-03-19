@@ -1,5 +1,5 @@
 New in 2015.03
-- Incompatibility change: rename internal hash/array/code methods:
+- Incompatible change: rename internal hash/array/code methods:
     OLD             NEW
     at_pos          AT-POS
     exists_pos      EXISTS-POS
@@ -24,7 +24,7 @@ using the new names as described above.
 - Implemented .pairup for creating pairs from lists.
 - Implemented LEXICAL, OUTERS and CALLERS pseudo-packages
 - Implemented UInt (sub)type and coercer.
-- Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
+- Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) are now supported.
 - Many native improvements, e.g. allowing ++ on native ints.
 - Deprecated Supply.on_demand/schedule_on in favour of on-demand/schedule-on.
 - Deprecated is hidden_from_(backtrace|USAGE) for hidden-from-(backtrace|USAGE).

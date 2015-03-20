@@ -1,3 +1,8 @@
+New in 2015.04
+ + Incompatible changes:
+   + Installation directory layout changed: it now uses $PREFIX/share instead of
+     $PREFIX/languages
+
 New in 2015.03
 + Incompatible changes and deprecations:
   Any code *calling* the old method names, will be given a deprecation warning,

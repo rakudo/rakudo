@@ -1575,6 +1575,7 @@ my class X::Item is Exception {
 my class X::Multi::Ambiguous is Exception {
     has $.dispatcher;
     has @.ambiguous;
+    has $.capture;
     method message {
         join "\n",
             "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
@@ -1584,6 +1585,7 @@ my class X::Multi::Ambiguous is Exception {
 
 my class X::Multi::NoMatch is Exception {
     has $.dispatcher;
+    has $.capture;
     method message {
         join "\n",
             "Cannot call '$.dispatcher.name()'; none of these signatures match:",
@@ -1631,11 +1633,11 @@ my class X::Inheritance::NotComposed is Exception {
     %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden-from-backtrace {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
-    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous) is hidden-from-backtrace {
-            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous).throw
+    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) is hidden-from-backtrace {
+            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
         };
-    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher) is hidden-from-backtrace {
-            X::Multi::NoMatch.new(:$dispatcher).throw
+    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) is hidden-from-backtrace {
+            X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
         };
     %c_ex{'X::Role::Initialization'} := sub ($role) is hidden-from-backtrace {
             X::Role::Initialization.new(:$role).throw

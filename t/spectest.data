@@ -619,7 +619,7 @@ S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/earliest.t
-S17-lowlevel/lock.t
+# S17-lowlevel/lock.t
 # S17-lowlevel/thread.t
 S17-procasync/basic.t    # moar
 S17-procasync/print.t    # moar

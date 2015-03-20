@@ -313,7 +313,7 @@ my class Mu { # declared in BOOTSTRAP
                         ~ ' => '
                         ~ $attr.get_value(self).perl
         }
-        self.^name ~ '.new(' ~  @attrs.join(', ') ~ ')';
+        self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs);
     }
 
     proto method DUMP(|) { * }

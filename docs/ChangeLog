@@ -1,35 +1,86 @@
 New in 2015.03
-- Incompatibility change: rename internal hash/array/code methods:
-    OLD             NEW
-    at_pos          AT-POS
-    exists_pos      EXISTS-POS
-    delete_pos      DELETE-POS
-    assign_pos      ASSIGN-POS
-    bind_pos        BIND-POS
-    at_key          AT-KEY
-    exists_key      EXISTS-KEY
-    delete_key      DELETE-KEY
-    assign_key      ASSIGN-KEY
-    bind_key        BIND-KEY
-    invoke          CALL-ME
-Any code *calling* the old method names, will be given a deprecation warning,
-and will continue to work.  Any module that *implements* MMD candidates for
-any of these methods with their old name, will probably break.  Please start
-using the new names as described above.
-- Incompatibility change: spaces are no longer allowed in operators.
-- Fix "is DEPRECATED" in routines without phasers of their own.
-- Several improvements in Test.is() wrt to handling type objects and whitespace.
-- Implemented PairMap (the simple case only, for now).
-- Implemented .antipairs (pairs with value => key).
-- Implemented .pairup for creating pairs from lists.
-- Implemented LEXICAL, OUTERS and CALLERS pseudo-packages
-- Implemented UInt (sub)type and coercer.
-- Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
-- Many native improvements, e.g. allowing ++ on native ints.
-- Deprecated Supply.on_demand/schedule_on in favour of on-demand/schedule-on.
-- Deprecated is hidden_from_(backtrace|USAGE) for hidden-from-(backtrace|USAGE).
-- Deprecated use MONKEY_TYPING for use MONKEY-TYPING.
-- Various compile time error message improvements.
++ Incompatible changes and deprecations:
+  Any code *calling* the old method names, will be given a deprecation warning,
+  and will continue to work. Any module that *implements* MMD candidates for
+  any of these methods with their old name, will probably break. Please start
+  using the new names as described below.
+  + renamed internal hash/array/code/* methods:
+    - OLD                    NEW
+    - at_pos                 AT-POS
+    - exists_pos             EXISTS-POS
+    - delete_pos             DELETE-POS
+    - assign_pos             ASSIGN-POS
+    - bind_pos               BIND-POS
+    - at_key                 AT-KEY
+    - exists_key             EXISTS-KEY
+    - delete_key             DELETE-KEY
+    - assign_key             ASSIGN-KEY
+    - bind_key               BIND-KEY
+    - invoke                 CALL-ME
+    - Supply.on_demand       Supply.on-demand
+    - Supply.schedule_on     Supply.schedule-on
+  + renamed traits
+    - hidden_from_backtrace  hidden-from-backtrace
+    - hidden_from_USAGE      hidden-from-USAGE
+  + Deprecated use MONKEY_TYPING for use MONKEY-TYPING.
+  + Incompatibility change: spaces are no longer allowed in operators.
+  + Disallow redeclaring constants in the same scope
+  + Throw redeclaration error for duplicate type capture
+  + Deprecate IO::Handle.input-line-separator for .nl
+  + Remove parrot support from Rakudo.
+  + Don't print deprecation messages if RAKUDO_NO_DEPRECATIONS env var is set
++ Features
+  + Allow Buf.AT-POS to return an l-value.
+  + Implement method ^foo($) { ... } syntax.
+  + Implemented PairMap (the simple case only, for now).
+  + Implemented .antipairs (pairs with value => key).
+  + Implemented .pairup for creating pairs from lists.
+  + Implemented LEXICAL, OUTERS and CALLERS pseudo-packages
+  + Implemented UInt (sub)type and coercer.
+  + Add a array[T], usable for native int/num (MoarVM only for now)
+  + Other native improvements, e.g. my int $a; $a++
+  + Smart quotes (as in “foo”,  ‘bar’, ‚baz’ and „zap”) now also supported.
+  + Improve and test support for Listy types in JVM Interop.
+  + Hyper-infixes (like »~») are faster and have more features.
+  + Make token prefix properly compete with term in LTM
+  + not() and so() are functions as well as prefixes.
+  + substr-rw() now accepts the same range of parameters as substr()
+  + keywords now require whitespace (unless shadowed), which allows:
+    my \if = 42; say (if) if if; # now says 42
+  + Implement IO::Path.resolve on r-m/POSIX
+  + Catch P5ish use of $/
++ Fixes
+  + Catch wrong attribute usage in a regexes.
+  + Fix compiler warnings on OS X / JVM backend
+  + bare say now complains about no valid arg
+  + Make <a b c>.invert no longer infiniloop
+  + Make List.kv completely flatten its values
+  + Update error message for $] to use $*PERL.version
+  + Fix JVM runner generation on Windows.
+  + fix $*KERNEL.arch for raspbian, ugexe++
+  + Make $?TABSTOP immutable
+  + Make CALLER::<&?ROUTINE> work
+  + Errors like "expected Array[Str] but got Array[Str]" have been fixed.
++ Optimizations
+  + Make my int/num @a = Range about 1000x faster
+  + Make generic Str.subst between 5 - 10% faster
+  + Make s/// up to 25% faster (for many changes)
+  + Make Bool.pick and Bool.roll up to 2x faster
+  + Make Bool.pick()/roll() another 10% faster
+  + Make substr(-rw) about 10% faster
+    + substr("foo",1)       2.5x faster
+    + substr("foo",1,2)     6x faster
+    + substr("foo",*-2)     1.5x faster
+    + substr("foo",0,*-2)   1.5x faster
+  + Make %h<a> = 42 about 10% faster
++ Test.pm changes
+  + Several improvements in Test.is() wrt to handling type objects and whitespace.
+  + Add simple use-ok implementation
++ NativeCall.pm changes
+  + 'is native' will also accept Callables to allow runtime library detection
+  + Implemented nativesizeof(T)
+  + Add typed Pointer type as replacement for OpaquePointer
+  + Throw exception for wrong arity in native subs
 
 New in 2015.02
 + Overriding invoke/postcircumfix:<( )> for type coercions (ex. MyType(...))

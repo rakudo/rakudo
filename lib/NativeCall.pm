@@ -169,7 +169,15 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-sub guess_library_name($libname) {
+sub guess_library_name($lib) {
+    my $libname;
+    if ($lib ~~ Callable) {
+        $libname = $lib();
+    }
+    else {
+        $libname = $lib;
+    }
+
     if !$libname.DEFINITE { '' }
     elsif $libname ~~ /\.<.alpha>+$/ { $libname }
     elsif $libname ~~ /\.so(\.<.digit>+)+$/ { $libname }
@@ -194,11 +202,11 @@ sub guess_library_name($libname) {
 
 # This role is mixed in to any routine that is marked as being a
 # native call.
-my role Native[Routine $r, Str $libname] {
+my role Native[Routine $r, $libname where Str|Callable] {
     has int $!setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;
-    
+
     method CALL-ME(|args) {
         unless $!setup {
             my Mu $arg_info := param_list_for($r.signature);
@@ -239,12 +247,12 @@ my role NativeCallEncoded[$name] {
 # CArray class, used to represent C arrays.
 my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(Pointer) { };
 
-# need to introduce the roles in there in an augment, because you can't 
+# need to introduce the roles in there in an augment, because you can't
 # inherit from types that haven't been properly composed.
 use MONKEY-TYPING;
 augment class CArray {
     method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
-    
+
     my role IntTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
@@ -279,7 +287,7 @@ augment class CArray {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
     }
-    
+
     my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
@@ -314,7 +322,7 @@ augment class CArray {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
         }
     }
-    
+
     my role TypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:

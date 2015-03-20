@@ -619,8 +619,8 @@ S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/earliest.t
-S17-lowlevel/lock.t
-S17-lowlevel/thread.t
+# S17-lowlevel/lock.t
+# S17-lowlevel/thread.t
 S17-procasync/basic.t    # moar
 S17-procasync/print.t    # moar
 # S17-procasync/kill.t     # moar
@@ -732,6 +732,8 @@ S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
 S32-basics/xxKEY.t
+S32-basics/xxPOS.t
+S32-basics/xxPOS-native.t    # moar
 S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t

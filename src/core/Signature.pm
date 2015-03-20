@@ -112,6 +112,29 @@ my class Signature { # declared in BOOTSTRAP
         $perl ~ ')'
     }
 
+    multi method gist(Signature:D:) {
+        # Opening.
+        my $perl = '(';
+
+        # Parameters.
+        my $params = self.params();
+        my $sep = '';
+        my int $i = 0;
+        while $i < $params.elems {
+            my $param := $params[$i];
+            $perl = $perl ~ $sep ~ $param.perl.subst(/' $'$/,'');
+            # this works because methods always have at least one
+            # other parameter, *%_
+            $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';
+            $i = $i + 1;
+        }
+        if !nqp::isnull($!returns) && $!returns !=:= Mu {
+            $perl ~= ' --> ' ~ $!returns.perl
+        }
+        # Closer.
+        $perl ~ ')'
+    }
+
     method returns() { $!returns }
 }
 

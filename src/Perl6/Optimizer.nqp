@@ -1651,16 +1651,16 @@ class Perl6::Optimizer {
         %opts<objname> := $obj.name;
         %opts<signature> := $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
-                ["    Expected: " ~ try $obj.signature.perl ];
+                [try $obj.signature.gist];
 
         $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
     }
     
     # Signature list for multis.
     sub multi_sig_list($dispatcher) {
-        my @sigs := ["    Expected any of:"];
+        my @sigs := [];
         for $dispatcher.dispatchees {
-            @sigs.push("\n    " ~ $_.signature.perl);
+            @sigs.push("\n    " ~ $_.signature.gist);
         }
         @sigs
     }

@@ -4202,12 +4202,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_yada($name, $/) {
-            my $past := $<args>.ast;
-            $past.name($name);
-            $past.node($/);
-            unless +$past.list() {
+        my $past := $<args>.ast;
+        $past.name($name);
+        $past.node($/);
+        unless +$past.list() {
             $past.push($*W.add_string_constant('Stub code executed'));
-            }
+        }
         $past
     }
 

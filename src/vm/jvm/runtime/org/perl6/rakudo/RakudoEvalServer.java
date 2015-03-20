@@ -17,8 +17,10 @@ public class RakudoEvalServer extends EvalServer {
     public RakudoEvalServer() {
         String[] cps = System.getProperty("java.class.path").split("[;:]");
         for(String cfile : cps) {
-            if(cfile.endsWith("perl6.jar"))
+            if(cfile.endsWith("perl6.jar")) {
                 appname = cfile;
+                break;
+            }
         }
         if(appname == null) {
             throw new RuntimeException("CLASSPATH not set properly, couldn't find perl6.jar");

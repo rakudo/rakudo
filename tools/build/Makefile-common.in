@@ -9,7 +9,7 @@ RM_F    = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
 
 PREFIX = @prefix@
-PERL6_LANG_DIR = $(PREFIX)/languages/perl6
+PERL6_LANG_DIR = $(PREFIX)/share/perl6
 
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \

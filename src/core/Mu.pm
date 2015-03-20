@@ -311,7 +311,7 @@ my class Mu { # declared in BOOTSTRAP
             my $name := substr($attr.Str,2);
             @attrs.push: $name
                         ~ ' => '
-                        ~ self."$name"().perl
+                        ~ $attr.get_value(self).perl
         }
         self.^name ~ '.new(' ~  @attrs.join(', ') ~ ')';
     }

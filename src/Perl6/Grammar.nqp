@@ -3376,6 +3376,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <integer>
         | <dec_number>
         | <rad_number>
+        | <rat_number>
         | 'Inf' >>
         | '+Inf' >>
         | '-Inf' >>
@@ -3431,6 +3432,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         #                         not defined $<rad_number><fracpart>
         #                     }>
         ]
+    }
+
+    token rat_number {
+        '<' <nu=.integer> '/' <de=.integer> '>'
     }
 
     token escale { <[Ee]> $<sign>=[<[+\-]>?] <decint> }

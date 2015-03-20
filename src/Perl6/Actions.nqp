@@ -5722,6 +5722,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
+        elsif $<rat_number> { make $<rat_number>.ast; }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
         }
@@ -5765,6 +5766,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $error;
             make radcalc($/, $radix, $intfrac, $base, $exp);
         }
+    }
+
+    method rat_number($/) {
+        my $nu := $*W.add_constant('Int', 'int', +~$<nu>);
+        my $de := $*W.add_constant('Int', 'int', +~$<de>);
+        make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value);
     }
 
     method typename($/) {

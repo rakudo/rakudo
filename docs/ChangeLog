@@ -65,8 +65,8 @@ New in 2015.03
   + Make my int/num @a = Range about 1000x faster
   + Make generic Str.subst between 5 - 10% faster
   + Make s/// up to 25% faster (for many changes)
-  + make Bool.pick and Bool.roll up to 2x faster
-  + make Bool.pick()/roll() another 10% faster
+  + Make Bool.pick and Bool.roll up to 2x faster
+  + Make Bool.pick()/roll() another 10% faster
   + Make substr(-rw) about 10% faster
     + substr("foo",1)       2.5x faster
     + substr("foo",1,2)     6x faster

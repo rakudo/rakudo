@@ -1587,24 +1587,25 @@ my class X::Multi::NoMatch is Exception {
     has $.dispatcher;
     has $.capture;
     method message {
+        my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my $where = so first / where /, @cand;
         my @bits;
         if $.capture {
             for $.capture.list {
-                @bits.push(.perl);
+                @bits.push($where ?? .perl !! .WHAT.perl );
             }
             for $.capture.hash {
                 if .value ~~ Bool {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    @bits.push(":{.key}({.value.perl})");
+                    @bits.push(":{.key}({$where ?? .value.perl !! .value.WHAT.perl })");
                 }
             }
         }
         else {
             @bits.push('...');
         }
-        my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
         if @cand[0] ~~ /': '/ {
             my $invocant = @bits.shift;
             my $first = @bits ?? @bits.shift !! '';

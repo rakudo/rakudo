@@ -2,6 +2,8 @@ New in 2015.04
  + Incompatible changes:
    + Installation directory layout changed: it now uses $PREFIX/share instead of
      $PREFIX/languages
+ + Features:
+ 	+ 'bit' and 'byte' native types
 
 New in 2015.03
 + Incompatible changes and deprecations:

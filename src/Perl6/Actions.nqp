@@ -5705,13 +5705,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method octint($/) { make string_to_bigint( $/, 8 ); }
     method binint($/) { make string_to_bigint( $/, 2 ); }
 
-
-    method number:sym<complex>($/) {
-        my $re := $*W.add_constant('Num', 'num', 0e0);
-        my $im := $*W.add_constant('Num', 'num', +~$<im>);
-        make $*W.add_constant('Complex', 'type_new', $re.compile_time_value, $im.compile_time_value);
-    }
-
     method number:sym<numish>($/) {
         make $<numish>.ast;
     }

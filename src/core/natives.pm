@@ -8,7 +8,7 @@ my native int32 is repr('P6int') is Int is nativesize(32) { }
 my native int64 is repr('P6int') is Int is nativesize(64) { }
 
 my native   uint is repr('P6int') is Int is unsigned { }
-my native  uint1 is repr('P6int') is Int is nativesize (1) is unsigned { }
+my native  uint1 is repr('P6int') is Int is nativesize( 1) is unsigned { }
 my native    bit is repr('P6int') is Int is nativesize( 1) is unsigned { }
 my native  uint2 is repr('P6int') is Int is nativesize( 2) is unsigned { }
 my native  uint4 is repr('P6int') is Int is nativesize( 4) is unsigned { }

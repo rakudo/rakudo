@@ -5762,8 +5762,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method rat_number($/) {
-        my $nu := $*W.add_constant('Int', 'int', +~$<nu>);
-        my $de := $*W.add_constant('Int', 'int', +~$<de>);
+        my $nu := $*W.add_constant('Int', 'int', $<nu>.ast);
+        my $de := $*W.add_constant('Int', 'int', $<de>.ast);
         make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value);
     }
 

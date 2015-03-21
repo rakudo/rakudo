@@ -4,13 +4,14 @@ my class Complex is Cool does Numeric {
 
     proto method new(|) { * }
     multi method new(Real \re, Real \im) {
-        nqp::create(self).BUILD(re.Num,im.Num);
+        nqp::create(self).BUILD(re, im);
     }
-    submethod BUILD(Num \re, Num \im) {
+    submethod BUILD(Num() \re, Num() \im) {
         $!re = re;
         $!im = im;
         self;
     }
+
     method reals(Complex:D:) {
         (self.re, self.im);
     }
@@ -21,7 +22,7 @@ my class Complex is Cool does Numeric {
 
     my class X::Numeric::Real { ... };
     method coerce-to-real(Complex:D: $exception-target) {
-        unless $!im == 0 { fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self);}
+        unless $!im == 0e0 { fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self);}
         $!re;
     }
     multi method Real(Complex:D:) { self.coerce-to-real(Real); }
@@ -77,8 +78,7 @@ my class Complex is Cool does Numeric {
         Complex.new($mag * $!im.cos, $mag * $!im.sin);
     }
 
-    method roots(Complex:D: $an) {
-        my Int $n = $an.Int;
+    method roots(Complex:D: Int() $n) {
         return NaN if $n < 1;
         return self if $n == 1;
         for $!re, $!im {
@@ -95,7 +95,7 @@ my class Complex is Cool does Numeric {
     }
 
     method asin(Complex:D:) {
-        (Complex.new(0, -1) * log((self)i + sqrt(1 - self * self)));
+        (Complex.new(0e0, -1e0) * log((self)i + sqrt(1e0 - self * self)));
     }
 
     method cos(Complex:D:) {
@@ -103,7 +103,7 @@ my class Complex is Cool does Numeric {
     }
 
     method acos(Complex:D:) {
-        (pi / 2) - self.asin;
+        (pi / 2e0) - self.asin;
     }
 
     method tan(Complex:D:) {
@@ -111,23 +111,23 @@ my class Complex is Cool does Numeric {
     }
 
     method atan(Complex:D:) {
-        ((log(1 - (self)i) - log(1 + (self)i))i / 2);
+        ((log(1e0 - (self)i) - log(1e0 + (self)i))i / 2e0);
     }
 
     method sec(Complex:D:) {
-        1 / self.cos;
+        1e0 / self.cos;
     }
 
     method asec(Complex:D:) {
-        (1 / self).acos;
+        (1e0 / self).acos;
     }
 
     method cosec(Complex:D:) {
-        1 / self.sin;
+        1e0 / self.sin;
     }
 
     method acosec(Complex:D:) {
-        (1 / self).asin;
+        (1e0 / self).asin;
     }
 
     method cotan(Complex:D:) {
@@ -135,55 +135,55 @@ my class Complex is Cool does Numeric {
     }
 
     method acotan(Complex:D:) {
-        (1 / self).atan;
+        (1e0 / self).atan;
     }
 
     method sinh(Complex:D:) {
-        -((Complex.new(0, 1) * self).sin)i;
+        -((Complex.new(0e0, 1e0) * self).sin)i;
     }
 
     method asinh(Complex:D:) {
-        (self + sqrt(1 + self * self)).log;
+        (self + sqrt(1e0 + self * self)).log;
     }
 
     method cosh(Complex:D:) {
-        (Complex.new(0, 1) * self).cos;
+        (Complex.new(0e0, 1e0) * self).cos;
     }
 
     method acosh(Complex:D:) {
-        (self + sqrt(self * self - 1)).log;
+        (self + sqrt(self * self - 1e0)).log;
     }
 
     method tanh(Complex:D:) {
-        -((Complex.new(0, 1) * self).tan)i;
+        -((Complex.new(0e0, 1e0) * self).tan)i;
     }
 
     method atanh(Complex:D:) {
-        (((1 + self) / (1 - self)).log / 2);
+        (((1e0 + self) / (1e0 - self)).log / 2e0);
     }
 
     method sech(Complex:D:) {
-        1 / self.cosh;
+        1e0 / self.cosh;
     }
 
     method asech(Complex:D:) {
-        (1 / self).acosh;
+        (1e0 / self).acosh;
     }
 
     method cosech(Complex:D:) {
-        1 / self.sinh;
+        1e0 / self.sinh;
     }
 
     method acosech(Complex:D:) {
-        (1 / self).asinh;
+        (1e0 / self).asinh;
     }
 
     method cotanh(Complex:D:) {
-        1 / self.tanh;
+        1e0 / self.tanh;
     }
 
     method acotanh(Complex:D:) {
-        (1 / self).atanh;
+        (1e0 / self).atanh;
     }
 
     method floor(Complex:D:) {
@@ -251,12 +251,12 @@ multi sub infix:<+>(Complex:D \a, Complex:D \b) returns Complex:D {
     $new;
 }
 
-multi sub infix:<+>(Complex:D \a, Real \b) returns Complex:D {
+multi sub infix:<+>(Complex:D \a, Num(Cool) \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::add_n(
             nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
-            nqp::unbox_n(b.Num)
+            nqp::unbox_n(b)
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
@@ -265,11 +265,11 @@ multi sub infix:<+>(Complex:D \a, Real \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<+>(Real \a, Complex:D \b) returns Complex:D {
+multi sub infix:<+>(Num(Cool) \a, Complex:D \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::add_n(
-            nqp::unbox_n(a.Num),
+            nqp::unbox_n(a),
             nqp::getattr_n(nqp::decont(b), Complex, '$!re'),
         )
     );
@@ -296,12 +296,12 @@ multi sub infix:<->(Complex:D \a, Complex:D \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<->(Complex:D \a, Real \b) returns Complex:D {
+multi sub infix:<->(Complex:D \a, Num(Cool) \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
             nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
-            b.Num,
+            b,
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
@@ -310,11 +310,11 @@ multi sub infix:<->(Complex:D \a, Real \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<->(Real \a, Complex:D \b) returns Complex:D {
+multi sub infix:<->(Num(Cool) \a, Complex:D \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
-            a.Num,
+            a,
             nqp::getattr_n(nqp::decont(b), Complex, '$!re'),
         )
     );
@@ -341,9 +341,9 @@ multi sub infix:<*>(Complex:D \a, Complex:D \b) returns Complex:D {
     $new;
 }
 
-multi sub infix:<*>(Complex:D \a, Real \b) returns Complex:D {
+multi sub infix:<*>(Complex:D \a, Num(Cool) \b) returns Complex:D {
     my $new := nqp::create(Complex);
-    my num $b_num = b.Num;
+    my num $b_num = b;
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::mul_n(
             nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
@@ -359,9 +359,9 @@ multi sub infix:<*>(Complex:D \a, Real \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<*>(Real \a, Complex:D \b) returns Complex:D {
+multi sub infix:<*>(Num(Cool) \a, Complex:D \b) returns Complex:D {
     my $new := nqp::create(Complex);
-    my num $a_num = a.Num;
+    my num $a_num = a;
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::mul_n(
             $a_num,
@@ -404,22 +404,22 @@ multi sub infix:</>(Complex:D \a, Real \b) returns Complex:D {
 }
 
 multi sub infix:</>(Real \a, Complex:D \b) returns Complex:D {
-    Complex.new(a, 0) / b;
+    Complex.new(a, 0e0) / b;
 }
 
 multi sub infix:<**>(Complex:D \a, Complex:D \b) returns Complex:D {
     (a.re == 0e0 && a.im == 0e0) ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
-multi sub infix:<**>(Real      \a, Complex:D \b) returns Complex:D {
-    a == 0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
+multi sub infix:<**>(Num(Cool) \a, Complex:D \b) returns Complex:D {
+    a == 0e0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
-multi sub infix:<**>(Complex:D \a, Real      \b) returns Complex:D {
+multi sub infix:<**>(Complex:D \a, Num(Cool) \b) returns Complex:D {
     (b * a.log).exp
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re && a.im == b.im }
-multi sub infix:<==>(Complex:D \a, Real      \b) returns Bool:D { a.re == b    && a.im == 0e0   }
-multi sub infix:<==>(Real      \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0   == b.im }
+multi sub infix:<==>(Complex:D \a, Num(Cool) \b) returns Bool:D { a.re == b    && a.im == 0e0  }
+multi sub infix:<==>(Num(Cool) \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0  == b.im }
 
 proto sub postfix:<i>(|) returns Complex:D is pure { * }
 multi sub postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }

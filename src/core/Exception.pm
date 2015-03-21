@@ -1587,9 +1587,34 @@ my class X::Multi::NoMatch is Exception {
     has $.dispatcher;
     has $.capture;
     method message {
-        join "\n",
-            "Cannot call '$.dispatcher.name()'; none of these signatures match:",
-            $.dispatcher.dispatchees.map(*.signature.perl)
+        my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my $where = so first / where /, @cand;
+        my @bits;
+        if $.capture {
+            for $.capture.list {
+                @bits.push($where ?? .perl !! .WHAT.perl );
+            }
+            for $.capture.hash {
+                if .value ~~ Bool {
+                    @bits.push(':' ~ ('!' x !.value) ~ .key);
+                }
+                else {
+                    @bits.push(":{.key}({$where ?? .value.perl !! .value.WHAT.perl })");
+                }
+            }
+        }
+        else {
+            @bits.push('...');
+        }
+        if @cand[0] ~~ /': '/ {
+            my $invocant = @bits.shift;
+            my $first = @bits ?? @bits.shift !! '';
+            @bits.unshift($invocant ~ ': ' ~ $first);
+        }
+        my $cap = '(' ~ @bits.join(", ") ~ ')';
+        join "\n    ",
+            "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
+            @cand;
     }
 }
 

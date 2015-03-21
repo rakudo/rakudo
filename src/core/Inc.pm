@@ -94,7 +94,7 @@
         }
 #?endif
 
-        my $prefix  := $*VM.prefix ~ '/share/perl6';
+        my $prefix  := nqp::atkey(nqp::backendconfig(), 'prefix') ~ '/share/perl6';
         my $abspath := "$prefix/share/libraries.json";
         if IO::Path.new-from-absolute-path($abspath).e {
             my $config = from-json( slurp $abspath );

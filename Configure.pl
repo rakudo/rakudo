@@ -202,7 +202,7 @@ MAIN: {
 
             print "Using $bin (version $nqp_config{'nqp::version'} / $java_version).\n";
 
-            $config{'nqp_prefix'}    = $nqp_config{'jvm::runtime.prefix'};
+            $config{'nqp_prefix'}    = $nqp_config{'jvm::prefix'};
             $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
             $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
             $config{'j_runner'}      = $^O eq 'MSWin32' ? 'perl6-j.bat' : 'perl6-j';

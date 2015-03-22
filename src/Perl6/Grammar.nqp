@@ -2486,11 +2486,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token multi_declarator:sym<multi> {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym><.kok> :my $*MULTINESS := 'multi';
+        [ <?before '('> { $*W.throw($/, 'X::Anon::Multi', multiness => $*MULTINESS) } ]?
         [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
     token multi_declarator:sym<proto> {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym><.kok> :my $*MULTINESS := 'proto'; :my $*IN_PROTO := 1;
+        [ <?before '('> { $*W.throw($/, 'X::Anon::Multi', multiness => $*MULTINESS) } ]?
         [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<only> {

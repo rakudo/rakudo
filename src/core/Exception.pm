@@ -1160,7 +1160,7 @@ my class X::Declaration::Scope::Multi is X::Declaration::Scope {
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
     has $.routine-type = 'routine';
-    method message() { "Cannot put $.multiness on anonymous $.routine-type" }
+    method message() { "An anonymous $.routine-type may not take a $.multiness declarator" }
 }
 my class X::Anon::Augment does X::Comp {
     has $.package-kind;

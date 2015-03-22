@@ -2310,6 +2310,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+        elsif $*SCOPE eq '' {
+            $*W.throw($/, 'X::Declaration::Scope',
+                    scope       => '(unknown scope)',
+                    declaration => 'variable',
+            );
+        }
         else {
             $*W.throw($/, 'X::Comp::NYI',
                 feature => "$*SCOPE scoped variables");

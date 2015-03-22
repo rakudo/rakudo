@@ -198,7 +198,7 @@ my class Complex is Cool does Numeric {
     multi method round(Complex:D:) {
         Complex.new( self.re.round, self.im.round );
     }
-    multi method round(Complex:D: Real(Cool) $scale) {
+    multi method round(Complex:D: Real(Real) $scale) {
         Complex.new( self.re.round($scale), self.im.round($scale) );
     }
 
@@ -251,7 +251,7 @@ multi sub infix:<+>(Complex:D \a, Complex:D \b) returns Complex:D {
     $new;
 }
 
-multi sub infix:<+>(Complex:D \a, Num(Cool) \b) returns Complex:D {
+multi sub infix:<+>(Complex:D \a, Num(Real) \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::add_n(
@@ -265,7 +265,7 @@ multi sub infix:<+>(Complex:D \a, Num(Cool) \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<+>(Num(Cool) \a, Complex:D \b) returns Complex:D {
+multi sub infix:<+>(Num(Real) \a, Complex:D \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::add_n(
@@ -296,7 +296,7 @@ multi sub infix:<->(Complex:D \a, Complex:D \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<->(Complex:D \a, Num(Cool) \b) returns Complex:D {
+multi sub infix:<->(Complex:D \a, Num(Real) \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
@@ -310,7 +310,7 @@ multi sub infix:<->(Complex:D \a, Num(Cool) \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<->(Num(Cool) \a, Complex:D \b) returns Complex:D {
+multi sub infix:<->(Num(Real) \a, Complex:D \b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
@@ -341,7 +341,7 @@ multi sub infix:<*>(Complex:D \a, Complex:D \b) returns Complex:D {
     $new;
 }
 
-multi sub infix:<*>(Complex:D \a, Num(Cool) \b) returns Complex:D {
+multi sub infix:<*>(Complex:D \a, Num(Real) \b) returns Complex:D {
     my $new := nqp::create(Complex);
     my num $b_num = b;
     nqp::bindattr_n($new, Complex, '$!re',
@@ -359,7 +359,7 @@ multi sub infix:<*>(Complex:D \a, Num(Cool) \b) returns Complex:D {
     $new
 }
 
-multi sub infix:<*>(Num(Cool) \a, Complex:D \b) returns Complex:D {
+multi sub infix:<*>(Num(Real) \a, Complex:D \b) returns Complex:D {
     my $new := nqp::create(Complex);
     my num $a_num = a;
     nqp::bindattr_n($new, Complex, '$!re',
@@ -410,16 +410,16 @@ multi sub infix:</>(Real \a, Complex:D \b) returns Complex:D {
 multi sub infix:<**>(Complex:D \a, Complex:D \b) returns Complex:D {
     (a.re == 0e0 && a.im == 0e0) ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
-multi sub infix:<**>(Num(Cool) \a, Complex:D \b) returns Complex:D {
+multi sub infix:<**>(Num(Real) \a, Complex:D \b) returns Complex:D {
     a == 0e0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
-multi sub infix:<**>(Complex:D \a, Num(Cool) \b) returns Complex:D {
+multi sub infix:<**>(Complex:D \a, Num(Real) \b) returns Complex:D {
     (b * a.log).exp
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re && a.im == b.im }
-multi sub infix:<==>(Complex:D \a, Num(Cool) \b) returns Bool:D { a.re == b    && a.im == 0e0  }
-multi sub infix:<==>(Num(Cool) \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0  == b.im }
+multi sub infix:<==>(Complex:D \a, Num(Real) \b) returns Bool:D { a.re == b    && a.im == 0e0  }
+multi sub infix:<==>(Num(Real) \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0  == b.im }
 
 proto sub postfix:<i>(|) returns Complex:D is pure { * }
 multi sub postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }

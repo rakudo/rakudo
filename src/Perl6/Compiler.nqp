@@ -57,7 +57,11 @@ class Perl6::Compiler is HLL::Compiler {
 
             my $linenoise_set_completion_callback := self.eval("use Linenoise; &linenoiseSetCompletionCallback");
 
-            $linenoise_set_completion_callback(self.eval('use Completion; &complete'));
+            $linenoise_set_completion_callback(self.eval('use Completion; use Linenoise; -> Str $line, Linenoise::Completions $c {
+                for complete($line, $line.chars - 1) -> $completion {
+                    linenoiseAddCompletion($c, $completion);
+                }
+            }'));
 
             CATCH {} # it's ok if we can't load Linenoise
         }

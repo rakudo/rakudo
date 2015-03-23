@@ -1,15 +1,10 @@
-use Linenoise;
-
 # XXX no-op readlineint_fh op, and interactive member in MoarVM
 # XXX Add Linenoise info to README
-# XXX switch STDIN to blocking without linenoise patch
 # XXX don't have this as a module (somehow?)
 # XXX don't use builtin @COMPLETIONS
 # XXX complete variables
 # XXX complete loaded modules/classes/functions/etc
 # XXX complete methods
-# XXX this module (or whatever becomes of it) should probably just return
-#     a List of completions given a line
 module Completion {
     my @COMPLETIONS = <
         ANON_ENUM
@@ -483,21 +478,20 @@ module Completion {
         π
     >;
 
-    our sub complete(Str $line, Linenoise::Completions $c) is export {
-        my $m = $line ~~ /^$<prefix>=[.*?] <|w>$<last-word>=[\w*]$/;
-
-        my $prefix    = $m ?? ~$m<prefix>    !! '';
-        my $last-word = $m ?? ~$m<last-word> !! '';
-
-        for @COMPLETIONS.grep(/^"$last-word"/) -> $completion {
-            linenoiseAddCompletion($c, $prefix ~ $completion)
-        }
-
+    # XXX take $pos into account
+    our sub complete(Str $line, Int $pos) returns List is export {
         # XXX for debugging
         CATCH {
             default {
                 say "uh-oh: $_";
             }
         }
+
+        my $m = $line ~~ /^$<prefix>=[.*?] <|w>$<last-word>=[\w*]$/;
+
+        my $prefix    = $m ?? ~$m<prefix>    !! '';
+        my $last-word = $m ?? ~$m<last-word> !! '';
+
+        @COMPLETIONS.grep(/^"$last-word"/).map({ $prefix ~ $_ })
     }
 }

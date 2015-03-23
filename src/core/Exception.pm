@@ -1168,7 +1168,7 @@ my class X::Declaration::Scope::Multi is X::Declaration::Scope {
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
     has $.routine-type = 'routine';
-    method message() { "Cannot put $.multiness on anonymous $.routine-type" }
+    method message() { "An anonymous $.routine-type may not take a $.multiness declarator" }
 }
 my class X::Anon::Augment does X::Comp {
     has $.package-kind;
@@ -1367,12 +1367,12 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     has $.objname;
     has $.signature;
     method message {
-            ($.protoguilt ?? "Calling proto of '" !! "Calling '") ~
-            $.objname ~ "' " ~
-            (+@.arguments == 0
-              ?? "requires arguments (if you meant to operate on \$_, please use .$.objname or use an explicit invocant or argument)\n"
-              !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n")
-            ~ $.signature
+            my $multi = $!signature ~~ /\n/ // '';
+            "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
+                $!protoguilt ?? 'proto signature ' !!
+                $multi       ?? 'any of these multi signatures:' !!
+                                'declared signature '
+            ) ~ $!signature;
     }
 }
 
@@ -1583,6 +1583,7 @@ my class X::Item is Exception {
 my class X::Multi::Ambiguous is Exception {
     has $.dispatcher;
     has @.ambiguous;
+    has $.capture;
     method message {
         join "\n",
             "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
@@ -1592,10 +1593,36 @@ my class X::Multi::Ambiguous is Exception {
 
 my class X::Multi::NoMatch is Exception {
     has $.dispatcher;
+    has $.capture;
     method message {
-        join "\n",
-            "Cannot call '$.dispatcher.name()'; none of these signatures match:",
-            $.dispatcher.dispatchees.map(*.signature.perl)
+        my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my $where = so first / where /, @cand;
+        my @bits;
+        if $.capture {
+            for $.capture.list {
+                @bits.push($where ?? .perl !! .WHAT.perl );
+            }
+            for $.capture.hash {
+                if .value ~~ Bool {
+                    @bits.push(':' ~ ('!' x !.value) ~ .key);
+                }
+                else {
+                    @bits.push(":{.key}({$where ?? .value.perl !! .value.WHAT.perl })");
+                }
+            }
+        }
+        else {
+            @bits.push('...');
+        }
+        if @cand[0] ~~ /': '/ {
+            my $invocant = @bits.shift;
+            my $first = @bits ?? @bits.shift !! '';
+            @bits.unshift($invocant ~ ': ' ~ $first);
+        }
+        my $cap = '(' ~ @bits.join(", ") ~ ')';
+        join "\n    ",
+            "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
+            @cand;
     }
 }
 
@@ -1639,11 +1666,11 @@ my class X::Inheritance::NotComposed is Exception {
     %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden-from-backtrace {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
-    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous) is hidden-from-backtrace {
-            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous).throw
+    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) is hidden-from-backtrace {
+            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
         };
-    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher) is hidden-from-backtrace {
-            X::Multi::NoMatch.new(:$dispatcher).throw
+    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) is hidden-from-backtrace {
+            X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
         };
     %c_ex{'X::Role::Initialization'} := sub ($role) is hidden-from-backtrace {
             X::Role::Initialization.new(:$role).throw

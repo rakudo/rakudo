@@ -596,7 +596,7 @@ S14-traits/attributes.t
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
 S15-string-types/Str.t
-S15-unicode-information/uniname.t	# moar
+S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar
 S15-unicode-information/unival.t	# moar
 S16-filehandles/chmod.t
@@ -619,8 +619,8 @@ S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/earliest.t
-# S17-lowlevel/lock.t
-# S17-lowlevel/thread.t
+S17-lowlevel/lock.t
+S17-lowlevel/thread.t
 S17-procasync/basic.t    # moar
 S17-procasync/print.t    # moar
 # S17-procasync/kill.t     # moar

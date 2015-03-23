@@ -1723,20 +1723,20 @@ sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
 # These probably belong in a separate unicodey file
 
 #?if jvm
-multi sub uniname(|)  { die 'uniname NYI on jvm backend' }
 multi sub uniprop(|)  { die 'uniprop NYI on jvm backend' }
 multi sub unibool(|)  { die 'unibool NYI on jvm backend' }
 multi sub unival(|)   { die 'unival NYI on jvm backend' }
 multi sub univals(|)  { die 'univals NYI on jvm backend' }
 multi sub unimatch(|) { die 'unimatch NYI on jvm backend' }
 #?endif
-#?if moar
+
 my %propcodecache;
 my %pvalcodecache;
 proto sub uniname(|) {*}
 multi sub uniname(Str $str) { uniname($str.ord) }
 multi sub uniname(Int $code) { nqp::getuniname($code) }
 
+#?if moar
 proto sub uniprop(|) {*}
 multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }
 multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {

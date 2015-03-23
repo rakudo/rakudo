@@ -7,7 +7,7 @@ M_GEN_CAT = tools/build/gen-cat.nqp moar
 
 MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
 M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
-M_LIBPATH = $(PREFIX)@slash@languages@slash@nqp@slash@lib
+M_LIBPATH = $(PREFIX)@slash@share@slash@nqp@slash@lib
 
 M_RUN_PERL6 = $(MOAR) --libpath="$(M_LIBPATH)" perl6.moarvm
 

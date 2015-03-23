@@ -94,7 +94,7 @@
         }
 #?endif
 
-        my $prefix  := $*VM.prefix ~ '/languages/perl6';
+        my $prefix  := $*VM.prefix ~ '/share/perl6';
         my $abspath := "$prefix/share/libraries.json";
         if nqp::istype($abspath.IO,IO::File) {
             my $config = from-json( slurp $abspath );

@@ -2310,6 +2310,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+        elsif $*SCOPE eq '' {
+            $*W.throw($/, 'X::Declaration::Scope',
+                    scope       => '(unknown scope)',
+                    declaration => 'variable',
+            );
+        }
         else {
             $*W.throw($/, 'X::Comp::NYI',
                 feature => "$*SCOPE scoped variables");
@@ -4202,12 +4208,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_yada($name, $/) {
-            my $past := $<args>.ast;
-            $past.name($name);
-            $past.node($/);
-            unless +$past.list() {
+        my $past := $<args>.ast;
+        $past.name($name);
+        $past.node($/);
+        unless +$past.list() {
             $past.push($*W.add_string_constant('Stub code executed'));
-            }
+        }
         $past
     }
 
@@ -5705,13 +5711,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method octint($/) { make string_to_bigint( $/, 8 ); }
     method binint($/) { make string_to_bigint( $/, 2 ); }
 
-
-    method number:sym<complex>($/) {
-        my $re := $*W.add_constant('Num', 'num', 0e0);
-        my $im := $*W.add_constant('Num', 'num', +~$<im>);
-        make $*W.add_constant('Complex', 'type_new', $re.compile_time_value, $im.compile_time_value);
-    }
-
     method number:sym<numish>($/) {
         make $<numish>.ast;
     }
@@ -5722,6 +5721,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
+        elsif $<rat_number> { make $<rat_number>.ast; }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
         }
@@ -5765,6 +5765,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $error;
             make radcalc($/, $radix, $intfrac, $base, $exp);
         }
+    }
+
+    method rat_number($/) {
+        my $nu := $*W.add_constant('Int', 'int', $<nu>.ast);
+        my $de := $*W.add_constant('Int', 'int', $<de>.ast);
+        make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value);
     }
 
     method typename($/) {

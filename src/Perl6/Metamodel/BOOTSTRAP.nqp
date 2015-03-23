@@ -2219,7 +2219,7 @@ BEGIN {
                         "; no signatures match");
                 }
                 else {
-                    nqp::atkey(%ex, 'X::Multi::NoMatch')($self)
+                    nqp::atkey(%ex, 'X::Multi::NoMatch')($self, $self.'!p6capture'($capture))
                 }
             }
             else {
@@ -2232,10 +2232,19 @@ BEGIN {
                     for @possibles {
                         nqp::push(@ambig, $_<sub>);
                     }
-                    nqp::atkey(%ex, 'X::Multi::Ambiguous')($self, @ambig)
+                    nqp::atkey(%ex, 'X::Multi::Ambiguous')($self, @ambig, $self.'!p6capture'($capture))
                 }
             }
         }));
+    Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
+        sub assemble_capture(*@pos, *%named) {
+            my $c := nqp::create(Capture);
+            nqp::bindattr($c, Capture, '$!list', @pos);
+            nqp::bindattr($c, Capture, '$!hash', %named);
+            $c
+        }
+        nqp::invokewithcapture(&assemble_capture, $capture)
+    }));
     Routine.HOW.add_method(Routine, 'analyze_dispatch', nqp::getstaticcode(sub ($self, @args, @flags) {
             # Compile time dispatch result.
             my $MD_CT_NOT_SURE :=  0;  # Needs a runtime dispatch.

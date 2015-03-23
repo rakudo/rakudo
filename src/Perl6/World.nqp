@@ -1971,9 +1971,12 @@ class Perl6::World is HLL::World {
     # Curries a role with the specified arguments.
     method parameterize_type_with_args($role, @pos_args, %named_args) {
         # Make the curry right away and add it to the SC.
-        my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
-        self.add_object($curried);
-        return $curried;
+        if @pos_args || %named_args {
+            my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
+            self.add_object($curried);
+            return $curried;
+        }
+        $role;
     }
     
     # Creates a subset type meta-object/type object pair.

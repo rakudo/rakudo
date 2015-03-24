@@ -52,10 +52,11 @@ class Perl6::Compiler is HLL::Compiler {
 
     method interactive(*%adverbs) {
         try {
-            $!linenoise             := self.eval("use Linenoise; &linenoise");
-            $!linenoise_add_history := self.eval("use Linenoise; &linenoiseHistoryAdd");
+            my @symbols := self.eval("use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback)");
 
-            my $linenoise_set_completion_callback := self.eval("use Linenoise; &linenoiseSetCompletionCallback");
+            $!linenoise := @symbols[0];
+            $!linenoise_add_history := @symbols[1];
+            my $linenoise_set_completion_callback := @symbols[2];
 
             $linenoise_set_completion_callback(self.eval('use Completion; use Linenoise; -> Str $line, Linenoise::Completions $c {
                 for complete($line, $line.chars - 1) -> $completion {

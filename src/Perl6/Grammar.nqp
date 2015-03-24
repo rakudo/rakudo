@@ -95,7 +95,6 @@ role STD {
     token babble($l, @base_tweaks?) {
         :my @extra_tweaks;
 
-        <.ws>
         [ <quotepair> <.ws>
             {
                 my $kv := $<quotepair>[-1].ast;
@@ -112,7 +111,7 @@ role STD {
             }
         ]*
 
-        $<B>=[<?>]
+        $<B>=[<?before .>]
         {
             # Work out the delimeters.
             my $c := $/.CURSOR;

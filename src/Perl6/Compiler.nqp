@@ -5,6 +5,7 @@ use Perl6::Optimizer;
 class Perl6::Compiler is HLL::Compiler {
     has $!linenoise;
     has $!linenoise_add_history;
+    has $!completions;
 
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
@@ -52,17 +53,32 @@ class Perl6::Compiler is HLL::Compiler {
 
     method interactive(*%adverbs) {
         try {
-            my @symbols := self.eval("use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback)");
+            my @symbols := self.eval("use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback, &linenoiseAddCompletion)");
 
             $!linenoise := @symbols[0];
             $!linenoise_add_history := @symbols[1];
             my $linenoise_set_completion_callback := @symbols[2];
+            my $linenoise_add_completion := @symbols[3];
 
-            $linenoise_set_completion_callback(self.eval('use Completion; use Linenoise; -> Str $line, Linenoise::Completions $c {
-                for complete($line, $line.chars - 1) -> $completion {
-                    linenoiseAddCompletion($c, $completion);
+            $!completions := nqp::hash();
+
+            $linenoise_set_completion_callback(sub ($line, $c) {
+                my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
+
+                my $prefix    := $m ?? ~$m<prefix>    !! '';
+                my $last_word := $m ?? ~$m<last_word> !! '';
+
+                my $it := nqp::iterator($!completions);
+
+                while $it {
+                    my $e := nqp::shift($it);
+                    my $k := nqp::iterkey_s($e);
+
+                    if $k ~~ /^ $last_word / {
+                        $linenoise_add_completion($c, $prefix ~ $k);
+                    }
                 }
-            }'));
+            });
 
             CATCH {} # it's ok if we can't load Linenoise
         }

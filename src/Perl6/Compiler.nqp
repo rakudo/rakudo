@@ -62,6 +62,24 @@ class Perl6::Compiler is HLL::Compiler {
 
             $!completions := nqp::hash();
 
+            my $core_keys := self.eval('CORE::.keys');
+
+            my $i := 0;
+            my $core_elems := $core_keys.elems();
+
+            while $i < $core_elems {
+                my $e := $core_keys.AT-POS($i);
+                $i := $i + 1;
+
+                my $m := $e ~~ /^ "&" $<word>=[\w+] $/;
+                if $m {
+                    my $word := $m<word>;
+                    unless $word ~~ /^ "&" <.upper>+ $/ {
+                        nqp::bindkey($!completions, $word, 1);
+                    }
+                }
+            }
+
             $linenoise_set_completion_callback(sub ($line, $c) {
                 my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 

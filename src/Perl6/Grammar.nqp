@@ -3851,7 +3851,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <OPER=postcircumfix>
         | <OPER=dotty>
         | <OPER=privop>
-        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }> <.missing: "postfix">
+        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
+            [
+            || <?space> <.missing: "postfix">
+            || <?alpha> <.missing: "dot on method call">
+            || <.malformed: "postfix">
+            ]
         ]
         { $*LEFTSIGIL := '@'; }
     }

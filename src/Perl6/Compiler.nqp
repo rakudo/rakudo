@@ -46,6 +46,16 @@ class Perl6::Compiler is HLL::Compiler {
             nqp::say(~$value);
         }
     }
+
+    method interactive(*%adverbs) {
+        my $*moreinput := sub ($cursor) {
+            my $more := nqp::readlineintfh(nqp::getstdin, '* ');
+            $cursor.orig($more);
+            $cursor.target($more);
+        }
+        my $super := nqp::findmethod(HLL::Compiler, 'interactive');
+        $super(self, |%adverbs);
+    }
     
     method interactive_exception($ex) {
         my $payload := nqp::getpayload($ex);

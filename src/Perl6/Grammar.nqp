@@ -344,7 +344,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<Q-actions>       := Perl6::QActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
-        
+
+        # For tracking how many blocks deep we are nested.
+        # moreinput needs this to know if it has finished asking
+        # for more input.
+        my $*NESTED_BLOCKS := 0;
+
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
         # issue is that we may have no setting to provide them, e.g. when we
@@ -494,6 +499,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <.vws> <.heredoc>
         | <.unv>
         | <.unsp>
+        | $ <!MARKED('nomoreinput')> { self.moreinput } <?MARKER('nomoreinput')>
         ]*
         <?MARKER('ws')>
         :my $stub := self.'!fresh_highexpect'();
@@ -509,6 +515,25 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]*
     }
     
+    token MOREINPUT {
+        { if nqp::getenvhash<DEBUG_PLS> { say("nomoreinput at: " ~ self.pos) } }
+        [
+            <?{ $*NESTED_BLOCKS == 0 }> <?MARKER('nomoreinput')>
+            { say("and marking as 'nomoreinput'") if nqp::getenvhash<DEBUG_PLS> }
+        ||  <?>
+        ]
+    }
+
+    method moreinput() {
+        nqp::say("moreinput at: " ~ self.pos) if nqp::getenvhash<DEBUG_PLS>;
+        return nil if self.MARKED('nomoreinput') && $*NESTED_BLOCKS == 0;
+        my $old_cursor := self;
+        $*moreinput(self) if $*moreinput;
+        $old_cursor.target eq self.target
+            ?? Nil
+            !! self
+    }
+
     token vws {
         :dba('vertical whitespace')
         [
@@ -1361,6 +1386,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token eat_terminator {
+        [
         || ';'
         || <?MARKED('endstmt')> <.ws>
         || <?before ')' | ']' | '}' >
@@ -1368,6 +1394,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <?stopper>
         || <?before [if|while|for|loop|repeat|given|when] » > { self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
         || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
+        ] <?MOREINPUT>
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -1436,7 +1463,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
-        | :dba('block') '{' ~ '}' <statementlist(1)> <?ENDSTMT>
+        | :dba('block') '{' ~ '}' 
+            [ { $*NESTED_BLOCKS := $*NESTED_BLOCKS + 1 } <statementlist(1)> { $*NESTED_BLOCKS := $*NESTED_BLOCKS - 1 } ] 
+            <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
         ]

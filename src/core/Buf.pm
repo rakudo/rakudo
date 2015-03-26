@@ -317,7 +317,7 @@ multi sub pack(Str $template, *@items) {
             }
             when 'H' {
                 my $hexstring = shift @items // '';
-                if $hexstring % 2 {
+                if $hexstring.chars % 2 {
                     $hexstring ~= '0';
                 }
                 @bytes.push: map { :16($_) }, $hexstring.comb(/../);

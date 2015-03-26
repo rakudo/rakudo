@@ -181,7 +181,7 @@ sub METAOP_REDUCE_LISTINFIX(\op, :$triangle) {
                     }
                 }, :infinite(p.infinite))
             }
-        !!  sub (|values) { my \p = values[0]; op.(|p) }
+        !!  sub (|values) { my \p = values[0]; nqp::iscont(p[0]) ?? op.(|p.map({nqp::decont($_).list.Parcel})) !! op.(|p) }
 }
 
 

@@ -71,7 +71,7 @@ class Perl6::Compiler is HLL::Compiler {
                 my $e := $core_keys.AT-POS($i);
                 $i := $i + 1;
 
-                my $m := $e ~~ /^ "&" $<word>=[\w+] $/;
+                my $m := $e ~~ /^ "&"? $<word>=[\w+] $/;
                 if $m {
                     my $word := $m<word>;
                     unless $word ~~ /^ "&" <.upper>+ $/ {

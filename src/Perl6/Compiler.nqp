@@ -162,6 +162,23 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method readline($stdin, $stdout, $prompt) {
+        my $ctx := self.context();
+        if $ctx {
+            my $pad := nqp::ctxlexpad($ctx);
+            my $it := nqp::iterator($pad);
+
+            while $it {
+                my $e := nqp::shift($it);
+                my $k := nqp::iterkey_s($e);
+                my $m := $k ~~ /^ "&"? $<word>=[\w+] $/;
+                if $m {
+                    my $word := $m<word>;
+                    unless $word ~~ /^ "&" <.upper>+ $/ {
+                        nqp::bindkey($!completions, $word, 1);
+                    }
+                }
+            }
+        }
         if $!linenoise {
             my $line := $!linenoise($prompt);
             $!linenoise_add_history($line) if $line.defined;

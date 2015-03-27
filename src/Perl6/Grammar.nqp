@@ -1984,10 +1984,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # TODO: use actual variable in error message
     token special_variable:sym<$#> {
         <sym>
-        [
-        || \w+ <.obs('$#variable', '@variable.end')>
-        || <.obsvar('$#')>
-        ]
+        <.obs('$#variable', '@variable.end')>
     }
 
     token special_variable:sym<$$> {

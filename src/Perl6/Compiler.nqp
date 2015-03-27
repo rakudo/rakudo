@@ -179,6 +179,18 @@ class Perl6::Compiler is HLL::Compiler {
                     }
                 }
             }
+
+            my $our := nqp::getlexrel($ctx, '$?PACKAGE').WHO;
+            my $EnumMap := self.eval('EnumMap');
+            my $storage := nqp::getattr($our, $EnumMap, '$!storage');
+
+            $it := nqp::iterator($storage);
+
+            while $it {
+                my $e := nqp::shift($it);
+                my $k := nqp::iterkey_s($e);
+                nqp::bindkey($!completions, $k, 1);
+            }
         }
         if $!linenoise {
             my $line := $!linenoise($prompt);

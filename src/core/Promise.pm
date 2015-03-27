@@ -30,12 +30,12 @@ my class Promise {
         $!status           = Planned;
     }
 
-    # A Promise::Vow is used to enable the right to keep/break a promise
+    # A Vow is used to enable the right to keep/break a promise
     # to be restricted to a given "owner". Taking the Vow for a Promise
     # prevents anybody else from getting hold of it.
-    class Vow { ... }
+    my class Vow { ... }
     trusts Vow;
-    class Vow {
+    my class Vow {
         has $.promise;
         method keep(\result) {
             $!promise!Promise::keep(result)

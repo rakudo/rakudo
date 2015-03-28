@@ -1497,7 +1497,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<unless> {
         <sym><.kok> {}
         <xblock>
-        [ <!before 'else'> || <.typed_panic: 'X::Syntax::UnlessElse'> ]
+        [ <!before els[e|if]» > || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
     rule statement_control:sym<while> {

@@ -2236,7 +2236,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.kok> <package_def>
     }
     token package_declarator:sym<trusts> {
-        <sym><.kok> <typename>
+        <sym><.kok> [ <typename> || <.panic: 'Invalid typename'> ]
     }
     rule package_declarator:sym<also> {
         <sym><.kok>

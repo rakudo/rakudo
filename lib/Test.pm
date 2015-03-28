@@ -1,3 +1,5 @@
+use nqp;
+
 module Test;
 # Copyright (C) 2007 - 2014 The Perl Foundation.
 

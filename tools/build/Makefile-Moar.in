@@ -177,8 +177,8 @@ $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR)
 lib/NativeCall.pm.moarvm: lib/NativeCall.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER) lib/nqp.pm6.moarvm
 	.@slash@$(M_RUNNER) --target=mbc --output=lib/NativeCall.pm.moarvm -Ilib lib/NativeCall.pm
 
-lib/Test.pm.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc --output=lib/Test.pm.moarvm lib/Test.pm
+lib/Test.pm.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER) lib/nqp.pm6.moarvm
+	.@slash@$(M_RUNNER) --target=mbc --output=lib/Test.pm.moarvm -Ilib lib/Test.pm
 
 lib/nqp.pm6.moarvm: lib/nqp.pm6 $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
 	.@slash@$(M_RUNNER) --target=mbc --output=lib/nqp.pm6.moarvm lib/nqp.pm6

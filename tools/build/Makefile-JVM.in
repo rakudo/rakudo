@@ -317,8 +317,8 @@ $(J_DEBUG_RUNNER): tools/build/create-jvm-runner.pl $(PERL6_DEBUG_JAR)
 lib/NativeCall.pm.jar: lib/NativeCall.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/nqp.pm6.jar
 	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall.pm.jar -Ilib lib/NativeCall.pm
 
-lib/Test.pm.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
-	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar lib/Test.pm
+lib/Test.pm.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/nqp.pm6.jar
+	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar -Ilib lib/Test.pm
 
 lib/nqp.pm6.jar: lib/nqp.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	.@slash@$(J_RUNNER) --target=jar --output=lib/nqp.pm6.jar lib/nqp.pm6

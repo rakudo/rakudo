@@ -2,6 +2,44 @@ use NQPP6QRegex;
 use QRegex;
 use Perl6::Optimizer;
 
+my sub sorted_set_insert(@values, $value) {
+    my $low        := 0;
+    my $high       := nqp::elems(@values) - 1;
+    my $insert_pos := 0;
+
+    while $low <= $high {
+        my $middle := nqp::floor_n($low + ($high - $low) / 2);
+
+        my $middle_elem := nqp::atpos(@values, $middle);
+
+        if $middle == nqp::elems(@values) - 1 {
+            if $value eq $middle_elem {
+                return;
+            } elsif $value lt $middle_elem {
+                $high := $middle - 1;
+            } else {
+                $insert_pos := nqp::elems(@values);
+                last;
+            }
+        } else {
+            my $middle_plus_one_elem := nqp::atpos(@values, $middle + 1);
+
+            if $value eq $middle_elem || $value eq $middle_plus_one_elem {
+                return;
+            } elsif $value lt $middle_elem {
+                $high := $middle - 1;
+            } elsif $value gt $middle_plus_one_elem {
+                $low := $middle + 1;
+            } else {
+                $insert_pos := $middle + 1;
+                last;
+            }
+        }
+    }
+
+    nqp::splice(@values, nqp::list($value), $insert_pos, 0);
+}
+
 class Perl6::Compiler is HLL::Compiler {
     has $!linenoise;
     has $!linenoise_add_history;
@@ -60,7 +98,7 @@ class Perl6::Compiler is HLL::Compiler {
             my $linenoise_set_completion_callback := @symbols[2];
             my $linenoise_add_completion := @symbols[3];
 
-            $!completions := nqp::hash();
+            $!completions := nqp::list();
 
             my $core_keys := self.eval('CORE::.keys');
 
@@ -75,7 +113,7 @@ class Perl6::Compiler is HLL::Compiler {
                 if $m {
                     my $word := $m<word>;
                     unless $word ~~ /^ "&" <.upper>+ $/ {
-                        nqp::bindkey($!completions, $word, 1);
+                        sorted_set_insert($!completions, $word);
                     }
                 }
             }
@@ -89,8 +127,7 @@ class Perl6::Compiler is HLL::Compiler {
                 my $it := nqp::iterator($!completions);
 
                 while $it {
-                    my $e := nqp::shift($it);
-                    my $k := nqp::iterkey_s($e);
+                    my $k := nqp::shift($it);
 
                     if $k ~~ /^ $last_word / {
                         $linenoise_add_completion($c, $prefix ~ $k);
@@ -175,7 +212,7 @@ class Perl6::Compiler is HLL::Compiler {
                 if $m {
                     my $word := $m<word>;
                     unless $word ~~ /^ "&" <.upper>+ $/ {
-                        nqp::bindkey($!completions, $word, 1);
+                        sorted_set_insert($!completions, $word);
                     }
                 }
             }
@@ -189,7 +226,7 @@ class Perl6::Compiler is HLL::Compiler {
             while $it {
                 my $e := nqp::shift($it);
                 my $k := nqp::iterkey_s($e);
-                nqp::bindkey($!completions, $k, 1);
+                sorted_set_insert($!completions, $k);
             }
         }
         if $!linenoise {

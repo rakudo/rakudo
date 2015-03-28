@@ -2943,7 +2943,9 @@ class Perl6::World is HLL::World {
                 my %seen;
                 for @raw_expected {
                     unless %seen{$_} {
-                        nqp::push(@expected, $_);
+                        my $end := +@expected;
+                        while $end && @expected[$end-1] gt $_ { $end := $end - 1 }
+                        nqp::splice(@expected, [$_], $end, 0);
                         %seen{$_} := 1;
                     }
                 }
@@ -2952,10 +2954,12 @@ class Perl6::World is HLL::World {
             # Try and better explain "Confused".
             my @locprepost := self.locprepost($c);
             if $ex.HOW.name($ex) eq 'X::Syntax::Confused' {
-                my $next := nqp::substr(@locprepost[1], 0, 1);
-                if $next ~~ /\)|\]|\}|\»/ {
+                if @locprepost[1] ~~ / ^ \s* <[ } ) \] > » ]> / {
                     %opts<reason> := "Unexpected closing bracket";
                     @expected := [];
+                }
+                elsif @locprepost[0] ~~ / \} \s* $ / {
+                    %opts<reason> := "Strange text after block (missing semicolon or comma?)";
                 }
                 else {
                     my $expected_infix := 0;
@@ -2964,7 +2968,7 @@ class Perl6::World is HLL::World {
                         if nqp::index($_, "infix") >= 0 {
                             $expected_infix := 1;
                         }
-                        elsif nqp::index($_, "prefix or term") >= 0 {
+                        elsif nqp::index($_, "term") >= 0 {
                             $expected_term := 1;
                         }
                     }
@@ -3046,9 +3050,9 @@ class Perl6::World is HLL::World {
     }
     
     method locprepost($c) {
-        my $marked := $c.MARKED('ws');
-        my $pos  := $marked ?? $marked.from !! $c.pos;
         my $orig := $c.orig;
+        my $marked := $c.MARKED('ws');
+        my $pos  := $marked && nqp::index(" }])>»", nqp::substr($orig, $c.pos, 1)) < 0 ?? $marked.from !! $c.pos;
 
         my $prestart := $pos - 40;
         $prestart := 0 if $prestart < 0;

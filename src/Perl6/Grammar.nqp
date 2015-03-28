@@ -3838,7 +3838,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!stdstopper>
         
         # last whitespace didn't end here
-        <!MARKED('ws')>
+        <?{
+            my $c := $/.CURSOR;
+            my $marked := $c.MARKED('ws');
+            !$marked || $marked.from == $c.pos;
+        }>
 
         [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 

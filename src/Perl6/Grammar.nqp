@@ -2236,7 +2236,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.kok> <package_def>
     }
     token package_declarator:sym<trusts> {
-        <sym><.kok> [ <typename> || <.panic: 'Invalid typename'> ]
+        <sym><.kok> [ <typename> || <.typo_typename(1)> ]
     }
     rule package_declarator:sym<also> {
         <sym><.kok>
@@ -3455,12 +3455,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [<.ws> 'of' <.ws> <typename> ]?
     }
 
-    token typo_typename {
+    token typo_typename($panic = 0) {
         <longname>
         {
           my $longname := $*W.dissect_longname($<longname>);
           my @suggestions := $*W.suggest_typename($longname.name);
-          $/.CURSOR.typed_sorry('X::Undeclared',
+          my $method := $panic ?? 'typed_panic' !! 'typed_sorry';
+          $/.CURSOR."$method"('X::Undeclared',
                     what => "Type",
                     symbol => $longname.name(),
                     suggestions => @suggestions);

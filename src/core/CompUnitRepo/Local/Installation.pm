@@ -70,6 +70,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         my $repo     = %!dists{$path};
         my $file-id := $repo<file-count>;
         my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
+        state $is-win //= $*DISTRO.is-win; # only look up once
         if $repo<dists>.first({ ($_<name> // '') eq  ($d.name // '') &&
                                 ($_<auth> // '') eq  ($d.auth // '') &&
                                ~($_<ver>  //  0) eq ~($d.ver  //  0) }) -> $installed {
@@ -83,6 +84,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         my $ext = regex { [pm|pm6|pir|pbc|jar|moarvm] };
         my @provides;
         for %($d.provides).kv -> $k, $v is copy {
+            $v = $v.subst('\\', '/', :g);
             $v.=subst(/ [pm|pm6]? \.<$ext>$/, '.');
             @provides.push: regex { $v [ [pm|pm6] \. ]? <ext=.$ext> { make $k } }
         }
@@ -97,7 +99,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         # "provides" or just "files".
         my $has-provides;
         for @files -> $file is copy {
-            $file.=Str;
+            $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 $has-provides = True;
                 $d.provides{ $/.ast }{ $<ext> } = {
@@ -108,7 +110,6 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             }
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
-                    state $is-win //= $*DISTRO.is-win; # only look up once
                     mkdir "$path/bin" unless "$path/bin".IO.d;
                     my $basename   = $file.IO.basename;
                     my $withoutext = $basename;
@@ -118,7 +119,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
                             $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
                         if $is-win {
                             "$path/bin/$withoutext$be.bat".IO.spurt:
-                                $windows_wrapper.subst('#perl#', "perl6$be");
+                                $windows_wrapper.subst('#perl#', "perl6$be", :g);
                         }
                         else {
                             "$path/bin/$withoutext$be".IO.chmod(0o755);
@@ -132,7 +133,6 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         }
 
         if !$has-provides && $d.files.keys.first(/^blib\W/) {
-            my $is-win := $*DISTRO.is-win;
             my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
             my ($red, $green, $yellow, $clear) = $color
                 ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")

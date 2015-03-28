@@ -503,4 +503,14 @@ multi sub acotanh(num $x) {
     atanh(1e0 / $x)
 }
 
+multi sub floor(num $a) returns num {
+    nqp::floor_n($a)
+}
+multi sub ceiling(num $a) returns num {
+    nqp::ceil_n($a)
+}
+multi sub sqrt(num $a) returns num {
+    nqp::sqrt_n($a)
+}
+
 # vim: ft=perl6 expandtab sw=4

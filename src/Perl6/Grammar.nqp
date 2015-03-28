@@ -3738,7 +3738,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*MULTINESS := "";
         :my $*OFTYPE;
         :my $*VAR;
-        :dba('prefix or term')
+        :dba('term')
         [
         ||  [
             | <prefixish>+ [ <term> || {} <.panic("Prefix " ~ $<prefixish>[-1].Str ~ " requires an argument, but no valid term found")> ]
@@ -3775,7 +3775,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token prefixish { 
-        :dba('prefix or meta-prefix')
+        :dba('prefix')
         [
         | <OPER=prefix>
         | <OPER=prefix_circumfix_meta_operator>
@@ -3789,7 +3789,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*OPER;
         <!stdstopper>
         <!infixstopper>
-        :dba('infix or meta-infix')
+        :dba('infix')
         [
         | <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
         |   [

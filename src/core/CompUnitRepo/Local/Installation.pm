@@ -95,9 +95,11 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
 
         # Walk the to be installed files, decide whether we put them into
         # "provides" or just "files".
+        my $has-provides;
         for @files -> $file is copy {
             $file.=Str;
             if [||] @provides>>.ACCEPTS($file) -> $/ {
+                $has-provides = True;
                 $d.provides{ $/.ast }{ $<ext> } = {
                     :file($file-id),
                     :time(try $file.IO.modified.Num),
@@ -127,6 +129,22 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             }
             copy($file, $path ~ '/' ~ $file-id);
             $file-id++;
+        }
+
+        if !$has-provides && $d.files.keys.first(/^blib\W/) {
+            my $is-win := $*DISTRO.is-win;
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
+            my ($red, $green, $yellow, $clear) = $color
+                ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
+                !! ("", "", "", "");
+            my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
+
+            note "$red==={$clear}WARNING!$red===$clear
+The distribution $d.name() does not seem to have a \"provides\" section in its META.info file,
+and so the packages will not be installed in the correct location.
+Please inform the author to add a \"provides\" section, mapping every exposed namespace to a
+file location in the distribution.
+See http://design.perl6.org/S22.html#provides for more information.\n";
         }
 
         $repo<dists>[$d.id] = $d.Hash;

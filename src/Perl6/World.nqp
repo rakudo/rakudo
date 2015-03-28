@@ -2976,6 +2976,9 @@ class Perl6::World is HLL::World {
                         if $expected_term {
                             %opts<reason> := "Bogus term";
                         }
+                        elsif $*IN_META {
+                            %opts<reason> := "Bogus infix";
+                        }
                         else {
                             %opts<reason> := "Two terms in a row";
                         }

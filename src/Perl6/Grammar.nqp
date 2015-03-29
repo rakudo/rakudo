@@ -4200,12 +4200,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*GOAL := '!!';
         '??'
         <.ws>
-        <EXPR('i=')>
+        <EXPR('j=')>
         [ '!!'
         || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
         || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
-        || <?{ ~$<EXPR> ~~ / '!!' / }> <.panic("Your !! was gobbled by the expression in the middle; please use parens")>
-        || <?before \N*? [\n\N*?]?> '!!' <.sorry("Bogus code found before the !!")> <.panic("Confused")>
+        || <infixish> {} <.panic("Precedence of $<infixish> is too low to use inside ?? !!; please parenthesize")>
+        || <?{ ~$<EXPR> ~~ / '!!' / }> <.panic("Your !! was gobbled by the expression in the middle; please parenthesize")>
+        || <?before \N*? [\n\N*?]? '!!'> <.sorry("Bogus code found before the !!")> <.panic("Confused")>
         || <.sorry("Found ?? but no !!")> <.panic("Confused")>
         ]
         <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>

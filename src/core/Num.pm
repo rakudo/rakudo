@@ -42,8 +42,6 @@ my class Num does Real { # declared in BOOTSTRAP
             return self;
         }
 
-        my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
-
         (self == Inf || self == -Inf) && fail("Cannot coerce Inf to a Rat");
 
         my Num $num = self;
@@ -52,16 +50,25 @@ my class Num does Real { # declared in BOOTSTRAP
 
         # Find convergents of the continued fraction.
 
-        my Num $r = $num - $num.Int;
-        my Int $q = $num.Int;
-        my ($a, $b) = 1, $q;
-        my ($c, $d) = 0, 1;
+        my Int $q = nqp::fromnum_I($num, Int);
+        my num $r = $num - floor($num);
+        my Int $a = 1;
+        my Int $b = $q;
+        my Int $c = 0;
+        my Int $d = 1;
 
-        while $r != 0 && abs($num - ($b/$d)) > $epsilon {
-            ($r, $q) = modf(1/$r);
+        while $r != 0e0 && abs($num - ($b / $d)) > $epsilon {
+            my num $modf_arg = 1e0 / $r;
+            $q = nqp::fromnum_I($modf_arg, Int);
+            $r = $modf_arg - floor($modf_arg);
 
-            ($a, $b) = ($b, $q*$b + $a);
-            ($c, $d) = ($d, $q*$d + $c);
+            my $orig_b = $b;
+            $b = $q * $b + $a;
+            $a = $orig_b;
+
+            my $orig_d = $d;
+            $d = $q * $d + $c;
+            $c = $orig_d;
         }
 
         # Note that this result has less error than any Rational with a
@@ -494,6 +501,16 @@ multi sub cotanh(num $x) {
 }
 multi sub acotanh(num $x) {
     atanh(1e0 / $x)
+}
+
+multi sub floor(num $a) returns num {
+    nqp::floor_n($a)
+}
+multi sub ceiling(num $a) returns num {
+    nqp::ceil_n($a)
+}
+multi sub sqrt(num $a) returns num {
+    nqp::sqrt_n($a)
 }
 
 # vim: ft=perl6 expandtab sw=4

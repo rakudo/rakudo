@@ -4935,9 +4935,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<OPER><O><pasttype> {
                 $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
             }
-            elsif $<OPER><O><pirop> {
-                $past := QAST::VM.new( :node($/), :pirop(~$<OPER><O><pirop>) );
-            }
             else {
                 $past := QAST::Op.new( :node($/), :op('call') );
             }

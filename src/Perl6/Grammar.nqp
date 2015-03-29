@@ -1526,7 +1526,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<unless> {
         <sym><.kok> {}
         <xblock>
-        [ <!before 'else'> || <.typed_panic: 'X::Syntax::UnlessElse'> ]
+        [ <!before els[e|if]» > || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
     rule statement_control:sym<while> {
@@ -1880,6 +1880,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<type_declarator>    { <type_declarator> }
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
+    token term:sym<!!>                 { '!!' <?before \s> }  # actual error produced inside infix:<?? !!>
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
@@ -2013,10 +2014,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # TODO: use actual variable in error message
     token special_variable:sym<$#> {
         <sym>
-        [
-        || \w+ <.obs('$#variable', '@variable.end')>
-        || <.obsvar('$#')>
-        ]
+        <.obs('$#variable', '@variable.end')>
     }
 
     token special_variable:sym<$$> {
@@ -2268,7 +2266,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.kok> <package_def>
     }
     token package_declarator:sym<trusts> {
-        <sym><.kok> <typename>
+        <sym><.kok> [ <typename> || <.typo_typename(1)> ]
     }
     rule package_declarator:sym<also> {
         <sym><.kok>
@@ -3487,12 +3485,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [<.ws> 'of' <.ws> <typename> ]?
     }
 
-    token typo_typename {
+    token typo_typename($panic = 0) {
         <longname>
         {
           my $longname := $*W.dissect_longname($<longname>);
           my @suggestions := $*W.suggest_typename($longname.name);
-          $/.CURSOR.typed_sorry('X::Undeclared',
+          my $method := $panic ?? 'typed_panic' !! 'typed_sorry';
+          $/.CURSOR."$method"('X::Undeclared',
                     what => "Type",
                     symbol => $longname.name(),
                     suggestions => @suggestions);
@@ -3770,7 +3769,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*MULTINESS := "";
         :my $*OFTYPE;
         :my $*VAR;
-        :dba('prefix or term')
+        :dba('term')
         [
         ||  [
             | <prefixish>+ [ <term> || {} <.panic("Prefix " ~ $<prefixish>[-1].Str ~ " requires an argument, but no valid term found")> ]
@@ -3807,7 +3806,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token prefixish { 
-        :dba('prefix or meta-prefix')
+        :dba('prefix')
         [
         | <OPER=prefix>
         | <OPER=prefix_circumfix_meta_operator>
@@ -3821,7 +3820,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*OPER;
         <!stdstopper>
         <!infixstopper>
-        :dba('infix or meta-infix')
+        :dba('infix')
         [
         | <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
         |   [
@@ -3837,6 +3836,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
             | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
             | <infix> { $*OPER := $<infix> }
+            | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
             ]
             [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> }
             ]?
@@ -3868,7 +3868,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!stdstopper>
         
         # last whitespace didn't end here
-        <!MARKED('ws')>
+        <?{
+            my $c := $/.CURSOR;
+            my $marked := $c.MARKED('ws');
+            !$marked || $marked.from == $c.pos;
+        }>
 
         [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
@@ -3880,6 +3884,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <OPER=postcircumfix>
         | <OPER=dotty>
         | <OPER=privop>
+        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
+            [
+            || <?space> <.missing: "postfix">
+            || <?alpha> <.missing: "dot on method call">
+            || <.malformed: "postfix">
+            ]
         ]
         { $*LEFTSIGIL := '@'; }
     }
@@ -4219,11 +4229,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*GOAL := '!!';
         '??'
         <.ws>
-        <EXPR('i=')>
+        <EXPR('j=')>
         [ '!!'
         || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
         || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
-        || <?before \N*? [\n\N*?]?> '!!' <.sorry("Bogus code found before the !!")> <.panic("Confused")>
+        || <infixish> {} <.panic("Precedence of $<infixish> is too loose to use inside ?? !!; please parenthesize")>
+        || <?{ ~$<EXPR> ~~ / '!!' / }> <.panic("Your !! was gobbled by the expression in the middle; please parenthesize")>
+        || <?before \N*? [\n\N*?]? '!!'> <.sorry("Bogus code found before the !!")> <.panic("Confused")>
         || <.sorry("Found ?? but no !!")> <.panic("Confused")>
         ]
         <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>

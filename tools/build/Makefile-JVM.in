@@ -100,6 +100,7 @@ J_CORE_SOURCES = \
   src/core/List.pm \
   src/core/LoL.pm \
   src/core/Array.pm \
+  src/core/native_array.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \
   src/core/HashIter.pm \
@@ -313,11 +314,11 @@ $(J_DEBUG_RUNNER): tools/build/create-jvm-runner.pl $(PERL6_DEBUG_JAR)
 	$(PERL) tools/build/create-jvm-runner.pl dev-debug . . $(NQP_PREFIX) $(NQP_JARS)
 
 ##  shipped modules
-lib/NativeCall.pm.jar: lib/NativeCall.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
-	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall.pm.jar lib/NativeCall.pm
+lib/NativeCall.pm.jar: lib/NativeCall.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/nqp.pm6.jar
+	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall.pm.jar -Ilib lib/NativeCall.pm
 
-lib/Test.pm.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
-	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar lib/Test.pm
+lib/Test.pm.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/nqp.pm6.jar
+	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar -Ilib lib/Test.pm
 
 lib/nqp.pm6.jar: lib/nqp.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	.@slash@$(J_RUNNER) --target=jar --output=lib/nqp.pm6.jar lib/nqp.pm6

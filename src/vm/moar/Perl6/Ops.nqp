@@ -457,7 +457,6 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
 
         # Emit sink method call.
         my $meth := $*REGALLOC.fresh_o();
-        $*REGALLOC.release_register($meth, $MVM_reg_obj);
         nqp::push(@ops, MAST::Op.new( :op('findmeth'), $meth, $sinkee_reg,
             MAST::SVal.new( :value('sink') )));
         nqp::push(@ops, MAST::Call.new(

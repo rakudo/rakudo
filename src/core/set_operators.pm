@@ -66,7 +66,7 @@ only sub infix:<(&)>(**@p) {
             !! @p.shift.MixHash;
         for @p.map(*.Mix(:view)) -> $mix {
             $mix{$_}
-              ?? $mixhash{$_} min= $mix{$_}
+              ?? ($mixhash{$_} min= $mix{$_})
               !! $mixhash.DELETE-KEY($_)
               for $mixhash.keys;
         }
@@ -77,7 +77,7 @@ only sub infix:<(&)>(**@p) {
             !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
-              ?? $baghash{$_} min= $bag{$_}
+              ?? ($baghash{$_} min= $bag{$_})
               !! $baghash.DELETE-KEY($_)
               for $baghash.keys;
         }
@@ -106,7 +106,7 @@ only sub infix:<(-)>(**@p) {
             !! @p.shift.MixHash;
         for @p.map(*.Mix(:view)) -> $mix {
             $mix{$_} < $mixhash{$_}
-              ?? $mixhash{$_} -= $mix{$_}
+              ?? ($mixhash{$_} -= $mix{$_})
               !! $mixhash.DELETE-KEY($_)
               for $mixhash.keys;
         }
@@ -117,7 +117,7 @@ only sub infix:<(-)>(**@p) {
             !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_} < $baghash{$_}
-              ?? $baghash{$_} -= $bag{$_}
+              ?? ($baghash{$_} -= $bag{$_})
               !! $baghash.DELETE-KEY($_)
               for $baghash.keys;
         }
@@ -225,7 +225,7 @@ only sub infix:<(.)>(**@p) {
             !! @p.shift.MixHash;
         for @p.map(*.Mix(:view)) -> $mix {
             $mix{$_}
-              ?? $mixhash{$_} *= $mix{$_}
+              ?? ($mixhash{$_} *= $mix{$_})
               !! $mixhash.DELETE-KEY($_)
               for $mixhash.keys;
         }
@@ -236,7 +236,7 @@ only sub infix:<(.)>(**@p) {
             !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
-              ?? $baghash{$_} *= $bag{$_}
+              ?? ($baghash{$_} *= $bag{$_})
               !! $baghash.DELETE-KEY($_)
               for $baghash.keys;
         }

@@ -1851,6 +1851,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<type_declarator>    { <type_declarator> }
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
+    token term:sym<!!>                 { '!!' <?before \s> }  # actual error produced inside infix:<?? !!>
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
@@ -4203,6 +4204,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ '!!'
         || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
         || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
+        || <?{ ~$<EXPR> ~~ / '!!' / }> <.panic("Your !! was gobbled by the expression in the middle; please use parens")>
         || <?before \N*? [\n\N*?]?> '!!' <.sorry("Bogus code found before the !!")> <.panic("Confused")>
         || <.sorry("Found ?? but no !!")> <.panic("Confused")>
         ]

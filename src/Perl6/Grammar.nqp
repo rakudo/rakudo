@@ -4204,7 +4204,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ '!!'
         || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
         || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
-        || <infixish> {} <.panic("Precedence of $<infixish> is too low to use inside ?? !!; please parenthesize")>
+        || <infixish> {} <.panic("Precedence of $<infixish> is too loose to use inside ?? !!; please parenthesize")>
         || <?{ ~$<EXPR> ~~ / '!!' / }> <.panic("Your !! was gobbled by the expression in the middle; please parenthesize")>
         || <?before \N*? [\n\N*?]? '!!'> <.sorry("Bogus code found before the !!")> <.panic("Confused")>
         || <.sorry("Found ?? but no !!")> <.panic("Confused")>

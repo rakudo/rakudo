@@ -527,7 +527,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         my $old_cursor := self;
         $*moreinput(self) if $*moreinput;
         $old_cursor.target eq self.target
-            ?? Nil
+            ?? NQPMu
             !! self
     }
 
@@ -1460,10 +1460,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
-        | :dba('block') 
+        | :dba('block')
             '{' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH + 1 }
             <statementlist(1)>
-            [ <?> | '}' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 } ]
+            [
+                <?> <?{ $*moreinput }>
+                | '}' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
+            ]
             <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }

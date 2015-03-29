@@ -348,7 +348,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # For tracking how many blocks deep we are nested.
         # moreinput needs this to know if it has finished asking
         # for more input.
-        my $*NESTED_BLOCKS := 0;
+        my $*MOREINPUT_BLOCK_DEPTH := 0;
 
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
@@ -516,17 +516,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     token MOREINPUT {
-        { if nqp::getenvhash<DEBUG_PLS> { say("nomoreinput at: " ~ self.pos) } }
         [
-            <?{ $*NESTED_BLOCKS == 0 }> <?MARKER('nomoreinput')>
-            { say("and marking as 'nomoreinput'") if nqp::getenvhash<DEBUG_PLS> }
+            <?{ $*MOREINPUT_BLOCK_DEPTH == 0 }> <?MARKER('nomoreinput')>
         ||  <?>
         ]
     }
 
     method moreinput() {
-        nqp::say("moreinput at: " ~ self.pos) if nqp::getenvhash<DEBUG_PLS>;
-        return nil if self.MARKED('nomoreinput') && $*NESTED_BLOCKS == 0;
+        return nil if self.MARKED('nomoreinput') && $*MOREINPUT_BLOCK_DEPTH == 0;
         my $old_cursor := self;
         $*moreinput(self) if $*moreinput;
         $old_cursor.target eq self.target
@@ -1304,7 +1301,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('statement list')
         ''
         [
-        | $
+        | <!MARKED('nomoreinput')> $
         | <?before <[\)\]\}]>>
         | [ <statement> <.eat_terminator> ]*
         ]
@@ -1463,8 +1460,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
-        | :dba('block') '{' ~ '}' 
-            [ { $*NESTED_BLOCKS := $*NESTED_BLOCKS + 1 } <statementlist(1)> { $*NESTED_BLOCKS := $*NESTED_BLOCKS - 1 } ] 
+        | :dba('block') 
+            '{' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH + 1 }
+            <statementlist(1)>
+            [ <?> | '}' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 } ]
             <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }

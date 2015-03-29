@@ -50,8 +50,7 @@ class Perl6::Compiler is HLL::Compiler {
     method interactive(*%adverbs) {
         my $*moreinput := sub ($cursor) {
             my $more := nqp::readlineintfh(nqp::getstdin, '* ');
-            $cursor.orig($more);
-            $cursor.target($more);
+            $cursor."!APPEND_TO_ORIG"($more);
         }
         my $super := nqp::findmethod(HLL::Compiler, 'interactive');
         $super(self, |%adverbs);

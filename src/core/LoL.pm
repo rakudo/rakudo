@@ -41,6 +41,9 @@ class LoL { # declared in BOOTSTRAP
 sub lol (**@l) { @l }
 
 sub infix:<X>(|lol) {
+    if lol.hash && lol.hash<with> {
+        return METAOP_CROSS(lol.hash<with>, &METAOP_REDUCE_LEFT)(|lol.list);
+    }
     my int $n = lol.elems - 1;
     my $Inf = False;
     my @l = eager for 0..$n -> $i {
@@ -152,11 +155,13 @@ sub infix:<X>(|lol) {
     }
 }
 
+my &cross = &infix:<X>;
+
 sub infix:<Z>(|lol) {
     my $arity = lol.elems;
     return if $arity == 0;
     if lol.hash && lol.hash<with> {
-        return METAOP_ZIP(lol.hash<with>, &reduce)(|lol.list);
+        return METAOP_ZIP(lol.hash<with>, &METAOP_REDUCE_LEFT)(|lol.list);
     }
     my @l = eager for ^$arity -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten

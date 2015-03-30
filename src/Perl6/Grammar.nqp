@@ -517,18 +517,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     token MOREINPUT {
         [
-            <?{ $*MOREINPUT_BLOCK_DEPTH == 0 }> <?MARKER('nomoreinput')>
+            <?{ $*MOREINPUT_BLOCK_DEPTH == 0 }>
+            <?MARKER('nomoreinput')>
+            { $*MOREINPUT_BLOCK_DEPTH := 0 }
         ||  <?>
         ]
     }
 
     method moreinput() {
-        return nil if self.MARKED('nomoreinput') && $*MOREINPUT_BLOCK_DEPTH == 0;
+        return NQPMu if self.MARKED('nomoreinput') && $*MOREINPUT_BLOCK_DEPTH == 0;
         my $old_cursor := self;
         $*moreinput(self) if $*moreinput;
-        $old_cursor.target eq self.target
-            ?? NQPMu
-            !! self
+        NQPMu
     }
 
     token vws {

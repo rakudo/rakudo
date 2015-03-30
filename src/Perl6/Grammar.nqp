@@ -2804,14 +2804,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token capterm {
         '\\'
         [
-        | '(' <.ws> <capture>? ')'
+        | '(' <semiarglist> ')'
         | <?before \S> <termish>
         | {} <.panic: "You can't backslash that">
         ]
-    }
-
-    rule capture {
-        <EXPR>
     }
 
     rule param_sep {

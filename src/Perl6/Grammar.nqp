@@ -526,7 +526,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method moreinput() {
         return NQPMu if self.MARKED('nomoreinput') && $*MOREINPUT_BLOCK_DEPTH == 0;
-        my $old_cursor := self;
         $*moreinput(self) if $*moreinput;
         NQPMu
     }

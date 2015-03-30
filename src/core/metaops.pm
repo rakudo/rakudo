@@ -12,7 +12,7 @@ sub METAOP_NEGATE(\op) {
 }
 
 sub METAOP_REVERSE(\op) {
-    -> Mu \a, Mu \b { op.(b, a) }
+    -> |args { op.(|args.reverse) }
 }
 
 sub METAOP_CROSS(\op, &reduce) {

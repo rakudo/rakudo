@@ -3946,6 +3946,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $cur
     }
 
+    method revO($from) {
+        my $O   := nqp::clone($from<OPER><O>);
+        my $cur := self.'!cursor_start_cur'();
+        $cur.'!cursor_pass'(self.pos());
+        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
+        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
+        nqp::bindattr($cur, NQPCursor, '$!match', $O);
+        $cur
+    }
+
     proto token dotty { <...> }
     token dotty:sym<.> {
         <sym> <dottyop>
@@ -4224,7 +4234,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix_prefix_meta_operator:sym<R> {
         <sym> <infixish('R')> {}
         <.can_meta($<infixish>, "reverse the args of")>
-        <O=.copyO($<infixish>)>
+        <O=.revO($<infixish>)>
     }
 
     token infix_prefix_meta_operator:sym<S> {

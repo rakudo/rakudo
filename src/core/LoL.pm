@@ -155,6 +155,9 @@ sub infix:<X>(|lol) {
 sub infix:<Z>(|lol) {
     my $arity = lol.elems;
     return if $arity == 0;
+    if lol.hash && lol.hash<with> {
+        return METAOP_ZIP(lol.hash<with>, &reduce)(|lol.list);
+    }
     my @l = eager for ^$arity -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 

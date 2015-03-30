@@ -4212,12 +4212,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         <EXPR('j=')>
         [ '!!'
-        || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
-        || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
-        || <infixish> {} <.panic("Precedence of $<infixish> is too loose to use inside ?? !!; please parenthesize")>
-        || <?{ ~$<EXPR> ~~ / '!!' / }> <.panic("Your !! was gobbled by the expression in the middle; please parenthesize")>
-        || <?before \N*? [\n\N*?]? '!!'> <.sorry("Bogus code found before the !!")> <.panic("Confused")>
-        || <.sorry("Found ?? but no !!")> <.panic("Confused")>
+        || <?before '::' <-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
+        || <?before ':' <-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
+        || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
+        || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
+        || <?before \N*? [\n\N*?]? '!!'> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
+        || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!" }
         ]
         <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>
     }

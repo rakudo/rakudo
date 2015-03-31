@@ -753,6 +753,7 @@ S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
+S32-io/io-handle.t
 S32-io/io-spec-unix.t
 S32-io/io-spec-win.t
 S32-io/io-spec-cygwin.t
@@ -968,6 +969,7 @@ integration/no-indirect-new.t
 integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
+integration/precompiled.t
 integration/real-strings.t
 integration/role-composition-vs-attribute.t
 integration/rule-in-class-Str.t

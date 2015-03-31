@@ -40,9 +40,18 @@ class LoL { # declared in BOOTSTRAP
 
 sub lol (**@l) { @l }
 
+sub find-reducer-for-op($op) {
+    my %prec := $op.prec;
+    my $reducer = %prec<prec> eq 'f='
+        ?? 'listinfix'
+        !! %prec<assoc> || 'left';
+    ::('&METAOP_REDUCE_' ~ $reducer.uc);
+}
+
 sub infix:<X>(|lol) {
-    if lol.hash && lol.hash<with> {
-        return METAOP_CROSS(lol.hash<with>, &METAOP_REDUCE_LEFT)(|lol.list);
+    if lol.hash {
+        my $op = lol.hash<with>;
+        return METAOP_CROSS($op, find-reducer-for-op($op))(|lol.list) if $op;
     }
     my int $n = lol.elems - 1;
     my $Inf = False;
@@ -158,11 +167,12 @@ sub infix:<X>(|lol) {
 my &cross = &infix:<X>;
 
 sub infix:<Z>(|lol) {
+    if lol.hash {
+        my $op = lol.hash<with>;
+        return METAOP_ZIP($op, find-reducer-for-op($op))(|lol.list) if $op;
+    }
     my $arity = lol.elems;
     return if $arity == 0;
-    if lol.hash && lol.hash<with> {
-        return METAOP_ZIP(lol.hash<with>, &METAOP_REDUCE_LEFT)(|lol.list);
-    }
     my @l = eager for ^$arity -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 

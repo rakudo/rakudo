@@ -1922,7 +1922,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         [
         || <!{ $*IN_REDUCE }> {
-            $/.CURSOR.panic("Unexpected block in infix position (missing statement control before preceding term?)");
+            $/.CURSOR.panic("Unexpected block in infix position (missing statement control word before the prior expression?)");
         }
         || <!>
         ]

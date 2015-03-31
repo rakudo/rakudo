@@ -34,9 +34,10 @@ __END__
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
 sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
-    my @binaries = CompUnitRepo::Local::Installation.files(\'bin/#name#\', :$name, :$auth, :$ver);
+    my @installations = @*INC.grep(CompUnitRepo::Local::Installation);
+    my @binaries = @installations>>.files(\'bin/#name#\', :$name, :$auth, :$ver);
     unless +@binaries {
-        @binaries = CompUnitRepo::Local::Installation.files(\'bin/#name#\');
+        @binaries = @installations>>.files(\'bin/#name#\');
         if +@binaries {
             note q:to/SORRY/;
                 ===SORRY!===

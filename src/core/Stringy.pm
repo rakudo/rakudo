@@ -9,7 +9,7 @@ multi sub prefix:<~>(\a)          { a.Stringy }
 multi sub prefix:<~>(int $a)      { nqp::p6box_s($a) }
 multi sub prefix:<~>(num $a)      { nqp::p6box_s($a) }
 
-proto sub infix:<~>(Mu $?, Mu $?) is pure { * }
+proto sub infix:<~>(|) is pure { * }
 multi sub infix:<~>($x = '')       { $x.Stringy }
 multi sub infix:<~>(\a, \b)      { a.Stringy ~ b.Stringy }
 

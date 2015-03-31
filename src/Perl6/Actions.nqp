@@ -3538,18 +3538,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method capterm($/) {
-        # Construct a Parcel, and then call .Capture to coerce it to a capture.
-        my $past := $<termish> ?? $<termish>.ast !!
-                    $<capture> ?? $<capture>.ast !!
-                    QAST::Op.new( :op('call'), :name('&infix:<,>') );
-        unless $past.isa(QAST::Op) && $past.name eq '&infix:<,>' {
-            $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), $past );
-        }
-        make QAST::Op.new( :op('callmethod'), :name('Capture'), $past);
-    }
-
-    method capture($/) {
-        make $<EXPR>.ast;
+        my $past := $<termish>
+            ?? QAST::Op.new( $<termish>.ast )
+            !! $<semiarglist>.ast;
+        $past.unshift(QAST::WVal.new( :value($*W.find_symbol(['Capture']) ) ));
+        $past.op('callmethod');
+        $past.name('from-args');
+        make $past;
     }
 
     method multisig($/) {
@@ -4934,9 +4929,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless $past {
             if $<OPER><O><pasttype> {
                 $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
-            }
-            elsif $<OPER><O><pirop> {
-                $past := QAST::VM.new( :node($/), :pirop(~$<OPER><O><pirop>) );
             }
             else {
                 $past := QAST::Op.new( :node($/), :op('call') );

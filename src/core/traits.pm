@@ -186,6 +186,7 @@ multi sub trait_mod:<is>(Routine $r, :&tighter!) {
         trait_mod:<is>($r, :prec(&tighter.prec))
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, '@=');
+    $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :&looser!) {
     die "Routine given to looser does not appear to be an operator"
@@ -194,6 +195,7 @@ multi sub trait_mod:<is>(Routine $r, :&looser!) {
         trait_mod:<is>($r, :prec(&looser.prec))
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, ':=');
+    $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :$assoc!) {
     trait_mod:<is>($r, :prec({ :$assoc }))

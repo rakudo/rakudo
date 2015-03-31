@@ -122,7 +122,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
     while $checks > 1 {
         if @parts.AT-POS($checks) -> $part {
             $part eq '..'
-              ?? $checks = updirs($checks)
+              ?? ($checks = updirs($checks))
               !! $part eq '.'
                 ?? @parts.splice($checks--, 1)
                 !! $checks--;

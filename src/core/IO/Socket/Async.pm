@@ -91,7 +91,7 @@ my class IO::Socket::Async {
 
     method chars_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
         my $cancellation;
-        Supply.on_demand( -> $supply {
+        Supply.on-demand( -> $supply {
             $cancellation := nqp::asyncreadchars(
               $!VMIO,
               $scheduler.queue,
@@ -107,7 +107,7 @@ my class IO::Socket::Async {
 
     method bytes_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
         my $cancellation;
-        Supply.on_demand( -> $supply {
+        Supply.on-demand( -> $supply {
             $cancellation := nqp::asyncreadbytes(
               $!VMIO,
               $scheduler.queue,
@@ -150,7 +150,7 @@ my class IO::Socket::Async {
     method listen(IO::Socket::Async:U: Str() $host, Int() $port,
                   :$scheduler = $*SCHEDULER) {
         my $cancellation;
-        Supply.on_demand(-> $s {
+        Supply.on-demand(-> $s {
             $cancellation := nqp::asynclisten(
                 $scheduler.queue,
                 -> Mu \socket, Mu \err {

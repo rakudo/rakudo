@@ -7,6 +7,8 @@ my class Capture { # declared in BOOTSTRAP
         nqp::create(self).BUILD(:@list,:%hash);
     }
 
+    method from-args(|c) { c }
+
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')

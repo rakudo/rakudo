@@ -423,6 +423,16 @@ my class Any { # declared in BOOTSTRAP
                     $max = .max;
                     $excludes-max = $_.excludes-max;
                 }
+            } elsif Positional.ACCEPTS($_) {
+                my $mm = .minmax($by);
+                if !$min.defined || $cmp($mm.min, $min) < 0 {
+                    $min = $mm.min;
+                    $excludes-min = $mm.excludes-min;
+                }
+                if !$max.defined || $cmp($mm.max, $max) > 0 {
+                    $max = $mm.max;
+                    $excludes-max = $mm.excludes-max;
+                }
             } else {
                 if !$min.defined || $cmp($_, $min) < 0 {
                     $min = $_;
@@ -671,11 +681,11 @@ multi sub infix:<max>(*@args) { @args.max }
 sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
 
 proto sub infix:<minmax>(|) is pure { * }
-multi sub infix:<minmax>(*@args) { @args.minmax }
+multi sub infix:<minmax>(**@args) { @args.minmax }
 #proto sub minmax(|) { * }
 #multi sub minmax(*@args) { @args.minmax() }
 #multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
-sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
+sub minmax(**@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13

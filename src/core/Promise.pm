@@ -30,12 +30,12 @@ my class Promise {
         $!status           = Planned;
     }
 
-    # A Promise::Vow is used to enable the right to keep/break a promise
+    # A Vow is used to enable the right to keep/break a promise
     # to be restricted to a given "owner". Taking the Vow for a Promise
     # prevents anybody else from getting hold of it.
-    class Vow { ... }
+    my class Vow { ... }
     trusts Vow;
-    class Vow {
+    my class Vow {
         has $.promise;
         method keep(\result) {
             $!promise!Promise::keep(result)
@@ -155,12 +155,12 @@ my class Promise {
         }
     }
 
-    method start(Promise:U: &code, :$scheduler = $*SCHEDULER) {
+    method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
         $scheduler.cue(
             { $vow.keep(code()) },
-            :catch(-> $ex { $vow.break($ex) }) );
+            :catch(-> $ex { catch($ex) if &catch; $vow.break($ex); }) );
         $p
     }
 
@@ -202,6 +202,6 @@ my class Promise {
 
 # Schedules a piece of asynchronous work using the current scheduler, and
 # returns a Promise that represents it.
-sub start(&code) { Promise.start(&code) }
+sub start(&code, :&catch) { Promise.start(&code, :&catch) }
 
 # vim: ft=perl6 expandtab sw=4

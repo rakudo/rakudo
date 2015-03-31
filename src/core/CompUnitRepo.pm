@@ -30,10 +30,9 @@ class CompUnitRepo {
 
     method p6ml { $p6ml }
 
-    method load_module($module_name, %opts, *@GLOBALish is rw, :$line, :$file) {
+    method load_module($module_name, %opts, *@GLOBALish is rw, :$line, :$file, :%chosen) {
         $lock.protect( {
         my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];
-        my %chosen;
         if $candi {
             %chosen<pm>   :=
               $candi<provides>{$module_name}<pm><file> //

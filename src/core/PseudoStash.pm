@@ -159,7 +159,7 @@ my class PseudoStash is EnumMap {
                 $nkey);
             nqp::isnull($found) ?? Any !! $found
         }
-        else {
+        else { # STATIC_CHAIN
             my $found := nqp::getlexrel(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 $nkey);
@@ -178,7 +178,7 @@ my class PseudoStash is EnumMap {
         elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
             die "Binding to dynamic variables not yet implemented";
         }
-        else {
+        else { # STATIC_CHAIN
             die "This case of binding is not yet implemented";
         }
     }
@@ -199,7 +199,7 @@ my class PseudoStash is EnumMap {
                     nqp::unbox_s($key)))
                 ?? False !! True
         }
-        else {
+        else { # STATIC_CHAIN
             nqp::isnull(
                 nqp::getlexrel(
                     nqp::getattr(self, PseudoStash, '$!ctx'),

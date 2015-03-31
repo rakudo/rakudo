@@ -943,6 +943,20 @@ my class X::Syntax::BlockGobbled does X::Syntax {
     method message() { "{ $.what ?? 'Function ' ~ $.what !! 'Expression' } needs parens to avoid gobbling block" };
 }
 
+my class X::Syntax::ConditionalOperator::PrecedenceTooLoose does X::Syntax {
+    has $.operator;
+    method message() { "Precedence of $.operator is too loose to use inside ?? !!; please parenthesize" }
+}
+
+my class X::Syntax::ConditionalOperator::SecondPartGobbled does X::Syntax {
+    method message() { "Your !! was gobbled by the expression in the middle; please parenthesize" }
+}
+
+my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
+    has $.second-part;
+    method message() { "Please use !! rather than $.second-part" }
+}
+
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     my %m =

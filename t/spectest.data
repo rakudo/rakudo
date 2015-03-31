@@ -372,6 +372,7 @@ S05-modifier/perl5_5.t
 S05-modifier/perl5_6.t
 S05-modifier/perl5_7.t
 S05-modifier/perl5_8.t
+S05-modifier/perl5_9.t
 S05-modifier/pos.t
 S05-modifier/repetition.t
 S05-modifier/sigspace.t

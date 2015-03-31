@@ -41,7 +41,8 @@ class LoL { # declared in BOOTSTRAP
 sub lol (**@l) { @l }
 
 sub find-reducer-for-op($op) {
-    my %prec := $op.prec;
+    try my %prec := $op.prec;
+    return &METAOP_REDUCE_LEFT unless %prec;
     my $reducer = %prec<prec> eq 'f='
         ?? 'listinfix'
         !! %prec<assoc> || 'left';

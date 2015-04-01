@@ -38,6 +38,12 @@ my class Enum does Associative {
     multi method perl(Enum:D:) {
         if nqp::istype($.key, Enum) {
             '(' ~ $.key.perl ~ ') => ' ~ $.value.perl;
+        } elsif nqp::istype($.key, Str) and $.key ~~ /^ [<alpha>\w*] +% <[\-']> $/ {
+            if nqp::istype($.value,Bool) {
+                ':' ~ '!' x !$.value ~ $.key;
+            } else {
+                ':' ~ $.key ~ '(' ~ $.value.perl ~ ')';
+            }
         } else {
             $.key.perl ~ ' => ' ~ $.value.perl;
         }

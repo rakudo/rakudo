@@ -43,7 +43,7 @@ sub feed_repl_with ( @lines ) {
         'can use native typed variable on subsequent lines (1)';
 }
 
-#rakudo todo "some indent styles don't parse right"
+#?rakudo todo "some indent styles don't parse right"
 {
     my @input-lines = q:to/END/.split("\n");
     if False {

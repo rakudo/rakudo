@@ -554,8 +554,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
     multi method perl(List:D \SELF:) {
         self.gimme(*);
-        self.Parcel.perl ~ '.list'
-          ~ (nqp::iscont(SELF) ?? '.item' !! '')
+        (nqp::iscont(SELF) ?? '$' !! '') ~ self.Parcel.perl;
     }
 
     method REIFY(Parcel \parcel, Mu \nextiter) {

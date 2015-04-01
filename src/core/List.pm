@@ -503,11 +503,11 @@ my class List does Positional { # declared in BOOTSTRAP
     proto method squish(|) {*}
     multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
-        my str $which;
+        my $as;
         gather for @.list {
-            $which = &as($_).Str;
-            unless with($which,$last) {
-                $last = $which;
+            $as = &as($_);
+            unless with($as,$last) {
+                $last = $as;
                 take $_;
             }
         }

@@ -4122,7 +4122,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<|>   {
         <sym> <O('%symbolic_unary')>
-        [ <?{ $*ARG_FLAT_OK }> || <.panic: 'Arg-flattening | is only valid in an argument list'> ]
+        [ <?{ $*ARG_FLAT_OK }> || <.typed_sorry('X::Syntax::ArgFlattener')> ]
     }
 
     token infix:sym<*>    { <sym>  <O('%multiplicative')> }

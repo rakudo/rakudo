@@ -1150,6 +1150,10 @@ my class X::Syntax::DuplicatedPrefix does X::Syntax {
     }
 }
 
+my class X::Syntax::ArgFlattener does X::Syntax {
+    method message() { "Arg-flattening | is only valid in an argument list" }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-kind;
     has $.name;

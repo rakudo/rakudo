@@ -604,7 +604,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method invert(List:D:) {
-        self.map: { .value »=>» .key }
+        self.map({ nqp::decont(.value) »=>» .key }).flat
     }
 
     method reduce(List: &with) {

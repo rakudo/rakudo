@@ -41,7 +41,7 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method perl(Hash:D \SELF:) {
         '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
-        ~ '{}' x !nqp::iscont(SELF)
+        ~ '<>' x !nqp::iscont(SELF)
     }
 
     multi method gist(Hash:D \SELF:) {

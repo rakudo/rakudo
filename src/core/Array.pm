@@ -133,7 +133,7 @@ class Array { # declared in BOOTSTRAP
                 !! self.map({.perl}).join(', ')
         )
         ~ ']'
-        ~ '[]' x !nqp::iscont(SELF);
+        ~ '<>' x !nqp::iscont(SELF);
     }
 
     method REIFY(Parcel \parcel, Mu \nextiter) {

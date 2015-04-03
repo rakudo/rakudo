@@ -102,6 +102,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     our $STATEMENT_PRINT;
 
+    # Could add to this based on signatures.
+    our %commatrap := nqp::hash('&grep', 1, '&map', 1, '&sort', 1);
+
     INIT {
         # If, e.g., we support Perl up to v6.1.2, set
         # @MAX_PERL_VERSION to [6, 1, 2].
@@ -4396,6 +4399,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := capture_or_parcel($<args>.ast, ~$<longname>);
                 if +@name == 1 {
                     $past.name(@name[0]);
+                    if +$past.list == 1 && %commatrap{@name[0]} {
+                        my $prelen := $<longname>.from;
+                        $prelen := 100 if $prelen > 100;
+                        my $pre := nqp::substr($/.orig, $<longname>.from - $prelen, $prelen);
+                        note($pre);
+                        my $post := nqp::substr($/.orig, $<args>.to, 100);
+                        note($post);
+                        if nqp::index($pre, "==>") < 0 && nqp::index($post, "<==") < 0 && $<args>.Str ~~ /^\s*'{'/ {
+                            $/.CURSOR.missing("comma after block argument to " ~ nqp::substr(@name[0],1));
+                        }
+                    }
                 }
                 else {
                     $past.unshift($*W.symbol_lookup(@name, $/));

@@ -21,6 +21,7 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
     my Mu $result := nqp::hash();
     my $type := $p.type();
     nqp::bindkey($result, 'typeobj', nqp::decont($type)) if $with-typeobj;
+    nqp::bindkey($result, 'rw', nqp::unbox_i(1)) if $p.rw;
     if $type ~~ Str {
         my $enc := $p.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
@@ -67,8 +68,10 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
     $result
 }
 
-my native long     is Int is ctype("long")     is repr("P6int")    is export(:types, :DEFAULT) { };
-my native longlong is Int is ctype("longlong") is repr("P6int")    is export(:types, :DEFAULT) { };
+my native long      is Int is ctype("long")                 is repr("P6int") is export(:types, :DEFAULT) { };
+my native longlong  is Int is ctype("longlong")             is repr("P6int") is export(:types, :DEFAULT) { };
+my native ulong     is Int is ctype("long")     is unsigned is repr("P6int") is export(:types, :DEFAULT) { };
+my native ulonglong is Int is ctype("longlong") is unsigned is repr("P6int") is export(:types, :DEFAULT) { };
 my class void                                  is repr('Uninstantiable') is export(:types, :DEFAULT) { };
 # Expose a Pointer class for working with raw pointers.
 my class Pointer                               is repr('CPointer') is export(:types, :DEFAULT) { };
@@ -133,13 +136,15 @@ my %type_map =
     'int64'    => 'longlong',
     'long'     => 'long',
     'int'      => 'long',
+    'longlong' => 'longlong',
+    'Int'      => 'longlong',
     'uint8'    => 'uchar',
     'uint16'   => 'ushort',
     'uint32'   => 'uint',
     'uint64'   => 'ulonglong',
+    'ulonglong' => 'ulonglong',
     'ulong'    => 'ulong',
     'uint'     => 'ulong',
-    'Int'      => 'longlong',
     'num32'    => 'float',
     'num64'    => 'double',
     'num'      => 'double',

@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan(8);
+plan(11);
 
 compile_test_lib('03-simple-returns');
 
@@ -31,3 +31,12 @@ nok ReturnNullString().defined, 'returning null string pointer';
 
 sub ReturnInt64() returns int64 is native('./03-simple-returns') { * }
 is ReturnInt64(), 0xFFFFFFFFFF, 'returning int64 works';
+
+sub ReturnUint8() returns uint8 is native('./03-simple-returns') { * }
+is ReturnUint8(), 0xFE, 'returning uint8 works';
+
+sub ReturnUint16() returns uint16 is native('./03-simple-returns') { * }
+is ReturnUint16(), 0xFFFE, 'returning uint16 works';
+
+sub ReturnUint32() returns uint32 is native('./03-simple-returns') { * }
+is ReturnUint32(), 0xFFFFFFFE, 'returning uint32 works';

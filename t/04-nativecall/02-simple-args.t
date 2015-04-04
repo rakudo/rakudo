@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 9;
+plan 12;
 
 compile_test_lib('02-simple-args');
 
@@ -42,5 +42,13 @@ wrapper(42);
 # 64-bit integer
 sub TakeInt64(int64) returns int32 is native('./02-simple-args') { * }
 is TakeInt64(0xFFFFFFFFFF), 9, 'passed int64 0xFFFFFFFFFF';
+
+# Unsigned integers.
+sub TakeUint8(uint8) returns int32 is native('./02-simple-args') { * }
+sub TakeUint16(uint16) returns int32 is native('./02-simple-args') { * }
+sub TakeUint32(uint32) returns int32 is native('./02-simple-args') { * }
+is TakeUint8(0xFE),        10, 'passed uint8 0xFE';
+is TakeUint16(0xFFFE),     11, 'passed uint8 0xFFFE';
+is TakeUint32(0xFFFFFFFE), 12, 'passed uint8 0xFFFFFFFE';
 
 # vim:ft=perl6

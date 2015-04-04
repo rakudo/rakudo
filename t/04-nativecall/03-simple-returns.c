@@ -48,3 +48,18 @@ DLLEXPORT int64_t ReturnInt64()
 {
     return 0xFFFFFFFFFF;
 }
+
+DLLEXPORT unsigned char ReturnUint8()
+{
+    return 0xFE;
+}
+
+DLLEXPORT unsigned short ReturnUint16()
+{
+    return 0xFFFE;
+}
+
+DLLEXPORT unsigned int ReturnUint32()
+{
+    return 0xFFFFFFFE;
+}

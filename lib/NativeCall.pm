@@ -130,6 +130,7 @@ my %type_map =
     'int8'     => 'char',
     'int16'    => 'short',
     'int32'    => 'int',
+    'int64'    => 'longlong',
     'long'     => 'long',
     'int'      => 'long',
     'Int'      => 'longlong',

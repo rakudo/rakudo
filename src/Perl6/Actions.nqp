@@ -4403,9 +4403,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         my $prelen := $<longname>.from;
                         $prelen := 100 if $prelen > 100;
                         my $pre := nqp::substr($/.orig, $<longname>.from - $prelen, $prelen);
-                        note($pre);
                         my $post := nqp::substr($/.orig, $<args>.to, 100);
-                        note($post);
                         if nqp::index($pre, "==>") < 0 && nqp::index($post, "<==") < 0 && $<args>.Str ~~ /^\s*'{'/ {
                             $/.CURSOR.missing("comma after block argument to " ~ nqp::substr(@name[0],1));
                         }

@@ -1742,7 +1742,7 @@ BEGIN {
                 }
 
                 # Also narrower if the first needs a bind check and the second doesn't, if
-                # we wouldn't deem the other one narrower than this one int terms of
+                # we wouldn't deem the other one narrower than this one in terms of
                 # slurpyness. Otherwise, they're tied.
                 return !(%b<max_arity> != $SLURPY_ARITY && %a<max_arity> == $SLURPY_ARITY)
                     && (%a<bind_check> && !%b<bind_check>);

@@ -1770,6 +1770,8 @@ BEGIN {
                 my int $min_arity         := 0;
                 my int $max_arity         := 0;
                 my int $num_types         := 0;
+                my @coerce_type_idxs;
+                my @coerce_type_objs;
                 for @params -> $param {
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
@@ -1843,6 +1845,15 @@ BEGIN {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_STR + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
+
+                    # Keep track of coercion types; they'll need an extra entry
+                    # in the things we sort.
+                    my $coerce_type := nqp::getattr($param, Parameter, '$!coerce_type');
+                    unless nqp::isnull($coerce_type) {
+                        nqp::push(@coerce_type_idxs, $significant_param);
+                        nqp::push(@coerce_type_objs, $coerce_type);
+                    }
+
                     $significant_param++;
                 }
                 %info<min_arity> := $min_arity;
@@ -1856,13 +1867,31 @@ BEGIN {
                     'edges_in',  0,
                     'edges_out', 0
                 ));
+
+                # If there were any coercion types, then we also need to create
+                # a candidate entry for the specific types.
+                if @coerce_type_idxs {
+                    my %c_info     := nqp::clone(%info);
+                    %c_info<types> := nqp::clone(%c_info<types>);
+                    my int $i      := 0;
+                    while $i < nqp::elems(@coerce_type_idxs) {
+                        %c_info<types>[@coerce_type_idxs[$i]] := @coerce_type_objs[$i];
+                        $i++;
+                    }
+                    nqp::push(@graph, nqp::hash(
+                        'info',      %c_info,
+                        'edges',     [],
+                        'edges_in',  0,
+                        'edges_out', 0
+                    ));
+                }
             }
 
             # Now analyze type narrowness of the candidates relative to each
             # other and create the edges.
             my int $i := 0;
             my int $j;
-            my int $n := nqp::elems(@candidates);
+            my int $n := nqp::elems(@graph);
             while $i < $n {
                 $j := 0;
                 while $j < $n {
@@ -1879,7 +1908,7 @@ BEGIN {
             }
 
             # Perform the topological sort.
-            my int $candidates_to_sort := nqp::elems(@candidates);
+            my int $candidates_to_sort := nqp::elems(@graph);
             my @result;
             while $candidates_to_sort > 0 {
                 my int $rem_results := nqp::elems(@result);

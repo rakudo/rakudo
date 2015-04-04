@@ -675,7 +675,7 @@ sub list(|) {
 proto sub infix:<xx>(|)       { * }
 multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
 multi sub infix:<xx>(Mu \x)   { x }
-multi sub infix:<xx>(Mu \x, Real() $n is copy, :$thunked!) {
+multi sub infix:<xx>(Mu \x, Int() $n is copy, :$thunked!) {
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {

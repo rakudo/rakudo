@@ -90,21 +90,6 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method DELETE-KEY(Hash:U:) { Nil }
-    multi method DELETE-KEY(Str:D \key) {
-        my Mu $val = self.AT-KEY(key);
-        nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s(key)
-        );
-        $val;
-    }
-    multi method DELETE-KEY(Str:D \key, :$SINK!) {
-        nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s(key)
-        );
-        Nil;
-    }
     multi method DELETE-KEY(Str() \key) {
         my Mu $val = self.AT-KEY(key);
         nqp::deletekey(

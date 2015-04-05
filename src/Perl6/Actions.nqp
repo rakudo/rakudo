@@ -4796,7 +4796,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $subelem := $elem[0];
                 if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
                     $subelem := $subelem[0];
-                    if $subelem ~~ QAST::WVal && $subelem.dump ~~ /WhateverCode/ {
+                    if $subelem ~~ QAST::WVal && nqp::istype($subelem.value, $*W.find_symbol(['WhateverCode'])) {
                         $/.CURSOR.malformed("double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *");
                     }
                 }

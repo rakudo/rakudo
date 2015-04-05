@@ -4792,6 +4792,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
             }
+            if $elem ~~ QAST::Op && $elem.op eq 'p6capturelex' {
+                my $subelem := $elem[0];
+                if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
+                    $subelem := $subelem[0];
+                    if $subelem ~~ QAST::WVal && $subelem.dump ~~ /WhateverCode/ {
+                        $/.CURSOR.malformed("double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *");
+                    }
+                }
+            }
             if $elem ~~ QAST::Op
                     && (istype($elem.returns, $Pair) || $elem.name eq '&infix:<=>>') {
                 # first item is a pair

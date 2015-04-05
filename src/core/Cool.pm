@@ -132,6 +132,15 @@ my class Cool { # declared in BOOTSTRAP
     }
     method trans(*@a) { self.Str.trans(@a) }
 
+    proto method has-substr(|) {*}
+    multi method has-substr(Cool $needle, Cool $pos = 0) {
+        ?nqp::eqat(
+            nqp::unbox_s(self.Str),
+            nqp::unbox_s($needle.Str),
+            nqp::unbox_i($pos.Int)
+        );
+    }
+
     proto method index(|) {*}
     multi method index(Cool $needle, Cool $pos = 0) {
         my int $result = nqp::index(

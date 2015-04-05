@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 3;
+plan 6;
 
 # Sanity check that the repl is working at all.
 my $cmd = $*DISTRO.is-win
@@ -37,8 +37,50 @@ sub feed_repl_with ( @lines ) {
 # RT #123187
 {
     my @input-lines;
-    @input-lines[0] = 'my int $t=4; $t.say';
+    @input-lines[0] = 'my int $t=4; $t.say;';
     @input-lines[1] = '$t.say';
     is feed_repl_with( @input-lines ).lines, (4, 4),
         'can use native typed variable on subsequent lines (1)';
+}
+
+{
+    my @input-lines = q:to/END/.split("\n");
+    if False {
+        say ":(";
+    }
+    else {
+        say ":)";
+    }
+    END
+
+    #?rakudo todo "indent styles don't parse right"
+    is feed_repl_with( @input-lines ).lines, ":)",
+        "uncuddled else is parsed correctly";
+
+    @input-lines = q:to/END/.split("\n");
+    if False
+    {
+        say ":(";
+    }
+    else
+    {
+        say ":)";
+    }
+    END
+
+    #?rakudo todo "indent styles don't parse right"
+    is feed_repl_with( @input-lines ).lines, ":)",
+        "open brace on next line is parsed correctly";
+
+    @input-lines = q:to/END/.split("\n");
+    if False {
+        say ":(";
+    } else {
+        say ":)";
+    }
+    END
+
+    #?rakudo todo "indent styles don't parse right"
+    is feed_repl_with( @input-lines ).lines, ":)",
+        "cuddled else is parsed correctly";
 }

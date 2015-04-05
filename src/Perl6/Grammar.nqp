@@ -1007,6 +1007,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*STRICT;
         :my $*INVOCANT_OK := 0;
         :my $*INVOCANT;
+        :my $*ARG_FLAT_OK := 0;
         
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -1922,7 +1923,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         [
         || <!{ $*IN_REDUCE }> {
-            $/.CURSOR.panic("Unexpected block in infix position (two terms in a row, or previous statement missing semicolon?)");
+            $/.CURSOR.panic("Unexpected block in infix position (missing statement control word before the expression?)");
         }
         || <!>
         ]
@@ -3378,6 +3379,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token arglist {
         :my $*GOAL := 'endargs';
         :my $*QSIGIL := '';
+        :my $*ARG_FLAT_OK := 1;
         <.ws>
         :dba('argument list')
         [
@@ -3766,11 +3768,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*MULTINESS := "";
         :my $*OFTYPE;
         :my $*VAR;
+        :my $orig_arg_flat_ok := $*ARG_FLAT_OK;
         :dba('term')
         [
         ||  [
-            | <prefixish>+ [ <term> || {} <.panic("Prefix " ~ $<prefixish>[-1].Str ~ " requires an argument, but no valid term found")> ]
-            | <term>
+            | <prefixish>+ [ <.arg_flat_nok> <term> || {} <.panic("Prefix " ~ $<prefixish>[-1].Str ~ " requires an argument, but no valid term found")> ]
+            | <.arg_flat_nok> <term>
             ]
         || <!{ $*QSIGIL }> <?before <infixish> {
             $/.CURSOR.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
@@ -3786,7 +3789,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]
         || <!{ $*QSIGIL }> <postfixish>*
         ]
-        { self.check_variable($*VAR) if $*VAR; }
+        { self.check_variable($*VAR) if $*VAR; $*ARG_FLAT_OK := $orig_arg_flat_ok; }
+    }
+
+    token arg_flat_nok {
+        <!{ $*ARG_FLAT_OK := 0 }>
     }
 
     sub bracket_ending($matches) {
@@ -4113,7 +4120,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<^^>  { <sym> <.dupprefix('^^')> <O('%symbolic_unary')> }
     token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
-    token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<|>   {
+        <sym> <O('%symbolic_unary')>
+        [ <?{ $*ARG_FLAT_OK }> || <.typed_sorry('X::Syntax::ArgFlattener')> ]
+    }
 
     token infix:sym<*>    { <sym>  <O('%multiplicative')> }
     token infix:sym</>    { <sym>  <O('%multiplicative')> }
@@ -4238,12 +4248,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         <EXPR('j=')>
         [ '!!'
-        || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
-        || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
-        || <infixish> {} <.panic("Precedence of $<infixish> is too loose to use inside ?? !!; please parenthesize")>
-        || <?{ ~$<EXPR> ~~ / '!!' / }> <.panic("Your !! was gobbled by the expression in the middle; please parenthesize")>
-        || <?before \N*? [\n\N*?]? '!!'> <.sorry("Bogus code found before the !!")> <.panic("Confused")>
-        || <.sorry("Found ?? but no !!")> <.panic("Confused")>
+        || <?before '::' <-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
+        || <?before ':' <-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
+        || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
+        || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
+        || <?before \N*? [\n\N*?]? '!!'> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
+        || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!" }
         ]
         <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>
     }

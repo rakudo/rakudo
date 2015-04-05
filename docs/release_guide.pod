@@ -14,8 +14,8 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-04-23   Rakudo #87 Coke
-  2015-05-21   Rakudo #88 lizmat
+  2015-04-23   Rakudo #87
+  2015-05-21   Rakudo #88
   2015-06-18   Rakudo #89
   2015-07-23   Rakudo #90
   2015-08-20   Rakudo #91
@@ -221,14 +221,21 @@ that prove impossible, you can omit the C<-s> from the command line.
 
 =item 14.
 
-Upload the tarball to L<http://rakudo.org/downloads/rakudo>:
+Sign the tarball with your PGP key:
 
-  $ scp rakudo-YYYY.MM.tar.gz rakudo@rakudo.org:public_html/downloads/rakudo/
+    $ gpg --sign rakudo-YYYY-MM.tar.gz
+
+=item 15.
+
+Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
+
+  $ scp rakudo-YYYY.MM.tar.gz rakudo-YYY-MM.tar.gz.gpg \
+       rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
 masak, tadzik, moritz, PerlJam,  [Coke], lizmat, timotimo, fsergot)) on #perl6 to do it for you.
 
-=item 15.
+=item 16.
 
 To avoid public confusion with Rakudo Star releases, we now publish 
 compiler release announcements ONLY to perl6-compiler@perl.org.  
@@ -239,11 +246,11 @@ announcement for both.)
 Don't send out any announcements until the files are actually available
 per step 14 above.
 
-=item 16.
+=item 17.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 17.
+=item 18.
 
 You're done!  Celebrate with the appropriate amount of fun.
 

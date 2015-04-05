@@ -40,9 +40,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method perl(Hash:D \SELF:) {
-        nqp::iscont(SELF)
-          ?? '{' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ '}'
-          !! '(' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ ').hash'
+        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+        ~ '<>' x !nqp::iscont(SELF)
     }
 
     multi method gist(Hash:D \SELF:) {
@@ -79,7 +78,7 @@ my class Hash { # declared in BOOTSTRAP
     method keyof () { Any }
     method of() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Any !! $d.of;
+        nqp::isnull($d) ?? Mu !! $d.of;
     }
     method default() {
         my $d := $!descriptor;
@@ -91,21 +90,6 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method DELETE-KEY(Hash:U:) { Nil }
-    multi method DELETE-KEY(Str:D \key) {
-        my Mu $val = self.AT-KEY(key);
-        nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s(key)
-        );
-        $val;
-    }
-    multi method DELETE-KEY(Str:D \key, :$SINK!) {
-        nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s(key)
-        );
-        Nil;
-    }
     multi method DELETE-KEY(Str() \key) {
         my Mu $val = self.AT-KEY(key);
         nqp::deletekey(
@@ -272,7 +256,7 @@ my class Hash { # declared in BOOTSTRAP
             'Hash['
               ~ TValue.perl
               ~ '].new('
-              ~ self.pairs.pick(*).map({.perl}).join(', ')
+              ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
               ~ ')';
         }
     }
@@ -383,8 +367,8 @@ my class Hash { # declared in BOOTSTRAP
             HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if TKey === Any and TValue === Any and nqp::iscont(SELF) {
-                ':{' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ '}'
+            if TKey === Any and TValue === Mu and nqp::iscont(SELF) {
+                ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
                 'Hash['
@@ -392,7 +376,7 @@ my class Hash { # declared in BOOTSTRAP
                   ~ ','
                   ~ TKey.perl
                   ~ '].new('
-                  ~ self.pairs.pick(*).map({.perl}).join(', ')
+                  ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
                   ~ ')';
             }
         }
@@ -445,10 +429,10 @@ my class Hash { # declared in BOOTSTRAP
 }
 
 
-sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
+sub circumfix:<{ }>(*@elems) { (my % = @elems).item }
 sub hash(*@a, *%h) { my % = @a, %h }
 
 # XXX parse hangs with ordinary sub declaration
-BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.^parameterize(Any,Any).new(@elems) }
+BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.^parameterize(Mu,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

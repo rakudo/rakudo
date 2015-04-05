@@ -554,8 +554,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
     multi method perl(List:D \SELF:) {
         self.gimme(*);
-        self.Parcel.perl ~ '.list'
-          ~ (nqp::iscont(SELF) ?? '.item' !! '')
+        (nqp::iscont(SELF) ?? '$' !! '') ~ self.Parcel.perl;
     }
 
     method REIFY(Parcel \parcel, Mu \nextiter) {
@@ -604,17 +603,28 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method invert(List:D:) {
-        self.map: { .value »=>» .key }
+        self.map({ nqp::decont(.value) »=>» .key }).flat
     }
 
     method reduce(List: &with) {
-        fail('can only reduce with arity 2')
-            unless &with.arity <= 2 <= &with.count;
         return unless self.DEFINITE;
-        my \vals = self.values;
-        my Mu $val = vals.shift;
-        $val = with($val, $_) for vals;
-        $val;
+        return self.values if self.elems < 2;
+        if &with.count > 2 and &with.count < Inf {
+            my $moar = &with.count - 1;
+            my \vals = self.values;
+            if try &with.prec<assoc> eq 'right' {
+                my Mu $val = vals.pop;
+                $val = with(|vals.splice(*-$moar,$moar), $val) while vals >= $moar;
+                return $val;
+            }
+            else {
+                my Mu $val = vals.shift;
+                $val = with($val, |vals.splice(0,$moar)) while vals >= $moar;
+                return $val;
+            }
+        }
+        my $reducer = find-reducer-for-op(&with);
+        $reducer(&with)(self) if $reducer;
     }
 
     method sink() {
@@ -665,7 +675,7 @@ sub list(|) {
 proto sub infix:<xx>(|)       { * }
 multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
 multi sub infix:<xx>(Mu \x)   { x }
-multi sub infix:<xx>(Mu \x, Real() $n is copy, :$thunked!) {
+multi sub infix:<xx>(Mu \x, Int() $n is copy, :$thunked!) {
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {

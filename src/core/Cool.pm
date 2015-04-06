@@ -207,6 +207,12 @@ my class Cool { # declared in BOOTSTRAP
         $/ := nqp::getlexdyn('$/');
         {*}
     }
+    multi method subst-mutate($self is rw: |c) {
+        $/ := nqp::getlexdyn('$/');
+        my $str = Str($self);
+        $str.subst-mutate(|c);
+        $self = $str;
+    }
 
     proto method IO(|) { * }
     multi method IO(|c) { IO::Path.new(self) }

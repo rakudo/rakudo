@@ -4932,8 +4932,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         elsif nqp::existskey(%specials, $sym) {
-            make %specials{$sym}($/, $sym);
-            return 1;
+            my $p := %specials{$sym}($/, $sym);
+            if $p {
+                make $p;
+                return 1;
+            }
         }
         elsif !$past && ($sym eq 'does' || $sym eq 'but') {
             make mixin_op($/, $sym);
@@ -5079,6 +5082,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub make_smartmatch($/, $negated) {
         my $lhs := $/[0].ast;
         my $rhs := $/[1].ast;
+        # autoprime only on Whatever with explicit *
+        return 0 if $lhs ~~ QAST::WVal && istype($lhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($lhs.value);
+        return 0 if $rhs ~~ QAST::WVal && istype($rhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($rhs.value);
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
@@ -6951,8 +6957,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # introspection and keep it as a quick cache.
 
     # %curried == 0 means do not curry
-    # %curried == 1 means curry WhateverCode only
-    # %curried == 2 means curry both WhateverCode and Whatever (default)
+    # %curried == 1 means curry Whatever only
+    # %curried == 2 means curry WhateverCode only
+    # %curried == 3 means curry both Whatever and WhateverCode (default)
 
     my %curried;
     INIT {
@@ -6960,18 +6967,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %curried{'&infix:<…>'}  := 0;
         %curried{'&infix:<...^>'} := 0;
         %curried{'&infix:<…^>'} := 0;
-        %curried{'&infix:<~~>'}   := 0;
         %curried{'&infix:<=>'}    := 0;
         %curried{'&infix:<:=>'}   := 0;
-        %curried{'&infix:<..>'}   := 1;
-        %curried{'&infix:<..^>'}  := 1;
-        %curried{'&infix:<^..>'}  := 1;
-        %curried{'&infix:<^..^>'} := 1;
-        %curried{'&infix:<xx>'}   := 1;
-        %curried{'callmethod'}    := 2;
-        %curried{'p6callmethodhow'}      := 2;
-        %curried{'&postcircumfix:<[ ]>'} := 2;
-        %curried{'&postcircumfix:<{ }>'} := 2;
+        %curried{'&infix:<~~>'}   := 1;
+        %curried{'&infix:<..>'}   := 2;
+        %curried{'&infix:<..^>'}  := 2;
+        %curried{'&infix:<^..>'}  := 2;
+        %curried{'&infix:<^..^>'} := 2;
+        %curried{'&infix:<xx>'}   := 2;
+        %curried{'callmethod'}    := 3;
+        %curried{'p6callmethodhow'}      := 3;
+        %curried{'&postcircumfix:<[ ]>'} := 3;
+        %curried{'&postcircumfix:<{ }>'} := 3;
     }
     method whatever_curry($/, $past, $upto_arity) {
         my int $curried :=
@@ -6985,7 +6992,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                      nqp::eqat($past.name, '&postfix:', 0) ||
                      (nqp::istype($past[0], QAST::Op) &&
                         nqp::eqat($past[0].name, '&METAOP', 0))) &&
-                    %curried{$past.name} // 2)
+                    %curried{$past.name} // 3)
 
             # Or not a call and an op in the list of alloweds.
                 || ($past.op ne 'call' && %curried{$past.op} // 0)
@@ -7010,9 +7017,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) || 
                                     nqp::istype($check, QAST::Stmt)) &&
                                    +@($check) == 1;
-            $whatevers++ if istype($check.returns, $WhateverCode)
-                            || $curried > 1 && istype($check.returns, $Whatever);
-            if $curried > 1 && istype($check.returns, $HyperWhatever) {
+            $whatevers++ if nqp::bitand_i($curried, 1) && istype($check.returns, $Whatever) && nqp::isconcrete($check.value)
+                         || nqp::bitand_i($curried, 2) && istype($check.returns, $WhateverCode) && $check ~~ QAST::Op;
+            if nqp::bitand_i($curried, 1) && istype($check.returns, $HyperWhatever) {
                 $hyperwhatever := 1;
                 $whatevers++;
             }
@@ -7033,7 +7040,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
                                     nqp::istype($old, QAST::Stmt)) &&
                                    +@($old) == 1;
-                if istype($old.returns, $WhateverCode) {
+                if nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && $old ~~ QAST::Op {
                     my $new;
                     if $was_chain && $old.has_ann("chain_args") {
                         $new := QAST::Op.new( :op<chain>, :name($old.ann('chain_name')), :node($/) );
@@ -7071,7 +7078,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     $past[$i] := $new;
                 }
-                elsif $curried > 1 && (istype($old.returns, $Whatever) || istype($old.returns, $HyperWhatever)) {
+                elsif nqp::bitand_i($curried, 1) && (istype($old.returns, $Whatever) || istype($old.returns, $HyperWhatever)) && nqp::isconcrete($old.value) {
                     my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
                     @params.push(hash(
                         :variable_name($pname),

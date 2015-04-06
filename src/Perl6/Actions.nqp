@@ -103,7 +103,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
     our $STATEMENT_PRINT;
 
     # Could add to this based on signatures.
-    our %commatrap := nqp::hash('&grep', 1, '&map', 1, '&sort', 1, '&reduce', 1, '&classify', 1, '&categorize', 1,);
+    our %commatrap := nqp::hash(
+        '&categorize', 1,
+        '&classify', 1,
+        '&first', 1,
+        '&first-index', 1,
+        '&grep', 1,
+        '&grep-index', 1,
+        '&last-index', 1,
+        '&map', 1,
+        '&reduce', 1,
+        '&sort', 1,
+    );
 
     INIT {
         # If, e.g., we support Perl up to v6.1.2, set

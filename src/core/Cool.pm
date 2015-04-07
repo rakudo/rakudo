@@ -252,8 +252,9 @@ my class Cool { # declared in BOOTSTRAP
     multi method subst-mutate($self is rw: |c) {
         $/ := nqp::getlexdyn('$/');
         my $str = Str($self);
-        $str.subst-mutate(|c);
+        my $match = $str.subst-mutate(|c);
         $self = $str;
+        $match;
     }
 
     proto method IO(|) { * }

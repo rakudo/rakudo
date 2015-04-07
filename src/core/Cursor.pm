@@ -56,10 +56,10 @@ my class Cursor does NQPCursorRole {
                 my int $csi     = 0;
                 while $csi < $cselems {
                     my Mu $subcur   := nqp::atpos($cs, $csi);
-                    my Mu $submatch := $subcur.MATCH;
                     my Mu $name     := nqp::getattr($subcur, $?CLASS, '$!name');
-                    if !nqp::isnull($name) && nqp::defined($name) {
-                        if $name ne '' && nqp::eqat($name, '$', 0) && ($name eq '$!from' || $name eq '$!to') {
+                    if !nqp::isnull($name) && nqp::defined($name) && $name ne '' {
+                        my Mu $submatch := $subcur.MATCH;
+                        if nqp::eqat($name, '$', 0) && ($name eq '$!from' || $name eq '$!to') {
                             nqp::bindattr_i($match, Match, $name, $submatch.from);
                         }
                         elsif nqp::index($name, '=') < 0 {

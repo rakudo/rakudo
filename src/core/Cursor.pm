@@ -24,28 +24,33 @@ my class Cursor does NQPCursorRole {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Cursor, '$!regexsub');
-            my $sawcaps = 0;
+            my int $sawcaps = 0;
             if !nqp::isnull($rxsub) && nqp::defined($rxsub) {
                 $caplist := nqp::can($rxsub, 'CAPS') ?? nqp::findmethod($rxsub, 'CAPS')($rxsub) !! nqp::null();
                 if !nqp::isnull($caplist) && nqp::istrue($caplist) {
                     my $iter := nqp::iterator($caplist);
                     while $iter {
                         my $curcap := nqp::shift($iter);
-                        my Mu $curval := nqp::iterval($curcap);
-                        $sawcaps += $curval;
 #?if jvm
-                        if (nqp::isint($curval) && nqp::isge_i($curval, 2))
-                        || (nqp::isnum($curval) && nqp::p6box_n($curval) >= 2) {
+                        my Mu $curval := nqp::iterval($curcap);
+                        if (nqp::isint($curval) && nqp::isge_i($curval, 1))
+                        || (nqp::isnum($curval) && nqp::p6box_n($curval) >= 1) {
+                            $sawcaps = 1;
+                            if (nqp::isint($curval) && nqp::isge_i($curval, 2))
+                            || (nqp::isnum($curval) && nqp::p6box_n($curval) >= 2) {
 #?endif
 #?if !jvm
-                        if $curval >= 2 {
+                        if nqp::iterval($curcap) >= 1 {
+                            $sawcaps = 1;
+                            if nqp::iterval($curcap) >= 2 {
 #?endif
-                            my str $name = nqp::iterkey_s($curcap);
-                            nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
-                                ?? nqp::bindpos(
-                                        nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                        nqp::fromstr_I($name, Int), [])
-                                !! nqp::bindkey($hash, $name, []);
+                                my str $name = nqp::iterkey_s($curcap);
+                                nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
+                                    ?? nqp::bindpos(
+                                            nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
+                                            nqp::fromstr_I($name, Int), [])
+                                    !! nqp::bindkey($hash, $name, []);
+                            }
                         }
                     }
                 }

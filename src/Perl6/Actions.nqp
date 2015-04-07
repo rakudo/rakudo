@@ -6918,6 +6918,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # attribute.
     method install_attr_init($/, $attr, $initializer, $block) {
         # Construct signature and anonymous method.
+        if $block.ann('placeholder_sig') {
+            $*W.throw($/, 'X::Placeholder::Attribute',
+                precursor => '1',
+                placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
+            );
+        }
         my @params := [
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
             hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))

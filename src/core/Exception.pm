@@ -559,6 +559,12 @@ my class X::Placeholder::Mainline is X::Placeholder::Block {
     }
 }
 
+my class X::Placeholder::Attribute is X::Placeholder::Block {
+    method message() {
+        "Cannot use placeholder parameter $.placeholder in an attribute initializer"
+    }
+}
+
 my class X::Undeclared does X::Comp {
     has $.what = 'Variable';
     has $.symbol;

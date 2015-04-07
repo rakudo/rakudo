@@ -56,6 +56,8 @@ M_CORE_SOURCES = \
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm
 M_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
+M_GDB_RUNNER = perl6-gdb-m@runner_suffix@
+M_VALGRIND_RUNNER = perl6-valgrind-m@runner_suffix@
 
 M_CLEANUPS = \
   *.manifest \
@@ -78,12 +80,14 @@ M_CLEANUPS = \
   $(M_PERL6_CONT_OBJ) \
   $(M_PERL6_OPS_DLL) \
   $(PERL6_DEBUG_MOAR) \
-  $(M_DEBUG_RUNNER)
+  $(M_DEBUG_RUNNER) \
+  $(M_GDB_RUNNER) \
+  $(M_VALGRIND_RUNNER)
 
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
-m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/nqp.pm6.moarvm lib/Pod/To/Text.pm.moarvm lib/NativeCall.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER)
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/nqp.pm6.moarvm lib/Pod/To/Text.pm.moarvm lib/NativeCall.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) $(M_GDB_RUNNER) $(M_VALGRIND_RUNNER)
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
@@ -157,7 +161,7 @@ $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC)
 
 $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 	$(RM_F) $(M_RUNNER)
-	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "$(M_LIBPATH)" .
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "" "$(M_LIBPATH)" .
 	-$(CHMOD) 755 $(M_RUNNER)
 
 m-runner-default: $(M_RUNNER)
@@ -171,7 +175,17 @@ $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-perl6-debug.nqp
 
 $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR)
-	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "$(M_LIBPATH)" .
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "" "$(M_LIBPATH)" .
+
+$(M_GDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
+	$(RM_F) $(M_GDB_RUNNER)
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" "$(M_LIBPATH)" .
+	-$(CHMOD) 755 $(M_GDB_RUNNER)
+
+$(M_VALGRIND_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
+	$(RM_F) $(M_VALGRIND_RUNNER)
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "valgrind" "$(M_LIBPATH)" .
+	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
 ##  shipped modules
 lib/NativeCall.pm.moarvm: lib/NativeCall.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER) lib/nqp.pm6.moarvm
@@ -243,12 +257,14 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) lib/Pod/To/Text.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) lib/Pod/To/Text.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
-	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT)
 
 m-runner-default-install: m-install
-	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
 

@@ -1148,13 +1148,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 #            }
         } elsif $<module_name> {
             if ~$<module_name> eq 'fatal' {
-                my $*SCOPE := 'my';
-                declare_variable($/, QAST::Stmts.new(), '$', '*', 'FATAL', []);
-                $past := QAST::Op.new(
-                    :op('p6store'), :node($/),
-                    QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
-                    QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) )
-                );
+                $*W.install_lexical_symbol($*W.cur_lexpad(), '$*FATAL', $*W.find_symbol(['True']));
             }
             elsif ~$<module_name> eq 'Devel::Trace' {
                 $STATEMENT_PRINT := 1;

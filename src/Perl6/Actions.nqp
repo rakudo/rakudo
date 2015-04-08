@@ -1415,9 +1415,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<try>($/) {
-        my $block := $<blorst>.ast;
+        # Ensure "use fatal" is in force.
+        my $block      := $<blorst>.ast;
+        my $past_block := $block.ann('past_block');
+        $*W.install_lexical_symbol($past_block, '$*FATAL', $*W.find_symbol(['True']));
+
+        # Add catch handler.
         my $past;
-        if $block.ann('past_block').ann('handlers') && $block.ann('past_block').ann('handlers')<CATCH> {
+        if $past_block.ann('handlers') && $past_block.ann('handlers')<CATCH> {
             # we already have a CATCH block, nothing to do here
             $past := QAST::Op.new( :op('call'), $block );
         } else {

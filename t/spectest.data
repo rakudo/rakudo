@@ -685,6 +685,7 @@ S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S22-package-format/local.t
 S24-testing/0-compile.t
+S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
 S26-documentation/03-abbreviated.t

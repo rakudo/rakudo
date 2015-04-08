@@ -10,7 +10,7 @@ my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, @libpaths) = @ARGV;
 $p6_mbc_path = File::Spec->rel2abs($p6_mbc_path || '.');
 
 if ($^O eq 'MSWin32') {
-    return if $toolchain;
+    exit if $toolchain;
     $install_to .= '.bat';
     open my $fh, ">", $install_to
         or die "Could not open $install_to: $!";

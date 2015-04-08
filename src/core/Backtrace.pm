@@ -25,9 +25,7 @@ my class Backtrace::Frame {
 
     method is-hidden(Backtrace::Frame:D:)  { $!code.?is-hidden-from-backtrace }
     method is-routine(Backtrace::Frame:D:) { nqp::istype($!code,Routine) }
-    method is-setting(Backtrace::Frame:D:) {
-        $!file.chars > 12 && substr($!file,*-12) eq 'CORE.setting'
-    }
+    method is-setting(Backtrace::Frame:D:) { $!file.ends-with("CORE.setting") }
 }
 
 my class Backtrace is List {
@@ -71,7 +69,7 @@ my class Backtrace is List {
                     $file eq 'gen/moar/stage2/NQPHLL.nqp' ||
                     $file eq 'gen\\moar\\stage2\\NQPHLL.nqp';
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
-            $subname = '<anon>' if substr($subname,0, 6) eq '_block';
+            $subname = '<anon>' if $subname.starts-with("_block");
             last if $subname eq 'handle-begin-time-exceptions';
             $new.push: Backtrace::Frame.new(
                 :line($line.Int),

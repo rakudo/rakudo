@@ -153,7 +153,7 @@ my class PseudoStash is EnumMap {
             }
             $res;
         }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq-at("*",1) {
             my $found := nqp::getlexreldyn(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 $nkey);
@@ -175,7 +175,7 @@ my class PseudoStash is EnumMap {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
             nqp::bindkey($store, nqp::unbox_s($key), value)
         }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq-at("*",1) {
             die "Binding to dynamic variables not yet implemented";
         }
         else { # STATIC_CHAIN
@@ -192,7 +192,7 @@ my class PseudoStash is EnumMap {
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key)))
         }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq-at("*",1) {
             nqp::isnull(
                 nqp::getlexreldyn(
                     nqp::getattr(self, PseudoStash, '$!ctx'),

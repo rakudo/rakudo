@@ -16,11 +16,11 @@ sub MAKE-ABSOLUTE-PATH($path,$abspath) {
     if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
         return $path;
     }
-    elsif substr($path,1,1) eq ':' {  # assume C: something
-        if substr($path,2,1) eq "/" { #  assume C:/ like prefix
+    elsif $path.substr-eq-at(":",1) {  # assume C: something
+        if $path.substr-eq-at("/",2) { #  assume C:/ like prefix
             return $path;
         }
-        elsif substr($abspath,0,2) ne substr($path,0,2) {
+        elsif !$abspath.starts-with(substr($path,0,2)) {
             die "Can not set relative dir from different roots";
         }
         else {

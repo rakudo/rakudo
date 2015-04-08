@@ -1229,6 +1229,7 @@ class Perl6::Optimizer {
                     my int $survived := 0;
                     my $ret_value;
                     try {
+                        my $*FATAL := 1;
                         $ret_value := $obj(|@args);
                         $survived  := 1 ;
                         CONTROL {

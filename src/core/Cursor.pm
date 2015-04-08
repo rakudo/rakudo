@@ -24,7 +24,6 @@ my class Cursor does NQPCursorRole {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Cursor, '$!regexsub');
-            my int $sawcaps = 1;
             if !nqp::isnull($rxsub) && nqp::defined($rxsub) {
                 $caplist := nqp::can($rxsub, 'CAPS') ?? nqp::findmethod($rxsub, 'CAPS')($rxsub) !! nqp::null();
                 if !nqp::isnull($caplist) && nqp::istrue($caplist) {
@@ -33,24 +32,18 @@ my class Cursor does NQPCursorRole {
                         my $curcap := nqp::shift($iter);
 #?if jvm
                         my Mu $curval := nqp::iterval($curcap);
-                        if (nqp::isint($curval) && nqp::isge_i($curval, 1))
-                        || (nqp::isnum($curval) && nqp::p6box_n($curval) >= 1) {
-                            $sawcaps = 1;
-                            if (nqp::isint($curval) && nqp::isge_i($curval, 2))
-                            || (nqp::isnum($curval) && nqp::p6box_n($curval) >= 2) {
+                        if (nqp::isint($curval) && nqp::isge_i($curval, 2))
+                        || (nqp::isnum($curval) && nqp::p6box_n($curval) >= 2) {
 #?endif
 #?if !jvm
-                        if nqp::iterval($curcap) >= 1 {
-                            $sawcaps = 1;
-                            if nqp::iterval($curcap) >= 2 {
+                        if nqp::iterval($curcap) >= 2 {
 #?endif
-                                my str $name = nqp::iterkey_s($curcap);
-                                nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
-                                    ?? nqp::bindpos(
-                                            nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                            nqp::fromstr_I($name, Int), [])
-                                    !! nqp::bindkey($hash, $name, []);
-                            }
+                            my str $name = nqp::iterkey_s($curcap);
+                            nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
+                                ?? nqp::bindpos(
+                                        nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
+                                        nqp::fromstr_I($name, Int), [])
+                                !! nqp::bindkey($hash, $name, []);
                         }
                     }
                 }
@@ -58,7 +51,12 @@ my class Cursor does NQPCursorRole {
 
             # Walk the Cursor stack and populate the Cursor.
             my Mu $cs := nqp::getattr(self, Cursor, '$!cstack');
-            if $sawcaps && !nqp::isnull($cs) && nqp::istrue($cs) {
+#?if jvm
+            if !nqp::isnull($cs) && nqp::istrue($cs) {
+#?endif
+#?if !jvm
+            if $caplist && !nqp::isnull($cs) && nqp::istrue($cs) {
+#?endif
                 my int $cselems = nqp::elems($cs);
                 my int $csi     = 0;
                 while $csi < $cselems {

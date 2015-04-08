@@ -3500,7 +3500,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $con_block.push($value_ast);
             my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
-            $value := $value_thunk();
+            $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
             $*W.add_constant_folded_result($value);
         }
 

@@ -448,6 +448,8 @@ my class X::Comp::Group is Exception {
     }
 }
 
+my role X::MOP is Exception { }
+
 # XXX a hack for getting line numbers from exceptions from the metamodel
 my class X::Comp::AdHoc is X::AdHoc does X::Comp {
     method is-compile-time() { True }
@@ -1653,7 +1655,7 @@ my class X::Caller::NotDynamic is Exception {
     }
 }
 
-my class X::Inheritance::NotComposed is Exception {
+my class X::Inheritance::NotComposed does X::MOP {
     # normally, we try very hard to capture the types
     # and not just their names. But in this case, both types
     # involved aren't composed yet, so they basically aren't

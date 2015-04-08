@@ -33,7 +33,10 @@ __END__
 :endofperl
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
+sub MAIN(:$name, :$auth, :$ver, *@, *%) {
+    shift @*ARGS if $name;
+    shift @*ARGS if $auth;
+    shift @*ARGS if $ver;
     my @installations = @*INC.grep(CompUnitRepo::Local::Installation);
     my @binaries = @installations>>.files(\'bin/#name#\', :$name, :$auth, :$ver);
     unless +@binaries {
@@ -52,7 +55,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             }
             note \'  \' ~ %caps.values.map({ sprintf(\'%-*s\', .[1], .[0]) }).join(\' | \');
             for @binaries -> $dist {
-                note \'  \' ~ %caps.kv.map( -> $k, $v { sprintf(\'%-*s\', $v.[1], $dist{$k}) } ).join(\' | \')
+                note \'  \' ~ %caps.kv.map( -> $k, $v { sprintf(\'%-*s\', $v.[1], $dist{$k} // \'\') } ).join(\' | \')
             }
         }
         else {
@@ -61,8 +64,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         exit 1;
     }
 
-    my $options = join(\' \', %named.map({\'--\' ~ .key ~ \'=\' ~ .value}), @pos);
-    exit shell("$*EXECUTABLE_NAME {@binaries[0]<files><bin/#name#>} $options").exit
+    exit shell("$*EXECUTABLE_NAME {@binaries[0]<files><bin/#name#>} @*ARGS[]").exit
 }';
 
     method install(:$dist!, *@files) {

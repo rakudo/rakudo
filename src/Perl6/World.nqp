@@ -2137,7 +2137,7 @@ class Perl6::World is HLL::World {
     method add_phaser($/, $phaser, $block, $phaser_past?) {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
-            my $result := $block();
+            my $result := self.handle-begin-time-exceptions($/, 'evaluating a BEGIN', $block);
             return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
@@ -3094,6 +3094,41 @@ class Perl6::World is HLL::World {
             $*W.rethrow($/, $ex);
         } else {
             $res;
+        }
+    }
+
+    method handle-begin-time-exceptions($/, $use-case, $code) {
+        my $ex;
+        my int $nok;
+        try {
+            return $code();
+            CATCH { $ex := $_; }
+        }
+
+        my int $success := 0;
+        my $coercer;
+        try { $coercer := self.find_symbol(['&COMP_EXCEPTION']); ++$success; };
+        nqp::rethrow($ex) unless $success;
+        my $p6ex := $coercer($ex);
+
+        my int $found_xcbt := 0;
+        my $x_comp_bt;
+        try {
+            $x_comp_bt := self.find_symbol(['X', 'Comp', 'BeginTime']);
+            $found_xcbt++;
+        }
+        if $found_xcbt {
+            my $xcbt := $x_comp_bt.new(exception => $p6ex, :$use-case);
+            $xcbt.SET_FILE_LINE(
+                nqp::box_s(nqp::getlexdyn('$?FILES'),
+                    self.find_symbol(['Str'])),
+                nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from, :cache(1)),
+                    self.find_symbol(['Int'])),
+            );
+            $xcbt.throw;
+        }
+        else {
+            self.rethrow($/, $ex);
         }
     }
 

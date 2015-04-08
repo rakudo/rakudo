@@ -450,6 +450,32 @@ my class X::Comp::Group is Exception {
 
 my role X::MOP is Exception { }
 
+my class X::Comp::BeginTime does X::Comp {
+    has $.use-case;
+    has $.exception;
+
+    method message() {
+        $!exception ~~ X::MOP
+            ?? $!exception.message
+            !! "An exception occurred while $!use-case"
+    }
+
+    multi method gist(::?CLASS:D: :$sorry = True) {
+        my $r = $sorry ?? self.sorry_heading() !! "";
+        $r ~= "$.message\nat $.filename():$.line";
+        for @.modules.reverse[1..*] {
+            my $line = nqp::p6box_i($_<line>);
+            $r ~= $_<module>.defined
+                    ?? "\n  from module $_<module> ($_<filename>:$line)"
+                    !! "\n  from $_<filename>:$line";
+        }
+        unless $!exception ~~ X::MOP {
+            $r ~= "\nException details:\n" ~ $!exception.gist.indent(2);
+        }
+        $r;
+    }
+}
+
 # XXX a hack for getting line numbers from exceptions from the metamodel
 my class X::Comp::AdHoc is X::AdHoc does X::Comp {
     method is-compile-time() { True }

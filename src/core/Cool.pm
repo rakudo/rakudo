@@ -142,6 +142,32 @@ my class Cool { # declared in BOOTSTRAP
         );
     }
 
+    proto method starts-with(|) {*}
+    multi method starts-with(Str:D: Str(Cool) $needle) {
+        nqp::p6bool(
+          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),0)
+        );
+    }
+    multi method starts-with(Cool:D: Str(Cool) $needle) {
+        nqp::p6bool(
+          nqp::eqat(nqp::unbox_s(self.Str),nqp::unbox_s($needle),0)
+        );
+    }
+
+    proto method substr-eq-at(|) {*}
+    multi method substr-eq-at(Str:D: Str(Cool) $needle, Int(Cool) $pos) {
+        nqp::p6bool(
+          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),nqp::unbox_i($pos))
+        );
+    }
+    multi method substr-eq-at(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
+        nqp::p6bool(nqp::eqat(
+          nqp::unbox_s(self.Str),
+          nqp::unbox_s($needle),
+          nqp::unbox_i($pos)
+        ));
+    }
+
     proto method index(|) {*}
     multi method index(Cool $needle, Cool $pos = 0) {
         my int $result = nqp::index(

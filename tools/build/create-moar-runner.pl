@@ -29,7 +29,7 @@ say "=" x 96;
 
 say "This is Rakudo Perl 6 running in the GNU debugger, which often allwos to generate useful back-\ntraces to debug or report issues in Rakudo, the MoarVM backend or the currently running code.\n";
 
-if $*VM.config<ccdebugflags> { say "The currently used MoarVM backend is not compiled with debugging symbols, you might want to\nreconfigure and reinstall MoarVM with --debug enabled.\n" }
+unless $*VM.config<ccdebugflags> { say "The currently used MoarVM backend is not compiled with debugging symbols, you might want to\nreconfigure and reinstall MoarVM with --debug enabled.\n" }
 
 say "This Rakudo version is $*PERL.compiler.version() built on MoarVM version $*VM.version(),";
 say "running on $*DISTRO.gist() / $*KERNEL.gist()\n";

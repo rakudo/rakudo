@@ -25,7 +25,7 @@ sub MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
       && nqp::ordat($sabspath,2) == 47 # "/", assume C:/ like prefix
       ?? nqp::box_s(nqp::concat(nqp::substr($sabspath,0,2),$spath),Str)
       !! $path
-      if nqp::ordfirst($spath) == 47;  # "/"
+      if nqp::chars($spath) && nqp::ordfirst($spath) == 47;  # "/"
 
     # need trailing slash for abspath now if there is none yet
     $sabspath = nqp::concat($abspath,'/')

@@ -370,8 +370,8 @@ my role X::Comp is Exception {
                 !! ("", "", "", "");
             my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
             my $r = $sorry ?? self.sorry_heading() !! "";
-            $r ~= "$.message\nat $.filename():$.line\n------> ";
-            $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
+            $r ~= "$.message\nat $.filename():$.line";
+            $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
                 for @.highexpect {

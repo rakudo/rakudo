@@ -1469,7 +1469,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token unitstart { <?> }
-    token you_are_here { <?> }
+    token you_are_here { <!!{ %*COMPILING<%?OPTIONS><setting> eq 'NULL' }> }
     token newpad { <?> { $*W.push_lexpad($/) } }
     token finishpad { <?> }
 

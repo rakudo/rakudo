@@ -154,6 +154,22 @@ my class Cool { # declared in BOOTSTRAP
         );
     }
 
+    proto method ends-with(Str(Cool) $suffix) { * }
+    multi method ends-with(Str:D: Str(Cool) $suffix) {
+        my str $str    = nqp::unbox_s(self);
+        my str $needle = nqp::unbox_s($suffix);
+        nqp::p6bool(
+          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
+        );
+    }
+    multi method ends-with(Cool:D: Str(Cool) $suffix) {
+        my str $str    = nqp::unbox_s(self.Str);
+        my str $needle = nqp::unbox_s($suffix);
+        nqp::p6bool(
+          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
+        );
+    }
+
     proto method substr-eq-at(|) {*}
     multi method substr-eq-at(Str:D: Str(Cool) $needle, Int(Cool) $pos) {
         nqp::p6bool(

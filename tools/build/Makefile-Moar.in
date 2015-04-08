@@ -183,7 +183,7 @@ $(M_GDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 
 $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 	$(RM_F) $(M_VALGRIND_RUNNER)
-	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "valgrind" "$(M_LIBPATH)" .
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-valgrind-m . "valgrind" "$(M_LIBPATH)" .
 	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
 ##  shipped modules

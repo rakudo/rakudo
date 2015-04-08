@@ -227,6 +227,13 @@ MAIN: {
 
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
+        unless ($^O eq 'MSWin32') {
+            $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
+            $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_VALGRIND_RUNNER)';
+            $config{'m_install'}  = '	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
+                                  . '	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"';
+        }
+
         unless (@errors) {
             print "Using $config{m_nqp} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
 

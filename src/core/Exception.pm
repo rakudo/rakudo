@@ -1048,6 +1048,10 @@ my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     method message() { "Radix $.radix out of range (allowed: 2..36)" }
 }
 
+my class X::Syntax::Number::IllegalDecimal does X::Syntax {
+    method message() { "Decimal point must be followed by digit" }
+}
+
 my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;

@@ -1163,18 +1163,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.install_doc_phaser>
         
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
-        
+
+        <.explain_mystery>
+        <.cry_sorrows>
+
         {
-            # Emit any errors/worries.
-            self.explain_mystery();
-            if @*SORROWS {
-                if +@*SORROWS == 1 && !@*WORRIES {
-                    @*SORROWS[0].throw()
-                }
-                else {
-                    $*W.group_exception(@*SORROWS.pop).throw();
-                }
-            }
+            # Emit any worries.
             if @*WORRIES {
                 nqp::printfh(nqp::getstderr(), $*W.group_exception().gist());
             }
@@ -1814,7 +1808,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<CONTROL> {<sym> <block(1)> }
 
     proto token statement_prefix { <...> }
-    token statement_prefix:sym<BEGIN>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<BEGIN>   { :my %*MYSTERY; <sym><.kok> <blorst> <.explain_mystery> <.cry_sorrows> }
     token statement_prefix:sym<COMPOSE> { <sym><.kok> <blorst> }
     token statement_prefix:sym<TEMP>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<CHECK>   { <sym><.kok> <blorst> }
@@ -3430,7 +3424,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]
         | <VALUE=decint>
         ]
-        <!!before ['.' <?before \s | ',' | '=' | <terminator> > <.sorry: "Decimal point must be followed by digit">]? >
+        <!!before ['.' <?before \s | ',' | '=' | <terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
         [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 
@@ -4472,6 +4466,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         
         self;        
+    }
+
+    method cry_sorrows() {
+        if @*SORROWS {
+            if +@*SORROWS == 1 && !@*WORRIES {
+                @*SORROWS[0].throw()
+            }
+            else {
+                $*W.group_exception(@*SORROWS.pop).throw();
+            }
+        }
+        self
     }
     
     method add_variable($name) {

@@ -378,8 +378,8 @@ my role X::Comp is Exception {
                 !! ("", "", "", "");
             my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
             my $r = $sorry ?? self.sorry_heading() !! "";
-            $r ~= "$.message\nat $.filename():$.line\n------> ";
-            $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
+            $r ~= "$.message\nat $.filename():$.line";
+            $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
                 for @.highexpect {
@@ -453,6 +453,34 @@ my class X::Comp::Group is Exception {
             @m.push(.message);
         }
         @m.join("\n")
+    }
+}
+
+my role X::MOP is Exception { }
+
+my class X::Comp::BeginTime does X::Comp {
+    has $.use-case;
+    has $.exception;
+
+    method message() {
+        $!exception ~~ X::MOP
+            ?? $!exception.message
+            !! "An exception occurred while $!use-case"
+    }
+
+    multi method gist(::?CLASS:D: :$sorry = True) {
+        my $r = $sorry ?? self.sorry_heading() !! "";
+        $r ~= "$.message\nat $.filename():$.line";
+        for @.modules.reverse[1..*] {
+            my $line = nqp::p6box_i($_<line>);
+            $r ~= $_<module>.defined
+                    ?? "\n  from module $_<module> ($_<filename>:$line)"
+                    !! "\n  from $_<filename>:$line";
+        }
+        unless $!exception ~~ X::MOP {
+            $r ~= "\nException details:\n" ~ $!exception.gist.indent(2);
+        }
+        $r;
     }
 }
 
@@ -564,6 +592,12 @@ my class X::Placeholder::NonPlaceholder does X::Comp {
 my class X::Placeholder::Mainline is X::Placeholder::Block {
     method message() {
         "Cannot use placeholder parameter $.placeholder in the mainline"
+    }
+}
+
+my class X::Placeholder::Attribute is X::Placeholder::Block {
+    method message() {
+        "Cannot use placeholder parameter $.placeholder in an attribute initializer"
     }
 }
 
@@ -1048,6 +1082,10 @@ my class X::Syntax::NoSelf does X::Syntax {
 my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     has $.radix;
     method message() { "Radix $.radix out of range (allowed: 2..36)" }
+}
+
+my class X::Syntax::Number::IllegalDecimal does X::Syntax {
+    method message() { "Decimal point must be followed by digit" }
 }
 
 my class X::Syntax::NonAssociative does X::Syntax {
@@ -1651,7 +1689,7 @@ my class X::Caller::NotDynamic is Exception {
     }
 }
 
-my class X::Inheritance::NotComposed is Exception {
+my class X::Inheritance::NotComposed does X::MOP {
     # normally, we try very hard to capture the types
     # and not just their names. But in this case, both types
     # involved aren't composed yet, so they basically aren't

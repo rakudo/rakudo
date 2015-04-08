@@ -72,6 +72,7 @@ my class Backtrace is List {
                     $file eq 'gen\\moar\\stage2\\NQPHLL.nqp';
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
             $subname = '<anon>' if substr($subname,0, 6) eq '_block';
+            last if $subname eq 'handle-begin-time-exceptions';
             $new.push: Backtrace::Frame.new(
                 :line($line.Int),
                 :$file,

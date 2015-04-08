@@ -139,7 +139,9 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                     if nqp::istype($a,Stringy) && nqp::istype($endpoint,Stringy) && $a.codes == 1 && $endpoint.codes == 1 {
                         $code = $infinite ?? { $^x.ord.succ.chr } !! unisuccpred($a.ord cmp $endpoint.ord);
                     } else {
-                        $code = $infinite ??  { $^x.succ } !! succpred($a cmp $endpoint);
+                        $code = $infinite || nqp::istype($endpoint,Code)
+                                ?? { $^x.succ }
+                                !! succpred($a cmp $endpoint);
                     }
                 }
                 else {
@@ -175,7 +177,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 }
             }
             elsif $tail.elems == 1 {
-                $code = ($a cmp $endpoint > 0 && !nqp::istype($endpoint,Code))
+                $code = (!nqp::istype($endpoint,Code) && $a cmp $endpoint > 0 )
                   ?? { $^x.pred }
                   !! { $^x.succ }
             }

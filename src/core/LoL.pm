@@ -45,7 +45,7 @@ sub find-reducer-for-op($op) {
     return &METAOP_REDUCE_LEFT if (nqp::isnull(%prec) or ! %prec);
     my $reducer = %prec<prec> eq 'f='
         ?? 'listinfix'
-        !! %prec<assoc> || 'left';
+        !! %prec<assoc> // 'left';
     ::('&METAOP_REDUCE_' ~ $reducer.uc);
 }
 

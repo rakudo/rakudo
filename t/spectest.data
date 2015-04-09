@@ -824,6 +824,7 @@ S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t
 S32-str/encode.t
+S32-str/ends-with.t
 S32-str/flip.t
 S32-str/indent.t
 S32-str/index.t
@@ -838,6 +839,7 @@ S32-str/samecase.t
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
+S32-str/starts-with.t
 S32-str/substr.t
 S32-str/substr-rw.t
 S32-str/tc.t

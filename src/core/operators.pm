@@ -172,8 +172,12 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             if $code.defined { }
             elsif $tail.grep(Real).elems != $tail.elems {
                 if $tail.elems > 1 {
-                    $code = succpred($tail[*-2], $tail[*-1]);
-                    $tail.pop while $tail.elems > 1;
+                    if $tail[*-1].WHAT === $endpoint.WHAT {
+                        $code = succpred($tail[*-1], $endpoint);
+                    }
+                    else {
+                        $code = succpred($[*-2], $tail[*-1]);
+                    }
                 }
                 elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {
                     if $a.codes == 1 && $endpoint.codes == 1 {

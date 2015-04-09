@@ -181,7 +181,17 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 }
                 elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {
                     if $a.codes == 1 && $endpoint.codes == 1 {
-                        $code = $infinite ?? { $^x.ord.succ.chr } !! unisuccpred($a, $endpoint);
+                        $code = unisuccpred($a, $endpoint);
+                    }
+                    elsif $a.codes == $endpoint.codes {
+                        my @a = $a.comb;
+                        my @e = $endpoint.comb;
+                        my @ranges;
+                        for @a Z @e -> $from, $to {
+                            @ranges.push: $($from ... $to);
+                        }
+                        .take for [X~] |@ranges;
+                        $stop = 1;
                     }
                     elsif $a lt $endpoint {
                         $stop = 1 if $a gt $endpoint;

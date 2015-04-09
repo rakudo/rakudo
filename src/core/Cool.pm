@@ -172,12 +172,12 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method substr-eq(|) {*}
     multi method substr-eq(Str:D: Str(Cool) $needle, Int(Cool) $pos) {
-        nqp::p6bool(
+        $pos >= 0 && nqp::p6bool(
           nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),nqp::unbox_i($pos))
         );
     }
     multi method substr-eq(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        nqp::p6bool(nqp::eqat(
+        $pos >= 0 && nqp::p6bool(nqp::eqat(
           nqp::unbox_s(self.Str),
           nqp::unbox_s($needle),
           nqp::unbox_i($pos)

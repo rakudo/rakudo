@@ -176,7 +176,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                         $code = succpred($tail[*-1], $endpoint);
                     }
                     else {
-                        $code = succpred($[*-2], $tail[*-1]);
+                        $code = succpred($tail[*-2], $tail[*-1]);
                     }
                 }
                 elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {

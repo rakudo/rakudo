@@ -16,8 +16,8 @@ sub MAKE-ABSOLUTE-PATH($path,$abspath) {
     if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
         return $path;
     }
-    elsif $path.substr-eq-at(":",1) {  # assume C: something
-        if $path.substr-eq-at("/",2) { #  assume C:/ like prefix
+    elsif $path.substr-eq(":",1) {  # assume C: something
+        if $path.substr-eq("/",2) { #  assume C:/ like prefix
             return $path;
         }
         elsif !$abspath.starts-with(substr($path,0,2)) {

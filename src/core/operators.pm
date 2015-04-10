@@ -353,9 +353,9 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             if $stop { }
             elsif $code.defined {
                 take $_ for @$tail;
-
                 my $count = $code.count;
-                while 1 {
+
+                until $stop {
                     $tail.shift while $tail.elems > $count;
                     my \value = $code(|$tail);
                     if $end_code_arity != 0 {
@@ -364,15 +364,17 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                             $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
                             if $endpoint(|@$end_tail) {
                                 (.take for value) unless $exclude_end;
-                                last;
+                                $stop = 1;
                             }
                         }
                     }
                     elsif value ~~ $endpoint {
                         (.take for value) unless $exclude_end;
-                        last;
+                        $stop = 1;
                     }
-                    if value {
+
+                    if $stop { }
+                    elsif value {
                         $tail.push(|value);
                         .take for value;
                     }

@@ -685,6 +685,8 @@ S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S22-package-format/local.t
 S24-testing/0-compile.t
+S24-testing/3-output.t
+S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
 S26-documentation/03-abbreviated.t
@@ -823,6 +825,7 @@ S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t
 S32-str/encode.t
+S32-str/ends-with.t
 S32-str/flip.t
 S32-str/indent.t
 S32-str/index.t
@@ -837,7 +840,9 @@ S32-str/samecase.t
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
+S32-str/starts-with.t
 S32-str/substr.t
+S32-str/substr-eq.t
 S32-str/substr-rw.t
 S32-str/tc.t
 S32-str/tclc.t

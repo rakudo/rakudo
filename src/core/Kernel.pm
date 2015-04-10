@@ -33,7 +33,7 @@ class Kernel does Systemic {
         $!version //= Version.new( do {
             given $*DISTRO.name {
                 when 'freebsd' {
-                    uname '-K';
+                    uname '-r'; # -K -U not introduced until 10.0
                 }
                 when 'macosx' {
                     my $unamev = uname '-v';

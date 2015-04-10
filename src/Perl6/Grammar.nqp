@@ -173,6 +173,10 @@ role STD {
         }
     }
 
+    token cheat_heredoc {
+        [ <?{ +@herestub_queue }> \h* <[ ; } ]> <.ws> <?MARKER('endstmt')> ]?
+    }
+
     method queue_heredoc($delim, $lang) {
         nqp::ifnull(@herestub_queue, @herestub_queue := []);
         nqp::push(@herestub_queue, Herestub.new(:$delim, :$lang, :orignode(self)));
@@ -3176,6 +3180,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <initializer>
         || <.missing: "initializer on constant declaration">
         ]
+
+        <.cheat_heredoc>
     }
 
     proto token initializer { <...> }

@@ -174,7 +174,7 @@ role STD {
     }
 
     token cheat_heredoc {
-        [ <?{ +@herestub_queue }> \h* <[ ; } ]> <.ws> <?MARKER('endstmt')> ]?
+        <?{ +@herestub_queue }> \h* <[ ; } ]> <.ws> <?MARKER('endstmt')>
     }
 
     method queue_heredoc($delim, $lang) {
@@ -1463,7 +1463,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <statementlist(1)>
             [
                 <?> <?{ $*moreinput }>
-                | '}' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
+                | [<.cheat_heredoc> || '}'] { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
             ]
             <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
@@ -1677,7 +1677,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             }
             [
-            || <.spacey> <arglist> <?{ $<arglist><EXPR> }>
+            || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }>
                 {
                     my $lnd     := $*W.dissect_longname($longname);
                     my $name    := $lnd.name;
@@ -1842,7 +1842,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token blorst {
-        [ <?[{]> <block> | <![;]> <statement> || <.missing: 'block or statement'> ]
+        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc>? || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers
@@ -3181,7 +3181,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <.missing: "initializer on constant declaration">
         ]
 
-        <.cheat_heredoc>
+        <.cheat_heredoc>?
     }
 
     proto token initializer { <...> }

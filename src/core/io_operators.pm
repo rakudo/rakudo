@@ -8,36 +8,50 @@ sub print(|) {
 }
 
 proto sub say(|) { * }
-multi sub say()              { $*OUT.print: "\n" }
-multi sub say(Obsolete:D \o) { $*OUT.print: o.gist ~ "\n" }
-multi sub say(Str:D \x)      { $*OUT.print: x ~ "\n" }
-multi sub say(\x)            { $*OUT.print: x.gist ~ "\n" }
+multi sub say() { $*OUT.print-nl }
+multi sub say(Obsolete:D \o) {
+    my $out := $*OUT;
+    $out.print: o.gist;
+    $out.print-nl;
+}
+multi sub say(Str:D \x) {
+    my $out := $*OUT;
+    $out.print: x;
+    $out.print-nl;
+}
+multi sub say(\x) {
+    my $out := $*OUT;
+    $out.print: x.gist;
+    $out.print-nl;
+}
 multi sub say(|) {
     my $args := nqp::p6argvmarray();
     my $out := $*OUT;
     $out.print(nqp::shift($args).gist) while $args;
-    $out.print("\n");
+    $out.print-nl;
 }
 
 proto sub note(|) { * }
 multi sub note() {
-    $*ERR.print("Noted\n");
+    my $err := $*ERR;
+    $err.print: "Noted";
+    $err.print-nl;
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;
-    $err.print(x);
-    $err.print("\n");
+    $err.print: x;
+    $err.print-nl;
 }
 multi sub note(\x) {
     my $err := $*ERR;
-    $err.print(x.gist);
-    $err.print("\n");
+    $err.print: x.gist;
+    $err.print-nl;
 }
 multi sub note(|) {
     my $args := nqp::p6argvmarray();
     my $err := $*ERR;
     $err.print(nqp::shift($args).gist) while $args;
-    $err.print("\n");
+    $err.print-nl;
 }
 
 sub gist(|) {

@@ -422,7 +422,12 @@ my class IO::Handle does IO {
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;
-        self.print: "\n";
+        self.print-nl;
+    }
+
+    method print-nl(IO::Handle:D:) {
+        nqp::printfh($!PIO, nqp::unbox_s($!nl));
+        Bool::True;
     }
 
     method slurp(IO::Handle:D: |c) {

@@ -3910,7 +3910,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token prefix_postfix_meta_operator { <...> }
     
     method can_meta($op, $meta, $reason = "fiddly") {
-        if $op<OPER><O>{$reason} {
+        if nqp::eqat($op<OPER><O>{$reason}, '1', 0) {
             self.typed_panic: "X::Syntax::Can'tMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
         }
         self;

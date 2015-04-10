@@ -55,7 +55,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Bool(Str:D:) {
-        nqp::p6bool(nqp::chars($!value) && nqp::isne_s($!value,"0"));
+        nqp::p6bool(nqp::chars($!value));
     }
 
     multi method Str(Str:D:)     { self }

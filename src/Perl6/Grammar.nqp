@@ -174,7 +174,7 @@ role STD {
     }
 
     token cheat_heredoc {
-        <?{ +@herestub_queue }> \h* <[ ; } ]> <.ws> <?MARKER('endstmt')>
+        <?{ +@herestub_queue }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
     }
 
     method queue_heredoc($delim, $lang) {

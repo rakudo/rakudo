@@ -14,6 +14,7 @@ my class Exception {
     multi method gist(Exception:D:) {
         my $str = try self.?message;
         return "Error while creating error string: $!" if $!;
+        return $str unless nqp::isconcrete($!ex);
         $str ~= "\n";
         try $str ~= self.backtrace;
         return "$str\nError while creating backtrace: $!.message()\n$!.backtrace.full();" if $!;

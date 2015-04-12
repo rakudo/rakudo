@@ -1614,7 +1614,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $longname;
         <sym> <.ws>
         [
-        | <module_name>
+        | <module_name> [ <.spacey> <arglist> ]? <.explain_mystery> <.cry_sorrows>
             {
                 $longname := $<module_name><longname>;
 
@@ -1636,6 +1636,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
         :my $OLD_MAIN := ~$*MAIN;
+        :my %*MYSTERY;
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
@@ -1677,7 +1678,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             }
             [
-            || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }>
+            || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     my $lnd     := $*W.dissect_longname($longname);
                     my $name    := $lnd.name;

@@ -597,6 +597,46 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+S15-normalization/nfc-0.t       # moar stress
+S15-normalization/nfc-1.t       # moar stress
+S15-normalization/nfc-2.t       # moar stress
+S15-normalization/nfc-3.t       # moar stress
+S15-normalization/nfc-4.t       # moar stress
+S15-normalization/nfc-5.t       # moar stress
+S15-normalization/nfc-6.t       # moar stress
+S15-normalization/nfc-7.t       # moar stress
+S15-normalization/nfc-8.t       # moar stress
+S15-normalization/nfc-9.t       # moar stress
+S15-normalization/nfd-0.t       # moar stress
+S15-normalization/nfd-1.t       # moar stress
+S15-normalization/nfd-2.t       # moar stress
+S15-normalization/nfd-3.t       # moar stress
+S15-normalization/nfd-4.t       # moar stress
+S15-normalization/nfd-5.t       # moar stress
+S15-normalization/nfd-6.t       # moar stress
+S15-normalization/nfd-7.t       # moar stress
+S15-normalization/nfd-8.t       # moar stress
+S15-normalization/nfd-9.t       # moar stress
+S15-normalization/nfkc-0.t      # moar stress
+S15-normalization/nfkc-1.t      # moar stress
+S15-normalization/nfkc-2.t      # moar stress
+S15-normalization/nfkc-3.t      # moar stress
+S15-normalization/nfkc-4.t      # moar stress
+S15-normalization/nfkc-5.t      # moar stress
+S15-normalization/nfkc-6.t      # moar stress
+S15-normalization/nfkc-7.t      # moar stress
+S15-normalization/nfkc-8.t      # moar stress
+S15-normalization/nfkc-9.t      # moar stress
+S15-normalization/nfkd-0.t      # moar stress
+S15-normalization/nfkd-1.t      # moar stress
+S15-normalization/nfkd-2.t      # moar stress
+S15-normalization/nfkd-3.t      # moar stress
+S15-normalization/nfkd-4.t      # moar stress
+S15-normalization/nfkd-5.t      # moar stress
+S15-normalization/nfkd-6.t      # moar stress
+S15-normalization/nfkd-7.t      # moar stress
+S15-normalization/nfkd-8.t      # moar stress
+S15-normalization/nfkd-9.t      # moar stress
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar

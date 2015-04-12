@@ -938,6 +938,14 @@ my class X::Syntax::Variable::BadType does X::Comp {
     }
 }
 
+my class X::Syntax::Variable::ConflictingTypes does X::Comp {
+    has Mu $.outer;
+    has Mu $.inner;
+    method message() {
+        "$!inner.^name() not allowed here; variable list already declared with type $!outer.^name()"
+    }
+}
+
 my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
     method message() { "augment not allowed without 'use MONKEY-TYPING'" };
 }

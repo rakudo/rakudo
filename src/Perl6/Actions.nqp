@@ -2041,11 +2041,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $past;
         }
         elsif $<signature> {
-            # Go over the params and declare the variable defined
-            # in them.
-            my $list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
-            my @params := $<signature>.ast<parameters>;
+            # Go over the params and declare the variable defined in them.
+            my class FakeOfType { has $!type; method ast() { $!type } }
+            my $list      := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+            my @params    := $<signature>.ast<parameters>;
+            my $common_of := $*OFTYPE;
             for @params {
+                my $*OFTYPE := $common_of;
+                if nqp::existskey($_, 'of_type') {
+                    if $common_of {
+                        ($_<node> // $<signature>).CURSOR.typed_sorry(
+                            'X::Syntax::Variable::ConflictingTypes',
+                            outer => $common_of.ast, inner => $_<of_type>);
+                    }
+                    $*OFTYPE := FakeOfType.new(type => $_<of_type>);
+                }
                 if $_<variable_name> {
                     my $past := QAST::Var.new( :name($_<variable_name>) );
                     $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
@@ -2055,7 +2065,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 else {
-                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', []);
+                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! []);
                     $list.push($*W.build_container_past(
                       %cont_info,
                       $*W.create_container_descriptor(
@@ -3870,6 +3880,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 else {
                     $<typename>.CURSOR.typed_sorry('X::Parameter::BadType', :$type);
                 }
+                %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
                 for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
                     if $_<identifier> {
                         if $_<identifier>.Str eq 'D' {

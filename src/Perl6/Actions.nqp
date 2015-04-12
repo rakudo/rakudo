@@ -2151,6 +2151,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $sigil  := $<variable><sigil>;
         my $twigil := $<variable><twigil>;
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
+        my @post;
+        for $<post_constraint> {
+            @post.push($_.ast);
+        }
         if $<variable><desigilname> {
             my $lex := $*W.cur_lexpad();
             if $lex.symbol($name) {
@@ -2159,14 +2163,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
                 $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
             }
-            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
+            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
         }
         else {
-            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
+            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
         }
     }
 
-    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?) {
+    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
@@ -2195,7 +2199,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/.CURSOR.panic("Cannot declare an anonymous attribute");
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
@@ -2240,7 +2244,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Some things can't be done to our vars.
             my $varname;
             if $*SCOPE eq 'our' {
-                if $*OFTYPE {
+                if $*OFTYPE || @post {
                     $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
                 }
                 elsif $shape {
@@ -2260,7 +2264,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 
@@ -3901,20 +3905,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method post_constraint($/) {
-        if $<signature> {
-            if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
-                $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
+        if $*CONSTRAINT_USAGE eq 'param' {
+            if $<signature> {
+                if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
+                    $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
+                }
+                %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
+                if nqp::eqat(~$/, '[', 0) {
+                    %*PARAM_INFO<sigil> := '@' unless %*PARAM_INFO<sigil>;
+                }
             }
-            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
-            if nqp::eqat(~$/, '[', 0) {
-                %*PARAM_INFO<sigil> := '@' unless %*PARAM_INFO<sigil>;
+            else {
+                unless %*PARAM_INFO<post_constraints> {
+                    %*PARAM_INFO<post_constraints> := [];
+                }
+                %*PARAM_INFO<post_constraints>.push(make_where_block($/, $<EXPR>.ast));
             }
         }
         else {
-            unless %*PARAM_INFO<post_constraints> {
-                %*PARAM_INFO<post_constraints> := [];
+            if $<signature> {
+                $/.CURSOR.NYI('Signatures as constraints on variables');
             }
-            %*PARAM_INFO<post_constraints>.push(make_where_block($/, $<EXPR>.ast));
+            else {
+                make make_where_block($/, $<EXPR>.ast);
+            }
         }
     }
 

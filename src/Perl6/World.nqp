@@ -678,9 +678,14 @@ class Perl6::World is HLL::World {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    method container_type_info($/, $sigil, @value_type, $shape?) {
+    method container_type_info($/, $sigil, @value_type, $shape?, :@post) {
         my %info;
         %info<sigil> := $sigil;
+        for @post -> $con {
+            @value_type[0] := self.create_subset(self.resolve_mo($/, 'subset'),
+                @value_type ?? @value_type[0] !! self.find_symbol(['Mu']),
+                $con);
+        }
         if $sigil eq '@' {
             %info<bind_constraint> := $*W.find_symbol(['Positional']);
             if @value_type {

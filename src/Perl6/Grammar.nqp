@@ -2628,7 +2628,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
 
         [ <.ws> <trait>+ ]?
-        [ <.ws> <post_constraint>+ <.NYI: "Post-constraints on variables"> ]?
+        [ <.ws> <post_constraint('var')>+ ]?
     }
 
     proto token routine_declarator { <...> }
@@ -2904,13 +2904,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         <.ws>
         <trait>*
-        <post_constraint>*
+        <post_constraint('param')>*
         [
             <default_value>
             [ <modifier=.trait> {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default_value>
             }]?
-            [ <modifier=.post_constraint> {
+            [ <modifier=.post_constraint('param')> {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
             }]?
         ]**0..1
@@ -3013,7 +3013,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
     }
 
-    rule post_constraint {
+    rule post_constraint($*CONSTRAINT_USAGE) {
         :my $*IN_DECL := '';
         :dba('constraint')
         [

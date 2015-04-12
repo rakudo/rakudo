@@ -785,6 +785,13 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
+my class X::Parameter::BadType does X::Comp {
+    has Mu $.type;
+    method message() {
+        "$!type.^name() cannot be used as a type on a parameter"
+    }
+}
+
 my class X::Parameter::WrongOrder does X::Comp {
     has $.misplaced;
     has $.parameter;
@@ -922,6 +929,13 @@ my class X::Syntax::Variable::Twigil does X::Syntax {
 
 my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
     method message() { 'Cannot declare a variable by indirect name (use a hash instead?)' }
+}
+
+my class X::Syntax::Variable::BadType does X::Comp {
+    has Mu $.type;
+    method message() {
+        "$!type.^name() cannot be used as a type on a variable"
+    }
 }
 
 my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {

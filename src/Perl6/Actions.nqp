@@ -2173,7 +2173,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*OFTYPE {
             my $archetypes := $*OFTYPE.ast.HOW.archetypes;
             unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic {
-                $*OFTYPE.CURSOR.panic(~$*OFTYPE ~ " cannot be used as a nominal type on a variable");
+                $*OFTYPE.CURSOR.typed_sorry('X::Syntax::Variable::BadType', type => $*OFTYPE.ast);
             }
         }
 
@@ -3864,8 +3864,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %*PARAM_INFO<post_constraints>.push($type);
                 }
                 else {
-                    $/.CURSOR.panic(~$<typename> ~
-                        " cannot be used as a nominal type on a parameter");
+                    $<typename>.CURSOR.typed_sorry('X::Parameter::BadType', :$type);
                 }
                 for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
                     if $_<identifier> {

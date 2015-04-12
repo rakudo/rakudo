@@ -1713,7 +1713,7 @@ my class X::Inheritance::NotComposed does X::MOP {
     %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden-from-backtrace {
             X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, $expected) is hidden-from-backtrace {
+    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, Mu $expected) is hidden-from-backtrace {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
     %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden-from-backtrace {

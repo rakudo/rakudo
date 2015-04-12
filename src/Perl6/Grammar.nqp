@@ -3397,6 +3397,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token number { <...> }
     token number:sym<numish>   { <numish> }
 
+    token signed-number { <sign> <number> }
+
     token numish {
         [
         | 'NaN' >>
@@ -3404,6 +3406,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <dec_number>
         | <rad_number>
         | <rat_number>
+        | <complex_number>
         | 'Inf' >>
         | '+Inf' >>
         | '-Inf' >>
@@ -3419,6 +3422,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
     
+    token signed-integer { <sign> <integer> }
+
     token integer {
         [
         | 0 [ b '_'? <VALUE=binint>
@@ -3461,11 +3466,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token rat_number {
-        '<' <nu=.integer> '/' <de=.integer> '>'
-    }
+    token escale { <[Ee]> <sign> <decint> }
 
-    token escale { <[Ee]> $<sign>=[<[+\-]>?] <decint> }
+    token sign { '+' | '-' | '' }
+
+    token rat_number { '<' <bare_rat_number> '>' }
+    token bare_rat_number { <?before <[\-+0..9<>:boxd]>+? '/'> <nu=.signed-integer> '/' <de=integer> }
+
+    token complex_number { '<' <bare_complex_number> '>' }
+    token bare_complex_number { <?before <[\-+0..9<>:.eEboxdInfNa\\]>+? 'i'> <re=.signed-number> <?[\-+]> <im=.signed-number> \\? 'i' }
 
     token typename {
         [

@@ -5739,13 +5739,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $<numish>.ast;
     }
 
+    method signed-integer($/) {
+        my $qast := $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
+        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast) if $<sign> eq '-';
+        make $qast;
+    }
+
+    method signed-number($/) {
+        my $qast := $<number>.ast;
+        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast) if $<sign> eq '-';
+        make $qast;
+    }
+
     method numish($/) {
         if $<integer> {
             make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
         }
-        elsif $<dec_number> { make $<dec_number>.ast; }
-        elsif $<rad_number> { make $<rad_number>.ast; }
-        elsif $<rat_number> { make $<rat_number>.ast; }
+        elsif $<dec_number>     { make $<dec_number>.ast; }
+        elsif $<rad_number>     { make $<rad_number>.ast; }
+        elsif $<rat_number>     { make $<rat_number>.ast; }
+        elsif $<complex_number> { make $<complex_number>.ast; }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
         }
@@ -5791,10 +5804,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    method rat_number($/) {
-        my $nu := $*W.add_constant('Int', 'int', $<nu>.ast);
-        my $de := $*W.add_constant('Int', 'int', $<de>.ast);
+    method complex_number($/) { make $<bare_complex_number>.ast }
+
+    method rat_number($/) { make $<bare_rat_number>.ast }
+
+    method bare_rat_number($/) {
+        my $nu := $*W.add_constant('Int', 'int', +~$<nu>);
+        my $de := $*W.add_constant('Int', 'int', +~$<de>);
         make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value);
+    }
+
+    method bare_complex_number($/) {
+        my $re := $*W.add_constant('Num', 'num', +$<re>.Str);
+        my $im := $*W.add_constant('Num', 'num', +$<im>.Str);
+        my $rv := $re.compile_time_value;
+        my $iv := $im.compile_time_value;
+        make $*W.add_constant('Complex', 'type_new', $rv, $iv, :nocache(1));
     }
 
     method typename($/) {

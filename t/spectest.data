@@ -607,6 +607,7 @@ S15-normalization/nfc-6.t       # moar stress
 S15-normalization/nfc-7.t       # moar stress
 S15-normalization/nfc-8.t       # moar stress
 S15-normalization/nfc-9.t       # moar stress
+S15-normalization/nfc-sanity.t  # moar
 S15-normalization/nfd-0.t       # moar stress
 S15-normalization/nfd-1.t       # moar stress
 S15-normalization/nfd-2.t       # moar stress
@@ -617,6 +618,7 @@ S15-normalization/nfd-6.t       # moar stress
 S15-normalization/nfd-7.t       # moar stress
 S15-normalization/nfd-8.t       # moar stress
 S15-normalization/nfd-9.t       # moar stress
+S15-normalization/nfd-sanity.t  # moar
 S15-normalization/nfkc-0.t      # moar stress
 S15-normalization/nfkc-1.t      # moar stress
 S15-normalization/nfkc-2.t      # moar stress
@@ -627,6 +629,7 @@ S15-normalization/nfkc-6.t      # moar stress
 S15-normalization/nfkc-7.t      # moar stress
 S15-normalization/nfkc-8.t      # moar stress
 S15-normalization/nfkc-9.t      # moar stress
+S15-normalization/nfkc-sanity.t # moar
 S15-normalization/nfkd-0.t      # moar stress
 S15-normalization/nfkd-1.t      # moar stress
 S15-normalization/nfkd-2.t      # moar stress
@@ -637,6 +640,7 @@ S15-normalization/nfkd-6.t      # moar stress
 S15-normalization/nfkd-7.t      # moar stress
 S15-normalization/nfkd-8.t      # moar stress
 S15-normalization/nfkd-9.t      # moar stress
+S15-normalization/nfkd-sanity.t # moar
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar

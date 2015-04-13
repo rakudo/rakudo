@@ -503,7 +503,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <.vws> <.heredoc>
         | <.unv>
         | <.unsp>
-        | $ <!MARKED('nomoreinput')> { self.moreinput } <?MARKER('nomoreinput')>
+        | $ <?MOREINPUT>
         ]*
         <?MARKER('ws')>
         :my $stub := self.'!fresh_highexpect'();
@@ -521,17 +521,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     token MOREINPUT {
         [
+            <!MARKED('nomoreinput')>
             <?{ $*MOREINPUT_BLOCK_DEPTH == 0 }>
+            { self.moreinput }
             <?MARKER('nomoreinput')>
-            { $*MOREINPUT_BLOCK_DEPTH := 0 }
-        ||  <?>
+        ||  <!>
         ]
     }
 
     method moreinput() {
-        return NQPMu if self.MARKED('nomoreinput') && $*MOREINPUT_BLOCK_DEPTH == 0;
         $*moreinput(self) if $*moreinput;
-        NQPMu
+        0
     }
 
     token vws {
@@ -1298,11 +1298,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
         :dba('statement list')
         ''
+        { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH + 1 }
         [
-        | <!MARKED('nomoreinput')> $
+        | $
         | <?before <[\)\]\}]>>
         | [ <statement> <.eat_terminator> ]*
         ]
+        { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
     }
 
     method shallow_copy(%hash) {
@@ -1382,14 +1384,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token eat_terminator {
         [
-        || ';'
+        || ';' <?MARKER('nomoreinput')>
         || <?MARKED('endstmt')> <.ws>
         || <?before ')' | ']' | '}' >
-        || $
+        || $ <?MARKER('nomoreinput')>
         || <?stopper>
         || <?before [if|while|for|loop|repeat|given|when] » > { self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
         || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
-        ] <?MOREINPUT>
+        ]
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -1459,12 +1461,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
-            '{' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH + 1 }
+            '{'
             <statementlist(1)>
-            [
-                <?> <?{ $*moreinput }>
-                | [<.cheat_heredoc> || '}'] { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
-            ]
+            [<.cheat_heredoc> || '}']
             <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }

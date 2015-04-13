@@ -39,15 +39,11 @@ multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
 multi sub INITIALIZE_DYNAMIC('$*HOME') {
     my $HOME;
 
-    if %*ENV<HOME>.defined {
-        $HOME = %*ENV<HOME>;
+    if %*ENV<HOME> -> $home {
+        $HOME = $home;
     }
-    else {
-        given $*DISTRO.name {
-            when 'MSWin32' {
-                $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
-            }
-        }
+    elsif $*DISTRO.is-win {
+        $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
     }
     PROCESS::<$HOME> = $HOME.defined ?? IO::Path.new($HOME) !! Nil;
 }

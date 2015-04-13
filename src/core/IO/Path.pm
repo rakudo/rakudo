@@ -200,7 +200,7 @@ my class IO::Path is Cool {
             }
         }
         $resolved = $sep unless nqp::chars($resolved);
-        $resolved;
+        IO::Path.new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
     }
 
     method parent(IO::Path:D:) {    # XXX needs work

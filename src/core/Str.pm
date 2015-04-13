@@ -1394,6 +1394,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method unival(Str:D:)  { unival(self.ord) };
     method univals(Str:D:) { univals(self) };
+
+    proto method chars(|) { * }
+    multi method chars(Str:D:) returns Int:D {
+        nqp::p6box_i(nqp::chars($!value))
+    }
+	multi method chars(Str:U:) returns Int:D {
+        self.Str;  # generate undefined warning
+        0
+    }
+
 }
 
 

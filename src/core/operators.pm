@@ -83,9 +83,10 @@ multi sub infix:<but>(Mu:U \obj, @roles) {
     obj.^mixin(|@roles)
 }
 
-sub SEQUENCE($left, Mu $right, :$exclude_end) {
-    my @right := nqp::istype($right, Junction) || !$right.DEFINITE
-      ?? [$right] !! $right.flat;
+sub SEQUENCE(\left, Mu \right, :$exclude_end) {
+    my @right := nqp::iscont(right) ?? [right] !! (right,).list.flat;
+    die X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)'))
+        unless @right.elems;
     my $endpoint = @right.shift;
     $endpoint.sink if $endpoint ~~ Failure;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
@@ -140,25 +141,35 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
     }
 
     (GATHER({
-        my @left := $left.flat;
+        my @left := nqp::iscont(left) ?? [left] !! (left,).list.flat;
+        die X::Cannot::Empty.new(:action('get sequence start value'), :what('list'))
+            unless @left.elems;
         my $value;
         my $code;
         my $stop;
         for @left -> $v {
-            $value := $v;
-            if nqp::istype($value,Code) { $code = $value; last }
+            my \value = $v;
+            if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
-                $end_tail.push($value);
+                $end_tail.push(value);
                 if +@$end_tail >= $end_code_arity {
                     $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
-                    if $endpoint(|@$end_tail) { $stop = 1; last }
+                    if $endpoint(|@$end_tail) {
+                        $stop = 1;
+                        $tail.push(value) unless $exclude_end;
+                        last;
+                    }
                 }
-            } elsif $value ~~ $endpoint  { $stop = 1; last }
-            $tail.push($value);
+            }
+            elsif value ~~ $endpoint {
+                $stop = 1;
+                $tail.push(value) unless $exclude_end;
+                last;
+            }
+            $tail.push(value);
         }
         if $stop {
             take $_ for @$tail;
-            take $value unless $exclude_end;
         }
         else {
             my $badseq;
@@ -399,19 +410,20 @@ sub WHAT(Mu \x) { x.WHAT }
 sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) { * }
-multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
-multi sub infix:<...>(**@lol) {
+multi sub infix:<...>(\a, Mu \b) { SEQUENCE(a, b) }
+multi sub infix:<...>(|lol) {
+    my @lol := lol.list;
     my @ret;
     my int $i = 0;
     my int $m = +@lol - 1;
-    my @tail = @lol[$m].list.splice(1); # trailing elems of last list added back later
+    my @tail := @lol[$m].list.splice(1); # trailing elems of last list added back later
     my $current_left;
     while $m > $i {
         if @ret { # 1st elem of left part can be closure; take computed value instead
-            $current_left = (@ret.pop, @lol[$i].list.splice(1));
+            $current_left := (@ret.pop, @lol[$i].list.splice(1));
         }
         else { # no need to modify left part for first list
-            $current_left = @lol[$i];
+            $current_left := @lol[$i];
         }
         @ret := (@ret,
             SEQUENCE(
@@ -427,7 +439,7 @@ multi sub infix:<...>(**@lol) {
 }
 
 proto sub infix:<...^>(|) { * }
-multi sub infix:<...^>($a, Mu $b) { SEQUENCE($a, $b, :exclude_end(1)) }
+multi sub infix:<...^>(\a, Mu \b) { SEQUENCE(a, b, :exclude_end(1)) }
 
 proto sub infix:<…>(|) { * }
 multi sub infix:<…>(|c) { infix:<...>(|c) }

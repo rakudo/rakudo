@@ -2041,11 +2041,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $past;
         }
         elsif $<signature> {
-            # Go over the params and declare the variable defined
-            # in them.
-            my $list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
-            my @params := $<signature>.ast<parameters>;
+            # Go over the params and declare the variable defined in them.
+            my class FakeOfType { has $!type; method ast() { $!type } }
+            my $list      := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+            my @params    := $<signature>.ast<parameters>;
+            my $common_of := $*OFTYPE;
             for @params {
+                my $*OFTYPE := $common_of;
+                if nqp::existskey($_, 'of_type') {
+                    if $common_of {
+                        ($_<node> // $<signature>).CURSOR.typed_sorry(
+                            'X::Syntax::Variable::ConflictingTypes',
+                            outer => $common_of.ast, inner => $_<of_type>);
+                    }
+                    $*OFTYPE := FakeOfType.new(type => $_<of_type>);
+                }
                 if $_<variable_name> {
                     my $past := QAST::Var.new( :name($_<variable_name>) );
                     $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
@@ -2055,7 +2065,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 else {
-                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', []);
+                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! []);
                     $list.push($*W.build_container_past(
                       %cont_info,
                       $*W.create_container_descriptor(
@@ -2151,6 +2161,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $sigil  := $<variable><sigil>;
         my $twigil := $<variable><twigil>;
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
+        my @post;
+        for $<post_constraint> {
+            @post.push($_.ast);
+        }
         if $<variable><desigilname> {
             my $lex := $*W.cur_lexpad();
             if $lex.symbol($name) {
@@ -2159,21 +2173,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
                 $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
             }
-            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
+            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
         }
         else {
-            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
+            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
         }
     }
 
-    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?) {
+    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
         if $*OFTYPE {
             my $archetypes := $*OFTYPE.ast.HOW.archetypes;
             unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic {
-                $*OFTYPE.CURSOR.panic(~$*OFTYPE ~ " cannot be used as a nominal type on a variable");
+                $*OFTYPE.CURSOR.typed_sorry('X::Syntax::Variable::BadType', type => $*OFTYPE.ast);
             }
         }
 
@@ -2195,7 +2209,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/.CURSOR.panic("Cannot declare an anonymous attribute");
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
@@ -2240,7 +2254,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Some things can't be done to our vars.
             my $varname;
             if $*SCOPE eq 'our' {
-                if $*OFTYPE {
+                if $*OFTYPE || @post {
                     $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
                 }
                 elsif $shape {
@@ -2260,7 +2274,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 
@@ -3864,9 +3878,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %*PARAM_INFO<post_constraints>.push($type);
                 }
                 else {
-                    $/.CURSOR.panic(~$<typename> ~
-                        " cannot be used as a nominal type on a parameter");
+                    $<typename>.CURSOR.typed_sorry('X::Parameter::BadType', :$type);
                 }
+                %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
                 for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
                     if $_<identifier> {
                         if $_<identifier>.Str eq 'D' {
@@ -3902,20 +3916,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method post_constraint($/) {
-        if $<signature> {
-            if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
-                $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
+        if $*CONSTRAINT_USAGE eq 'param' {
+            if $<signature> {
+                if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
+                    $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
+                }
+                %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
+                if nqp::eqat(~$/, '[', 0) {
+                    %*PARAM_INFO<sigil> := '@' unless %*PARAM_INFO<sigil>;
+                }
             }
-            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
-            if nqp::eqat(~$/, '[', 0) {
-                %*PARAM_INFO<sigil> := '@' unless %*PARAM_INFO<sigil>;
+            else {
+                unless %*PARAM_INFO<post_constraints> {
+                    %*PARAM_INFO<post_constraints> := [];
+                }
+                %*PARAM_INFO<post_constraints>.push(make_where_block($/, $<EXPR>.ast));
             }
         }
         else {
-            unless %*PARAM_INFO<post_constraints> {
-                %*PARAM_INFO<post_constraints> := [];
+            if $<signature> {
+                $/.CURSOR.NYI('Signatures as constraints on variables');
             }
-            %*PARAM_INFO<post_constraints>.push(make_where_block($/, $<EXPR>.ast));
+            else {
+                make make_where_block($/, $<EXPR>.ast);
+            }
         }
     }
 
@@ -5739,13 +5763,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $<numish>.ast;
     }
 
+    method signed-integer($/) {
+        my $qast := $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
+        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast) if $<sign> eq '-';
+        make $qast;
+    }
+
+    method signed-number($/) {
+        my $qast := $<number>.ast;
+        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast) if $<sign> eq '-';
+        make $qast;
+    }
+
     method numish($/) {
         if $<integer> {
             make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
         }
-        elsif $<dec_number> { make $<dec_number>.ast; }
-        elsif $<rad_number> { make $<rad_number>.ast; }
-        elsif $<rat_number> { make $<rat_number>.ast; }
+        elsif $<dec_number>     { make $<dec_number>.ast; }
+        elsif $<rad_number>     { make $<rad_number>.ast; }
+        elsif $<rat_number>     { make $<rat_number>.ast; }
+        elsif $<complex_number> { make $<complex_number>.ast; }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
         }
@@ -5791,10 +5828,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    method rat_number($/) {
-        my $nu := $*W.add_constant('Int', 'int', $<nu>.ast);
-        my $de := $*W.add_constant('Int', 'int', $<de>.ast);
+    method complex_number($/) { make $<bare_complex_number>.ast }
+
+    method rat_number($/) { make $<bare_rat_number>.ast }
+
+    method bare_rat_number($/) {
+        my $nu := $*W.add_constant('Int', 'int', +~$<nu>);
+        my $de := $*W.add_constant('Int', 'int', +~$<de>);
         make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value);
+    }
+
+    method bare_complex_number($/) {
+        my $re := $*W.add_constant('Num', 'num', +$<re>.Str);
+        my $im := $*W.add_constant('Num', 'num', +$<im>.Str);
+        my $rv := $re.compile_time_value;
+        my $iv := $im.compile_time_value;
+        make $*W.add_constant('Complex', 'type_new', $rv, $iv, :nocache(1));
     }
 
     method typename($/) {

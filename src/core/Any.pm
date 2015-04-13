@@ -624,6 +624,8 @@ my class Any { # declared in BOOTSTRAP
     method MixHash() { MixHash.new-from-pairs(self.list) }
 
     method Supply() { self.list.Supply }
+
+    method print-nl() { self.print("\n") }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

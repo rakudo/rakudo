@@ -173,6 +173,10 @@ role STD {
         }
     }
 
+    token cheat_heredoc {
+        <?{ +@herestub_queue }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
+    }
+
     method queue_heredoc($delim, $lang) {
         nqp::ifnull(@herestub_queue, @herestub_queue := []);
         nqp::push(@herestub_queue, Herestub.new(:$delim, :$lang, :orignode(self)));
@@ -1459,7 +1463,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <statementlist(1)>
             [
                 <?> <?{ $*moreinput }>
-                | '}' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
+                | [<.cheat_heredoc> || '}'] { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
             ]
             <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
@@ -1610,7 +1614,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $longname;
         <sym> <.ws>
         [
-        | <module_name>
+        | <module_name> [ <.spacey> <arglist> ]? <.explain_mystery> <.cry_sorrows>
             {
                 $longname := $<module_name><longname>;
 
@@ -1632,6 +1636,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
         :my $OLD_MAIN := ~$*MAIN;
+        :my %*MYSTERY;
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
@@ -1673,7 +1678,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             }
             [
-            || <.spacey> <arglist> <?{ $<arglist><EXPR> }>
+            || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     my $lnd     := $*W.dissect_longname($longname);
                     my $name    := $lnd.name;
@@ -1838,7 +1843,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token blorst {
-        [ <?[{]> <block> | <![;]> <statement> || <.missing: 'block or statement'> ]
+        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc>? || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers
@@ -2623,7 +2628,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
 
         [ <.ws> <trait>+ ]?
-        [ <.ws> <post_constraint>+ <.NYI: "Post-constraints on variables"> ]?
+        [ <.ws> <post_constraint('var')>+ ]?
     }
 
     proto token routine_declarator { <...> }
@@ -2899,13 +2904,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         <.ws>
         <trait>*
-        <post_constraint>*
+        <post_constraint('param')>*
         [
             <default_value>
             [ <modifier=.trait> {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default_value>
             }]?
-            [ <modifier=.post_constraint> {
+            [ <modifier=.post_constraint('param')> {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
             }]?
         ]**0..1
@@ -3008,7 +3013,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
     }
 
-    rule post_constraint {
+    rule post_constraint($*CONSTRAINT_USAGE) {
         :my $*IN_DECL := '';
         :dba('constraint')
         [
@@ -3176,6 +3181,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <initializer>
         || <.missing: "initializer on constant declaration">
         ]
+
+        <.cheat_heredoc>?
     }
 
     proto token initializer { <...> }
@@ -3391,6 +3398,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token number { <...> }
     token number:sym<numish>   { <numish> }
 
+    token signed-number { <sign> <number> }
+
     token numish {
         [
         | 'NaN' >>
@@ -3398,6 +3407,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <dec_number>
         | <rad_number>
         | <rat_number>
+        | <complex_number>
         | 'Inf' >>
         | '+Inf' >>
         | '-Inf' >>
@@ -3413,6 +3423,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
     
+    token signed-integer { <sign> <integer> }
+
     token integer {
         [
         | 0 [ b '_'? <VALUE=binint>
@@ -3455,11 +3467,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token rat_number {
-        '<' <nu=.integer> '/' <de=.integer> '>'
-    }
+    token escale { <[Ee]> <sign> <decint> }
 
-    token escale { <[Ee]> $<sign>=[<[+\-]>?] <decint> }
+    token sign { '+' | '-' | '' }
+
+    token rat_number { '<' <bare_rat_number> '>' }
+    token bare_rat_number { <?before <[\-+0..9<>:boxd]>+? '/'> <nu=.signed-integer> '/' <de=integer> }
+
+    token complex_number { '<' <bare_complex_number> '>' }
+    token bare_complex_number { <?before <[\-+0..9<>:.eEboxdInfNa\\]>+? 'i'> <re=.signed-number> <?[\-+]> <im=.signed-number> \\? 'i' }
 
     token typename {
         [
@@ -3910,7 +3926,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token prefix_postfix_meta_operator { <...> }
     
     method can_meta($op, $meta, $reason = "fiddly") {
-        if $op<OPER><O>{$reason} {
+        if nqp::eqat($op<OPER><O>{$reason}, '1', 0) {
             self.typed_panic: "X::Syntax::Can'tMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
         }
         self;

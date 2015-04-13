@@ -36,6 +36,22 @@ multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
     PROCESS::<$TMPDIR> = $*SPEC.tmpdir;
 }
 
+multi sub INITIALIZE_DYNAMIC('$*HOME') {
+    my $HOME;
+
+    if %*ENV<HOME>.defined {
+        $HOME = %*ENV<HOME>;
+    }
+    else {
+        given $*DISTRO.name {
+            when 'MSWin32' {
+                $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
+            }
+        }
+    }
+    PROCESS::<$HOME> = $HOME.defined ?? IO::Path.new($HOME) !! Nil;
+}
+
 {
     class IdName {
         has Int $!id;

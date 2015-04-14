@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 6;
+plan 11;
 
 # Sanity check that the repl is working at all.
 my $cmd = $*DISTRO.is-win
@@ -34,9 +34,9 @@ sub feed_repl_with ( @lines ) {
     return qqx[$repl-input | $*EXECUTABLE];
 }
 
+my @input-lines;
 # RT #123187
 {
-    my @input-lines;
     @input-lines[0] = 'my int $t=4; $t.say;';
     @input-lines[1] = '$t.say';
     is feed_repl_with( @input-lines ).lines, (4, 4),
@@ -44,7 +44,7 @@ sub feed_repl_with ( @lines ) {
 }
 
 {
-    my @input-lines = q:to/END/.split("\n");
+    @input-lines = q:to/END/.split("\n");
     if False {
         say ":(";
     }
@@ -73,6 +73,15 @@ sub feed_repl_with ( @lines ) {
         "open brace on next line is parsed correctly";
 
     @input-lines = q:to/END/.split("\n");
+    if False { say ":("; }
+    else { say ":)"; }
+    END
+
+    #?rakudo todo "indent styles don't parse right"
+    is feed_repl_with( @input-lines ).lines, ":)",
+        "cuddled else is parsed correctly";
+
+    @input-lines = q:to/END/.split("\n");
     if False {
         say ":(";
     } else {
@@ -83,4 +92,26 @@ sub feed_repl_with ( @lines ) {
     #?rakudo todo "indent styles don't parse right"
     is feed_repl_with( @input-lines ).lines, ":)",
         "cuddled else is parsed correctly";
+}
+
+{
+    @input-lines = 'say "works"', 'if True;';
+    #?rakudo todo "statement mod if on the next line"
+    is feed_repl_with( @input-lines ).lines, "works",
+        "statement mod if on the next line works";
+
+    @input-lines = 'say "works"', 'for 1;';
+    #?rakudo todo "statement mod for on the next line"
+    is feed_repl_with( @input-lines ).lines, "works",
+        "statement mod for on the next line works";
+
+    @input-lines = 'sub f { 42 }', 'f()';
+    #?rakudo todo "block parsing broken"
+    is feed_repl_with( @input-lines ).lines, "42",
+        "single-line sub declaration works";
+
+    @input-lines = 'sub f {', '42', '}';
+    #?rakudo todo "block parsing broken"
+    is feed_repl_with( @input-lines ).lines, "42",
+        "single-line sub declaration works";
 }

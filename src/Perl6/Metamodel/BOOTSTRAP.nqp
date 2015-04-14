@@ -281,7 +281,7 @@ my class Binder {
                                 "'; expected " ~ $nom_type.HOW.name($nom_type) ~
                                 " but got " ~ $oval.HOW.name($oval);
                         } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval.WHAT, $nom_type.WHAT, $varname) };
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval, $nom_type.WHAT, $varname) };
                         }
                     }
 

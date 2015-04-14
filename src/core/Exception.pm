@@ -1407,7 +1407,12 @@ my class X::TypeCheck is Exception {
     has $.expected;
     method gotn()      { (try $!got.^name)      // "?" }
     method expectedn() { (try $!expected.^name) // "?" }
+    method priors() {
+        nqp::isconcrete($!got) && $!got ~~ Failure && !try { $!got.sink } && $!
+            ?? "Earlier error:\n  $!\n    in file Who Knows? at line Beats Me!\n\n" !! '';
+    }
     method message() {
+        self.priors() ~
         "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
 
     }
@@ -1418,8 +1423,10 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     method operation { 'binding' }
     method message() {
         if $.symbol {
+            self.priors() ~
             "Type check failed in $.operation $.symbol; expected '$.expectedn' but got '$.gotn'";
         } else {
+            self.priors() ~
             "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
         }
     }
@@ -1427,6 +1434,7 @@ my class X::TypeCheck::Binding is X::TypeCheck {
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
+        self.priors() ~
         "Type check failed for return value; expected '$.expectedn' but got '$.gotn'";
     }
 }
@@ -1434,6 +1442,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     has $.symbol;
     method operation { 'assignment' }
     method message {
+        self.priors() ~
         $.symbol.defined
             ?? "Type check failed in assignment to '$.symbol'; expected '$.expectedn' but got '$.gotn'"
             !! "Type check failed in assignment; expected '$.expectedn' but got '$.gotn'";
@@ -1457,6 +1466,7 @@ my class X::TypeCheck::Argument is X::TypeCheck {
 my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
     has $.action;
     method message {
+        self.priors() ~
         "Type check failed in {$.action}; expected '$.expectedn' but got '$.gotn'";
     }
 
@@ -1676,11 +1686,22 @@ my class X::Multi::NoMatch is Exception {
         my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
         my $where = so first / where /, @cand;
         my @bits;
+        my @priors;
         if $.capture {
             for $.capture.list {
                 @bits.push($where ?? .perl !! .WHAT.perl );
+                when Failure {
+                    my $x = .exception;
+                    try $x.throw;
+                    @priors.push("  $!\n    in file <mumble> at line...uh...\n");
+                }
             }
             for $.capture.hash {
+                if .value ~~ Failure {
+                    my $x = .value.exception;
+                    try $x.throw;
+                    @priors.push("  $!\n   in file...I forget where offhand...\n");
+                }
                 if .value ~~ Bool {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
@@ -1698,6 +1719,8 @@ my class X::Multi::NoMatch is Exception {
             @bits.unshift($invocant ~ ': ' ~ $first);
         }
         my $cap = '(' ~ @bits.join(", ") ~ ')';
+        @priors = "Earlier errors:\n", @priors, "\n" if @priors;
+        @priors.join ~
         join "\n    ",
             "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
             @cand;

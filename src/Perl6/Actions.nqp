@@ -5835,7 +5835,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method bare_rat_number($/) {
         my $nu := $*W.add_constant('Int', 'int', +~$<nu>);
         my $de := $*W.add_constant('Int', 'int', +~$<de>);
-        make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value);
+        make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value, :nocache(1));
     }
 
     method bare_complex_number($/) {

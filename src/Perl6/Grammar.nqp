@@ -210,6 +210,8 @@ role STD {
         }
         $lang_cursor.nibbler();
     }
+
+    token obsbrace { <.obs('curlies around escape argument','square brackets')> }
     
     method panic(*@args) {
         self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
@@ -503,7 +505,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <.vws> <.heredoc>
         | <.unv>
         | <.unsp>
-        | $ <!MARKED('nomoreinput')> { self.moreinput } <?MARKER('nomoreinput')>
+        | $ <?MOREINPUT>
         ]*
         <?MARKER('ws')>
         :my $stub := self.'!fresh_highexpect'();
@@ -521,17 +523,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     token MOREINPUT {
         [
+            <!MARKED('nomoreinput')>
             <?{ $*MOREINPUT_BLOCK_DEPTH == 0 }>
+            { self.moreinput }
             <?MARKER('nomoreinput')>
-            { $*MOREINPUT_BLOCK_DEPTH := 0 }
-        ||  <?>
+        ||  <!>
         ]
     }
 
     method moreinput() {
-        return NQPMu if self.MARKED('nomoreinput') && $*MOREINPUT_BLOCK_DEPTH == 0;
         $*moreinput(self) if $*moreinput;
-        NQPMu
+        0
     }
 
     token vws {
@@ -1298,11 +1300,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
         :dba('statement list')
         ''
+        { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH + 1 }
         [
-        | <!MARKED('nomoreinput')> $
+        | $
         | <?before <[\)\]\}]>>
         | [ <statement> <.eat_terminator> ]*
         ]
+        { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
     }
 
     method shallow_copy(%hash) {
@@ -1382,14 +1386,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token eat_terminator {
         [
-        || ';'
+        || ';' <?MARKER('nomoreinput')>
         || <?MARKED('endstmt')> <.ws>
         || <?before ')' | ']' | '}' >
-        || $
+        || $ <?MARKER('nomoreinput')>
         || <?stopper>
         || <?before [if|while|for|loop|repeat|given|when] » > { self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
         || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
-        ] <?MOREINPUT>
+        ]
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -1459,12 +1463,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
-            '{' { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH + 1 }
+            '{'
             <statementlist(1)>
-            [
-                <?> <?{ $*moreinput }>
-                | [<.cheat_heredoc> || '}'] { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
-            ]
+            [<.cheat_heredoc> || '}']
             <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
@@ -4700,11 +4701,12 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<c> { <sym> <charspec> }
         token backslash:sym<e> { <sym> }
         token backslash:sym<f> { <sym> }
+        token backslash:sym<N> { <?before 'N{'<[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>  }
         token backslash:sym<n> { <sym> }
-        token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
+        token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
         token backslash:sym<r> { <sym> }
         token backslash:sym<t> { <sym> }
-        token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
+        token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
     }
 
@@ -4945,14 +4947,15 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<e> { :i <sym> }
         token backslash:sym<f> { :i <sym> }
         token backslash:sym<h> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<N> { <?before 'N{'<[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>  }
         token backslash:sym<n> { :i <sym> }
-        token backslash:sym<o> { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
+        token backslash:sym<o> { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
         token backslash:sym<r> { :i <sym> }
         token backslash:sym<s> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<t> { :i <sym> }
         token backslash:sym<v> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<w> { :i <sym> { $*CCSTATE := '' } }
-        token backslash:sym<x> { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
+        token backslash:sym<x> { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
 
         # keep random backslashes like qq does
@@ -5079,6 +5082,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> <.SIGOK> }
 
     token metachar:sym<"> { <?["]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
+
+    token metachar:sym<{}> { \\<[xo]>'{' <.obsbrace> }
     
     token assertion:sym<{ }> {
         <?[{]> <codeblock>

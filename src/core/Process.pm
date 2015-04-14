@@ -45,7 +45,7 @@ multi sub INITIALIZE_DYNAMIC('$*HOME') {
     elsif $*DISTRO.is-win {
         $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
     }
-    PROCESS::<$HOME> = $HOME.defined ?? IO::Path.new($HOME) !! Nil;
+    PROCESS::<$HOME> = $HOME ?? IO::Path.new($HOME) !! Nil;
 }
 
 {

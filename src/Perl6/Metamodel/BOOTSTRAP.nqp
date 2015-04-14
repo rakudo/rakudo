@@ -2555,7 +2555,7 @@ BEGIN {
     #     has str $!value is box_target;
     Str.HOW.add_parent(Str, Cool);
     Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
-    Str.HOW.set_boolification_mode(Str, 4);
+    Str.HOW.set_boolification_mode(Str, 3);
     Str.HOW.publish_boolification_spec(Str);
     Str.HOW.compose_repr(Str);
 

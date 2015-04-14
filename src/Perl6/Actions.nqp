@@ -980,8 +980,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             #   (2) the variable is '$_' and $*IMPLICIT is set
             #       (this case gets handled by getsig)
             for <$_ $/ $!> {
-                unless $BLOCK.symbol($_) || ($_ eq '$_' && $*IMPLICIT) {
-                    $*W.install_lexical_magical($BLOCK, $_);
+                my $underscore := $_ eq '$_';
+                unless $BLOCK.symbol($_) || ($underscore && $*IMPLICIT) {
+                    $*W.install_lexical_magical($BLOCK, $_, :Any($underscore) );
                 }
             }
         }

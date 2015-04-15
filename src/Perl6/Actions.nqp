@@ -5949,7 +5949,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %MATCH_ALLOWED_ADVERBS{$_} := 1;
         }
 
-        $mods := 'd delete cm complement sq squash';
+        $mods := 'd delete c complement s squash';
         for nqp::split(' ', $mods) {
             %TRANS_ALLOWED_ADVERBS{$_} := 1;
         }

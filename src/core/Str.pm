@@ -1109,10 +1109,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         submethod BUILD(:$!source, :$!squash, :$!complement) { }
 
         method add_substitution($key, $value) {
+            $/ := CALLERS::('$/');
+            say "add_subst" ~ $/ if %*ENV<DEBUG_PLS>;
             push @!substitutions, $key => $value;
         }
 
         submethod compare_substitution($substitution, Int $pos, Int $length) {
+            $/ := CALLERS::('$/');
+            say "comp subst" ~ $/ if %*ENV<DEBUG_PLS>;
             if $!next_match > $pos
                || $!next_match == $pos && $!substitution_length < $length {
 
@@ -1125,6 +1129,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         proto method triage_substitution(|) {*}
         multi method triage_substitution($_ where { nqp::istype(.key,Regex) }) {
+            $/ := CALLERS::('$/');
+            say "1st triage subst" ~ $/ if %*ENV<DEBUG_PLS>;
             my $m := $!source.match(.key, :continue($!index));
             return unless $m;
             $!last_match_obj = $/;
@@ -1133,6 +1139,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         multi method triage_substitution($_ where { nqp::istype(.key,Cool) }) {
+            $/ := CALLERS::('$/');
+            say "2nd triage subst" ~ $/ if %*ENV<DEBUG_PLS>;
             my $pos := index($!source, .key, $!index);
             return unless defined $pos;
             self.compare_substitution($_, $pos, .key.chars);
@@ -1145,20 +1153,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         proto method increment_index(|) {*}
         multi method increment_index(Regex $s) {
+            $/ := CALLERS::('$/');
+            say "1st inc index" ~ $/ if %*ENV<DEBUG_PLS>;
             substr($!source,$!index) ~~ $s;
             $!last_match_obj = $/;
             $!index = $!next_match + $/.chars;
         }
 
         multi method increment_index(Cool $s) {
+            $/ := CALLERS::('$/');
+            say "2nd inc index" ~ $/ if %*ENV<DEBUG_PLS>;
             $!index = $!next_match + nqp::chars($s.Str);
         }
 
         method get_next_substitution_result {
             my $result = $!complement ?? $!first_substitution.value !! $!next_substitution.value;
-            my $cds := nqp::getlexcaller('$CALLER_DOLLAR_SLASH');
-            try $cds = $!match_obj;
+            my $cds := CALLERS::('$/');
+            $/ := CALLERS::('$/');
+            say "get next subst" ~ ~$/ if %*ENV<DEBUG_PLS>;
+            $cds = $!match_obj;
             my $orig-result = $result = ($result ~~ Callable ?? $result() !! $result).Str;
+            say "result: " ~ $result if %*ENV<DEBUG_PLS>;
             if $!prev_result
                 && $!prev_result eq $result
                 && $!unsubstituted_text eq ''
@@ -1170,6 +1185,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         method next_substitution() {
+            $/ := CALLERS::('$/');
+            say "next subst" ~ ~$/ if %*ENV<DEBUG_PLS>;
             $!next_match = $!source.chars;
             $!first_substitution //= @!substitutions[0];
 
@@ -1205,10 +1222,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    proto method trans(|) { * }
+    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
     multi method trans(Pair:D \what, *%n) {
         my $from = what.key;
         my $to   = what.value;
+        $/ := CALLERS::('$/');
+        say "1st trans cand" ~ $/ if %*ENV<DEBUG_PLS>;
         return self.trans(|%n, (what,))
           if !nqp::istype($from,Str)   # from not a string
           || !$from.defined            # or a type object
@@ -1307,7 +1326,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             };
         }
 
-        my $CALLER_DOLLAR_SLASH := nqp::getlexcaller('$/');
+        $/ := CALLERS::('$/');
+        say "2nd trans cand" ~ $/ if %*ENV<DEBUG_PLS>;
         my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
         for (@changes) -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw

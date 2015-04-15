@@ -108,7 +108,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if ($ifrom < 0) {
             X::OutOfRange.new(
                 what    => 'From argument to subbuf',
-                got     => $from,
+                got     => $from.gist,
                 range   => (0..self.elems),
                 comment => "use *{$ifrom} if you want to index relative to the end"
             ).fail;
@@ -117,7 +117,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if ($ifrom > self.elems) {
             X::OutOfRange.new(
                 what => 'From argument to subbuf',
-                got  => $from,
+                got  => $from.gist,
                 range => (0..self.elems),
             ).fail;
         }

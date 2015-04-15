@@ -785,7 +785,7 @@ class Perl6::World is HLL::World {
 
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
     # avoid massive duplication of container descriptors.
-    method install_lexical_magical($block, $name) {
+    method install_lexical_magical($block, $name, :$Any) {
         my %info;
         my $desc;
         
@@ -795,7 +795,7 @@ class Perl6::World is HLL::World {
         }
         else {
             my $Mu     := self.find_symbol(['Mu']);
-            my $Nil    := self.find_symbol(['Nil']);
+            my $WHAT   := self.find_symbol([ $Any ?? 'Any' !! 'Nil' ]);
             my $Scalar := self.find_symbol(['Scalar']);
             
             %info := nqp::hash(
@@ -803,10 +803,10 @@ class Perl6::World is HLL::World {
                 'container_type',  $Scalar,
                 'bind_constraint', $Mu,
                 'value_type',      $Mu,
-                'default_value',   $Nil,
-                'scalar_value',    $Nil,
+                'default_value',   $WHAT,
+                'scalar_value',    $WHAT,
             );
-            $desc := self.create_container_descriptor($Mu, 1, $name, $Nil, 1);
+            $desc := self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
 
             %!magical_cds{$name} := [%info, $desc];
         }

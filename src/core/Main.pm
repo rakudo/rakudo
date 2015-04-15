@@ -150,7 +150,37 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
     @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
     # If there are still some candidates left, try to dispatch to MAIN
     if +@matching_candidates {
-        return $m(|@($p), |%($n));
+        # verify that we don't dispatch multiple occurences of a command line argument
+        # to a parameter that is a Scalar
+        if %($n).grep: { .value ~~ Positional } -> @pairs {
+            for @pairs -> $pair {
+                for @matching_candidates -> $cand {
+                    my @param = $cand.signature.params.grep: { .named_names eq $pair.key };
+                    for @param {
+                        if $_.type ~~ Positional {
+                            return $cand(|@($p), |%($n));
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            return $m(|@($p), |%($n));
+        }
+    }
+    # if there aren't any, try to see if we can find a candidate that wants a named array param
+    # where we only got one occurence on command line invocation
+    else {
+        for %($n).keys -> $named_arg {
+            for $m.candidates -> $cand {
+                for $cand.signature.params -> $param {
+                    if $param.named_names eq $named_arg && $param.type ~~ Positional {
+                        %($n){$named_arg} = [%($n){$named_arg}];
+                        return $cand(|@($p), |%($n));
+                    }
+                }
+            }
+        }
     }
 
     # We could not find the correct MAIN to dispatch to!

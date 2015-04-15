@@ -31,8 +31,10 @@ my class Backtrace::Frame {
 my class Backtrace is List {
     proto method new(|) {*}
 
-    multi method new(Exception $e, Int $offset = 0) {
-        self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
+    multi method new(Mu $e, Int $offset = 0) {
+        $e.^name eq 'BOOTException'
+            ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)
+            !! self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
     }
 
     multi method new(Int $offset = 0) {

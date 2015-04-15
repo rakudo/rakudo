@@ -8,15 +8,7 @@ my class Exception {
 
     method backtrace() {
         if $!bt { $!bt }
-        elsif nqp::isconcrete($!ex) {
-            if $!ex.^name eq 'BOOTException' {
-            "  Only a low-level backtrace is available here:\n    "
-                ~ nqp::join("\n    ", nqp::backtracestrings($!ex));
-            }
-            else {
-                Backtrace.new(nqp::decont($!ex));
-            }
-        }
+        elsif nqp::isconcrete($!ex) { Backtrace.new($!ex); }
         else { '' }
     }
 

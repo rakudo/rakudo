@@ -1570,7 +1570,7 @@ sub chrs(*@c) returns Str:D {
 sub SUBSTR-START-OOR(\from,\max) {
     X::OutOfRange.new(
       :what<Start argument to substr>,
-      :got(from),
+      :got(from.gist),
       :range("0.." ~ max),
       :comment( nqp::istype(from, Callable) || -from > max
         ?? ''
@@ -1580,7 +1580,7 @@ sub SUBSTR-START-OOR(\from,\max) {
 sub SUBSTR-CHARS-OOR(\chars) {
     X::OutOfRange.new(
       :what<Number of characters argument to substr>,
-      :got(chars),
+      :got(chars.gist),
       :range("0..Inf"),
       :comment("use *{chars} if you want to index relative to the end"),
     );

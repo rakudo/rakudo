@@ -1,8 +1,15 @@
 my class Failure {
     has $.exception;
+    has $.backtrace;
     has $!handled;
 
-    method new($exception) { self.bless(:$exception) }
+    method new($exception) {
+         self.bless(:$exception);
+    }
+
+    submethod BUILD (:$!exception) {
+        $!backtrace = $!exception.backtrace() || Backtrace.new(9);
+    }
 
     # TODO: should be Failure:D: multi just like method Bool,
     # but obscure problems prevent us from making Mu.defined
@@ -13,11 +20,14 @@ my class Failure {
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
-    method Int(Failure:D:)        { $!handled ?? 0   !! $!exception.throw; }
-    method Num(Failure:D:)        { $!handled ?? 0e0 !! $!exception.throw; }
-    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! $!exception.throw; }
-    multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw; }
-    multi method gist(Failure:D:) { $!handled ?? $.perl !! $!exception.throw; }
+    method Int(Failure:D:)        { $!handled ?? 0   !! $!exception.throw($!backtrace); }
+    method Num(Failure:D:)        { $!handled ?? 0e0 !! $!exception.throw($!backtrace); }
+    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! $!exception.throw($!backtrace); }
+    multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw($!backtrace); }
+    multi method gist(Failure:D:) { $!handled ?? $.mess !! $!exception.throw($!backtrace); }
+    method mess (Failure:D:) {
+        self.exception.message ~ "\n" ~ self.backtrace;
+    }
 
     Failure.^add_fallback(
         -> $, $ { True },
@@ -26,7 +36,7 @@ my class Failure {
         }
     );
     method sink() is hidden-from-backtrace {
-        $!exception.throw unless $!handled
+        $!exception.throw($!backtrace) unless $!handled
     }
 }
 

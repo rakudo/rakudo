@@ -4,23 +4,36 @@ my class X::ControlFlow { ... }
 
 my class Exception {
     has $!ex;
+    has $!bt;
 
-    method backtrace() { Backtrace.new(self) }
+    method backtrace() {
+        if $!bt { $!bt }
+        elsif nqp::isconcrete($!ex) {
+            if $!ex.^name eq 'BOOTException' {
+            "  Only a low-level backtrace is available here:\n    "
+                ~ nqp::join("\n    ", nqp::backtracestrings($!ex));
+            }
+            else {
+                Backtrace.new(nqp::decont($!ex));
+            }
+        }
+        else { '' }
+    }
 
     multi method Str(Exception:D:) {
-        self.?message.Str // 'Something went wrong'
+        self.?message.Str // 'Something went wrong in ' ~ self.WHAT.gist;
     }
 
     multi method gist(Exception:D:) {
-        my $str = try self.?message;
-        return "Error while creating error string: $!" if $!;
+        my $str = nqp::isconcrete($!ex) ?? nqp::p6box_s(nqp::getmessage($!ex)) !! try self.?message;
+        $str //= "Internal error";
         $str ~= "\n";
-        try $str ~= self.backtrace;
-        return "$str\nError while creating backtrace: $!.message()\n$!.backtrace.full();" if $!;
+        try $str ~= self.backtrace || Backtrace.new() || '  (no backtrace available)';
         return $str;
     }
 
-    method throw() is hidden-from-backtrace {
+    method throw($bt?) is hidden-from-backtrace {
+        nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
@@ -530,9 +543,10 @@ my class X::OutOfRange is Exception {
     has $.range = '<unknown>';
     has $.comment;
     method message() {
-        $.comment.defined
+        my $result = $.comment.defined
            ?? "$.what out of range. Is: $.got, should be in $.range.gist(); $.comment"
-           !! "$.what out of range. Is: $.got, should be in $.range.gist()"
+           !! "$.what out of range. Is: $.got, should be in $.range.gist()";
+        $result;
     }
 }
 
@@ -1400,8 +1414,11 @@ my class X::TypeCheck is Exception {
     method gotn()      { (try $!got.^name)      // "?" }
     method expectedn() { (try $!expected.^name) // "?" }
     method priors() {
-        nqp::isconcrete($!got) && $!got ~~ Failure && !try { $!got.sink } && $!
-            ?? "Earlier error:\n  $!\n    in file Who Knows? at line Beats Me!\n\n" !! '';
+        my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
+            "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n ";
+        }
+        else { '' }
+        $prior;
     }
     method message() {
         self.priors() ~
@@ -1681,24 +1698,22 @@ my class X::Multi::NoMatch is Exception {
         my @priors;
         if $.capture {
             for $.capture.list {
-                @bits.push($where ?? .perl !! .WHAT.perl );
+                try @bits.push($where ?? .perl !! .WHAT.perl );
+                @bits.push($_.^name) if $!;
                 when Failure {
-                    my $x = .exception;
-                    try $x.throw;
-                    @priors.push("  $!\n    in file <mumble> at line...uh...\n");
+                    @priors.push(" " ~ .mess);
                 }
             }
             for $.capture.hash {
                 if .value ~~ Failure {
-                    my $x = .value.exception;
-                    try $x.throw;
-                    @priors.push("  $!\n   in file...I forget where offhand...\n");
+                    @priors.push(" " ~ .value.mess);
                 }
                 if .value ~~ Bool {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    @bits.push(":{.key}({$where ?? .value.perl !! .value.WHAT.perl })");
+                    try @bits.push(":$(.key)($($where ?? .value.?perl !! .value.WHAT.?perl ))");
+                    @bits.push($_.value.^name) if $!;
                 }
             }
         }
@@ -1711,7 +1726,7 @@ my class X::Multi::NoMatch is Exception {
             @bits.unshift($invocant ~ ': ' ~ $first);
         }
         my $cap = '(' ~ @bits.join(", ") ~ ')';
-        @priors = "Earlier errors:\n", @priors, "\n" if @priors;
+        @priors = "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~
         join "\n    ",
             "Cannot call $.dispatcher.name()$cap; none of these signatures match:",

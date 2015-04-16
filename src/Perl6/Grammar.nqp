@@ -1666,13 +1666,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     %*PRAGMAS<soft> := 1;
                     $longname := "";
                 }
+                elsif $longnameStr eq 'fatal' {
+                    %*PRAGMAS<fatal> := 1;
+                    $longname := "";
+                }
                 elsif $longnameStr eq 'strict' {
                     # Turn off lax mode.
                     $*STRICT  := 1;
                     $longname := "";
                 }
-                elsif $longnameStr eq 'Devel::Trace' ||
-                      $longnameStr eq 'fatal' {
+                elsif $longnameStr eq 'Devel::Trace' {
                     $longname := "";
                 }
             }

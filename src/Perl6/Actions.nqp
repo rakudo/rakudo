@@ -24,6 +24,28 @@ register_op_desugar('p6callmethodhow', -> $qast {
         QAST::Op.new( :op('hllize'), $qast )
     )
 });
+register_op_desugar('p6fatalize', -> $qast {
+    my $tmp := QAST::Node.unique('fatalizee');
+    QAST::Stmt.new(
+        :resultchild(0),
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+            $qast[0]
+        ),
+        QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('istype'),
+                QAST::Var.new( :name($tmp), :scope('local') ),
+                $qast[1],
+            ),
+            QAST::Op.new(
+                :op('callmethod'), :name('Sink'),
+                QAST::Var.new( :name($tmp), :scope('local') )
+            )
+        ))
+});
 
 role STDActions {
     method quibble($/) {
@@ -276,6 +298,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*POD_PAST,
             statementlist_with_handlers($/)
         );
+        fatalize($mainline) if %*PRAGMAS<fatal>;
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
             $mainline[1] := QAST::Stmt.new(wrap_option_p_code($/, $mainline[1]));
@@ -929,6 +952,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $BLOCK.push($past);
             $BLOCK.node($/);
             $BLOCK.annotate('handlers', %*HANDLERS) if %*HANDLERS;
+            fatalize($past) if %*PRAGMAS<fatal>;
             make $BLOCK;
         }
         else {
@@ -950,6 +974,54 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past
+    }
+
+    # Under "use fatal", re-write all calls to fatalize their return value
+    # unless we can see they are in a boolean context.
+    my %boolify_first_child_ops := nqp::hash(
+        'if', 1, 'unless', 1, 'defor', 1, 'p6bool', 1,
+        'while', 1, 'until', 1, 'repeat_while', 1, 'repeat_until', 1,
+    );
+    my %boolify_first_child_calls := nqp::hash(
+        '&prefix:<?>', 1, '&prefix:<so>', 1,
+        '&prefix:<!>', 1, '&prefix:<not>', 1,
+        '&defined', 1
+    );
+    sub fatalize($ast, $bool-context = 0) {
+        if nqp::istype($ast, QAST::Op) {
+            my str $op := $ast.op;
+            if nqp::existskey(%boolify_first_child_ops, $op) ||
+                    $op eq 'call' && nqp::existskey(%boolify_first_child_calls, $ast.name) {
+                my int $first := 1;
+                for @($ast) {
+                    if $first {
+                        fatalize($_, 1);
+                        $first := 0;
+                    }
+                    else {
+                        fatalize($_);
+                    }
+                }
+            }
+            else {
+                 fatalize($_) for @($ast);
+                 if !$bool-context && ($op eq 'call' || $op eq 'callmethod') {
+                    if $ast.name eq '&fail' {
+                        $ast.name('&die');
+                    }
+                    else {
+                        my $new-node := QAST::Op.new( :$op, :name($ast.name) );
+                        $new-node.push($ast.shift) while @($ast);
+                        $ast.op('p6fatalize');
+                        $ast.push($new-node);
+                        $ast.push(QAST::WVal.new( :value($*W.find_symbol(['Failure'])) ));
+                    }
+                 }
+            }
+        }
+        elsif nqp::istype($ast, QAST::Stmt) || nqp::istype($ast, QAST::Stmts) || nqp::istype($ast, QAST::Want) {
+            fatalize($_) for @($ast);
+        }
     }
 
     method you_are_here($/) {
@@ -1148,10 +1220,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 #                }
 #            }
         } elsif $<module_name> {
-            if ~$<module_name> eq 'fatal' {
-                $*W.install_lexical_symbol($*W.cur_lexpad(), '$*FATAL', $*W.find_symbol(['True']));
-            }
-            elsif ~$<module_name> eq 'Devel::Trace' {
+            if ~$<module_name> eq 'Devel::Trace' {
                 $STATEMENT_PRINT := 1;
             }
         }
@@ -2593,7 +2662,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
-            if $*SOFT {
+            if %*PRAGMAS<soft> {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
             elsif !nqp::can($code, 'CALL-ME') && !nqp::can($code, 'postcircumfix:<( )>') {

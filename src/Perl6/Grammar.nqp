@@ -1002,7 +1002,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
         :my $*IN_DECL;                             # what declaration we're in
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
-        :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
@@ -1025,7 +1024,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SORRY_LIMIT := 10;                   # when sorrow turns to panic
 
         # Extras.
-        :my %*METAOPGEN;                           # hash of generated metaops
+        :my %*PRAGMAS;                             # compiler-handled lexical pragmas in effect
         :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
@@ -1037,7 +1036,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ALLOW_FCODES := 0b11111111111111111111111111; # allow which fcodes?
         :my $*POD_ANGLE_COUNT := 0;                # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
-        :my $*SOFT := 0;                           # is the soft pragma in effect
         :my $*IN_PROTO := 0;                       # are we inside a proto?
         
         # Various interesting scopes we'd like to keep to hand.
@@ -1459,6 +1457,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token blockoid {
         :my $*CURPAD;
         :my %*HANDLERS;
+        :my %*PRAGMAS := self.shallow_copy(nqp::getlexdyn('%*PRAGMAS'));
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
@@ -1657,15 +1656,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 
                 # Some modules are handled in the actions are just turn on a
                 # setting of some kind.
-                if $longnameStr eq 'MONKEY_TYPING' ||
-                   $longnameStr eq 'MONKEY-TYPING' {
-                    $*MONKEY_TYPING := 1;
+                if $longnameStr eq 'MONKEY_TYPING' || $longnameStr eq 'MONKEY-TYPING' {
+                    %*PRAGMAS<MONKEY-TYPING> := 1;
                     $longname := "";
                 }
                 elsif $longnameStr eq 'soft' {
                     # This is an approximation; need to pay attention to argument
                     # list really.
-                    $*SOFT := 1;
+                    %*PRAGMAS<soft> := 1;
+                    $longname := "";
+                }
+                elsif $longnameStr eq 'fatal' {
+                    %*PRAGMAS<fatal> := 1;
                     $longname := "";
                 }
                 elsif $longnameStr eq 'strict' {
@@ -1673,8 +1675,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*STRICT  := 1;
                     $longname := "";
                 }
-                elsif $longnameStr eq 'Devel::Trace' ||
-                      $longnameStr eq 'fatal' {
+                elsif $longnameStr eq 'Devel::Trace' {
                     $longname := "";
                 }
             }
@@ -2386,7 +2387,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
                 else {
                     # Augment. Ensure we can.
-                    if !$*MONKEY_TYPING && $longname.text ne 'Cool' {
+                    if !%*PRAGMAS<MONKEY-TYPING> && $longname.text ne 'Cool' {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     elsif !$longname {
@@ -5046,6 +5047,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     method throw_regex_not_terminated() { self.typed_sorry('X::Syntax::Regex::Unterminated') }
     method throw_spaces_in_bare_range() { self.typed_sorry('X::Syntax::Regex::SpacesInBareRange') }
     method throw_solitary_quantifier() { self.typed_sorry('X::Syntax::Regex::SolitaryQuantifier') }
+    method throw_solitary_backtrack_control() { self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl') }
     
     token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
 

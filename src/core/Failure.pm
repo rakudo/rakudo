@@ -42,14 +42,12 @@ my class Failure {
 
 proto sub fail(|) is hidden-from-backtrace {*};
 multi sub fail(Exception $e) is hidden-from-backtrace {
-    die $e if $*FATAL;
     my $fail := Failure.new($e);
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
 multi sub fail($payload) is hidden-from-backtrace {
-    die $payload if $*FATAL;
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
@@ -57,7 +55,6 @@ multi sub fail($payload) is hidden-from-backtrace {
 }
 multi sub fail(*@msg) is hidden-from-backtrace {
     my $payload = @msg == 1 ?? @msg[0] !! @msg.join;
-    die $payload if $*FATAL;
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);

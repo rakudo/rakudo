@@ -5,6 +5,7 @@ my class Range is Iterable is Cool does Positional {
     has $.max;
     has $.excludes-min;
     has $.excludes-max;
+    has $.infinite;
 
     proto method new(|) { * }
     # The order of "method new" declarations matters here, to ensure
@@ -17,21 +18,27 @@ my class Range is Iterable is Cool does Positional {
         X::Range::InvalidArg.new(:got($max)).throw;
     }
     multi method new(Whatever $min, Whatever $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(-Inf, Inf, $excludes-min, $excludes-max)
+        nqp::create(self).BUILD(-Inf, Inf, $excludes-min, $excludes-max, True);
     }
     multi method new(Whatever $min, $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(-Inf, $max, $excludes-min, $excludes-max)
+        nqp::create(self).BUILD(-Inf, $max, $excludes-min, $excludes-max, True);
     }
     multi method new($min, Whatever $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD($min, Inf, $excludes-min, $excludes-max)
+        nqp::create(self).BUILD($min, Inf, $excludes-min, $excludes-max, True);
     }
-    multi method new(Real $min, $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD($min, $max.Real, $excludes-min, $excludes-max)
+    multi method new(Real $min, Real() $max, :$excludes-min, :$excludes-max) {
+        nqp::create(self).BUILD(
+          $min,
+          $max,
+          $excludes-min,
+          $excludes-max,
+          $max == Inf || $min == -Inf,
+        );
     }
     multi method new($min is copy, $max, :$excludes-min, :$excludes-max) {
         $min = +$min
           if nqp::istype($min,List) || nqp::istype($min,Match) || nqp::istype($min,Parcel);
-        nqp::create(self).BUILD($min, $max, $excludes-min, $excludes-max)
+        nqp::create(self).BUILD($min, $max, $excludes-min, $excludes-max);
     }
 
     submethod BUILD(
@@ -39,6 +46,7 @@ my class Range is Iterable is Cool does Positional {
       $!max,
       Bool() $!excludes-min,
       Bool() $!excludes-max,
+      Bool   $!infinite = False,
     ) {
         self;
     }
@@ -50,10 +58,6 @@ my class Range is Iterable is Cool does Positional {
           ~ '..'
           ~ ("^" if $!excludes-max)
           ~ $!max;
-    }
-
-    multi method infinite(Range:D:) {
-        nqp::p6bool(nqp::istype($!max, Num)) && $!max eq 'Inf';
     }
 
     method flat()     { nqp::p6list(nqp::list(self), List, Bool::True) }

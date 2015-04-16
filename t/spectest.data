@@ -10,6 +10,17 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
+S01-perl-5-integration/array.t              # perl5
+S01-perl-5-integration/basic.t              # perl5
+S01-perl-5-integration/class.t              # perl5
+S01-perl-5-integration/exception_handling.t # perl5
+S01-perl-5-integration/hash.t               # perl5
+S01-perl-5-integration/import.t             # perl5
+S01-perl-5-integration/method.t             # perl5
+S01-perl-5-integration/return.t             # perl5
+S01-perl-5-integration/roundtrip.t          # perl5
+S01-perl-5-integration/strings.t            # perl5
+S01-perl-5-integration/subs.t               # perl5
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/bom.t
 S02-lexical-conventions/comments.t

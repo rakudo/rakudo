@@ -267,6 +267,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 # Integer part, if any
                 my Int:D $int := 0;
                 if nqp::isne_i($ch, 46) {  # '.'
+                    parse_fail "Cannot convert radix of $radix (max 36)"
+                        if $radix > 36;
                     $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
                     $p      = nqp::atpos($parse, 2);
                     parse_fail "base-$radix number must begin with valid digits or '.'"

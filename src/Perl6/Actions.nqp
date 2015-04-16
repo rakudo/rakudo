@@ -1016,7 +1016,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $ast.name('&die');
                     }
                     else {
-                        my $new-node := QAST::Op.new( :$op, :name($ast.name) );
+                        my $new-node := QAST::Op.new( :$op, :name($ast.name), :returns($ast.returns) );
                         $new-node.push($ast.shift) while @($ast);
                         $ast.op('p6fatalize');
                         $ast.push($new-node);

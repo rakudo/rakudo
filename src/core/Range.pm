@@ -34,11 +34,12 @@ my class Range is Iterable is Cool does Positional {
         nqp::create(self).BUILD($min, $max, $excludes-min, $excludes-max)
     }
 
-    submethod BUILD($min, $max, $excludes-min, $excludes-max) {
-        $!min = $min;
-        $!max = $max;
-        $!excludes-min = $excludes-min.Bool;
-        $!excludes-max = $excludes-max.Bool;
+    submethod BUILD(
+      $!min,
+      $!max,
+      Bool() $!excludes-min,
+      Bool() $!excludes-max,
+    ) {
         self;
     }
 

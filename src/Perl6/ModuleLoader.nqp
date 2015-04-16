@@ -16,9 +16,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         'NQP', nqp::gethllsym('nqp', 'ModuleLoader'),
     );
 
-    method register_language_module_loader($lang, $loader) {
+    method register_language_module_loader($lang, $loader, :$force) {
         nqp::die("Language loader already registered for $lang")
-            if nqp::existskey(%language_module_loaders, $lang);
+            if ! $force && nqp::existskey(%language_module_loaders, $lang);
         %language_module_loaders{$lang} := $loader;
     }
 

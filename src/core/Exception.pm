@@ -1,4 +1,3 @@
-my class Failure { ... }
 my role X::Comp { ... }
 my class X::ControlFlow { ... }
 

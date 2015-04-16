@@ -1057,10 +1057,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
             #       (this case gets handled by getsig)
-            for <$_ $/ $!> {
-                my $underscore := $_ eq '$_';
-                unless $BLOCK.symbol($_) || ($underscore && $*IMPLICIT) {
-                    $*W.install_lexical_magical($BLOCK, $_, :Any($underscore) );
+            unless $BLOCK.symbol('$_') || $*IMPLICIT {
+                $*W.install_lexical_magical($BLOCK, '$_');
+            }
+            for <$/ $!> {
+                unless $BLOCK.symbol($_) {
+                    $*W.install_lexical_magical($BLOCK, $_);
                 }
             }
         }

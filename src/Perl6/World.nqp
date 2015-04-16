@@ -785,20 +785,18 @@ class Perl6::World is HLL::World {
 
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
     # avoid massive duplication of container descriptors.
-    method install_lexical_magical($block, $name, :$Any) {
-        my %info;
-        my $desc;
-        
+    method install_lexical_magical($block, $name) {
+
         if nqp::existskey(%!magical_cds, $name) {
-            %info := %!magical_cds{$name}[0];
-            $desc := %!magical_cds{$name}[1];
+            my $mcd := nqp::atkey(%!magical_cds, $name);
+            self.install_lexical_container($block, $name, $mcd[0], $mcd[1]);
         }
         else {
             my $Mu     := self.find_symbol(['Mu']);
-            my $WHAT   := self.find_symbol([ $Any ?? 'Any' !! 'Nil' ]);
+            my $WHAT   := self.find_symbol([ $name eq '$_' ?? 'Any' !! 'Nil' ]);
             my $Scalar := self.find_symbol(['Scalar']);
             
-            %info := nqp::hash(
+            my %info := nqp::hash(
                 'container_base',  $Scalar,
                 'container_type',  $Scalar,
                 'bind_constraint', $Mu,
@@ -806,12 +804,12 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            $desc := self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
+            my $desc :=
+              self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
 
             %!magical_cds{$name} := [%info, $desc];
+            self.install_lexical_container($block, $name, %info, $desc);
         }
-        
-        self.install_lexical_container($block, $name, %info, $desc);
     }
     
     # Builds PAST that constructs a container.

@@ -1002,7 +1002,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
         :my $*IN_DECL;                             # what declaration we're in
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
-        :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
@@ -1658,9 +1657,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 
                 # Some modules are handled in the actions are just turn on a
                 # setting of some kind.
-                if $longnameStr eq 'MONKEY_TYPING' ||
-                   $longnameStr eq 'MONKEY-TYPING' {
-                    $*MONKEY_TYPING := 1;
+                if $longnameStr eq 'MONKEY_TYPING' || $longnameStr eq 'MONKEY-TYPING' {
+                    %*PRAGMAS<MONKEY-TYPING> := 1;
                     $longname := "";
                 }
                 elsif $longnameStr eq 'soft' {
@@ -2387,7 +2385,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
                 else {
                     # Augment. Ensure we can.
-                    if !$*MONKEY_TYPING && $longname.text ne 'Cool' {
+                    if !%*PRAGMAS<MONKEY-TYPING> && $longname.text ne 'Cool' {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     elsif !$longname {

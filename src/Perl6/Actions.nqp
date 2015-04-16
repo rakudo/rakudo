@@ -6856,6 +6856,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
+        fatalize($to_thunk) if %*PRAGMAS<fatal>;
         $block.push(QAST::Stmts.new(autosink($to_thunk)));
         $*W.pop_lexpad();
         reference_to_code_object(

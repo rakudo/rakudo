@@ -293,23 +293,21 @@ my class Binder {
                 if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
                     if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            if $flags +& $SIG_ELEM_INVOCANT {
-                                $error[0] := "Invocant requires a type object, but an object instance was passed";
-                            }
-                            else {
-                                $error[0] := "Parameter '$varname' requires a type object, but an object instance was passed";
-                            }
+                            my $class := $oval.HOW.name($oval);
+                            my $what  := $flags +& $SIG_ELEM_INVOCANT
+                              ?? "Invocant"
+                              !! "Parameter '$varname'";
+                            $error[0] := "$what requires a '$class' type object, but an object instance was passed";
                         }
                         return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            if $flags +& $SIG_ELEM_INVOCANT {
-                                $error[0] := "Invocant requires an instance, but a type object was passed";
-                            }
-                            else {
-                                $error[0] := "Parameter '$varname' requires an instance, but a type object was passed";
-                            }
+                            my $class := $oval.HOW.name($oval);
+                            my $what  := $flags +& $SIG_ELEM_INVOCANT
+                              ?? "Invocant"
+                              !! "Parameter '$varname'";
+                            $error[0] := "$what requires a '$class' instance, but a type object was passed.  Did you forget a .new?";
                         }
                         return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                     }

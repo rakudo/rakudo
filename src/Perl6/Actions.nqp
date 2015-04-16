@@ -4893,10 +4893,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $stmts == 1 {
             my $elem := try $past.ann('past_block')[1][0][0];
             $elem := $elem[0] if $elem ~~ QAST::Want;
+            $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
             if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
             }
+            $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
             if $elem ~~ QAST::Op && $elem.op eq 'p6capturelex' {
                 my $subelem := $elem[0];
                 if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {

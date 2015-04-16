@@ -1025,6 +1025,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SORRY_LIMIT := 10;                   # when sorrow turns to panic
 
         # Extras.
+        :my %*PRAGMAS;                             # compiler-handled lexical pragmas in effect
         :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
@@ -1458,6 +1459,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token blockoid {
         :my $*CURPAD;
         :my %*HANDLERS;
+        :my %*PRAGMAS := self.shallow_copy(nqp::getlexdyn('%*PRAGMAS'));
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>

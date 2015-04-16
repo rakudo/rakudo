@@ -2593,7 +2593,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
-            if $*SOFT {
+            if %*PRAGMAS<soft> {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
             elsif !nqp::can($code, 'CALL-ME') && !nqp::can($code, 'postcircumfix:<( )>') {

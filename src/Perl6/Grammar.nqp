@@ -1036,7 +1036,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ALLOW_FCODES := 0b11111111111111111111111111; # allow which fcodes?
         :my $*POD_ANGLE_COUNT := 0;                # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
-        :my $*SOFT := 0;                           # is the soft pragma in effect
         :my $*IN_PROTO := 0;                       # are we inside a proto?
         
         # Various interesting scopes we'd like to keep to hand.
@@ -1664,7 +1663,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 elsif $longnameStr eq 'soft' {
                     # This is an approximation; need to pay attention to argument
                     # list really.
-                    $*SOFT := 1;
+                    %*PRAGMAS<soft> := 1;
                     $longname := "";
                 }
                 elsif $longnameStr eq 'strict' {

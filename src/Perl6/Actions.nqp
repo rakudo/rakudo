@@ -985,6 +985,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     my %boolify_first_child_calls := nqp::hash(
         '&prefix:<?>', 1, '&prefix:<so>', 1,
         '&prefix:<!>', 1, '&prefix:<not>', 1,
+        '&defined', 1
     );
     sub fatalize($ast, $bool-context = 0) {
         if nqp::istype($ast, QAST::Op) {

@@ -1083,6 +1083,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
+#?if moar
+    method NFC() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
+    }
+    method NFD() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFD, nqp::create(NFD))
+    }
+    method NFKC() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKC, nqp::create(NFKC))
+    }
+    method NFKD() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
+    }
+#?endif
+
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {
             my Str $s = $m.Str;

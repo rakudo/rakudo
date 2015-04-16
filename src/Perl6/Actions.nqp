@@ -990,7 +990,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub fatalize($ast, $bool-context = 0) {
         if nqp::istype($ast, QAST::Op) {
             my str $op := $ast.op;
-            if nqp::existskey(%boolify_first_child_ops, $op) ||
+            if $op eq 'p6fatalize' {
+                # We've been here before (tree with shared bits, presumably).
+            }
+            elsif nqp::existskey(%boolify_first_child_ops, $op) ||
                     $op eq 'call' && nqp::existskey(%boolify_first_child_calls, $ast.name) {
                 my int $first := 1;
                 for @($ast) {

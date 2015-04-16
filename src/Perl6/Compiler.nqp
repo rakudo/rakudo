@@ -230,8 +230,12 @@ class Perl6::Compiler is HLL::Compiler {
         }
         if $!linenoise {
             my $line := $!linenoise($prompt);
-            $!linenoise_add_history($line) if $line.defined;
-            $line
+            if $line.defined {
+                $!linenoise_add_history($line);
+                $line
+            } else {
+                nqp::null_s()
+            }
         } else {
             my $super := nqp::findmethod(HLL::Compiler, 'readline');
             $super(self, $stdin, $stdout, $prompt);

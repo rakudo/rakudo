@@ -1835,7 +1835,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<eager> { <sym><.kok> <blorst> }
     token statement_prefix:sym<lazy>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<sink>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<try>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<try>   {
+        :my %*PRAGMAS := self.shallow_copy(nqp::getlexdyn('%*PRAGMAS'));
+        <sym><.kok> { %*PRAGMAS<fatal> := 1; } <blorst>
+    }
     token statement_prefix:sym<gather>{ <sym><.kok> <blorst> }
     token statement_prefix:sym<once>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<do>    { <sym><.kok> <blorst> }

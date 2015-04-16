@@ -26,7 +26,7 @@ register_op_desugar('p6callmethodhow', -> $qast {
 });
 register_op_desugar('p6fatalize', -> $qast {
     my $tmp := QAST::Node.unique('fatalizee');
-    QAST::Stmt.new(
+    QAST::Stmts.new(
         :resultchild(0),
         QAST::Op.new(
             :op('bind'),

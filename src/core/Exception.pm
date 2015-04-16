@@ -1165,6 +1165,10 @@ my class X::Syntax::Regex::SolitaryQuantifier does X::Syntax {
     method message { 'Quantifier quantifies nothing' }
 }
 
+my class X::Syntax::Regex::SolitaryBacktrackControl does X::Syntax {
+    method message { "Backtrack control ':' does not seem to have a preceding atom to control" }
+}
+
 my class X::Syntax::Term::MissingInitializer does X::Syntax {
     method message { 'Term definition requires an initializer' }
 }

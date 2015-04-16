@@ -1003,6 +1003,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
             }
+            elsif $op eq 'hllize' {
+                fatalize($_, $bool-context) for @($ast);
+            }
             else {
                  fatalize($_) for @($ast);
                  if !$bool-context && ($op eq 'call' || $op eq 'callmethod') {

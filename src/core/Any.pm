@@ -850,5 +850,6 @@ sub dd (|) {
         my $name := $var.VAR.?name;
         note $name ?? "$name = $var.perl()" !! $var.perl
     }
+    return
 }
 # vim: ft=perl6 expandtab sw=4

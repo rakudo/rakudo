@@ -49,7 +49,7 @@ class Perl6::Compiler is HLL::Compiler {
 
     method interactive(*%adverbs) {
         my $*moreinput := sub ($cursor) {
-            my str $more := nqp::readlineintfh(nqp::getstdin, '* ');
+            my str $more := self.readline(nqp::getstdin(), nqp::getstdout(), '* ');
             if nqp::isnull_s($more) || $more eq '' {
                 $more := ';';
             }

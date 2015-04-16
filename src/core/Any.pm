@@ -842,21 +842,13 @@ sub DELETEKEY(Mu \d, str $key) {
     }
 } #DELETEKEY
 
-proto sub dd (|) { * }
-multi sub dd (\a) {
-    note "{a.VAR.name} = {a.perl}";
-}
-multi sub dd (\a,\b) {
-    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}";
-}
-multi sub dd (\a,\b,\c) {
-    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}, {c.VAR.name} = {c.perl}";
-}
-multi sub dd (\a,\b,\c,\d) {
-    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}, {c.VAR.name} = {c.perl}, {d.VAR.name} = {d.perl}";
-}
-multi sub dd (\a,\b,\c,\d,\e) {
-    note "{a.VAR.name} = {a.perl}, {b.VAR.name} = {b.perl}, {c.VAR.name} = {c.perl}, {d.VAR.name} = {d.perl}, {e.VAR.name} = {e.perl}";
-}
 
+sub dd (|) {
+    my Mu $args := nqp::p6argvmarray();
+    while $args {
+        my $var  := nqp::shift($args);
+        my $name := $var.VAR.?name;
+        note $name ?? "$name = $var.perl()" !! $var.perl
+    }
+}
 # vim: ft=perl6 expandtab sw=4

@@ -41,7 +41,7 @@ register_op_desugar('p6fatalize', -> $qast {
                 $qast[1],
             ),
             QAST::Op.new(
-                :op('callmethod'), :name('Sink'),
+                :op('callmethod'), :name('sink'),
                 QAST::Var.new( :name($tmp), :scope('local') )
             )
         ))

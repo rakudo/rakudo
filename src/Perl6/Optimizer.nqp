@@ -32,6 +32,7 @@ my class Symbols {
     has $!PseudoStash;
     has $!Routine;
     has $!Nil;
+    has $!Failure;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -57,6 +58,7 @@ my class Symbols {
         $!PseudoStash := self.find_lexical('PseudoStash');
         $!Routine     := self.find_lexical('Routine');
         $!Nil         := self.find_lexical('Nil');
+        $!Failure     := self.find_lexical('Failure');
         nqp::pop(@!block_stack);
     }
 
@@ -97,6 +99,7 @@ my class Symbols {
     method Block()       { $!Block }
     method PseudoStash() { $!PseudoStash }
     method Nil()         { $!Nil }
+    method Failure()     { $!Failure }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -1229,14 +1232,13 @@ class Perl6::Optimizer {
                     my int $survived := 0;
                     my $ret_value;
                     try {
-                        my $*FATAL := 1;
                         $ret_value := $obj(|@args);
                         $survived  := 1 ;
                         CONTROL {
                             $survived := 0;
                         }
                     }
-                    if $survived {
+                    if $survived && !nqp::istype($ret_value, $!symbols.Failure) {
                         return $NULL if $!void_context && !$!in_declaration;
                         $*W.add_object($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));

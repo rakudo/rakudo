@@ -1,5 +1,11 @@
 # all sub postcircumfix [] candidates here please
 
+sub NPOSITIONS(\pos, \elems) { # generate N positions
+    my Mu $indexes := nqp::list();
+    nqp::setelems($indexes,elems);
+    nqp::bindpos($indexes,$_,pos.AT-POS($_)) for 0..^elems;
+    $indexes;
+}
 sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
     my $positions := pos.flat;
 
@@ -130,10 +136,14 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos ) is rw {
       ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
 }
-multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \val ) is rw {
     nqp::iscont(pos)
-      ?? SELF.ASSIGN-POS(pos.Int,assignee)
-      !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;
+      ?? SELF.ASSIGN-POS(pos.Int,val)
+      !! pos.?infinite
+        ?? val.?infinite
+          ?? ()
+          !! (SELF[NPOSITIONS(pos,val.elems)] = val)
+        !! (POSITIONS(SELF,pos.list).map({SELF[$_]}).eager.Parcel = val);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

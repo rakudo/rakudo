@@ -1125,6 +1125,10 @@ my class X::Syntax::Can'tMeta does X::Syntax {
     }
 }
 
+my class X::Syntax::Adverb does X::Syntax {
+    method message() { "You can't adverb that" }
+}
+
 my class X::Syntax::Regex::Adverb does X::Syntax {
     has $.adverb;
     has $.construct;

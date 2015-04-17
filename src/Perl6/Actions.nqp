@@ -5094,7 +5094,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $target := $target[0];
                 }
                 unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
-                    $/.CURSOR.panic("You can't adverb that");
+                    $/.CURSOR.typed_panic('X::Syntax::Adverb');
                 }
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));

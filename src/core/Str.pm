@@ -1798,11 +1798,14 @@ sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
 # These probably belong in a separate unicodey file
 
 #?if jvm
-multi sub uniprop(|)  { die 'uniprop NYI on jvm backend' }
-multi sub unibool(|)  { die 'unibool NYI on jvm backend' }
-multi sub unival(|)   { die 'unival NYI on jvm backend' }
-multi sub univals(|)  { die 'univals NYI on jvm backend' }
-multi sub unimatch(|) { die 'unimatch NYI on jvm backend' }
+multi sub uniname(|)      { die 'uniname NYI on jvm backend' }
+multi sub unival(|)       { die 'unival NYI on jvm backend' }
+multi sub univals(|)      { die 'univals NYI on jvm backend' }
+multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
+multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
+multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
+multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
+multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
 #?if moar

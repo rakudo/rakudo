@@ -2613,6 +2613,7 @@ BEGIN {
     List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
+    List.HOW.add_attribute(List, scalar_attr('$!infinite', Any, List));
     List.HOW.compose_repr(List);
 
     # class Array is List {

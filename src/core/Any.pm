@@ -843,12 +843,15 @@ sub DELETEKEY(Mu \d, str $key) {
 } #DELETEKEY
 
 
-sub dd (|) {
+sub dd(|) {
     my Mu $args := nqp::p6argvmarray();
     while $args {
         my $var  := nqp::shift($args);
         my $name := $var.VAR.?name;
-        note $name ?? "$name = $var.perl()" !! $var.perl
+        my $what := $var.?infinite
+          ?? $var[^10].perl.chop ~ "...Inf)"
+          !! $var.perl;
+        note $name ?? "$name = $what" !! $what;
     }
     return
 }

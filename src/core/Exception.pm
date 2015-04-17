@@ -1,4 +1,3 @@
-my class Failure { ... }
 my role X::Comp { ... }
 my class X::ControlFlow { ... }
 
@@ -1132,6 +1131,10 @@ my class X::Syntax::Can'tMeta does X::Syntax {
     method message() {
         "Cannot $.meta $.operator because $.dba operators are $.reason";
     }
+}
+
+my class X::Syntax::Adverb does X::Syntax {
+    method message() { "You can't adverb that" }
 }
 
 my class X::Syntax::Regex::Adverb does X::Syntax {

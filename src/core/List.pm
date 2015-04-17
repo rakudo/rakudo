@@ -39,6 +39,7 @@ my class List does Positional { # declared in BOOTSTRAP
     #   has Mu $!items;        # VM's array of our reified elements
     #   has Mu $!flattens;     # true if this list flattens its parcels
     #   has Mu $!nextiter;     # iterator for generating remaining elements
+    #   has Any $!infinite;    # is this list infinite or not
 
     method new(|) {
         my Mu $args := nqp::p6argvmarray();
@@ -150,7 +151,9 @@ my class List does Positional { # declared in BOOTSTRAP
         $count
     }
 
-    multi method infinite(List:D:) { $!nextiter.infinite }
+    multi method infinite(List:D:) {
+        $!infinite ||= ?$!nextiter.infinite;
+    }
 
     method iterator() {
         # Return a reified ListIter containing our currently reified elements
@@ -685,14 +688,16 @@ multi sub infix:<xx>(Mu \x, Whatever) {
     GatherIter.new({ loop { take x } }, :infinite(True)).list
 }
 multi sub infix:<xx>(Mu \x, Int() $n) {
-    my int $size = $n + 1;
+    my int $size = $n;
 
     my Mu $rpa := nqp::list();
-    if $size > 1 {
+    if $size > 0 {
         nqp::setelems($rpa, $size);
-        nqp::setelems($rpa, 0);
-
-        nqp::push($rpa,x) while $size = $size - 1;
+        my int $i;
+        while $i < $size {
+            nqp::bindpos($rpa,$i,x);
+            $i = $i + 1;
+        }
     }
 
     nqp::p6parcel($rpa, Any);

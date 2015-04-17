@@ -195,6 +195,21 @@ multi sub warn(*@msg) is hidden-from-backtrace {
 }
 
 proto sub EVAL($, *%) {*}
+multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'perl5' }, PseudoStash :$context) {
+    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
+    my $?FILES   := 'EVAL_' ~ (state $no)++;
+    state $p5;
+    unless $p5 {
+        {
+            require Inline::Perl5;
+            CATCH {
+                X::Eval::NoSuchLang.new(:$lang).throw;
+            }
+        }
+        $p5 = ::("Inline::Perl5").default_perl5;
+    }
+    $p5.run($code);
+}
 multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;

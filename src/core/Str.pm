@@ -267,6 +267,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 # Integer part, if any
                 my Int:D $int := 0;
                 if nqp::isne_i($ch, 46) {  # '.'
+                    parse_fail "Cannot convert radix of $radix (max 36)"
+                        if $radix > 36;
                     $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
                     $p      = nqp::atpos($parse, 2);
                     parse_fail "base-$radix number must begin with valid digits or '.'"
@@ -1450,9 +1452,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         CREATE-IO-OBJECT(self, |c);
     }
 
-    method unival(Str:D:)  { unival(self.ord) };
-    method univals(Str:D:) { univals(self) };
-
     proto method chars(|) { * }
     multi method chars(Str:D:) returns Int:D {
         nqp::p6box_i(nqp::chars($!value))
@@ -1509,6 +1508,13 @@ multi sub infix:<eq>(Str:D \a, Str:D \b) returns Bool:D {
 }
 multi sub infix:<eq>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::iseq_s($a, $b))
+}
+
+multi sub infix:<ne>(Str:D \a, Str:D \b) returns Bool:D {
+    nqp::p6bool(nqp::isne_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+}
+multi sub infix:<ne>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::isne_s($a, $b))
 }
 
 multi sub infix:<lt>(Str:D \a, Str:D \b) returns Bool:D {
@@ -1799,17 +1805,24 @@ multi sub univals(|)  { die 'univals NYI on jvm backend' }
 multi sub unimatch(|) { die 'unimatch NYI on jvm backend' }
 #?endif
 
-my %propcodecache;
-my %pvalcodecache;
+#?if moar
+sub PROPCODE($propname) {
+    state %propcode;
+    %propcode{$propname} //= nqp::unipropcode($propname);
+}
+sub PVALCODE($prop,$pvalname) {
+    state %pvalcode;
+    %pvalcode{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
+}
+
 proto sub uniname(|) {*}
 multi sub uniname(Str $str) { uniname($str.ord) }
 multi sub uniname(Int $code) { nqp::getuniname($code) }
 
-#?if moar
 proto sub uniprop(|) {*}
 multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }
 multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    my $prop := PROPCODE($propname);
     state %prefs;  # could prepopulate this with various prefs
     given %prefs{$propname} // '' {
         when 'S' { nqp::getuniprop_str($code,$prop) }
@@ -1827,22 +1840,19 @@ multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
 proto sub uniprop-int(|) {*}
 multi sub uniprop-int(Str $str, Stringy $propname) { uniprop-int($str.ord, $propname) }
 multi sub uniprop-int(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    nqp::getuniprop_int($code,$prop);
+    nqp::getuniprop_int($code,PROPCODE($propname));
 }
 
 proto sub uniprop-bool(|) {*}
 multi sub uniprop-bool(Str $str, Stringy $propname) { uniprop-bool($str.ord, $propname) }
 multi sub uniprop-bool(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    so nqp::getuniprop_bool($code,$prop);
+    so nqp::getuniprop_bool($code,PROPCODE($propname));
 }
 
 proto sub uniprop-str(|) {*}
 multi sub uniprop-str(Str $str, Stringy $propname) { uniprop-str($str.ord, $propname) }
 multi sub uniprop-str(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    nqp::getuniprop_str($code,$prop);
+    nqp::getuniprop_str($code,PROPCODE($propname));
 }
 
 proto sub unival(|) {*}
@@ -1861,9 +1871,8 @@ multi sub univals(Str $str) { $str.ords.map: { unival($_) } }
 proto sub unimatch(|) {*}
 multi sub unimatch(Str $str, |c) { unimatch($str.ord, |c) }
 multi sub unimatch(Int $code, Stringy $pvalname, Stringy $propname = $pvalname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    my $pval = %pvalcodecache{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
-    so nqp::matchuniprop($code,$prop,$pval);
+    my $prop := PROPCODE($propname);
+    so nqp::matchuniprop($code,$prop,PVALCODE($prop,$pvalname));
 }
 #?endif
 

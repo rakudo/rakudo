@@ -106,6 +106,15 @@ my class Cool { # declared in BOOTSTRAP
 
     method wordcase()   { self.Str.wordcase }
 
+    method uniname()        { uniname(self) }
+    method unival()         { unival(self) }
+    method univals()        { univals(self) }
+    method uniprop(|c)      { uniprop(self, |c) }
+    method uniprop-int(|c)  { uniprop-int(self, |c) }
+    method uniprop-bool(|c) { uniprop-bool(self, |c) }
+    method uniprop-str(|c)  { uniprop-str(self, |c) }
+    method unimatch(|c)     { unimatch(self, |c) }
+
     method chomp() {
         self.Str.chomp;
     }
@@ -251,8 +260,9 @@ my class Cool { # declared in BOOTSTRAP
     multi method subst-mutate($self is rw: |c) {
         $/ := nqp::getlexdyn('$/');
         my $str = Str($self);
-        $str.subst-mutate(|c);
+        my $match = $str.subst-mutate(|c);
         $self = $str;
+        $match;
     }
 
     proto method IO(|) { * }

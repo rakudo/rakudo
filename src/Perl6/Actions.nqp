@@ -26,7 +26,7 @@ register_op_desugar('p6callmethodhow', -> $qast {
 });
 register_op_desugar('p6fatalize', -> $qast {
     my $tmp := QAST::Node.unique('fatalizee');
-    QAST::Stmt.new(
+    QAST::Stmts.new(
         :resultchild(0),
         QAST::Op.new(
             :op('bind'),
@@ -41,7 +41,7 @@ register_op_desugar('p6fatalize', -> $qast {
                 $qast[1],
             ),
             QAST::Op.new(
-                :op('callmethod'), :name('Sink'),
+                :op('callmethod'), :name('sink'),
                 QAST::Var.new( :name($tmp), :scope('local') )
             )
         ))
@@ -990,7 +990,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub fatalize($ast, $bool-context = 0) {
         if nqp::istype($ast, QAST::Op) {
             my str $op := $ast.op;
-            if nqp::existskey(%boolify_first_child_ops, $op) ||
+            if $op eq 'p6fatalize' {
+                # We've been here before (tree with shared bits, presumably).
+            }
+            elsif nqp::existskey(%boolify_first_child_ops, $op) ||
                     $op eq 'call' && nqp::existskey(%boolify_first_child_calls, $ast.name) {
                 my int $first := 1;
                 for @($ast) {
@@ -1003,6 +1006,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
             }
+            elsif $op eq 'hllize' {
+                fatalize($_, $bool-context) for @($ast);
+            }
             else {
                  fatalize($_) for @($ast);
                  if !$bool-context && ($op eq 'call' || $op eq 'callmethod') {
@@ -1010,7 +1016,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $ast.name('&die');
                     }
                     else {
-                        my $new-node := QAST::Op.new( :$op, :name($ast.name) );
+                        my $new-node := QAST::Op.new( :$op, :name($ast.name), :returns($ast.returns) );
                         $new-node.push($ast.shift) while @($ast);
                         $ast.op('p6fatalize');
                         $ast.push($new-node);
@@ -1051,10 +1057,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
             #       (this case gets handled by getsig)
-            for <$_ $/ $!> {
-                my $underscore := $_ eq '$_';
-                unless $BLOCK.symbol($_) || ($underscore && $*IMPLICIT) {
-                    $*W.install_lexical_magical($BLOCK, $_, :Any($underscore) );
+            unless $BLOCK.symbol('$_') || $*IMPLICIT {
+                $*W.install_lexical_magical($BLOCK, '$_');
+            }
+            for <$/ $!> {
+                unless $BLOCK.symbol($_) {
+                    $*W.install_lexical_magical($BLOCK, $_);
                 }
             }
         }
@@ -4887,10 +4895,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $stmts == 1 {
             my $elem := try $past.ann('past_block')[1][0][0];
             $elem := $elem[0] if $elem ~~ QAST::Want;
+            $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
             if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
             }
+            $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
             if $elem ~~ QAST::Op && $elem.op eq 'p6capturelex' {
                 my $subelem := $elem[0];
                 if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
@@ -5084,7 +5094,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $target := $target[0];
                 }
                 unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
-                    $/.CURSOR.panic("You can't adverb that");
+                    $/.CURSOR.typed_panic('X::Syntax::Adverb');
                 }
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
@@ -6848,6 +6858,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
+        fatalize($to_thunk) if %*PRAGMAS<fatal>;
         $block.push(QAST::Stmts.new(autosink($to_thunk)));
         $*W.pop_lexpad();
         reference_to_code_object(

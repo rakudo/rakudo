@@ -4264,6 +4264,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <EXPR('j=')>
         [ '!!'
         || <?before '::' <-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
+        || <?before ':' <-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
         || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
         || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
         || <?before \N*? [\n\N*?]? '!!'> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
@@ -4353,6 +4354,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*INVOCANT_OK := 0 }
     }
     token infix:sym<:>    {
+        <?{ $*INVOCANT_OK && $*GOAL ne '!!' }>
         <.unsp>? <sym> <?before \s | <.terminator> >
         <O('%comma, :fiddly<0>')>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]

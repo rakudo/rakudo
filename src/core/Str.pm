@@ -1805,17 +1805,24 @@ multi sub univals(|)  { die 'univals NYI on jvm backend' }
 multi sub unimatch(|) { die 'unimatch NYI on jvm backend' }
 #?endif
 
-my %propcodecache;
-my %pvalcodecache;
+#?if moar
+sub PROPCODE($propname) {
+    state %propcode;
+    %propcode{$propname} //= nqp::unipropcode($propname);
+}
+sub PVALCODE($prop,$pvalname) {
+    state %pvalcode;
+    %pvalcode{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
+}
+
 proto sub uniname(|) {*}
 multi sub uniname(Str $str) { uniname($str.ord) }
 multi sub uniname(Int $code) { nqp::getuniname($code) }
 
-#?if moar
 proto sub uniprop(|) {*}
 multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }
 multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    my $prop := PROPCODE($propname);
     state %prefs;  # could prepopulate this with various prefs
     given %prefs{$propname} // '' {
         when 'S' { nqp::getuniprop_str($code,$prop) }
@@ -1833,22 +1840,19 @@ multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
 proto sub uniprop-int(|) {*}
 multi sub uniprop-int(Str $str, Stringy $propname) { uniprop-int($str.ord, $propname) }
 multi sub uniprop-int(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    nqp::getuniprop_int($code,$prop);
+    nqp::getuniprop_int($code,PROPCODE($propname));
 }
 
 proto sub uniprop-bool(|) {*}
 multi sub uniprop-bool(Str $str, Stringy $propname) { uniprop-bool($str.ord, $propname) }
 multi sub uniprop-bool(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    so nqp::getuniprop_bool($code,$prop);
+    so nqp::getuniprop_bool($code,PROPCODE($propname));
 }
 
 proto sub uniprop-str(|) {*}
 multi sub uniprop-str(Str $str, Stringy $propname) { uniprop-str($str.ord, $propname) }
 multi sub uniprop-str(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    nqp::getuniprop_str($code,$prop);
+    nqp::getuniprop_str($code,PROPCODE($propname));
 }
 
 proto sub unival(|) {*}
@@ -1867,9 +1871,8 @@ multi sub univals(Str $str) { $str.ords.map: { unival($_) } }
 proto sub unimatch(|) {*}
 multi sub unimatch(Str $str, |c) { unimatch($str.ord, |c) }
 multi sub unimatch(Int $code, Stringy $pvalname, Stringy $propname = $pvalname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    my $pval = %pvalcodecache{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
-    so nqp::matchuniprop($code,$prop,$pval);
+    my $prop := PROPCODE($propname);
+    so nqp::matchuniprop($code,$prop,PVALCODE($prop,$pvalname));
 }
 #?endif
 

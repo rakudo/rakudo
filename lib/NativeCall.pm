@@ -438,7 +438,7 @@ sub nativesizeof($obj) is export(:DEFAULT) {
     nqp::nativecallsizeof($obj)
 }
 
-sub cglobal($libname, $symbol, $target-type) is export {
+sub cglobal($libname, $symbol, $target-type) is export is rw {
     Proxy.new(
         FETCH => -> $ {
             nqp::nativecallglobal(

@@ -401,17 +401,31 @@ my class Mu { # declared in BOOTSTRAP
 
     method clone(*%twiddles) {
         my $cloned := nqp::clone(nqp::decont(self));
-        for self.^attributes() -> $attr {
-            my $name := $attr.name;
-            my $package := $attr.package;
-            unless nqp::objprimspec($attr.type) {
-                my $attr_val := nqp::getattr($cloned, $package, $name);
-                nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
-                    if nqp::iscont($attr_val);
+        if %twiddles.elems {
+            for self.^attributes() -> $attr {
+                my $name := $attr.name;
+                my $package := $attr.package;
+                unless nqp::objprimspec($attr.type) {
+                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
+                        if nqp::iscont($attr_val);
+                }
+                my $acc_name := substr($name,2);
+                if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
+                    nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
+                }
             }
-            my $acc_name := substr($name,2);
-            if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
-                nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
+        }
+        else {
+            for self.^attributes() -> $attr {
+                unless nqp::objprimspec($attr.type) {
+                    my $name     := $attr.name;
+                    my $package  := $attr.package;
+                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    nqp::bindattr($cloned,
+                      $package, $name, nqp::clone($attr_val.VAR))
+                        if nqp::iscont($attr_val);
+                }
             }
         }
         $cloned

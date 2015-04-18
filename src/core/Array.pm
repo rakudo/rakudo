@@ -12,6 +12,31 @@ class Array { # declared in BOOTSTRAP
         nqp::p6list($args, self.WHAT, Bool::True);
     }
 
+    method elems() {
+        Proxy.new(
+          FETCH => { self.List::elems() },
+          STORE => -> $, $new is copy {
+              die "Cannot set .elems on an infinite {self.^name}"
+                if self.infinite;
+
+              my Mu $items := nqp::p6listitems(self);
+              my int $old = nqp::elems($items);
+              $new = $new(|($old xx $new.count)) if nqp::istype($new,Callable);
+
+              # nuke the iterator to prevent surprises
+              nqp::bindattr(self,List,'$!nextiter',Mu);
+
+              nqp::setelems($items,$new.Int);
+              while $old < $new {
+                  nqp::bindpos($items,$old,nqp::p6scalarfromdesc($!descriptor));
+                  $old = $old + 1;
+              }
+
+              $new;
+          }
+        );
+    }
+
     multi method AT-POS(Array:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);

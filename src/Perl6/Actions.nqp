@@ -5198,22 +5198,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
 
-        # Transliteration shuffles values around itself and returns the
-        # Right Thing regardless of whether we're in a smart-match or
-        # implicitely against $_, so we just do the RHS here.
-        if $rhs.ann('is_trans') {
-            $sm_call := QAST::Stmt.new(
-                $rhs
-            );
-        }
-        else {
-            # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
-            $sm_call := QAST::Op.new(
-                :op('callmethod'), :name('ACCEPTS'),
-                $rhs,
-                QAST::Var.new( :name('$_'), :scope('lexical') )
-            );
-        }
+        # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
+        $sm_call := QAST::Op.new(
+            :op('callmethod'), :name('ACCEPTS'),
+            $rhs,
+            QAST::Var.new( :name('$_'), :scope('lexical') )
+        );
 
         if $negated {
             $sm_call := QAST::Op.new( :op('call'), :name('&prefix:<!>'), $sm_call );
@@ -6217,7 +6207,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             )
         );
 
-        $past.annotate('is_trans', 1);
         $past
     }
 

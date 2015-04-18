@@ -3,12 +3,15 @@ my class StrDistance is Cool {
     has Str $.after;
     has Int $!distance;
 
-    method BUILD(:$before, :$after) {
-        $!before = $before.Str
+    method BUILD(Str() :$!before, :$!after) {
     }
 
     method Bool() {
         $.before ne $.after
+    }
+
+    method ACCEPTS(StrDistance:D: Mu \a) {
+        self
     }
 
     method Numeric() {

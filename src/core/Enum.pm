@@ -3,7 +3,7 @@ my class Enum does Associative {
     has $.value;
 
     method new(:$key, Mu :$value) { nqp::create(self).BUILD($key, $value) }
-    method BUILD(\key, Mu \value) { $!key = key; $!value = value; self }
+    method BUILD($!key, Mu $!value) { self }
 
     multi method ACCEPTS(Enum:D: Associative:D $topic) {
         $topic{$.key} ~~ $.value

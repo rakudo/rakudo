@@ -85,7 +85,7 @@ my class IO::Handle does IO {
         self.nl;
     }
 
-    method nl {
+    method nl is rw {
         Proxy.new(
           FETCH => {
               $!nl

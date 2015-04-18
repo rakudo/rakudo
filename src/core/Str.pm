@@ -1711,7 +1711,7 @@ multi sub substr(Str() $what, \start, $want?) {
       !! $r;
 }
 
-sub substr-rw(\what, \start, $want?) {
+sub substr-rw(\what, \start, $want?) is rw {
     my $Str := nqp::istype(what,Str) ?? what !! what.Str;
     
     # should really be int, but \ then doesn't work for rw access

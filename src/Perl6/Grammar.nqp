@@ -1153,9 +1153,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
                 for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                    my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
-                    do_import($/, $module, $longname);
-                    $/.CURSOR.import_EXPORTHOW($/, $module);
+                    if $longname eq 'strict' {
+                        $*STRICT := 1;
+                    }
+                    else {
+                        my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
+                        do_import($/, $module, $longname);
+                        $/.CURSOR.import_EXPORTHOW($/, $module);
+                    }
                 }
             }
         }

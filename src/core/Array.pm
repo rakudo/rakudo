@@ -12,6 +12,19 @@ class Array { # declared in BOOTSTRAP
         nqp::p6list($args, self.WHAT, Bool::True);
     }
 
+    method elems() {
+        Proxy.new(
+          FETCH => { self.List::elems() },
+          STORE => -> $, $elems is copy {
+              my Mu $items := nqp::p6listitems(self);
+              $elems = $elems(|(nqp::elems($items) xx $elems.count))
+                if nqp::istype($elems,Callable);
+              nqp::setelems($items,$elems);
+              $elems;
+          }
+        );
+    }
+
     multi method AT-POS(Array:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);

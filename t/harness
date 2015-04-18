@@ -40,7 +40,7 @@ $ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "p");
 my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
 $ENV{'PERL6LIB'} = join $path_sep, qw/ lib . /;
 
-my $perl5 = not system 'perl6 -MInline::Perl5 -e ""'
+my $perl5 = not system 'perl6 -e "exit !try { require Inline::Perl5 }"'
     or print "Not running Perl 5 integration tests since Inline::Perl5 doesn't seem to be installed\n";
 
 if ($list_file) {

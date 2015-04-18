@@ -15,12 +15,24 @@ class Array { # declared in BOOTSTRAP
     method elems() {
         Proxy.new(
           FETCH => { self.List::elems() },
-          STORE => -> $, $elems is copy {
+          STORE => -> $, $new is copy {
+              die "Cannot set .elems on an infinite {self.^name}"
+                if self.infinite;
+
               my Mu $items := nqp::p6listitems(self);
-              $elems = $elems(|(nqp::elems($items) xx $elems.count))
-                if nqp::istype($elems,Callable);
-              nqp::setelems($items,$elems);
-              $elems;
+              my int $old = nqp::elems($items);
+              $new = $new(|($old xx $new.count)) if nqp::istype($new,Callable);
+
+              # nuke the iterator to prevent surprises
+              nqp::bindattr(self,List,'$!nextiter',Mu);
+
+              nqp::setelems($items,$new.Int);
+              while $old < $new {
+                  nqp::bindpos($items,$old,nqp::p6scalarfromdesc($!descriptor));
+                  $old = $old + 1;
+              }
+
+              $new;
           }
         );
     }

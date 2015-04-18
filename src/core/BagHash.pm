@@ -14,7 +14,7 @@ my class BagHash does Baggy {
     method Mix     { Mix.new-from-pairs(%!elems.values) }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
 
-    multi method AT-KEY(BagHash:D: \k) {
+    multi method AT-KEY(BagHash:D: \k) is rw {
         Proxy.new(
           FETCH => {
               my \v := %!elems.AT-KEY(k.WHICH);

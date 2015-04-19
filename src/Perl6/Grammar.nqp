@@ -1150,7 +1150,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $/.CURSOR.import_EXPORTHOW($/, $module);
             }
 
-            # Install unless we've no setting, in which case we've likely no
+            # Install as we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
             else {
                 $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
@@ -1162,10 +1162,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
                 for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                    if $longname eq 'strict' {
-                        $*STRICT := 1;
-                    }
-                    else {
+                    $longname := do_pragmas($longname,1);
+                    if $longname {
                         my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
                         do_import($/, $module, $longname);
                         $/.CURSOR.import_EXPORTHOW($/, $module);
@@ -1691,33 +1689,32 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     sub do_pragmas($longname,$value) {
-        my $longnameStr := $longname.Str;
-                
+
         # Some modules are handled in the actions are just turn on a
         # setting of some kind.
-        if $longnameStr eq 'MONKEY_TYPING' || $longnameStr eq 'MONKEY-TYPING' {
+        if $longname eq 'MONKEY-TYPING' || $longname eq 'MONKEY_TYPING' {
             %*PRAGMAS<MONKEY-TYPING> := $value;
             $longname := "";
         }
-        elsif $longnameStr eq 'fatal' {
+        elsif $longname eq 'fatal' {
             %*PRAGMAS<fatal> := $value;
             $longname := "";
         }
-        elsif $longnameStr eq 'strict' {
+        elsif $longname eq 'strict' {
             $*STRICT  := $value;
             $longname := "";
         }
-        elsif $longnameStr eq 'nqp' {
+        elsif $longname eq 'nqp' {
             %*PRAGMAS<nqp> := $value;
             $longname := "";
         }
-        elsif $longnameStr eq 'soft' {
+        elsif $longname eq 'soft' {
             # This is an approximation; need to pay attention to
             # argument list really.
             %*PRAGMAS<soft> := $value;
             $longname := "";
         }
-        elsif $longnameStr eq 'Devel::Trace' {
+        elsif $longname eq 'Devel::Trace' {
             # needs attention
             $longname := "";
         }

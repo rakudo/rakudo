@@ -290,6 +290,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
+                nqp::say("Settings $setting_name loaded") if $DEBUG;
             }
 
             $setting := %settings_loaded{$setting_name};

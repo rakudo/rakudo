@@ -1690,19 +1690,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             %*PRAGMAS<MONKEY-TYPING> := $value;
             $longname := "";
         }
-        elsif $longnameStr eq 'soft' {
-            # This is an approximation; need to pay attention to
-            # argument list really.
-            %*PRAGMAS<soft> := $value;
-            $longname := "";
-        }
         elsif $longnameStr eq 'fatal' {
             %*PRAGMAS<fatal> := $value;
             $longname := "";
         }
         elsif $longnameStr eq 'strict' {
-            # Turn off lax mode.
             $*STRICT  := $value;
+            $longname := "";
+        }
+        elsif $longnameStr eq 'nqp' {
+            %*PRAGMAS<nqp> := $value;
+            $longname := "";
+        }
+        elsif $longnameStr eq 'soft' {
+            # This is an approximation; need to pay attention to
+            # argument list really.
+            %*PRAGMAS<soft> := $value;
             $longname := "";
         }
         elsif $longnameStr eq 'Devel::Trace' {

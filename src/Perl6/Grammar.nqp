@@ -1615,6 +1615,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    token statement_control:sym<bootstrap-from-nqp> {
+        <sym> <.ws> <module_name>
+          {
+              nqp::die("Can only bootstrap in a setting") if $*SETTING;
+
+              my $name   := $<module_name><longname>;
+              my $module := $*W.load_module($/, $name, {}, $*GLOBALish);
+              do_import($/, $module, $name);
+              $/.CURSOR.import_EXPORTHOW($/, $module);
+          }
+        <.ws>
+    }
+
     token statement_control:sym<no> {
         :my $longname;
         <sym> <.ws>

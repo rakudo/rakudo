@@ -1141,9 +1141,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
             }
 
+            # Bootstrap
+            if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+                my $name   := "Perl6::BOOTSTRAP";
+                my $module := $*W.load_module($/, $name, {}, $*GLOBALish);
+                do_import($/, $module, $name);
+                $/.CURSOR.import_EXPORTHOW($/, $module);
+            }
+
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
-            unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+            else {
                 $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
                 $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
@@ -1613,19 +1621,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     " to import symbols from");
             }
         }
-    }
-
-    token statement_control:sym<bootstrap-from-nqp> {
-        <sym> <.ws> <module_name>
-          {
-              nqp::die("Can only bootstrap in a setting") if $*SETTING;
-
-              my $name   := $<module_name><longname>;
-              my $module := $*W.load_module($/, $name, {}, $*GLOBALish);
-              do_import($/, $module, $name);
-              $/.CURSOR.import_EXPORTHOW($/, $module);
-          }
-        <.ws>
     }
 
     token statement_control:sym<no> {

@@ -4601,7 +4601,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<nqp::op>($/) {
         my @args := $<args> ?? $<args>.ast.list !! [];
-        my $past := QAST::Op.new( :op(~$<op>), |@args );
+        my $op   := ~$<op>;
+        unless %*PRAGMAS<nqp> {
+            # WHAT TO DO IF SOMEONE DID NOT HAVE 'use nqp' ????
+#            nqp::say("using nqp::$op without 'use nqp'");
+        }
+
+        my $past := QAST::Op.new( :$op, |@args );
         if $past.op eq 'want' || $past.op eq 'handle' {
             my int $i := 1;
             my int $n := nqp::elems($past.list);

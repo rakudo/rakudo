@@ -389,6 +389,36 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $compunit.annotate('GLOBALish', $*GLOBALish);
         $compunit.annotate('W', $*W);
 
+        my @violations := @*NQP_VIOLATIONS;
+        if @violations {
+            my $file := nqp::getlexdyn('$?FILES');
+            my $text := "===============================================================================
+The use of nqp::operations has been deprecated for non-CORE code.  Please
+change your code to not use these non-portable functions.  If you really want
+to keep using nqp::operations in your Perl6 code, you must add a:
+
+  use nqp;
+
+to the outer scope of any code that uses nqp::operations.
+
+Compilation unit '$file' contained the following violations:
+";
+
+            my $line  := -1;
+            my $lines := nqp::elems(@violations);
+            while ++$line < $lines {
+                my @ops := @violations[$line];
+                next unless nqp::isconcrete(@ops);
+
+                my $oplist := nqp::join(' nqp::',@ops);
+                $text := $text
+                  ~ " Line $line:\n"
+                  ~ "  nqp::$oplist\n";
+            }
+            nqp::printfh(nqp::getstderr(),$text
+              ~ "===============================================================================
+");
+        }
         make $compunit;
     }
 
@@ -4602,9 +4632,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<nqp::op>($/) {
         my @args := $<args> ?? $<args>.ast.list !! [];
         my $op   := ~$<op>;
-        unless %*PRAGMAS<nqp> {
-            # WHAT TO DO IF SOMEONE DID NOT HAVE 'use nqp' ????
-#            nqp::say("using nqp::$op without 'use nqp'");
+
+        # using nqp::op outside of setting
+        if $*SETTING && !%*PRAGMAS<nqp> {
+            my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+            @*NQP_VIOLATIONS[$line] := @*NQP_VIOLATIONS[$line] // [];
+            @*NQP_VIOLATIONS[$line].push($op);
         }
 
         my $past := QAST::Op.new( :$op, |@args );

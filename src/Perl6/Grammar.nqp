@@ -1620,17 +1620,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <.ws>
         [
         | <module_name> [ <.spacey> <arglist> ]? <.explain_mystery> <.cry_sorrows>
-            {
-                $longname := $<module_name><longname>;
-
-                if $longname.Str eq 'strict' {
-                    # Turn on lax mode.
-                    $*STRICT := 0;
-                }
-                else {
-                    nqp::die("Unknown pragma '$longname'");
-                }
-            }
+            { $longname := do_pragmas($<module_name><longname>,0) }
         ]
         <.ws>
     }
@@ -1655,35 +1645,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*STRICT := 1 if $*begin_compunit;
                     } ]?
         | <module_name>
-            {
-                $longname := $<module_name><longname>;
-                my $longnameStr := $longname.Str;
-                
-                # Some modules are handled in the actions are just turn on a
-                # setting of some kind.
-                if $longnameStr eq 'MONKEY_TYPING' || $longnameStr eq 'MONKEY-TYPING' {
-                    %*PRAGMAS<MONKEY-TYPING> := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'soft' {
-                    # This is an approximation; need to pay attention to argument
-                    # list really.
-                    %*PRAGMAS<soft> := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'fatal' {
-                    %*PRAGMAS<fatal> := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'strict' {
-                    # Turn off lax mode.
-                    $*STRICT  := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'Devel::Trace' {
-                    $longname := "";
-                }
-            }
+            { $longname := do_pragmas($<module_name><longname>,1) }
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
@@ -1717,6 +1679,40 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
         || <?> ]
         <.ws>
+    }
+
+    sub do_pragmas($longname,$value) {
+        my $longnameStr := $longname.Str;
+                
+        # Some modules are handled in the actions are just turn on a
+        # setting of some kind.
+        if $longnameStr eq 'MONKEY_TYPING' || $longnameStr eq 'MONKEY-TYPING' {
+            %*PRAGMAS<MONKEY-TYPING> := $value;
+            $longname := "";
+        }
+        elsif $longnameStr eq 'soft' {
+            # This is an approximation; need to pay attention to
+            # argument list really.
+            %*PRAGMAS<soft> := $value;
+            $longname := "";
+        }
+        elsif $longnameStr eq 'fatal' {
+            %*PRAGMAS<fatal> := $value;
+            $longname := "";
+        }
+        elsif $longnameStr eq 'strict' {
+            # Turn off lax mode.
+            $*STRICT  := $value;
+            $longname := "";
+        }
+        elsif $longnameStr eq 'Devel::Trace' {
+            # needs attention
+            $longname := "";
+        }
+        elsif !$value {
+            nqp::die("Unknown pragma '$longname'");
+        }
+        $longname;
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.

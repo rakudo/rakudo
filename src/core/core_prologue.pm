@@ -1,5 +1,3 @@
-bootstrap-from-nqp Perl6::BOOTSTRAP;
-
 # Stub a few things the compiler wants to have really early on.
 my class Pair { ... }
 my class Whatever { ... }

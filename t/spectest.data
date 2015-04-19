@@ -551,6 +551,7 @@ S12-introspection/roles.t
 S12-introspection/walk.t
 S12-introspection/WHAT.t
 S12-meta/exporthow.t
+S12-meta/grammarhow.t
 S12-meta/primitives.t
 S12-methods/accessors.t
 S12-methods/attribute-params.t
@@ -822,6 +823,7 @@ S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/note.t
 S32-io/other.t
+S32-io/pipe.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
@@ -885,6 +887,7 @@ S32-str/flip.t
 S32-str/indent.t
 S32-str/index.t
 S32-str/lc.t
+S32-str/length.t
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
@@ -895,6 +898,7 @@ S32-str/samecase.t
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
+S32-str/sprintf-b.t
 S32-str/starts-with.t
 S32-str/substr.t
 S32-str/substr-eq.t

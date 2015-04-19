@@ -1,16 +1,42 @@
 class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
+    has $!name;
+    has $!abspath;
+
+    method serialize($obj is copy) {
+        my Mu $sh1 := nqp::list_s();
+        my Mu $sc  := nqp::createsc(nqp::unbox_s($!name));
+        nqp::scsetobj($sc, 0, $obj);
+        nqp::setobjsc($obj, $sc);
+        my $serialized = nqp::serialize($sc, $sh1);
+        $!name ~ "\n" ~ nqp::p6box_s(nqp::join("\n", $sh1)) ~ "\n" ~ $serialized
+    }
+
+    method deserialize() {
+        my $manifest      := $!IO.child("MANIFEST");
+        return {} unless $manifest.e;
+        my $b64            = $manifest.slurp;
+        my Mu $sh2        := nqp::list_s();
+        my @lines          = $b64.split("\n");
+        my str $name       = nqp::unbox_s(@lines.shift);
+        my str $serialized = nqp::unbox_s(@lines.pop);
+        nqp::push_s($sh2, nqp::null_s());
+        nqp::push_s($sh2, nqp::unbox_s($_)) for @lines;
+
+        my Mu $dsc2 := nqp::createsc(nqp::unbox_s($name));
+        my $conflicts := nqp::list();
+        nqp::deserialize($serialized, $dsc2, $sh2, nqp::list(), $conflicts);
+        nqp::scgetobj($dsc2, 0)
+    }
 
     method BUILD(:$!IO, :$!lock, :$!WHICH) {
-        my $manifest := $!IO.child("MANIFEST");
-        my $abspath  := $!IO.abspath;
-        %!dists{$abspath} = $manifest.e
-          ?? from-json($manifest.slurp)
-          !! {};
-        %!dists{$abspath}<file-count> //= 0;
-        %!dists{$abspath}<dist-count> //= 0;
-        %!dists{$abspath}<dists>      //= [ ];
+        $!abspath    := $!IO.abspath;
+        $!name        = ~$!abspath; #'CURLI_' ~ $!abspath ~ '_' ~ nqp::time_n();
+        %!dists{$!abspath} = self.deserialize();
+        %!dists{$!abspath}<file-count> //= 0;
+        %!dists{$!abspath}<dist-count> //= 0;
+        %!dists{$!abspath}<dists>      //= [ ];
     }
 
     method writeable-path {
@@ -69,8 +95,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     method install(:$dist!, *@files) {
         $!lock.protect( {
-        my $path     = self.writeable-path or die "No writeable path found";
-        my $repo     = %!dists{$path};
+        my $repo    := %!dists{$!abspath};
         my $file-id := $repo<file-count>;
         my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
         state $is-win //= $*DISTRO.is-win; # only look up once
@@ -106,32 +131,32 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 $has-provides = True;
                 $d.provides{ $/.ast }{ $<ext> } = {
-                    :file($file-id),
+                    :file("$!abspath/$file-id"),
                     :time(try $file.IO.modified.Num),
                     :$!cver
                 }
             }
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
-                    mkdir "$path/bin" unless "$path/bin".IO.d;
+                    mkdir "$!abspath/bin" unless "$!abspath/bin".IO.d;
                     my $basename   = $file.IO.basename;
                     my $withoutext = $basename;
                     $withoutext.=subst(/\.[exe|bat]$/, '');
                     for '', < -p -j -m > -> $be {
-                        "$path/bin/$withoutext$be".IO.spurt:
+                        "$!abspath/bin/$withoutext$be".IO.spurt:
                             $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
                         if $is-win {
-                            "$path/bin/$withoutext$be.bat".IO.spurt:
+                            "$!abspath/bin/$withoutext$be.bat".IO.spurt:
                                 $windows_wrapper.subst('#perl#', "perl6$be", :g);
                         }
                         else {
-                            "$path/bin/$withoutext$be".IO.chmod(0o755);
+                            "$!abspath/bin/$withoutext$be".IO.chmod(0o755);
                         }
                     }
                 }
-                $d.files{$file} = $file-id
+                $d.files{$file} = "$!abspath/$file-id"
             }
-            copy($file, $path ~ '/' ~ $file-id);
+            copy($file, "$!abspath/$file-id");
             $file-id++;
         }
 
@@ -153,29 +178,27 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
         $repo<dists>[$d.id] = $d.Hash;
 
         # XXX Create path if needed.
-        "$path/MANIFEST".IO.spurt: to-json( $repo )
+        my $serialized = self.serialize($repo);
+        "$!abspath/MANIFEST-$repo<dist-count>".IO.spurt: $serialized;
+        "$!abspath/MANIFEST".IO.spurt: $serialized;
     } ) }
 
     method files($file, :$name, :$auth, :$ver) {
         my @candi;
-        for %!dists.kv -> $path, $repo {
-            for @($repo<dists>) -> $dist {
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( $dist<ver> )
-                        !! Version.new('0');
+        for @(%!dists{$!abspath}<dists>) -> $dist {
+            my $dver = $dist<ver>
+                    ?? nqp::istype($dist<ver>,Version)
+                        ?? $dist<ver>
+                        !! Version.new( $dist<ver> )
+                    !! Version.new('0');
 
-                if (!$name || $dist<name> ~~ $name)
-                && (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver)
-                && $dist<files>{$file} {
-                    my $candi   = %$dist;
-                    $candi<ver> = $dver;
-                    $candi<files>{$file} = $path ~ '/' ~ $candi<files>{$file}
-                        unless $candi<files>{$file} ~~ /^$path/;
-                    @candi.push: $candi;
-                }
+            if (!$name || $dist<name> ~~ $name)
+            && (!$auth || $dist<auth> ~~ $auth)
+            && (!$ver  || $dver ~~ $ver)
+            && $dist<files>{$file} {
+                my $candi   = %$dist;
+                $candi<ver> = $dver;
+                @candi.push: $candi;
             }
         }
         @candi
@@ -183,27 +206,19 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
 
     method candidates($name, :$file, :$auth, :$ver) {
         my @candi;
-        for %!dists.kv -> $path, $repo {
-            for @($repo<dists>) -> $dist {
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( ~$dist<ver> )
-                        !! Version.new('0');
+        for @(%!dists{$!abspath}<dists>) -> $dist {
+            my $dver = $dist<ver>
+                    ?? nqp::istype($dist<ver>,Version)
+                        ?? $dist<ver>
+                        !! Version.new( ~$dist<ver> )
+                    !! Version.new('0');
 
-                if (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver)
-                && $dist<provides>{$name} {
-                    my $candi   = %$dist;
-                    $candi<ver> = $dver;
-                    for $candi<provides>.kv -> $ln, $files {
-                        for $files.kv -> $type, $file {
-                            $candi<provides>{$ln}{$type}<file> = $path ~ '/' ~ $file<file>
-                                unless $candi<provides>{$ln}{$type}<file> ~~ /^$path/
-                        }
-                    }
-                    @candi.push: $candi;
-                }
+            if (!$auth || $dist<auth> ~~ $auth)
+            && (!$ver  || $dver ~~ $ver)
+            && $dist<provides>{$name} {
+                my $candi   = %$dist;
+                $candi<ver> = $dver;
+                @candi.push: $candi;
             }
         }
         @candi

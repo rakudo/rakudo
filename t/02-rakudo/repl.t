@@ -53,7 +53,7 @@ my @input-lines;
     }
     END
 
-    #?rakudo todo "indent styles don't parse right"
+    todo "indent styles don't parse right";
     is feed_repl_with( @input-lines ).lines, ":)",
         "uncuddled else is parsed correctly";
 
@@ -68,7 +68,7 @@ my @input-lines;
     }
     END
 
-    #?rakudo todo "indent styles don't parse right"
+    todo "indent styles don't parse right";
     is feed_repl_with( @input-lines ).lines, ":)",
         "open brace on next line is parsed correctly";
 
@@ -77,7 +77,7 @@ my @input-lines;
     else { say ":)"; }
     END
 
-    #?rakudo todo "indent styles don't parse right"
+    todo "indent styles don't parse right";
     is feed_repl_with( @input-lines ).lines, ":)",
         "cuddled else is parsed correctly";
 
@@ -89,29 +89,29 @@ my @input-lines;
     }
     END
 
-    #?rakudo todo "indent styles don't parse right"
+    todo "indent styles don't parse right";
     is feed_repl_with( @input-lines ).lines, ":)",
         "cuddled else is parsed correctly";
 }
 
 {
     @input-lines = 'say "works"', 'if True;';
-    #?rakudo todo "statement mod if on the next line"
+    todo "statement mod if on the next line";
     is feed_repl_with( @input-lines ).lines, "works",
         "statement mod if on the next line works";
 
     @input-lines = 'say "works"', 'for 1;';
-    #?rakudo todo "statement mod for on the next line"
+    todo "statement mod for on the next line";
     is feed_repl_with( @input-lines ).lines, "works",
         "statement mod for on the next line works";
 
     @input-lines = 'sub f { 42 }', 'f()';
-    #?rakudo todo "block parsing broken"
+    todo "block parsing broken";
     is feed_repl_with( @input-lines ).lines, "42",
         "single-line sub declaration works";
 
     @input-lines = 'sub f {', '42', '}';
-    #?rakudo todo "block parsing broken"
+    todo "block parsing broken";
     is feed_repl_with( @input-lines ).lines, "42",
         "single-line sub declaration works";
 }

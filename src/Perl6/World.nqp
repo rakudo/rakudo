@@ -1227,13 +1227,6 @@ class Perl6::World is HLL::World {
         $code
     }
 
-    method create_lazy($/, $code) {
-        my $type      := self.find_symbol(['LazyScalar']);
-        my $container := $type.new($code);
-        self.add_object($container);
-        QAST::WVal.new( :value($container) )
-    }
-    
     # Stubs a code object of the specified type.
     method stub_code_object($type) {
         my $type_obj := self.find_symbol([$type]);

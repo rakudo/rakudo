@@ -1107,7 +1107,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         has str $.unsubstituted_text;
         has str $.substituted_text;
-        
+
         submethod BUILD(:$!source, :$!squash, :$!complement) { }
 
         method add_substitution($key, $value) {
@@ -1443,13 +1443,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    method codes(Str:D:) returns Int:D {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
-    }
-
     method path(Str:D:) returns IO::Path:D {
         DEPRECATED('IO', |<2014.11 2015.11>);
         IO::Path.new(self)
+    }
+
+    proto method codes(|) { * }
+    multi method codes(Str:D:) returns Int:D {
+        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
+    }
+    multi method codes(Str:U:) returns Int:D {
+        self.Str;  # generate undefined warning
+        0
     }
 
     proto method chars(|) { * }
@@ -1459,6 +1464,57 @@ my class Str does Stringy { # declared in BOOTSTRAP
 	multi method chars(Str:U:) returns Int:D {
         self.Str;  # generate undefined warning
         0
+    }
+
+    proto method uc(|) { * }
+    multi method uc(Str:D:) {
+        nqp::p6box_s(nqp::uc($!value));
+    }
+    multi method uc(Str:U:) {
+        self.Str;
+    }
+
+    proto method lc(|) { * }
+    multi method lc(Str:D:) {
+        nqp::p6box_s(nqp::lc($!value));
+    }
+    multi method lc(Str:U:) {
+        self.Str;
+    }
+
+    proto method tc(|) { * }
+    multi method tc(Str:D:) {
+        nqp::p6box_s(nqp::uc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1));
+    }
+    multi method tc(Str:U:) {
+        self.Str
+    }
+
+    proto method tclc(|) { * }
+    multi method tclc(Str:D:) {
+        nqp::p6box_s(nqp::tclc($!value))
+    }
+    multi method tclc(Str:U:) {
+        self.Str
+    }
+
+    proto method flip(|) { * }
+    multi method flip(Str:D:) {
+        nqp::p6box_s(nqp::flip($!value))
+    }
+    multi method flip(Str:U:) {
+        self.Str
+    }
+
+    proto method ord(|) { * }
+    multi method ord(Str:D:) returns Int {
+        nqp::chars($!value)
+          ?? nqp::p6box_i(nqp::ord($!value))
+          !! Int;
+    }
+    multi method ord(Str:U:) {
+        self.Str;
+        Int
     }
 
 }
@@ -1713,7 +1769,7 @@ multi sub substr(Str() $what, \start, $want?) {
 
 sub substr-rw(\what, \start, $want?) is rw {
     my $Str := nqp::istype(what,Str) ?? what !! what.Str;
-    
+
     # should really be int, but \ then doesn't work for rw access
     my $r := SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
     $r.defined

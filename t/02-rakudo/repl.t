@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 11;
+plan 14;
 
 # Sanity check that the repl is working at all.
 my $cmd = $*DISTRO.is-win
@@ -114,4 +114,19 @@ my @input-lines;
     #?rakudo todo "block parsing broken"
     is feed_repl_with( @input-lines ).lines, "42",
         "single-line sub declaration works";
+}
+
+# RT #122914
+{
+    @input-lines = 'my $a := 42; say 1', '$a.say';
+    is feed_repl_with( @input-lines ).lines, (1, 42),
+        'Binding to a Scalar lasts to the next line';
+
+    @input-lines = 'my @a := 1, 2, 3; say 1', '@a.elems.say';
+    is feed_repl_with( @input-lines ).lines, (1, 3),
+        'Binding to an Array lasts to the next line';
+
+    @input-lines = 'my \a = 100; say 1', 'a.say';
+    is feed_repl_with( @input-lines ).lines, (1, 100),
+        'Binding to a sigilless lasts to the next line';
 }

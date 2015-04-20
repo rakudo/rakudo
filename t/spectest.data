@@ -609,6 +609,11 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+S15-nfg/mass-chars.t            # moar
+S15-nfg/mass-roundtrip-nfc.t    # moar
+S15-nfg/mass-roundtrip-nfd.t    # moar
+S15-nfg/mass-roundtrip-nfkc.t   # moar
+S15-nfg/mass-roundtrip-nfkd.t   # moar
 S15-normalization/nfc-0.t       # moar stress
 S15-normalization/nfc-1.t       # moar stress
 S15-normalization/nfc-2.t       # moar stress

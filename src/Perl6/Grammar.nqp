@@ -3942,7 +3942,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     method can_meta($op, $meta, $reason = "fiddly") {
         if nqp::eqat($op<OPER><O>{$reason}, '1', 0) {
-            self.typed_panic: "X::Syntax::Can'tMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
+            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
         }
         self;
     }
@@ -3966,7 +3966,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <!{ $op<OPER><O><diffy> }>
         || <?{ $op<OPER><O><pasttype> eq 'chain' }>
-        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => 'diffy and not chaining' }
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => 'diffy and not chaining' }
         ]
 
         <args>
@@ -4288,7 +4288,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
         || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
-        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
         ]
     }
 

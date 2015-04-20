@@ -14,7 +14,7 @@ is shell($cmd).exit, 42, 'exit(42) in executed REPL got run';
     my $cmd = $*DISTRO.is-win
         ?? q[echo my @a = -^^^> { say "foo" }; @a^^^>^^^>.() | ] ~ $*EXECUTABLE
         !! q[echo 'my @a = -> { say "foo" }; @a>>.()' | ] ~ $*EXECUTABLE;
-    is qqx[$cmd].lines, 'foo', '>>.() does not crash in REPL';
+    is qqx[$cmd].trim-trailing.lines, 'foo', '>>.() does not crash in REPL';
 }
 
 my $quote;
@@ -31,7 +31,7 @@ else {
 sub feed_repl_with ( @lines ) {
     ## warning: works only with simple input lines which don't need quoting for Windows
     my $repl-input = '(' ~ (@lines.map: { 'echo ' ~ $quote ~ $_ ~ $quote }).join($separator) ~ ')';
-    return qqx[$repl-input | $*EXECUTABLE];
+    return qqx[$repl-input | $*EXECUTABLE].trim-trailing;
 }
 
 my @input-lines;

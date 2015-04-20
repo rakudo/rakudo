@@ -2887,7 +2887,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]+ % <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
-        [ '-->' <.ws> <typename> || '-->' <.ws> <typo_typename> ]?
+        [ '-->' <.ws> <typename> <.ws> || '-->' <.ws> <typo_typename> ]?
         { $*LEFTSIGIL := '@'; }
     }
 

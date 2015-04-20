@@ -7332,14 +7332,14 @@ Compilation unit '$file' contained the following violations:
         )
     }
 
-    # Works out how to look up a type. If it's not generic we statically
-    # resolve it. Otherwise, we punt to a runtime lexical lookup.
+    # Works out how to look up a type. If it's not generic and is in an SC, we
+    # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
         my $type := $*W.find_symbol(@name);
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past;
-        if $is_generic {
+        if $is_generic || nqp::isnull(nqp::getobjsc($type)) {
             $past := $*W.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
         }

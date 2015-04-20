@@ -911,6 +911,12 @@ class Perl6::Optimizer {
         $!symbols.pop_block();
         my $vars_info := @!block_var_stack.pop();
 
+        # If this block is UNIT and we're in interactive mode, poison lexical
+        # to local lowering, or else we may lose symbols we need to remember.
+        if $block =:= $!symbols.UNIT && %!adverbs<interactive> {
+            $vars_info.poison_lowering();
+        }
+
         # We might be able to delete some of the magical variables when they
         # are trivially unused, and also simplify takedispatcher.
         $vars_info.delete_unused_magicals($block);

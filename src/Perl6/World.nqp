@@ -2975,6 +2975,9 @@ class Perl6::World is HLL::World {
                         elsif $*IN_META {
                             %opts<reason> := "Bogus infix";
                         }
+                        elsif $c.MARKED('baresigil') {
+                            %opts<reason> := "Name must begin with alphabetic character";
+                        }
                         else {
                             %opts<reason> := "Two terms in a row";
                         }

@@ -81,7 +81,7 @@ my class IO::Handle does IO {
 
 
     method input-line-separator {
-        DEPRECATED("nl",|<2015.03 2016.03>);
+        DEPRECATED("nl",|<2015.03 2015.09>);
         self.nl;
     }
 
@@ -431,7 +431,7 @@ my class IO::Handle does IO {
     }
 
     method slurp(IO::Handle:D: |c) {
-        DEPRECATED('$handle.slurp-rest', |<2014.10 2015.10>);
+        DEPRECATED('$handle.slurp-rest', |<2014.10 2015.09>);
         self.slurp-rest(|c);
     }
 
@@ -454,18 +454,18 @@ my class IO::Handle does IO {
 
     proto method spurt(|) { * }
     multi method spurt(IO::Handle:D: Cool $contents, :$nodepr) {
-        DEPRECATED("IO::Path.spurt", |<2014.10 2015.10>) unless $nodepr;
+        DEPRECATED("IO::Path.spurt", |<2014.10 2015.09>) unless $nodepr;
         self.print($contents);
     }
 
     multi method spurt(IO::Handle:D: Blob $contents, :$nodepr) {
-        DEPRECATED("IO::Path.spurt", |<2014.10 2015.10>) unless $nodepr;
+        DEPRECATED("IO::Path.spurt", |<2014.10 2015.09>) unless $nodepr;
         self.write($contents);
     }
 
     # not spec'd
     method copy(IO::Handle:D: $dest) {
-        DEPRECATED("IO::Path.copy", |<2014.10 2015.10>);
+        DEPRECATED("IO::Path.copy", |<2014.10 2015.09>);
         $!path.copy($dest);
     }
 

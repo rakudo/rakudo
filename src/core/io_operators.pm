@@ -118,7 +118,7 @@ multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
     $result // $result.throw;
 }
 multi sub slurp(IO::Handle:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
-    DEPRECATED('slurp($path,...)',|<2014.10 2015.10>,:what<slurp($handle,...)>);
+    DEPRECATED('slurp($path,...)',|<2014.10 2015.09>,:what<slurp($handle,...)>);
     my $result := $io.slurp-rest(:$bin, :$enc, |c);
     $result // $result.throw;
 }
@@ -129,7 +129,7 @@ multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
 
 proto sub spurt(|) { * }
 multi sub spurt(IO::Handle $fh, $what, :$enc = 'utf8', |c ) {
-    DEPRECATED('spurt($path,...)',|<2014.10 2015.10>,:what<spurt($handle,...)>);
+    DEPRECATED('spurt($path,...)',|<2014.10 2015.09>,:what<spurt($handle,...)>);
     my $result := $fh.spurt($what, :$enc, :nodepr, |c);
     $result // $result.throw;
 }
@@ -250,7 +250,7 @@ sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
 }
 
 sub cwd() {
-    DEPRECATED('$*CWD', |<2014.10 2015.10>);
+    DEPRECATED('$*CWD', |<2014.10 2015.09>);
     $*CWD;
 }
 

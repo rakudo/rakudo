@@ -1459,7 +1459,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method path(Str:D:) returns IO::Path:D {
-        DEPRECATED('IO', |<2014.11 2015.11>);
+        DEPRECATED('IO', |<2014.11 2015.09>);
         IO::Path.new(self)
     }
 

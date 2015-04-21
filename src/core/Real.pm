@@ -120,7 +120,7 @@ my role Real does Numeric {
     multi method Str(Real:D:) { self.Bridge.Str }
 
     method sleep() {
-        DEPRECATED('sub form of sleep', '2015.02', '2016.01');
+        DEPRECATED('sub form of sleep', '2015.02', '2015.09');
         sleep self;
     }
 }

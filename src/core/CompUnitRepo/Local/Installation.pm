@@ -90,7 +90,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
-    exit run($*EXECUTABLE_NAME, @binaries[0]<files><bin/#name#>, @*ARGS).exit
+    exit run($*EXECUTABLE_NAME, @binaries[0]<files><bin/#name#>, @*ARGS).exitcode
 }';
 
     method install(:$dist!, *@files) {

@@ -123,7 +123,7 @@ my class PseudoStash is EnumMap {
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('UNIT')),
                 $stash);

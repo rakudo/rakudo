@@ -12,7 +12,7 @@ my class Proc::Status {
     #~ method signal()   { $!signal }
 
     method exit {
-        DEPRECATED('Proc::Status.exit', |<2015.04 2015.09>);
+        DEPRECATED('Proc::Status.exit', |<2015.03 2015.09>);
         $!exitcode;
     }
 

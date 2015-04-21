@@ -69,7 +69,7 @@ my role Supply {
     }
 
     method more(Supply:D: \msg) {
-        DEPRECATED('emit', |<2014.10 2015.10>);
+        DEPRECATED('emit', |<2014.10 2015.09>);
         self.emit(msg);
     }
 
@@ -170,7 +170,7 @@ my role Supply {
         SupplyOperations.stable(self, $time, :$scheduler);
     }
     method delay(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        DEPRECATED('delayed', '2015.02', '2016.01');
+        DEPRECATED('delayed', '2015.02', '2015.09');
         SupplyOperations.delayed(self, $time, :$scheduler);
     }
     method delayed(Supply:D: $time, :$scheduler = $*SCHEDULER) {
@@ -775,19 +775,19 @@ my role Supply {
     }
 
     method for(Supply:U: |c) {
-        DEPRECATED('from-list',|<2015.01 2016.01>);
+        DEPRECATED('from-list',|<2015.01 2015.09>);
         SupplyOperations.from-list(|c);
     }
     method on_demand(Supply:U: |c)       {
-        DEPRECATED('on-demand',|<2015.03 2016.03>);
+        DEPRECATED('on-demand',|<2015.03 2015.09>);
         SupplyOperations.on-demand(|c);
     }
     method schedule_on(Supply:D: Scheduler $scheduler) {
-        DEPRECATED('schedule-on',|<2015.03 2016.03>);
+        DEPRECATED('schedule-on',|<2015.03 2015.09>);
         SupplyOperations.schedule-on(self, $scheduler);
     }
     method uniq(Supply:D: |c) {
-        DEPRECATED('unique', |<2014.11 2015.11>);
+        DEPRECATED('unique', |<2014.11 2015.09>);
         self.unique(|c);
     }
 }
@@ -817,7 +817,7 @@ sub on(&setup) {
           $source, $lock, $index, :&done is copy, :&quit is copy,
           :&emit is copy, :&more   # more deprecated, emit must be changeable
         ) {
-            DEPRECATED('emit => {...}', |<2014.10 2015.10>) if &more;
+            DEPRECATED('emit => {...}', |<2014.10 2015.09>) if &more;
             $!live ||= True if $source.live;
             &emit //= &more // X::Supply::On::NoEmit.new.throw;
             &done //= { self.done };

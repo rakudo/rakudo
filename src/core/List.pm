@@ -450,7 +450,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method ACCEPTS(List:D: $topic) { self }
 
     method uniq(|c) {
-        DEPRECATED('unique', |<2014.11 2015.11>);
+        DEPRECATED('unique', |<2014.11 2015.09>);
         self.unique(|c);
     }
 

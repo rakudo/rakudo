@@ -107,6 +107,7 @@ my class Cool { # declared in BOOTSTRAP
     method wordcase()   { self.Str.wordcase }
 
     method uniname()        { uniname(self) }
+    method uninames()       { uninames(self) }
     method unival()         { unival(self) }
     method univals()        { univals(self) }
     method uniprop(|c)      { uniprop(self, |c) }

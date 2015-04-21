@@ -78,7 +78,7 @@ my class PseudoStash is EnumMap {
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('OUTER')),
+                Metamodel::ModuleHOW.new_type(:name('OUTERS')),
                 $stash);
         },
         'DYNAMIC' => sub ($cur) {
@@ -96,7 +96,7 @@ my class PseudoStash is EnumMap {
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC);
             nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('CALLER')),
+                Metamodel::ModuleHOW.new_type(:name('CALLERS')),
                 $stash);
         },
         'UNIT' => sub ($cur) {
@@ -125,7 +125,7 @@ my class PseudoStash is EnumMap {
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('UNIT')),
+                Metamodel::ModuleHOW.new_type(:name('SETTING')),
                 $stash);
         },
         'OUR' => sub ($cur) {

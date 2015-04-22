@@ -298,16 +298,8 @@ sub MAKE_REGEX($arg, :$i) {
         $arg.regex
     }
     else {
-        my Mu $chars := nqp::split('', $arg);
-        my $k := 0;
-        my $iter := nqp::iterator($chars);
-        while $iter {
-            my $ord := nqp::ord( nqp::shift($iter) );
-            nqp::bindpos($chars, $k, "\\c[$ord]") if $ord <= 32;
-            $k := $k + 1;
-        }
-        my $arg2 := nqp::join('', $chars);
-        my $rx := $i ?? EVAL("anon regex \{ :i ^$arg2\}") !! EVAL("anon regex \{ ^$arg2\}");
+        # XXX the following misuses ^ to turn off scanning
+        my $rx := $i ?? EVAL("anon regex \{ :i ^ $arg\}") !! EVAL("anon regex \{ ^ $arg\}");
         $arg does CachedCompiledRegex($rx);
         $rx
     }

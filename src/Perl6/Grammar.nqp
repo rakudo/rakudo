@@ -1485,7 +1485,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token unitstart { <?> }
-    token you_are_here { <?> }
+    token you_are_here {
+        <?{ nqp::getlexdyn('$?FILES') ~~ /\.setting$/ }> ||
+            { self.typed_panic('X::Syntax::Reserved',
+                reserved => 'use of {YOU_ARE_HERE} outside of a setting',
+                instead => ' (use whitespace if not a setting, or rename file with .setting extension?)');
+            }
+    }
     token newpad { <?> { $*W.push_lexpad($/) } }
     token finishpad { <?> }
 

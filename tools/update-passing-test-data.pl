@@ -26,6 +26,8 @@ use TAP::Parser::Aggregator 3.01;
 use File::Find;
 
 my %not_process = map { $_ => 1 } read_specfile('t/spectest.data');
+# this is a p5 file, don't try to test it.
+$not_process{'t/spec/t/fudge.t'}=1;
 
 print <<'KEY';
 Key:

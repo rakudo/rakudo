@@ -1083,6 +1083,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
+#?if moar
+    method NFC() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
+    }
+    method NFD() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFD, nqp::create(NFD))
+    }
+    method NFKC() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKC, nqp::create(NFKC))
+    }
+    method NFKD() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
+    }
+#?endif
+
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {
             my Str $s = $m.Str;
@@ -1107,7 +1122,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         has str $.unsubstituted_text;
         has str $.substituted_text;
-        
+
         submethod BUILD(:$!source, :$!squash, :$!complement) { }
 
         method add_substitution($key, $value) {
@@ -1448,8 +1463,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method path(Str:D: |c) {
-        DEPRECATED('IO', |<2014.11 2015.11>);
+        DEPRECATED('IO', |<2014.11 2015.09>);
         CREATE-IO-OBJECT(self, |c);
+    }
+
+    proto method codes(|) { * }
+    multi method codes(Str:D:) returns Int:D {
+        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
+    }
+    multi method codes(Str:U:) returns Int:D {
+        self.Str;  # generate undefined warning
+        0
     }
 
     proto method chars(|) { * }
@@ -1459,6 +1483,57 @@ my class Str does Stringy { # declared in BOOTSTRAP
 	multi method chars(Str:U:) returns Int:D {
         self.Str;  # generate undefined warning
         0
+    }
+
+    proto method uc(|) { * }
+    multi method uc(Str:D:) {
+        nqp::p6box_s(nqp::uc($!value));
+    }
+    multi method uc(Str:U:) {
+        self.Str;
+    }
+
+    proto method lc(|) { * }
+    multi method lc(Str:D:) {
+        nqp::p6box_s(nqp::lc($!value));
+    }
+    multi method lc(Str:U:) {
+        self.Str;
+    }
+
+    proto method tc(|) { * }
+    multi method tc(Str:D:) {
+        nqp::p6box_s(nqp::uc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1));
+    }
+    multi method tc(Str:U:) {
+        self.Str
+    }
+
+    proto method tclc(|) { * }
+    multi method tclc(Str:D:) {
+        nqp::p6box_s(nqp::tclc($!value))
+    }
+    multi method tclc(Str:U:) {
+        self.Str
+    }
+
+    proto method flip(|) { * }
+    multi method flip(Str:D:) {
+        nqp::p6box_s(nqp::flip($!value))
+    }
+    multi method flip(Str:U:) {
+        self.Str
+    }
+
+    proto method ord(|) { * }
+    multi method ord(Str:D:) returns Int {
+        nqp::chars($!value)
+          ?? nqp::p6box_i(nqp::ord($!value))
+          !! Int;
+    }
+    multi method ord(Str:U:) {
+        self.Str;
+        Int
     }
 
 }
@@ -1711,9 +1786,9 @@ multi sub substr(Str() $what, \start, $want?) {
       !! $r;
 }
 
-sub substr-rw(\what, \start, $want?) {
+sub substr-rw(\what, \start, $want?) is rw {
     my $Str := nqp::istype(what,Str) ?? what !! what.Str;
-    
+
     # should really be int, but \ then doesn't work for rw access
     my $r := SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
     $r.defined
@@ -1799,6 +1874,7 @@ sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
 
 #?if jvm
 multi sub uniname(|)      { die 'uniname NYI on jvm backend' }
+multi sub uninames(|)     { die 'uniname NYI on jvm backend' }
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
 multi sub univals(|)      { die 'univals NYI on jvm backend' }
 multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
@@ -1821,6 +1897,9 @@ sub PVALCODE($prop,$pvalname) {
 proto sub uniname(|) {*}
 multi sub uniname(Str $str) { uniname($str.ord) }
 multi sub uniname(Int $code) { nqp::getuniname($code) }
+
+proto sub uninames(|) {*}
+multi sub uninames(Str $str) { $str.comb.map:{uniname($_.ord)}; }
 
 proto sub uniprop(|) {*}
 multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }

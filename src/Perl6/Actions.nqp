@@ -389,6 +389,36 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $compunit.annotate('GLOBALish', $*GLOBALish);
         $compunit.annotate('W', $*W);
 
+        my @violations := @*NQP_VIOLATIONS;
+        if @violations {
+            my $file := nqp::getlexdyn('$?FILES');
+            my $text := "===============================================================================
+The use of nqp::operations has been deprecated for non-CORE code.  Please
+change your code to not use these non-portable functions.  If you really want
+to keep using nqp::operations in your Perl6 code, you must add a:
+
+  use nqp;
+
+to the outer scope of any code that uses nqp::operations.
+
+Compilation unit '$file' contained the following violations:
+";
+
+            my $line  := -1;
+            my $lines := nqp::elems(@violations);
+            while ++$line < $lines {
+                my @ops := @violations[$line];
+                next unless nqp::isconcrete(@ops);
+
+                my $oplist := nqp::join(' nqp::',@ops);
+                $text := $text
+                  ~ " Line $line:\n"
+                  ~ "  nqp::$oplist\n";
+            }
+            nqp::printfh(nqp::getstderr(),$text
+              ~ "===============================================================================
+");
+        }
         make $compunit;
     }
 
@@ -4601,7 +4631,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<nqp::op>($/) {
         my @args := $<args> ?? $<args>.ast.list !! [];
-        my $past := QAST::Op.new( :op(~$<op>), |@args );
+        my $op   := ~$<op>;
+
+        # using nqp::op outside of setting
+        if $*SETTING && !%*PRAGMAS<nqp> {
+            my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+            @*NQP_VIOLATIONS[$line] := @*NQP_VIOLATIONS[$line] // [];
+            @*NQP_VIOLATIONS[$line].push($op);
+        }
+
+        my $past := QAST::Op.new( :$op, |@args );
         if $past.op eq 'want' || $past.op eq 'handle' {
             my int $i := 1;
             my int $n := nqp::elems($past.list);
@@ -5198,22 +5237,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
 
-        # Transliteration shuffles values around itself and returns the
-        # Right Thing regardless of whether we're in a smart-match or
-        # implicitely against $_, so we just do the RHS here.
-        if $rhs.ann('is_trans') {
-            $sm_call := QAST::Stmt.new(
-                $rhs
-            );
-        }
-        else {
-            # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
-            $sm_call := QAST::Op.new(
-                :op('callmethod'), :name('ACCEPTS'),
-                $rhs,
-                QAST::Var.new( :name('$_'), :scope('lexical') )
-            );
-        }
+        # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
+        $sm_call := QAST::Op.new(
+            :op('callmethod'), :name('ACCEPTS'),
+            $rhs,
+            QAST::Var.new( :name('$_'), :scope('lexical') )
+        );
 
         if $negated {
             $sm_call := QAST::Op.new( :op('call'), :name('&prefix:<!>'), $sm_call );
@@ -6217,7 +6246,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             )
         );
 
-        $past.annotate('is_trans', 1);
         $past
     }
 
@@ -7304,14 +7332,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         )
     }
 
-    # Works out how to look up a type. If it's not generic we statically
-    # resolve it. Otherwise, we punt to a runtime lexical lookup.
+    # Works out how to look up a type. If it's not generic and is in an SC, we
+    # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
         my $type := $*W.find_symbol(@name);
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past;
-        if $is_generic {
+        if $is_generic || nqp::isnull(nqp::getobjsc($type)) {
             $past := $*W.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
         }

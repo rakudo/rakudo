@@ -42,7 +42,11 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             if !nqp::existskey($PROCESS.WHO, '@INC') {
                 my &DYNAMIC :=
                   nqp::ctxlexpad(%settings_loaded{'CORE'})<&DYNAMIC>;
-                if !nqp::isnull(&DYNAMIC) {
+                if nqp::isnull(&DYNAMIC) {
+                    nqp::say('Could not initialize @*INC') if $DEBUG;
+                }
+                else {
+                    nqp::say('Initializing @*INC') if $DEBUG;
                     &DYNAMIC('@*INC');
                 }
             }
@@ -57,6 +61,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
         # Too early to have @*INC; probably no setting yet loaded to provide
         # the PROCESS initialization.
+        nqp::say('Setting up default paths: . blib') if $DEBUG;
         my @search_paths;
         @search_paths.push('.');
         @search_paths.push('blib');
@@ -269,6 +274,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         if $setting_name ne 'NULL' {
             # Unless we already did so, locate and load the setting.
             unless nqp::defined(%settings_loaded{$setting_name}) {
+                nqp::say("Loading settings $setting_name") if $DEBUG;
                 # Find it.
                 my $path := self.find_setting($setting_name);
 
@@ -284,6 +290,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
+                nqp::say("Settings $setting_name loaded") if $DEBUG;
             }
 
             $setting := %settings_loaded{$setting_name};

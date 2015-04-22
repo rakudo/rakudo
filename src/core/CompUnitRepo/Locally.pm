@@ -22,7 +22,7 @@ role CompUnitRepo::Locally {
     }
 
     method path(CompUnitRepo::Locally:D:) {
-        DEPRECATED('IO', |<2014.11 2015.11>);
+        DEPRECATED( 'IO', |<2014.11 2015.09> );
         $!IO;
     }
 

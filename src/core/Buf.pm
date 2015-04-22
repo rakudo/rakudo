@@ -458,7 +458,7 @@ multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
     ($a cmp $b) != -1
 }
 
-sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) {
+sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) is rw {
     my Blob $subbuf = $b.subbuf($from, $elems);
     Proxy.new(
         FETCH   => sub ($) { $subbuf },

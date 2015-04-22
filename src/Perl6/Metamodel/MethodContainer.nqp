@@ -13,6 +13,7 @@ role Perl6::Metamodel::MethodContainer {
     method add_method($obj, $name, $code_obj) {
         # We may get VM-level subs in here during BOOTSTRAP; the try is to cope
         # with them.
+        $code_obj := nqp::decont($code_obj);
         my $method_type := "Method";
         try { $method_type := $code_obj.HOW.name($code_obj) };
         

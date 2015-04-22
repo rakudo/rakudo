@@ -173,8 +173,8 @@ multi sub slurp(IO::ArgFiles:D $io) {
     $result // $result.throw;
 }
 multi sub slurp(PIO:D $io, :$enc, |c) {
-    DEPRECATED('slurp($path,...)',|<2014.10 2015.10>,:what<slurp($handle,...)>);
-    DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
+    DEPRECATED('slurp($path,...)',|<2014.10 2015.09>,:what<slurp($handle,...)>);
+    DEPRECATED(":encoding($enc)",|<2014.12 2015.09>,:what(":enc($enc)"))
       if $enc;
     my $result := $io.slurp-rest(:$enc,|c);
     $result // $result.throw;
@@ -193,7 +193,7 @@ sub slurp-rest(PIO:D $io, :$enc, |c) {
 
 proto sub spurt(|) { * }
 multi sub spurt(PIO:D $fh,\what,|c ) {
-    DEPRECATED('spurt($path,...)',|<2014.10 2015.10>,:what<spurt($handle,...)>);
+    DEPRECATED('spurt($path,...)',|<2014.10 2015.09>,:what<spurt($handle,...)>);
     my $result := $fh.spurt(what,:nodepr,|c);
     $result // $result.throw;
 }
@@ -304,7 +304,7 @@ sub link(Str() $target, Str() $name, Str() :$CWD = $*CWD) {
 }
 
 sub cwd() {
-    DEPRECATED('$*CWD', |<2014.10 2015.10>);
+    DEPRECATED('$*CWD', |<2014.10 2015.09>);
     $*CWD.abspath;
 }
 

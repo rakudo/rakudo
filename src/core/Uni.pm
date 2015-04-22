@@ -41,6 +41,10 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method NFKD() {
         nqp::normalizecodes(self, nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
     }
+
+    method Str() {
+        nqp::strfromcodes(self)
+    }
 }
 
 my class NFD is Uni {

@@ -10,6 +10,17 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
+S01-perl-5-integration/array.t              # perl5
+S01-perl-5-integration/basic.t              # perl5
+S01-perl-5-integration/class.t              # perl5
+S01-perl-5-integration/exception_handling.t # perl5
+S01-perl-5-integration/hash.t               # perl5
+S01-perl-5-integration/import.t             # perl5
+S01-perl-5-integration/method.t             # perl5
+S01-perl-5-integration/return.t             # perl5
+S01-perl-5-integration/roundtrip.t          # perl5
+S01-perl-5-integration/strings.t            # perl5
+S01-perl-5-integration/subs.t               # perl5
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/bom.t
 S02-lexical-conventions/comments.t
@@ -540,6 +551,7 @@ S12-introspection/roles.t
 S12-introspection/walk.t
 S12-introspection/WHAT.t
 S12-meta/exporthow.t
+S12-meta/grammarhow.t
 S12-meta/primitives.t
 S12-methods/accessors.t
 S12-methods/attribute-params.t
@@ -597,6 +609,14 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+S15-nfg/case-change.t           # moar
+S15-nfg/mass-chars.t            # moar
+S15-nfg/mass-equality.t         # moar
+S15-nfg/mass-roundtrip-nfc.t    # moar
+S15-nfg/mass-roundtrip-nfd.t    # moar
+S15-nfg/mass-roundtrip-nfkc.t   # moar
+S15-nfg/mass-roundtrip-nfkd.t   # moar
+S15-nfg/regex.t                 # moar
 S15-normalization/nfc-0.t       # moar stress
 S15-normalization/nfc-1.t       # moar stress
 S15-normalization/nfc-2.t       # moar stress
@@ -811,6 +831,7 @@ S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/note.t
 S32-io/other.t
+S32-io/pipe.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
@@ -874,6 +895,7 @@ S32-str/flip.t
 S32-str/indent.t
 S32-str/index.t
 S32-str/lc.t
+S32-str/length.t
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
@@ -884,6 +906,7 @@ S32-str/samecase.t
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
+S32-str/sprintf-b.t
 S32-str/starts-with.t
 S32-str/substr.t
 S32-str/substr-eq.t

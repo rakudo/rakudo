@@ -23,11 +23,11 @@ class IO::Handle does IO does PIO does IO::Pathy {
     }
 
     method slurp(IO::Handle:D: |c) {
-        DEPRECATED('$handle.slurp-rest', |<2014.10 2015.10>);
+        DEPRECATED('$handle.slurp-rest', |<2014.10 2015.09>);
         self.slurp-rest(|c);
     }
     method spurt(IO::Handle:D: \what,:$nodepr) {
-        DEPRECATED(".IO.spurt or spurt(...)", |<2014.10 2015.10>)
+        DEPRECATED(".IO.spurt or spurt(...)", |<2014.10 2015.09>)
           unless $nodepr;
         what ~~ Blob
           ?? self.write(what)

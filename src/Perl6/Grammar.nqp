@@ -1025,6 +1025,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         # Extras.
         :my %*PRAGMAS;                             # compiler-handled lexical pragmas in effect
+        :my @*NQP_VIOLATIONS;                      # nqp::ops per line number
         :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
@@ -1141,9 +1142,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
             }
 
-            # Install unless we've no setting, in which case we've likely no
+            # Bootstrap
+            if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+                my $name   := "Perl6::BOOTSTRAP";
+                my $module := $*W.load_module($/, $name, {}, $*GLOBALish);
+                do_import($/, $module, $name);
+                $/.CURSOR.import_EXPORTHOW($/, $module);
+            }
+
+            # Install as we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
-            unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+            else {
                 $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
                 $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
@@ -1153,9 +1162,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
                 for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                    my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
-                    do_import($/, $module, $longname);
-                    $/.CURSOR.import_EXPORTHOW($/, $module);
+                    $longname := do_pragmas($longname,1);
+                    if $longname {
+                        my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
+                        do_import($/, $module, $longname);
+                        $/.CURSOR.import_EXPORTHOW($/, $module);
+                    }
                 }
             }
         }
@@ -1615,17 +1627,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <.ws>
         [
         | <module_name> [ <.spacey> <arglist> ]? <.explain_mystery> <.cry_sorrows>
-            {
-                $longname := $<module_name><longname>;
-
-                if $longname.Str eq 'strict' {
-                    # Turn on lax mode.
-                    $*STRICT := 0;
-                }
-                else {
-                    nqp::die("Unknown pragma '$longname'");
-                }
-            }
+            { $longname := do_pragmas($<module_name><longname>,0) }
         ]
         <.ws>
     }
@@ -1650,35 +1652,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*STRICT := 1 if $*begin_compunit;
                     } ]?
         | <module_name>
-            {
-                $longname := $<module_name><longname>;
-                my $longnameStr := $longname.Str;
-                
-                # Some modules are handled in the actions are just turn on a
-                # setting of some kind.
-                if $longnameStr eq 'MONKEY_TYPING' || $longnameStr eq 'MONKEY-TYPING' {
-                    %*PRAGMAS<MONKEY-TYPING> := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'soft' {
-                    # This is an approximation; need to pay attention to argument
-                    # list really.
-                    %*PRAGMAS<soft> := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'fatal' {
-                    %*PRAGMAS<fatal> := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'strict' {
-                    # Turn off lax mode.
-                    $*STRICT  := 1;
-                    $longname := "";
-                }
-                elsif $longnameStr eq 'Devel::Trace' {
-                    $longname := "";
-                }
-            }
+            { $longname := do_pragmas($<module_name><longname>,1) }
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
@@ -1712,6 +1686,42 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
         || <?> ]
         <.ws>
+    }
+
+    sub do_pragmas($longname,$value) {
+
+        # Some modules are handled in the actions are just turn on a
+        # setting of some kind.
+        if $longname eq 'MONKEY-TYPING' || $longname eq 'MONKEY_TYPING' {
+            %*PRAGMAS<MONKEY-TYPING> := $value;
+            $longname := "";
+        }
+        elsif $longname eq 'fatal' {
+            %*PRAGMAS<fatal> := $value;
+            $longname := "";
+        }
+        elsif $longname eq 'strict' {
+            $*STRICT  := $value;
+            $longname := "";
+        }
+        elsif $longname eq 'nqp' {
+            %*PRAGMAS<nqp> := $value;
+            $longname := "";
+        }
+        elsif $longname eq 'soft' {
+            # This is an approximation; need to pay attention to
+            # argument list really.
+            %*PRAGMAS<soft> := $value;
+            $longname := "";
+        }
+        elsif $longname eq 'Devel::Trace' {
+            # needs attention
+            $longname := "";
+        }
+        elsif !$value {
+            nqp::die("Unknown pragma '$longname'");
+        }
+        $longname;
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
@@ -2202,7 +2212,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
         | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
         | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
-        | {} <sigil> <!{ $*QSIGIL }>  # try last, to allow sublanguages to redefine sigils (like & in regex)
+        | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && $<twigil> eq '.' }>
             [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>
@@ -2877,7 +2887,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]+ % <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
-        [ '-->' <.ws> <typename> || '-->' <.ws> <typo_typename> ]?
+        [ '-->' <.ws> <typename> <.ws> || '-->' <.ws> <typo_typename> ]?
         { $*LEFTSIGIL := '@'; }
     }
 
@@ -3932,7 +3942,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     method can_meta($op, $meta, $reason = "fiddly") {
         if nqp::eqat($op<OPER><O>{$reason}, '1', 0) {
-            self.typed_panic: "X::Syntax::Can'tMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
+            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
         }
         self;
     }
@@ -3956,7 +3966,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <!{ $op<OPER><O><diffy> }>
         || <?{ $op<OPER><O><pasttype> eq 'chain' }>
-        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => 'diffy and not chaining' }
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => 'diffy and not chaining' }
         ]
 
         <args>
@@ -4278,7 +4288,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
         || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
-        || { self.typed_panic: "X::Syntax::Can'tMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
         ]
     }
 

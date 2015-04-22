@@ -385,6 +385,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     }
 
                     if $stop { }
+                    elsif nqp::iscont(value) {
+                        $tail.push(value);
+                        take value;
+                    }
                     elsif value {
                         $tail.push(|value);
                         .take for value;

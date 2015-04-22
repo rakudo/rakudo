@@ -67,11 +67,11 @@ my class Cool { # declared in BOOTSTRAP
 
     ## string methods
 
-    method chars() {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
+    method chars() returns Int:D {
+        self.Str.chars
     }
     method codes() {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
+        self.Str.codes
     }
 
     method fmt($format = '%s') {
@@ -88,25 +88,25 @@ my class Cool { # declared in BOOTSTRAP
     method substr-rw(\SELF: $from, $length?) { substr-rw(SELF,$from,$length) }
 
     method uc() {
-        nqp::p6box_s(nqp::uc(nqp::unbox_s(self.Str)))
+        self.Str.uc
     }
 
     method lc() {
-        nqp::p6box_s(nqp::lc(nqp::unbox_s(self.Str)))
+        self.Str.lc
     }
 
     method tc() {
-        my $u := nqp::unbox_s(self.Str);
-        nqp::p6box_s(nqp::uc(nqp::substr($u,0,1)) ~ nqp::substr($u,1));
+        self.Str.tc
     }
 
     method tclc() {
-        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self.Str)))
+        self.Str.tclc
     }
 
     method wordcase()   { self.Str.wordcase }
 
     method uniname()        { uniname(self) }
+    method uninames()       { uninames(self) }
     method unival()         { unival(self) }
     method univals()        { univals(self) }
     method uniprop(|c)      { uniprop(self, |c) }
@@ -124,10 +124,7 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method ord(--> Int) {
-        my $s := self.Str;
-        $s.chars
-          ?? nqp::p6box_i(nqp::ord(nqp::unbox_s($s)))
-          !! Int;
+        self.Str.ord
     }
     method chr() {
         self.Int.chr;
@@ -135,9 +132,11 @@ my class Cool { # declared in BOOTSTRAP
     method chrs(Cool:D:) {
         self>>.chr.join;
     }
+    method ords(Cool:D:) { self.Str.ords }
+
 
     method flip() {
-        nqp::p6box_s(nqp::flip(nqp::unbox_s(self.Str)))
+        self.Str.flip
     }
     method trans(*@a) { self.Str.trans(@a) }
 
@@ -221,7 +220,6 @@ my class Cool { # declared in BOOTSTRAP
         $result;
     }
 
-    method ords(Cool:D:) { self.Str.ords }
     proto method split(|) {*}
     multi method split(Regex $pat, $limit = Inf, :$all) {
         self.Stringy.split($pat, $limit, :$all);

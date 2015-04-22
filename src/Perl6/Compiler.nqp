@@ -58,7 +58,7 @@ class Perl6::Compiler is HLL::Compiler {
         }
 
         my $super := nqp::findmethod(HLL::Compiler, 'interactive');
-        $super(self, |%adverbs);
+        $super(self, :interactive(1), |%adverbs);
     }
     
     method interactive_exception($ex) {
@@ -95,6 +95,7 @@ class Perl6::Compiler is HLL::Compiler {
           --stagestats         display time spent in the compilation stages
           --ll-exception       display a low level backtrace on errors
           --profile            write profile information as HTML file (MoarVM)
+          --profile-filename   provide a different filename (also allows .json)
           --doc=[module]       Use Pod::To::[module] to render inline documentation.
 
 

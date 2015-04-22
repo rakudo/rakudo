@@ -179,7 +179,7 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method no-parent-or-current-test {
-        DEPRECATED('curupdir', |<2014.10 2015.10>);
+        DEPRECATED('curupdir', |<2014.10 2015.09>);
         none('.', '..');
     }
 }

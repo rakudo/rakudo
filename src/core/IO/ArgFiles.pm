@@ -45,7 +45,7 @@ my class IO::ArgFiles {
         @chunks.join;
     }
 
-    method nl {
+    method nl is rw {
         Proxy.new(
           FETCH => {
               $!nl

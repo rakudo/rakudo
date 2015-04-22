@@ -1123,7 +1123,7 @@ my class X::Syntax::NonAssociative does X::Syntax {
     }
 }
 
-my class X::Syntax::Can'tMeta does X::Syntax {
+my class X::Syntax::CannotMeta does X::Syntax {
     has $.meta;
     has $.operator;
     has $.reason;

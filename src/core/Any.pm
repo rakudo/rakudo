@@ -224,7 +224,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method grep(|) { * }
-    multi method grep(Bool:D $t) is rw {
+    multi method grep(Bool:D \t, |c) is rw {
         fail X::Match::Bool.new( type => '.grep' );
     }
     multi method grep(Regex:D $test) is rw {
@@ -236,34 +236,40 @@ my class Any { # declared in BOOTSTRAP
     multi method grep(Mu $test) is rw {
         self.map({ next unless $_ ~~ $test; $_ });
     }
+    multi method grep(Regex:D $test, :$index!) {
+        return self.grep($test) if !$index;
 
-    proto method grep-index(|) { * }
-    multi method grep-index(Bool:D $t) is rw {
-        fail X::Match::Bool.new( type => '.grep-index' );
-    }
-    multi method grep-index(Regex:D $test) {
-        my int $index = -1;
+        my int $i = -1;
         self.map: {
-            $index = $index+1;
+            $i = $i + 1;
             next unless .match($test);
-            nqp::box_i($index,Int);
+            nqp::box_i($i,Int);
         };
     }
-    multi method grep-index(Callable:D $test) {
-        my int $index = -1;
+    multi method grep(Callable:D $test, :$index!) {
+        return self.grep($test) if !$index;
+
+        my int $i = -1;
         self.map: {
-            $index = $index + 1;
+            $i = $i + 1;
             next unless $test($_);
-            nqp::box_i($index,Int);
+            nqp::box_i($i,Int);
         };
     }
-    multi method grep-index(Mu $test) {
-        my int $index = -1;
+    multi method grep(Mu $test, :$index!) {
+        return self.grep($test) if !$index;
+
+        my int $i = -1;
         self.map: {
-            $index = $index + 1;
+            $i = $i + 1;
             next unless $_ ~~ $test;
-            nqp::box_i($index,Int);
+            nqp::box_i($i,Int);
         };
+    }
+
+    method grep-index(Mu $test) is rw {
+        DEPRECATED('grep with :index',|<2015.04 2015.09>);
+        self.grep($test, :index);
     }
 
     proto method first(|) { * }
@@ -697,15 +703,13 @@ multi sub map(Whatever, \a)    { a }
 multi sub map(&code, Whatever) { (1..Inf).map(&code) }
 
 proto sub grep(|) {*}
-multi sub grep(Mu $test, @values) { @values.grep($test) }
-multi sub grep(Mu $test, *@values) { @values.grep($test) }
-multi sub grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
+multi sub grep(Mu $test, @values, |c) { @values.grep($test,|c) }
+multi sub grep(Mu $test, *@values, |c) { @values.grep($test,|c) }
+multi sub grep(Bool:D $t, *@v, |c) { fail X::Match::Bool.new( type => 'grep' ) }
 
-proto sub grep-index(|) {*}
-multi sub grep-index(Mu $test, @values) { @values.grep-index($test) }
-multi sub grep-index(Mu $test, *@values) { @values.grep-index($test) }
-multi sub grep-index(Bool:D $t, *@v) {
-    fail X::Match::Bool.new(type => 'grep-index');
+sub grep-index(Mu $test, *@values) {
+    DEPRECATED("grep with :index",|<2015.04 2015.09>);
+    @values.grep($test, :index)
 }
 
 proto sub first(|) {*}

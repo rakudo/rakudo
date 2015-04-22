@@ -1458,10 +1458,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    method codes(Str:D:) returns Int:D {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
-    }
-
     method path(Str:D: |c) {
         DEPRECATED('IO', |<2014.11 2015.09>);
         CREATE-IO-OBJECT(self, |c);

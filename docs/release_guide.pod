@@ -18,7 +18,7 @@ end of this document.
   2015-05-21   Rakudo #88
   2015-06-18   Rakudo #89
   2015-07-23   Rakudo #90
-  2015-08-20   Rakudo #91
+  2015-08-20   Rakudo #91 duff
   2015-09-17   Rakudo #92
   2015-10-22   Rakudo #93
   2015-11-19   Rakudo #94

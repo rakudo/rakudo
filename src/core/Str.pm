@@ -99,7 +99,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method chop(|) {*}
     multi method chop(Str:D: $chars) {
-        DEPRECATED('chop', |<2015.05 2015.09>);
+        DEPRECATED('chop without arguments', |<2015.04 2015.09>);
         my str $sself = nqp::unbox_s(self);
         nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
     }

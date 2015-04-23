@@ -91,7 +91,7 @@ class Perl6::Compiler is HLL::Compiler {
 
     method interactive(*%adverbs) {
         try {
-            my @symbols := self.eval("use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback, &linenoiseAddCompletion)");
+            my @symbols := self.eval("use nqp; use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback, &linenoiseAddCompletion)");
 
             $!linenoise := @symbols[0];
             $!linenoise_add_history := @symbols[1];

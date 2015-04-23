@@ -120,8 +120,8 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.chomp;
     }
 
-    method chop() {
-        self.Str.chop
+    method chop(Int() $n = 1) {
+        self.Str.chop($n)
     }
 
     method ord(--> Int) {
@@ -301,7 +301,7 @@ my class Cool { # declared in BOOTSTRAP
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
-sub chop(Cool $s) returns Str      { $s.chop }
+sub chop(Cool $s, Int() $n = 1) returns Str { $s.chop($n) }
 sub chomp(Cool $s) returns Str     { $s.chomp }
 sub flip(Cool $s) returns Str      { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }

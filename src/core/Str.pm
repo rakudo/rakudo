@@ -97,9 +97,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method chop(Str:D: $chars = 1) {
-        my str $sself = nqp::unbox_s(self);
-        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
+    method chop(Str:D: Int() $chopping = 1) {
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str) - $chopping;
+        $chars > 0 ?? nqp::p6box_s(nqp::substr($str,0,$chars)) !! '';
     }
 
     # chars used to handle ranges for pred/succ

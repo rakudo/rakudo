@@ -17,6 +17,7 @@ sub NORMALIZE_ENCODING(Str:D $s) {
         'utf32'             => 'utf32',
         'ascii'             => 'ascii',
         'iso-8859-1'        => 'iso-8859-1',
+        'windows-1252'      => 'windows-1252',
         # with dash
         'utf-8'             => 'utf8',
         'utf-16'            => 'utf16',

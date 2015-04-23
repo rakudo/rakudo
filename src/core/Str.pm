@@ -97,9 +97,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method chop(Str:D: $chars = 1) {
+    proto method chop(|) {*}
+    multi method chop(Str:D: $chars) {
+        DEPRECATED('chop', |<2015.05 2015.09>);
         my str $sself = nqp::unbox_s(self);
         nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
+    }
+    multi method chop(Str:D:) {
+        my str $sself = nqp::unbox_s(self);
+        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - 1))
     }
 
     # chars used to handle ranges for pred/succ

@@ -28,6 +28,7 @@ New in 2015.04
    + use of | prefix in the wrong place now complains at compile time
    + \(...) capture constuct handles nameds and | correctly
    + regex interpolation now uses cursors instead of scanning
+   + correct line numbers are reported for faling tests
  + Deprecations:
    + the RC release in September will remove *all* deprecations
    + "use nqp" now required for silent use of nqp::ops

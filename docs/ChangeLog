@@ -2,7 +2,7 @@ New in 2015.04
  + Incompatible changes:
    + Installation directory layout changed: it now uses $PREFIX/share instead of
      $PREFIX/languages
-   + "0" (0 as a string) is now True, no special casing anymore
+   + "0" (0 as a string) is now True, no special-casing anymore
  + Fixes:
    + try now implies "use fatal", so failures are not leaked
    + "use fatal" now only works in its scope, and not in deeper ones

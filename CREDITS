@@ -6,7 +6,7 @@
     works.  It is sorted by name and formatted to allow easy
     grepping and beautification by scripts.
     The fields are: name (N), email (E), web-address (W),
-    description (D), Subversion or GitHub username (U) and 
+    description (D), Subversion or GitHub username (U) and
     snail-mail address (S).
 
         Thanks,
@@ -179,6 +179,10 @@ N: Donald Hunter
 U: donaldh
 E: donald@sealgair.com
 
+N: Elise
+U: rightfold
+E: rightfold@gmail.com
+
 N: Elizabeth Mattijsen
 U: lizmat
 E: liz@dijkmat.nl
@@ -240,7 +244,7 @@ N: Jesse Vincent
 U: jesse
 E: jesse@fsck.com
 
-N: John Harrison 
+N: John Harrison
 U: __ash__
 E: ash@greaterthaninfinity.com
 

@@ -141,15 +141,6 @@ my class Cool { # declared in BOOTSTRAP
     }
     method trans(*@a) { self.Str.trans(@a) }
 
-    proto method has-substr(|) {*}
-    multi method has-substr(Cool $needle, Cool $pos = 0) {
-        ?nqp::eqat(
-            nqp::unbox_s(self.Str),
-            nqp::unbox_s($needle.Str),
-            nqp::unbox_i($pos.Int)
-        );
-    }
-
     proto method starts-with(|) {*}
     multi method starts-with(Str:D: Str(Cool) $needle) {
         nqp::p6bool(

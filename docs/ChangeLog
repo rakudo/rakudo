@@ -20,16 +20,16 @@ New in 2015.04
    + exceptions in BEGIN blocks and constant are now handled better
    + binding now works again in the REPL
    + \foo variables work properly in EVAL
-    + declarations like my (Str $ing, Int $eger) correctly enforce types
-    + detect and complain about placeholders in attribute initializers
-    + use of | prefix in the wrong place now complains at compile time
-    + \(...) capture constuct handles nameds and | correctly
+   + declarations like my (Str $ing, Int $eger) correctly enforce types
+   + detect and complain about placeholders in attribute initializers
+   + use of | prefix in the wrong place now complains at compile time
+   + \(...) capture constuct handles nameds and | correctly
  + Deprecations:
    + the RC release in September will remove *all* deprecations
    + "use nqp" now required for silent use of nqp::ops
  + Features:
     + native arrays
- 	+ 'bit' and 'byte' native types
+ 	  + 'bit' and 'byte' native types
     + starts-with/substr-eq/ends-with for comparing strings inside other strings
     + first steps towards generic lexical pragma's (e.g. soft, strict, nqp)
     + basic implementation of Uni, NFC, NFD, NFKC, and NFKD on Moar backend

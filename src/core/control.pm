@@ -240,7 +240,7 @@ sub THE_END {
 my class Proc::Status { ... }
 
 sub run(*@args ($, *@)) {
-    my $status = Proc::Status.new( :exit(255) );
+    my $status = Proc::Status.new( :exitcode(255) );
     try {
         $status.status(nqp::p6box_i(nqp::spawn(
           CLONE-LIST-DECONTAINERIZED(@args),
@@ -252,7 +252,7 @@ sub run(*@args ($, *@)) {
 }
 
 sub shell($cmd) {
-    my $status = Proc::Status.new( :exit(255) );
+    my $status = Proc::Status.new( :exitcode(255) );
     try {
         $status.status(nqp::p6box_i(nqp::shell(
           $cmd,

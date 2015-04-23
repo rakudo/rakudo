@@ -173,7 +173,7 @@ my class Proc::Async {
 
         my Mu $callbacks := nqp::hash();
         nqp::bindkey($callbacks, 'done', -> Mu \status {
-            $!exit_promise.keep(Proc::Status.new(:exit(status)))
+            $!exit_promise.keep(Proc::Status.new(:exitcode(status)))
         });
         nqp::bindkey($callbacks, 'error', -> Mu \err {
             $!exit_promise.break(X::OS.new(os-error => err));

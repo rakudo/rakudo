@@ -531,6 +531,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     proto method rotor(|) {*}
+    multi method rotor(Pair $teeth-gap) { self.rotor($teeth-gap.key, -$teeth-gap.value) }
     multi method rotor(1, 0) { self }
     multi method rotor($elems = 2, $overlap = 1) {
         X::OutOfRange.new(

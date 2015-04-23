@@ -181,22 +181,27 @@ my class List does Positional { # declared in BOOTSTRAP
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
-    multi method pick($n is copy) {
+    multi method pick(\number) {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
-        my $elems = self.elems;
+
+        my Int $elems = self.elems;
         return unless $elems;
-        $n = Inf if nqp::istype($n, Whatever);
-        $n = $elems if $n > $elems;
+
+        my int $n = nqp::istype(number, Whatever) || number > $elems
+          ?? $elems
+          !! number.Int;
         return self.AT-POS($elems.rand.floor) if $n == 1;
+
         my Mu $rpa := nqp::clone($!items);
-        my $i;
+        my int $i;
         my Mu $v;
-        gather while $n > 0 {
-            $i = nqp::rand_I(nqp::decont($elems), Int);
-            $elems--; $n--;
+        gather while $n {
+            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $elems = $elems - 1;
+            $n     = $n - 1;
             $v := nqp::atpos($rpa, nqp::unbox_i($i));
             # replace selected element with last unpicked one
             nqp::bindpos($rpa, nqp::unbox_i($i),

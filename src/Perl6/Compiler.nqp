@@ -200,36 +200,37 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method readline($stdin, $stdout, $prompt) {
-        my $ctx := self.context();
-        if $ctx {
-            my $pad := nqp::ctxlexpad($ctx);
-            my $it := nqp::iterator($pad);
+        if $!linenoise {
+            my $ctx := self.context();
+            if $ctx {
+                my $pad := nqp::ctxlexpad($ctx);
+                my $it := nqp::iterator($pad);
 
-            while $it {
-                my $e := nqp::shift($it);
-                my $k := nqp::iterkey_s($e);
-                my $m := $k ~~ /^ "&"? $<word>=[\w+] $/;
-                if $m {
-                    my $word := $m<word>;
-                    unless $word ~~ /^ "&" <.upper>+ $/ {
-                        sorted_set_insert($!completions, $word);
+                while $it {
+                    my $e := nqp::shift($it);
+                    my $k := nqp::iterkey_s($e);
+                    my $m := $k ~~ /^ "&"? $<word>=[\w+] $/;
+                    if $m {
+                        my $word := $m<word>;
+                        unless $word ~~ /^ "&" <.upper>+ $/ {
+                            sorted_set_insert($!completions, $word);
+                        }
                     }
+                }
+
+                my $our := nqp::getlexrel($ctx, '$?PACKAGE').WHO;
+                my $EnumMap := self.eval('EnumMap');
+                my $storage := nqp::getattr($our, $EnumMap, '$!storage');
+
+                $it := nqp::iterator($storage);
+
+                while $it {
+                    my $e := nqp::shift($it);
+                    my $k := nqp::iterkey_s($e);
+                    sorted_set_insert($!completions, $k);
                 }
             }
 
-            my $our := nqp::getlexrel($ctx, '$?PACKAGE').WHO;
-            my $EnumMap := self.eval('EnumMap');
-            my $storage := nqp::getattr($our, $EnumMap, '$!storage');
-
-            $it := nqp::iterator($storage);
-
-            while $it {
-                my $e := nqp::shift($it);
-                my $k := nqp::iterkey_s($e);
-                sorted_set_insert($!completions, $k);
-            }
-        }
-        if $!linenoise {
             my $line := $!linenoise($prompt);
             if $line.defined {
                 $!linenoise_add_history($line);

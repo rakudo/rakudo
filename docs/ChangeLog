@@ -15,9 +15,9 @@ New in 2015.04
    + adverbs are now allowed inside a ternary
    + auto-generated accessors will not show up in backtraces anymore
    + $_ now defaults to Any, rather than Nil
-   + intuited iterators no longer bypasses endpoint if no exact match
-   + intuited operators may also skip literal values if endpoint is lower
-   + beginning/ending with same length now according to spec
+   + intuited iterators no longer bypass endpoint if no exact match
+   + intuited iterators may also skip literal values if endpoint is lower
+   + intuited iterators beginning/ending with same length now according to spec
    + say now observes the .nl setting
    + exceptions in BEGIN blocks and constant are now handled better
    + binding now works again in the REPL

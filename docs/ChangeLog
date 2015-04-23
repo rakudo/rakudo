@@ -4,6 +4,7 @@ New in 2015.04
      $PREFIX/languages
    + "0" (0 as a string) is now True, no special casing anymore
  + Fixes:
+   + try now implies "use fatal", so failures are not leaked
    + "use fatal" now only works in its scope, and not in deeper ones
    + don't constant-fold Failures
    + throws_like will EVAL code in context of caller
@@ -16,7 +17,13 @@ New in 2015.04
    + $_ now defaults to Any, rather than Nil
    + many sequence (...) related fixes
    + say now observes the .nl setting
-   + exceptions in BEGIN blocks are now handled better
+   + exceptions in BEGIN blocks and constant are now handled better
+   + binding now works again in the REPL
+   + \foo variables work properly in EVAL
+    + declarations like my (Str $ing, Int $eger) correctly enforce types
+    + detect and complain about placeholders in attribute initializers
+    + use of | prefix in the wrong place now complains at compile time
+    + \(...) capture constuct handles nameds and | correctly
  + Deprecations:
    + the RC release in September will remove *all* deprecations
    + "use nqp" now required for silent use of nqp::ops
@@ -28,6 +35,7 @@ New in 2015.04
     + basic implementation of Uni, NFC, NFD, NFKC, and NFKD on Moar backend
     + Uni.Str coercion produces an NFG string
     + chop now takes optional number of characters argument
+    + where constraints on variable and attribute declarations
  + Speedups:
     + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
     + List.pick about 10% faster

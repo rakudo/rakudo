@@ -15,7 +15,9 @@ New in 2015.04
    + adverbs are now allowed inside a ternary
    + auto-generated accessors will not show up in backtraces anymore
    + $_ now defaults to Any, rather than Nil
-   + many sequence (...) related fixes
+   + intuited iterators no longer bypasses endpoint if no exact match
+   + intuited operators may also skip literal values if endpoint is lower
+   + beginning/ending with same length now according to spec
    + say now observes the .nl setting
    + exceptions in BEGIN blocks and constant are now handled better
    + binding now works again in the REPL
@@ -28,23 +30,23 @@ New in 2015.04
    + the RC release in September will remove *all* deprecations
    + "use nqp" now required for silent use of nqp::ops
  + Features:
-    + native arrays
- 	  + 'bit' and 'byte' native types
-    + starts-with/substr-eq/ends-with for comparing strings inside other strings
-    + first steps towards generic lexical pragma's (e.g. soft, strict, nqp)
-    + basic implementation of Uni, NFC, NFD, NFKC, and NFKD on Moar backend
-    + Uni.Str coercion produces an NFG string
-    + chop now takes optional number of characters argument
-    + where constraints on variable and attribute declarations
-    + dists are installed into a database-like way by default (via panda)
-    + 'is rw' parameters implemented for native subs (they get passed as a pointer)
+   + native arrays
+   + 'bit' and 'byte' native types
+   + starts-with/substr-eq/ends-with for comparing strings inside other strings
+   + first steps towards generic lexical pragma's (e.g. soft, strict, nqp)
+   + basic implementation of Uni, NFC, NFD, NFKC, and NFKD on Moar backend
+   + Uni.Str coercion produces an NFG string
+   + chop now takes optional number of characters argument
+   + where constraints on variable and attribute declarations
+   + dists are installed into a database-like way by default (via panda)
+   + 'is rw' parameters implemented for native subs (they get passed as a pointer)
  + Speedups:
-    + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
-    + List.pick about 10% faster
-    + Mu.clone about 8% faster
-    + make xx about 1.8 times faster
-    + several speedups in matching
-    + numerous Num.Rat optimizations: 6.5x faster
+   + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
+   + List.pick about 10% faster
+   + Mu.clone about 8% faster
+   + make xx about 1.8 times faster
+   + several speedups in matching
+   + numerous Num.Rat optimizations: 6.5x faster
 
 New in 2015.03
 + Incompatible changes and deprecations:

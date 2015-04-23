@@ -26,6 +26,7 @@ New in 2015.04
     + starts-with/substr-eq/ends-with for comparing strings inside other strings
     + first steps towards generic lexical pragma's (e.g. soft, strict, nqp)
     + first steps towards NFC, NFD and NFG!
+    + chop now takes optional number of characters argument
  + Speedups:
     + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
     + List.pick about 10% faster

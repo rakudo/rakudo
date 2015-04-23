@@ -5,7 +5,7 @@ New in 2015.04
    + "0" (0 as a string) is now True, no special casing anymore
  + Fixes:
    + "use fatal" now only works in its scope, and not in deeper ones
-   + detect Failures in constant folding
+   + don't constant-fold Failures
    + throws_like will EVAL code in context of caller
    + pragma's like "strict" can now also be called with -M on the CLI
    + once a List is infinite, it will stay infinite (fixes several hangs)
@@ -25,7 +25,8 @@ New in 2015.04
  	+ 'bit' and 'byte' native types
     + starts-with/substr-eq/ends-with for comparing strings inside other strings
     + first steps towards generic lexical pragma's (e.g. soft, strict, nqp)
-    + first steps towards NFC, NFD and NFG!
+    + basic implementation of Uni, NFC, NFD, NFKC, and NFKD on Moar backend
+    + Uni.Str coercion produces an NFG string
     + chop now takes optional number of characters argument
  + Speedups:
     + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster

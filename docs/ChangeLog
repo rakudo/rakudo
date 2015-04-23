@@ -36,6 +36,8 @@ New in 2015.04
     + Uni.Str coercion produces an NFG string
     + chop now takes optional number of characters argument
     + where constraints on variable and attribute declarations
+    + dists are installed into a database-like way by default (via panda)
+    + 'is rw' parameters implemented for native subs (they get passed as a pointer)
  + Speedups:
     + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
     + List.pick about 10% faster

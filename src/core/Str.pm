@@ -1869,9 +1869,14 @@ sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
 
 # These probably belong in a separate unicodey file
 
+proto sub uniname(|) {*}
+multi sub uniname(Str $str) { uniname($str.ord) }
+multi sub uniname(Int $code) { nqp::getuniname($code) }
+
+proto sub uninames(|) {*}
+multi sub uninames(Str $str) { $str.comb.map:{uniname($_.ord)}; }
+
 #?if jvm
-multi sub uniname(|)      { die 'uniname NYI on jvm backend' }
-multi sub uninames(|)     { die 'uniname NYI on jvm backend' }
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
 multi sub univals(|)      { die 'univals NYI on jvm backend' }
 multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
@@ -1890,13 +1895,6 @@ sub PVALCODE($prop,$pvalname) {
     state %pvalcode;
     %pvalcode{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
 }
-
-proto sub uniname(|) {*}
-multi sub uniname(Str $str) { uniname($str.ord) }
-multi sub uniname(Int $code) { nqp::getuniname($code) }
-
-proto sub uninames(|) {*}
-multi sub uninames(Str $str) { $str.comb.map:{uniname($_.ord)}; }
 
 proto sub uniprop(|) {*}
 multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }

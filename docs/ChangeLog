@@ -48,6 +48,8 @@ New in 2015.04
    + attempting to bind a Failure now tells you what was in the Failure
    + reduce() now pays attention to associativity (which is now part of the op)
    + can now reduce ([Z]) with list infixes over an arbitrary number of lists
+   + use Foo:from<Perl5> supported when Inline::Perl5 is installed
+   + EVAL $code, :lang<perl5> supported when Inline::Perl5 is installed
  + Speedups:
    + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
    + List.pick about 10% faster

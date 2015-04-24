@@ -47,6 +47,33 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     }
 
     method codes() { nqp::elems(self) }
+
+    multi method EXISTS-POS(Uni:D: int \pos) {
+        nqp::p6bool(
+          nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
+        );
+    }
+    multi method EXISTS-POS(Uni:D: Int:D \pos) {
+        pos < nqp::elems(self) && pos >= 0;
+    }
+
+    multi method AT-POS(Uni:D: int \pos) {
+        fail X::OutOfRange.new(
+          :what<Index>,
+          :got(pos),
+          :range("0..{nqp::elems(self)-1}")
+        ) if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
+        nqp::atpos_i(self, pos);
+    }
+    multi method AT-POS(Uni:D: Int:D \pos) {
+        my int $pos = nqp::unbox_i(pos);
+        fail X::OutOfRange.new(
+          :what<Index>,
+          :got(pos),
+          :range("0..{nqp::elems(self)-1}")
+        ) if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
+        nqp::atpos_i(self,$pos);
+    }
 }
 
 my class NFD is Uni {

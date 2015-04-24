@@ -209,7 +209,7 @@ S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
-S03-operators/range-int.t                       # stress
+S03-operators/range-int.t
 S03-operators/range.t
 S03-operators/reduce-le1arg.t
 S03-operators/relational.t

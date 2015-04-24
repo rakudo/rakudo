@@ -206,9 +206,7 @@ my class List does Positional { # declared in BOOTSTRAP
         my Int $elems = self.elems;
         return unless $elems;
 
-        my int $n = nqp::istype(number, Whatever) || number > $elems
-          ?? $elems
-          !! number.Int;
+        my int $n = number > $elems ?? $elems !! number.Int;
         return self.AT-POS($elems.rand.floor) if $n == 1;
 
         my Mu $rpa := nqp::clone($!items);

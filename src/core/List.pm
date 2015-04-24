@@ -197,15 +197,13 @@ my class List does Positional { # declared in BOOTSTRAP
 
         my Mu $rpa := nqp::clone($!items);
         my int $i;
-        my Mu $v;
         gather while $n {
             $i     = nqp::rand_I(nqp::decont($elems), Int);
             $elems = $elems - 1;
             $n     = $n - 1;
-            $v := nqp::atpos($rpa,$i);
+            take-rw nqp::atpos($rpa,$i);
             # replace selected element with last unpicked one
             nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
-            take-rw $v;
         }
     }
 

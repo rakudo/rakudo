@@ -13,7 +13,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         $uni
     }
 
-    method list() {
+    method list(Uni:D:) {
         gather {
             my int $n = nqp::elems(self);
             loop (my int $i = 0; $i < $n; $i++) {
@@ -22,31 +22,31 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         }
     }
 
-    method Uni() {
+    method Uni(Uni:D:) {
         self
     }
 
-    method NFC() {
+    method NFC(Uni:D:) {
         nqp::normalizecodes(self, nqp::const::NORMALIZE_NFC, nqp::create(NFC))
     }
 
-    method NFD() {
+    method NFD(Uni:D:) {
         nqp::normalizecodes(self, nqp::const::NORMALIZE_NFD, nqp::create(NFD))
     }
 
-    method NFKC() {
+    method NFKC(Uni:D:) {
         nqp::normalizecodes(self, nqp::const::NORMALIZE_NFKC, nqp::create(NFKC))
     }
 
-    method NFKD() {
+    method NFKD(Uni:D:) {
         nqp::normalizecodes(self, nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
     }
 
-    method Str() {
+    multi method Str(Uni:D:) {
         nqp::strfromcodes(self)
     }
 
-    method codes() { nqp::elems(self) }
+    method codes(Uni:D:) { nqp::elems(self) }
 
     multi method EXISTS-POS(Uni:D: int \pos) {
         nqp::p6bool(

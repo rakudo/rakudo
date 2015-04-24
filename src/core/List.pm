@@ -530,25 +530,25 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    proto method rotor(|) {*}
-    multi method rotor(Pair $teeth-gap) { self.rotor($teeth-gap.key, -$teeth-gap.value) }
-    multi method rotor(1, 0) { self }
-    multi method rotor($elems = 2, $overlap = 1) {
-        X::OutOfRange.new(
-            what => 'Overlap argument to List.rotor',
-            got  => $overlap,
-            range => (0 .. $elems - 1),
-        ).fail unless 0 <= $overlap < $elems;
-        X::OutOfRange.new(
-            what => 'Elements argument to List.rotor',
-            got  => $elems,
-            range => (0 .. *),
-        ).fail unless 0 <= $elems;
-
+    method rotor(*@cycle, :$partial) {
         my $finished = 0;
-        gather while $finished + $overlap < self.gimme($finished + $elems) {
-            take item self[$finished ..^ $finished + $elems];
-            $finished += $elems - $overlap
+        # (Note, the xx should be harmless if the cycle is already infinite by accident.)
+        my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
+        gather for @c -> $s {
+            my $elems;
+            my $gap;
+            if $s ~~ Pair { $elems = +$s.key; $gap = +$s.value; }
+            else          { $elems = +$s;     $gap = 0; }
+
+            # XXX these item calls are going away with GLR
+            if $finished + $elems <= self.gimme($finished + $elems) {
+                take item self[$finished ..^ $finished + $elems];
+                $finished += $elems + $gap;
+            }
+            else {
+                take item self[$finished .. *] if $partial and $finished < self.elems;
+                last;
+            }
         }
     }
 

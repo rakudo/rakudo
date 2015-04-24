@@ -7,6 +7,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
+    does Perl6::Metamodel::MetaMethodContainer
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::DefaultParent
@@ -48,18 +49,6 @@ class Perl6::Metamodel::ClassHOW
         $metaclass.setup_mixin_cache($obj);
         nqp::setboolspec($obj, 5, nqp::null());
         $obj
-    }
-    
-    method parameterize($obj, *@pos_args, *%named_args) {
-        # XXX This mechanism may well change. For now we pass these along
-        # to a PARAMETERIZE_TYPE method on the object if it has one. If
-        # not, we complain.
-        if nqp::can($obj, 'PARAMETERIZE_TYPE') {
-            $obj.PARAMETERIZE_TYPE(|@pos_args, |%named_args)
-        }
-        else {
-            nqp::die("Type " ~ self.name($obj) ~ " cannot accept type arguments")
-        }
     }
     
     # Adds a new fallback for method dispatch. Expects the specified
@@ -147,7 +136,7 @@ class Perl6::Metamodel::ClassHOW
         if !nqp::isnull($FALLBACK) && nqp::defined($FALLBACK) {
             self.add_fallback($obj,
                 sub ($obj, str $name) {
-                    $name ne 'sink' && $name ne 'invoke' && $name ne 'postcircumfix:<( )>'
+                    $name ne 'sink' && $name ne 'CALL-ME' && $name ne 'postcircumfix:<( )>'
                 },
                 sub ($obj, str $name) {
                     -> $inv, *@pos, *%named { $FALLBACK($inv, $name, |@pos, |%named) }
@@ -162,10 +151,13 @@ class Perl6::Metamodel::ClassHOW
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
         
-        # Compose the representation, unless we already did so once.
+        # Compose the representation, provided this isn't an augment.
         unless $was_composed {
             self.compose_repr($obj);
         }
+
+        # Compose the meta-methods.
+        self.compose_meta_methods($obj);
         
         # Compose invocation protocol.
         self.compose_invocation($obj);

@@ -35,6 +35,7 @@ src/core/Order.pm
 src/core/UInt64.pm
 src/core/Num.pm
 src/core/Buf.pm
+src/core/Uni.pm
 src/core/Str.pm
 src/core/Capture.pm
 src/core/Parcel.pm
@@ -48,6 +49,7 @@ src/core/GatherIter.pm
 src/core/List.pm
 src/core/LoL.pm
 src/core/Array.pm
+src/core/native_array.pm
 src/core/Enum.pm
 src/core/Pair.pm
 src/core/HashIter.pm
@@ -74,7 +76,7 @@ src/core/IO/Pathy.pm
 src/core/IO/Local.pm
 src/core/IO/Dir.pm
 src/core/IO/File.pm
-src/core/IOU.pm
+src/core/IO/Huh.pm
 src/core/IO/Spec.pm
 src/core/IO/Spec/Unix.pm
 src/core/IO/Spec/Win32.pm
@@ -97,6 +99,7 @@ src/core/Duration.pm
 src/core/Temporal.pm
 src/core/EXPORTHOW.pm
 src/core/Pod.pm
+src/core/PairMap.pm
 src/core/QuantHash.pm
 src/core/Setty.pm
 src/core/Set.pm

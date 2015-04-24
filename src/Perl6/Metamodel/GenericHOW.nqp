@@ -38,6 +38,6 @@ class Perl6::Metamodel::GenericHOW
     }
     
     method type_check($obj, $checkee) {
-        nqp::die("Cannot type check against type variable " ~ self.name($obj))
+        0
     }
 }

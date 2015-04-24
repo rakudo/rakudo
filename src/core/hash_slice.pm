@@ -4,13 +4,13 @@ proto sub postcircumfix:<{ }>(|) { * }
 
 # %h<key>
 multi sub postcircumfix:<{ }>( \SELF, \key ) is rw {
-    SELF.at_key(key);
+    SELF.AT-KEY(key);
 }
 multi sub postcircumfix:<{ }>(\SELF, \key, Mu \ASSIGN) is rw {
-    SELF.assign_key(key, ASSIGN);
+    SELF.ASSIGN-KEY(key, ASSIGN);
 }
 multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is parcel) is rw {
-    SELF.bind_key(key, $BIND);
+    SELF.BIND-KEY(key, $BIND);
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$SINK!, *%other ) is rw {
     SLICE_ONE_HASH( SELF, key, :$SINK, |%other );
@@ -37,12 +37,12 @@ multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is rw {
 # %h<a b c>
 multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
     nqp::iscont(key)
-      ?? SELF.at_key(key)
+      ?? SELF.AT-KEY(key)
       !! key.map({ SELF{$_} }).eager.Parcel;
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, Mu \ASSIGN) is rw {
     (nqp::iscont(key)
-      ?? SELF.at_key(key)
+      ?? SELF.AT-KEY(key)
       !! key.map({ SELF{$_} }).eager.Parcel) = ASSIGN
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
@@ -104,7 +104,7 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
 
 # %h{}
 multi sub postcircumfix:<{ }>( \SELF ) is rw {
-    SELF;
+    nqp::decont(SELF);
 }
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;

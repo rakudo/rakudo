@@ -607,6 +607,7 @@ class Perl6::World is HLL::World {
             for @($block[0]) {
                 if nqp::istype($_, QAST::Var) && $_.name eq $name {
                     $var := $_;
+                    $var.returns(%cont_info<bind_constraint>);
                     last;
                 }
             }
@@ -622,7 +623,7 @@ class Perl6::World is HLL::World {
             
         # If it's a native type, no container as we inline natives straight
         # into registers. Do need to take care of initial value though.
-        my $prim := nqp::objprimspec($descriptor.of);
+        my $prim := %cont_info<sigil> eq '$' && nqp::objprimspec($descriptor.of);
         if $prim {
             if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
             if $prim == 1 {
@@ -645,10 +646,12 @@ class Perl6::World is HLL::World {
         
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
-        nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if nqp::existskey(%cont_info, 'scalar_value') {
-            nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                %cont_info<scalar_value>);
+        if %cont_info<container_type>.REPR eq 'P6opaque' {
+            nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+            if nqp::existskey(%cont_info, 'scalar_value') {
+                nqp::bindattr($cont, %cont_info<container_base>, '$!value',
+                    %cont_info<scalar_value>);
+            }
         }
         self.add_object($cont);
         $block.symbol($name, :value($cont));
@@ -670,25 +673,34 @@ class Perl6::World is HLL::World {
         $cd
     }
 
-    # Given a sigil and the the value type specified, works out the
+    # Given a sigil and the value type specified, works out the
     # container type (what should we instantiate and bind into the
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    method container_type_info($/, $sigil, @value_type, $shape?) {
+    method container_type_info($/, $sigil, @value_type, $shape?, :@post) {
         my %info;
+        %info<sigil> := $sigil;
+        for @post -> $con {
+            @value_type[0] := self.create_subset(self.resolve_mo($/, 'subset'),
+                @value_type ?? @value_type[0] !! self.find_symbol(['Mu']),
+                $con);
+        }
         if $sigil eq '@' {
-            %info<container_base>  := $*W.find_symbol(['Array']);
             %info<bind_constraint> := $*W.find_symbol(['Positional']);
             if @value_type {
+                my $vtype              := @value_type[0];
+                my $base_type_name     := nqp::objprimspec($vtype) ?? 'array' !! 'Array';
+                %info<container_base>  := $*W.find_symbol([$base_type_name]);
                 %info<container_type>  := $*W.parameterize_type_with_args(
-                    %info<container_base>, [@value_type[0]], nqp::hash());
+                    %info<container_base>, [$vtype], nqp::hash());
                 %info<bind_constraint> := $*W.parameterize_type_with_args(
-                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
-                %info<value_type>      := @value_type[0];
-                %info<default_value>   := @value_type[0];
+                    %info<bind_constraint>, [$vtype], nqp::hash());
+                %info<value_type>      := $vtype;
+                %info<default_value>   := $vtype;
             }
             else {
+                %info<container_base> := $*W.find_symbol(['Array']);
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := $*W.find_symbol(['Mu']);
                 %info<default_value>  := $*W.find_symbol(['Any']);
@@ -774,32 +786,30 @@ class Perl6::World is HLL::World {
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
     # avoid massive duplication of container descriptors.
     method install_lexical_magical($block, $name) {
-        my %info;
-        my $desc;
-        
+
         if nqp::existskey(%!magical_cds, $name) {
-            %info := %!magical_cds{$name}[0];
-            $desc := %!magical_cds{$name}[1];
+            my $mcd := nqp::atkey(%!magical_cds, $name);
+            self.install_lexical_container($block, $name, $mcd[0], $mcd[1]);
         }
         else {
             my $Mu     := self.find_symbol(['Mu']);
-            my $Nil    := self.find_symbol(['Nil']);
+            my $WHAT   := self.find_symbol([ $name eq '$_' ?? 'Any' !! 'Nil' ]);
             my $Scalar := self.find_symbol(['Scalar']);
             
-            %info := nqp::hash(
+            my %info := nqp::hash(
                 'container_base',  $Scalar,
                 'container_type',  $Scalar,
                 'bind_constraint', $Mu,
                 'value_type',      $Mu,
-                'default_value',   $Nil,
-                'scalar_value',    $Nil,
+                'default_value',   $WHAT,
+                'scalar_value',    $WHAT,
             );
-            $desc := self.create_container_descriptor($Mu, 1, $name, $Nil, 1);
+            my $desc :=
+              self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
 
             %!magical_cds{$name} := [%info, $desc];
+            self.install_lexical_container($block, $name, %info, $desc);
         }
-        
-        self.install_lexical_container($block, $name, %info, $desc);
     }
     
     # Builds PAST that constructs a container.
@@ -852,7 +862,21 @@ class Perl6::World is HLL::World {
         }
         nqp::die("Could not find container descriptor for $name");
     }
-    
+
+    # Hunts through scopes to find a lexical and returns if it is
+    # known to be read-only.
+    method is_lexical_marked_ro($name) {
+        my int $i := +@!BLOCKS;
+        while $i > 0 {
+            $i := $i - 1;
+            my %sym := @!BLOCKS[$i].symbol($name);
+            if %sym {
+                return nqp::existskey(%sym, 'ro');
+            }
+        }
+        0;
+    }
+
     # Installs a symbol into the package.
     method install_package_symbol($package, $name, $obj) {
         ($package.WHO){$name} := $obj;
@@ -1012,13 +1036,125 @@ class Perl6::World is HLL::World {
         # Return created parameter.
         $parameter
     }
-    
+
+    # Create Parameter objects, along with container descriptors if needed,
+    # for all of the given parameter descriptors. Then make a Signature
+    # object wrapping them.
+    method create_signature_and_params($/, %signature_info, $lexpad, $default_type_name,
+            :$no_attr_check, :$rw, :$method, :$invocant_type) {
+        # If it's a method, add auto-slurpy.
+        my @params := %signature_info<parameters>;
+        if $method {
+            unless @params[0]<is_invocant> {
+                @params.unshift(hash(
+                    nominal_type => $invocant_type,
+                    is_invocant => 1,
+                    is_multi_invocant => 1
+                ));
+            }
+            unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
+                unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
+                    @params.push(hash(
+                        variable_name => '%_',
+                        nominal_type => self.find_symbol(['Mu']),
+                        named_slurpy => 1,
+                        is_multi_invocant => 1,
+                        sigil => '%'
+                    ));
+                    $lexpad[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
+                    $lexpad.symbol('%_', :scope('lexical'));
+                }
+            }
+        }
+
+        # Walk parameters, setting up parameter objects.
+        my $default_type := self.find_symbol([$default_type_name]);
+        my @param_objs;
+        my %seen_names;
+        for @params {
+            # Set default nominal type, if we lack one.
+            unless nqp::existskey($_, 'nominal_type') {
+                $_<nominal_type> := $default_type;
+            }
+
+            # Default to rw if needed.
+            if $rw {
+                $_<is_rw> := 1;
+            }
+
+            # Check we don't have duplicated named parameter names.
+            if $_<named_names> {
+                for $_<named_names> {
+                    if %seen_names{$_} {
+                        self.throw($/, ['X', 'Signature', 'NameClash'],
+                            name => $_
+                        );
+                    }
+                    %seen_names{$_} := 1;
+                }
+            }
+            
+            # If it's !-twigil'd, ensure the attribute it mentions exists unless
+            # we're in a context where we should not do that.
+            if $_<bind_attr> && !$no_attr_check {
+                self.get_attribute_meta_object($/, $_<variable_name>, QAST::Var.new);
+            }
+            
+            # If we have a sub-signature, create that.
+            if nqp::existskey($_, 'sub_signature_params') {
+                $_<sub_signature> := self.create_signature_and_params($/,
+                    $_<sub_signature_params>, $lexpad, $default_type_name);
+            }
+            
+            # Add variable as needed.
+            my $varname := $_<variable_name>;
+            if $varname {
+                my %sym := $lexpad.symbol($varname);
+                if +%sym && !nqp::existskey(%sym, 'descriptor') {
+                    $_<container_descriptor> := self.create_container_descriptor(
+                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $varname);
+                    $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
+                }
+            }
+
+            # Create parameter object and apply any traits.
+            my $param_obj := self.create_parameter($/, $_);
+            if $_<traits> {
+                for $_<traits> {
+                    ($_.ast)($param_obj) if $_.ast;
+                }
+            }
+
+            # If it's natively typed and we got "is rw" set, need to mark the
+            # container as being a lexical ref.
+            if $varname && nqp::objprimspec($_<nominal_type>) {
+                my $param_type := self.find_symbol(['Parameter']);
+                my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
+                if $flags +& $SIG_ELEM_IS_RW {
+                    for @($lexpad[0]) {
+                        if nqp::istype($_, QAST::Var) && $_.name eq $varname {
+                            $_.scope('lexicalref');
+                        }
+                    }
+                }
+                elsif !($flags +& $SIG_ELEM_IS_COPY) {
+                    $lexpad.symbol($varname, :ro(1));
+                }
+            }
+
+            # Add it to the signature.
+            @param_objs.push($param_obj);
+        }
+        %signature_info<parameter_objects> := @param_objs;
+        self.create_signature(%signature_info)
+    }
+
     # Creates a signature object from a set of parameters.
     method create_signature(%signature_info) {
         # Create signature object now.
         my $sig_type   := self.find_symbol(['Signature']);
         my $signature  := nqp::create($sig_type);
-        my @parameters := %signature_info<parameters>;
+        my @parameters := %signature_info<parameter_objects>;
         self.add_object($signature);
 
         # Set parameters.
@@ -1077,7 +1213,7 @@ class Perl6::World is HLL::World {
     # Creates a simple code object with an empty signature
     method create_simple_code_object($block, $type) {
         self.cur_lexpad()[0].push($block);
-        my $sig := self.create_signature(nqp::hash('parameters', []));
+        my $sig := self.create_signature(nqp::hash('parameter_objects', []));
         return self.create_code_object($block, $type, $sig);
     }
     
@@ -1091,13 +1227,6 @@ class Perl6::World is HLL::World {
         $code
     }
 
-    method create_lazy($/, $code) {
-        my $type      := self.find_symbol(['LazyScalar']);
-        my $container := $type.new($code);
-        self.add_object($container);
-        QAST::WVal.new( :value($container) )
-    }
-    
     # Stubs a code object of the specified type.
     method stub_code_object($type) {
         my $type_obj := self.find_symbol([$type]);
@@ -1375,7 +1504,8 @@ class Perl6::World is HLL::World {
         # Add as phaser.
         $block[0].push($phaser_block);
         self.add_phaser($/, $phaser,
-            self.create_code_object($phaser_block, 'Code', self.create_signature(nqp::hash('parameters', []))));
+            self.create_code_object($phaser_block, 'Code',
+                self.create_signature(nqp::hash('parameter_objects', []))));
     }
     
     # Adds a multi candidate to a proto/dispatch.
@@ -1743,6 +1873,42 @@ class Perl6::World is HLL::World {
         # Return attribute that was built.
         $attr
     }
+
+    # Tries to locate an attribute meta-object; optionally panic right
+    # away if we cannot, otherwise add it to the post-resolution list.
+    method get_attribute_meta_object($/, $name, $later?) {
+        unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+            $/.CURSOR.panic("Cannot understand $name in this context");
+        }
+        my $attr;
+        my int $found := 0;
+        try {
+            $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+            $found := 1;
+        }
+        unless $found {
+            # Need to check later
+            if $later {
+                my $seen := %*ATTR_USAGES{$name};
+                unless $seen {
+                    %*ATTR_USAGES{$name} := $seen := nqp::list();
+                    $later.node($/); # only need $/ for first error
+                }
+                $seen.push($later);
+            }
+
+            # Now is later
+            else {
+                self.throw($/, ['X', 'Attribute', 'Undeclared'],
+                  symbol       => $name,
+                  package-kind => $*PKGDECL,
+                  package-name => $*PACKAGE.HOW.name($*PACKAGE),
+                  what         => 'attribute',
+                );
+            }
+        }
+        $attr
+    }
     
     # Adds a method to the meta-object.
     method pkg_add_method($/, $obj, $meta_method_name, $name, $code_object) {
@@ -1801,9 +1967,12 @@ class Perl6::World is HLL::World {
     # Curries a role with the specified arguments.
     method parameterize_type_with_args($role, @pos_args, %named_args) {
         # Make the curry right away and add it to the SC.
-        my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
-        self.add_object($curried);
-        return $curried;
+        if @pos_args || %named_args {
+            my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
+            self.add_object($curried);
+            return $curried;
+        }
+        $role;
     }
     
     # Creates a subset type meta-object/type object pair.
@@ -1964,7 +2133,7 @@ class Perl6::World is HLL::World {
     method add_phaser($/, $phaser, $block, $phaser_past?) {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
-            my $result := $block();
+            my $result := self.handle-begin-time-exceptions($/, 'evaluating a BEGIN', $block);
             return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
@@ -1984,7 +2153,7 @@ class Perl6::World is HLL::World {
                     self.create_container_descriptor($mu, 1, '!INIT_VALUES'));
             }
             $*UNIT[0].push(QAST::Op.new(
-                :op('callmethod'), :name('bind_key'),
+                :op('callmethod'), :name('BIND-KEY'),
                 QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
                 QAST::SVal.new( :value($phaser_past.cuid) ),
                 QAST::Op.new(
@@ -1992,7 +2161,7 @@ class Perl6::World is HLL::World {
                     QAST::WVal.new( :value($block) )
                 )));
             return QAST::Op.new(
-                :op('callmethod'), :name('at_key'),
+                :op('callmethod'), :name('AT-KEY'),
                 QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
                 QAST::SVal.new( :value($phaser_past.cuid) )
             );
@@ -2239,12 +2408,14 @@ class Perl6::World is HLL::World {
         }
 
         # Checks if a name component is a pseudo-package.
+        my %pseudo := nqp::hash(
+            'PROCESS', 1, 'GLOBAL', 1, 'OUR', 1, 'MY', 1,
+            'CORE', 1, 'SETTING', 1, 'UNIT', 1,
+            'OUTER', 1, 'OUTERS', 1, 'LEXICAL', 1,
+            'CALLER', 1, 'CALLERS', 1, 'DYNAMIC', 1,
+            'COMPILING', 1, 'PARENT', 1, );
         method is_pseudo_package($comp) {
-            !nqp::istype($comp, QAST::Node) && (
-            $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
-            $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
-            $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
-            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT')
+            !nqp::istype($comp, QAST::Node) && %pseudo{$comp};
         }
 
         # Checks if the name starts with GLOBAL.
@@ -2537,10 +2708,10 @@ class Perl6::World is HLL::World {
             }
         }
         
-        # The final lookup will always be just an at_key call on a Stash.
+        # The final lookup will always be just an AT-KEY call on a Stash.
         my $final_name := @name.pop();
         my $lookup := QAST::Op.new(
-            :op('callmethod'), :name('at_key'),
+            :op('callmethod'), :name('AT-KEY'),
             self.add_constant('Str', 'str', $final_name));
         
         # If there's no explicit qualification, then look it up in the
@@ -2752,19 +2923,25 @@ class Perl6::World is HLL::World {
 
         if $type_found {
             # If the highwater is beyond the current position, force the cursor to
-            # that location.
+            # that location.  (Maybe.)
             my $c := $/.CURSOR;
             my @expected;
-            if %opts<expected> {
+            my $high := $c.'!highwater'();
+            if %opts<precursor> {
+                $c := $/.PRECURSOR;
+            }
+            elsif %opts<expected> {
                 @expected := %opts<expected>;
             }
-            elsif $c.'!highwater'() >= $c.pos() {
+            elsif $high >= $c.pos() {
                 my @raw_expected := $c.'!highexpect'();
-                $c.'!cursor_pos'($c.'!highwater'());
+                $c.'!cursor_pos'($high);
                 my %seen;
                 for @raw_expected {
                     unless %seen{$_} {
-                        nqp::push(@expected, $_);
+                        my $end := +@expected;
+                        while $end && @expected[$end-1] gt $_ { $end := $end - 1 }
+                        nqp::splice(@expected, [$_], $end, 0);
                         %seen{$_} := 1;
                     }
                 }
@@ -2773,21 +2950,37 @@ class Perl6::World is HLL::World {
             # Try and better explain "Confused".
             my @locprepost := self.locprepost($c);
             if $ex.HOW.name($ex) eq 'X::Syntax::Confused' {
-                my $next := nqp::substr(@locprepost[1], 0, 1);
-                if $next ~~ /\)|\]|\}|\»/ {
+                if @locprepost[1] ~~ / ^ \s* <[ } ) \] > » ]> / {
                     %opts<reason> := "Unexpected closing bracket";
                     @expected := [];
                 }
+                elsif @locprepost[0] ~~ / \} \s* $ / {
+                    %opts<reason> := "Strange text after block (missing semicolon or comma?)";
+                }
                 else {
                     my $expected_infix := 0;
+                    my $expected_term := 0;
                     for @expected {
                         if nqp::index($_, "infix") >= 0 {
                             $expected_infix := 1;
-                            last;
+                        }
+                        elsif nqp::index($_, "term") >= 0 {
+                            $expected_term := 1;
                         }
                     }
                     if $expected_infix {
-                        %opts<reason> := "Two terms in a row";
+                        if $expected_term {
+                            %opts<reason> := "Bogus term";
+                        }
+                        elsif $*IN_META {
+                            %opts<reason> := "Bogus infix";
+                        }
+                        elsif $c.MARKED('baresigil') {
+                            %opts<reason> := "Name must begin with alphabetic character";
+                        }
+                        else {
+                            %opts<reason> := "Two terms in a row";
+                        }
                     }
                 }
             }
@@ -2859,8 +3052,9 @@ class Perl6::World is HLL::World {
     }
     
     method locprepost($c) {
-        my $pos  := $c.pos;
         my $orig := $c.orig;
+        my $marked := $c.MARKED('ws');
+        my $pos  := $marked && nqp::index(" }])>»", nqp::substr($orig, $c.pos, 1)) < 0 ?? $marked.from !! $c.pos;
 
         my $prestart := $pos - 40;
         $prestart := 0 if $prestart < 0;
@@ -2902,6 +3096,41 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method handle-begin-time-exceptions($/, $use-case, $code) {
+        my $ex;
+        my int $nok;
+        try {
+            return $code();
+            CATCH { $ex := $_; }
+        }
+
+        my int $success := 0;
+        my $coercer;
+        try { $coercer := self.find_symbol(['&COMP_EXCEPTION']); ++$success; };
+        nqp::rethrow($ex) unless $success;
+        my $p6ex := $coercer($ex);
+
+        my int $found_xcbt := 0;
+        my $x_comp_bt;
+        try {
+            $x_comp_bt := self.find_symbol(['X', 'Comp', 'BeginTime']);
+            $found_xcbt++;
+        }
+        if $found_xcbt {
+            my $xcbt := $x_comp_bt.new(exception => $p6ex, :$use-case);
+            $xcbt.SET_FILE_LINE(
+                nqp::box_s(nqp::getlexdyn('$?FILES'),
+                    self.find_symbol(['Str'])),
+                nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from, :cache(1)),
+                    self.find_symbol(['Int'])),
+            );
+            $xcbt.throw;
+        }
+        else {
+            self.rethrow($/, $ex);
+        }
+    }
+
     method rethrow($/, $err) {
         my int $success := 0;
         my $coercer;
@@ -2925,3 +3154,21 @@ class Perl6::World is HLL::World {
         $p6ex.rethrow();
     }
 }
+
+my class Perl5ModuleLoaderStub {
+    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
+        {
+            nqp::gethllsym('perl6', 'ModuleLoader').load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
+            CATCH {
+                nqp::die("Please install Inline::Perl5 for Perl 5 support");
+            }
+        }
+
+        # Inline::Perl5 has overwritten this module loader at this point
+        return Perl6::ModuleLoader.load_module($module_name, %opts, @GLOBALish, :$line, :$file);
+    }
+}
+
+nqp::gethllsym('perl6', 'ModuleLoader').register_language_module_loader('Perl5', Perl5ModuleLoaderStub);
+
+# vim: ft=perl6 expandtab sw=4

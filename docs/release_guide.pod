@@ -14,12 +14,10 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-03-19   Rakudo #86 FROGGS
-  2015-04-23   Rakudo #87 Coke
   2015-05-21   Rakudo #88
   2015-06-18   Rakudo #89
   2015-07-23   Rakudo #90
-  2015-08-20   Rakudo #91
+  2015-08-20   Rakudo #91 duff
   2015-09-17   Rakudo #92
   2015-10-22   Rakudo #93
   2015-11-19   Rakudo #94
@@ -171,7 +169,7 @@ Make sure any locally modified files have been pushed back to github.
 Make sure everything compiles and runs from a known clean state:
 
   $ make realclean
-  $ perl Configure.pl --gen-parrot --gen-moar --backends=ALL
+  $ perl Configure.pl --gen-moar --backends=ALL
   $ make
   $ make test
   $ make stresstest
@@ -209,20 +207,34 @@ If there are any problems, fix them and go back to step 10.
 
 Tag the release by its release month ("YYYY.MM") and its code name.
 
-  $ git tag -a -m"tag release #nn" YYYY.MM    # e.g., 2013.08
-  $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
+  $ git tag -s -a -m"tag release #nn" YYYY.MM    # e.g., 2013.08
+  $ git tag -s -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
   $ git push --tags
+
+The C<-s> tells git to sign the release with your PGP/GPG key, so it will
+likely ask you for the passphrase of your secrect key.
+
+If you have no PGP key, you might need to
+L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should
+that prove impossible, you can omit the C<-s> from the command line.
 
 =item 14.
 
-Upload the tarball to L<http://rakudo.org/downloads/rakudo>:
+Sign the tarball with your PGP key:
 
-  $ scp rakudo-YYYY.MM.tar.gz rakudo@rakudo.org:public_html/downloads/rakudo/
+    $ gpg --sign rakudo-YYYY-MM.tar.gz
+
+=item 15.
+
+Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
+
+  $ scp rakudo-YYYY.MM.tar.gz rakudo-YYY-MM.tar.gz.gpg \
+       rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
 masak, tadzik, moritz, PerlJam,  [Coke], lizmat, timotimo, fsergot)) on #perl6 to do it for you.
 
-=item 15.
+=item 16.
 
 To avoid public confusion with Rakudo Star releases, we now publish 
 compiler release announcements ONLY to perl6-compiler@perl.org.  
@@ -233,11 +245,11 @@ announcement for both.)
 Don't send out any announcements until the files are actually available
 per step 14 above.
 
-=item 16.
+=item 17.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 17.
+=item 18.
 
 You're done!  Celebrate with the appropriate amount of fun.
 
@@ -322,6 +334,8 @@ You're done!  Celebrate with the appropriate amount of fun.
   2014-12-19   2014.12.1                       (lizmat)
   2015-01-22   Rakudo #84 "Gotanda"            (Coke)
   2015-02-19   Rakudo #85 "Berlin"             (lizmat)
+  2015-03-19   Rakudo #86 "Cluj"               (FROGGS)
+  2015-04-23   Rakudo #87 "Vladivostok"        (masak)
 
 =head1 COPYRIGHT
 

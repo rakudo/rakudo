@@ -2,7 +2,7 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is EnumMap {
     #     has Mu $!descriptor;
 
-    multi method at_key(Hash:D: \key) is rw {
+    multi method AT-KEY(Hash:D: \key) is rw {
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
             unless nqp::defined($storage);
@@ -20,7 +20,7 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
 
-    multi method assign_key(Hash:D: \key, Mu \assignval) {
+    multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) {
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
             unless nqp::defined($storage);
@@ -31,7 +31,7 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::p6scalarfromdesc($!descriptor) = assignval)
     }
 
-    method bind_key(Hash:D: \key, Mu \bindval) is rw {
+    method BIND-KEY(Hash:D: \key, Mu \bindval) is rw {
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
             unless nqp::defined($storage);
@@ -40,9 +40,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method perl(Hash:D \SELF:) {
-        nqp::iscont(SELF)
-          ?? '{' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ '}'
-          !! '(' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ ').hash'
+        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+        ~ '<>' x !nqp::iscont(SELF)
     }
 
     multi method gist(Hash:D \SELF:) {
@@ -83,39 +82,23 @@ my class Hash { # declared in BOOTSTRAP
     }
     method default() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.default;
+        nqp::isnull($d) ?? Any !! $d.default;
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! so $d.dynamic;
+        nqp::isnull($d) ?? Bool !! so $d.dynamic;
     }
 
-    proto method delete_key(|) { * }
-    multi method delete_key(Hash:U:) { Nil }
-    multi method delete_key(Str:D \key) {
-        my Mu $val = self.at_key(key);
+    multi method DELETE-KEY(Hash:U:) { Nil }
+    multi method DELETE-KEY(Str() \key) {
+        my Mu $val = self.AT-KEY(key);
         nqp::deletekey(
             nqp::getattr(self, EnumMap, '$!storage'),
             nqp::unbox_s(key)
         );
         $val;
     }
-    multi method delete_key(Str:D \key, :$SINK!) {
-        nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s(key)
-        );
-        Nil;
-    }
-    multi method delete_key(Str() \key) {
-        my Mu $val = self.at_key(key);
-        nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
-            nqp::unbox_s(key)
-        );
-        $val;
-    }
-    multi method delete_key(Str() \key, :$SINK!) {
+    multi method DELETE-KEY(Str() \key, :$SINK!) {
         nqp::deletekey(
             nqp::getattr(self, EnumMap, '$!storage'),
             nqp::unbox_s(key)
@@ -124,6 +107,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method push(*@values) {
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
         my $previous;
         my $has_previous;
         for @values -> $e {
@@ -145,7 +130,7 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
-        fail 'Cannot .classify an infinite list' if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<.classify>) if @list.infinite;
         if @list {
 
             # multi-level classify
@@ -178,7 +163,7 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method categorize-list(|) { * }
     multi method categorize-list( &test, *@list ) {
-        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<.categorize>) if @list.infinite;
         if @list {
 
             # multi-level categorize
@@ -216,7 +201,7 @@ my class Hash { # declared in BOOTSTRAP
 
     # push a value onto a hash slot, constructing an array if necessary
     method !_push_construct(Mu $key, Mu $value) {
-        if self.exists_key($key) {
+        if self.EXISTS-KEY($key) {
             if self.{$key}.^isa(Array) {
                 self.{$key}.push($value);
             } else {
@@ -228,10 +213,9 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     my role TypedHash[::TValue] does Associative[TValue] {
-        method at_key(::?CLASS:D: $key is copy) is rw {
-            $key = $key.Str;
-            if self.exists_key($key) {
-                nqp::findmethod(EnumMap, 'at_key')(self, $key);
+        method AT-KEY(::?CLASS:D: Str() $key) is rw {
+            if self.EXISTS-KEY($key) {
+                nqp::findmethod(EnumMap, 'AT-KEY')(self, $key);
             }
             else {
                 nqp::p6bindattrinvres(
@@ -247,7 +231,7 @@ my class Hash { # declared in BOOTSTRAP
               nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
             nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
         }
-        multi method assign_key(::?CLASS:D: \key, TValue \assignval) {
+        multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) {
             my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
             $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
                 unless nqp::defined($storage);
@@ -260,7 +244,7 @@ my class Hash { # declared in BOOTSTRAP
                     nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
             }
         }
-        method bind_key($key, TValue \bindval) is rw {
+        method BIND-KEY($key, TValue \bindval) is rw {
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                 nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
             nqp::bindkey(
@@ -272,17 +256,17 @@ my class Hash { # declared in BOOTSTRAP
             'Hash['
               ~ TValue.perl
               ~ '].new('
-              ~ self.pairs.pick(*).map({.perl}).join(', ')
+              ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
               ~ ')';
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
         method keyof () { TKey }
-        method at_key(::?CLASS:D: TKey \key) is rw {
+        method AT-KEY(::?CLASS:D: TKey \key) is rw {
             my $key_which = key.WHICH;
-            if self.exists_key(key) {
-                nqp::findmethod(EnumMap, 'at_key')(self, $key_which);
+            if self.EXISTS-KEY(key) {
+                nqp::findmethod(EnumMap, 'AT-KEY')(self, $key_which);
             }
             else {
                 nqp::p6bindattrinvres(
@@ -322,7 +306,7 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::unbox_s($key_which),
                 $v = $x);
         }
-        method assign_key(::?CLASS:D: TKey \key, TValue \assignval) {
+        method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) {
             my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
             $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
                 unless nqp::defined($storage);
@@ -338,7 +322,7 @@ my class Hash { # declared in BOOTSTRAP
                     nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
             }
         }
-        method bind_key(TKey \key, TValue \bindval) is rw {
+        method BIND-KEY(TKey \key, TValue \bindval) is rw {
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
@@ -353,7 +337,7 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::unbox_s($key_which),
                 bindval)
         }
-        method exists_key(TKey \key) {
+        method EXISTS-KEY(TKey \key) {
             nqp::defined($!keys)
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False
@@ -374,13 +358,17 @@ my class Hash { # declared in BOOTSTRAP
             return unless self.DEFINITE && nqp::defined($!keys);
             HashIter.pairs(self,$!keys).list
         }
+        method antipairs(EnumMap:) {
+            return unless self.DEFINITE && nqp::defined($!keys);
+            HashIter.antipairs(self,$!keys).list
+        }
         method invert(EnumMap:) {
             return unless self.DEFINITE && nqp::defined($!keys);
             HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if TKey === Any and TValue === Any and nqp::iscont(SELF) {
-                ':{' ~ SELF.pairs.pick(*).map({.perl}).join(', ') ~ '}'
+            if TKey === Any and TValue === Mu and nqp::iscont(SELF) {
+                ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
                 'Hash['
@@ -388,12 +376,12 @@ my class Hash { # declared in BOOTSTRAP
                   ~ ','
                   ~ TKey.perl
                   ~ '].new('
-                  ~ self.pairs.pick(*).map({.perl}).join(', ')
+                  ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
                   ~ ')';
             }
         }
-        multi method delete_key($key) {
-            my Mu $val = self.at_key($key);
+        multi method DELETE-KEY($key) {
+            my Mu $val = self.AT-KEY($key);
             my $key-which = $key.WHICH;
 
             nqp::deletekey(
@@ -421,32 +409,30 @@ my class Hash { # declared in BOOTSTRAP
         }
 
     }
-    method PARAMETERIZE_TYPE(Mu $t, |c) {
+    method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {
-#            my $what := self but TypedHash[$t.WHAT]; # too early in bootstrap
-            my $what := self.HOW.mixin(self.WHAT, TypedHash[$t.WHAT]);
+            my $what := hash.^mixin(TypedHash[t]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)}]");
+            $what.^set_name("{hash.^name}[{t.^name}]");
             $what;
         }
         elsif c.elems == 1 {
-            my $what := self.HOW.mixin(self.WHAT, TypedHash[$t.WHAT,c[0]]);
-#            my $what := self but TypedHash[$t.WHAT, c[0]]; # too early in bootstrap
+            my $what := hash.^mixin(TypedHash[t, c[0].WHAT]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)},{c[0].HOW.name(c[0])}]");
+            $what.^set_name("{hash.^name}[{t.^name},{c[0].^name}]");
             $what;
         }
         else {
-            die "Can only type-constraint Hash with [ValueType] or [ValueType,KeyType]";
+            die "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]";
         }
     }
 }
 
 
-sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
+sub circumfix:<{ }>(*@elems) { (my % = @elems).item }
 sub hash(*@a, *%h) { my % = @a, %h }
 
 # XXX parse hangs with ordinary sub declaration
-BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.PARAMETERIZE_TYPE(Any,Any).new(@elems) }
+BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.^parameterize(Mu,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

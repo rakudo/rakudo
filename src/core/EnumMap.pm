@@ -18,28 +18,28 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
-        so self.exists_key($topic.any);
+        self.EXISTS-KEY($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
-        so self.exists_key($topic);
+        self.EXISTS-KEY($topic);
     }
 
     multi method ACCEPTS(EnumMap:D: Positional $topic) {
-        so self.exists_key($topic.any);
+        self.EXISTS-KEY($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Regex $topic) {
         so self.keys.any.match($topic);
     }
 
-    multi method exists_key(EnumMap:D: Str:D \key) {
+    multi method EXISTS-KEY(EnumMap:D: Str:D \key) {
         nqp::p6bool(
             nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s(key))
         )
     }
-    multi method exists_key(EnumMap:D: \key) {
+    multi method EXISTS-KEY(EnumMap:D: \key) {
         nqp::p6bool(
             nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s(key.Str))
@@ -57,22 +57,25 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     method list(EnumMap:) { self.pairs }
 
     multi method keys(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.keys(self)   !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.keys(self)     !! ()).list;
     }
     multi method kv(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.kv(self)     !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.kv(self)       !! ()).list;
     }
     multi method values(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.values(self) !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.values(self)   !! ()).list;
     }
     multi method pairs(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.pairs(self)  !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.pairs(self)    !! ()).list;
+    }
+    multi method antipairs(EnumMap:D:) {
+        (nqp::defined($!storage) ?? HashIter.antipairs(self) !! ()).list;
     }
     multi method invert(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.invert(self) !! ()).list;
+        (nqp::defined($!storage) ?? HashIter.invert(self)   !! ()).list;
     }
 
-    multi method at_key(EnumMap:D: \key) is rw {
+    multi method AT-KEY(EnumMap:D: \key) is rw {
         my str $skey = nqp::unbox_s(key.Str);
         nqp::defined($!storage) && nqp::existskey($!storage, $skey)
           ?? nqp::atkey($!storage, $skey)
@@ -110,7 +113,13 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         self
     }
 
-    method STORE_AT_KEY(\key, Mu \value) is rw {
+    proto method STORE_AT_KEY(|) is rw { * }
+    multi method STORE_AT_KEY(Str \key, Mu \value) is rw {
+        nqp::defined($!storage) ||
+            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+        nqp::bindkey($!storage, nqp::unbox_s(key), value)
+    }
+    multi method STORE_AT_KEY(\key, Mu \value) is rw {
         nqp::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
@@ -144,7 +153,7 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
 multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {
     if +$a != +$b { return Bool::False }
     for $a.kv -> $k, $v {
-        unless $b.exists_key($k) && $b{$k} eqv $v {
+        unless $b.EXISTS-KEY($k) && $b{$k} eqv $v {
             return Bool::False;
         }
     }

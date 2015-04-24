@@ -17,66 +17,64 @@ my class Attribute { # declared in BOOTSTRAP
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
             my $meth_name := nqp::substr($name, 2);
-            unless $package.HOW.declares_method($package, $meth_name) {
+            unless $package.^declares_method($meth_name) {
                 my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
                 if self.rw {
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
-                        method (Mu \fles:) is rw {
-                            nqp::getattr(
-                                nqp::decont(fles),
-                                $dcpkg,
-                                $name)
-                        }
-                        !!
-                        nqp::die("Cannot create rw-accessors for natively typed attribute '$name'");
-                } else {
-                    # ro accessor
-                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
-                        ??
-                        method (Mu \fles:) {
-                            nqp::getattr(
-                                nqp::decont(fles),
-                                $dcpkg,
-                                $name)
+                        method (Mu:D \fles:) is rw is hidden-from-backtrace {
+                            nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 1))
                         ??
-                        method (Mu \fles:) {
+                        method (Mu:D \fles:) is rw is hidden-from-backtrace {
+                            nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
+                        }
+                        !!
+                        nqp::p6bool(nqp::iseq_i($attr_type, 2))
+                        ??
+                        method (Mu:D \fles:) is rw is hidden-from-backtrace {
+                            nqp::getattrref_n(nqp::decont(fles), $dcpkg, $name)
+                        }
+                        !!
+                        method (Mu:D \fles:) is rw is hidden-from-backtrace {
+                            nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
+                        }
+                } else {
+                    # ro accessor
+                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
+                        ??
+                        method (Mu:D \fles:) is hidden-from-backtrace {
+                            nqp::getattr(nqp::decont(fles), $dcpkg, $name)
+                        }
+                        !!
+                        nqp::p6bool(nqp::iseq_i($attr_type, 1))
+                        ??
+                        method (Mu:D \fles:) is hidden-from-backtrace {
                             nqp::p6box_i(
-                                nqp::getattr_i(
-                                    nqp::decont(fles),
-                                    $dcpkg,
-                                    $name)
+                                nqp::getattr_i(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 2))
                         ??
-                        method (Mu \fles:) {
+                        method (Mu:D \fles:) is hidden-from-backtrace {
                             nqp::p6box_n(
-                                nqp::getattr_n(
-                                    nqp::decont(fles),
-                                    $dcpkg,
-                                    $name)
+                                nqp::getattr_n(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
                         !!
-                        method (Mu \fles:) {
+                        method (Mu:D \fles:) is hidden-from-backtrace {
                             nqp::p6box_s(
-                                nqp::getattr_s(
-                                    nqp::decont(fles),
-                                    $dcpkg,
-                                    $name)
+                                nqp::getattr_s(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
-
                 }
                 $meth.set_name($meth_name);
-                $package.HOW.add_method($package, $meth_name, $meth);
+                $package.^add_method($meth_name, $meth);
             }
         }
 

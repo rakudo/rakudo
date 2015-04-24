@@ -91,3 +91,7 @@ perl6-jdb-server.bat
 perl6-eval-server
 perl6-eval-server.bat
 eval-client.pl
+perl6-gdb-m
+perl6-valgrind-m
+*.rakudo.moar
+*.rakudo.jvm

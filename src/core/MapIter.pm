@@ -13,14 +13,11 @@ my class MapIter is Iterator {
           $block, $flattens, True, :$label);
     }
 
-    submethod BUILD(Mu \listiter, \block, Mu \flattens, $first, :$label) {
+    submethod BUILD(Mu \listiter, $!block, Mu $!flattens, $!first, :$label) {
         nqp::bindattr(listiter, ListIter, '$!list', self)
           if nqp::isconcrete(listiter);
         $!listiter := listiter;
-        $!block = block;
-        $!first = $first;
-        $!flattens = flattens;
-        $!label := $label;
+        $!label    := $label;
         self
     }
 

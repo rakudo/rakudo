@@ -46,6 +46,20 @@ class Perl6::Compiler is HLL::Compiler {
             nqp::say(~$value);
         }
     }
+
+    method interactive(*%adverbs) {
+        my $*moreinput := sub ($cursor) {
+            my str $more := nqp::readlineintfh(nqp::getstdin, '* ');
+            if nqp::isnull_s($more) || $more eq '' {
+                $more := ';';
+            }
+
+            $cursor."!APPEND_TO_ORIG"($more);
+        }
+
+        my $super := nqp::findmethod(HLL::Compiler, 'interactive');
+        $super(self, :interactive(1), |%adverbs);
+    }
     
     method interactive_exception($ex) {
         my $payload := nqp::getpayload($ex);
@@ -81,6 +95,7 @@ class Perl6::Compiler is HLL::Compiler {
           --stagestats         display time spent in the compilation stages
           --ll-exception       display a low level backtrace on errors
           --profile            write profile information as HTML file (MoarVM)
+          --profile-filename   provide a different filename (also allows .json)
           --doc=[module]       Use Pod::To::[module] to render inline documentation.
 
 

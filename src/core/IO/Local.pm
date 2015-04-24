@@ -58,7 +58,7 @@ my role IO::Local {
     method rename(IO::Local:D: Str() $to, :$createonly) {
         RENAME-PATH($!abspath,MAKE-ABSOLUTE-PATH($to,$*CWD ~ '/'),:$createonly);
     }
-    method chmod(IO::Local:D: Int(Any) $mode) {
+    method chmod(IO::Local:D: Int() $mode) {
         CHMOD-PATH($!abspath, $mode);
     }
     method symlink(IO::Local:D: Str() $name) {

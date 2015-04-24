@@ -74,6 +74,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     method flat()  { nqp::p6list(nqp::clone($!storage), List, Bool::True) }
     method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
     method lol()   { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
+    method eager() { nqp::p6list(nqp::clone($!storage), List, Mu).eager }
 
     method reverse() {
         my Mu $reverse  := nqp::list();
@@ -103,23 +104,23 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $parcel;
     }
 
-    multi method exists_pos(Parcel:D: int \pos) {
+    multi method EXISTS-POS(Parcel:D: int \pos) {
         nqp::p6bool(
           nqp::islt_i(pos,nqp::elems($!storage)) && nqp::isge_i(pos,0)
         );
     }
-    multi method exists_pos(Parcel:D: Int:D \pos) {
+    multi method EXISTS-POS(Parcel:D: Int:D \pos) {
         pos < nqp::elems($!storage) && pos >= 0;
     }
 
-    multi method at_pos(Parcel:D: int \pos) is rw {
+    multi method AT-POS(Parcel:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::isge_i(pos,nqp::elems($!storage))
           ?? Nil
           !! nqp::atpos($!storage,pos);
     }
-    multi method at_pos(Parcel:D: Int:D \pos) is rw {
+    multi method AT-POS(Parcel:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
@@ -128,7 +129,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
           !! nqp::atpos($!storage,$pos);
     }
 
-    multi method assign_pos(Parcel:D: int \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Parcel:D: int \pos, Mu \assignee) is rw {
         X::OutOfRange.new(
           :what<Index>,
           :got(pos),
@@ -137,7 +138,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
           if nqp::isge_i(pos,nqp::elems($!storage)) || nqp::islt_i(pos,0);
         nqp::atpos($!storage,pos) = assignee;
     }
-    multi method assign_pos(Parcel:D: Int:D \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Parcel:D: Int:D \pos, Mu \assignee) is rw {
         my int $pos = nqp::unbox_i(pos);
         X::OutOfRange.new(
           :what<Index>,

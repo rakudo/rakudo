@@ -39,7 +39,7 @@ sub INVOKE_KV(&block, $key, $value?) {
     die "Couldn't figure out how to invoke {&block.signature().perl}";
 }
 
-sub EARLIEST(@earliest, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
+sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
     my Num $until = $wait ?? nqp::time_n() + $wait_time !! Nil;
 
     my constant $EARLIEST_KIND_DONE = 0;
@@ -150,7 +150,7 @@ sub EARLIEST(@earliest, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time i
 }
 
 sub WINNER(|c) {
-    DEPRECATED('earliest', |<2014.10 2015.10>, :what<winner>);
+    DEPRECATED('earliest', |<2014.10 2015.09>, :what<winner>);
     EARLIEST(|c);
 }
 

@@ -68,11 +68,11 @@ my class Cool { # declared in BOOTSTRAP
 
     ## string methods
 
-    method chars() {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
+    method chars() returns Int:D {
+        self.Str.chars
     }
     method codes() {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
+        self.Str.codes
     }
 
     method fmt($format = '%s') {
@@ -89,37 +89,43 @@ my class Cool { # declared in BOOTSTRAP
     method substr-rw(\SELF: $from, $length?) { substr-rw(SELF,$from,$length) }
 
     method uc() {
-        nqp::p6box_s(nqp::uc(nqp::unbox_s(self.Str)))
+        self.Str.uc
     }
 
     method lc() {
-        nqp::p6box_s(nqp::lc(nqp::unbox_s(self.Str)))
+        self.Str.lc
     }
 
     method tc() {
-        my $u := nqp::unbox_s(self.Str);
-        nqp::p6box_s(nqp::uc(nqp::substr($u,0,1)) ~ nqp::substr($u,1));
+        self.Str.tc
     }
 
     method tclc() {
-        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self.Str)))
+        self.Str.tclc
     }
 
     method wordcase()   { self.Str.wordcase }
+
+    method uniname()        { uniname(self) }
+    method uninames()       { uninames(self) }
+    method unival()         { unival(self) }
+    method univals()        { univals(self) }
+    method uniprop(|c)      { uniprop(self, |c) }
+    method uniprop-int(|c)  { uniprop-int(self, |c) }
+    method uniprop-bool(|c) { uniprop-bool(self, |c) }
+    method uniprop-str(|c)  { uniprop-str(self, |c) }
+    method unimatch(|c)     { unimatch(self, |c) }
 
     method chomp() {
         self.Str.chomp;
     }
 
-    method chop() {
-        self.Str.chop
+    method chop(Int() $n = 1) {
+        self.Str.chop($n)
     }
 
     method ord(--> Int) {
-        my $s := self.Str;
-        $s.chars
-          ?? nqp::p6box_i(nqp::ord(nqp::unbox_s($s)))
-          !! Int;
+        self.Str.ord
     }
     method chr() {
         self.Int.chr;
@@ -127,18 +133,58 @@ my class Cool { # declared in BOOTSTRAP
     method chrs(Cool:D:) {
         self>>.chr.join;
     }
+    method ords(Cool:D:) { self.Str.ords }
+
 
     method flip() {
-        nqp::p6box_s(nqp::flip(nqp::unbox_s(self.Str)))
+        self.Str.flip
     }
     method trans(*@a) { self.Str.trans(@a) }
 
+    proto method starts-with(|) {*}
+    multi method starts-with(Str:D: Str(Cool) $needle) {
+        nqp::p6bool(
+          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),0)
+        );
+    }
+    multi method starts-with(Cool:D: Str(Cool) $needle) {
+        nqp::p6bool(
+          nqp::eqat(nqp::unbox_s(self.Str),nqp::unbox_s($needle),0)
+        );
+    }
+
+    proto method ends-with(Str(Cool) $suffix) { * }
+    multi method ends-with(Str:D: Str(Cool) $suffix) {
+        my str $str    = nqp::unbox_s(self);
+        my str $needle = nqp::unbox_s($suffix);
+        nqp::p6bool(
+          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
+        );
+    }
+    multi method ends-with(Cool:D: Str(Cool) $suffix) {
+        my str $str    = nqp::unbox_s(self.Str);
+        my str $needle = nqp::unbox_s($suffix);
+        nqp::p6bool(
+          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
+        );
+    }
+
+    proto method substr-eq(|) {*}
+    multi method substr-eq(Str:D: Str(Cool) $needle, Int(Cool) $pos) {
+        $pos >= 0 && nqp::p6bool(
+          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),nqp::unbox_i($pos))
+        );
+    }
+    multi method substr-eq(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
+        $pos >= 0 && nqp::p6bool(nqp::eqat(
+          nqp::unbox_s(self.Str),
+          nqp::unbox_s($needle),
+          nqp::unbox_i($pos)
+        ));
+    }
+
     proto method index(|) {*}
     multi method index(Cool $needle, Cool $pos = 0) {
-        if $needle eq '' {
-            my $chars = self.chars;
-            return $pos < $chars ?? $pos !! $chars;
-        }
         my int $result = nqp::index(
                 nqp::unbox_s(self.Str),
                 nqp::unbox_s($needle.Str),
@@ -150,11 +196,6 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method rindex(|) {*}
     multi method rindex(Cool $needle, Cool $pos?) {
-        if $needle eq '' {
-            return $pos.defined && $pos < self.chars
-                    ?? $pos
-                    !! self.chars;
-        }
         my $result = $pos.defined
             ?? nqp::p6box_i(
                 nqp::rindex(
@@ -171,7 +212,6 @@ my class Cool { # declared in BOOTSTRAP
         $result;
     }
 
-    method ords(Cool:D:) { self.Str.ords }
     proto method split(|) {*}
     multi method split(Regex $pat, $limit = Inf, :$all) {
         self.Stringy.split($pat, $limit, :$all);
@@ -207,6 +247,13 @@ my class Cool { # declared in BOOTSTRAP
         $/ := nqp::getlexdyn('$/');
         {*}
     }
+    multi method subst-mutate($self is rw: |c) {
+        $/ := nqp::getlexdyn('$/');
+        my $str = Str($self);
+        my $match = $str.subst-mutate(|c);
+        $self = $str;
+        $match;
+    }
 
     proto method IO(|) { * }
     multi method IO(|c) { IO::Path.new(self) }
@@ -225,14 +272,27 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     multi method Real() { self.Numeric.Real }
+
     proto method Int(|) { * }
     multi method Int()  { self.Numeric.Int }
+
+    proto method UInt(|) { * }
+    multi method UInt()  {
+        my $got := self.Int;
+        fail X::OutOfRange.new(
+          :what<Coercion to UInt>,
+          :$got,
+          :range("0..Inf")
+        ) if $got < 0;
+        $got;
+    }
+
     method Num()  { self.Numeric.Num }
     method Rat()  { self.Numeric.Rat }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
-sub chop(Cool $s) returns Str      { $s.chop }
+sub chop(Cool $s, Int() $n = 1) returns Str { $s.chop($n) }
 sub chomp(Cool $s) returns Str     { $s.chomp }
 sub flip(Cool $s) returns Str      { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }

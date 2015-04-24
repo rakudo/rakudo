@@ -457,7 +457,6 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
 
         # Emit sink method call.
         my $meth := $*REGALLOC.fresh_o();
-        $*REGALLOC.release_register($meth, $MVM_reg_obj);
         nqp::push(@ops, MAST::Op.new( :op('findmeth'), $meth, $sinkee_reg,
             MAST::SVal.new( :value('sink') )));
         nqp::push(@ops, MAST::Call.new(
@@ -527,31 +526,22 @@ $ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'p6box_s'));
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_int64, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_int64);
-    my $decont_reg := $*REGALLOC.fresh_register($MVM_reg_obj);
-    nqp::push($il, MAST::Op.new( :op('decont'), $decont_reg, $reg ));
-    nqp::push($il, MAST::Op.new( :op('unbox_i'), $res_reg, $decont_reg ));
+    nqp::push($il, MAST::Op.new( :op('decont_i'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
-    $*REGALLOC.release_register($decont_reg, $MVM_reg_obj);
     MAST::InstructionList.new($il, $res_reg, $MVM_reg_int64)
 });
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_num64, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_num64);
-    my $decont_reg := $*REGALLOC.fresh_register($MVM_reg_obj);
-    nqp::push($il, MAST::Op.new( :op('decont'), $decont_reg, $reg ));
-    nqp::push($il, MAST::Op.new( :op('unbox_n'), $res_reg, $decont_reg ));
+    nqp::push($il, MAST::Op.new( :op('decont_n'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
-    $*REGALLOC.release_register($decont_reg, $MVM_reg_obj);
     MAST::InstructionList.new($il, $res_reg, $MVM_reg_num64)
 });
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_str, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_str);
-    my $decont_reg := $*REGALLOC.fresh_register($MVM_reg_obj);
-    nqp::push($il, MAST::Op.new( :op('decont'), $decont_reg, $reg ));
-    nqp::push($il, MAST::Op.new( :op('unbox_s'), $res_reg, $decont_reg ));
+    nqp::push($il, MAST::Op.new( :op('decont_s'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
-    $*REGALLOC.release_register($decont_reg, $MVM_reg_obj);
     MAST::InstructionList.new($il, $res_reg, $MVM_reg_str)
 });
 

@@ -30,17 +30,17 @@ class CompUnitRepo {
 
     method p6ml { $p6ml }
 
-    method load_module($module_name, %opts, *@GLOBALish is rw, :$line, :$file) {
+    method load_module($module_name, %opts, *@GLOBALish is rw, :$line, :$file, :%chosen) {
         $lock.protect( {
         my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];
-        my %chosen;
         if $candi {
             %chosen<pm>   :=
               $candi<provides>{$module_name}<pm><file> //
               $candi<provides>{$module_name}<pm6><file>;
             %chosen<pm>   := ~%chosen<pm> if %chosen<pm>.DEFINITE;
-            %chosen<load> :=
-              $candi<provides>{$module_name}{$*VM.precomp-ext}<file>;
+            if $candi<provides>{$module_name}{$*VM.precomp-ext}<file> -> $load {
+                %chosen<load> := $load;
+            }
             %chosen<key>  := %chosen<pm> // %chosen<load>;
         }
         $p6ml.load_module($module_name, %opts, |@GLOBALish, :$line, :$file, :%chosen);
@@ -96,7 +96,7 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
                 if nqp::istype($type,Failure) {
 
                     # it's a short-id
-                    if %CURLID2CLASS.exists_key($class) {
+                    if %CURLID2CLASS.EXISTS-KEY($class) {
                         $class = %CURLID2CLASS{$class}
                     }
 

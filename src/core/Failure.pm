@@ -1,10 +1,15 @@
-$PROCESS::FATAL = False;
-
 my class Failure {
     has $.exception;
+    has $.backtrace;
     has $!handled;
 
-    method new($exception) { self.bless(:$exception) }
+    method new($exception) {
+         self.bless(:$exception);
+    }
+
+    submethod BUILD (:$!exception) {
+        $!backtrace = $!exception.backtrace() || Backtrace.new(9);
+    }
 
     # TODO: should be Failure:D: multi just like method Bool,
     # but obscure problems prevent us from making Mu.defined
@@ -15,11 +20,14 @@ my class Failure {
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
-    method Int(Failure:D:)        { $!handled ?? 0   !! $!exception.throw; }
-    method Num(Failure:D:)        { $!handled ?? 0e0 !! $!exception.throw; }
-    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! $!exception.throw; }
-    multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw; }
-    multi method gist(Failure:D:) { $!handled ?? $.perl !! $!exception.throw; }
+    method Int(Failure:D:)        { $!handled ?? 0   !! $!exception.throw($!backtrace); }
+    method Num(Failure:D:)        { $!handled ?? 0e0 !! $!exception.throw($!backtrace); }
+    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! $!exception.throw($!backtrace); }
+    multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw($!backtrace); }
+    multi method gist(Failure:D:) { $!handled ?? $.mess !! $!exception.throw($!backtrace); }
+    method mess (Failure:D:) {
+        self.exception.message ~ "\n" ~ self.backtrace;
+    }
 
     Failure.^add_fallback(
         -> $, $ { True },
@@ -27,39 +35,36 @@ my class Failure {
             $!exception.throw;
         }
     );
-    method sink() is hidden_from_backtrace {
-        $!exception.throw unless $!handled
+    method sink() is hidden-from-backtrace {
+        $!exception.throw($!backtrace) unless $!handled
     }
 }
 
-proto sub fail(|) is hidden_from_backtrace {*};
-multi sub fail(Exception $e) is hidden_from_backtrace {
-    die $e if $*FATAL;
+proto sub fail(|) is hidden-from-backtrace {*};
+multi sub fail(Exception $e) is hidden-from-backtrace {
     my $fail := Failure.new($e);
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail($payload) is hidden_from_backtrace {
-    die $payload if $*FATAL;
+multi sub fail($payload) is hidden-from-backtrace {
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail(*@msg) is hidden_from_backtrace {
+multi sub fail(*@msg) is hidden-from-backtrace {
     my $payload = @msg == 1 ?? @msg[0] !! @msg.join;
-    die $payload if $*FATAL;
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
 
-multi sub die(Failure:D $failure) is hidden_from_backtrace {
+multi sub die(Failure:D $failure) is hidden-from-backtrace {
     $failure.exception.throw
 }
-multi sub die(Failure:U) is hidden_from_backtrace {
+multi sub die(Failure:U) is hidden-from-backtrace {
     X::AdHoc('Failure').throw
 }
 

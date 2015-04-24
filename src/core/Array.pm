@@ -12,14 +12,14 @@ class Array { # declared in BOOTSTRAP
         nqp::p6list($args, self.WHAT, Bool::True);
     }
 
-    multi method at_pos(Array:D: int \pos) is rw {
+    multi method AT-POS(Array:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         if nqp::existspos(items,pos)
           || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-          && nqp::istrue(self.exists_pos(pos)) {
+          && nqp::istrue(self.EXISTS-POS(pos)) {
             nqp::atpos(items,pos);
         }
         else {
@@ -31,7 +31,7 @@ class Array { # declared in BOOTSTRAP
             );
         }
     }
-    multi method at_pos(Array:D: Int:D \pos) is rw {
+    multi method AT-POS(Array:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos.Int);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
@@ -39,7 +39,7 @@ class Array { # declared in BOOTSTRAP
         # hotpath check for element existence (RT #111848)
         if nqp::existspos(items,$pos)
           || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-          && nqp::istrue(self.exists_pos($pos)) {
+          && nqp::istrue(self.EXISTS-POS($pos)) {
             nqp::atpos(items,$pos);
         }
         else {
@@ -52,43 +52,42 @@ class Array { # declared in BOOTSTRAP
         }
     }
 
-    multi method assign_pos(Array:D: int \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Array:D: int \pos, Mu \assignee) is rw {
         X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
           if nqp::islt_i(pos,0);
         my \items := nqp::p6listitems(self);
         nqp::existspos(items,pos)
           || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-          && self.exists_pos(pos)
+          && self.EXISTS-POS(pos)
             ?? (nqp::atpos(items,pos) = assignee)
             !! (nqp::bindpos(items,pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
     }
-    multi method assign_pos(Array:D: Int:D \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Array:D: Int:D \pos, Mu \assignee) is rw {
         my int $pos = nqp::unbox_i(pos);
         X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
           if nqp::islt_i($pos,0);
         my \items := nqp::p6listitems(self);
         nqp::existspos(items,$pos)
           || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-          && self.exists_pos($pos)
+          && self.EXISTS-POS($pos)
             ?? (nqp::atpos(items,$pos) = assignee)
             !! (nqp::bindpos(items,$pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
     }
 
-    proto method bind_pos(|) { * }
-    multi method bind_pos($pos is copy, Mu \bindval) is rw {
-        $pos = $pos.Int;
+    proto method BIND-POS(|) { * }
+    multi method BIND-POS(Int() $pos, Mu \bindval) is rw {
         self.gimme($pos + 1);
         nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval);
     }
-    multi method bind_pos(int $pos, Mu \bindval) is rw {
+    multi method BIND-POS(int $pos, Mu \bindval) is rw {
         self.gimme($pos + 1);
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
 
-    method delete_pos(\pos, :$SINK) {
+    method DELETE-POS(\pos, :$SINK) {
         fail X::Subscript::Negative.new(index => pos, type => self.WHAT) if pos < 0;
 
-        my $value := self.at_pos(pos); # needed for reification
+        my $value := self.AT-POS(pos); # needed for reification
         my $items := nqp::getattr(self,List,'$!items');
         my $end   := self.end;
 
@@ -120,20 +119,21 @@ class Array { # declared in BOOTSTRAP
     }
     method default() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.default;
+        nqp::isnull($d) ?? Any !! $d.default;
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! so $d.dynamic;
+        nqp::isnull($d) ?? Bool !! so $d.dynamic;
     }
     multi method perl(Array:D \SELF:) {
-        nqp::iscont(SELF)
-          ?? '[' ~ (  # simplify arrays that look 2D (in first 3 elems anyway)
+        '['
+        ~ (  # simplify arrays that look 2D (in first 3 elems anyway)
             nqp::istype(self[0],Parcel) || nqp::istype(self[1],Parcel) || nqp::istype(self[2],Parcel)
                 ?? self.map({.list.map({.perl}).join(', ')}).join('; ')
                 !! self.map({.perl}).join(', ')
-            ) ~ ']'
-          !! self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
+        )
+        ~ ']'
+        ~ '<>' x !nqp::iscont(SELF);
     }
 
     method REIFY(Parcel \parcel, Mu \nextiter) {
@@ -185,9 +185,8 @@ class Array { # declared in BOOTSTRAP
 
             $list;
         }
-        multi method at_pos($pos is copy) is rw {
-            $pos = $pos.Int;
-            if self.exists_pos($pos) {
+        multi method AT-POS(Int() $pos) is rw {
+            if self.EXISTS-POS($pos) {
                 nqp::atpos(
                   nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos)
                 );
@@ -202,8 +201,8 @@ class Array { # declared in BOOTSTRAP
                 );
             }
         }
-        multi method at_pos(int $pos, TValue $v? is copy) is rw {
-            if self.exists_pos($pos) {
+        multi method AT-POS(int $pos) is rw {
+            if self.EXISTS-POS($pos) {
                 nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
             }
             else {
@@ -215,34 +214,29 @@ class Array { # declared in BOOTSTRAP
                 );
             }
         }
-        multi method bind_pos($pos is copy, TValue \bindval) is rw {
-            $pos = $pos.Int;
+        multi method BIND-POS(Int() $pos, TValue \bindval) is rw {
             self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval)
         }
-        multi method bind_pos(int $pos, TValue \bindval) is rw {
+        multi method BIND-POS(int $pos, TValue \bindval) is rw {
             self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            'Array['
-              ~ TValue.perl
-              ~ '].new('
-              ~ self.map({ ($_ // TValue).perl}).join(', ')
-              ~ ')';
+            my $args = self.map({ ($_ // TValue).perl(:arglist)}).join(', ');
+            'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
         }
         # XXX some methods to come here...
     }
-    method PARAMETERIZE_TYPE(Mu $t, |c) {
+    method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
         if c.elems == 0 {
-#            my $what := self but TypedArray[$t.WHAT]; # too early in bootstrap
-            my $what := self.HOW.mixin(self.WHAT, TypedArray[$t.WHAT]);
+            my $what := arr.^mixin(TypedArray[t]);
             # needs to be done in COMPOSE phaser when that works
-            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)}]");
+            $what.^set_name("{arr.^name}[{t.^name}]");
             $what;
         }
         else {
-            die "Can only type-constraint Array with [ValueType]"
+            die "Can only type-constrain Array with [ValueType]"
         }
     }
     multi method ACCEPTS(Array:D: $topic) {

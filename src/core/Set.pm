@@ -1,7 +1,6 @@
 my class Set does Setty {
     has Int $!total;
     has $!WHICH;
-    has @!pairs;
 
     method total (--> Int) { $!total //= %!elems.elems }
     multi method WHICH (Set:D:) {
@@ -13,13 +12,6 @@ my class Set does Setty {
         self;
     }
 
-    multi method at_key(Set:D: \k --> Bool) {
-        so %!elems.exists_key(k.WHICH);
-    }
-
-    method delete_key($k --> Bool) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
-    }
     method grab ($count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
@@ -27,12 +19,25 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    multi method pairs(Set:D:) { # need to copy otherwise we can change the Set
-        @!pairs ||= %!elems.values.map: { Enum.new(:key($_),:value(True)) };
+    multi method pairs(Set:D:) {    # must copy else we can change the Set
+        %!elems.values.map: { Enum.new(:key($_),:value(True)) };
+    }
+    multi method antipairs(Set:D:) { # must copy else we can change the Set
+        %!elems.values.map: { Enum.new(:key(True),:value($_)) };
     }
 
     method Set { self }
     method SetHash { SetHash.new(self.keys) }
+
+    multi method AT-KEY(Set:D: \k --> Bool) {
+        %!elems.EXISTS-KEY(k.WHICH);
+    }
+    multi method ASSIGN-KEY(Set:D: \k,\v) is hidden-from-backtrace {
+        fail X::Assignment::RO.new(typename => self.^name);
+    }
+    multi method DELETE-KEY(Set:D: \k) is hidden-from-backtrace {
+        fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

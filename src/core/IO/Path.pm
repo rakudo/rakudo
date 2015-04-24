@@ -39,7 +39,7 @@ my class IO::Path is Cool {
       :$SPEC   = $*SPEC,
       :$CWD    = $*CWD,
     ) {
-        DEPRECATED(':dirname', |<2014.10 2015.10>, :what<IO::Path.new with :directory>);
+        DEPRECATED(':dirname', |<2014.10 2015.09>, :what<IO::Path.new with :directory>);
         self.bless(
           :path($SPEC.join($volume,$directory,$basename)), :$SPEC, :$CWD);
     }
@@ -140,8 +140,67 @@ my class IO::Path is Cool {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
     method resolve (IO::Path:D:) {
-        # NYI: requires readlink()
-        X::NYI.new(feature=>'IO::Path.resolve').fail;
+        # XXXX: Not portable yet; assumes POSIX semantics
+        my int $max-depth = 256;
+        my str $sep       = $!SPEC.dir-sep;
+        my str $cur       = $!SPEC.curdir;
+        my str $up        = $!SPEC.updir;
+        my str $empty     = '';
+        my str $resolved  = $empty;
+        my Mu  $res-list := nqp::list_s();
+
+        my Mu $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
+        while $parts {
+            fail "Resolved path too deep!"
+                if $max-depth < nqp::elems($res-list) + nqp::elems($parts);
+
+            # Grab next unprocessed part, check for '', '.', '..'
+            my str $part = nqp::shift($parts);
+
+            next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
+            if nqp::iseq_s($part, $up) {
+                next unless $res-list;
+                nqp::pop_s($res-list);
+                $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
+                                      !! $empty;
+                next;
+            }
+
+            # Normal part, set as next path to test
+            my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
+
+            # Path part doesn't exist; handle rest in non-resolving mode
+            if !nqp::stat($next, nqp::const::STAT_EXISTS) {
+                $resolved = $next;
+                while $parts {
+                    $part = nqp::shift($parts);
+                    next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
+                    $resolved = nqp::concat($resolved, nqp::concat($sep, $part));
+                }
+            }
+            # Symlink; read it and act on absolute or relative link
+            elsif nqp::fileislink($next) {
+                my str $link        = nqp::readlink($next);
+                my Mu  $link-parts := nqp::split($sep, $link);
+                next unless $link-parts;
+
+                # Symlink to absolute path
+                if nqp::iseq_s($link-parts[0], $empty) {
+                    $resolved  = nqp::shift($link-parts);
+                    $res-list := nqp::list_s();
+                }
+
+                nqp::unshift($parts, nqp::pop($link-parts))
+                    while $link-parts;
+            }
+            # Just a plain old path part, so append it and go on
+            else {
+                $resolved = $next;
+                nqp::push_s($res-list, $part);
+            }
+        }
+        $resolved = $sep unless nqp::chars($resolved);
+        $resolved;
     }
 
     method parent(IO::Path:D:) {    # XXX needs work
@@ -271,7 +330,7 @@ my class IO::Path is Cool {
         self.copy($to.IO(:$!SPEC,:$CWD),|c);
     }
 
-    method chmod(IO::Path:D: Int(Any) $mode) {
+    method chmod(IO::Path:D: Int() $mode) {
         nqp::chmod($.abspath, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
@@ -322,7 +381,7 @@ my class IO::Path is Cool {
     }
 
     method contents(IO::Path:D: |c) {
-        DEPRECATED('dir', |<2014.10 2015.10>);
+        DEPRECATED('dir', |<2014.10 2015.09>);
         self.dir(|c);
     }
 
@@ -455,21 +514,21 @@ my class IO::Path is Cool {
       e => -> $p { True }, # if we get here, it exists
       d => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISDIR)) },
       f => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISREG)) },
-      s => -> $p { %t.at_key("f")($p) && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
+      s => -> $p { %t.AT-KEY("f")($p) && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
       l => -> $p { nqp::p6bool(nqp::fileislink(nqp::unbox_s($p))) },
       r => -> $p { nqp::p6bool(nqp::filereadable(nqp::unbox_s($p))) },
       w => -> $p { nqp::p6bool(nqp::filewritable(nqp::unbox_s($p))) },
       x => -> $p { nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($p))) },
-      z => -> $p { %t.at_key("f")($p) && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
+      z => -> $p { %t.AT-KEY("f")($p) && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
 
       "!e" => -> $p { False }, # if we get here, it exists
-      "!d" => -> $p { !%t.at_key("d")($p) },
-      "!f" => -> $p { !%t.at_key("f")($p) },
-      "!l" => -> $p { !%t.at_key("l")($p) },
-      "!r" => -> $p { !%t.at_key("r")($p) },
-      "!w" => -> $p { !%t.at_key("w")($p) },
-      "!x" => -> $p { !%t.at_key("x")($p) },
-      "!z" => -> $p { !%t.at_key("z")($p) },
+      "!d" => -> $p { !%t.AT-KEY("d")($p) },
+      "!f" => -> $p { !%t.AT-KEY("f")($p) },
+      "!l" => -> $p { !%t.AT-KEY("l")($p) },
+      "!r" => -> $p { !%t.AT-KEY("r")($p) },
+      "!w" => -> $p { !%t.AT-KEY("w")($p) },
+      "!x" => -> $p { !%t.AT-KEY("x")($p) },
+      "!z" => -> $p { !%t.AT-KEY("z")($p) },
     ;
 
     method all(*@tests) {
@@ -477,8 +536,8 @@ my class IO::Path is Cool {
 
         my $result = True;
         for @tests -> $t {
-            die "Unknown test $t" unless %t.exists_key($t);
-            last unless $result = $result && %t.at_key($t)($!abspath);
+            die "Unknown test $t" unless %t.EXISTS-KEY($t);
+            last unless $result = $result && %t.AT-KEY($t)($!abspath);
         }
 
         $result;
@@ -554,7 +613,7 @@ my class IO::Path is Cool {
     }
 
     method directory() {
-        DEPRECATED("dirname", |<2014.10 2015.10>);
+        DEPRECATED("dirname", |<2014.10 2015.09>);
         self.dirname;
     }
 }

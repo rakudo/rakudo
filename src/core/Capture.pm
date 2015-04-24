@@ -7,6 +7,8 @@ my class Capture { # declared in BOOTSTRAP
         nqp::create(self).BUILD(:@list,:%hash);
     }
 
+    method from-args(|c) { c }
+
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')
@@ -30,21 +32,21 @@ my class Capture { # declared in BOOTSTRAP
         $WHICH;
     }
 
-    multi method at_key(Capture:D: \key) {
+    multi method AT-KEY(Capture:D: \key) {
         my str $skey = nqp::unbox_s(key.Str);
         nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
     }
-    multi method at_key(Capture:D: Str:D \key) {
+    multi method AT-KEY(Capture:D: Str:D \key) {
         my str $skey = nqp::unbox_s(key);
         nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
     }
 
-    multi method at_pos(Capture:D: int \pos) {
+    multi method AT-POS(Capture:D: int \pos) {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::existspos($!list,pos) ?? nqp::atpos($!list,pos) !! Nil;
     }
-    multi method at_pos(Capture:D: Int:D \pos) {
+    multi method AT-POS(Capture:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
@@ -57,10 +59,10 @@ my class Capture { # declared in BOOTSTRAP
         $enum;
     }
 
-    multi method exists_key(Capture:D: Str:D \key ) {
+    multi method EXISTS-KEY(Capture:D: Str:D \key ) {
         nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s(key)));
     }
-    multi method exists_key(Capture:D: \key ) {
+    multi method EXISTS-KEY(Capture:D: \key ) {
         nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s(key.Str)));
     }
 
@@ -87,24 +89,24 @@ my class Capture { # declared in BOOTSTRAP
         }
         nqp::p6box_s(nqp::join(' ', $str))
     }
-    multi method gist(Capture:D:) {
-        my @list := self.list;
-        my %hash := self.hash;
-        '\('
-          ~ (@list.map( {.gist} ).join: ', ' if +@list)
-          ~ (', ' if +@list and +%hash)
-          ~ (%hash.keys.sort.map( { $_.gist ~ ' => ' ~ %hash{$_}.gist } ).join: ', ' if +%hash)
-          ~ ')';
-    }
+    multi method gist(Capture:D:) { self.perl }
     multi method perl(Capture:D:) {
         my @list := self.list;
         my %hash := self.hash;
-        self.^name
-          ~ '.new('
-          ~ ( 'list => (' ~ @list.map( {.perl} ).join(', ') ~ ',)' if +@list)
-          ~ (', ' if +@list and +%hash)
-          ~ ( 'hash => {' ~ %hash.keys.pick(*).map( { $_.perl ~ ' => ' ~ %hash{$_}.perl } ).join(', ') ~ '}' if +%hash)
-          ~ ')';
+        if self.^name eq 'Capture' {
+            "\\({
+                join ', ', 
+                    (@list[$_].perl for ^@list.elems),
+                    %hash.sort.map( *.perl )
+            })";
+        } else {
+            self.^name
+              ~ '.new('
+              ~ ( 'list => (' ~ (@list[$_].perl for ^@list.elems).join(', ') ~ ',)' if +@list)
+              ~ (', ' if +@list and +%hash)
+              ~ ( 'hash => {' ~ %hash.sort.map( *.perl ).join(', ') ~ '}' if +%hash)
+              ~ ')';
+        }
     }
     multi method Bool(Capture:D:) {
         $!list || $!hash ?? True !! False
@@ -132,6 +134,9 @@ my class Capture { # declared in BOOTSTRAP
     }
     multi method pairs(Capture:D:) {
         (self.list.pairs, self.hash.pairs).flat;
+    }
+    multi method antipairs(Capture:D:) {
+        (self.list.antipairs, self.hash.antipairs).flat;
     }
 }
 

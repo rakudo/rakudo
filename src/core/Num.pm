@@ -15,6 +15,7 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     method Num() { self }
     method Bridge(Num:D:) { self }
+    method Range(Num:U:) { Range.new(-Inf,Inf) }
 
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self)) ??
@@ -41,8 +42,6 @@ my class Num does Real { # declared in BOOTSTRAP
             return self;
         }
 
-        my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
-
         (self == Inf || self == -Inf) && fail("Cannot coerce Inf to a Rat");
 
         my Num $num = self;
@@ -51,16 +50,25 @@ my class Num does Real { # declared in BOOTSTRAP
 
         # Find convergents of the continued fraction.
 
-        my Num $r = $num - $num.Int;
-        my Int $q = $num.Int;
-        my ($a, $b) = 1, $q;
-        my ($c, $d) = 0, 1;
+        my Int $q = nqp::fromnum_I($num, Int);
+        my num $r = $num - floor($num);
+        my Int $a = 1;
+        my Int $b = $q;
+        my Int $c = 0;
+        my Int $d = 1;
 
-        while $r != 0 && abs($num - ($b/$d)) > $epsilon {
-            ($r, $q) = modf(1/$r);
+        while $r != 0e0 && abs($num - ($b / $d)) > $epsilon {
+            my num $modf_arg = 1e0 / $r;
+            $q = nqp::fromnum_I($modf_arg, Int);
+            $r = $modf_arg - floor($modf_arg);
 
-            ($a, $b) = ($b, $q*$b + $a);
-            ($c, $d) = ($d, $q*$d + $c);
+            my $orig_b = $b;
+            $b = $q * $b + $a;
+            $a = $orig_b;
+
+            my $orig_d = $d;
+            $d = $q * $d + $c;
+            $c = $orig_d;
         }
 
         # Note that this result has less error than any Rational with a
@@ -231,35 +239,51 @@ my constant e  = 2.71828_18284_59045_235e0;
 
 my constant π := pi;
 
-multi sub prefix:<++>(Num:D \a is rw) {   # XXX
-    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0))
+multi sub prefix:<++>(Num:D $a is rw) {
+    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0))
 }
-multi sub prefix:<++>(Num:U \a is rw) {   # XXX
-    a = 1e0;
+multi sub prefix:<++>(Num:U $a is rw) {
+    $a = 1e0;
 }
-multi sub prefix:<-->(Num:D \a is rw) {   # XXX
-    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0))
+multi sub prefix:<++>(num $a is rw) {
+    $a = nqp::add_n($a, 1e0)
 }
-multi sub prefix:<-->(Num:U \a is rw) {   # XXX
-    a = -1e0;
+multi sub prefix:<-->(Num:D $a is rw) {
+    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1e0))
 }
-multi sub postfix:<++>(Num:D \a is rw) {  # XXX
-    my $b = a;
-    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0));
+multi sub prefix:<-->(Num:U $a is rw) {
+    $a = -1e0;
+}
+multi sub prefix:<-->(num $a is rw) {
+    $a = nqp::sub_n($a, 1e0)
+}
+multi sub postfix:<++>(Num:D $a is rw) {
+    my $b = $a;
+    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0));
     $b
 }
-multi sub postfix:<++>(Num:U \a is rw) {   # XXX
-    a = 1e0;
+multi sub postfix:<++>(Num:U $a is rw) {
+    $a = 1e0;
     0
 }
-multi sub postfix:<-->(Num:D \a is rw) {  # XXX
-    my $b = a;
-    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0));
+multi sub postfix:<++>(num $a is rw) {
+    my num $b = $a;
+    $a = nqp::add_n($a, 1e0);
     $b
 }
-multi sub postfix:<-->(Num:U \a is rw) {   # XXX
-    a = -1e0;
+multi sub postfix:<-->(Num:D $a is rw) {
+    my $b = $a;
+    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1e0));
+    $b
+}
+multi sub postfix:<-->(Num:U $a is rw) {
+    $a = -1e0;
     0e0
+}
+multi sub postfix:<-->(num $a is rw) {
+    my num $b = $a;
+    $a = nqp::sub_n($a, 1e0);
+    $b
 }
 
 multi sub prefix:<->(Num:D \a) {
@@ -477,6 +501,16 @@ multi sub cotanh(num $x) {
 }
 multi sub acotanh(num $x) {
     atanh(1e0 / $x)
+}
+
+multi sub floor(num $a) returns num {
+    nqp::floor_n($a)
+}
+multi sub ceiling(num $a) returns num {
+    nqp::ceil_n($a)
+}
+multi sub sqrt(num $a) returns num {
+    nqp::sqrt_n($a)
 }
 
 # vim: ft=perl6 expandtab sw=4

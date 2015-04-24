@@ -3,8 +3,10 @@
 
 #ifdef WIN32
 #define DLLEXPORT __declspec(dllexport)
+typedef signed __int64 int64_t;
 #else
 #define DLLEXPORT extern
+#include <inttypes.h>
 #endif
 
 DLLEXPORT int TakeInt(int x)
@@ -63,5 +65,33 @@ DLLEXPORT int CheckString() {
 DLLEXPORT int wrapped(int n) {
     if (n == 42)
         return 8;
+    return 0;
+}
+
+DLLEXPORT int TakeInt64(int64_t x)
+{
+    if (x == 0xFFFFFFFFFF)
+        return 9;
+    return 0;
+}
+
+DLLEXPORT int TakeUint8(unsigned char x)
+{
+    if (x == 0xFE)
+        return 10;
+    return 0;
+}
+
+DLLEXPORT int TakeUint16(unsigned short x)
+{
+    if (x == 0xFFFE)
+        return 11;
+    return 0;
+}
+
+DLLEXPORT int TakeUint32(unsigned int x)
+{
+    if (x == 0xFFFFFFFE)
+        return 12;
     return 0;
 }

@@ -1,5 +1,7 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my class X::Cannot::Infinite { ... }
+my class X::Cannot::Empty { ... }
 my role Supply { ... }
 
 my sub combinations($n, $k) {
@@ -37,6 +39,7 @@ my class List does Positional { # declared in BOOTSTRAP
     #   has Mu $!items;        # VM's array of our reified elements
     #   has Mu $!flattens;     # true if this list flattens its parcels
     #   has Mu $!nextiter;     # iterator for generating remaining elements
+    #   has Any $!infinite;    # is this list infinite or not
 
     method new(|) {
         my Mu $args := nqp::p6argvmarray();
@@ -88,16 +91,16 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method Supply(List:D:) { Supply.from-list(self) }
 
-    multi method at_pos(List:D: int \pos) is rw {
+    multi method AT-POS(List:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
-        self.exists_pos(pos) ?? nqp::atpos($!items,pos) !! Nil;
+        self.EXISTS-POS(pos) ?? nqp::atpos($!items,pos) !! Nil;
     }
-    multi method at_pos(List:D: Int:D \pos) is rw {
+    multi method AT-POS(List:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
-        self.exists_pos($pos) ?? nqp::atpos($!items,$pos) !! Nil;
+        self.EXISTS-POS($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }
 
     method eager() { self.gimme(*); self }
@@ -111,14 +114,14 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::defined($!nextiter) ?? Inf !! $n
     }
 
-    multi method exists_pos(List:D: int $pos) {
+    multi method EXISTS-POS(List:D: int $pos) {
         return False if nqp::islt_i($pos,0);
         self.gimme($pos + 1);
         nqp::p6bool(
           nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
         );
     }
-    multi method exists_pos(List:D: Int:D $pos) {
+    multi method EXISTS-POS(List:D: Int:D $pos) {
         return False if $pos < 0;
         self.gimme($pos + 1);
         nqp::p6bool(
@@ -148,7 +151,9 @@ my class List does Positional { # declared in BOOTSTRAP
         $count
     }
 
-    multi method infinite(List:D:) { $!nextiter.infinite }
+    multi method infinite(List:D:) {
+        $!infinite ||= ?$!nextiter.infinite;
+    }
 
     method iterator() {
         # Return a reified ListIter containing our currently reified elements
@@ -172,26 +177,31 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method pick(|) { * }
     multi method pick() {
-        fail "Cannot .pick from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
-    multi method pick($n is copy) {
-        fail "Cannot .pick from infinite list" if self.infinite;
+    multi method pick(\number) {
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
-        my $elems = self.elems;
+
+        my Int $elems = self.elems;
         return unless $elems;
-        $n = Inf if nqp::istype($n, Whatever);
-        $n = $elems if $n > $elems;
-        return self.at_pos($elems.rand.floor) if $n == 1;
+
+        my int $n = nqp::istype(number, Whatever) || number > $elems
+          ?? $elems
+          !! number.Int;
+        return self.AT-POS($elems.rand.floor) if $n == 1;
+
         my Mu $rpa := nqp::clone($!items);
-        my $i;
+        my int $i;
         my Mu $v;
-        gather while $n > 0 {
-            $i = nqp::rand_I(nqp::decont($elems), Int);
-            $elems--; $n--;
+        gather while $n {
+            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $elems = $elems - 1;
+            $n     = $n - 1;
             $v := nqp::atpos($rpa, nqp::unbox_i($i));
             # replace selected element with last unpicked one
             nqp::bindpos($rpa, nqp::unbox_i($i),
@@ -202,24 +212,25 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method pop() is parcel {
         my $elems = self.gimme(*);
-        fail 'Cannot .pop from an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.pop from>) if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
-          !! fail 'Element popped from empty list';
+          !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
     }
 
     method shift() is parcel {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items)
-          !! fail 'Element shifted from empty list';
+          !! fail X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
     }
 
     my &list_push = multi method push(List:D: *@values) {
-        fail 'Cannot .push an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
+        fail X::Cannot::Infinite.new(:action<.push to>) if $!nextiter.DEFINITE;
 
         # push is always eager
         @values.gimme(*);
@@ -245,7 +256,8 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method push(List:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
-            fail 'Cannot .push to an infinite list' if $!nextiter.DEFINITE;
+            fail X::Cannot::Infinite.new(:action<.push to>)
+              if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
             nqp::istype(value, self.of)
                 ?? nqp::push($!items, nqp::assign(nqp::p6scalarfromdesc(nqp::null), value))
@@ -280,7 +292,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method unshift(List:D: *@values) {
-        fail 'Cannot .unshift an infinite list' if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
+          if @values.infinite;
         nqp::p6listitems(self);
 
         # don't bother with type checks
@@ -314,7 +327,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method plan(List:D: |args) {
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail 'Cannot add plan to an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.plan to>) if $!nextiter.defined;
 
 #        # need type checks?
 #        my $of := self.of;
@@ -333,16 +346,16 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method roll(|) { * }
     multi method roll() {
-        fail "Cannot .roll from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.at_pos($elems.rand.floor) !! Nil;
+        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
     multi method roll($n is copy) {
-        fail "Cannot .roll from infinite list" if self.infinite;
+        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         return unless $elems;
         $n = Inf if nqp::istype($n, Whatever);
-        return self.at_pos($elems.rand.floor) if $n == 1;
+        return self.AT-POS($elems.rand.floor) if $n == 1;
 
         gather while $n > 0 {
             take nqp::atpos($!items, nqp::unbox_i($elems.rand.floor.Int));
@@ -352,7 +365,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method reverse() {
         self.gimme(*);
-        fail 'Cannot .reverse from an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.reverse>) if $!nextiter.defined;
         my Mu $rev  := nqp::list();
         my Mu $orig := nqp::clone($!items);
         nqp::push($rev, nqp::pop($orig)) while $orig;
@@ -363,7 +376,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method rotate(Int $n is copy = 1) {
         self.gimme(*);
-        fail 'Cannot .rotate an infinite list' if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<.rotate>) if $!nextiter.defined;
         my $items = nqp::p6box_i(nqp::elems($!items));
         return self if !$items;
 
@@ -409,7 +422,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method sort($by = &infix:<cmp>) {
-        fail 'Cannot .sort an infinite list' if self.infinite; #MMD?
+        fail X::Cannot::Infinite.new(:action<.sort>) if self.infinite; #MMD?
 
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as
@@ -430,11 +443,11 @@ my class List does Positional { # declared in BOOTSTRAP
         # for sorting.
         if ($by.?count // 2) < 2 {
             my $list = self.map($by).eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $list.at_pos($a) cmp $list.at_pos($b) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
         }
         else {
             my $list = self.eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $by($list.at_pos($a), $list.at_pos($b)) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
         }
         self[$index];
     }
@@ -442,7 +455,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method ACCEPTS(List:D: $topic) { self }
 
     method uniq(|c) {
-        DEPRECATED('unique', |<2014.11 2015.11>);
+        DEPRECATED('unique', |<2014.11 2015.09>);
         self.unique(|c);
     }
 
@@ -517,24 +530,25 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    proto method rotor(|) {*}
-    multi method rotor(1, 0) { self }
-    multi method rotor($elems = 2, $overlap = 1) {
-        X::OutOfRange.new(
-            what => 'Overlap argument to List.rotor',
-            got  => $overlap,
-            range => (0 .. $elems - 1),
-        ).fail unless 0 <= $overlap < $elems;
-        X::OutOfRange.new(
-            what => 'Elements argument to List.rotor',
-            got  => $elems,
-            range => (0 .. *),
-        ).fail unless 0 <= $elems;
-
+    method rotor(*@cycle, :$partial) {
         my $finished = 0;
-        gather while $finished + $overlap < self.gimme($finished + $elems) {
-            take item self[$finished ..^ $finished + $elems];
-            $finished += $elems - $overlap
+        # (Note, the xx should be harmless if the cycle is already infinite by accident.)
+        my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
+        gather for @c -> $s {
+            my $elems;
+            my $gap;
+            if $s ~~ Pair { $elems = +$s.key; $gap = +$s.value; }
+            else          { $elems = +$s;     $gap = 0; }
+
+            # XXX these item calls are going away with GLR
+            if $finished + $elems <= self.gimme($finished + $elems) {
+                take item self[$finished ..^ $finished + $elems];
+                $finished += $elems + $gap;
+            }
+            else {
+                take item self[$finished .. *] if $partial and $finished < self.elems;
+                last;
+            }
         }
     }
 
@@ -549,8 +563,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
     multi method perl(List:D \SELF:) {
         self.gimme(*);
-        self.Parcel.perl ~ '.list'
-          ~ (nqp::iscont(SELF) ?? '.item' !! '')
+        (nqp::iscont(SELF) ?? '$' !! '') ~ self.Parcel.perl;
     }
 
     method REIFY(Parcel \parcel, Mu \nextiter) {
@@ -581,7 +594,10 @@ my class List does Positional { # declared in BOOTSTRAP
         self.values.map: { (state $)++ }
     }
     multi method kv(List:D:) {
-        self.values.map: { ((state $)++, $_) }
+        gather for self.values {
+            take (state $)++;
+            take-rw $_;
+        }
     }
     multi method values(List:D:) {
         my Mu $rpa := nqp::clone(nqp::p6listitems(self));
@@ -589,17 +605,35 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6list($rpa, List, self.flattens);
     }
     multi method pairs(List:D:) {
-        self.values.map: {; (state $)++ => $_ }
+        self.values.map: { (state $)++ => $_ }
+    }
+    multi method antipairs(List:D:) {
+        self.values.map: { $_ => (state $)++ }
+    }
+
+    multi method invert(List:D:) {
+        self.map({ nqp::decont(.value) »=>» .key }).flat
     }
 
     method reduce(List: &with) {
-        fail('can only reduce with arity 2')
-            unless &with.arity <= 2 <= &with.count;
         return unless self.DEFINITE;
-        my \vals = self.values;
-        my Mu $val = vals.shift;
-        $val = with($val, $_) for vals;
-        $val;
+        return self.values if self.elems < 2;
+        if &with.count > 2 and &with.count < Inf {
+            my $moar = &with.count - 1;
+            my \vals = self.values;
+            if try &with.prec<assoc> eq 'right' {
+                my Mu $val = vals.pop;
+                $val = with(|vals.splice(*-$moar,$moar), $val) while vals >= $moar;
+                return $val;
+            }
+            else {
+                my Mu $val = vals.shift;
+                $val = with($val, |vals.splice(0,$moar)) while vals >= $moar;
+                return $val;
+            }
+        }
+        my $reducer = find-reducer-for-op(&with);
+        $reducer(&with)(self) if $reducer;
     }
 
     method sink() {
@@ -628,10 +662,15 @@ my class List does Positional { # declared in BOOTSTRAP
         # need block on Moar because of RT#121830
         gather { take [self[@$_]] for permutations(self.elems).eager }
     }
+
+    method CALL-ME(List:U: |c) {
+        self.new(|c);
+    }
 }
 
-sub eager(|) {
-    nqp::p6parcel(nqp::p6argvmarray(), Any).eager
+# internal, caps to not hide 'eager' keyword
+sub EAGER(|) {
+    nqp::p6list(nqp::p6argvmarray(), List, Bool::True).eager
 }
 
 sub flat(|) {
@@ -644,27 +683,27 @@ sub list(|) {
 
 proto sub infix:<xx>(|)       { * }
 multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
-multi sub infix:<xx>(Mu \x)   {x }
-multi sub infix:<xx>(Mu \x, $n is copy, :$thunked!) {
-    $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? Inf !! $n.Int;
+multi sub infix:<xx>(Mu \x)   { x }
+multi sub infix:<xx>(Mu \x, Int() $n is copy, :$thunked!) {
     GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
-    GatherIter.new({ loop { take x.() } }, :infinite(True)).flat
+    GatherIter.new({ loop { take x.() } }, :infinite(True)).list
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    GatherIter.new({ loop { take x } }, :infinite(True)).flat
+    GatherIter.new({ loop { take x } }, :infinite(True)).list
 }
-multi sub infix:<xx>(Mu \x, $n) {
-    my int $size = $n.Int;
+multi sub infix:<xx>(Mu \x, Int() $n) {
+    my int $size = $n;
 
     my Mu $rpa := nqp::list();
     if $size > 0 {
         nqp::setelems($rpa, $size);
-        nqp::setelems($rpa, 0);
-
-        $size = $size + 1;
-        nqp::push($rpa,x) while $size = $size - 1;
+        my int $i;
+        while $i < $size {
+            nqp::bindpos($rpa,$i,x);
+            $i = $i + 1;
+        }
     }
 
     nqp::p6parcel($rpa, Any);

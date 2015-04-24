@@ -43,7 +43,7 @@ my role Real does Numeric {
     multi method round(Real:D:) {
         (self + 1/2).floor; # Rat NYI here, so no .5
     }
-    multi method round(Real:D: Real(Any) $scale) {
+    multi method round(Real:D: Real() $scale) {
         (self / $scale + 1/2).floor * $scale;
     }
 
@@ -120,7 +120,7 @@ my role Real does Numeric {
     multi method Str(Real:D:) { self.Bridge.Str }
 
     method sleep() {
-        DEPRECATED('sub form of sleep', '2015.02', '2016.01');
+        DEPRECATED('sub form of sleep', '2015.02', '2015.09');
         sleep self;
     }
 }

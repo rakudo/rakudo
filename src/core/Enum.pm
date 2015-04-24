@@ -3,7 +3,7 @@ my class Enum does Associative {
     has $.value;
 
     method new(:$key, Mu :$value) { nqp::create(self).BUILD($key, $value) }
-    method BUILD(\key, Mu \value) { $!key = key; $!value = value; self }
+    method BUILD($!key, Mu $!value) { self }
 
     multi method ACCEPTS(Enum:D: Associative:D $topic) {
         $topic{$.key} ~~ $.value
@@ -16,12 +16,14 @@ my class Enum does Associative {
 
     method key(Enum:D:)   { $!key }
     method value(Enum:D:) { $!value }
+    method antipair(Enum:D:) { self.new(key => $!value, value => $!key) }
 
-    multi method keys(Enum:D:)   { ($!key,).list }
-    multi method kv(Enum:D:)     { $!key, $!value }
-    multi method values(Enum:D:) { ($!value,).list }
-    multi method pairs(Enum:D:)  { (self,).list }
-    multi method invert(Enum:D:) { self.new(key => $!value, value => $!key) }
+    multi method keys(Enum:D:)      { ($!key,).list }
+    multi method kv(Enum:D:)        { $!key, $!value }
+    multi method values(Enum:D:)    { ($!value,).list }
+    multi method pairs(Enum:D:)     { (self,).list }
+    multi method antipairs(Enum:D:) { self.new(key => $!value, value => $!key) }
+    multi method invert(Enum:D:)    { $!value »=>» $!key }
 
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
 
@@ -33,9 +35,15 @@ my class Enum does Associative {
         }
     }
 
-    multi method perl(Enum:D:) {
+    multi method perl(Enum:D: :$arglist) {
         if nqp::istype($.key, Enum) {
             '(' ~ $.key.perl ~ ') => ' ~ $.value.perl;
+        } elsif nqp::istype($.key, Str) and !$arglist and $.key ~~ /^ [<alpha>\w*] +% <[\-']> $/ {
+            if nqp::istype($.value,Bool) {
+                ':' ~ '!' x !$.value ~ $.key;
+            } else {
+                ':' ~ $.key ~ '(' ~ $.value.perl ~ ')';
+            }
         } else {
             $.key.perl ~ ' => ' ~ $.value.perl;
         }
@@ -45,8 +53,8 @@ my class Enum does Associative {
         sprintf($format, $.key, $.value);
     }
 
-    multi method at_key(Enum:D: $key)     { $key eq $!key ?? $!value !! Mu }
-    multi method exists_key(Enum:D: $key) { $key eq $!key }
+    multi method AT-KEY(Enum:D: $key)     { $key eq $!key ?? $!value !! Mu }
+    multi method EXISTS-KEY(Enum:D: $key) { $key eq $!key }
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() { nqp::hash($!key, $!value) }

@@ -10,6 +10,17 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
+S01-perl-5-integration/array.t              # perl5
+S01-perl-5-integration/basic.t              # perl5
+S01-perl-5-integration/class.t              # perl5
+S01-perl-5-integration/exception_handling.t # perl5
+S01-perl-5-integration/hash.t               # perl5
+S01-perl-5-integration/import.t             # perl5
+S01-perl-5-integration/method.t             # perl5
+S01-perl-5-integration/return.t             # perl5
+S01-perl-5-integration/roundtrip.t          # perl5
+S01-perl-5-integration/strings.t            # perl5
+S01-perl-5-integration/subs.t               # perl5
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/bom.t
 S02-lexical-conventions/comments.t
@@ -92,6 +103,7 @@ S02-types/autovivification.t
 S02-types/bag.t
 S02-types/baghash.t
 S02-types/bool.t
+S02-types/built-in.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
 S02-types/declare.t
@@ -234,6 +246,7 @@ S03-smartmatch/array-array.t
 S03-smartmatch/array-hash.t
 S03-smartmatch/capture-signature.t
 S03-smartmatch/disorganized.t
+S03-smartmatch/hash-hash.t
 S03-smartmatch/range-range.t
 S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
@@ -360,6 +373,7 @@ S05-modifier/counted.t
 S05-modifier/global.t
 S05-modifier/ignorecase.t
 S05-modifier/ii.t
+S05-modifier/my.t
 S05-modifier/overlapping.t
 S05-modifier/perl5_0.t
 S05-modifier/perl5_1.t
@@ -370,6 +384,7 @@ S05-modifier/perl5_5.t
 S05-modifier/perl5_6.t
 S05-modifier/perl5_7.t
 S05-modifier/perl5_8.t
+S05-modifier/perl5_9.t
 S05-modifier/pos.t
 S05-modifier/repetition.t
 S05-modifier/sigspace.t
@@ -412,10 +427,13 @@ S06-other/main.t
 S06-other/main-usage.t
 S06-other/main-semicolon.t
 S06-other/misc.t
+S06-other/pairs-as-lvalues.t
 S06-routine-modifiers/lvalue-subroutines.t
+S06-routine-modifiers/native-lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
+S06-signature/caller-param.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
 S06-signature/code.t
@@ -445,11 +463,14 @@ S06-signature/types.t
 S06-signature/unpack-array.t
 S06-signature/unpack-object.t
 S06-signature/unspecified.t
+S06-traits/as.t
 S06-traits/is-assoc.t
 S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
 S06-traits/misc.t
+S06-traits/native-is-copy.t
+S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
@@ -459,6 +480,10 @@ S09-subscript/slice.t
 S09-subscript/multidim-assignment.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
+S09-typed-arrays/native.t
+S09-typed-arrays/native-decl.t
+S09-typed-arrays/native-int.t
+S09-typed-arrays/native-num.t
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
 S10-packages/precompilation.t
@@ -479,6 +504,7 @@ S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t
 S12-attributes/mutators.t
+S12-attributes/native.t
 S12-attributes/recursive.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t
@@ -525,6 +551,7 @@ S12-introspection/roles.t
 S12-introspection/walk.t
 S12-introspection/WHAT.t
 S12-meta/exporthow.t
+S12-meta/grammarhow.t
 S12-meta/primitives.t
 S12-methods/accessors.t
 S12-methods/attribute-params.t
@@ -582,9 +609,62 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
-S15-unicode-information/uniname.t	# moar
+S15-nfg/case-change.t           # moar
+S15-nfg/mass-chars.t            # moar
+S15-nfg/mass-equality.t         # moar
+S15-nfg/mass-roundtrip-nfc.t    # moar
+S15-nfg/mass-roundtrip-nfd.t    # moar
+S15-nfg/mass-roundtrip-nfkc.t   # moar
+S15-nfg/mass-roundtrip-nfkd.t   # moar
+S15-nfg/regex.t                 # moar
+S15-normalization/nfc-0.t       # moar stress
+S15-normalization/nfc-1.t       # moar stress
+S15-normalization/nfc-2.t       # moar stress
+S15-normalization/nfc-3.t       # moar stress
+S15-normalization/nfc-4.t       # moar stress
+S15-normalization/nfc-5.t       # moar stress
+S15-normalization/nfc-6.t       # moar stress
+S15-normalization/nfc-7.t       # moar stress
+S15-normalization/nfc-8.t       # moar stress
+S15-normalization/nfc-9.t       # moar stress
+S15-normalization/nfc-sanity.t  # moar
+S15-normalization/nfd-0.t       # moar stress
+S15-normalization/nfd-1.t       # moar stress
+S15-normalization/nfd-2.t       # moar stress
+S15-normalization/nfd-3.t       # moar stress
+S15-normalization/nfd-4.t       # moar stress
+S15-normalization/nfd-5.t       # moar stress
+S15-normalization/nfd-6.t       # moar stress
+S15-normalization/nfd-7.t       # moar stress
+S15-normalization/nfd-8.t       # moar stress
+S15-normalization/nfd-9.t       # moar stress
+S15-normalization/nfd-sanity.t  # moar
+S15-normalization/nfkc-0.t      # moar stress
+S15-normalization/nfkc-1.t      # moar stress
+S15-normalization/nfkc-2.t      # moar stress
+S15-normalization/nfkc-3.t      # moar stress
+S15-normalization/nfkc-4.t      # moar stress
+S15-normalization/nfkc-5.t      # moar stress
+S15-normalization/nfkc-6.t      # moar stress
+S15-normalization/nfkc-7.t      # moar stress
+S15-normalization/nfkc-8.t      # moar stress
+S15-normalization/nfkc-9.t      # moar stress
+S15-normalization/nfkc-sanity.t # moar
+S15-normalization/nfkd-0.t      # moar stress
+S15-normalization/nfkd-1.t      # moar stress
+S15-normalization/nfkd-2.t      # moar stress
+S15-normalization/nfkd-3.t      # moar stress
+S15-normalization/nfkd-4.t      # moar stress
+S15-normalization/nfkd-5.t      # moar stress
+S15-normalization/nfkd-6.t      # moar stress
+S15-normalization/nfkd-7.t      # moar stress
+S15-normalization/nfkd-8.t      # moar stress
+S15-normalization/nfkd-9.t      # moar stress
+S15-normalization/nfkd-sanity.t # moar
+S15-string-types/Str.t
+S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar
-S15-unicode-information/unival.t	# moar
+S15-unicode-information/unival.t	        # moar
 S16-filehandles/chmod.t
 S16-filehandles/filestat.t
 S16-filehandles/filetest.t
@@ -605,10 +685,10 @@ S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/earliest.t
-# S17-lowlevel/lock.t
+S17-lowlevel/lock.t
 S17-lowlevel/thread.t
 S17-procasync/basic.t    # moar
-# S17-procasync/print.t    # moar
+S17-procasync/print.t    # moar
 # S17-procasync/kill.t     # moar
 S17-promise/allof.t
 S17-promise/anyof.t
@@ -631,7 +711,7 @@ S17-supply/delayed.t
 S17-supply/do.t
 S17-supply/elems.t
 S17-supply/flat.t
-S17-supply/for.t
+S17-supply/from-list.t
 S17-supply/grab.t
 S17-supply/grep.t
 S17-supply/interval.t
@@ -645,11 +725,12 @@ S17-supply/migrate.t
 S17-supply/min.t
 S17-supply/minmax.t
 S17-supply/on.t
+S17-supply/on-demand.t
 S17-supply/Promise.t
 S17-supply/reduce.t
 S17-supply/reverse.t
 S17-supply/rotor.t
-S17-supply/schedule_on.t
+S17-supply/schedule-on.t
 S17-supply/sort.t
 S17-supply/squish.t
 S17-supply/stable.t
@@ -668,6 +749,8 @@ S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S22-package-format/local.t
 S24-testing/0-compile.t
+S24-testing/3-output.t
+S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
 S26-documentation/03-abbreviated.t
@@ -716,6 +799,9 @@ S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
+S32-basics/xxKEY.t
+S32-basics/xxPOS.t
+S32-basics/xxPOS-native.t    # moar
 S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t
@@ -735,6 +821,7 @@ S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
+S32-io/io-handle.t
 S32-io/io-spec-unix.t
 S32-io/io-spec-win.t
 S32-io/io-spec-cygwin.t
@@ -744,6 +831,7 @@ S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/note.t
 S32-io/other.t
+S32-io/pipe.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
@@ -765,6 +853,7 @@ S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
+S32-list/rotor.t
 S32-list/sort.t
 S32-list/unique.t
 S32-list/squish.t
@@ -802,10 +891,12 @@ S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t
 S32-str/encode.t
+S32-str/ends-with.t
 S32-str/flip.t
 S32-str/indent.t
 S32-str/index.t
 S32-str/lc.t
+S32-str/length.t
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
@@ -816,7 +907,10 @@ S32-str/samecase.t
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
+S32-str/sprintf-b.t
+S32-str/starts-with.t
 S32-str/substr.t
+S32-str/substr-eq.t
 S32-str/substr-rw.t
 S32-str/tc.t
 S32-str/tclc.t
@@ -950,6 +1044,7 @@ integration/no-indirect-new.t
 integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
+integration/precompiled.t
 integration/real-strings.t
 integration/role-composition-vs-attribute.t
 integration/rule-in-class-Str.t

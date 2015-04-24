@@ -23,23 +23,23 @@ my class Backtrace::Frame {
         "  in {$s}$.subname at {$.file}:$.line\n"
     }
 
-    method is-hidden(Backtrace::Frame:D:)  { $!code.?is_hidden_from_backtrace }
+    method is-hidden(Backtrace::Frame:D:)  { $!code.?is-hidden-from-backtrace }
     method is-routine(Backtrace::Frame:D:) { nqp::istype($!code,Routine) }
-    method is-setting(Backtrace::Frame:D:) {
-        $!file.chars > 12 && substr($!file,*-12) eq 'CORE.setting'
-    }
+    method is-setting(Backtrace::Frame:D:) { $!file.ends-with("CORE.setting") }
 }
 
 my class Backtrace is List {
     proto method new(|) {*}
 
-    multi method new(Exception $e, Int $offset = 0) {
-        self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
+    multi method new(Mu $e, Int $offset = 0) {
+        $e.^name eq 'BOOTException'
+            ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)
+            !! self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
     }
 
-    multi method new() {
+    multi method new(Int $offset = 0) {
         try { die() };
-        self.new($!, 2);
+        self.new($!, 2 + $offset);
     }
 
     # note that backtraces are nqp::list()s, marshalled to us as Parcel
@@ -71,7 +71,8 @@ my class Backtrace is List {
                     $file eq 'gen/moar/stage2/NQPHLL.nqp' ||
                     $file eq 'gen\\moar\\stage2\\NQPHLL.nqp';
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
-            $subname = '<anon>' if substr($subname,0, 6) eq '_block';
+            $subname = '<anon>' if $subname.starts-with("_block");
+            last if $subname eq 'handle-begin-time-exceptions';
             $new.push: Backtrace::Frame.new(
                 :line($line.Int),
                 :$file,
@@ -90,7 +91,7 @@ my class Backtrace is List {
         # has two bt frames from the mainline; so it's OK to never
         # consider the last one
         loop (; $idx < self.end; ++$idx) {
-            my $cand = self.at_pos($idx);
+            my $cand = self.AT-POS($idx);
             next if $cand.is-hidden;          # hidden is never interesting
             next if $named && !$cand.subname; # only want named ones
             next if $noproto                  # no proto's please
@@ -100,9 +101,9 @@ my class Backtrace is List {
         Int;
     }
 
-    method outer-caller-idx(Backtrace:D: Int $startidx is copy) {
+    method outer-caller-idx(Backtrace:D: Int $startidx) {
         my %print;
-        my $start   = self.at_pos($startidx).code;
+        my $start   = self.AT-POS($startidx).code;
         return $startidx.list unless $start;
         my $current = $start.outer;
         my %outers;
@@ -112,9 +113,9 @@ my class Backtrace is List {
         }
         my @outers;
         loop (my Int $i = $startidx; $i < $.end; ++$i) {
-            if self.at_pos($i).code.DEFINITE && %outers{self.at_pos($i).code.static_id}.DEFINITE {
+            if self.AT-POS($i).code.DEFINITE && %outers{self.AT-POS($i).code.static_id}.DEFINITE {
                 @outers.push: $i;
-                return @outers if self.at_pos($i).is-routine;
+                return @outers if self.AT-POS($i).is-routine;
             }
         }
 
@@ -128,17 +129,17 @@ my class Backtrace is List {
             while $i.defined {
                 $i = self.next-interesting-index($i)
                     while $oneline && $i.defined
-                          && self.at_pos($i).is-setting;
+                          && self.AT-POS($i).is-setting;
 
                 last unless $i.defined;
-                my $prev = self.at_pos($i);
+                my $prev = self.AT-POS($i);
                 if $prev.is-routine {
                     @frames.push: $prev;
                 } else {
                     my @outer_callers := self.outer-caller-idx($i);
-                    my ($target_idx) = @outer_callers.keys.grep({self.at_pos($i).code.^isa(Routine)});
+                    my ($target_idx) = @outer_callers.keys.grep({self.AT-POS($i).code.^isa(Routine)});
                     $target_idx    ||= @outer_callers[0] || $i;
-                    my $current = self.at_pos($target_idx);
+                    my $current = self.AT-POS($target_idx);
                     @frames.push: $current.clone(line => $prev.line);
                     $i = $target_idx;
                 }

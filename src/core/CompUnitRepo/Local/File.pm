@@ -26,7 +26,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
       ) {
 
         # sorry, cannot handle this one
-        return () unless %extensions.exists_key($from);
+        return () unless %extensions.EXISTS-KEY($from);
 
         my $dir-sep := $*SPEC.dir-sep;
         my $base := $!IO.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';

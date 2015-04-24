@@ -8,7 +8,7 @@ NQP_PREFIX = @nqp_prefix@
 
 J_BUILD_DIR = gen/jvm
 
-PERL6_LANG_DIR = $(PREFIX)/languages/perl6
+PERL6_LANG_DIR = $(PREFIX)/share/perl6
 
 NQP_JARS = @nqp_jars@
 
@@ -100,6 +100,7 @@ J_CORE_SOURCES = \
   src/core/List.pm \
   src/core/LoL.pm \
   src/core/Array.pm \
+  src/core/native_array.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \
   src/core/HashIter.pm \
@@ -126,7 +127,7 @@ J_CORE_SOURCES = \
   src/core/IO/Local.pm \
   src/core/IO/Dir.pm \
   src/core/IO/File.pm \
-  src/core/IOU.pm \
+  src/core/IO/Huh.pm \
   src/core/IO/Spec.pm \
   src/core/IO/Spec/Unix.pm \
   src/core/IO/Spec/Win32.pm \
@@ -148,6 +149,7 @@ J_CORE_SOURCES = \
   src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
+  src/core/PairMap.pm \
   src/core/QuantHash.pm \
   src/core/Setty.pm \
   src/core/Set.pm \
@@ -217,7 +219,6 @@ J_CLEANUPS = \
   $(PERL6_JAR) \
   lib/NativeCall.pm.jar \
   lib/Test.pm.jar \
-  lib/nqp.pm6.jar \
   lib/lib.pm6.jar \
   lib/Pod/To/Text.pm.jar \
   j-rakudo_test_run.tar.gz \
@@ -233,7 +234,7 @@ J_CLEANUPS = \
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 J_HARNESS = $(PERL) t/harness --jvm
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/nqp.pm6.jar lib/lib.pm6.jar lib/Pod/To/Text.pm.jar lib/NativeCall.pm.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/lib.pm6.jar lib/Pod/To/Text.pm.jar lib/NativeCall.pm.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -313,13 +314,10 @@ $(J_DEBUG_RUNNER): tools/build/create-jvm-runner.pl $(PERL6_DEBUG_JAR)
 
 ##  shipped modules
 lib/NativeCall.pm.jar: lib/NativeCall.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
-	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall.pm.jar lib/NativeCall.pm
+	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall.pm.jar -Ilib lib/NativeCall.pm
 
 lib/Test.pm.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
-	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar lib/Test.pm
-
-lib/nqp.pm6.jar: lib/nqp.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
-	.@slash@$(J_RUNNER) --target=jar --output=lib/nqp.pm6.jar lib/nqp.pm6
+	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar -Ilib lib/Test.pm
 
 lib/lib.pm6.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	.@slash@$(J_RUNNER) --target=jar --output=lib/lib.pm6.jar lib/lib.pm6
@@ -385,8 +383,6 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) lib/NativeCall.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/Test.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/Test.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP) lib/nqp.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP) lib/nqp.pm6.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/lib.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/lib.pm6.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To

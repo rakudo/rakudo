@@ -12,9 +12,6 @@ my role Setty does QuantHash {
     method total(--> Int) { %!elems.elems }
     method minpairs(--> List) { self.pairs }
     method maxpairs(--> List) { self.pairs }
-    multi method exists_key(Setty:D: $k --> Bool) {
-        so ( %!elems && nqp::existskey(%!elems, nqp::unbox_s($k.WHICH)) );
-    }
     multi method Bool(Setty:D:) { %!elems.Bool }
 
     multi method hash(Setty:D: --> Hash) {
@@ -64,7 +61,8 @@ my role Setty does QuantHash {
     }
 
     method list() { %!elems.values }
-    multi method pairs(Setty:D:) { %!elems.values.map: { $_ => True } }
+    multi method pairs(Setty:D:)    { %!elems.values.map: { $_ => True } }
+    multi method antipairs(Setty:D:) { %!elems.values.map: { True => $_ } }
     method grab($count = 1) {
         (%!elems{ %!elems.keys.pick($count) }:delete).list;
     }
@@ -79,6 +77,12 @@ my role Setty does QuantHash {
     proto method roll(|) { * }
     multi method roll()       { %!elems.values.roll()       }
     multi method roll($count) { %!elems.values.roll($count) }
+
+    multi method EXISTS-KEY(Setty:D: \k --> Bool) {
+        nqp::p6bool(
+          %!elems.elems && nqp::existskey(%!elems, nqp::unbox_s(k.WHICH))
+        );
+    }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

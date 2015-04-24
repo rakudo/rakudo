@@ -18,3 +18,8 @@ DLLEXPORT int CompareSomePointer(void *ptr)
     int x = strcmp("Got passed back the pointer I returned", ptr) == 0;
     return x;
 }
+
+DLLEXPORT void * ReturnNullPointer()
+{
+    return NULL;
+}

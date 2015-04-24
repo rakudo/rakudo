@@ -9,6 +9,7 @@ import org.perl6.nqp.sixmodel.*;
 import org.perl6.nqp.sixmodel.reprs.CallCaptureInstance;
 import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
 import org.perl6.nqp.sixmodel.reprs.LexoticInstance;
+import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
@@ -458,15 +459,22 @@ public final class RakOps {
     
     public static SixModelObject p6decontrv(SixModelObject routine, SixModelObject cont, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        if (cont != null && isRWScalar(tc, gcx, cont)) {
-            routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
-            if (tc.native_i == 0) {
-                /* Recontainerize to RO. */
-                SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-                roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                    RakudoContainerSpec.HINT_value,
-                    cont.st.ContainerSpec.fetch(tc, cont));
-                return roCont;
+        if (cont != null) {
+            if (isRWScalar(tc, gcx, cont)) {
+                routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
+                if (tc.native_i == 0) {
+                    /* Recontainerize to RO. */
+                    SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
+                    roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
+                        RakudoContainerSpec.HINT_value,
+                        cont.st.ContainerSpec.fetch(tc, cont));
+                    return roCont;
+                }
+            }
+            else if (cont instanceof NativeRefInstance) {
+                routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
+                if (tc.native_i == 0)
+                    return cont.st.ContainerSpec.fetch(tc, cont);
             }
         }
         return cont;

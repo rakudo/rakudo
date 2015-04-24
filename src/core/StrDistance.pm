@@ -3,8 +3,20 @@ my class StrDistance is Cool {
     has Str $.after;
     has Int $!distance;
 
-    multi method Bool(StrDistance:D:)    { $.before ne $.after }
-    multi method Numeric(StrDistance:D:) { self.Int }
+    method BUILD(Str() :$!before, :$!after) {
+    }
+
+    method Bool() {
+        $.before ne $.after
+    }
+
+    method ACCEPTS(StrDistance:D: Mu \a) {
+        self
+    }
+
+    method Numeric() {
+        self.Int
+    }
 
     multi method Int(StrDistance:D:) {
         $!distance //= do {

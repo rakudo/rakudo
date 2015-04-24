@@ -8,14 +8,14 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method Str(*@) { '' }       # XXX still needs warning
     method sink(*@) { Nil }     # required by RESTRICTED setting
 
-    method at_pos(*@)     { Nil }
-    method at_key(*@)     { Nil }
+    method AT-POS(*@)     { Nil }
+    method AT-KEY(*@)     { Nil }
 #    method ACCEPTS(*@)    { Nil }  # XXX spec says Nil, but makes spectest hang
 
-    method bind_pos(*@)   { die "Attempted to bind_pos to Nil." }
-    method bind_key(*@)   { die "Attempted to bind_key to Nil." }
-    method assign_pos(*@) { die "Attempted to assign_pos to Nil." }
-    method assign_key(*@) { die "Attempted to assign_key to Nil." }
+    method BIND-POS(*@)   { die "Attempted to BIND-POS to Nil." }
+    method BIND-KEY(*@)   { fail X::Bind.new(target => 'Nil') }
+    method ASSIGN-POS(*@) { die "Attempted to ASSIGN-POS to Nil." }
+    method ASSIGN-KEY(*@) { die "Attempted to ASSIGN-KEY to Nil." }
     method STORE(*@)      { die "Attempted to STORE to Nil." }
     method push(*@)       { die "Attempted to push to Nil." }
     method unshift(*@)    { die "Attempted to unshift to Nil." }

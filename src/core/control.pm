@@ -177,16 +177,16 @@ my &samewith := -> *@pos, *%named {
     $dispatcher( $self, |@pos, |%named );
 }
 
-proto sub die(|) is hidden_from_backtrace {*};
-multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
-multi sub die($payload = "Died") is hidden_from_backtrace {
+proto sub die(|) is hidden-from-backtrace {*};
+multi sub die(Exception $e) is hidden-from-backtrace { $e.throw }
+multi sub die($payload = "Died") is hidden-from-backtrace {
     X::AdHoc.new(:$payload).throw
 }
-multi sub die(*@msg) is hidden_from_backtrace {
+multi sub die(*@msg) is hidden-from-backtrace {
     X::AdHoc.new(payload => @msg.join).throw
 }
 
-multi sub warn(*@msg) is hidden_from_backtrace {
+multi sub warn(*@msg) is hidden-from-backtrace {
     my $ex := nqp::newexception();
     nqp::setmessage($ex, nqp::unbox_s(@msg.join));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);
@@ -195,6 +195,21 @@ multi sub warn(*@msg) is hidden_from_backtrace {
 }
 
 proto sub EVAL($, *%) {*}
+multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'perl5' }, PseudoStash :$context) {
+    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
+    my $?FILES   := 'EVAL_' ~ (state $no)++;
+    state $p5;
+    unless $p5 {
+        {
+            require Inline::Perl5;
+            CATCH {
+                X::Eval::NoSuchLang.new(:$lang).throw;
+            }
+        }
+        $p5 = ::("Inline::Perl5").default_perl5;
+    }
+    $p5.run($code);
+}
 multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
@@ -225,7 +240,7 @@ sub THE_END {
 my class Proc::Status { ... }
 
 sub run(*@args ($, *@)) {
-    my $status = Proc::Status.new( :exit(255) );
+    my $status = Proc::Status.new( :exitcode(255) );
     try {
         $status.status(nqp::p6box_i(nqp::spawn(
           CLONE-LIST-DECONTAINERIZED(@args),
@@ -237,7 +252,7 @@ sub run(*@args ($, *@)) {
 }
 
 sub shell($cmd) {
-    my $status = Proc::Status.new( :exit(255) );
+    my $status = Proc::Status.new( :exitcode(255) );
     try {
         $status.status(nqp::p6box_i(nqp::shell(
           $cmd,

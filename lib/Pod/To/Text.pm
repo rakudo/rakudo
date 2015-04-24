@@ -12,7 +12,6 @@ if %*ENV<POD_TO_TEXT_ANSI> {
 }
 
 sub pod2text($pod) is export {
-    my @declarators;
     given $pod {
         when Pod::Heading      { heading2text($pod)             }
         when Pod::Block::Code  { code2text($pod)                }
@@ -92,13 +91,13 @@ sub declarator2text($pod) {
         when Sub {
             'sub ' ~ $_.name ~ signature2text($_.signature.params)
         }
-        when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ClassHOW)) {
+        when .HOW ~~ Metamodel::ClassHOW {
             'class ' ~ $_.perl
         }
-        when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ModuleHOW)) {
+        when .HOW ~~ Metamodel::ModuleHOW {
             'module ' ~ $_.perl
         }
-        when nqp::p6bool(nqp::istype($_.HOW, Metamodel::PackageHOW)) {
+        when .HOW ~~ Metamodel::PackageHOW {
             'package ' ~ $_.perl
         }
         default {

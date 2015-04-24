@@ -70,7 +70,7 @@ my class IO::Socket::Async {
 
                 if $in_charge {
                     my int $done;
-                    while @buffer.exists_pos($done) {
+                    while @buffer.EXISTS-POS($done) {
 #say "emitting { $next_seq + $done }: {@buffer[$done]}";
                         supply.emit( @buffer[$done] );
                         $done = $done + 1;
@@ -91,7 +91,7 @@ my class IO::Socket::Async {
 
     method chars_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
         my $cancellation;
-        Supply.on_demand( -> $supply {
+        Supply.on-demand( -> $supply {
             $cancellation := nqp::asyncreadchars(
               $!VMIO,
               $scheduler.queue,
@@ -107,7 +107,7 @@ my class IO::Socket::Async {
 
     method bytes_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
         my $cancellation;
-        Supply.on_demand( -> $supply {
+        Supply.on-demand( -> $supply {
             $cancellation := nqp::asyncreadbytes(
               $!VMIO,
               $scheduler.queue,
@@ -127,7 +127,7 @@ my class IO::Socket::Async {
         True;
     }
 
-    method connect(IO::Socket::Async:U: Str() $host, Int(Any) $port,
+    method connect(IO::Socket::Async:U: Str() $host, Int() $port,
                    :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
@@ -147,10 +147,10 @@ my class IO::Socket::Async {
         $p
     }
 
-    method listen(IO::Socket::Async:U: Str() $host, Int(Any) $port,
+    method listen(IO::Socket::Async:U: Str() $host, Int() $port,
                   :$scheduler = $*SCHEDULER) {
         my $cancellation;
-        Supply.on_demand(-> $s {
+        Supply.on-demand(-> $s {
             $cancellation := nqp::asynclisten(
                 $scheduler.queue,
                 -> Mu \socket, Mu \err {

@@ -45,6 +45,8 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method Str() {
         nqp::strfromcodes(self)
     }
+
+    method codes() { nqp::elems(self) }
 }
 
 my class NFD is Uni {

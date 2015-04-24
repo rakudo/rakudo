@@ -191,7 +191,11 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
 }
 
 multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
-    $time_after = nqp::time_n;
+    cmp-ok($got, $op, $expected, $desc);
+}
+
+multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     $got.defined; # Hack to deal with Failures
     my $ok;
     if $op ~~ Callable ?? $op !! try EVAL "&infix:<$op>" -> $matcher {
@@ -211,7 +215,11 @@ multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    $time_after = nqp::time_n;
+    is-approx($got, $expected, $desc);
+}
+
+multi sub is-approx(Mu $got, Mu $expected, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
     my $ok = proclaim(?$test, $desc);
@@ -244,7 +252,11 @@ multi sub skip($reason, $count = 1) is export {
 }
 
 sub skip_rest($reason = '<unknown>') is export {
-    $time_after = nqp::time_n;
+    skip-rest($reason);
+}
+
+sub skip-rest($reason = '<unknown>') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     die "A plan is required in order to use skip_rest" if $no_plan;
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
     $time_before = nqp::time_n;
@@ -283,7 +295,11 @@ multi sub flunk($reason) is export {
 }
 
 multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
-    $time_after = nqp::time_n;
+    isa-ok($var, $type, $msg);
+}
+
+multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $ok = proclaim($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::time_n;
@@ -327,7 +343,11 @@ multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
 }
 
 multi sub dies_ok(Callable $code, $reason = '') is export {
-    $time_after = nqp::time_n;
+    dies-ok($code, $reason);
+}
+
+multi sub dies-ok(Callable $code, $reason = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $death = 1;
     try {
         $code();
@@ -339,7 +359,11 @@ multi sub dies_ok(Callable $code, $reason = '') is export {
 }
 
 multi sub lives_ok(Callable $code, $reason = '') is export {
-    $time_after = nqp::time_n;
+    lives-ok($code, $reason);
+}
+
+multi sub lives-ok(Callable $code, $reason = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     try {
         $code();
     }
@@ -349,7 +373,11 @@ multi sub lives_ok(Callable $code, $reason = '') is export {
 }
 
 multi sub eval_dies_ok(Str $code, $reason = '') is export {
-    $time_after = nqp::time_n;
+    eval-dies-ok($code, $reason);
+}
+
+multi sub eval-dies-ok(Str $code, $reason = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
     my $ok = proclaim( $ee.defined, $reason );
     $time_before = nqp::time_n;
@@ -357,7 +385,11 @@ multi sub eval_dies_ok(Str $code, $reason = '') is export {
 }
 
 multi sub eval_lives_ok(Str $code, $reason = '') is export {
-    $time_after = nqp::time_n;
+    eval-lives-ok($code, $reason);
+}
+
+multi sub eval-lives-ok(Str $code, $reason = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
     my $ok = proclaim((not defined $ee), $reason)
         or diag("Error: $ee");
@@ -365,9 +397,12 @@ multi sub eval_lives_ok(Str $code, $reason = '') is export {
     return $ok;
 }
 
-multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
-{
-    $time_after = nqp::time_n;
+multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export {
+    is-deeply($got, $expected, $reason);
+}
+
+multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $test = _is_deeply( $got, $expected );
     my $ok = proclaim($test, $reason);
     if !$test {
@@ -382,7 +417,11 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
     return $ok;
 }
 
-sub throws_like($code, $ex_type, $reason?, *%matcher) is export {
+sub throws_like(|capture) is export {
+    throws-like(|capture);
+}
+
+sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
     subtest {
         plan 2 + %matcher.keys.elems;
         my $msg;

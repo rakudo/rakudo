@@ -46,7 +46,10 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         nqp::strfromcodes(self)
     }
 
-    method codes(Uni:D:) { nqp::elems(self) }
+    method codes(Uni:D:)   { nqp::elems(self) }
+    method elems(Uni:D:)   { nqp::elems(self) }
+    method Numeric(Uni:D:) { nqp::elems(self) }
+    method Int(Uni:D:)     { nqp::elems(self) }
 
     multi method EXISTS-POS(Uni:D: int \pos) {
         nqp::p6bool(
@@ -73,6 +76,15 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
           :range("0..{nqp::elems(self)-1}")
         ) if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
         nqp::atpos_i(self,$pos);
+    }
+
+    multi method gist(Uni:D:) {
+        self.^name ~ ':0x<' ~ self.list.fmt('%04x', ' ') ~ '>'
+    }
+
+    multi method perl(Uni:D:) {
+        'Uni.new(' ~ self.list.fmt('0x%04x', ', ') ~ ')' ~
+            (self.WHAT === Uni ?? '' !! '.' ~ self.^name);
     }
 }
 

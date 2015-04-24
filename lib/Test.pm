@@ -191,6 +191,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
 }
 
 multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
+    DEPRECATED('cmp-ok',|<2015.05 2015.09>);
     cmp-ok($got, $op, $expected, $desc);
 }
 
@@ -215,6 +216,7 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
+    DEPRECATED('is-approx',|<2015.05 2015.09>);
     is-approx($got, $expected, $desc);
 }
 
@@ -252,6 +254,7 @@ multi sub skip($reason, $count = 1) is export {
 }
 
 sub skip_rest($reason = '<unknown>') is export {
+    DEPRECATED('skip-rest',|<2015.05 2015.09>);
     skip-rest($reason);
 }
 
@@ -295,6 +298,7 @@ multi sub flunk($reason) is export {
 }
 
 multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
+    DEPRECATED('isa-ok',|<2015.05 2015.09>);
     isa-ok($var, $type, $msg);
 }
 
@@ -343,6 +347,7 @@ multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
 }
 
 multi sub dies_ok(Callable $code, $reason = '') is export {
+    DEPRECATED('dies-ok',|<2015.05 2015.09>);
     dies-ok($code, $reason);
 }
 
@@ -359,6 +364,7 @@ multi sub dies-ok(Callable $code, $reason = '') is export {
 }
 
 multi sub lives_ok(Callable $code, $reason = '') is export {
+    DEPRECATED('lives-ok',|<2015.05 2015.09>);
     lives-ok($code, $reason);
 }
 
@@ -373,6 +379,7 @@ multi sub lives-ok(Callable $code, $reason = '') is export {
 }
 
 multi sub eval_dies_ok(Str $code, $reason = '') is export {
+    DEPRECATED('eval-dies-ok',|<2015.05 2015.09>);
     eval-dies-ok($code, $reason);
 }
 
@@ -385,6 +392,7 @@ multi sub eval-dies-ok(Str $code, $reason = '') is export {
 }
 
 multi sub eval_lives_ok(Str $code, $reason = '') is export {
+    DEPRECATED('eval-lives-ok',|<2015.05 2015.09>);
     eval-lives-ok($code, $reason);
 }
 
@@ -398,6 +406,7 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
 }
 
 multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export {
+    DEPRECATED('is-deeply',|<2015.05 2015.09>);
     is-deeply($got, $expected, $reason);
 }
 
@@ -418,6 +427,7 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
 }
 
 sub throws_like(|capture) is export {
+    DEPRECATED('throws-like',|<2015.05 2015.09>);
     throws-like(|capture);
 }
 

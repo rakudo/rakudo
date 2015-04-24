@@ -46,6 +46,10 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         nqp::strfromcodes(self)
     }
 
+    multi method Bool(Uni:D:) {
+        nqp::p6bool(nqp::elems(self));
+    }
+
     method codes(Uni:D:)   { nqp::elems(self) }
     method elems(Uni:D:)   { nqp::elems(self) }
     method Numeric(Uni:D:) { nqp::elems(self) }

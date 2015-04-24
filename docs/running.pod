@@ -25,8 +25,10 @@ compiled code.
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
   --profile            write profile information as HTML file (MoarVM)
+  --profile-filename=[name]
+                       specify an alternate profile output file
 
-Note that only boolean single-letter options may be bundled
+Note that only boolean single-letter options may be bundled.
 
 The supported values for C<--target> are:
 
@@ -39,6 +41,8 @@ The supported values for C<--target> are:
  mbc        MoarVM   MoarVM byte code
  jar        JVM      JVM archive
 
+For C<--profile-filename>, specifying a name ending in C<.json> will write a raw JSON profile dump.
+The default if this is omitted is C<profile-I<[timestamp]>.html>.
 
 =head1 List of env vars used in Rakudo
 

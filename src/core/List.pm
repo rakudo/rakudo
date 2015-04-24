@@ -181,6 +181,27 @@ my class List does Positional { # declared in BOOTSTRAP
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
+    multi method pick(Whatever, :$eager!) {
+        return self.pick(*) if !$eager;
+
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+
+        my Int $elems = self.elems;
+        return unless $elems;
+
+        my Mu $picked := nqp::clone($!items);
+        my Int $i;
+        my Mu $val;
+        while $elems {
+            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $elems = $elems - 1;
+            # switch them
+            $val  := nqp::atpos($picked,nqp::unbox_i($i));
+            nqp::bindpos($picked,nqp::unbox_i($i),nqp::atpos($picked,nqp::unbox_i($elems)));
+            nqp::bindpos($picked,nqp::unbox_i($elems),$val);
+        }
+        nqp::p6parcel($picked,Any);
+    }
     multi method pick(Whatever) {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
 

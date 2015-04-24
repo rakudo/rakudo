@@ -1467,7 +1467,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method codes(|) { * }
     multi method codes(Str:D:) returns Int:D {
+#?if moar
+        self.NFC.codes
+#?endif
+#?if jvm
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
+#?endif
     }
     multi method codes(Str:U:) returns Int:D {
         self.Str;  # generate undefined warning

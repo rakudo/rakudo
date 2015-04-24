@@ -181,6 +181,22 @@ my class List does Positional { # declared in BOOTSTRAP
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
+    multi method pick(Whatever) {
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+
+        my Int $elems = self.elems;
+        return unless $elems;
+
+        my Mu $rpa := nqp::clone($!items);
+        my Int $i;
+        gather while $elems {
+            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $elems = $elems - 1;
+            take-rw nqp::atpos($rpa,nqp::unbox_i($i));
+            # replace selected element with last unpicked one
+            nqp::bindpos($rpa,nqp::unbox_i($i),nqp::atpos($rpa,nqp::unbox_i($elems)));
+        }
+    }
     multi method pick(\number) {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to

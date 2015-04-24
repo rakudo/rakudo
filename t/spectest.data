@@ -661,6 +661,7 @@ S15-normalization/nfkd-7.t      # moar stress
 S15-normalization/nfkd-8.t      # moar stress
 S15-normalization/nfkd-9.t      # moar stress
 S15-normalization/nfkd-sanity.t # moar
+S15-string-types/Uni.t          # moar
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar

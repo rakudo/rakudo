@@ -196,14 +196,14 @@ my class List does Positional { # declared in BOOTSTRAP
         return self.AT-POS($elems.rand.floor) if $n == 1;
 
         my Mu $rpa := nqp::clone($!items);
-        my int $i;
+        my Int $i;
         gather while $n {
             $i     = nqp::rand_I(nqp::decont($elems), Int);
             $elems = $elems - 1;
             $n     = $n - 1;
-            take-rw nqp::atpos($rpa,$i);
+            take-rw nqp::atpos($rpa,nqp::unbox_i($i));
             # replace selected element with last unpicked one
-            nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
+            nqp::bindpos($rpa,nqp::unbox_i($i),nqp::atpos($rpa,nqp::unbox_i($elems)));
         }
     }
 

@@ -48,7 +48,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     multi method WHICH(Parcel:D:) {
         $!WHICH //= self.^name
           ~ '|'
-          ~ (^self.elems).map( {'(' ~ self[$_].VAR.WHICH ~ ')'} )._join;
+          ~ (^self.elems).map( {'(' ~ self[$_].VAR.WHICH ~ ')'} ).join;
     }
     method Parcel()  { self }
     method Capture() {

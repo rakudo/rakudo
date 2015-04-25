@@ -128,7 +128,7 @@ sub REMOVE-ROOT(Str $r, Str $p) {
 
 sub CHANGE-DIRECTORY($path,$base,&test) {
 
-    my $abspath = MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($path,$base))._join('/');
+    my $abspath = MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($path,$base)).join('/');
     FILETEST-E($abspath) && FILETEST-D($abspath) && test($abspath)
       ?? IO::Path.new-from-absolute-path($abspath.chop)
       !! fail X::IO::Chdir.new(

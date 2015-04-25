@@ -1549,7 +1549,7 @@ multi sub infix:<~>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
-multi sub infix:<~>(*@args) returns Str:D { @args.join }
+multi sub infix:<~>(*@args) returns Str:D { @args._join }
 
 multi sub infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
     $repetition < 0

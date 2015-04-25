@@ -48,7 +48,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     multi method WHICH(Parcel:D:) {
         $!WHICH //= self.^name
           ~ '|'
-          ~ (^self.elems).map( {'(' ~ self[$_].VAR.WHICH ~ ')'} ).join;
+          ~ (^self.elems).map( {'(' ~ self[$_].VAR.WHICH ~ ')'} )._join;
     }
     method Parcel()  { self }
     method Capture() {
@@ -77,6 +77,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     method eager() { nqp::p6list(nqp::clone($!storage), List, Mu).eager }
     method for(|c) { nqp::p6list(nqp::clone($!storage), List, Bool::True).map(|c) }
     method map(|c) { nqp::p6list(nqp::clone($!storage), List, Mu).map(|c) }
+    method join(|c) { nqp::p6list(nqp::clone($!storage), List, Mu).join(|c) }
 
     method reverse() {
         my Mu $reverse  := nqp::list();

@@ -350,8 +350,9 @@ my class Any { # declared in BOOTSTRAP
         Nil;
     }
 
+    method _join(|c) { self.flat.join(|c) }
     method join($separator = '') {
-        my $list = (self,).flat.eager;
+        my $list = (self,).eager;
         my Mu $rsa := nqp::list_s();
         $list.gimme(4);        # force reification of at least 4 elements
         unless $list.infinite {  # presize array

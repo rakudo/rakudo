@@ -135,7 +135,7 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
     }
 
     # Process command line arguments
-    my ($p, $n) = process-cmd-args(@*ARGS).lol;
+    my ($p, $n) := process-cmd-args(@*ARGS);
 
     # Generate default $?USAGE message
     my $usage;

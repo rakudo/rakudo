@@ -342,19 +342,29 @@ my role Supply {
     }
 
     proto method rotor(|) {*}
-    multi method rotor(Supply:D $self: Pair $teeth-gap) { self.rotor($teeth-gap.key, -$teeth-gap.value) }
-    multi method rotor(Supply:D $self: $elems? is copy, $overlap? is copy ) {
+    multi method rotor(Supply:D $self: Pair $teeth-gap, :$partial) {
+        self.rotor($teeth-gap.key, -$teeth-gap.value, :$partial, :nodepr);
+    }
+    multi method rotor(
+      Supply:D $self:
+      $elems? is copy,
+      $gap? is copy,
+      :$partial,
+      :$nodepr,
+    ) {
+        DEPRECATED('.rotor( $elems => -$gap )',|<2015.04 2015.09>)
+          if $elems.defined && !$nodepr;
 
-        $elems   //= 2;
-        $overlap //= 1;
-        return $self if $elems == 1 and $overlap == 0;  # nothing to do
+        $elems //= 2;
+        $gap   //= 1;
+        return $self if $elems == 1 and $gap == 0;  # nothing to do
 
         on -> $res {
             $self => do {
                 my @batched;
                 sub flush {
                     $res.emit( [@batched] );
-                    @batched.splice( 0, +@batched - $overlap );
+                    @batched.splice( 0, +@batched - $gap );
                 }
 
                 {
@@ -363,7 +373,7 @@ my role Supply {
                         flush if @batched.elems == $elems;
                     },
                     done => {
-                        flush if @batched;
+                        flush if @batched and $partial;
                         $res.done;
                     }
                 }

@@ -572,13 +572,12 @@ my class List does Positional { # declared in BOOTSTRAP
             if $s ~~ Pair { $elems = +$s.key; $gap = +$s.value; }
             else          { $elems = +$s;     $gap = 0; }
 
-            # XXX these item calls are going away with GLR
             if $finished + $elems <= self.gimme($finished + $elems) {
-                take item self[$finished ..^ $finished + $elems];
+                take self[$finished ..^ $finished + $elems];
                 $finished += $elems + $gap;
             }
             else {
-                take item self[$finished .. *] if $partial and $finished < self.elems;
+                take self[$finished .. *] if $partial and $finished < self.elems;
                 last;
             }
         }

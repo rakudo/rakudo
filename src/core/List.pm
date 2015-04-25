@@ -59,7 +59,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method from()       { self.elems ?? self[0].from !! Nil }
 
     method fmt($format = '%s', $separator = ' ') {
-        self.map({ .fmt($format) }).join($separator);
+        self.for({ .fmt($format) }).join($separator);
     }
 
     method flat() { self.flattens
@@ -474,7 +474,7 @@ my class List does Positional { # declared in BOOTSTRAP
         # if $by.arity < 2, then we apply the block to the elements
         # for sorting.
         if ($by.?count // 2) < 2 {
-            my $list = self.map($by).eager;
+            my $list = self.for($by).eager;
             nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
         }
         else {

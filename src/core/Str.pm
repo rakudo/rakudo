@@ -541,7 +541,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
         $match
             ?? self.match(:g, :$x, $pat)
-            !! self.match(:g, :$x, $pat).map: { .Str }
+            !! self.match(:g, :$x, $pat).for: { .Str }
     }
 
     method match($pat,
@@ -1330,7 +1330,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my sub expand($s) {
             return $s.list
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
-            $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
+            $s.comb(/ (\w) '..' (\w) | . /, :match).for: {
                 .[0] ?? ~.[0] .. ~.[1] !! ~$_
             };
         }
@@ -1382,7 +1382,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        return self.comb(/:r ^^ \N* \n?/).map({
+        return self.comb(/:r ^^ \N* \n?/).for({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -1418,14 +1418,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     sub outdent($obj, $steps) {
         # Loop through all lines to get as much info out of them as possible
-        my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
+        my @lines = $obj.comb(/:r ^^ \N* \n?/).for({
             # Split the line into indent and content
             my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
 
             # Split the indent into characters and annotate them
             # with their visual size
             my $indent-size = 0;
-            my @indent-chars = $indent.comb.map(-> $char {
+            my @indent-chars = $indent.comb.for(-> $char {
                 my $width = $char eq "\t"
                     ?? $?TABSTOP - ($indent-size mod $?TABSTOP)
                     !! 1;
@@ -1437,7 +1437,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         });
 
         # Figure out the amount * should outdent by, we also use this for warnings
-        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
+        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).for({ $_<indent-size> });
         return $obj if $common-prefix === Inf;
 
         # Set the actual outdent amount here
@@ -1706,7 +1706,7 @@ sub UNBASE_BRACKET($base, @a) is hidden-from-backtrace {
 }
 
 sub chrs(*@c) returns Str:D {
-    @c.map({.chr}).join;
+    @c.for({.chr}).join;
 }
 
 sub SUBSTR-START-OOR(\from,\max) {

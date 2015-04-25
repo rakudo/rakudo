@@ -89,11 +89,11 @@ m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.m
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
-	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
+	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/moar \
 	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
 	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_OPS_OBJ) $(M_PERL6_OPS_SRC)
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
-	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
+	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/moar \
 	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
 	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_CONT_OBJ) $(M_PERL6_CONT_SRC)
 	$(M_LD) @moar::ldswitch@ -L$(PREFIX)/lib -lmoar @moar::ldshared@ $(M_LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) @moarimplib@

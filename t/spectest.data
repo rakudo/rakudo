@@ -209,7 +209,7 @@ S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
-S03-operators/range-int.t                       # stress
+S03-operators/range-int.t
 S03-operators/range.t
 S03-operators/reduce-le1arg.t
 S03-operators/relational.t
@@ -610,6 +610,10 @@ S14-traits/attributes.t
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
 S15-nfg/case-change.t           # moar
+S15-nfg/concatenation.t         # moar
+S15-nfg/from-buf.t              # moar
+S15-nfg/from-file.t             # moar
+S15-nfg/long-uni.t              # moar
 S15-nfg/mass-chars.t            # moar
 S15-nfg/mass-equality.t         # moar
 S15-nfg/mass-roundtrip-nfc.t    # moar
@@ -661,10 +665,11 @@ S15-normalization/nfkd-7.t      # moar stress
 S15-normalization/nfkd-8.t      # moar stress
 S15-normalization/nfkd-9.t      # moar stress
 S15-normalization/nfkd-sanity.t # moar
+S15-string-types/Uni.t          # moar
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar
-S15-unicode-information/unival.t	# moar
+S15-unicode-information/unival.t	        # moar
 S16-filehandles/chmod.t
 S16-filehandles/filestat.t
 S16-filehandles/filetest.t
@@ -853,6 +858,7 @@ S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
+S32-list/rotor.t
 S32-list/sort.t
 S32-list/unique.t
 S32-list/squish.t

@@ -202,13 +202,13 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 Nil;
             }
             elsif nqp::elems($d) == 0 {       # :delete
-                $more.list.map( { SELF.DELETE-POS($_) } ).eager.Parcel;
+                $more.list.for( { SELF.DELETE-POS($_) } ).eager.Parcel;
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
                 my $exists := DELETEKEY($d,'exists');
                 my $wasthere; # no need to initialize every iteration of map
                 if nqp::elems($d) == 0 {          # :delete:exists(0|1)
-                    $more.list.map( {
+                    $more.list.for( {
                         SELF.DELETE-POS($_) if $wasthere = SELF.EXISTS-POS($_);
                         !( $wasthere ?^ $exists );
                     } ).eager.Parcel;
@@ -216,7 +216,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 elsif nqp::existskey($d,'kv') { # :delete:exists(0|1):kv(0|1):*
                     my $kv := DELETEKEY($d,'kv');
                     if nqp::elems($d) == 0 {      # :delete:exists(0|1):kv(0|1)
-                        $more.list.map( {
+                        $more.list.for( {
                             SELF.DELETE-POS($_) if $wasthere = SELF.EXISTS-POS($_);
                             next unless !$kv || $wasthere;
                             ($_, !( $wasthere ?^ $exists ));
@@ -229,7 +229,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 elsif nqp::existskey($d,'p') {  # :delete:exists(0|1):p(0|1):*
                     my $p := DELETEKEY($d,'p');
                     if nqp::elems($d) == 0 {      # :delete:exists(0|1):p(0|1)
-                        $more.list.map( {
+                        $more.list.for( {
                             SELF.DELETE-POS($_) if $wasthere = SELF.EXISTS-POS($_);
                             next unless !$p || $wasthere;
                             RWPAIR($_,!($wasthere ?^ $exists));
@@ -247,11 +247,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $kv := DELETEKEY($d,'kv');
                 if nqp::elems($d) == 0 {          # :delete:kv(0|1)
                     $kv
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-POS($_);
                              ( $_, SELF.DELETE-POS($_) );
                          } ).flat.eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              ( $_, SELF.DELETE-POS($_) )
                          } ).flat.eager.Parcel;
                 }
@@ -263,11 +263,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {          # :delete:p(0|1)
                     $p
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-POS($_);
                              RWPAIR($_, SELF.DELETE-POS($_));
                          } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              RWPAIR($_, SELF.DELETE-POS($_))
                          } ).eager.Parcel;
                 }
@@ -279,11 +279,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $k := DELETEKEY($d,'k');
                 if nqp::elems($d) == 0 {          # :delete:k(0|1)
                     $k
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-POS($_);
                              SEQ( SELF.DELETE-POS($_); $_ );
                          } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              SELF.DELETE-POS($_); $_
                          } ).eager.Parcel;
                 }
@@ -295,11 +295,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $v := DELETEKEY($d,'v');
                 if nqp::elems($d) == 0 {          # :delete:v(0|1)
                     $v
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-POS($_);
                              SELF.DELETE-POS($_);
                      } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              SELF.DELETE-POS($_)
                      } ).eager.Parcel;
                 }
@@ -314,17 +314,17 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
         elsif nqp::existskey($d,'exists') { # :!delete?:exists(0|1):*
             my $exists := DELETEKEY($d,'exists');
             if nqp::elems($d) == 0 {          # :!delete?:exists(0|1)
-                $more.list.map({ !( SELF.EXISTS-POS($_) ?^ $exists ) }).eager.Parcel;
+                $more.list.for({ !( SELF.EXISTS-POS($_) ?^ $exists ) }).eager.Parcel;
             }
             elsif nqp::existskey($d,'kv') {   # :!delete?:exists(0|1):kv(0|1):*
                 my $kv := DELETEKEY($d,'kv');
                 if nqp::elems($d) == 0 {        # :!delete?:exists(0|1):kv(0|1)
                     $kv
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-POS($_);
                              ( $_, $exists );
                          } ).flat.eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              ( $_, !( SELF.EXISTS-POS($_) ?^ $exists ) )
                          } ).flat.eager.Parcel;
                 }
@@ -336,11 +336,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {      # :!delete?:exists(0|1):p(0|1)
                     $p
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-POS($_);
                              RWPAIR( $_, $exists );
                          } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              RWPAIR( $_, !( SELF.EXISTS-POS($_) ?^ $exists ) )
                          } ).eager.Parcel;
                 }
@@ -356,11 +356,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $kv := DELETEKEY($d,'kv');
             if nqp::elems($d) == 0 {          # :!delete?:kv(0|1)
                 $kv
-                  ?? $more.list.map( {
+                  ?? $more.list.for( {
                          next unless SELF.EXISTS-POS($_);
                          $_, SELF.AT-POS($_);
                      } ).flat.eager.Parcel
-                  !! $more.list.map( {
+                  !! $more.list.for( {
                          $_, SELF.AT-POS($_)
                      } ).flat.eager.Parcel;
             }
@@ -372,11 +372,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $p := DELETEKEY($d,'p');
             if nqp::elems($d) == 0 {          # :!delete?:p(0|1)
                 $p
-                  ?? $more.list.map( {
+                  ?? $more.list.for( {
                          next unless SELF.EXISTS-POS($_);
                          RWPAIR($_, SELF.AT-POS($_));
                      } ).eager.Parcel
-                  !! $more.list.map( {
+                  !! $more.list.for( {
                          RWPAIR( $_, SELF.AT-POS($_) )
                      } ).eager.Parcel;
             }
@@ -388,7 +388,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $k := DELETEKEY($d,'k');
             if nqp::elems($d) == 0 {          # :!delete?:k(0|1)
                 $k
-                  ?? $more.list.map( {
+                  ?? $more.list.for( {
                          next unless SELF.EXISTS-POS($_);
                          $_;
                      } ).eager.Parcel
@@ -402,11 +402,11 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $v := DELETEKEY($d,'v');
             if nqp::elems($d) == 0 {          # :!delete?:v(0|1)
                 $v
-                  ??  $more.list.map( {
+                  ??  $more.list.for( {
                           next unless SELF.EXISTS-POS($_);
                           SELF.AT-POS($_);
                       } ).eager.Parcel
-                  !!  $more.list.map( {
+                  !!  $more.list.for( {
                           SELF.AT-POS($_)
                       } ).eager.Parcel;
             }
@@ -415,7 +415,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) is hidden-from-backtrace {
             }
         }
         elsif nqp::elems($d) == 0 {         # :!delete
-            $more.list.map( { SELF.AT-POS($_) } ).eager.Parcel;
+            $more.list.for( { SELF.AT-POS($_) } ).eager.Parcel;
         }
     }
 
@@ -619,13 +619,13 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 Nil;
             }
             elsif nqp::elems($d) == 0 {       # :delete
-                $more.list.map( { SELF.DELETE-KEY($_) } ).eager.Parcel;
+                $more.list.for( { SELF.DELETE-KEY($_) } ).eager.Parcel;
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
                 my $exists := DELETEKEY($d,'exists');
                 my $wasthere; # no need to initialize every iteration of map
                 if nqp::elems($d) == 0 {          # :delete:exists(0|1)
-                    $more.list.map( {
+                    $more.list.for( {
                         SELF.DELETE-KEY($_) if $wasthere = SELF.EXISTS-KEY($_);
                         !( $wasthere ?^ $exists );
                     } ).eager.Parcel;
@@ -633,7 +633,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 elsif nqp::existskey($d,'kv') { # :delete:exists(0|1):kv(0|1):*
                     my $kv := DELETEKEY($d,'kv');
                     if nqp::elems($d) == 0 {      # :delete:exists(0|1):kv(0|1)
-                        $more.list.map( {
+                        $more.list.for( {
                             SELF.DELETE-KEY($_) if $wasthere = SELF.EXISTS-KEY($_);
                             next unless !$kv || $wasthere;
                             ($_, !( $wasthere ?^ $exists ));
@@ -646,7 +646,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 elsif nqp::existskey($d,'p') {  # :delete:exists(0|1):p(0|1):*
                     my $p := DELETEKEY($d,'p');
                     if nqp::elems($d) == 0 {      # :delete:exists(0|1):p(0|1)
-                        $more.list.map( {
+                        $more.list.for( {
                             SELF.DELETE-KEY($_) if $wasthere = SELF.EXISTS-KEY($_);
                             next unless !$p || $wasthere;
                             RWPAIR($_,!($wasthere ?^ $exists));
@@ -664,11 +664,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $kv := DELETEKEY($d,'kv');
                 if nqp::elems($d) == 0 {          # :delete:kv(0|1)
                     $kv
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-KEY($_);
                              ( $_, SELF.DELETE-KEY($_) );
                          } ).flat.eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              ( $_, SELF.DELETE-KEY($_) )
                          } ).flat.eager.Parcel;
                 }
@@ -680,11 +680,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {          # :delete:p(0|1)
                     $p
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-KEY($_);
                              RWPAIR($_, SELF.DELETE-KEY($_));
                          } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              RWPAIR($_, SELF.DELETE-KEY($_))
                          } ).eager.Parcel;
                 }
@@ -696,11 +696,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $k := DELETEKEY($d,'k');
                 if nqp::elems($d) == 0 {          # :delete:k(0|1)
                     $k
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-KEY($_);
                              SEQ( SELF.DELETE-KEY($_); $_ );
                          } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              SELF.DELETE-KEY($_); $_
                          } ).eager.Parcel;
                 }
@@ -712,11 +712,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $v := DELETEKEY($d,'v');
                 if nqp::elems($d) == 0 {          # :delete:v(0|1)
                     $v
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-KEY($_);
                              SELF.DELETE-KEY($_);
                      } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              SELF.DELETE-KEY($_)
                      } ).eager.Parcel;
                 }
@@ -731,17 +731,17 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
         elsif nqp::existskey($d,'exists') { # :!delete?:exists(0|1):*
             my $exists := DELETEKEY($d,'exists');
             if nqp::elems($d) == 0 {          # :!delete?:exists(0|1)
-                $more.list.map({ !( SELF.EXISTS-KEY($_) ?^ $exists ) }).eager.Parcel;
+                $more.list.for({ !( SELF.EXISTS-KEY($_) ?^ $exists ) }).eager.Parcel;
             }
             elsif nqp::existskey($d,'kv') {   # :!delete?:exists(0|1):kv(0|1):*
                 my $kv := DELETEKEY($d,'kv');
                 if nqp::elems($d) == 0 {        # :!delete?:exists(0|1):kv(0|1)
                     $kv
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-KEY($_);
                              ( $_, $exists );
                          } ).flat.eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              ( $_, !( SELF.EXISTS-KEY($_) ?^ $exists ) )
                          } ).flat.eager.Parcel;
                 }
@@ -753,11 +753,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {      # :!delete?:exists(0|1):p(0|1)
                     $p
-                      ?? $more.list.map( {
+                      ?? $more.list.for( {
                              next unless SELF.EXISTS-KEY($_);
                              RWPAIR( $_, $exists );
                          } ).eager.Parcel
-                      !! $more.list.map( {
+                      !! $more.list.for( {
                              RWPAIR( $_, !( SELF.EXISTS-KEY($_) ?^ $exists ) )
                          } ).eager.Parcel;
                 }
@@ -773,11 +773,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $kv := DELETEKEY($d,'kv');
             if nqp::elems($d) == 0 {          # :!delete?:kv(0|1)
                 $kv
-                  ?? $more.list.map( {
+                  ?? $more.list.for( {
                          next unless SELF.EXISTS-KEY($_);
                          $_, SELF.AT-KEY($_);
                      } ).flat.eager.Parcel
-                  !! $more.list.map( {
+                  !! $more.list.for( {
                          $_, SELF.AT-KEY($_)
                      } ).flat.eager.Parcel;
             }
@@ -789,11 +789,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $p := DELETEKEY($d,'p');
             if nqp::elems($d) == 0 {          # :!delete?:p(0|1)
                 $p
-                  ?? $more.list.map( {
+                  ?? $more.list.for( {
                          next unless SELF.EXISTS-KEY($_);
                          RWPAIR($_, SELF.AT-KEY($_));
                      } ).eager.Parcel
-                  !! $more.list.map( {
+                  !! $more.list.for( {
                          RWPAIR( $_, SELF.AT-KEY($_) )
                      } ).eager.Parcel;
             }
@@ -805,7 +805,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $k := DELETEKEY($d,'k');
             if nqp::elems($d) == 0 {          # :!delete?:k(0|1)
                 $k
-                  ?? $more.list.map( {
+                  ?? $more.list.for( {
                          next unless SELF.EXISTS-KEY($_);
                          $_;
                      } ).eager.Parcel
@@ -819,11 +819,11 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
             my $v := DELETEKEY($d,'v');
             if nqp::elems($d) == 0 {          # :!delete?:v(0|1)
                 $v
-                  ??  $more.list.map( {
+                  ??  $more.list.for( {
                           next unless SELF.EXISTS-KEY($_);
                           SELF.AT-KEY($_);
                       } ).eager.Parcel
-                  !!  $more.list.map( {
+                  !!  $more.list.for( {
                           SELF.AT-KEY($_)
                       } ).eager.Parcel;
             }
@@ -832,7 +832,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) is hidden-from-backtrace {
             }
         }
         elsif nqp::elems($d) == 0 {         # :!delete
-            $more.list.map( { SELF.AT-KEY($_) } ).eager.Parcel;
+            $more.list.for( { SELF.AT-KEY($_) } ).eager.Parcel;
         }
     }
 

@@ -59,7 +59,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method from()       { self.elems ?? self[0].from !! Nil }
 
     method fmt($format = '%s', $separator = ' ') {
-        self.map({ .fmt($format) }).join($separator);
+        self.for({ .fmt($format) }).join($separator);
     }
 
     method flat() { self.flattens
@@ -181,27 +181,64 @@ my class List does Positional { # declared in BOOTSTRAP
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
-    multi method pick($n is copy) {
+    multi method pick(Whatever, :$eager!) {
+        return self.pick(*) if !$eager;
+
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+
+        my Int $elems = self.elems;
+        return unless $elems;
+
+        my Mu $picked := nqp::clone($!items);
+        my Int $i;
+        my Mu $val;
+        while $elems {
+            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $elems = $elems - 1;
+            # switch them
+            $val  := nqp::atpos($picked,nqp::unbox_i($i));
+            nqp::bindpos($picked,nqp::unbox_i($i),nqp::atpos($picked,nqp::unbox_i($elems)));
+            nqp::bindpos($picked,nqp::unbox_i($elems),$val);
+        }
+        nqp::p6parcel($picked,Any);
+    }
+    multi method pick(Whatever) {
+        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+
+        my Int $elems = self.elems;
+        return unless $elems;
+
+        my Mu $rpa := nqp::clone($!items);
+        my Int $i;
+        gather while $elems {
+            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $elems = $elems - 1;
+            take-rw nqp::atpos($rpa,nqp::unbox_i($i));
+            # replace selected element with last unpicked one
+            nqp::bindpos($rpa,nqp::unbox_i($i),nqp::atpos($rpa,nqp::unbox_i($elems)));
+        }
+    }
+    multi method pick(\number) {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
-        my $elems = self.elems;
+
+        my Int $elems = self.elems;
         return unless $elems;
-        $n = Inf if nqp::istype($n, Whatever);
-        $n = $elems if $n > $elems;
+
+        my int $n = number > $elems ?? $elems !! number.Int;
         return self.AT-POS($elems.rand.floor) if $n == 1;
+
         my Mu $rpa := nqp::clone($!items);
-        my $i;
-        my Mu $v;
-        gather while $n > 0 {
-            $i = nqp::rand_I(nqp::decont($elems), Int);
-            $elems--; $n--;
-            $v := nqp::atpos($rpa, nqp::unbox_i($i));
+        my Int $i;
+        gather while $n {
+            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $elems = $elems - 1;
+            $n     = $n - 1;
+            take-rw nqp::atpos($rpa,nqp::unbox_i($i));
             # replace selected element with last unpicked one
-            nqp::bindpos($rpa, nqp::unbox_i($i),
-                         nqp::atpos($rpa, nqp::unbox_i($elems)));
-            take-rw $v;
+            nqp::bindpos($rpa,nqp::unbox_i($i),nqp::atpos($rpa,nqp::unbox_i($elems)));
         }
     }
 
@@ -437,7 +474,7 @@ my class List does Positional { # declared in BOOTSTRAP
         # if $by.arity < 2, then we apply the block to the elements
         # for sorting.
         if ($by.?count // 2) < 2 {
-            my $list = self.map($by).eager;
+            my $list = self.for($by).eager;
             nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
         }
         else {
@@ -525,24 +562,25 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    proto method rotor(|) {*}
-    multi method rotor(1, 0) { self }
-    multi method rotor($elems = 2, $overlap = 1) {
-        X::OutOfRange.new(
-            what => 'Overlap argument to List.rotor',
-            got  => $overlap,
-            range => (0 .. $elems - 1),
-        ).fail unless 0 <= $overlap < $elems;
-        X::OutOfRange.new(
-            what => 'Elements argument to List.rotor',
-            got  => $elems,
-            range => (0 .. *),
-        ).fail unless 0 <= $elems;
-
+    method rotor(*@cycle, :$partial) {
         my $finished = 0;
-        gather while $finished + $overlap < self.gimme($finished + $elems) {
-            take item self[$finished ..^ $finished + $elems];
-            $finished += $elems - $overlap
+        # (Note, the xx should be harmless if the cycle is already infinite by accident.)
+        my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
+        gather for @c -> $s {
+            my $elems;
+            my $gap;
+            if $s ~~ Pair { $elems = +$s.key; $gap = +$s.value; }
+            else          { $elems = +$s;     $gap = 0; }
+
+            # XXX these item calls are going away with GLR
+            if $finished + $elems <= self.gimme($finished + $elems) {
+                take item self[$finished ..^ $finished + $elems];
+                $finished += $elems + $gap;
+            }
+            else {
+                take item self[$finished .. *] if $partial and $finished < self.elems;
+                last;
+            }
         }
     }
 

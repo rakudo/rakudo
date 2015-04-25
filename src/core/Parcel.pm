@@ -75,6 +75,8 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
     method lol()   { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
     method eager() { nqp::p6list(nqp::clone($!storage), List, Mu).eager }
+    method for(|c) { nqp::p6list(nqp::clone($!storage), List, Bool::True).map(|c) }
+    method map(|c) { nqp::p6list(nqp::clone($!storage), List, Mu).map(|c) }
 
     method reverse() {
         my Mu $reverse  := nqp::list();

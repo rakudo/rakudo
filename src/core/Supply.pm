@@ -341,7 +341,9 @@ my role Supply {
         }
     }
 
-    method rotor(Supply:D $self: $elems? is copy, $overlap? is copy ) {
+    proto method rotor(|) {*}
+    multi method rotor(Supply:D $self: Pair $teeth-gap) { self.rotor($teeth-gap.key, -$teeth-gap.value) }
+    multi method rotor(Supply:D $self: $elems? is copy, $overlap? is copy ) {
 
         $elems   //= 2;
         $overlap //= 1;

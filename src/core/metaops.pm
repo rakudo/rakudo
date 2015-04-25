@@ -88,7 +88,7 @@ sub METAOP_ZIP(\op, &reduce) {
         }
         gather {
             loop {
-                my \z = @lol.map: { last unless .gimme(1); .shift }
+                my \z = @lol.for: { last unless .gimme(1); .shift }
                 last if z.elems < $arity;
                 take-rw $rop(|z);
             }
@@ -181,7 +181,7 @@ sub METAOP_REDUCE_LISTINFIX(\op, :$triangle) {
                     }
                 }, :infinite(p.infinite))
             }
-        !!  sub (|values) { my \p = values[0]; nqp::iscont(p[0]) ?? op.(|p.map({nqp::decont($_).list.Parcel})) !! op.(|p) }
+        !!  sub (|values) { my \p = values[0]; nqp::iscont(p[0]) ?? op.(|p.for({nqp::decont($_).list.Parcel})) !! op.(|p) }
 }
 
 
@@ -223,8 +223,8 @@ sub METAOP_HYPER(\op, *%opt) {
 }
 
 proto sub METAOP_HYPER_POSTFIX(|) {*}
-multi sub METAOP_HYPER_POSTFIX(\obj, \op) { flatmap(op, obj) }
-multi sub METAOP_HYPER_POSTFIX(\obj, \args, \op) { flatmap( -> \o { op.(o,|args) }, obj ) }
+multi sub METAOP_HYPER_POSTFIX(\obj, \op) { nodemap(op, obj) }
+multi sub METAOP_HYPER_POSTFIX(\obj, \args, \op) { nodemap( -> \o { op.(o,|args) }, obj ) }
 
 sub METAOP_HYPER_PREFIX(\op, \obj) { deepmap(op, obj) }
 
@@ -361,7 +361,7 @@ multi sub hyper(\op, \obj) {
     # fake it till we get a nodal trait
     my $nodal = True;
 
-    $nodal ?? flatmap(op, obj) !! deepmap(op,obj);
+    $nodal ?? nodemap(op, obj) !! deepmap(op,obj);
 }
 
 proto sub deepmap(|) { * }
@@ -405,8 +405,8 @@ multi sub deepmap(\op, Associative \h) {
     hash @keys Z deepmap(op, h{@keys})
 }
 
-proto sub flatmap(|) { * }
-multi sub flatmap(\op, \obj) {
+proto sub nodemap(|) { * }
+multi sub nodemap(\op, \obj) {
     my Mu $rpa := nqp::list();
     my Mu $items := nqp::p6listitems(obj.flat.eager);
     my Mu $o;
@@ -420,7 +420,7 @@ multi sub flatmap(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i,
                 nqp::if(Mu,             # hack cuz I don't understand nqp
-                        $o.new(flatmap(op, $o)).item,
+                        $o.new(nodemap(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
         )
@@ -432,7 +432,7 @@ multi sub flatmap(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i,
                 nqp::if(Mu,             # hack cuz I don't understand nqp
-                        $o.new(flatmap(op, $o)).item,
+                        $o.new(nodemap(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
         )
@@ -440,14 +440,14 @@ multi sub flatmap(\op, \obj) {
     nqp::p6parcel($rpa, Nil);
 }
 
-multi sub flatmap(\op, Associative \h) {
+multi sub nodemap(\op, Associative \h) {
     my @keys = h.keys;
-    hash @keys Z flatmap(op, h{@keys})
+    hash @keys Z nodemap(op, h{@keys})
 }
 
 proto sub duckmap(|) { * }
 multi sub duckmap(\op, \obj) {
-    flatmap(-> \arg { try { op.(arg) } // try { duckmap(op,arg) } }, obj);
+    nodemap(-> \arg { try { op.(arg) } // try { duckmap(op,arg) } }, obj);
 }
 
 multi sub duckmap(\op, Associative \h) {

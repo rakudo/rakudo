@@ -128,6 +128,14 @@ for example `origin/nom..HEAD`.
 (Note to the maintainers: you can apply these patches with the 
 `git-am -s` command; it preserves meta information like author).
 
+## Line editing and tab completion
+
+If you would like simple history and tab completion in the perl6 executable,
+you need to install the Linenoise module.  The recommended way to install
+Linenoise is via [panda](https://github.com/tadzik/panda):
+
+    panda install Linenoise
+
 ## How the compiler works
 
 See `docs/compiler_overview.pod`.

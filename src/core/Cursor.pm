@@ -151,6 +151,7 @@ my class Cursor does NQPCursorRole {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);
             my $maxlen := -1;
+            my $maxmatch;
             my $cur := self.'!cursor_start_cur'();
             my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
             my $tgt := $cur.target;
@@ -225,18 +226,13 @@ my class Cursor does NQPCursorRole {
                     return $cur.'!cursor_start_cur'()
                       if nqp::istype($topic,Associative);
                     my $rx := MAKE_REGEX($topic, :$i);
-                    $match := (nqp::substr($tgt, $pos, $eos - $pos) ~~ $rx).Str;
-                    $len   := nqp::chars( $match );
+                    $match := self.$rx;
+                    $len   := $match.pos - $match.from;
                 }
                 elsif nqp::istype($topic,Regex) {
                     # A Regex already.
-                    $match := nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic;
-
-                    # In order to return the correct result we need to match from the
-                    # current position only.
-                    next if $match.from;
-                    $match := ~$match;
-                    $len   := nqp::chars( $match );
+                    $match := self.$topic;
+                    $len   := $match.pos - $match.from;
                 }
                 else {
                     # The pattern is a string.
@@ -249,10 +245,12 @@ my class Cursor does NQPCursorRole {
 
                 if $match && $len > $maxlen && $pos + $len <= $eos {
                     $maxlen := $len;
+                    $maxmatch := $match;
                     last if $s; # stop here for sequential alternation
                 }
             }
 
+            return $maxmatch if nqp::istype($maxmatch, Cursor);
             $cur.'!cursor_pass'($pos + $maxlen, '') if $maxlen >= 0;
             $cur
         }
@@ -298,16 +296,7 @@ sub MAKE_REGEX($arg, :$i) {
         $arg.regex
     }
     else {
-        my Mu $chars := nqp::split('', $arg);
-        my $k := 0;
-        my $iter := nqp::iterator($chars);
-        while $iter {
-            my $ord := nqp::ord( nqp::shift($iter) );
-            nqp::bindpos($chars, $k, "\\c[$ord]") if $ord <= 32;
-            $k := $k + 1;
-        }
-        my $arg2 := nqp::join('', $chars);
-        my $rx := $i ?? EVAL("anon regex \{ :i ^$arg2\}") !! EVAL("anon regex \{ ^$arg2\}");
+        my $rx := $i ?? EVAL("anon regex \{ :i $arg\}") !! EVAL("anon regex \{ $arg\}");
         $arg does CachedCompiledRegex($rx);
         $rx
     }

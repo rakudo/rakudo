@@ -17,6 +17,7 @@ sub NORMALIZE_ENCODING(Str:D $s) {
         'utf32'             => 'utf32',
         'ascii'             => 'ascii',
         'iso-8859-1'        => 'iso-8859-1',
+        'windows-1252'      => 'windows-1252',
         # with dash
         'utf-8'             => 'utf8',
         'utf-16'            => 'utf16',
@@ -97,9 +98,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method chop(Str:D: $chars = 1) {
-        my str $sself = nqp::unbox_s(self);
-        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
+    method chop(Str:D: Int() $chopping = 1) {
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str) - $chopping;
+        $chars > 0 ?? nqp::p6box_s(nqp::substr($str,0,$chars)) !! '';
     }
 
     # chars used to handle ranges for pred/succ
@@ -539,7 +541,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
         $match
             ?? self.match(:g, :$x, $pat)
-            !! self.match(:g, :$x, $pat).map: { .Str }
+            !! self.match(:g, :$x, $pat).for: { .Str }
     }
 
     method match($pat,
@@ -1328,7 +1330,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my sub expand($s) {
             return $s.list
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
-            $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
+            $s.comb(/ (\w) '..' (\w) | . /, :match).for: {
                 .[0] ?? ~.[0] .. ~.[1] !! ~$_
             };
         }
@@ -1380,7 +1382,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        return self.comb(/:r ^^ \N* \n?/).map({
+        return self.comb(/:r ^^ \N* \n?/).for({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -1416,14 +1418,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     sub outdent($obj, $steps) {
         # Loop through all lines to get as much info out of them as possible
-        my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
+        my @lines = $obj.comb(/:r ^^ \N* \n?/).for({
             # Split the line into indent and content
             my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
 
             # Split the indent into characters and annotate them
             # with their visual size
             my $indent-size = 0;
-            my @indent-chars = $indent.comb.map(-> $char {
+            my @indent-chars = $indent.comb.for(-> $char {
                 my $width = $char eq "\t"
                     ?? $?TABSTOP - ($indent-size mod $?TABSTOP)
                     !! 1;
@@ -1435,7 +1437,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         });
 
         # Figure out the amount * should outdent by, we also use this for warnings
-        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
+        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).for({ $_<indent-size> });
         return $obj if $common-prefix === Inf;
 
         # Set the actual outdent amount here
@@ -1465,7 +1467,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method codes(|) { * }
     multi method codes(Str:D:) returns Int:D {
+#?if moar
+        self.NFC.codes
+#?endif
+#?if jvm
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
+#?endif
     }
     multi method codes(Str:U:) returns Int:D {
         self.Str;  # generate undefined warning
@@ -1699,7 +1706,7 @@ sub UNBASE_BRACKET($base, @a) is hidden-from-backtrace {
 }
 
 sub chrs(*@c) returns Str:D {
-    @c.map({.chr}).join;
+    @c.for({.chr}).join;
 }
 
 sub SUBSTR-START-OOR(\from,\max) {
@@ -1868,9 +1875,14 @@ sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
 
 # These probably belong in a separate unicodey file
 
+proto sub uniname(|) {*}
+multi sub uniname(Str $str) { uniname($str.ord) }
+multi sub uniname(Int $code) { nqp::getuniname($code) }
+
+proto sub uninames(|) {*}
+multi sub uninames(Str $str) { $str.comb.map:{uniname($_.ord)}; }
+
 #?if jvm
-multi sub uniname(|)      { die 'uniname NYI on jvm backend' }
-multi sub uninames(|)     { die 'uniname NYI on jvm backend' }
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
 multi sub univals(|)      { die 'univals NYI on jvm backend' }
 multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
@@ -1889,13 +1901,6 @@ sub PVALCODE($prop,$pvalname) {
     state %pvalcode;
     %pvalcode{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
 }
-
-proto sub uniname(|) {*}
-multi sub uniname(Str $str) { uniname($str.ord) }
-multi sub uniname(Int $code) { nqp::getuniname($code) }
-
-proto sub uninames(|) {*}
-multi sub uninames(Str $str) { $str.comb.map:{uniname($_.ord)}; }
 
 proto sub uniprop(|) {*}
 multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }

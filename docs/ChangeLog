@@ -2,8 +2,61 @@ New in 2015.04
  + Incompatible changes:
    + Installation directory layout changed: it now uses $PREFIX/share instead of
      $PREFIX/languages
+   + "0" (0 as a string) is now True, no special-casing anymore
+   + an Int() coercion type in a multi now creates two candidates: Any and Int
+ + Fixes:
+   + try now implies "use fatal", so failures are not leaked
+   + "use fatal" now only works in its scope, and not in deeper ones
+   + don't constant-fold Failures
+   + throws_like will EVAL code in context of caller
+   + pragma's like "strict" can now also be called with -M on the CLI
+   + once a List is infinite, it will stay infinite (fixes several hangs)
+   + can now slice an Infinite list into a finite slice
+   + can now slice a finite list into an infinite slice
+   + adverbs are now allowed inside a ternary
+   + auto-generated accessors will not show up in backtraces anymore
+   + $_ now defaults to Any, rather than Nil
+   + intuited iterators no longer bypass endpoint if no exact match
+   + intuited iterators may also skip literal values if endpoint is lower
+   + intuited iterators beginning/ending with same length now according to spec
+   + say now observes the .nl setting
+   + exceptions in BEGIN blocks and constant are now handled better
+   + binding now works again in the REPL
+   + various other REPL fixes
+   + \foo variables work properly in EVAL
+   + declarations like my (Str $ing, Int $eger) correctly enforce types
+   + detect and complain about placeholders in attribute initializers
+   + use of | prefix in the wrong place now complains at compile time
+   + \(...) capture constuct handles nameds and | correctly
+   + regex interpolation now uses cursors instead of scanning
+   + correct line numbers are reported for faling tests
+ + Deprecations:
+   + the RC release in September will remove *all* deprecations
+   + "use nqp" now required for silent use of nqp::ops
  + Features:
- 	+ 'bit' and 'byte' native types
+   + native arrays
+   + 'bit' and 'byte' native types
+   + starts-with/substr-eq/ends-with for comparing strings inside other strings
+   + first steps towards generic lexical pragma's (e.g. soft, strict, nqp)
+   + basic implementation of Uni, NFC, NFD, NFKC, and NFKD on Moar backend
+   + Uni.Str coercion produces an NFG string
+   + chop now takes optional number of characters argument
+   + where constraints on variable and attribute declarations
+   + dists are installed into a database-like way by default (via panda)
+   + 'is rw' parameters implemented for native subs (they get passed as a pointer)
+   + complex and rat literals now work inside of a <> quote
+   + attempting to bind a Failure now tells you what was in the Failure
+   + reduce() now pays attention to associativity (which is now part of the op)
+   + can now reduce ([Z]) with list infixes over an arbitrary number of lists
+   + use Foo:from<Perl5> supported when Inline::Perl5 is installed
+   + EVAL $code, :lang<perl5> supported when Inline::Perl5 is installed
+ + Speedups:
+   + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
+   + List.pick about 10% faster
+   + Mu.clone about 8% faster
+   + make xx about 1.8 times faster
+   + several speedups in matching
+   + numerous Num.Rat optimizations: 6.5x faster
 
 New in 2015.03
 + Incompatible changes and deprecations:

@@ -49,7 +49,7 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     multi method perl(EnumMap:D:) {
         self.^name
           ~ '.new('
-          ~ self.pairs.pick(*).map({.perl}).join(', ')
+          ~ self.pairs.pick(*,:eager).map({.perl}).join(', ')
           ~ ')';
     }
 

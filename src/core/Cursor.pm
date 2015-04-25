@@ -276,6 +276,10 @@ my class Cursor does NQPCursorRole {
         $lang_cursor."$name"();
     }
 
+    method INDMETHOD($name, |c) {
+        self."$name"(|c);
+    }
+
     method INDRULE($rule, |c) {
         $rule(self, |c)
     }

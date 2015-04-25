@@ -7733,66 +7733,73 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
     
     method assertion:sym<name>($/) {
-        my @parts := $*W.dissect_longname($<longname>).components();
-        my $name  := @parts.pop();
+        my $lng := $*W.dissect_longname($<longname>);
         my $qast;
-        my $c := $/.CURSOR;
-        if $<assertion> {
-            if +@parts {
-                $c.panic("Can only alias to a short name (without '::')");
-            }
-            $qast := $<assertion>.ast;
-            if $qast.rxtype eq 'subrule' {
-                self.subrule_alias($qast, $name);
-            }
-            else {
-                $qast := QAST::Regex.new( $qast, :name($name), 
-                                          :rxtype<subcapture>, :node($/) );
-            }
-        }
-        elsif !@parts && $name eq 'sym' {
-            my str $fullrxname := %*RX<name>;
-            my int $loc := nqp::index($fullrxname, ':sym<');
-            $loc := nqp::index($fullrxname, ':sym«')
-                if $loc < 0;
-            my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
-            $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
-                QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
+        # We got something like <::($foo)>
+        if $lng.contains_indirect_lookup() {
+            $qast := QAST::Regex.new( :rxtype<subrule>, :subtype<method>, :node($/),
+                QAST::NodeList.new(QAST::SVal.new( :value('INDMETHOD') ), $lng.name_past()) );
         }
         else {
-            if +@parts {
-                my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new(
-                                            QAST::SVal.new( :value('OTHERGRAMMAR') ), 
-                                            $gref, QAST::SVal.new( :value($name) )),
-                                         :name(~$<longname>) );
-            } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
-                # The lookbehind for . is because we do not yet call $~MAIN's methodop, and our recognizer for
-                # . <assertion>, which is a somewhat bogus recursion, comes from QRegex, not our own grammar.
-                my $coderef := $*W.find_symbol(['&' ~ $name]);
-                my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
-                $var.annotate('coderef',$coderef);
-                my $c := $var.ann('coderef');
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new($var),
-                                         :name($name) );
-                # nqp::say($qast.dump);
+            my @parts := $lng.components();
+            my $name  := @parts.pop();
+            my $c     := $/.CURSOR;
+            if $<assertion> {
+                if +@parts {
+                    $c.panic("Can only alias to a short name (without '::')");
+                }
+                $qast := $<assertion>.ast;
+                if $qast.rxtype eq 'subrule' {
+                    self.subrule_alias($qast, $name);
+                }
+                else {
+                    $qast := QAST::Regex.new( $qast, :name($name), 
+                                              :rxtype<subcapture>, :node($/) );
+                }
+            }
+            elsif !@parts && $name eq 'sym' {
+                my str $fullrxname := %*RX<name>;
+                my int $loc := nqp::index($fullrxname, ':sym<');
+                $loc := nqp::index($fullrxname, ':sym«')
+                    if $loc < 0;
+                my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
+                $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
+                    QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
             }
             else {
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new(QAST::SVal.new( :value($name) )), 
-                                         :name($name) );
-            }
-            if $<arglist> {
-                for $<arglist>.ast.list { $qast[0].push($_) }
-            }
-            elsif $<nibbler> {
-                my $nibbled := $name eq 'after'
-                    ?? self.flip_ast($<nibbler>.ast)
-                    !! $<nibbler>.ast;
-                my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
-                $qast[0].push($sub);
+                if +@parts {
+                    my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
+                    $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                             :node($/), QAST::NodeList.new(
+                                                QAST::SVal.new( :value('OTHERGRAMMAR') ), 
+                                                $gref, QAST::SVal.new( :value($name) )),
+                                             :name(~$<longname>) );
+                } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
+                    # The lookbehind for . is because we do not yet call $~MAIN's methodop, and our recognizer for
+                    # . <assertion>, which is a somewhat bogus recursion, comes from QRegex, not our own grammar.
+                    my $coderef := $*W.find_symbol(['&' ~ $name]);
+                    my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
+                    $var.annotate('coderef',$coderef);
+                    my $c := $var.ann('coderef');
+                    $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                             :node($/), QAST::NodeList.new($var),
+                                             :name($name) );
+                }
+                else {
+                    $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                             :node($/), QAST::NodeList.new(QAST::SVal.new( :value($name) )), 
+                                             :name($name) );
+                }
+                if $<arglist> {
+                    for $<arglist>.ast.list { $qast[0].push($_) }
+                }
+                elsif $<nibbler> {
+                    my $nibbled := $name eq 'after'
+                        ?? self.flip_ast($<nibbler>.ast)
+                        !! $<nibbler>.ast;
+                    my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
+                    $qast[0].push($sub);
+                }
             }
         }
         make $qast;

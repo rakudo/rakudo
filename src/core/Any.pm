@@ -350,7 +350,6 @@ my class Any { # declared in BOOTSTRAP
         Nil;
     }
 
-    method _join(|c) { self.flat.join(|c) }
     method join($separator = '') {
         my $list = (self,).eager;
         my Mu $rsa := nqp::list_s();

@@ -93,7 +93,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
     CHECK:
     loop {  # until something to return
-        for @todo.pick(*) -> $todo {
+        for @todo.pick(*,:eager) -> $todo {
             my $kind       := $todo[1];
             my $contestant := $todo[2];
 

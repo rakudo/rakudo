@@ -4,29 +4,29 @@ my class Junction { # declared in BOOTSTRAP
     #     has str $!type;                # type of Junction
 
     proto method new(|) { * }
-    multi method new(@values, Str :$type!) {
+    multi method new(\values, Str :$type!) {
         my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
+        nqp::bindattr($junc, Junction, '$!storage', values.eager);
         nqp::bindattr($junc, Junction, '$!type', $type);
         $junc
     }
-    multi method new(*@values, Str :$type!) {
-        my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
-        nqp::bindattr($junc, Junction, '$!type', $type);
-        $junc
-    }
+#    multi method new(*@values, Str :$type!) {
+#        my $junc := nqp::create(Junction);
+#        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
+#        nqp::bindattr($junc, Junction, '$!type', $type);
+#        $junc
+#    }
 
     multi method Bool(Junction:D:) {
-        SEQ($!storage.for({return True if $_}).gimme(*); return False)
+        SEQ($!storage.map({return True if $_}).gimme(*); return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.for({return False unless $_}).gimme(*); return True)
+        SEQ($!storage.map({return False unless $_}).gimme(*); return True)
             if nqp::iseq_s($!type, 'all');
-        SEQ($!storage.for({return False if $_}).gimme(*); return True)
+        SEQ($!storage.map({return False if $_}).gimme(*); return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
-        $!storage.for({ $count++ if $_; return False if $count > 1 }).gimme(*);
+        $!storage.map({ $count++ if $_; return False if $count > 1 }).gimme(*);
         $count == 1;
     }
 
@@ -35,15 +35,15 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        SEQ($!storage.for({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
+        SEQ($!storage.map({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.for({return False unless $_.ACCEPTS(topic)}).gimme(*); return True)
+        SEQ($!storage.map({return False unless $_.ACCEPTS(topic)}).gimme(*); return True)
             if nqp::iseq_s($!type, 'all');
-        SEQ($!storage.for({return False if $_.ACCEPTS(topic)}).gimme(*); return True)
+        SEQ($!storage.map({return False if $_.ACCEPTS(topic)}).gimme(*); return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
-        $!storage.for({ $count++ if $_.ACCEPTS(topic); return False if $count > 1 }).gimme(*);
+        $!storage.map({ $count++ if $_.ACCEPTS(topic); return False if $count > 1 }).gimme(*);
         $count == 1;
     }
 
@@ -74,7 +74,7 @@ my class Junction { # declared in BOOTSTRAP
             my @states := nqp::getattr(nqp::decont($arg), Junction, '$!storage');
 
             my Mu $res := nqp::list();
-            for @states -> \st {
+            @states.map: -> \st {
                 # Next line is Officially Naughty, since captures are meant to be
                 # immutable. But hey, it's our capture to be naughty with...
                 nqp::bindpos($pos_rpa, $i, st);
@@ -118,7 +118,7 @@ my class Junction { # declared in BOOTSTRAP
                 my @states := nqp::getattr(nqp::decont($v), Junction, '$!storage');
                 my $type   := nqp::getattr(nqp::decont($v), Junction, '$!type');
                 my Mu $res := nqp::list();
-                for @states -> \st {
+                @states.map: -> \st {
                     nqp::bindkey($nam_hash, $k, st);
                     nqp::push($res, call(|args));
                     Nil;

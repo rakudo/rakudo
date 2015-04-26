@@ -563,10 +563,10 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
 
-    method all() { all(self.list) }
-    method any() { any(self.list) }
-    method one() { one(self.list) }
-    method none() { none(self.list) }
+    method all() { Junction.new(self.list, :type<all>) }
+    method any() { Junction.new(self.list, :type<any>) }
+    method one() { Junction.new(self.list, :type<one>) }
+    method none() { Junction.new(self.list, :type<none>) }
 
     method at_key(|c) is rw {
         DEPRECATED('AT-KEY',|<2015.03 2015.09>);

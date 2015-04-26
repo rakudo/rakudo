@@ -740,6 +740,10 @@ class Perl6::World is HLL::World {
                 }
             }
             if @value_type {
+                if nqp::objprimspec(@value_type[0]) {
+                    $*W.throw($/, 'X::Comp::NYI',
+                      feature => "native value types for hashes");
+                }
                 %info<container_type>  := $*W.parameterize_type_with_args(
                     %info<container_base>, @value_type, nqp::hash());
                 %info<bind_constraint> := $*W.parameterize_type_with_args(

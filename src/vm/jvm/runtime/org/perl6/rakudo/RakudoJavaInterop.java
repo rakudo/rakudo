@@ -836,6 +836,10 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         SixModelObject hash = gc.BOOTHash.st.REPR.allocate(tc, gc.BOOTHash.st);
 
+        SixModelObject method_order = gc.BOOTArray.st.REPR.allocate(tc, gc.BOOTArray.st);
+        SixModelObject methods = gc.BOOTHash.st.REPR.allocate(tc, gc.BOOTHash.st);
+        SixModelObject submethods = gc.BOOTHash.st.REPR.allocate(tc, gc.BOOTHash.st);
+
         HashMap<String, SixModelObject> names = new HashMap< >();
         HashMap<String, ArrayList<SixModelObject>> multis = new HashMap< >();
 
@@ -890,7 +894,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
         freshType.st.MethodCache = names;
         freshType.st.ModeFlags |= STable.METHOD_CACHE_AUTHORITATIVE;
 
-        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!methods", STable.NO_HINT, hash);
+        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!submethods", STable.NO_HINT, submethods);
+        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!methods", STable.NO_HINT, Ops.hllizefor(methods, "perl6", tc));
+        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "@!method_order", STable.NO_HINT, method_order);
 
         hash.bind_key_boxed(tc, "/TYPE/", freshType);
 

@@ -493,6 +493,18 @@ my class X::NYI is Exception {
     method message() { "$.feature not yet implemented. Sorry. " }
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
+my class X::NYI::Available is X::NYI {
+    has @.available = die("Must give :available<modules> for installation. ");
+    method available-str {
+        my @a = @.available;
+        my $a = @a.pop;
+        (@a.join(', ') || (), $a).join(" or ")
+    }
+    method message() {
+        "Please install { self.available-str } for $.feature support. "
+    }
+}
+
 
 my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.

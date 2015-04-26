@@ -3164,7 +3164,8 @@ my class Perl5ModuleLoaderStub {
         {
             nqp::gethllsym('perl6', 'ModuleLoader').load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
             CATCH {
-                nqp::die("Please install Inline::Perl5 for Perl 5 support");
+                $*W.find_symbol(nqp::list('X','NYI','Available')).new(
+                    :available('Inline::Perl5'), :feature('Perl 5')).throw;
             }
         }
 

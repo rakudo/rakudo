@@ -342,21 +342,18 @@ my role Supply {
     }
 
     proto method rotor(|) {*}
-    multi method rotor(Supply:D $self: Pair $teeth-gap, :$partial) {
-        self.rotor($teeth-gap.key, -$teeth-gap.value, :$partial, :nodepr);
+    multi method rotor(Supply:D:) {
+        DEPRECATED('.rotor( $elems => -$gap )',|<2015.04 2015.09>);
+        self.rotor( (2 => -1) );
     }
-    multi method rotor(
-      Supply:D $self:
-      $elems? is copy,
-      $gap? is copy,
-      :$partial,
-      :$nodepr,
-    ) {
-        DEPRECATED('.rotor( $elems => -$gap )',|<2015.04 2015.09>)
-          if $elems.defined && !$nodepr;
+    multi method rotor(Supply:D: $elems, $gap = 1, :$partial) {
+        DEPRECATED('.rotor( $elems => -$gap )',|<2015.04 2015.09>);
+        self.rotor( ($elems => -$gap), :$partial );
+    }
+    multi method rotor(Supply:D $self: Pair:D $teeth-gap, :$partial) {
+        my $elems = $teeth-gap.key;
+        my $gap   = $teeth-gap.value;
 
-        $elems //= 2;
-        $gap   //= 1;
         return $self if $elems == 1 and $gap == 0;  # nothing to do
 
         on -> $res {
@@ -364,7 +361,7 @@ my role Supply {
                 my @batched;
                 sub flush {
                     $res.emit( [@batched] );
-                    @batched.splice( 0, +@batched - $gap );
+                    @batched.splice( 0, +@batched + $gap );
                 }
 
                 {

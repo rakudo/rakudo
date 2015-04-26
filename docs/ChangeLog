@@ -1,3 +1,13 @@
+New in 2015.05
+ + Features
+   + NFG, NFC, NFD
+   + List.rotor expects a list of Pairs (elems => gap)
+   + Supply.rotor expects a Pair (elems => gap)
+ + Incompatible changes:
+   + .map no longer flattens, map as a listop does
+ + Deprecations
+   + List/Supply.rotor now *must* have elems and gap specified
+ 
 New in 2015.04
  + Incompatible changes:
    + Installation directory layout changed: it now uses $PREFIX/share instead of

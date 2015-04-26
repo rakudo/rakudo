@@ -351,22 +351,25 @@ my role Supply {
         self.rotor( ($elems => -$gap), :$partial );
     }
     multi method rotor(Supply:D $self: Pair:D $teeth-gap, :$partial) {
-        my $elems = $teeth-gap.key;
-        my $gap   = $teeth-gap.value;
+        my Int $elems = $teeth-gap.key;
+        my Int $gap   = $teeth-gap.value;
 
         return $self if $elems == 1 and $gap == 0;  # nothing to do
 
         on -> $res {
             $self => do {
+                my int $to-skip = $gap > 0 ?? $gap !! 0;
+                my int $skip;
                 my @batched;
                 sub flush {
                     $res.emit( [@batched] );
                     @batched.splice( 0, +@batched + $gap );
+                    $skip = $to-skip;
                 }
 
                 {
                     emit => -> \val {
-                        @batched.push: val;
+                        @batched.push: val unless $skip && $skip--;
                         flush if @batched.elems == $elems;
                     },
                     done => {

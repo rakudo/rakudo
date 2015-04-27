@@ -23,3 +23,9 @@ DLLEXPORT void * ReturnNullPointer()
 {
     return NULL;
 }
+
+DLLEXPORT void * TakeTwoPointersToInt(int *ptr1, int *ptr2)
+{
+    return NULL;
+}
+

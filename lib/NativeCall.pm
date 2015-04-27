@@ -123,7 +123,7 @@ augment class Pointer {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
             unless t ~~ Int || t ~~ Num || t === Str || t === void || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedPointer[t];
-        typed.^make_pun;
+        typed.^inheritalize;
     }
 }
 my constant OpaquePointer is export(:types, :DEFAULT) = Pointer;

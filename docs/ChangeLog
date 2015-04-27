@@ -2,6 +2,7 @@ New in 2015.05
  + Features
    + NFG, NFC, NFD
    + List/Supply.rotor expects a list of Pairs (elems|elems => gap)
+   + implemented unicode property pairs with explicit arguments
  + Incompatible changes:
    + .map no longer flattens, map as a listop does
  + Deprecations

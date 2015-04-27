@@ -94,7 +94,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     my $tail := ().list;
     my $end_code_arity = 0;
     my $end_tail := ().list;
-    if nqp::istype($endpoint,Code) {
+    if nqp::istype($endpoint,Code) && !nqp::istype($endpoint,Regex) {
         $end_code_arity = $endpoint.arity;
         $end_code_arity = $endpoint.count if $end_code_arity == 0;
         $end_code_arity = -Inf if $end_code_arity == Inf;

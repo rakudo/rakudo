@@ -423,11 +423,6 @@ class Perl6::World is HLL::World {
             # argument list really.
             %*PRAGMAS<soft> := $on;
         }
-        elsif $name eq 'Devel::Trace' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
-            if %cp { return 0 }              # go try module
-            # needs attention
-        }
         else {
             return 0;                        # go try module
         }

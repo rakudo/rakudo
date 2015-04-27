@@ -343,6 +343,132 @@ class Perl6::World is HLL::World {
             return nqp::ctxlexpad($setting);
         }
     }
+
+    method do_import($/, $module, $package_source_name, $arglist?) {
+        if nqp::existskey($module, 'EXPORT') {
+            my $EXPORT := self.stash_hash($module<EXPORT>);
+            my @to_import := ['MANDATORY'];
+            my @positional_imports := [];
+            if nqp::defined($arglist) {
+                my $Pair := self.find_symbol(['Pair']);
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        $tag := nqp::unbox_s($tag.key);
+                        if nqp::existskey($EXPORT, $tag) {
+                            self.import($/, self.stash_hash($EXPORT{$tag}), $package_source_name);
+                        }
+                        else {
+                            nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
+                        }
+                    }
+                    else {
+                        nqp::push(@positional_imports, $tag);
+                    }
+                }
+            }
+            else {
+                nqp::push(@to_import, 'DEFAULT');
+            }
+            for @to_import -> $tag {
+                if nqp::existskey($EXPORT, $tag) {
+                    self.import($/, self.stash_hash($EXPORT{$tag}), $package_source_name);
+                }
+            }
+            if nqp::existskey($module, '&EXPORT') {
+                my $result := $module<&EXPORT>(|@positional_imports);
+                my $EnumMap := self.find_symbol(['EnumMap']);
+                if nqp::istype($result, $EnumMap) {
+                    my $storage := $result.hash.FLATTENABLE_HASH();
+                    self.import($/, $storage, $package_source_name);
+                }
+                else {
+                    nqp::die("&EXPORT sub did not return an EnumMap");
+                }
+            }
+            else {
+                if +@positional_imports {
+                    nqp::die("Error while importing from '$package_source_name':
+ no EXPORT sub, but you provided positional argument in the 'use' statement");
+                }
+            }
+        }
+    }
+
+    method do_pragma($/,$name,$on,%cp,$arglist) {
+
+        # XXX maybe we need a hash with code to execute
+        if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
+            if %cp || $arglist { return 0 }  # go try module
+            %*PRAGMAS<MONKEY-TYPING> := $on;
+        }
+        elsif $name eq 'fatal' {
+            if %cp || $arglist { return 0 }  # go try module
+            %*PRAGMAS<fatal> := $on;
+        }
+        elsif $name eq 'strict' {
+            if %cp || $arglist { return 0 }  # go try module
+            $*STRICT  := $on;
+        }
+        elsif $name eq 'nqp' {
+            if %cp || $arglist { return 0 }  # go try module
+            %*PRAGMAS<nqp> := $on;
+        }
+        elsif $name eq 'soft' {
+            if %cp { return 0 }              # go try module
+            # This is an approximation; need to pay attention to
+            # argument list really.
+            %*PRAGMAS<soft> := $on;
+        }
+        elsif $name eq 'Devel::Trace' {
+            # needs attention
+        }
+        else {
+            return 0;                        # go try module
+        }
+        1;
+    }
+
+    method arglist($/) {
+        my $arglist;
+        if $<arglist> -> $a {
+            try { $arglist := self.compile_time_evaluate($/,$a<EXPR>.ast) };
+            if $arglist {
+                $arglist := nqp::getattr(
+                  $arglist.list.eager,
+                  self.find_symbol(['List']),
+                  '$!items',
+                );
+            }
+        }
+        $arglist;
+    }
+
+    method do_pragma_or_load_module($/,$use,$thisname?) {
+        my $name;
+        my %cp;
+        my $arglist;
+
+        if $thisname {
+            $name := $thisname;
+        }
+        else {
+            my $lnd  := self.dissect_longname($<module_name><longname>);
+            $name    := $lnd.name;
+            %cp      := $lnd.colonpairs_hash($use ?? 'use' !! 'no');
+            $arglist := self.arglist($/);
+        }
+
+        unless self.do_pragma($/,$name,$use,%cp,$arglist) {
+            if $use {
+                my $module := self.load_module($/, $name, %cp, $*GLOBALish);
+                self.do_import($/, $module, $name, $arglist);
+                $/.CURSOR.import_EXPORTHOW($/, $module);
+            }
+            else {
+                nqp::die("Don't know how to 'no $name' just yet");
+            }
+        }
+    }
     
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.

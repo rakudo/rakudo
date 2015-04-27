@@ -1146,7 +1146,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
                 my $name   := "Perl6::BOOTSTRAP";
                 my $module := $*W.load_module($/, $name, {}, $*GLOBALish);
-                do_import($/, $module, $name);
+                $*W.do_import($/, $module, $name);
                 $/.CURSOR.import_EXPORTHOW($/, $module);
             }
 
@@ -1162,12 +1162,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
                 for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                    $longname := do_pragmas($longname,1);
-                    if $longname {
-                        my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
-                        do_import($/, $module, $longname);
-                        $/.CURSOR.import_EXPORTHOW($/, $module);
-                    }
+                    $*W.do_pragma_or_load_module($/,1,$longname);
                 }
             }
         }
@@ -1610,16 +1605,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $longname := $*W.dissect_longname($<module_name><longname>);
             my $module;
             my $found := 0;
-            try { $module := $*W.find_symbol($longname.components()); $found := 1; }
+            try {
+                $module := $*W.find_symbol($longname.components());
+                $found := 1;
+            }
             if $found {
                 # todo: fix arglist
-                my $arglist;
-                if $<arglist> {
-                    $arglist := $*W.compile_time_evaluate($/, $<arglist><EXPR>.ast);
-                    $arglist := nqp::getattr($arglist.list.eager,
-                            $*W.find_symbol(['List']), '$!items');
-                }
-                do_import($/, $module.WHO, $longname.name, $arglist);
+                $*W.do_import($/,$module.WHO,$longname.name,$*W.arglist($/));
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
@@ -1633,7 +1625,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <.ws>
         [
         | <module_name> [ <.spacey> <arglist> ]? <.explain_mystery> <.cry_sorrows>
-            { $longname := do_pragmas($<module_name><longname>,0) }
+            { $*W.do_pragma_or_load_module($/,0) }
         ]
         <.ws>
     }
@@ -1658,31 +1650,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*STRICT := 1 if $*begin_compunit;
                     } ]?
         | <module_name>
-            { $longname := do_pragmas($<module_name><longname>,1) }
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
-                    my $lnd     := $*W.dissect_longname($longname);
-                    my $name    := $lnd.name;
-                    my %cp      := $lnd.colonpairs_hash('use');
-                    my $arglist := $*W.compile_time_evaluate($/,
-                            $<arglist><EXPR>.ast);
-                    $arglist    := nqp::getattr($arglist.list.eager,
-                            $*W.find_symbol(['List']), '$!items');
-                    my $module  := $*W.load_module($/, $name, %cp, $*GLOBALish);
-                    do_import($/, $module, $name, $arglist);
-                    $/.CURSOR.import_EXPORTHOW($/, $module);
+                    $*W.do_pragma_or_load_module($/,1);
                 }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
-                        if $longname {
-                            my $lnd    := $*W.dissect_longname($longname);
-                            my $name   := $lnd.name;
-                            my %cp     := $lnd.colonpairs_hash('use');
-                            my $module := $*W.load_module($/, $name, %cp, $*GLOBALish);
-                            do_import($/, $module, $name);
-                            $/.CURSOR.import_EXPORTHOW($/, $module);
-                        }
+                        $*W.do_pragma_or_load_module($/,1);
                     }
                 }
             ]
@@ -1692,42 +1667,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
         || <?> ]
         <.ws>
-    }
-
-    sub do_pragmas($longname,$value) {
-
-        # Some modules are handled in the actions are just turn on a
-        # setting of some kind.
-        if $longname eq 'MONKEY-TYPING' || $longname eq 'MONKEY_TYPING' {
-            %*PRAGMAS<MONKEY-TYPING> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'fatal' {
-            %*PRAGMAS<fatal> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'strict' {
-            $*STRICT  := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'nqp' {
-            %*PRAGMAS<nqp> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'soft' {
-            # This is an approximation; need to pay attention to
-            # argument list really.
-            %*PRAGMAS<soft> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'Devel::Trace' {
-            # needs attention
-            $longname := "";
-        }
-        elsif !$value {
-            nqp::die("Unknown pragma '$longname'");
-        }
-        $longname;
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
@@ -1755,55 +1694,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
             nqp::bindattr($new, NQPCursor, '$!match', $match);
             $new;
-        }
-    }
-
-    sub do_import($/, $module, $package_source_name, $arglist?) {
-        if nqp::existskey($module, 'EXPORT') {
-            my $EXPORT := $*W.stash_hash($module<EXPORT>);
-            my @to_import := ['MANDATORY'];
-            my @positional_imports := [];
-            if nqp::defined($arglist) {
-                my $Pair := $*W.find_symbol(['Pair']);
-                for $arglist -> $tag {
-                    if nqp::istype($tag, $Pair) {
-                        $tag := nqp::unbox_s($tag.key);
-                        if nqp::existskey($EXPORT, $tag) {
-                            $*W.import($/, $*W.stash_hash($EXPORT{$tag}), $package_source_name);
-                        }
-                        else {
-                            nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
-                        }
-                    }
-                    else {
-                        nqp::push(@positional_imports, $tag);
-                    }
-                }
-            }
-            else {
-                nqp::push(@to_import, 'DEFAULT');
-            }
-            for @to_import -> $tag {
-                if nqp::existskey($EXPORT, $tag) {
-                    $*W.import($/, $*W.stash_hash($EXPORT{$tag}), $package_source_name);
-                }
-            }
-            if nqp::existskey($module, '&EXPORT') {
-                my $result := $module<&EXPORT>(|@positional_imports);
-                my $EnumMap := $*W.find_symbol(['EnumMap']);
-                if nqp::istype($result, $EnumMap) {
-                    my $storage := $result.hash.FLATTENABLE_HASH();
-                    $*W.import($/, $storage, $package_source_name);
-                }
-                else {
-                    nqp::die("&EXPORT sub did not return an EnumMap");
-                }
-            }
-            else {
-                if +@positional_imports {
-                    nqp::die("Error while importing from '$package_source_name': no EXPORT sub, but you provided positional argument in the 'use' statement");
-                }
-            }
         }
     }
 

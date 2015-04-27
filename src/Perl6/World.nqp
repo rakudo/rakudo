@@ -398,23 +398,23 @@ class Perl6::World is HLL::World {
 
         # XXX maybe we need a hash with code to execute
         if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             if %cp { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
         elsif $name eq 'fatal' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             if %cp { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<fatal> := $on;
         }
         elsif $name eq 'strict' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             if %cp { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             $*STRICT  := $on;
         }
         elsif $name eq 'nqp' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             if %cp { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<nqp> := $on;
         }
         elsif $name eq 'soft' {

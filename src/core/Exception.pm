@@ -109,6 +109,11 @@ my class X::Role::Parametric::NoSuchCandidate is Exception {
     }
 }
 
+my class X::Pragma::NoArgs is Exception {
+    has $.name;
+    method message { "The '$.name' pragma does not take any arguments." }
+}
+
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);

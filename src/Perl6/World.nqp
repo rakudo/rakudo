@@ -398,19 +398,23 @@ class Perl6::World is HLL::World {
 
         # XXX maybe we need a hash with code to execute
         if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
-            if %cp || $arglist { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if %cp { return 0 }  # go try module
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
         elsif $name eq 'fatal' {
-            if %cp || $arglist { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if %cp { return 0 }  # go try module
             %*PRAGMAS<fatal> := $on;
         }
         elsif $name eq 'strict' {
-            if %cp || $arglist { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if %cp { return 0 }  # go try module
             $*STRICT  := $on;
         }
         elsif $name eq 'nqp' {
-            if %cp || $arglist { return 0 }  # go try module
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if %cp { return 0 }  # go try module
             %*PRAGMAS<nqp> := $on;
         }
         elsif $name eq 'soft' {
@@ -420,6 +424,8 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<soft> := $on;
         }
         elsif $name eq 'Devel::Trace' {
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if %cp { return 0 }              # go try module
             # needs attention
         }
         else {

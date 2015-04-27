@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 14;
+plan 15;
 
 compile_test_lib('04-pointers');
 
@@ -40,5 +40,18 @@ ok ReturnNullPointer().Bool == False,         'A returned NULL pointer is the Po
         my Pointer[Int] $c;
 
         TakeTwoPointersToInt( $r, $c );
+        CODE
+}
+
+{
+    eval_lives_ok q:to 'CODE', 'Signature matching with CArray[Int] works';
+        use NativeCall;
+
+        sub TakeCArrayToInt8( CArray[int8] )
+          is native( './04-pointers' ) { * }
+
+        my CArray[int8] $x;
+
+        TakeCArrayToInt8( $x );
         CODE
 }

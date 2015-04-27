@@ -378,7 +378,7 @@ augment class CArray {
                 unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
             $typed := TypedCArray[t];
         }
-        $typed.^make_pun();
+        $typed.^inheritalize();
     }
 }
 

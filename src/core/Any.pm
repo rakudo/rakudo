@@ -371,7 +371,7 @@ my class Any { # declared in BOOTSTRAP
     proto method min (|) { * }
     multi method min(Any:D:) {
         my $min;
-        for self {
+        self.map: {
             $min = $_ if .defined and !$min.defined || $_ cmp $min < 0;
         }
         $min // Inf;
@@ -379,7 +379,7 @@ my class Any { # declared in BOOTSTRAP
     multi method min(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min;
-        for self {
+        self.map: {
             $min = $_ if .defined and !$min.defined || $cmp($_, $min) < 0;
         }
         $min // Inf;
@@ -388,7 +388,7 @@ my class Any { # declared in BOOTSTRAP
     proto method max (|) { * }
     multi method max(Any:D:) {
         my $max;
-        for self {
+        self.map: {
             $max = $_ if .defined and !$max.defined || $_ cmp $max > 0;
         }
         $max // -Inf;
@@ -396,7 +396,7 @@ my class Any { # declared in BOOTSTRAP
     multi method max(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max;
-        for self {
+        self.map: {
             $max = $_ if .defined and !$max.defined || $cmp($_, $max) > 0;
         }
         $max // -Inf;
@@ -411,7 +411,7 @@ my class Any { # declared in BOOTSTRAP
         my $excludes-min = Bool::False;
         my $excludes-max = Bool::False;
 
-        for @.list {
+        @.list.map: {
             .defined or next;
 
             if .isa(Range) {

@@ -10,12 +10,6 @@ my class Junction { # declared in BOOTSTRAP
         nqp::bindattr($junc, Junction, '$!type', $type);
         $junc
     }
-#    multi method new(*@values, Str :$type!) {
-#        my $junc := nqp::create(Junction);
-#        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
-#        nqp::bindattr($junc, Junction, '$!type', $type);
-#        $junc
-#    }
 
     multi method Bool(Junction:D:) {
         SEQ($!storage.map({return True if $_}).gimme(*); return False)

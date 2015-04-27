@@ -129,13 +129,13 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method classify-list(|) { * }
-    multi method classify-list( &test, *@list ) {
+    multi method classify-list( &test, @list ) {
         fail X::Cannot::Infinite.new(:action<.classify>) if @list.infinite;
         if @list {
 
             # multi-level classify
             if nqp::istype(test(@list[0]),List) {
-                for @list -> $l {
+                @list.map: -> $l {
                     my @keys  = test($l);
                     my $last := @keys.pop;
                     my $hash  = self;
@@ -147,28 +147,26 @@ my class Hash { # declared in BOOTSTRAP
 
             # just a simple classify
             else {
-                nqp::push(
-                  nqp::p6listitems(nqp::decont(self{test $_} //= [])), $_ )
-                  for @list;
+                @list.map: { nqp::push( nqp::p6listitems(nqp::decont(self{test $_} //= [])), $_ ) }
             }
         }
         self;
     }
-    multi method classify-list( %test, *@list ) {
-        samewith( { %test{$^a} }, @list );
+    multi method classify-list( %test, $list ) {
+        samewith( { %test{$^a} }, $list );
     }
-    multi method classify-list( @test, *@list ) {
-        samewith( { @test[$^a] }, @list );
+    multi method classify-list( @test, $list ) {
+        samewith( { @test[$^a] }, $list );
     }
 
     proto method categorize-list(|) { * }
-    multi method categorize-list( &test, *@list ) {
+    multi method categorize-list( &test, @list ) {
         fail X::Cannot::Infinite.new(:action<.categorize>) if @list.infinite;
         if @list {
 
             # multi-level categorize
             if nqp::istype(test(@list[0])[0],List) {
-                for @list -> $l {
+                @list.map: -> $l {
                     for test($l) -> $k {
                         my @keys = @($k);
                         my $last := @keys.pop;
@@ -183,7 +181,7 @@ my class Hash { # declared in BOOTSTRAP
 
             # just a simple categorize
             else {
-                for @list -> $l {
+                @list.map: -> $l {
                     nqp::push(
                       nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
                       for test($l);
@@ -192,11 +190,11 @@ my class Hash { # declared in BOOTSTRAP
         }
         self;
     }
-    multi method categorize-list( %test, *@list ) {
-        samewith( { %test{$^a} }, @list );
+    multi method categorize-list( %test, $list ) {
+        samewith( { %test{$^a} }, $list );
     }
-    multi method categorize-list( @test, *@list ) {
-        samewith( { @test[$^a] }, @list );
+    multi method categorize-list( @test, $list ) {
+        samewith( { @test[$^a] }, $list );
     }
 
     # push a value onto a hash slot, constructing an array if necessary

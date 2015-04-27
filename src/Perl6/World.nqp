@@ -394,31 +394,26 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method do_pragma($/,$name,$on,%cp,$arglist) {
+    method do_pragma($/,$name,$on,$arglist) {
 
         # XXX maybe we need a hash with code to execute
         if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
-            if %cp { return 0 }  # go try module
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
         elsif $name eq 'fatal' {
-            if %cp { return 0 }  # go try module
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<fatal> := $on;
         }
         elsif $name eq 'strict' {
-            if %cp { return 0 }  # go try module
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             $*STRICT  := $on;
         }
         elsif $name eq 'nqp' {
-            if %cp { return 0 }  # go try module
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<nqp> := $on;
         }
         elsif $name eq 'soft' {
-            if %cp { return 0 }              # go try module
             # This is an approximation; need to pay attention to
             # argument list really.
             %*PRAGMAS<soft> := $on;
@@ -456,15 +451,17 @@ class Perl6::World is HLL::World {
             $arglist := self.arglist($/);
         }
 
-        unless self.do_pragma($/,$name,$use,%cp,$arglist) {
-            if $use {
-                my $module := self.load_module($/, $name, %cp, $*GLOBALish);
-                self.do_import($/, $module, $name, $arglist);
-                $/.CURSOR.import_EXPORTHOW($/, $module);
-            }
-            else {
-                nqp::die("Don't know how to 'no $name' just yet");
-            }
+        unless %cp {
+            if self.do_pragma($/,$name,$use,$arglist) { return }
+        }
+
+        if $use {
+            my $module := self.load_module($/, $name, %cp, $*GLOBALish);
+            self.do_import($/, $module, $name, $arglist);
+            $/.CURSOR.import_EXPORTHOW($/, $module);
+        }
+        else {
+            nqp::die("Don't know how to 'no $name' just yet");
         }
     }
     

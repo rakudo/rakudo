@@ -8,7 +8,7 @@ my sub combinations($n, $k) {
     my @result;
     my @stack;
 
-    return ([],) unless $k;
+    return ((),) unless $k;
 
     @stack.push(0);
     gather while @stack {
@@ -19,7 +19,7 @@ my sub combinations($n, $k) {
             @result[$index++] = $value++;
             @stack.push($value);
             if $index == $k {
-                take [@result];
+                take [@result].Parcel;
                 $value = $n;  # fake a last
             }
         }
@@ -27,10 +27,10 @@ my sub combinations($n, $k) {
 }
 
 my sub permutations(Int $n) {
-    $n == 1 ?? ( [0,] ) !!
+    $n == 1 ?? ( (0,) ) !!
     gather for ^$n -> $i {
-        my @i = grep none($i), ^$n;
-        take [$i, @i[@$_]] for permutations($n - 1);
+        my @i = 0 ..^ $i, $i ^..^ $n;
+        sink permutations($n - 1).map: { take [$i, @i[@$_]].Parcel }
     }
 }
 
@@ -680,18 +680,18 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method combinations($?) {*}
     multi method combinations( Int $of ) {
-        ([self[@$_]] for combinations(self.elems, $of).eager)
+        combinations(self.elems, $of).eager.map: { self[@$_] }
     }
-    multi method combinations( Range $of = 0 .. * ) {
-        gather for @$of {
-            last if $_ > self.elems;
-            take self.combinations($_);
+    multi method combinations( Range $ofrange = 0 .. * ) {
+        gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
+            # XXX inside of gather should already sink
+            sink combinations(self.elems, $of).eager.map: { take self[@$_] }
         }
     }
 
     method permutations() {
         # need block on Moar because of RT#121830
-        gather { take [self[@$_]] for permutations(self.elems).eager }
+        permutations(self.elems).eager.map: { self[@$_] }
     }
 
     method CALL-ME(List:U: |c) {

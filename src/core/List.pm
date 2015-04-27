@@ -59,7 +59,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method from()       { self.elems ?? self[0].from !! Nil }
 
     method fmt($format = '%s', $separator = ' ') {
-        self.for({ .fmt($format) }).join($separator);
+        self.map({ .fmt($format) }).join($separator);
     }
 
     method flat() { self.flattens
@@ -495,7 +495,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method unique() {
         my $seen := nqp::hash();
         my str $target;
-        gather for @.list {
+        gather @.list.map: {
             $target = nqp::unbox_s($_.WHICH);
             unless nqp::existskey($seen, $target) {
                 nqp::bindkey($seen, $target, 1);
@@ -506,7 +506,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method unique( :&as!, :&with! ) {
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        gather for @.list {
+        gather @.list.map: {
             $target = &as($_);
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
@@ -517,7 +517,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method unique( :&as! ) {
         my $seen := nqp::hash();
         my str $target;
-        gather for @.list {
+        gather @.list.map: {
             $target = &as($_).WHICH;
             unless nqp::existskey($seen, $target) {
                 nqp::bindkey($seen, $target, 1);
@@ -530,7 +530,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        gather for @.list {
+        gather @.list.map: {
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
@@ -544,7 +544,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
         my str $which;
-        gather for @.list {
+        gather @.list.map: {
             $which = &as($_).Str;
             unless with($which,$last) {
                 $last = $which;
@@ -554,7 +554,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
     multi method squish( :&with = &[===] ) {
         my $last = @secret;
-        gather for @.list {
+        gather @.list.map: {
             unless with($_,$last) {
                 $last = $_;
                 take $_;
@@ -625,7 +625,7 @@ my class List does Positional { # declared in BOOTSTRAP
         self.values.map: { (state $)++ }
     }
     multi method kv(List:D:) {
-        gather for self.values {
+        gather self.values.map: {
             take (state $)++;
             take-rw $_;
         }

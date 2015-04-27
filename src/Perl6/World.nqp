@@ -436,15 +436,12 @@ class Perl6::World is HLL::World {
 
     method arglist($/) {
         my $arglist;
-        if $<arglist> -> $a {
-            try { $arglist := self.compile_time_evaluate($/,$a<EXPR>.ast) };
-            if $arglist {
-                $arglist := nqp::getattr(
-                  $arglist.list.eager,
-                  self.find_symbol(['List']),
-                  '$!items',
-                );
-            }
+        if $<arglist><EXPR> -> $expr {
+            $arglist := nqp::getattr(
+              self.compile_time_evaluate($/,$expr.ast).list.eager,
+              self.find_symbol(['List']),
+              '$!items',
+            );
         }
         $arglist;
     }

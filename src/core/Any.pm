@@ -184,6 +184,10 @@ my class Any { # declared in BOOTSTRAP
     multi method FOR($block, :$label) is rw {
         MapIter.new(self, $block, Bool::False, :$label).list;
     }
+    method for(|c) {
+        DEPRECATED('flatmap',|<2015.05 2015.09>);
+        self.flatmap(|c);
+    }
     proto method flatmap (|) { * }
     multi method flatmap(Whatever) is rw { self }
     multi method flatmap($block, :$label) is rw {

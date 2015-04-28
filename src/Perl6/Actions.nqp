@@ -810,7 +810,7 @@ Compilation unit '$file' contained the following violations:
         make $past;
     }
 
-    method statement($/, $key?) {
+    method statement($/) {
         my $past;
         if $<EXPR> {
             my $mc := $<statement_mod_cond>;

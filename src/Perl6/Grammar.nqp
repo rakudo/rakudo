@@ -1082,39 +1082,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*W.mop_up_and_check($/) }
     }
 
-    method add_package_declarator(str $pdecl) {
-        # Compute name of grammar/action entry.
-        my $canname := 'package_declarator:sym<' ~ $pdecl ~ '>';
-
-        # Add to grammar if needed.
-        unless nqp::can(self, $canname) {
-            my role PackageDeclarator[$meth_name, $declarator] {
-                token ::($meth_name) {
-                    :my $*OUTERPACKAGE := $*PACKAGE;
-                    :my $*PKGDECL := $declarator;
-                    :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-                    $<sym>=[$declarator] <.end_keyword> <package_def>
-                }
-            }
-            self.HOW.mixin(self, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
-
-            # This also becomes the current MAIN. Also place it in %?LANG.
-            %*LANG<MAIN> := self.WHAT;
-            $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
-        }
-
-        # Add action method if needed.
-        unless nqp::can($*ACTIONS, $canname) {
-            my role PackageDeclaratorAction[$meth] {
-                method ::($meth)($/) {
-                    make $<package_def>.ast;
-                }
-            };
-            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
-                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
-        }
-    }
-
     rule statementlist($*statement_level = 0) {
         :my %*LANG   := self.shallow_copy(nqp::getlexdyn('%*LANG'));
         :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));

@@ -334,7 +334,7 @@ class Perl6::World is HLL::World {
             my $name   := "Perl6::BOOTSTRAP";
             my $module := self.load_module($/, $name, {}, $*GLOBALish);
             self.do_import($/, $module, $name);
-            $/.CURSOR.import_EXPORTHOW($/, $module);
+            self.import_EXPORTHOW($/, $module);
         }
 
         # Install as we've no setting, in which case we've likely no
@@ -491,6 +491,61 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method import_EXPORTHOW($/, $UNIT) {
+        if nqp::existskey($UNIT, 'EXPORTHOW') {
+            for self.stash_hash($UNIT<EXPORTHOW>) {
+                my str $key := $_.key;
+                if $key eq 'SUPERSEDE' {
+                    my %SUPERSEDE := self.stash_hash($_.value);
+                    for %SUPERSEDE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        unless nqp::existskey(%*HOW, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::NothingToSupersede',
+                                declarator => $pdecl);
+                        }
+                        if nqp::existskey(%*HOWUSE, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
+                                declarator => $pdecl, directive => $key);
+                        }
+                        %*HOW{$pdecl}    := $meta;
+                        %*HOWUSE{$pdecl} := nqp::hash('SUPERSEDE', $meta);
+                    }
+                }
+                elsif $key eq 'DECLARE' {
+                    my %DECLARE := self.stash_hash($_.value);
+                    for %DECLARE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        if nqp::existskey(%*HOW, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
+                                declarator => $pdecl, directive => $key);
+                        }
+                        %*HOW{$pdecl}    := $meta;
+                        %*HOWUSE{$pdecl} := nqp::hash('DECLARE', $meta);
+                        $/.CURSOR.add_package_declarator($pdecl);
+                    }
+                }
+                elsif $key eq 'COMPOSE' {
+                    my %COMPOSE := self.stash_hash($_.value);
+                    $/.CURSOR.NYI('EXPORTHOW::COMPOSE');
+                }
+                else {
+                    if $key eq nqp::lc($key) {
+                        # Support legacy API, which behaves like an unchecked
+                        # supersede.
+                        # XXX Can give deprecation warning in the future, remove
+                        # before 6.0.0.
+                        %*HOW{$key} := nqp::decont($_.value);
+                    }
+                    else {
+                        $/.CURSOR.typed_panic('X::EXPORTHOW::InvalidDirective', directive => $key);
+                    }
+                }
+            }
+        }
+    }
+
     method do_import($/, $module, $package_source_name, $arglist?) {
         if nqp::existskey($module, 'EXPORT') {
             my $EXPORT := self.stash_hash($module<EXPORT>);
@@ -605,7 +660,7 @@ class Perl6::World is HLL::World {
         if $use {
             my $module := self.load_module($/, $name, %cp, $*GLOBALish);
             self.do_import($/, $module, $name, $arglist);
-            $/.CURSOR.import_EXPORTHOW($/, $module);
+            self.import_EXPORTHOW($/, $module);
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");

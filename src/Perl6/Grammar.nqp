@@ -1081,61 +1081,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         { $*W.mop_up_and_check($/) }
     }
-    
-    method import_EXPORTHOW($/, $UNIT) {    
-        if nqp::existskey($UNIT, 'EXPORTHOW') {
-            for $*W.stash_hash($UNIT<EXPORTHOW>) {
-                my str $key := $_.key;
-                if $key eq 'SUPERSEDE' {
-                    my %SUPERSEDE := $*W.stash_hash($_.value);
-                    for %SUPERSEDE {
-                        my str $pdecl := $_.key;
-                        my $meta  := nqp::decont($_.value);
-                        unless nqp::existskey(%*HOW, $pdecl) {
-                            $/.CURSOR.typed_panic('X::EXPORTHOW::NothingToSupersede',
-                                declarator => $pdecl);
-                        }
-                        if nqp::existskey(%*HOWUSE, $pdecl) {
-                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
-                                declarator => $pdecl, directive => $key);
-                        }
-                        %*HOW{$pdecl}    := $meta;
-                        %*HOWUSE{$pdecl} := nqp::hash('SUPERSEDE', $meta);
-                    }
-                }
-                elsif $key eq 'DECLARE' {
-                    my %DECLARE := $*W.stash_hash($_.value);
-                    for %DECLARE {
-                        my str $pdecl := $_.key;
-                        my $meta  := nqp::decont($_.value);
-                        if nqp::existskey(%*HOW, $pdecl) {
-                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
-                                declarator => $pdecl, directive => $key);
-                        }
-                        %*HOW{$pdecl}    := $meta;
-                        %*HOWUSE{$pdecl} := nqp::hash('DECLARE', $meta);
-                        self.add_package_declarator($pdecl);
-                    }
-                }
-                elsif $key eq 'COMPOSE' {
-                    my %COMPOSE := $*W.stash_hash($_.value);
-                    $/.CURSOR.NYI('EXPORTHOW::COMPOSE');
-                }
-                else {
-                    if $key eq nqp::lc($key) {
-                        # Support legacy API, which behaves like an unchecked
-                        # supersede.
-                        # XXX Can give deprecation warning in the future, remove
-                        # before 6.0.0.
-                        %*HOW{$key} := nqp::decont($_.value);
-                    }
-                    else {
-                        $/.CURSOR.typed_panic('X::EXPORTHOW::InvalidDirective', directive => $key);
-                    }
-                }
-            }
-        }
-    }
 
     method add_package_declarator(str $pdecl) {
         # Compute name of grammar/action entry.
@@ -1517,7 +1462,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <version> [ <?{ ~$<version><vnum>[0] eq '5' }> {
                         my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
                         do_import($/, $module, 'Perl5');
-                        $/.CURSOR.import_EXPORTHOW($/, $module);
+                        $*W.import_EXPORTHOW($/, $module);
                     } ]?
                     [ <?{ ~$<version><vnum>[0] eq '6' }> {
                         $*MAIN   := 'MAIN';

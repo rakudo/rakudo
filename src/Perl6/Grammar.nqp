@@ -1038,7 +1038,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ANGLE_COUNT := 0;                # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
         :my $*IN_PROTO := 0;                       # are we inside a proto?
-        :my $*NEXT_STATEMENT_ID := 0;              # to give each statement an ID
+        :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;

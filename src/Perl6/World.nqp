@@ -241,7 +241,120 @@ class Perl6::World is HLL::World {
         @!cleanup_tasks := [];
         %!magical_cds := {};
     }
-    
+
+    method loading_and_symbol_setup($/) {
+
+        # Create unit outer (where we assemble any lexicals accumulated
+        # from e.g. REPL) and the real UNIT.
+        $*UNIT_OUTER := self.push_lexpad($/);
+        $*UNIT       := self.push_lexpad($/);
+        
+        # If we already have a specified outer context, then that's
+        # our setting. Otherwise, load one.
+        my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
+        if $have_outer {
+            $*UNIT.annotate('IN_DECL', 'eval');
+        }
+        else {
+            $*SETTING :=
+              self.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
+            $*UNIT.annotate('IN_DECL', 'mainline');
+        }
+        $/.CURSOR.unitstart();
+
+        try {
+            my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
+            for self.stash_hash($EXPORTHOW) {
+                %*HOW{$_.key} := $_.value;
+            }
+        }
+        
+        # Create GLOBAL(ish), unless we were given one.
+        if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
+            $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
+        }
+        elsif $have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
+            $*GLOBALish :=
+              self.force_value($*UNIT_OUTER.symbol('GLOBALish'),'GLOBALish',1);
+        }
+        else {
+            $*GLOBALish :=
+              self.pkg_create_mo($/,%*HOW<package>,:name('GLOBAL'));
+            self.pkg_compose($*GLOBALish);
+        }
+            
+        # Create or pull in existing EXPORT.
+        if $have_outer && $*UNIT_OUTER.symbol('EXPORT') {
+            $*EXPORT :=
+              self.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
+        }
+        else {
+            $*EXPORT := self.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
+            self.pkg_compose($*EXPORT);
+        }
+        
+        # If there's a self in scope, set $*HAS_SELF.
+        if $have_outer && $*UNIT_OUTER.symbol('self') {
+            $*HAS_SELF := 'complete';
+        }
+            
+        # Take current package from outer context if any, otherwise for a
+        # fresh compilation unit we start in GLOBAL.
+        if $have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
+            $*PACKAGE :=
+              self.force_value($*UNIT_OUTER.symbol('$?PACKAGE'),'$?PACKAGE',1);
+        }
+        else {
+            $*PACKAGE := $*GLOBALish;
+        }
+        
+        # If we're eval'ing in the context of a %?LANG, set up our own
+        # %*LANG based on it.
+        if $have_outer && $*UNIT_OUTER.symbol('%?LANG') {
+            for self.force_value(
+              $*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
+                %*LANG{$_.key} := $_.value;
+            }
+        }
+        if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
+            $*MAIN :=
+              self.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
+        }
+        if $have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
+            $*STRICT :=
+              self.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
+        }
+        else {
+            my $FILES := nqp::getlexdyn('$?FILES');
+            $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
+        }
+
+        # Bootstrap
+        if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+            my $name   := "Perl6::BOOTSTRAP";
+            my $module := self.load_module($/, $name, {}, $*GLOBALish);
+            self.do_import($/, $module, $name);
+            $/.CURSOR.import_EXPORTHOW($/, $module);
+        }
+
+        # Install as we've no setting, in which case we've likely no
+        # static lexpad class yet either. Also, UNIT needs a code object.
+        else {
+            self.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
+            self.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
+            self.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+            self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
+            $*DECLARAND := self.stub_code_object('Block');
+        }
+
+        my $M := %*COMPILING<%?OPTIONS><M>;
+        if nqp::defined($M) {
+            for nqp::islist($M) ?? $M !! [$M] -> $longname {
+                self.do_pragma_or_load_module($/,1,$longname);
+            }
+        }
+    }
+
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer, annotate with creating statement, and add to stack.

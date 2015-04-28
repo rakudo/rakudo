@@ -8,7 +8,7 @@ multi sub await(Promise:D $p) {
     $p.result
 }
 multi sub await(*@awaitables) {
-    @awaitables.eager.for(&await)
+    @awaitables.eager.map(&await)
 }
 multi sub await(Channel:D $c) {
     $c.receive

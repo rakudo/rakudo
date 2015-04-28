@@ -179,9 +179,9 @@ my class Any { # declared in BOOTSTRAP
     multi method map($block, :$label) is rw {
         MapIter.new(self, $block, Bool::False, :$label).list
     }
-    proto method for (|) { * }
-    multi method for(Whatever) is rw { self }
-    multi method for($block, :$label) is rw {
+    proto method FOR (|) { * }
+    multi method FOR(Whatever) is rw { self }
+    multi method FOR($block, :$label) is rw {
         MapIter.new(self, $block, Bool::False, :$label).list;
     }
     proto method flatmap (|) { * }

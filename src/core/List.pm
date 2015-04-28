@@ -474,7 +474,7 @@ my class List does Positional { # declared in BOOTSTRAP
         # if $by.arity < 2, then we apply the block to the elements
         # for sorting.
         if ($by.?count // 2) < 2 {
-            my $list = self.for($by).eager;
+            my $list = self.map($by).eager;
             nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
         }
         else {

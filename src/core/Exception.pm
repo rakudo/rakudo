@@ -657,7 +657,7 @@ my class X::Undeclared::Symbols does X::Comp {
     }
     method message(X::Undeclared::Symbols:D:) {
         sub l(@l) {
-            my @lu = @l.for({ nqp::hllize($_) }).unique.sort;
+            my @lu = @l.map({ nqp::hllize($_) }).unique.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
         sub s(@s) {
@@ -1700,7 +1700,7 @@ my class X::Multi::Ambiguous is Exception {
     method message {
         join "\n",
             "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
-            @.ambiguous.for(*.signature.perl)
+            @.ambiguous.map(*.signature.perl)
     }
 }
 

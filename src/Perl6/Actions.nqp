@@ -255,7 +255,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
         $code := make_topic_block_ref($/, $code, copy => 1);
-        my $past := QAST::Op.new(:op<callmethod>, :name<for>,
+        my $past := QAST::Op.new(:op<callmethod>, :name<FOR>,
             QAST::Op.new(:op<call>, :name<&lines>),
             QAST::Op.new(:op<p6capturelex>, $code)
         );
@@ -841,7 +841,7 @@ Compilation unit '$file' contained the following violations:
                         $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
                     $past := QAST::Op.new(
-                            :op<callmethod>, :name<for>, :node($/),
+                            :op<callmethod>, :name<FOR>, :node($/),
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
                         );
@@ -1170,7 +1170,7 @@ Compilation unit '$file' contained the following violations:
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
         my $past := QAST::Op.new(
-                        :op<callmethod>, :name<for>, :node($/),
+                        :op<callmethod>, :name<FOR>, :node($/),
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );

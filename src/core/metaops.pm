@@ -88,7 +88,7 @@ sub METAOP_ZIP(\op, &reduce) {
         }
         gather {
             loop {
-                my \z = @lol.for: { last unless .gimme(1); .shift }
+                my \z = @lol.map: { last unless .gimme(1); .shift }
                 last if z.elems < $arity;
                 take-rw $rop(|z);
             }
@@ -181,7 +181,7 @@ sub METAOP_REDUCE_LISTINFIX(\op, :$triangle) {
                     }
                 }, :infinite(p.infinite))
             }
-        !!  sub (|values) { my \p = values[0]; nqp::iscont(p[0]) ?? op.(|p.for({nqp::decont($_).list.Parcel})) !! op.(|p) }
+        !!  sub (|values) { my \p = values[0]; nqp::iscont(p[0]) ?? op.(|p.map({nqp::decont($_).list.Parcel})) !! op.(|p) }
 }
 
 

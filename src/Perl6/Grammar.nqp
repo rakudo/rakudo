@@ -5012,7 +5012,12 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
 
     token assertion:sym<var> {
-        <?sigil> <var=.LANG('MAIN', 'term:sym<variable>')>
+        | <?[&]> <var=.LANG('MAIN', 'term:sym<variable>')>
+            [
+            | ':' <arglist>
+            | '(' <arglist> ')'
+            ]?
+        | <?sigil> <var=.LANG('MAIN', 'term:sym<variable>')>
     }
     
     token assertion:sym<~~> {

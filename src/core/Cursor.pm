@@ -259,6 +259,10 @@ my class Cursor does NQPCursorRole {
         }
     }
 
+    method CALL_SUBRULE($rule, |c) {
+        $rule(self, |c)
+    }
+
     method DYNQUANT_LIMITS($mm) {
         if nqp::istype($mm,Range) {
             die 'Range minimum in quantifier (**) cannot be +Inf' if $mm.min ==  Inf;

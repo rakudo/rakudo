@@ -7754,13 +7754,25 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method assertion:sym<var>($/) {
-        make QAST::Regex.new( QAST::NodeList.new(
-                                    QAST::SVal.new( :value('INTERPOLATE') ),
-                                    $<var>.ast,
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value(1) ) ),
-                              :rxtype<subrule>, :subtype<method>, :node($/));
+        if $<arglist> {
+            my $ast := make QAST::Regex.new(
+                QAST::NodeList.new(
+                    QAST::SVal.new( :value('CALL_SUBRULE') ),
+                    $<var>.ast ),
+                :rxtype<subrule>, :subtype<method>, :node($/));
+            for @($<arglist>.ast) {
+                $ast[0].push($_);
+            }
+        } else {
+            make QAST::Regex.new(
+                QAST::NodeList.new(
+                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    $<var>.ast,
+                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(1) ) ),
+                :rxtype<subrule>, :subtype<method>, :node($/));
+        }
     }
     
     method assertion:sym<name>($/) {

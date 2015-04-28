@@ -503,7 +503,7 @@ my class X::NYI::Available is X::NYI {
     method available-str {
         my @a = @.available;
         my $a = @a.pop;
-        (@a.join(', ') || (), $a).join(" or ")
+        @a ?? (@a.join(', ') || (), $a).join(" or ") !! $a;
     }
     method message() {
         "Please install { self.available-str } for $.feature support. "

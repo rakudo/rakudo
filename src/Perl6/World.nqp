@@ -355,6 +355,38 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method mop_up_and_check($/) {
+
+        # Emit any worries.
+        if @*WORRIES {
+            nqp::printfh(nqp::getstderr(), self.group_exception().gist());
+        }
+
+        # Install POD-related variables.
+        $*POD_PAST := self.add_constant(
+            'Array', 'type_new', :nocache, |$*POD_BLOCKS
+        );
+        self.install_lexical_symbol(
+            $*UNIT, '$=pod', $*POD_PAST.compile_time_value
+        );
+
+        # Tag UNIT with a magical lexical. Also if we're compiling CORE,
+        # give it such a tag too.
+        if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+            my $marker := self.pkg_create_mo($/, %*HOW<package>, :name('!CORE_MARKER'));
+            $marker.HOW.compose($marker);
+            self.install_lexical_symbol($*UNIT, '!CORE_MARKER', $marker);
+        }
+        else {
+            my $marker := self.pkg_create_mo($/, %*HOW<package>, :name('!UNIT_MARKER'));
+            $marker.HOW.compose($marker);
+            self.install_lexical_symbol($*UNIT, '!UNIT_MARKER', $marker);
+        }
+
+        # CHECK time.
+        self.CHECK();
+    }
+
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer, annotate with creating statement, and add to stack.

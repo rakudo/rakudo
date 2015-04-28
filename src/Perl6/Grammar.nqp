@@ -1079,36 +1079,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.explain_mystery>
         <.cry_sorrows>
 
-        {
-            # Emit any worries.
-            if @*WORRIES {
-                nqp::printfh(nqp::getstderr(), $*W.group_exception().gist());
-            }
-        
-            # Install POD-related variables.
-            $*POD_PAST := $*W.add_constant(
-                'Array', 'type_new', :nocache, |$*POD_BLOCKS
-            );
-            $*W.install_lexical_symbol(
-                $*UNIT, '$=pod', $*POD_PAST.compile_time_value
-            );
-            
-            # Tag UNIT with a magical lexical. Also if we're compiling CORE,
-            # give it such a tag too.
-            if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-                my $marker := $*W.pkg_create_mo($/, %*HOW<package>, :name('!CORE_MARKER'));
-                $marker.HOW.compose($marker);
-                $*W.install_lexical_symbol($*UNIT, '!CORE_MARKER', $marker);
-            }
-            else {
-                my $marker := $*W.pkg_create_mo($/, %*HOW<package>, :name('!UNIT_MARKER'));
-                $marker.HOW.compose($marker);
-                $*W.install_lexical_symbol($*UNIT, '!UNIT_MARKER', $marker);
-            }
-        }
-        
-        # CHECK time.
-        { $*W.CHECK(); }
+        { $*W.mop_up_and_check($/) }
     }
     
     method import_EXPORTHOW($/, $UNIT) {    

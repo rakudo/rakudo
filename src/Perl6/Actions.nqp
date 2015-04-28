@@ -862,6 +862,7 @@ Compilation unit '$file' contained the following violations:
                 $past
             );
         }
+        $past.annotate('statement_id', $*STATEMENT_ID) if $past;
         make $past;
     }
 

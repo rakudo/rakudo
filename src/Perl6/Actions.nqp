@@ -817,9 +817,16 @@ Compilation unit '$file' contained the following violations:
             my $ml := $<statement_mod_loop>;
             $past := $<EXPR>.ast;
             if $mc {
-                $mc.ast.push($past);
-                $mc.ast.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
-                $past := $mc.ast;
+                my $mc_ast := $mc.ast;
+                if $past.ann('bare_block') {
+                    my $cond_block := $past.ann('past_block');
+                    remove_block($*W.cur_lexpad(), $cond_block);
+                    $cond_block.blocktype('immediate');
+                    $past := $cond_block;
+                }
+                $mc_ast.push($past);
+                $mc_ast.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+                $past := $mc_ast;
             }
             if $ml {
                 my $cond := $ml<smexpr>.ast;
@@ -7314,9 +7321,16 @@ Compilation unit '$file' contained the following violations:
         my int $i := 0;
         my int $n := nqp::elems(@decls);
         while $i < $n {
-            if @decls[$i] =:= $block {
+            my $consider := @decls[$i];
+            if $consider =:= $block {
                 @decls[$i] := QAST::Op.new( :op('null') );
                 return 1;
+            }
+            elsif nqp::istype($consider, QAST::Stmt) || nqp::istype($consider, QAST::Stmts) {
+                if $consider[0] =:= $block {
+                    $consider[0] := QAST::Op.new( :op('null') );
+                    return 1;
+                }
             }
             $i++;
         }

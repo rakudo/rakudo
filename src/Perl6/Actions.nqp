@@ -826,13 +826,13 @@ Compilation unit '$file' contained the following violations:
                 if ~$ml<sym> eq 'given' {
                     $past := QAST::Op.new(
                         :op('call'),
-                        block_closure(make_topic_block_ref($/, $past)),
+                        block_closure(make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID)),
                         $cond
                     );
                 }
                 elsif ~$ml<sym> eq 'for' {
                     unless $past.ann('past_block') {
-                        $past := make_topic_block_ref($/, $past);
+                        $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
                     $past := QAST::Op.new(
                             :op<callmethod>, :name<for>, :node($/),
@@ -5021,21 +5021,26 @@ Compilation unit '$file' contained the following violations:
 
     # Some constructs are parsed and compiled with blocks inside of them, but
     # then the outer block goes away (for example, when a {...} becomes a
-    # hash). This is used to move blocks out of the discarded inner one to
-    # the outer one, so they're correctly lexically scoped.
-    sub migrate_blocks($from, $to) {
+    # hash). Others get thunked and so need to have certain blocks in an
+    # expression moved into the thunk. This performs the migration. Takes an
+    # optional predicate to decide whether to move a block.
+    sub migrate_blocks($from, $to, $predicate?) {
         my @decls := @($from[0]);
         my int $n := nqp::elems(@decls);
         my int $i := 0;
         while $i < $n {
             if nqp::istype(@decls[$i], QAST::Block) {
-                $to[0].push(@decls[$i]);
-                @decls[$i] := QAST::Op.new( :op('null') );
+                if !$predicate || $predicate(@decls[$i]) {
+                    $to[0].push(@decls[$i]);
+                    @decls[$i] := QAST::Op.new( :op('null') );
+                }
             }
             elsif (nqp::istype(@decls[$i], QAST::Stmt) || nqp::istype(@decls[$i], QAST::Stmts)) &&
                   nqp::istype(@decls[$i][0], QAST::Block) {
-                $to[0].push(@decls[$i][0]);
-                @decls[$i][0] := QAST::Op.new( :op('null') );
+                if !$predicate || $predicate(@decls[$i]) {
+                    $to[0].push(@decls[$i][0]);
+                    @decls[$i][0] := QAST::Op.new( :op('null') );
+                }
             }
             $i++;
         }
@@ -6895,12 +6900,14 @@ Compilation unit '$file' contained the following violations:
             $block);
     }
 
-    sub make_topic_block_ref($/, $past, :$copy) {
-        my $block := QAST::Block.new(
-            QAST::Stmts.new(
-                QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
-            ),
-            $past);
+    sub make_topic_block_ref($/, $past, :$copy, :$migrate_stmt_id) {
+        my $block := $*W.push_lexpad($/);
+        $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
+        $block.push($past);
+        $*W.pop_lexpad();
+        if nqp::defined($migrate_stmt_id) {
+            migrate_blocks($*W.cur_lexpad(), $block, -> $b { $b.ann('statement_id') == $migrate_stmt_id });
+        }
         ($*W.cur_lexpad())[0].push($block);
         my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
         if $copy {

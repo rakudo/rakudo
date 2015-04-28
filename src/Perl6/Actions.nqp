@@ -1565,7 +1565,17 @@ Compilation unit '$file' contained the following violations:
     }
 
     method blorst($/) {
-        make block_closure($<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast, $/));
+        my $block;
+        if $<block> {
+            $block := $<block>.ast;
+        }
+        else {
+            my $stmt := $<statement>.ast;
+            $block := make_thunk_ref($stmt, $/);
+            migrate_blocks($*W.cur_lexpad, $block.ann('past_block'),
+                -> $b { $b.ann('statement_id') == $stmt.ann('statement_id') });
+        }
+        make block_closure($block);
     }
 
     # Statement modifiers

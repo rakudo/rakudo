@@ -824,11 +824,10 @@ Compilation unit '$file' contained the following violations:
             if $ml {
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
-                    $past := QAST::Op.new(
-                        :op('call'),
-                        block_closure(make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID)),
-                        $cond
-                    );
+                    unless $past.ann('bare_block') {
+                        $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
+                    }
+                    $past := QAST::Op.new( :op('call'), block_closure($past), $cond );
                 }
                 elsif ~$ml<sym> eq 'for' {
                     unless $past.ann('past_block') {

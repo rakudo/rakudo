@@ -1039,6 +1039,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_REGEX_ASSERTION := 0;
         :my $*IN_PROTO := 0;                       # are we inside a proto?
         :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
+        :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -1366,13 +1367,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SCOPE := '';
         :my $*ACTIONS := %*LANG<MAIN-actions>;
         :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
+        :my $*IN_STMT_MOD := 0;
         <!before <[\])}]> | $ >
         <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
         | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
-        | <EXPR> :dba('statement end')
+        | <EXPR> :dba('statement end') { $*IN_STMT_MOD := 1 }
             [
             || <?MARKED('endstmt')>
             || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?

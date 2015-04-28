@@ -250,6 +250,7 @@ class Perl6::World is HLL::World {
             $pad.annotate('outer', @!BLOCKS[+@!BLOCKS - 1]);
         }
         $pad.annotate('statement_id', $*STATEMENT_ID);
+        $pad.annotate('in_stmt_mod', $*IN_STMT_MOD);
         @!BLOCKS[+@!BLOCKS] := $pad;
         $pad
     }

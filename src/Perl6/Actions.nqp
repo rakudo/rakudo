@@ -6922,7 +6922,9 @@ Compilation unit '$file' contained the following violations:
         $block.push($past);
         $*W.pop_lexpad();
         if nqp::defined($migrate_stmt_id) {
-            migrate_blocks($*W.cur_lexpad(), $block, -> $b { $b.ann('statement_id') == $migrate_stmt_id });
+            migrate_blocks($*W.cur_lexpad(), $block, -> $b {
+                !$b.ann('in_stmt_mod') && $b.ann('statement_id') == $migrate_stmt_id
+            });
         }
         ($*W.cur_lexpad())[0].push($block);
         my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));

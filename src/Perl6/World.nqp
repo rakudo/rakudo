@@ -626,7 +626,7 @@ class Perl6::World is HLL::World {
             for %opts {
                 self.add_object($_.value);
                 $opt_hash.push(QAST::SVal.new( :value($_.key) ));
-                my $Str := $*W.find_symbol(['Str']);
+                my $Str := self.find_symbol(['Str']);
                 if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
                     $opt_hash.push(QAST::SVal.new( :value($_.value) ));
                 }
@@ -778,7 +778,7 @@ class Perl6::World is HLL::World {
         # chunk already. If so, use it for that part of the name.
         if +@parts {
             try {
-                $cur_pkg := $*W.find_symbol([@parts[0]]);
+                $cur_pkg := self.find_symbol([@parts[0]]);
                 $cur_lex := 0;
                 $create_scope := 'our';
                 @parts.shift();
@@ -955,33 +955,33 @@ class Perl6::World is HLL::World {
                 $con);
         }
         if $sigil eq '@' {
-            %info<bind_constraint> := $*W.find_symbol(['Positional']);
+            %info<bind_constraint> := self.find_symbol(['Positional']);
             if @value_type {
                 my $vtype              := @value_type[0];
                 my $base_type_name     := nqp::objprimspec($vtype) ?? 'array' !! 'Array';
-                %info<container_base>  := $*W.find_symbol([$base_type_name]);
-                %info<container_type>  := $*W.parameterize_type_with_args(
+                %info<container_base>  := self.find_symbol([$base_type_name]);
+                %info<container_type>  := self.parameterize_type_with_args(
                     %info<container_base>, [$vtype], nqp::hash());
-                %info<bind_constraint> := $*W.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args(
                     %info<bind_constraint>, [$vtype], nqp::hash());
                 %info<value_type>      := $vtype;
                 %info<default_value>   := $vtype;
             }
             else {
-                %info<container_base> := $*W.find_symbol(['Array']);
+                %info<container_base> := self.find_symbol(['Array']);
                 %info<container_type> := %info<container_base>;
-                %info<value_type>     := $*W.find_symbol(['Mu']);
-                %info<default_value>  := $*W.find_symbol(['Any']);
+                %info<value_type>     := self.find_symbol(['Mu']);
+                %info<default_value>  := self.find_symbol(['Any']);
             }
             if $shape {
-                $*W.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
+                self.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
             }
         }
         elsif $sigil eq '%' {
-            %info<container_base>  := $*W.find_symbol(['Hash']);
-            %info<bind_constraint> := $*W.find_symbol(['Associative']);
+            %info<container_base>  := self.find_symbol(['Hash']);
+            %info<bind_constraint> := self.find_symbol(['Associative']);
             if $shape {
-                @value_type[0] := $*W.find_symbol(['Any']) unless +@value_type;
+                @value_type[0] := self.find_symbol(['Any']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
                 if $shape_ast.isa(QAST::Stmts) {
                     if +@($shape_ast) == 1 {
@@ -990,55 +990,55 @@ class Perl6::World is HLL::World {
                         } elsif (my $op_ast := $shape_ast[0]).isa(QAST::Op) {
                             if $op_ast.op eq "call" && +@($op_ast) == 2 {
                                 if !nqp::isconcrete($op_ast[0].value) && !nqp::isconcrete($op_ast[1].value) {
-                                    $*W.throw($/, 'X::Comp::NYI',
+                                    self.throw($/, 'X::Comp::NYI',
                                         feature => "coercive type declarations");
                                 }
                             }
                         } else {
-                            $*W.throw($/, "X::Comp::AdHoc",
+                            self.throw($/, "X::Comp::AdHoc",
                                 payload => "Invalid hash shape; type expected");
                         }
                     } elsif +@($shape_ast) > 1 {
-                        $*W.throw($/, 'X::Comp::NYI',
+                        self.throw($/, 'X::Comp::NYI',
                             feature => "multidimensional shaped hashes");
                     }
                 } else {
-                    $*W.throw($/, "X::Comp::AdHoc",
+                    self.throw($/, "X::Comp::AdHoc",
                         payload => "Invalid hash shape; type expected");
                 }
             }
             if @value_type {
                 if nqp::objprimspec(@value_type[0]) {
-                    $*W.throw($/, 'X::Comp::NYI',
+                    self.throw($/, 'X::Comp::NYI',
                       feature => "native value types for hashes");
                 }
-                %info<container_type>  := $*W.parameterize_type_with_args(
+                %info<container_type>  := self.parameterize_type_with_args(
                     %info<container_base>, @value_type, nqp::hash());
-                %info<bind_constraint> := $*W.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args(
                     %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
                 %info<default_value>   := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
-                %info<value_type>     := $*W.find_symbol(['Mu']);
-                %info<default_value>  := $*W.find_symbol(['Any']);
+                %info<value_type>     := self.find_symbol(['Mu']);
+                %info<default_value>  := self.find_symbol(['Any']);
             }
         }
         elsif $sigil eq '&' {
-            %info<container_base>  := $*W.find_symbol(['Scalar']);
+            %info<container_base>  := self.find_symbol(['Scalar']);
             %info<container_type>  := %info<container_base>;
-            %info<bind_constraint> := $*W.find_symbol(['Callable']);
+            %info<bind_constraint> := self.find_symbol(['Callable']);
             if @value_type {
-                %info<bind_constraint> := $*W.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
             }
             %info<value_type>     := %info<bind_constraint>;
-            %info<default_value>  := $*W.find_symbol(['Callable']);
-            %info<scalar_value>   := $*W.find_symbol(['Callable']);
+            %info<default_value>  := self.find_symbol(['Callable']);
+            %info<scalar_value>   := self.find_symbol(['Callable']);
         }
         else {
-            %info<container_base>     := $*W.find_symbol(['Scalar']);
+            %info<container_base>     := self.find_symbol(['Scalar']);
             %info<container_type>     := %info<container_base>;
             if @value_type {
                 %info<bind_constraint> := @value_type[0];
@@ -1046,9 +1046,9 @@ class Perl6::World is HLL::World {
                 %info<default_value>   := @value_type[0];
             }
             else {
-                %info<bind_constraint> := $*W.find_symbol(['Mu']);
-                %info<value_type>      := $*W.find_symbol(['Mu']);
-                %info<default_value>   := $*W.find_symbol(['Any']);
+                %info<bind_constraint> := self.find_symbol(['Mu']);
+                %info<value_type>      := self.find_symbol(['Mu']);
+                %info<default_value>   := self.find_symbol(['Any']);
             }
             %info<scalar_value> := %info<default_value>;
         }
@@ -1455,13 +1455,13 @@ class Perl6::World is HLL::World {
             $i++;
         }
         nqp::bindattr($signature, $sig_type, '$!arity',
-            $*W.add_constant('Int', 'int', $arity).value);
+            self.add_constant('Int', 'int', $arity).value);
         if $count == -1 {
             nqp::bindattr($signature, $sig_type, '$!count',
-                $*W.add_constant('Num', 'num', nqp::inf()).value);
+                self.add_constant('Num', 'num', nqp::inf()).value);
         } else {
             nqp::bindattr($signature, $sig_type, '$!count',
-                $*W.add_constant('Int', 'int', $count).value);
+                self.add_constant('Int', 'int', $count).value);
         }
 
         # Return created signature.
@@ -2739,7 +2739,7 @@ class Perl6::World is HLL::World {
                 my $cp_str;
                 if %*COMPILING<%?OPTIONS><setting> ne 'NULL' {
                     # Safe to evaluate it directly; no bootstrap issues.
-                    $cp_str := ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>';
+                    $cp_str := ':<' ~ ~self.compile_time_evaluate($_, $_.ast) ~ '>';
                 }
                 else {
                     my $ast := $_.ast;
@@ -2956,7 +2956,7 @@ class Perl6::World is HLL::World {
                     # Lookups start at the :: root.
                     $lookup := QAST::Op.new(
                         :op('callmethod'), :name('new'),
-                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
+                        QAST::WVal.new( :value(self.find_symbol(['PseudoStash'])) )
                     );
                 }
                 $lookup := QAST::Op.new(
@@ -3362,7 +3362,7 @@ class Perl6::World is HLL::World {
             }
         }
         if $nok {
-            $*W.rethrow($/, $ex);
+            self.rethrow($/, $ex);
         } else {
             $res;
         }

@@ -5047,7 +5047,7 @@ Compilation unit '$file' contained the following violations:
             }
             elsif (nqp::istype(@decls[$i], QAST::Stmt) || nqp::istype(@decls[$i], QAST::Stmts)) &&
                   nqp::istype(@decls[$i][0], QAST::Block) {
-                if !$predicate || $predicate(@decls[$i]) {
+                if !$predicate || $predicate(@decls[$i][0]) {
                     $to[0].push(@decls[$i][0]);
                     @decls[$i][0] := QAST::Op.new( :op('null') );
                 }

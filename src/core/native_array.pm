@@ -73,7 +73,7 @@ class array is Iterable is repr('VMArray') {
         multi method push(array:D: @values) {
             fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
               if @values.infinite;
-            nqp::push_i(self, $_) for @values;
+            nqp::push_i(self, $_) for flat @values;
             self
         }
 
@@ -260,7 +260,7 @@ class array is Iterable is repr('VMArray') {
         multi method push(array:D: @values) {
             fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
               if @values.infinite;
-            nqp::push_n(self, $_) for @values;
+            nqp::push_n(self, $_) for flat @values;
             self
         }
 

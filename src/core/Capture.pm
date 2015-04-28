@@ -22,7 +22,7 @@ my class Capture { # declared in BOOTSTRAP
         if $!list {
             $WHICH ~= '|';
             $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
-              for $!list;
+              for flat $!list;
         }
         if $!hash {
             $WHICH ~= '|';

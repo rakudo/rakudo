@@ -307,7 +307,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
         my @attrs;
-        for self.^attributes().grep: { .has_accessor } -> $attr {
+        for self.^attributes().flat.grep: { .has_accessor } -> $attr {
             my $name := substr($attr.Str,2);
             @attrs.push: $name
                         ~ ' => '
@@ -322,7 +322,7 @@ my class Mu { # declared in BOOTSTRAP
         return DUMP(self, :$indent-step) unless %ctx;
 
         my Mu $attrs := nqp::list();
-        for self.^attributes -> $attr {
+        for self.^attributes.flat -> $attr {
             my str $name       = $attr.name;
             my str $acc_name   = nqp::substr($name, 2, nqp::chars($name) - 2);
             my str $build_name = $attr.has_accessor ?? $acc_name !! $name;
@@ -402,7 +402,7 @@ my class Mu { # declared in BOOTSTRAP
     method clone(*%twiddles) {
         my $cloned := nqp::clone(nqp::decont(self));
         if %twiddles.elems {
-            for self.^attributes() -> $attr {
+            for self.^attributes.flat -> $attr {
                 my $name := $attr.name;
                 my $package := $attr.package;
                 unless nqp::objprimspec($attr.type) {
@@ -417,7 +417,7 @@ my class Mu { # declared in BOOTSTRAP
             }
         }
         else {
-            for self.^attributes() -> $attr {
+            for self.^attributes.flat -> $attr {
                 unless nqp::objprimspec($attr.type) {
                     my $name     := $attr.name;
                     my $package  := $attr.package;
@@ -433,7 +433,7 @@ my class Mu { # declared in BOOTSTRAP
 
     method Capture() {
         my %attrs;
-        for self.^attributes -> $attr {
+        for self.^attributes.flat -> $attr {
             if $attr.has-accessor {
                 my $name = substr($attr.name,2);
                 unless %attrs.EXISTS-KEY($name) {
@@ -538,7 +538,7 @@ my class Mu { # declared in BOOTSTRAP
                 push @classes, @search_list;
                 my @new_search_list;
                 for @search_list -> $current {
-                    for $current.^parents(:local) -> $next {
+                    for flat $current.^parents(:local) -> $next {
                         unless @new_search_list.grep({ $^c.WHAT =:= $next.WHAT }) {
                             push @new_search_list, $next;
                         }
@@ -550,7 +550,7 @@ my class Mu { # declared in BOOTSTRAP
             sub build_ascendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
                     push @classes, $class;
-                    for $class.^parents(:local) {
+                    for flat $class.^parents(:local) {
                         build_ascendent($^parent);
                     }
                 }
@@ -559,7 +559,7 @@ my class Mu { # declared in BOOTSTRAP
         } elsif $descendant {
             sub build_descendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
-                    for $class.^parents(:local) {
+                    for flat $class.^parents(:local) {
                         build_descendent($^parent);
                     }
                     push @classes, $class;
@@ -578,7 +578,7 @@ my class Mu { # declared in BOOTSTRAP
             if (!defined($include) || $include.ACCEPTS($class)) &&
               (!defined($omit) || !$omit.ACCEPTS($class)) {
                 try {
-                    for $class.^methods(:local) -> $method {
+                    for flat $class.^methods(:local) -> $method {
                         my $check_name = $method.?name;
                         if $check_name.defined && $check_name eq $name {
                             @methods.push($method);
@@ -664,7 +664,7 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 
             my @pieces;
             {
-                for $topic {
+                for $topic.pairs {
                     @pieces.push: $_.key ~ ' => ' ~ DUMP($_.value, :$indent-step, :%ctx);
                 }
                 CATCH { default { @pieces.push: '...' } }

@@ -22,7 +22,7 @@ my class Pod::Block {
             }
         }
         @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
-        for $pod.contents.list -> $c {
+        for $pod.contents.flat -> $c {
             if nqp::istype($c,Pod::Block) {
                 @chunks.push: pod-gist($c, $level + 2);
             }

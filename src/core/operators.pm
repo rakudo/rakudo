@@ -147,7 +147,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         my $value;
         my $code;
         my $stop;
-        for @left -> $v {
+        for flat @left -> $v {
             my \value = $v;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
@@ -198,10 +198,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         my @a = $a.comb;
                         my @e = $endpoint.comb;
                         my @ranges;
-                        for @a Z @e -> $from, $to {
+                        for flat @a Z @e -> $from, $to {
                             @ranges.push: $($from ... $to);
                         }
-                        .take for [X~] |@ranges;
+                        .take for flat [X~] |@ranges;
                         $stop = 1;
                     }
                     elsif $a lt $endpoint {

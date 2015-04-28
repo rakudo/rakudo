@@ -698,7 +698,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my \case-or-space  := case || space;
             my \case-and-space := case && space;
 
-            for matches -> $m {
+            for flat matches -> $m {
                 try cds = $m if SDS;
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
@@ -736,7 +736,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # simple string replacement
         else {
-            for matches -> $m {
+            for flat matches -> $m {
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                 );
@@ -1337,7 +1337,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         $/ := CALLERS::('$/');
         my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
-        for (@changes) -> $p {
+        for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
               unless nqp::istype($p,Pair);
             if nqp::istype($p.key,Regex) {
@@ -1359,7 +1359,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 else {
                     @to = '' xx @from
                 }
-                for @from Z @to -> $f, $t {
+                for flat @from Z @to -> $f, $t {
                     $lsm.add_substitution($f, $t);
                 }
             }

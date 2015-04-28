@@ -15,7 +15,7 @@ my class Regex { # declared in BOOTSTRAP
         my $dollar_slash := nqp::getlexrelcaller(
             nqp::ctxcallerskipthunks(nqp::ctx()),
             '$/');
-        for @a {
+        for flat @a {
             $dollar_slash = SELF.(Cursor.'!cursor_init'($_, :c(0))).MATCH_SAVE;
             return $dollar_slash if $dollar_slash;
         }

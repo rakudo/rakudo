@@ -182,6 +182,11 @@ my class Any { # declared in BOOTSTRAP
     proto method for (|) { * }
     multi method for(Whatever) is rw { self }
     multi method for($block, :$label) is rw {
+        MapIter.new(self, $block, Bool::False, :$label).list;
+    }
+    proto method flatmap (|) { * }
+    multi method flatmap(Whatever) is rw { self }
+    multi method flatmap($block, :$label) is rw {
         MapIter.new(self, $block, Bool::True, :$label).list
     }
     method nodemap($block) is rw { nodemap($block, self) }

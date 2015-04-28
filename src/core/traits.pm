@@ -245,7 +245,7 @@ my $_;
 
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
-    for nqp::hllize(@*PACKAGES) {
+    for flat nqp::hllize(@*PACKAGES) {
         unless .WHO.EXISTS-KEY('EXPORT') {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;
@@ -481,7 +481,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
 multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     my $pkg := $m.signature.params[0].type;
     my $call_name := $m.name;
-    for thunk() -> $meth_name {
+    for flat thunk() -> $meth_name {
         my $meth := method (|c) is rw {
             self."$call_name"()."$meth_name"(|c);
         }

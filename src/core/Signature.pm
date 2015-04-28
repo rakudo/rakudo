@@ -50,7 +50,7 @@ my class Signature { # declared in BOOTSTRAP
             return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
         }
 
-        for ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
+        for flat ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
             my $other;
             return False unless $other=($tclass{True} // ()).grep(
                 {!.optional and $_ ~~ $this });
@@ -59,7 +59,7 @@ my class Signature { # declared in BOOTSTRAP
 
         my $here=$sclass{True}.SetHash;
         my $hasslurpy=($sclass{True} // ()).grep({.slurpy}).Bool;
-        for @($tclass{True} // ()) -> $other {
+        for flat @($tclass{True} // ()) -> $other {
             my $this;
 
             if $other.slurpy {

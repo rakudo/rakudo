@@ -5160,7 +5160,7 @@ Compilation unit '$file' contained the following violations:
                     $target := $target[0];
                 }
                 unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
-                    $/.CURSOR.typed_panic('X::Syntax::Adverb');
+                    $/.CURSOR.typed_panic('X::Syntax::Adverb', what => $target.name);
                 }
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));

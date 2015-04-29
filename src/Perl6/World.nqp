@@ -372,16 +372,12 @@ class Perl6::World is HLL::World {
 
         # Tag UNIT with a magical lexical. Also if we're compiling CORE,
         # give it such a tag too.
-        if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-            my $marker := self.pkg_create_mo($/, %*HOW<package>, :name('!CORE_MARKER'));
-            $marker.HOW.compose($marker);
-            self.install_lexical_symbol($*UNIT, '!CORE_MARKER', $marker);
-        }
-        else {
-            my $marker := self.pkg_create_mo($/, %*HOW<package>, :name('!UNIT_MARKER'));
-            $marker.HOW.compose($marker);
-            self.install_lexical_symbol($*UNIT, '!UNIT_MARKER', $marker);
-        }
+        my $name := %*COMPILING<%?OPTIONS><setting> eq 'NULL'
+          ?? '!CORE_MARKER'
+          !! '!UNIT_MARKER';
+        my $marker := self.pkg_create_mo($/, %*HOW<package>, :$name);
+        $marker.HOW.compose($marker);
+        self.install_lexical_symbol($*UNIT, $name, $marker);
 
         # CHECK time.
         self.CHECK();

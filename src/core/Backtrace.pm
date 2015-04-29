@@ -58,18 +58,9 @@ my class Backtrace is List {
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
-            next if $file eq 'src/gen/BOOTSTRAP.nqp' ||
-                    $file eq 'src/gen/m-BOOTSTRAP.nqp' ||
-                    $file eq 'src\\gen\\BOOTSTRAP.nqp' ||
-                    $file eq 'src\\gen\\m-BOOTSTRAP.nqp' ||
-                    $file eq 'gen/jvm/stage2/QRegex.nqp' ||
-                    $file eq 'gen/moar/stage2/QRegex.nqp';
-            last if $file eq 'src/stage2/gen/NQPHLL.nqp' ||
-                    $file eq 'src\\stage2\\gen\\NQPHLL.nqp' ||
-                    $file eq 'gen/jvm/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\jvm\\stage2\\NQPHLL.nqp' ||
-                    $file eq 'gen/moar/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\moar\\stage2\\NQPHLL.nqp';
+            next if $file.ends-with('BOOTSTRAP.nqp')
+                 || $file.ends-with('QRegex.nqp');
+            last if $file.ends-with('NQPHLL.nqp');
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
             $subname = '<anon>' if $subname.starts-with("_block");
             last if $subname eq 'handle-begin-time-exceptions';

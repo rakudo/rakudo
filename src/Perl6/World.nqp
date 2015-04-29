@@ -627,6 +627,26 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method use_lib($/,$arglist) {
+        my $INC := %*PRAGMAS<INC> := %*PRAGMAS<INC>
+          ?? nqp::clone(%*PRAGMAS<INC>)
+          !! nqp::list();
+
+        for $arglist -> $arg {
+            $INC.push( nqp::index($arg,':') == -1
+              ?? nqp::hllizefor("file:$arg", 'perl6')
+              !! $arg
+            );
+        }
+    }
+
+    method INC_for_perl6($/) {
+        nqp::hllizefor(
+          %*PRAGMAS<INC> ?? nqp::clone(%*PRAGMAS<INC>) !! nqp::list(),
+          'perl6'
+        );
+    }
+
     method do_pragma($/,$name,$on,$arglist) {
 
         # XXX maybe we need a hash with code to execute
@@ -637,6 +657,9 @@ class Perl6::World is HLL::World {
         elsif $name eq 'fatal' {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<fatal> := $on;
+        }
+        elsif $name eq 'cur' {   # temporary, will become 'lib'
+            self.use_lib($/,$arglist);
         }
         elsif $name eq 'strict' {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }

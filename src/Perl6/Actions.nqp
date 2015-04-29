@@ -1922,6 +1922,11 @@ Compilation unit '$file' contained the following violations:
                 $past := $*W.add_string_constant(nqp::getlexdyn('$?FILES') // '<unknown file>');
             }
         }
+        elsif $past.name() eq '@?INC' {
+            my $p6inc := $*W.INC_for_perl6($/);
+            $*W.add_object($p6inc);
+            $past := QAST::WVal.new( :value($p6inc) );
+        }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
         }

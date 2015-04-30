@@ -5164,7 +5164,6 @@ Compilation unit '$file' contained the following violations:
                         $/.CURSOR.typed_panic('X::Syntax::Adverb', what => $target.name);
                     }
                     else {
-                        nqp::say($target.HOW.name($target));
                         $/.CURSOR.typed_panic('X::Syntax::Adverb')
                     }
                 }

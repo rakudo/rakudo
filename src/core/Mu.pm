@@ -520,9 +520,17 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {
-        c
-            ?? hyper( -> \obj { obj."$name"(|c) }, SELF )
-            !! hyper( -> \obj { obj."$name"() }, SELF )
+        my $listcan = List.can($name);
+        if $listcan and $listcan[0].?nodal {
+            c
+                ?? hyper( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
+                !! hyper( sub (\obj) is nodal { obj."$name"() }, SELF )
+        }
+        else {
+            c
+                ?? hyper( -> \obj { obj."$name"(|c) }, SELF )
+                !! hyper( -> \obj { obj."$name"() }, SELF )
+        }
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,

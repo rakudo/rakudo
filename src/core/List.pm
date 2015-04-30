@@ -105,7 +105,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method eager() { self.gimme(*); self }
 
-    method elems() {
+    method elems() is nodal {
         return 0 unless self.DEFINITE;
         return nqp::elems(nqp::p6listitems(self)) unless nqp::defined($!nextiter);
         # Get as many elements as we can.  If gimme stops before
@@ -114,14 +114,14 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::defined($!nextiter) ?? Inf !! $n
     }
 
-    multi method EXISTS-POS(List:D: int $pos) {
+    multi method EXISTS-POS(List:D: int $pos) is nodal {
         return False if nqp::islt_i($pos,0);
         self.gimme($pos + 1);
         nqp::p6bool(
           nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
         );
     }
-    multi method EXISTS-POS(List:D: Int:D $pos) {
+    multi method EXISTS-POS(List:D: Int:D $pos) is nodal {
         return False if $pos < 0;
         self.gimme($pos + 1);
         nqp::p6bool(
@@ -151,7 +151,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $count
     }
 
-    multi method infinite(List:D:) {
+    multi method infinite(List:D:) is nodal {
         $!infinite ||= ?$!nextiter.infinite;
     }
 
@@ -175,13 +175,13 @@ my class List does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method pick(|) { * }
-    multi method pick() {
+    proto method pick(|) is nodal { * }
+    multi method pick() is nodal {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
-    multi method pick(Whatever, :$eager!) {
+    multi method pick(Whatever, :$eager!) is nodal {
         return self.pick(*) if !$eager;
 
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
@@ -202,7 +202,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
         nqp::p6parcel($picked,Any);
     }
-    multi method pick(Whatever) {
+    multi method pick(Whatever) is nodal {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
 
         my Int $elems = self.elems;
@@ -218,7 +218,7 @@ my class List does Positional { # declared in BOOTSTRAP
             nqp::bindpos($rpa,nqp::unbox_i($i),nqp::atpos($rpa,nqp::unbox_i($elems)));
         }
     }
-    multi method pick(\number) {
+    multi method pick(\number) is nodal {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
@@ -242,7 +242,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    method pop() is parcel {
+    method pop() is parcel is nodal {
         my $elems = self.gimme(*);
         fail X::Cannot::Infinite.new(:action<.pop from>) if $!nextiter.defined;
         $elems > 0
@@ -250,7 +250,7 @@ my class List does Positional { # declared in BOOTSTRAP
           !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
     }
 
-    method shift() is parcel {
+    method shift() is parcel is nodal {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items)
@@ -285,7 +285,7 @@ my class List does Positional { # declared in BOOTSTRAP
         self;
     }
 
-    multi method push(List:D: \value) {
+    multi method push(List:D: \value) is nodal {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
             fail X::Cannot::Infinite.new(:action<.push to>)
@@ -305,7 +305,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    multi method unshift(List:D: \value) {
+    multi method unshift(List:D: \value) is nodal {
         if nqp::iscont(value) || !(nqp::istype(value, Iterable) || nqp::istype(value, Parcel)) {
             nqp::p6listitems(self);
             value.gimme(*) if nqp::istype(value, List); # fixes #121994
@@ -323,7 +323,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    multi method unshift(List:D: *@values) {
+    multi method unshift(List:D: *@values) is nodal {
         fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
@@ -356,7 +356,7 @@ my class List does Positional { # declared in BOOTSTRAP
         self
     }
 
-    method plan(List:D: |args) {
+    method plan(List:D: |args) is nodal {
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
         fail X::Cannot::Infinite.new(:action<.plan to>) if $!nextiter.defined;
@@ -376,13 +376,13 @@ my class List does Positional { # declared in BOOTSTRAP
         Nil;
     }
 
-    proto method roll(|) { * }
-    multi method roll() {
+    proto method roll(|) is nodal { * }
+    multi method roll() is nodal {
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
     }
-    multi method roll($n is copy) {
+    multi method roll($n is copy) is nodal {
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         return unless $elems;
@@ -395,7 +395,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    method reverse() {
+    method reverse() is nodal {
         self.gimme(*);
         fail X::Cannot::Infinite.new(:action<.reverse>) if $!nextiter.defined;
         my Mu $rev  := nqp::list();
@@ -406,7 +406,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    method rotate(Int $n is copy = 1) {
+    method rotate(Int $n is copy = 1) is nodal {
         self.gimme(*);
         fail X::Cannot::Infinite.new(:action<.rotate>) if $!nextiter.defined;
         my $items = nqp::p6box_i(nqp::elems($!items));
@@ -427,7 +427,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    method splice($offset = 0, $size?, *@values) {
+    method splice($offset = 0, $size?, *@values) is nodal {
         self.gimme(*);
         my $o = $offset;
         my $s = $size;
@@ -453,7 +453,7 @@ my class List does Positional { # declared in BOOTSTRAP
         @ret;
     }
 
-    method sort($by = &infix:<cmp>) {
+    method sort($by = &infix:<cmp>) is nodal {
         fail X::Cannot::Infinite.new(:action<.sort>) if self.infinite; #MMD?
 
         # Instead of sorting elements directly, we sort a Parcel of
@@ -486,13 +486,13 @@ my class List does Positional { # declared in BOOTSTRAP
 
     multi method ACCEPTS(List:D: $topic) { self }
 
-    method uniq(|c) {
+    method uniq(|c) is nodal {
         DEPRECATED('unique', |<2014.11 2015.09>);
         self.unique(|c);
     }
 
-    proto method unique(|) {*}
-    multi method unique() {
+    proto method unique(|) is nodal {*}
+    multi method unique() is nodal {
         my $seen := nqp::hash();
         my str $target;
         gather @.list.map: {
@@ -503,7 +503,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }
     }
-    multi method unique( :&as!, :&with! ) {
+    multi method unique( :&as!, :&with! ) is nodal {
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
         gather @.list.map: {
@@ -514,7 +514,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         };
     }
-    multi method unique( :&as! ) {
+    multi method unique( :&as! ) is nodal {
         my $seen := nqp::hash();
         my str $target;
         gather @.list.map: {
@@ -525,7 +525,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }
     }
-    multi method unique( :&with! ) {
+    multi method unique( :&with! ) is nodal {
         nextwith() if &with === &[===]; # use optimized version
 
         my @seen;  # should be Mu, but doesn't work in settings :-(
@@ -540,8 +540,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     my @secret;
-    proto method squish(|) {*}
-    multi method squish( :&as!, :&with = &[===] ) {
+    proto method squish(|) is nodal {*}
+    multi method squish( :&as!, :&with = &[===] ) is nodal {
         my $last = @secret;
         my str $which;
         gather @.list.map: {
@@ -552,7 +552,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }
     }
-    multi method squish( :&with = &[===] ) {
+    multi method squish( :&with = &[===] ) is nodal {
         my $last = @secret;
         gather @.list.map: {
             unless with($_,$last) {
@@ -562,7 +562,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    method rotor(*@cycle, :$partial) {
+    method rotor(*@cycle, :$partial) is nodal {
         my $finished = 0;
         # (Note, the xx should be harmless if the cycle is already infinite by accident.)
         my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
@@ -621,32 +621,32 @@ my class List does Positional { # declared in BOOTSTRAP
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 
-    multi method keys(List:D:) {
+    multi method keys(List:D:) is nodal {
         self.values.map: { (state $)++ }
     }
-    multi method kv(List:D:) {
+    multi method kv(List:D:) is nodal {
         gather self.values.map: {
             take (state $)++;
             take-rw $_;
         }
     }
-    multi method values(List:D:) {
+    multi method values(List:D:) is nodal {
         my Mu $rpa := nqp::clone(nqp::p6listitems(self));
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
         nqp::p6list($rpa, List, self.flattens);
     }
-    multi method pairs(List:D:) {
+    multi method pairs(List:D:) is nodal {
         self.values.map: { (state $)++ => $_ }
     }
-    multi method antipairs(List:D:) {
+    multi method antipairs(List:D:) is nodal {
         self.values.map: { $_ => (state $)++ }
     }
 
-    multi method invert(List:D:) {
+    multi method invert(List:D:) is nodal {
         self.map({ nqp::decont(.value) »=>» .key }).flat
     }
 
-    method reduce(List: &with) {
+    method reduce(List: &with) is nodal {
         return unless self.DEFINITE;
         return self.values if self.elems < 2;
         if &with.count > 2 and &with.count < Inf {
@@ -674,22 +674,22 @@ my class List does Positional { # declared in BOOTSTRAP
 
     # this is a remnant of a previous implementation of .push(), which
     # apparently is used by LoL.  Please remove when no longer necessary.
-    method STORE_AT_POS(Int \pos, Mu \v) is rw {
+    method STORE_AT_POS(Int \pos, Mu \v) is rw is nodal {
         nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
-    proto method combinations($?) {*}
-    multi method combinations( Int $of ) {
+    proto method combinations($?) is nodal {*}
+    multi method combinations( Int $of ) is nodal {
         combinations(self.elems, $of).eager.map: { self[@$_] }
     }
-    multi method combinations( Range $ofrange = 0 .. * ) {
+    multi method combinations( Range $ofrange = 0 .. * ) is nodal {
         gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
             # XXX inside of gather should already sink
             sink combinations(self.elems, $of).eager.map: { take self[@$_] }
         }
     }
 
-    method permutations() {
+    method permutations() is nodal {
         # need block on Moar because of RT#121830
         permutations(self.elems).eager.map: { self[@$_] }
     }

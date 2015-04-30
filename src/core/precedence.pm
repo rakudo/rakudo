@@ -27,6 +27,10 @@ BEGIN {
     my Mu $loose_or         := nqp::hash('prec', 'c=', 'assoc', 'list');
 
     trait_mod:<is>(&postfix:<i>, :prec($methodcall));
+    trait_mod:<is>(&postcircumfix:<[ ]>, :prec($methodcall));
+    trait_mod:<is>(&postcircumfix:<[ ]>, :nodal);
+    trait_mod:<is>(&postcircumfix:<{ }>, :prec($methodcall));
+    trait_mod:<is>(&postcircumfix:<{ }>, :nodal);
 
     trait_mod:<is>(&prefix:<++>,  :prec($autoincrement));
     trait_mod:<is>(&prefix:<-->,  :prec($autoincrement));

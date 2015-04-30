@@ -134,7 +134,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
       subtype    => c.hash.keys[0],
       declaring  => ' ' ~ lc( $r.^name ),
       highexpect => ('rw parcel hidden-from-backtrace hidden-from-USAGE',
-                     'pure default DEPRECATED inlinable',
+                     'pure default DEPRECATED inlinable nodal',
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
 }
@@ -378,6 +378,12 @@ multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
     $r.^mixin( role {
         method IS_PURE { True }
+    });
+}
+
+multi sub trait_mod:<is>(Routine:D $r, :$nodal!) {
+    $r.^mixin( role {
+        method nodal { True }
     });
 }
 

@@ -54,15 +54,20 @@ class CompUnitRepo {
     }
 }
 
-# prime the short-id -> type lookup
-my %CURLID2CLASS = (
+# prime the short-id -> class lookup
+my %SHORT-ID2CLASS = (
   file => CompUnitRepo::Local::File,
   inst => CompUnitRepo::Local::Installation,
 );
 
+sub SHORT-ID(Str \spec) {
+    my $index = spec.index(":");
+    $index.defined ?? substr(spec,0,$index) !! '';
+}
+
 sub PARSE-INCLUDE-SPEC(Str $specs) {
     my @found;
-    my $class = %CURLID2CLASS<file>;
+    my $class = %SHORT-ID2CLASS<file>;
 
     # for all possible specs
     for $specs.split(/ \s* ',' \s* /) -> $spec {
@@ -83,7 +88,7 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
 
             # a type (short-id or class name) was specified
             if $<type> -> $this {
-                for %CURLID2CLASS{ $class = ~$this }:v -> $type {
+                for %SHORT-ID2CLASS{ $class = ~$this }:v -> $type {
                     $class = $type;
                 }
             }
@@ -96,8 +101,8 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
                 if nqp::istype($type,Failure) {
 
                     # it's a short-id
-                    if %CURLID2CLASS.EXISTS-KEY($class) {
-                        $class = %CURLID2CLASS{$class}
+                    if %SHORT-ID2CLASS.EXISTS-KEY($class) {
+                        $class = %SHORT-ID2CLASS{$class}
                     }
 
                     # give up
@@ -111,7 +116,7 @@ sub PARSE-INCLUDE-SPEC(Str $specs) {
                 # successfully converted string to type
                 else {
                     $class = $type;
-                    %CURLID2CLASS{$class.short-id} //= $class;
+                    %SHORT-ID2CLASS{$class.short-id} //= $class;
                 }
             }
 

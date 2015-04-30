@@ -2203,7 +2203,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
     rule statement_control:sym<more>   { <sym><.kok> <xblock(1)> }
     rule statement_control:sym<done>   { <sym><.kok> <xblock(1)> }
-    rule statement_control:sym<quit>   { <sym><.kok> <xblock(1)> }
     rule statement_control:sym<wait>   { <sym><.kok> <xblock(1)> }
 
     proto token multi_declarator { <...> }

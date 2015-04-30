@@ -15,7 +15,7 @@
 #   * Allow exact Perl 6 forms, quoted away from shell
 # * Fix remaining XXXX
 
-my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
+my sub MAIN_HELPER($retval = 0) {
     # Do we have a MAIN at all?
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;

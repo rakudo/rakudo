@@ -61,7 +61,7 @@ my class Proc::Async {
         self.bless(:$path,:@args,:$w);
     }
 
-    method !supply(\what,\supply,\type,\value) is hidden-from-backtrace {
+    method !supply(\what,\supply,\type,\value) {
         X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
           if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => what, proc => self).throw

@@ -32,10 +32,10 @@ my class Set does Setty {
     multi method AT-KEY(Set:D: \k --> Bool) {
         %!elems.EXISTS-KEY(k.WHICH);
     }
-    multi method ASSIGN-KEY(Set:D: \k,\v) is hidden-from-backtrace {
+    multi method ASSIGN-KEY(Set:D: \k,\v) {
         fail X::Assignment::RO.new(typename => self.^name);
     }
-    multi method DELETE-KEY(Set:D: \k) is hidden-from-backtrace {
+    multi method DELETE-KEY(Set:D: \k) {
         fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
     }
 }

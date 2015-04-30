@@ -815,7 +815,7 @@ sub OBJECT_HUH (\SELF) {
     $huh;
 }
 
-sub SLICE_HUH ( \SELF, @nogo, Mu $d, %adv ) is hidden-from-backtrace {
+sub SLICE_HUH ( \SELF, @nogo, Mu $d, %adv ) {
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
     for <delete exists kv p k v> -> $valid { # check all valid params

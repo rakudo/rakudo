@@ -35,25 +35,25 @@ my class Failure {
             $!exception.throw;
         }
     );
-    method sink() is hidden-from-backtrace {
+    method sink() {
         $!exception.throw($!backtrace) unless $!handled
     }
 }
 
-proto sub fail(|) is hidden-from-backtrace {*};
-multi sub fail(Exception $e) is hidden-from-backtrace {
+proto sub fail(|) {*};
+multi sub fail(Exception $e) {
     my $fail := Failure.new($e);
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail($payload) is hidden-from-backtrace {
+multi sub fail($payload) {
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail(*@msg) is hidden-from-backtrace {
+multi sub fail(*@msg) {
     my $payload = @msg == 1 ?? @msg[0] !! @msg.join;
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
@@ -61,10 +61,10 @@ multi sub fail(*@msg) is hidden-from-backtrace {
     $fail
 }
 
-multi sub die(Failure:D $failure) is hidden-from-backtrace {
+multi sub die(Failure:D $failure) {
     $failure.exception.throw
 }
-multi sub die(Failure:U) is hidden-from-backtrace {
+multi sub die(Failure:U) {
     X::AdHoc('Failure').throw
 }
 

@@ -177,16 +177,16 @@ my &samewith := -> *@pos, *%named {
     $dispatcher( $self, |@pos, |%named );
 }
 
-proto sub die(|) is hidden-from-backtrace {*};
-multi sub die(Exception $e) is hidden-from-backtrace { $e.throw }
-multi sub die($payload = "Died") is hidden-from-backtrace {
+proto sub die(|) {*};
+multi sub die(Exception $e) { $e.throw }
+multi sub die($payload = "Died") {
     X::AdHoc.new(:$payload).throw
 }
-multi sub die(*@msg) is hidden-from-backtrace {
+multi sub die(*@msg) {
     X::AdHoc.new(payload => @msg.join).throw
 }
 
-multi sub warn(*@msg) is hidden-from-backtrace {
+multi sub warn(*@msg) {
     my $ex := nqp::newexception();
     nqp::setmessage($ex, nqp::unbox_s(@msg.join));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);

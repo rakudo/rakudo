@@ -445,7 +445,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \SELF: $var, |c) is rw is hidden-from-backtrace {
+    method dispatch:<var>(Mu \SELF: $var, |c) is rw {
         $var(SELF, |c)
     }
 
@@ -461,7 +461,7 @@ my class Mu { # declared in BOOTSTRAP
         self.^find_method_qualified($type, $name)(SELF, |c)
     }
 
-    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw is hidden-from-backtrace {
+    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw {
         my $meth := $type.^find_private_method($name);
         $meth ??
             $meth(SELF, |c) !!
@@ -473,7 +473,7 @@ my class Mu { # declared in BOOTSTRAP
             ).throw;
     }
 
-    method dispatch:<.^>(Mu \SELF: $name, |c) is rw is hidden-from-backtrace {
+    method dispatch:<.^>(Mu \SELF: $name, |c) is rw {
         self.HOW."$name"(SELF, |c)
     }
 
@@ -482,7 +482,7 @@ my class Mu { # declared in BOOTSTRAP
         mutate = mutate."$name"(|c)
     }
 
-    method dispatch:<.?>(Mu \SELF: $name, |c) is rw is hidden-from-backtrace {
+    method dispatch:<.?>(Mu \SELF: $name, |c) is rw {
         nqp::can(SELF, $name) ??
             SELF."$name"(|c) !!
             Nil

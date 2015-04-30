@@ -23,7 +23,7 @@ my class Exception {
         return $str;
     }
 
-    method throw($bt?) is hidden-from-backtrace {
+    method throw($bt?) {
         nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
@@ -33,7 +33,7 @@ my class Exception {
             if $msg.defined;
         nqp::throw($!ex)
     }
-    method rethrow() is hidden-from-backtrace {
+    method rethrow() {
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
@@ -172,7 +172,7 @@ do {
     }
 
 
-    sub print_exception(|) is hidden-from-backtrace {
+    sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         try {
             my $e := EXCEPTION($ex);
@@ -195,7 +195,7 @@ do {
         }
     }
 
-    sub print_control(|) is hidden-from-backtrace {
+    sub print_control(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my int $type = nqp::getextype($ex);
         if ($type == nqp::const::CONTROL_WARN) {
@@ -1774,37 +1774,37 @@ my class X::Inheritance::NotComposed does X::MOP {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden-from-backtrace {
+    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) {
             X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, Mu $expected) is hidden-from-backtrace {
+    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, Mu $expected) {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
-    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden-from-backtrace {
+    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
-    %c_ex<X::Assignment::RO> := sub ($typename = "value") is hidden-from-backtrace {
+    %c_ex<X::Assignment::RO> := sub ($typename = "value") {
             X::Assignment::RO.new(:$typename).throw;
         };
-    %c_ex{'X::ControlFlow::Return'} := sub () is hidden-from-backtrace {
+    %c_ex{'X::ControlFlow::Return'} := sub () {
             X::ControlFlow::Return.new().throw;
         };
-    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden-from-backtrace {
+    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
-    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) is hidden-from-backtrace {
+    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) {
             X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
         };
-    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) is hidden-from-backtrace {
+    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) {
             X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
         };
-    %c_ex{'X::Role::Initialization'} := sub ($role) is hidden-from-backtrace {
+    %c_ex{'X::Role::Initialization'} := sub ($role) {
             X::Role::Initialization.new(:$role).throw
         }
-    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) is hidden-from-backtrace {
+    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) {
         X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
         }
-    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) is hidden-from-backtrace {
+    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) {
         X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
     }
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));

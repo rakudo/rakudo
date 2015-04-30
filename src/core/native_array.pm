@@ -419,10 +419,10 @@ class array is Iterable is repr('VMArray') {
             die "Must parameterize array[T] with a type before creating it";
     }
 
-    method BIND-POS(|) is hidden-from-backtrace {
+    method BIND-POS(|) {
         die "Cannot bind to a natively typed array";
     }
-    method DELETE-POS(|) is hidden-from-backtrace {
+    method DELETE-POS(|) {
         die "Cannot delete from a natively typed array";
     }
 

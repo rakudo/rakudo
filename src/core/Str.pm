@@ -1669,10 +1669,10 @@ sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }
-multi sub UNBASE(Int:D $base, Cool:D $num) is hidden-from-backtrace {
+multi sub UNBASE(Int:D $base, Cool:D $num) {
     X::Numeric::Confused.new(:what($num)).throw;
 }
-multi sub UNBASE(Int:D $base, Str:D $str) is hidden-from-backtrace {
+multi sub UNBASE(Int:D $base, Str:D $str) {
     my Str $prefix = substr($str,0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
@@ -1685,7 +1685,7 @@ multi sub UNBASE(Int:D $base, Str:D $str) is hidden-from-backtrace {
 }
 
 # for :16[1, 2, 3]
-sub UNBASE_BRACKET($base, @a) is hidden-from-backtrace {
+sub UNBASE_BRACKET($base, @a) {
     my $v = 0;
     my $denom = 1;
     my Bool $seen-dot = False;
@@ -1727,7 +1727,7 @@ sub SUBSTR-CHARS-OOR(\chars) {
       :comment("use *{chars} if you want to index relative to the end"),
     );
 }
-sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) is hidden-from-backtrace {
+sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
     my Int $max := what.chars;
     from = nqp::istype($start, Callable) ?? $start($max) !! $start.Int;
     SUBSTR-START-OOR(from,$max).fail

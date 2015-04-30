@@ -174,7 +174,7 @@ my class Promise {
     method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1, 'anyof') }
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
-    method !until_n_kept(@promises, Int $N, Str $combinator) is hidden-from-backtrace {
+    method !until_n_kept(@promises, Int $N, Str $combinator) {
         X::Promise::Combinator.new(:$combinator).throw if NOT_ALL_DEFINED_TYPE(@promises, Promise);
 
         my int $n  = $N;

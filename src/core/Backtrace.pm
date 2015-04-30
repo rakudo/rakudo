@@ -116,15 +116,14 @@ my class Backtrace is List {
     }
 
     method nice(Backtrace:D: :$oneline) {
+        my $setting = %*ENV<RAKUDO_BACKTRACE_SETTING>;
         try {
             my @frames;
             my Int $i = self.next-interesting-index(-1);
             while $i.defined {
-                $i = self.next-interesting-index($i)
-                    while $oneline && $i.defined
-                          && self.AT-POS($i).is-setting;
-
+                $i = self.next-interesting-index($i, :$setting) if $oneline;
                 last unless $i.defined;
+
                 my $prev = self.AT-POS($i);
                 if $prev.is-routine {
                     @frames.push: $prev;
@@ -137,7 +136,7 @@ my class Backtrace is List {
                     $i = $target_idx;
                 }
                 last if $oneline;
-                $i = self.next-interesting-index($i);
+                $i = self.next-interesting-index($i, :$setting);
             }
             CATCH {
                 default {

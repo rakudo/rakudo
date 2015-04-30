@@ -20,7 +20,22 @@ my class Backtrace::Frame {
     multi method Str(Backtrace::Frame:D:) {
         my $s = self.subtype;
         $s ~= ' ' if $s.chars;
-        "  in {$s}$.subname at {$.file}:$.line\n"
+        my $text = "  in {$s}$.subname at {$.file}:$.line\n";
+
+        if try +%*ENV<RAKUDO_VERBOSE_STACKFRAME> -> $extra {
+            my $io = $!file.IO;
+            if $io.e {
+                my @lines := $io.lines;
+                my $from = max $!line - $extra, 1;
+                my $to   = min $!line + $extra, +@lines;
+                for $from..$to -> $line {
+                    my $star = $line == $!line ?? '*' !! ' ';
+                    $text ~= "$line.fmt('%5d') $star@lines[$line - 1]\n";
+                }
+                $text ~= "\n";
+            }
+        }
+        $text;
     }
 
     method is-hidden(Backtrace::Frame:D:)  { $!code.?is-hidden-from-backtrace }

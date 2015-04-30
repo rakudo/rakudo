@@ -165,7 +165,7 @@ my class IO::Spec::Unix is IO::Spec {
         # $base now contains the directories the resulting relative path
         # must ascend out of before it can descend to $path_directory.
         my $result_dirs = self.catdir( self.updir() xx @basechunks.elems, @pathchunks );
-        return self.canonpath( self.catpath('', $result_dirs, '') );
+        self.canonpath( self.catpath('', $result_dirs, '') );
     }
 
     method rel2abs( $path, $base? is copy) {

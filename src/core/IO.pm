@@ -92,7 +92,7 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
         # the end
         if $index == 1 {
             @parts.splice(1,1);
-            return 1;
+            1;
         }
 
         # something to check
@@ -107,13 +107,13 @@ sub MAKE-CLEAN-PARTS(Str $abspath) {
                 }
             }
             @parts.splice(--$index,2);
-            return $index;
+            $index;
         }
 
         # nul, just ignore
         else {
             @parts.splice($index--,1);
-            return updirs($index);
+            updirs($index);
         }
     }
 

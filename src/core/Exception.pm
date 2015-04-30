@@ -16,11 +16,18 @@ my class Exception {
     }
 
     multi method gist(Exception:D:) {
-        my $str = nqp::isconcrete($!ex) ?? nqp::p6box_s(nqp::getmessage($!ex)) !! try self.?message;
+        my $str = nqp::isconcrete($!ex)
+          ?? nqp::p6box_s(nqp::getmessage($!ex))
+          !! try self.?message;
         $str //= "Internal error";
-        $str ~= "\n";
-        try $str ~= self.backtrace || Backtrace.new() || '  (no backtrace available)';
-        return $str;
+
+        if nqp::isconcrete($!ex) {
+            $str ~= "\n";
+            try $str ~= self.backtrace
+              || Backtrace.new()
+              || '  (no backtrace available)';
+        }
+        $str;
     }
 
     method throw($bt?) {

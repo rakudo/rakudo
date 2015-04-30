@@ -1927,6 +1927,11 @@ Compilation unit '$file' contained the following violations:
             $*W.add_object($p6inc);
             $past := QAST::WVal.new( :value($p6inc) );
         }
+        elsif $past.name() eq '%?PRAGMAS' {
+            my $pragmas := nqp::hllizefor(nqp::clone(%*PRAGMAS), 'perl6');
+            $*W.add_object($pragmas);
+            $past := QAST::WVal.new( :value($pragmas) );
+        }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
         }

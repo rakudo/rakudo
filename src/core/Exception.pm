@@ -175,7 +175,7 @@ do {
                 return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
             }
         }
-        return False;
+        False;
     }
 
 
@@ -838,7 +838,7 @@ my class X::Parameter::InvalidType does X::Comp {
         if +@.suggestions > 0 {
             $msg := $msg ~ " Did you mean '" ~ @.suggestions.join("', '") ~ "'?";
         }
-        return $msg;
+        $msg;
     }
 }
 
@@ -1574,7 +1574,7 @@ my class X::Inheritance::UnknownParent is Exception {
         } elsif +@.suggestions == 1 {
             $message := $message ~ "\nDid you mean '" ~ @.suggestions[0] ~ "'?\n";
         }
-        return $message;
+        $message;
     }
 }
 

@@ -26,7 +26,7 @@ my class Routine { # declared in BOOTSTRAP
     method onlystar() { nqp::p6bool($!onlystar) }
 
     method assuming($r: |curried) {
-        return sub CURRIED (|direct) {
+        sub CURRIED (|direct) {
             $r(|curried, |direct)
         }
     }

@@ -35,7 +35,7 @@ my sub MAIN_HELPER($retval = 0) {
                   method Str  ()      { $orig.Str  }
             multi method gist (Mu:D:) { $orig.gist }
         };
-        return $val but orig-string[$v];
+        $val but orig-string[$v];
     }
 
     # Convert raw command line args into positional and named args for MAIN
@@ -61,7 +61,7 @@ my sub MAIN_HELPER($retval = 0) {
             }
         }
         $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@args));
-        return @positional-arguments, %named-arguments;
+        @positional-arguments, %named-arguments;
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
@@ -80,7 +80,7 @@ my sub MAIN_HELPER($retval = 0) {
                 }
             }
             # Not in PATH
-            return $name;
+            $name;
         }
 
         my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! strip_path_prefix($*PROGRAM_NAME);
@@ -119,7 +119,7 @@ my sub MAIN_HELPER($retval = 0) {
             @help-msgs.push($msg);
         }
         my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
-        return $usage;
+        $usage;
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
@@ -131,7 +131,7 @@ my sub MAIN_HELPER($retval = 0) {
             return True if !%accepts-argument{$name}
         }
 
-        return False;
+        False;
     }
 
     # Process command line arguments

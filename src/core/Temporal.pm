@@ -614,7 +614,7 @@ my class Date does Dateish {
     }
 
     multi method ACCEPTS(Date:D: DateTime:D $dt) {
-        return $dt.year == $.year && $dt.month == $.month && $dt.day == $.day;
+        $dt.year == $.year && $dt.month == $.month && $dt.day == $.day;
     }
 }
 

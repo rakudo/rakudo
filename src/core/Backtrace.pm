@@ -112,7 +112,7 @@ my class Backtrace is List {
             }
         }
 
-        return @outers;
+        @outers;
     }
 
     method nice(Backtrace:D: :$oneline) {
@@ -139,7 +139,6 @@ my class Backtrace is List {
                 last if $oneline;
                 $i = self.next-interesting-index($i);
             }
-            return @frames.join;
             CATCH {
                 default {
                     return "<Internal error while creating backtrace: $_.message() $_.backtrace.full().\n"
@@ -148,6 +147,7 @@ my class Backtrace is List {
                         ~ "to get more information about your error>";
                 }
             }
+            @frames.join;
         }
     }
 

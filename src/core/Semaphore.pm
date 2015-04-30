@@ -1,6 +1,6 @@
 my class Semaphore is repr('Semaphore') {
     method new(int $permits) {
-        return nqp::box_i($permits, Semaphore);
+        nqp::box_i($permits, Semaphore);
     }
     method acquire() {
         nqp::semacquire(self);

@@ -207,7 +207,7 @@ my class Range is Iterable is Cool does Positional {
         return 0 if $diff < 0;
 
         my $floor := $diff.floor;
-        return $floor + 1 - ($floor == $diff ?? $.excludes-max !! 0);
+        $floor + 1 - ($floor == $diff ?? $.excludes-max !! 0);
     }
 
     method excludes_min() { DEPRECATED('excludes-min', |<2014.12 2015.09>); $!excludes-min }

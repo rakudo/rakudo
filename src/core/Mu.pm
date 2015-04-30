@@ -597,7 +597,7 @@ my class Mu { # declared in BOOTSTRAP
             }
         }
 
-        return @methods;
+        @methods;
     }
 }
 

@@ -117,7 +117,7 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :value($k),
                             :key($_)))
-                                for nqp::hllize(nqp::iterval($pairish)).list;
+                                for flat nqp::hllize(nqp::iterval($pairish)).list;
                     }
                 }
                 else {
@@ -127,7 +127,7 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :value($k),
                             :key($_)))
-                                for nqp::hllize(nqp::iterval($pairish)).list;
+                                for flat nqp::hllize(nqp::iterval($pairish)).list;
                     }
                 }
             }

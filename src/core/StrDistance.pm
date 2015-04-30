@@ -26,7 +26,7 @@ my class StrDistance is Cool {
             @d[$_][ 0] = $_ for ^@s.end;
             @d[ 0][$_] = $_ for ^@t.end;
 
-            for 1..@s.end X 1..@t.end -> $i, $j {
+            for flat 1..@s.end X 1..@t.end -> $i, $j {
                 @d[$i][$j] = @s[$i] eq @t[$j]
                     ??   @d[$i-1][$j-1]    # No operation required when eq
                     !! ( @d[$i-1][$j  ],   # Deletion

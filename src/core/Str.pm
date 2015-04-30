@@ -163,7 +163,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 return ($pos, $end) unless nqp::iseq_s($ch, '.');
             }
         }
-        return (0, -1);
+        (0, -1);
     }
 
     method pred(Str:D:) {
@@ -465,7 +465,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                         !! $result / $denom;
             }
 
-            return $result;
+            $result;
         }
 
         # Parse a real number, magnitude of a pure imaginary number,
@@ -509,7 +509,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         parse_fail "trailing characters after number"
             if nqp::islt_i($pos, $eos);
 
-        return $result;
+        $result;
     }
 
     my %esc = (
@@ -541,7 +541,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
         $match
             ?? self.match(:g, :$x, $pat)
-            !! self.match(:g, :$x, $pat).for: { .Str }
+            !! self.match(:g, :$x, $pat).map: { .Str }
     }
 
     method match($pat,
@@ -698,7 +698,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my \case-or-space  := case || space;
             my \case-and-space := case && space;
 
-            for matches -> $m {
+            for flat matches -> $m {
                 try cds = $m if SDS;
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
@@ -736,7 +736,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # simple string replacement
         else {
-            for matches -> $m {
+            for flat matches -> $m {
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                 );
@@ -1330,14 +1330,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my sub expand($s) {
             return $s.list
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
-            $s.comb(/ (\w) '..' (\w) | . /, :match).for: {
+            $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
                 .[0] ?? ~.[0] .. ~.[1] !! ~$_
             };
         }
 
         $/ := CALLERS::('$/');
         my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
-        for (@changes) -> $p {
+        for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
               unless nqp::istype($p,Pair);
             if nqp::istype($p.key,Regex) {
@@ -1359,7 +1359,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 else {
                     @to = '' xx @from
                 }
-                for @from Z @to -> $f, $t {
+                for flat @from Z @to -> $f, $t {
                     $lsm.add_substitution($f, $t);
                 }
             }
@@ -1382,7 +1382,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        return self.comb(/:r ^^ \N* \n?/).for({
+        self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -1408,24 +1408,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Negative indent (outdent)
     multi method indent(Int() $steps where { $_ < 0 }) {
-        return outdent(self, $steps);
+        outdent(self, $steps);
     }
 
     # Whatever indent (outdent)
     multi method indent(Whatever $steps) {
-        return outdent(self, $steps);
+        outdent(self, $steps);
     }
 
     sub outdent($obj, $steps) {
         # Loop through all lines to get as much info out of them as possible
-        my @lines = $obj.comb(/:r ^^ \N* \n?/).for({
+        my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
             # Split the line into indent and content
             my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
 
             # Split the indent into characters and annotate them
             # with their visual size
             my $indent-size = 0;
-            my @indent-chars = $indent.comb.for(-> $char {
+            my @indent-chars = $indent.comb.map(-> $char {
                 my $width = $char eq "\t"
                     ?? $?TABSTOP - ($indent-size mod $?TABSTOP)
                     !! 1;
@@ -1437,7 +1437,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         });
 
         # Figure out the amount * should outdent by, we also use this for warnings
-        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).for({ $_<indent-size> });
+        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
         return $obj if $common-prefix === Inf;
 
         # Set the actual outdent amount here
@@ -1669,10 +1669,10 @@ sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }
-multi sub UNBASE(Int:D $base, Cool:D $num) is hidden-from-backtrace {
+multi sub UNBASE(Int:D $base, Cool:D $num) {
     X::Numeric::Confused.new(:what($num)).throw;
 }
-multi sub UNBASE(Int:D $base, Str:D $str) is hidden-from-backtrace {
+multi sub UNBASE(Int:D $base, Str:D $str) {
     my Str $prefix = substr($str,0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
@@ -1685,7 +1685,7 @@ multi sub UNBASE(Int:D $base, Str:D $str) is hidden-from-backtrace {
 }
 
 # for :16[1, 2, 3]
-sub UNBASE_BRACKET($base, @a) is hidden-from-backtrace {
+sub UNBASE_BRACKET($base, @a) {
     my $v = 0;
     my $denom = 1;
     my Bool $seen-dot = False;
@@ -1706,7 +1706,7 @@ sub UNBASE_BRACKET($base, @a) is hidden-from-backtrace {
 }
 
 sub chrs(*@c) returns Str:D {
-    @c.for({.chr}).join;
+    @c.map({.chr}).join;
 }
 
 sub SUBSTR-START-OOR(\from,\max) {
@@ -1727,7 +1727,7 @@ sub SUBSTR-CHARS-OOR(\chars) {
       :comment("use *{chars} if you want to index relative to the end"),
     );
 }
-sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) is hidden-from-backtrace {
+sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
     my Int $max := what.chars;
     from = nqp::istype($start, Callable) ?? $start($max) !! $start.Int;
     SUBSTR-START-OOR(from,$max).fail

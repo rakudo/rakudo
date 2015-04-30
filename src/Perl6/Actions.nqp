@@ -255,7 +255,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
         $code := make_topic_block_ref($/, $code, copy => 1);
-        my $past := QAST::Op.new(:op<callmethod>, :name<for>,
+        my $past := QAST::Op.new(:op<callmethod>, :name<FOR>,
             QAST::Op.new(:op<call>, :name<&lines>),
             QAST::Op.new(:op<p6capturelex>, $code)
         );
@@ -810,32 +810,38 @@ Compilation unit '$file' contained the following violations:
         make $past;
     }
 
-    method statement($/, $key?) {
+    method statement($/) {
         my $past;
         if $<EXPR> {
             my $mc := $<statement_mod_cond>;
             my $ml := $<statement_mod_loop>;
             $past := $<EXPR>.ast;
             if $mc {
-                $mc.ast.push($past);
-                $mc.ast.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
-                $past := $mc.ast;
+                my $mc_ast := $mc.ast;
+                if $past.ann('bare_block') {
+                    my $cond_block := $past.ann('past_block');
+                    remove_block($*W.cur_lexpad(), $cond_block);
+                    $cond_block.blocktype('immediate');
+                    $past := $cond_block;
+                }
+                $mc_ast.push($past);
+                $mc_ast.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+                $past := $mc_ast;
             }
             if $ml {
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
-                    $past := QAST::Op.new(
-                        :op('call'),
-                        block_closure(make_topic_block_ref($/, $past)),
-                        $cond
-                    );
+                    unless $past.ann('bare_block') {
+                        $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
+                    }
+                    $past := QAST::Op.new( :op('call'), block_closure($past), $cond );
                 }
                 elsif ~$ml<sym> eq 'for' {
                     unless $past.ann('past_block') {
-                        $past := make_topic_block_ref($/, $past);
+                        $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
                     $past := QAST::Op.new(
-                            :op<callmethod>, :name<for>, :node($/),
+                            :op<callmethod>, :name<FOR>, :node($/),
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
                         );
@@ -862,6 +868,7 @@ Compilation unit '$file' contained the following violations:
                 $past
             );
         }
+        $past.annotate('statement_id', $*STATEMENT_ID) if $past;
         make $past;
     }
 
@@ -1163,7 +1170,7 @@ Compilation unit '$file' contained the following violations:
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
         my $past := QAST::Op.new(
-                        :op<callmethod>, :name<for>, :node($/),
+                        :op<callmethod>, :name<FOR>, :node($/),
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
@@ -1564,7 +1571,17 @@ Compilation unit '$file' contained the following violations:
     }
 
     method blorst($/) {
-        make block_closure($<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast, $/));
+        my $block;
+        if $<block> {
+            $block := $<block>.ast;
+        }
+        else {
+            my $stmt := $<statement>.ast;
+            $block := make_thunk_ref($stmt, $/);
+            migrate_blocks($*W.cur_lexpad, $block.ann('past_block'),
+                -> $b { $b.ann('statement_id') == $stmt.ann('statement_id') });
+        }
+        make block_closure($block);
     }
 
     # Statement modifiers
@@ -1904,6 +1921,16 @@ Compilation unit '$file' contained the following violations:
             else {
                 $past := $*W.add_string_constant(nqp::getlexdyn('$?FILES') // '<unknown file>');
             }
+        }
+        elsif $past.name() eq '@?INC' {
+            my $p6inc := $*W.INC_for_perl6($/);
+            $*W.add_object($p6inc);
+            $past := QAST::WVal.new( :value($p6inc) );
+        }
+        elsif $past.name() eq '%?PRAGMAS' {
+            my $pragmas := nqp::hllizefor(nqp::clone(%*PRAGMAS), 'perl6');
+            $*W.add_object($pragmas);
+            $past := QAST::WVal.new( :value($pragmas) );
         }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
@@ -5020,21 +5047,26 @@ Compilation unit '$file' contained the following violations:
 
     # Some constructs are parsed and compiled with blocks inside of them, but
     # then the outer block goes away (for example, when a {...} becomes a
-    # hash). This is used to move blocks out of the discarded inner one to
-    # the outer one, so they're correctly lexically scoped.
-    sub migrate_blocks($from, $to) {
+    # hash). Others get thunked and so need to have certain blocks in an
+    # expression moved into the thunk. This performs the migration. Takes an
+    # optional predicate to decide whether to move a block.
+    sub migrate_blocks($from, $to, $predicate?) {
         my @decls := @($from[0]);
         my int $n := nqp::elems(@decls);
         my int $i := 0;
         while $i < $n {
             if nqp::istype(@decls[$i], QAST::Block) {
-                $to[0].push(@decls[$i]);
-                @decls[$i] := QAST::Op.new( :op('null') );
+                if !$predicate || $predicate(@decls[$i]) {
+                    $to[0].push(@decls[$i]);
+                    @decls[$i] := QAST::Op.new( :op('null') );
+                }
             }
             elsif (nqp::istype(@decls[$i], QAST::Stmt) || nqp::istype(@decls[$i], QAST::Stmts)) &&
                   nqp::istype(@decls[$i][0], QAST::Block) {
-                $to[0].push(@decls[$i][0]);
-                @decls[$i][0] := QAST::Op.new( :op('null') );
+                if !$predicate || $predicate(@decls[$i][0]) {
+                    $to[0].push(@decls[$i][0]);
+                    @decls[$i][0] := QAST::Op.new( :op('null') );
+                }
             }
             $i++;
         }
@@ -5133,7 +5165,12 @@ Compilation unit '$file' contained the following violations:
                     $target := $target[0];
                 }
                 unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
-                    $/.CURSOR.typed_panic('X::Syntax::Adverb');
+                    if nqp::can($target, 'name') {
+                        $/.CURSOR.typed_panic('X::Syntax::Adverb', what => $target.name);
+                    }
+                    else {
+                        $/.CURSOR.typed_panic('X::Syntax::Adverb')
+                    }
                 }
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
@@ -6894,12 +6931,16 @@ Compilation unit '$file' contained the following violations:
             $block);
     }
 
-    sub make_topic_block_ref($/, $past, :$copy) {
-        my $block := QAST::Block.new(
-            QAST::Stmts.new(
-                QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
-            ),
-            $past);
+    sub make_topic_block_ref($/, $past, :$copy, :$migrate_stmt_id) {
+        my $block := $*W.push_lexpad($/);
+        $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
+        $block.push($past);
+        $*W.pop_lexpad();
+        if nqp::defined($migrate_stmt_id) {
+            migrate_blocks($*W.cur_lexpad(), $block, -> $b {
+                !$b.ann('in_stmt_mod') && $b.ann('statement_id') == $migrate_stmt_id
+            });
+        }
         ($*W.cur_lexpad())[0].push($block);
         my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
         if $copy {
@@ -7297,9 +7338,16 @@ Compilation unit '$file' contained the following violations:
         my int $i := 0;
         my int $n := nqp::elems(@decls);
         while $i < $n {
-            if @decls[$i] =:= $block {
+            my $consider := @decls[$i];
+            if $consider =:= $block {
                 @decls[$i] := QAST::Op.new( :op('null') );
                 return 1;
+            }
+            elsif nqp::istype($consider, QAST::Stmt) || nqp::istype($consider, QAST::Stmts) {
+                if $consider[0] =:= $block {
+                    $consider[0] := QAST::Op.new( :op('null') );
+                    return 1;
+                }
             }
             $i++;
         }
@@ -7723,76 +7771,95 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method assertion:sym<var>($/) {
-        make QAST::Regex.new( QAST::NodeList.new(
-                                    QAST::SVal.new( :value('INTERPOLATE') ),
-                                    $<var>.ast,
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value(1) ) ),
-                              :rxtype<subrule>, :subtype<method>, :node($/));
+        if $<arglist> {
+            my $ast := make QAST::Regex.new(
+                QAST::NodeList.new(
+                    QAST::SVal.new( :value('CALL_SUBRULE') ),
+                    $<var>.ast ),
+                :rxtype<subrule>, :subtype<method>, :node($/));
+            for @($<arglist>.ast) {
+                $ast[0].push($_);
+            }
+        } else {
+            make QAST::Regex.new(
+                QAST::NodeList.new(
+                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    $<var>.ast,
+                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(1) ) ),
+                :rxtype<subrule>, :subtype<method>, :node($/));
+        }
     }
     
     method assertion:sym<name>($/) {
-        my @parts := $*W.dissect_longname($<longname>).components();
-        my $name  := @parts.pop();
+        my $lng := $*W.dissect_longname($<longname>);
         my $qast;
-        my $c := $/.CURSOR;
-        if $<assertion> {
-            if +@parts {
-                $c.panic("Can only alias to a short name (without '::')");
-            }
-            $qast := $<assertion>.ast;
-            if $qast.rxtype eq 'subrule' {
-                self.subrule_alias($qast, $name);
-            }
-            else {
-                $qast := QAST::Regex.new( $qast, :name($name), 
-                                          :rxtype<subcapture>, :node($/) );
-            }
-        }
-        elsif !@parts && $name eq 'sym' {
-            my str $fullrxname := %*RX<name>;
-            my int $loc := nqp::index($fullrxname, ':sym<');
-            $loc := nqp::index($fullrxname, ':sym«')
-                if $loc < 0;
-            my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
-            $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
-                QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
+        # We got something like <::($foo)>
+        if $lng.contains_indirect_lookup() {
+            $qast := QAST::Regex.new( :rxtype<subrule>, :subtype<method>, :node($/),
+                QAST::NodeList.new(QAST::SVal.new( :value('INDMETHOD') ), $lng.name_past()) );
         }
         else {
-            if +@parts {
-                my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new(
-                                            QAST::SVal.new( :value('OTHERGRAMMAR') ), 
-                                            $gref, QAST::SVal.new( :value($name) )),
-                                         :name(~$<longname>) );
-            } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
-                # The lookbehind for . is because we do not yet call $~MAIN's methodop, and our recognizer for
-                # . <assertion>, which is a somewhat bogus recursion, comes from QRegex, not our own grammar.
-                my $coderef := $*W.find_symbol(['&' ~ $name]);
-                my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
-                $var.annotate('coderef',$coderef);
-                my $c := $var.ann('coderef');
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new($var),
-                                         :name($name) );
-                # nqp::say($qast.dump);
+            my @parts := $lng.components();
+            my $name  := @parts.pop();
+            my $c     := $/.CURSOR;
+            if $<assertion> {
+                if +@parts {
+                    $c.panic("Can only alias to a short name (without '::')");
+                }
+                $qast := $<assertion>.ast;
+                if $qast.rxtype eq 'subrule' {
+                    self.subrule_alias($qast, $name);
+                }
+                else {
+                    $qast := QAST::Regex.new( $qast, :name($name), 
+                                              :rxtype<subcapture>, :node($/) );
+                }
+            }
+            elsif !@parts && $name eq 'sym' {
+                my str $fullrxname := %*RX<name>;
+                my int $loc := nqp::index($fullrxname, ':sym<');
+                $loc := nqp::index($fullrxname, ':sym«')
+                    if $loc < 0;
+                my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
+                $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
+                    QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
             }
             else {
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::NodeList.new(QAST::SVal.new( :value($name) )), 
-                                         :name($name) );
-            }
-            if $<arglist> {
-                for $<arglist>.ast.list { $qast[0].push($_) }
-            }
-            elsif $<nibbler> {
-                my $nibbled := $name eq 'after'
-                    ?? self.flip_ast($<nibbler>.ast)
-                    !! $<nibbler>.ast;
-                my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
-                $qast[0].push($sub);
+                if +@parts {
+                    my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
+                    $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                             :node($/), QAST::NodeList.new(
+                                                QAST::SVal.new( :value('OTHERGRAMMAR') ), 
+                                                $gref, QAST::SVal.new( :value($name) )),
+                                             :name(~$<longname>) );
+                } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
+                    # The lookbehind for . is because we do not yet call $~MAIN's methodop, and our recognizer for
+                    # . <assertion>, which is a somewhat bogus recursion, comes from QRegex, not our own grammar.
+                    my $coderef := $*W.find_symbol(['&' ~ $name]);
+                    my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
+                    $var.annotate('coderef',$coderef);
+                    my $c := $var.ann('coderef');
+                    $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                             :node($/), QAST::NodeList.new($var),
+                                             :name($name) );
+                }
+                else {
+                    $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                             :node($/), QAST::NodeList.new(QAST::SVal.new( :value($name) )), 
+                                             :name($name) );
+                }
+                if $<arglist> {
+                    for $<arglist>.ast.list { $qast[0].push($_) }
+                }
+                elsif $<nibbler> {
+                    my $nibbled := $name eq 'after'
+                        ?? self.flip_ast($<nibbler>.ast)
+                        !! $<nibbler>.ast;
+                    my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
+                    $qast[0].push($sub);
+                }
             }
         }
         make $qast;

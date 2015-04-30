@@ -259,6 +259,10 @@ my class Cursor does NQPCursorRole {
         }
     }
 
+    method CALL_SUBRULE($rule, |c) {
+        $rule(self, |c)
+    }
+
     method DYNQUANT_LIMITS($mm) {
         if nqp::istype($mm,Range) {
             die 'Range minimum in quantifier (**) cannot be +Inf' if $mm.min ==  Inf;
@@ -274,6 +278,10 @@ my class Cursor does NQPCursorRole {
     method OTHERGRAMMAR($grammar, $name, |) {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
         $lang_cursor."$name"();
+    }
+
+    method INDMETHOD($name, |c) {
+        self."$name"(|c);
     }
 
     method INDRULE($rule, |c) {

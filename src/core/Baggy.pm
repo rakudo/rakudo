@@ -144,7 +144,7 @@ my role Baggy does QuantHash {
           !! ROLLPICKGRABN(self,$count, %!elems.values, :keep);
     }
 
-    sub ROLLPICKGRAB1($self,@pairs) is hidden-from-backtrace { # one time
+    sub ROLLPICKGRAB1($self,@pairs) { # one time
         my Int $rand = $self.total.rand.Int;
         my Int $seen = 0;
         for @pairs -> $pair {
@@ -155,7 +155,7 @@ my role Baggy does QuantHash {
 
     sub ROLLPICKGRABN(                                        # N times
       $self, $count, @pairs is rw, :$keep
-    ) is hidden-from-backtrace {
+    ) {
         my Int $total = $self.total;
         my Int $rand;
         my Int $seen;
@@ -194,7 +194,7 @@ my role Baggy does QuantHash {
 #?endif
     }
 
-    sub ROLLPICKGRABW($self,@pairs) is hidden-from-backtrace { # keep going
+    sub ROLLPICKGRABW($self,@pairs) { # keep going
         my Int $total = $self.total;
         my Int $rand;
         my Int $seen;

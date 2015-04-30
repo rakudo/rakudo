@@ -23,3 +23,12 @@ DLLEXPORT void * ReturnNullPointer()
 {
     return NULL;
 }
+
+DLLEXPORT void * TakeTwoPointersToInt(int *ptr1, int *ptr2)
+{
+    return NULL;
+}
+
+DLLEXPORT void * TakeCArrayToInt8(int array[]) {
+    return NULL;
+}

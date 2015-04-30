@@ -1038,6 +1038,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ANGLE_COUNT := 0;                # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
         :my $*IN_PROTO := 0;                       # are we inside a proto?
+        :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
+        :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -1064,113 +1066,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # performance improvement stuff
         :my $*FAKE_INFIX_FOUND := 0;
 
-        # Setting loading and symbol setup.
-        {
-            # Create unit outer (where we assemble any lexicals accumulated
-            # from e.g. REPL) and the real UNIT.
-            $*UNIT_OUTER := $*W.push_lexpad($/);
-            $*UNIT := $*W.push_lexpad($/);
-            
-            # If we already have a specified outer context, then that's
-            # our setting. Otherwise, load one.
-            my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
-            if $have_outer {
-                $*UNIT.annotate('IN_DECL', 'eval');
-            }
-            else {
-                $*SETTING := $*W.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
-                $*UNIT.annotate('IN_DECL', 'mainline');
-            }
-            $/.CURSOR.unitstart();
-            try {
-                my $EXPORTHOW := $*W.find_symbol(['EXPORTHOW']);
-                for $*W.stash_hash($EXPORTHOW) {
-                    %*HOW{$_.key} := $_.value;
-                }
-            }
-            
-            # Create GLOBAL(ish), unless we were given one.
-            if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
-                $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
-            }
-            elsif $have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
-                $*GLOBALish := $*W.force_value($*UNIT_OUTER.symbol('GLOBALish'), 'GLOBALish', 1);
-            }
-            else {
-                $*GLOBALish := $*W.pkg_create_mo($/, %*HOW<package>, :name('GLOBAL'));
-                $*W.pkg_compose($*GLOBALish);
-            }
-                
-            # Create or pull in existing EXPORT.
-            if $have_outer && $*UNIT_OUTER.symbol('EXPORT') {
-                $*EXPORT := $*W.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
-            }
-            else {
-                $*EXPORT := $*W.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
-                $*W.pkg_compose($*EXPORT);
-            }
-            
-            # If there's a self in scope, set $*HAS_SELF.
-            if $have_outer && $*UNIT_OUTER.symbol('self') {
-                $*HAS_SELF := 'complete';
-            }
-                
-            # Take current package from outer context if any, otherwise for a
-            # fresh compilation unit we start in GLOBAL.
-            if $have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
-                $*PACKAGE := $*W.force_value($*UNIT_OUTER.symbol('$?PACKAGE'), '$?PACKAGE', 1);
-            }
-            else {
-                $*PACKAGE := $*GLOBALish;
-            }
-            
-            # If we're eval'ing in the context of a %?LANG, set up our own
-            # %*LANG based on it.
-            if $have_outer && $*UNIT_OUTER.symbol('%?LANG') {
-                for $*W.force_value($*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
-                    %*LANG{$_.key} := $_.value;
-                }
-            }
-            if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
-                $*MAIN := $*W.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
-            }
-            if $have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
-                $*STRICT := $*W.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
-            }
-            else {
-                my $FILES := nqp::getlexdyn('$?FILES');
-                $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
-            }
-
-            # Bootstrap
-            if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-                my $name   := "Perl6::BOOTSTRAP";
-                my $module := $*W.load_module($/, $name, {}, $*GLOBALish);
-                do_import($/, $module, $name);
-                $/.CURSOR.import_EXPORTHOW($/, $module);
-            }
-
-            # Install as we've no setting, in which case we've likely no
-            # static lexpad class yet either. Also, UNIT needs a code object.
-            else {
-                $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
-                $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
-                $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
-                $*W.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
-                $*DECLARAND := $*W.stub_code_object('Block');
-            }
-            my $M := %*COMPILING<%?OPTIONS><M>;
-            if nqp::defined($M) {
-                for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                    $longname := do_pragmas($longname,1);
-                    if $longname {
-                        my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
-                        do_import($/, $module, $longname);
-                        $/.CURSOR.import_EXPORTHOW($/, $module);
-                    }
-                }
-            }
-        }
+        { $*W.loading_and_symbol_setup($/) }
         
         <.finishpad>
         <.bom>?
@@ -1183,124 +1079,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.explain_mystery>
         <.cry_sorrows>
 
-        {
-            # Emit any worries.
-            if @*WORRIES {
-                nqp::printfh(nqp::getstderr(), $*W.group_exception().gist());
-            }
-        
-            # Install POD-related variables.
-            $*POD_PAST := $*W.add_constant(
-                'Array', 'type_new', :nocache, |$*POD_BLOCKS
-            );
-            $*W.install_lexical_symbol(
-                $*UNIT, '$=pod', $*POD_PAST.compile_time_value
-            );
-            
-            # Tag UNIT with a magical lexical. Also if we're compiling CORE,
-            # give it such a tag too.
-            if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-                my $marker := $*W.pkg_create_mo($/, %*HOW<package>, :name('!CORE_MARKER'));
-                $marker.HOW.compose($marker);
-                $*W.install_lexical_symbol($*UNIT, '!CORE_MARKER', $marker);
-            }
-            else {
-                my $marker := $*W.pkg_create_mo($/, %*HOW<package>, :name('!UNIT_MARKER'));
-                $marker.HOW.compose($marker);
-                $*W.install_lexical_symbol($*UNIT, '!UNIT_MARKER', $marker);
-            }
-        }
-        
-        # CHECK time.
-        { $*W.CHECK(); }
-    }
-    
-    method import_EXPORTHOW($/, $UNIT) {    
-        if nqp::existskey($UNIT, 'EXPORTHOW') {
-            for $*W.stash_hash($UNIT<EXPORTHOW>) {
-                my str $key := $_.key;
-                if $key eq 'SUPERSEDE' {
-                    my %SUPERSEDE := $*W.stash_hash($_.value);
-                    for %SUPERSEDE {
-                        my str $pdecl := $_.key;
-                        my $meta  := nqp::decont($_.value);
-                        unless nqp::existskey(%*HOW, $pdecl) {
-                            $/.CURSOR.typed_panic('X::EXPORTHOW::NothingToSupersede',
-                                declarator => $pdecl);
-                        }
-                        if nqp::existskey(%*HOWUSE, $pdecl) {
-                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
-                                declarator => $pdecl, directive => $key);
-                        }
-                        %*HOW{$pdecl}    := $meta;
-                        %*HOWUSE{$pdecl} := nqp::hash('SUPERSEDE', $meta);
-                    }
-                }
-                elsif $key eq 'DECLARE' {
-                    my %DECLARE := $*W.stash_hash($_.value);
-                    for %DECLARE {
-                        my str $pdecl := $_.key;
-                        my $meta  := nqp::decont($_.value);
-                        if nqp::existskey(%*HOW, $pdecl) {
-                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
-                                declarator => $pdecl, directive => $key);
-                        }
-                        %*HOW{$pdecl}    := $meta;
-                        %*HOWUSE{$pdecl} := nqp::hash('DECLARE', $meta);
-                        self.add_package_declarator($pdecl);
-                    }
-                }
-                elsif $key eq 'COMPOSE' {
-                    my %COMPOSE := $*W.stash_hash($_.value);
-                    $/.CURSOR.NYI('EXPORTHOW::COMPOSE');
-                }
-                else {
-                    if $key eq nqp::lc($key) {
-                        # Support legacy API, which behaves like an unchecked
-                        # supersede.
-                        # XXX Can give deprecation warning in the future, remove
-                        # before 6.0.0.
-                        %*HOW{$key} := nqp::decont($_.value);
-                    }
-                    else {
-                        $/.CURSOR.typed_panic('X::EXPORTHOW::InvalidDirective', directive => $key);
-                    }
-                }
-            }
-        }
-    }
-
-    method add_package_declarator(str $pdecl) {
-        # Compute name of grammar/action entry.
-        my $canname := 'package_declarator:sym<' ~ $pdecl ~ '>';
-
-        # Add to grammar if needed.
-        unless nqp::can(self, $canname) {
-            my role PackageDeclarator[$meth_name, $declarator] {
-                token ::($meth_name) {
-                    :my $*OUTERPACKAGE := $*PACKAGE;
-                    :my $*PKGDECL := $declarator;
-                    :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-                    $<sym>=[$declarator] <.end_keyword> <package_def>
-                }
-            }
-            self.HOW.mixin(self, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
-
-            # This also becomes the current MAIN. Also place it in %?LANG.
-            %*LANG<MAIN> := self.WHAT;
-            $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
-        }
-
-        # Add action method if needed.
-        unless nqp::can($*ACTIONS, $canname) {
-            my role PackageDeclaratorAction[$meth] {
-                method ::($meth)($/) {
-                    make $<package_def>.ast;
-                }
-            };
-            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
-                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
-        }
+        { $*W.mop_up_and_check($/) }
     }
 
     rule statementlist($*statement_level = 0) {
@@ -1369,13 +1148,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
         :my $*ACTIONS := %*LANG<MAIN-actions>;
+        :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
+        :my $*IN_STMT_MOD := 0;
         <!before <[\])}]> | $ >
         <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
         | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
-        | <EXPR> :dba('statement end')
+        | <EXPR> :dba('statement end') { $*IN_STMT_MOD := 1 }
             [
             || <?MARKED('endstmt')>
             || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?
@@ -1610,16 +1391,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $longname := $*W.dissect_longname($<module_name><longname>);
             my $module;
             my $found := 0;
-            try { $module := $*W.find_symbol($longname.components()); $found := 1; }
+            try {
+                $module := $*W.find_symbol($longname.components());
+                $found := 1;
+            }
             if $found {
                 # todo: fix arglist
-                my $arglist;
-                if $<arglist> {
-                    $arglist := $*W.compile_time_evaluate($/, $<arglist><EXPR>.ast);
-                    $arglist := nqp::getattr($arglist.list.eager,
-                            $*W.find_symbol(['List']), '$!items');
-                }
-                do_import($/, $module.WHO, $longname.name, $arglist);
+                $*W.do_import($/,$module.WHO,$longname.name,$*W.arglist($/));
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
@@ -1633,7 +1411,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <.ws>
         [
         | <module_name> [ <.spacey> <arglist> ]? <.explain_mystery> <.cry_sorrows>
-            { $longname := do_pragmas($<module_name><longname>,0) }
+            { $*W.do_pragma_or_load_module($/,0) }
         ]
         <.ws>
     }
@@ -1651,38 +1429,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <version> [ <?{ ~$<version><vnum>[0] eq '5' }> {
                         my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
                         do_import($/, $module, 'Perl5');
-                        $/.CURSOR.import_EXPORTHOW($/, $module);
+                        $*W.import_EXPORTHOW($/, $module);
                     } ]?
                     [ <?{ ~$<version><vnum>[0] eq '6' }> {
                         $*MAIN   := 'MAIN';
                         $*STRICT := 1 if $*begin_compunit;
                     } ]?
         | <module_name>
-            { $longname := do_pragmas($<module_name><longname>,1) }
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
-                    my $lnd     := $*W.dissect_longname($longname);
-                    my $name    := $lnd.name;
-                    my %cp      := $lnd.colonpairs_hash('use');
-                    my $arglist := $*W.compile_time_evaluate($/,
-                            $<arglist><EXPR>.ast);
-                    $arglist    := nqp::getattr($arglist.list.eager,
-                            $*W.find_symbol(['List']), '$!items');
-                    my $module  := $*W.load_module($/, $name, %cp, $*GLOBALish);
-                    do_import($/, $module, $name, $arglist);
-                    $/.CURSOR.import_EXPORTHOW($/, $module);
+                    $*W.do_pragma_or_load_module($/,1);
                 }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
-                        if $longname {
-                            my $lnd    := $*W.dissect_longname($longname);
-                            my $name   := $lnd.name;
-                            my %cp     := $lnd.colonpairs_hash('use');
-                            my $module := $*W.load_module($/, $name, %cp, $*GLOBALish);
-                            do_import($/, $module, $name);
-                            $/.CURSOR.import_EXPORTHOW($/, $module);
-                        }
+                        $*W.do_pragma_or_load_module($/,1);
                     }
                 }
             ]
@@ -1692,42 +1453,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
         || <?> ]
         <.ws>
-    }
-
-    sub do_pragmas($longname,$value) {
-
-        # Some modules are handled in the actions are just turn on a
-        # setting of some kind.
-        if $longname eq 'MONKEY-TYPING' || $longname eq 'MONKEY_TYPING' {
-            %*PRAGMAS<MONKEY-TYPING> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'fatal' {
-            %*PRAGMAS<fatal> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'strict' {
-            $*STRICT  := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'nqp' {
-            %*PRAGMAS<nqp> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'soft' {
-            # This is an approximation; need to pay attention to
-            # argument list really.
-            %*PRAGMAS<soft> := $value;
-            $longname := "";
-        }
-        elsif $longname eq 'Devel::Trace' {
-            # needs attention
-            $longname := "";
-        }
-        elsif !$value {
-            nqp::die("Unknown pragma '$longname'");
-        }
-        $longname;
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
@@ -1755,55 +1480,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
             nqp::bindattr($new, NQPCursor, '$!match', $match);
             $new;
-        }
-    }
-
-    sub do_import($/, $module, $package_source_name, $arglist?) {
-        if nqp::existskey($module, 'EXPORT') {
-            my $EXPORT := $*W.stash_hash($module<EXPORT>);
-            my @to_import := ['MANDATORY'];
-            my @positional_imports := [];
-            if nqp::defined($arglist) {
-                my $Pair := $*W.find_symbol(['Pair']);
-                for $arglist -> $tag {
-                    if nqp::istype($tag, $Pair) {
-                        $tag := nqp::unbox_s($tag.key);
-                        if nqp::existskey($EXPORT, $tag) {
-                            $*W.import($/, $*W.stash_hash($EXPORT{$tag}), $package_source_name);
-                        }
-                        else {
-                            nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
-                        }
-                    }
-                    else {
-                        nqp::push(@positional_imports, $tag);
-                    }
-                }
-            }
-            else {
-                nqp::push(@to_import, 'DEFAULT');
-            }
-            for @to_import -> $tag {
-                if nqp::existskey($EXPORT, $tag) {
-                    $*W.import($/, $*W.stash_hash($EXPORT{$tag}), $package_source_name);
-                }
-            }
-            if nqp::existskey($module, '&EXPORT') {
-                my $result := $module<&EXPORT>(|@positional_imports);
-                my $EnumMap := $*W.find_symbol(['EnumMap']);
-                if nqp::istype($result, $EnumMap) {
-                    my $storage := $result.hash.FLATTENABLE_HASH();
-                    $*W.import($/, $storage, $package_source_name);
-                }
-                else {
-                    nqp::die("&EXPORT sub did not return an EnumMap");
-                }
-            }
-            else {
-                if +@positional_imports {
-                    nqp::die("Error while importing from '$package_source_name': no EXPORT sub, but you provided positional argument in the 'use' statement");
-                }
-            }
         }
     }
 
@@ -2527,7 +2203,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
     rule statement_control:sym<more>   { <sym><.kok> <xblock(1)> }
     rule statement_control:sym<done>   { <sym><.kok> <xblock(1)> }
-    rule statement_control:sym<quit>   { <sym><.kok> <xblock(1)> }
     rule statement_control:sym<wait>   { <sym><.kok> <xblock(1)> }
 
     proto token multi_declarator { <...> }
@@ -5120,7 +4795,12 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
 
     token assertion:sym<var> {
-        <?sigil> <var=.LANG('MAIN', 'term:sym<variable>')>
+        | <?[&]> <var=.LANG('MAIN', 'term:sym<variable>')>
+            [
+            | ':' <arglist>
+            | '(' <arglist> ')'
+            ]?
+        | <?sigil> <var=.LANG('MAIN', 'term:sym<variable>')>
     }
     
     token assertion:sym<~~> {

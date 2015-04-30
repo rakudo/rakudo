@@ -16,14 +16,21 @@ my class Exception {
     }
 
     multi method gist(Exception:D:) {
-        my $str = nqp::isconcrete($!ex) ?? nqp::p6box_s(nqp::getmessage($!ex)) !! try self.?message;
+        my $str = nqp::isconcrete($!ex)
+          ?? nqp::p6box_s(nqp::getmessage($!ex))
+          !! try self.?message;
         $str //= "Internal error";
-        $str ~= "\n";
-        try $str ~= self.backtrace || Backtrace.new() || '  (no backtrace available)';
-        return $str;
+
+        if nqp::isconcrete($!ex) {
+            $str ~= "\n";
+            try $str ~= self.backtrace
+              || Backtrace.new()
+              || '  (no backtrace available)';
+        }
+        $str;
     }
 
-    method throw($bt?) is hidden-from-backtrace {
+    method throw($bt?) {
         nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
@@ -33,7 +40,7 @@ my class Exception {
             if $msg.defined;
         nqp::throw($!ex)
     }
-    method rethrow() is hidden-from-backtrace {
+    method rethrow() {
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
@@ -109,6 +116,11 @@ my class X::Role::Parametric::NoSuchCandidate is Exception {
     }
 }
 
+my class X::Pragma::NoArgs is Exception {
+    has $.name;
+    method message { "The '$.name' pragma does not take any arguments." }
+}
+
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
@@ -163,11 +175,11 @@ do {
                 return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
             }
         }
-        return False;
+        False;
     }
 
 
-    sub print_exception(|) is hidden-from-backtrace {
+    sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         try {
             my $e := EXCEPTION($ex);
@@ -190,7 +202,7 @@ do {
         }
     }
 
-    sub print_control(|) is hidden-from-backtrace {
+    sub print_control(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my int $type = nqp::getextype($ex);
         if ($type == nqp::const::CONTROL_WARN) {
@@ -501,6 +513,18 @@ my class X::NYI is Exception {
     method message() { "$.feature not yet implemented. Sorry. " }
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
+my class X::NYI::Available is X::NYI {
+    has @.available = die("Must give :available<modules> for installation. ");
+    method available-str {
+        my @a = @.available;
+        my $a = @a.pop;
+        (@a.join(', ') || (), $a).join(" or ")
+    }
+    method message() {
+        "Please install { self.available-str } for $.feature support. "
+    }
+}
+
 
 my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.
@@ -648,7 +672,7 @@ my class X::Undeclared::Symbols does X::Comp {
     }
     method message(X::Undeclared::Symbols:D:) {
         sub l(@l) {
-            my @lu = @l.for({ nqp::hllize($_) }).unique.sort;
+            my @lu = @l.map({ nqp::hllize($_) }).unique.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
         sub s(@s) {
@@ -822,7 +846,7 @@ my class X::Parameter::InvalidType does X::Comp {
         if +@.suggestions > 0 {
             $msg := $msg ~ " Did you mean '" ~ @.suggestions.join("', '") ~ "'?";
         }
-        return $msg;
+        $msg;
     }
 }
 
@@ -1134,7 +1158,9 @@ my class X::Syntax::CannotMeta does X::Syntax {
 }
 
 my class X::Syntax::Adverb does X::Syntax {
-    method message() { "You can't adverb that" }
+    has $.what;
+
+    method message() { "You can't adverb " ~ ($.what // "that")  }
 }
 
 my class X::Syntax::Regex::Adverb does X::Syntax {
@@ -1556,7 +1582,7 @@ my class X::Inheritance::UnknownParent is Exception {
         } elsif +@.suggestions == 1 {
             $message := $message ~ "\nDid you mean '" ~ @.suggestions[0] ~ "'?\n";
         }
-        return $message;
+        $message;
     }
 }
 
@@ -1691,7 +1717,7 @@ my class X::Multi::Ambiguous is Exception {
     method message {
         join "\n",
             "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
-            @.ambiguous.for(*.signature.perl)
+            @.ambiguous.map(*.signature.perl)
     }
 }
 
@@ -1763,37 +1789,37 @@ my class X::Inheritance::NotComposed does X::MOP {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden-from-backtrace {
+    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) {
             X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, Mu $expected) is hidden-from-backtrace {
+    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, Mu $expected) {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
-    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden-from-backtrace {
+    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
-    %c_ex<X::Assignment::RO> := sub ($typename = "value") is hidden-from-backtrace {
+    %c_ex<X::Assignment::RO> := sub ($typename = "value") {
             X::Assignment::RO.new(:$typename).throw;
         };
-    %c_ex{'X::ControlFlow::Return'} := sub () is hidden-from-backtrace {
+    %c_ex{'X::ControlFlow::Return'} := sub () {
             X::ControlFlow::Return.new().throw;
         };
-    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden-from-backtrace {
+    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
-    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) is hidden-from-backtrace {
+    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) {
             X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
         };
-    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) is hidden-from-backtrace {
+    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) {
             X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
         };
-    %c_ex{'X::Role::Initialization'} := sub ($role) is hidden-from-backtrace {
+    %c_ex{'X::Role::Initialization'} := sub ($role) {
             X::Role::Initialization.new(:$role).throw
         }
-    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) is hidden-from-backtrace {
+    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) {
         X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
         }
-    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) is hidden-from-backtrace {
+    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) {
         X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
     }
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));

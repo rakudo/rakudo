@@ -15,7 +15,7 @@
 #   * Allow exact Perl 6 forms, quoted away from shell
 # * Fix remaining XXXX
 
-my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
+my sub MAIN_HELPER($retval = 0) {
     # Do we have a MAIN at all?
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
@@ -35,7 +35,7 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
                   method Str  ()      { $orig.Str  }
             multi method gist (Mu:D:) { $orig.gist }
         };
-        return $val but orig-string[$v];
+        $val but orig-string[$v];
     }
 
     # Convert raw command line args into positional and named args for MAIN
@@ -61,7 +61,7 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
             }
         }
         $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@args));
-        return @positional-arguments, %named-arguments;
+        @positional-arguments, %named-arguments;
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
@@ -80,7 +80,7 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
                 }
             }
             # Not in PATH
-            return $name;
+            $name;
         }
 
         my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! strip_path_prefix($*PROGRAM_NAME);
@@ -101,7 +101,7 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
                     }
                 }
                 else {
-                    my $constraints  = $param.constraint_list.for(*.gist).join(' ');
+                    my $constraints  = $param.constraint_list.map(*.gist).join(' ');
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
                     $argument = $param.name   ?? '<' ~ substr($param.name,1) ~ '>' !!
                                 $simple-const ??       $constraints                !!
@@ -119,7 +119,7 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
             @help-msgs.push($msg);
         }
         my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
-        return $usage;
+        $usage;
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
@@ -131,11 +131,11 @@ my sub MAIN_HELPER($retval = 0) is hidden-from-backtrace {
             return True if !%accepts-argument{$name}
         }
 
-        return False;
+        False;
     }
 
     # Process command line arguments
-    my ($p, $n) = process-cmd-args(@*ARGS).lol;
+    my ($p, $n) := process-cmd-args(@*ARGS);
 
     # Generate default $?USAGE message
     my $usage;

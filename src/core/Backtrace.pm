@@ -58,18 +58,9 @@ my class Backtrace is List {
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
-            next if $file eq 'src/gen/BOOTSTRAP.nqp' ||
-                    $file eq 'src/gen/m-BOOTSTRAP.nqp' ||
-                    $file eq 'src\\gen\\BOOTSTRAP.nqp' ||
-                    $file eq 'src\\gen\\m-BOOTSTRAP.nqp' ||
-                    $file eq 'gen/jvm/stage2/QRegex.nqp' ||
-                    $file eq 'gen/moar/stage2/QRegex.nqp';
-            last if $file eq 'src/stage2/gen/NQPHLL.nqp' ||
-                    $file eq 'src\\stage2\\gen\\NQPHLL.nqp' ||
-                    $file eq 'gen/jvm/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\jvm\\stage2\\NQPHLL.nqp' ||
-                    $file eq 'gen/moar/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\moar\\stage2\\NQPHLL.nqp';
+            next if $file.ends-with('BOOTSTRAP.nqp')
+                 || $file.ends-with('QRegex.nqp');
+            last if $file.ends-with('NQPHLL.nqp');
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
             $subname = '<anon>' if $subname.starts-with("_block");
             last if $subname eq 'handle-begin-time-exceptions';
@@ -84,7 +75,7 @@ my class Backtrace is List {
     }
 
     method next-interesting-index(Backtrace:D:
-      Int $idx is copy = 0, :$named, :$noproto) {
+      Int $idx is copy = 0, :$named, :$noproto, :$setting) {
         ++$idx;
         # NOTE: the < $.end looks like an off-by-one error
         # but it turns out that a simple   perl6 -e 'die "foo"'
@@ -96,6 +87,8 @@ my class Backtrace is List {
             next if $named && !$cand.subname; # only want named ones
             next if $noproto                  # no proto's please
               && $cand.code.?is_dispatcher;   #  if a dispatcher
+            next if !$setting                 # no settings please
+              && $cand.is-setting;            #  and in setting
             return $idx;
         }
         Int;
@@ -119,7 +112,7 @@ my class Backtrace is List {
             }
         }
 
-        return @outers;
+        @outers;
     }
 
     method nice(Backtrace:D: :$oneline) {
@@ -146,7 +139,6 @@ my class Backtrace is List {
                 last if $oneline;
                 $i = self.next-interesting-index($i);
             }
-            return @frames.join;
             CATCH {
                 default {
                     return "<Internal error while creating backtrace: $_.message() $_.backtrace.full().\n"
@@ -155,6 +147,7 @@ my class Backtrace is List {
                         ~ "to get more information about your error>";
                 }
             }
+            @frames.join;
         }
     }
 

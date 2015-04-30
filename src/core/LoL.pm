@@ -183,7 +183,7 @@ sub infix:<Z>(|lol) {
 
     gather {
         loop {
-            my \p = @l.for: { last unless .gimme(1); .shift }
+            my \p = @l.map: { last unless .gimme(1); .shift }
             last if p.elems < $arity;
             take-rw p.Parcel;
         }
@@ -193,10 +193,10 @@ sub infix:<Z>(|lol) {
 my &zip := &infix:<Z>;
 
 sub roundrobin(**@lol) {
-    my @l = @lol.for({ (.flat,).list.item });
+    my @l = @lol.map({ (.flat,).list.item });
     gather {
         my $p;
-        while $p := @l.grep(*.Bool).for(*.shift).eager.Parcel {
+        while $p := @l.grep(*.Bool).map(*.shift).eager.Parcel {
             take $p;
         }
     }

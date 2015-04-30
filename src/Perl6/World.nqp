@@ -241,14 +241,157 @@ class Perl6::World is HLL::World {
         @!cleanup_tasks := [];
         %!magical_cds := {};
     }
-    
+
+    method loading_and_symbol_setup($/) {
+
+        # Create unit outer (where we assemble any lexicals accumulated
+        # from e.g. REPL) and the real UNIT.
+        $*UNIT_OUTER := self.push_lexpad($/);
+        $*UNIT       := self.push_lexpad($/);
+        
+        # If we already have a specified outer context, then that's
+        # our setting. Otherwise, load one.
+        my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
+        if $have_outer {
+            $*UNIT.annotate('IN_DECL', 'eval');
+        }
+        else {
+            $*SETTING :=
+              self.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
+            $*UNIT.annotate('IN_DECL', 'mainline');
+        }
+        $/.CURSOR.unitstart();
+
+        try {
+            my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
+            for self.stash_hash($EXPORTHOW) {
+                %*HOW{$_.key} := $_.value;
+            }
+        }
+        
+        # Create GLOBAL(ish), unless we were given one.
+        if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
+            $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
+        }
+        elsif $have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
+            $*GLOBALish :=
+              self.force_value($*UNIT_OUTER.symbol('GLOBALish'),'GLOBALish',1);
+        }
+        else {
+            $*GLOBALish :=
+              self.pkg_create_mo($/,%*HOW<package>,:name('GLOBAL'));
+            self.pkg_compose($*GLOBALish);
+        }
+            
+        # Create or pull in existing EXPORT.
+        if $have_outer && $*UNIT_OUTER.symbol('EXPORT') {
+            $*EXPORT :=
+              self.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
+        }
+        else {
+            $*EXPORT := self.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
+            self.pkg_compose($*EXPORT);
+        }
+        
+        # If there's a self in scope, set $*HAS_SELF.
+        if $have_outer && $*UNIT_OUTER.symbol('self') {
+            $*HAS_SELF := 'complete';
+        }
+            
+        # Take current package from outer context if any, otherwise for a
+        # fresh compilation unit we start in GLOBAL.
+        if $have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
+            $*PACKAGE :=
+              self.force_value($*UNIT_OUTER.symbol('$?PACKAGE'),'$?PACKAGE',1);
+        }
+        else {
+            $*PACKAGE := $*GLOBALish;
+        }
+        
+        # If we're eval'ing in the context of a %?LANG, set up our own
+        # %*LANG based on it.
+        if $have_outer && $*UNIT_OUTER.symbol('%?LANG') {
+            for self.force_value(
+              $*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
+                %*LANG{$_.key} := $_.value;
+            }
+        }
+        if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
+            $*MAIN :=
+              self.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
+        }
+        if $have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
+            $*STRICT :=
+              self.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
+        }
+        else {
+            my $FILES := nqp::getlexdyn('$?FILES');
+            $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
+        }
+
+        # Bootstrap
+        if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+            my $name   := "Perl6::BOOTSTRAP";
+            my $module := self.load_module($/, $name, {}, $*GLOBALish);
+            self.do_import($/, $module, $name);
+            self.import_EXPORTHOW($/, $module);
+        }
+
+        # Install as we've no setting, in which case we've likely no
+        # static lexpad class yet either. Also, UNIT needs a code object.
+        else {
+            self.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
+            self.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
+            self.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+            self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
+            $*DECLARAND := self.stub_code_object('Block');
+        }
+
+        my $M := %*COMPILING<%?OPTIONS><M>;
+        if nqp::defined($M) {
+            for nqp::islist($M) ?? $M !! [$M] -> $longname {
+                self.do_pragma_or_load_module($/,1,$longname);
+            }
+        }
+    }
+
+    method mop_up_and_check($/) {
+
+        # Emit any worries.
+        if @*WORRIES {
+            nqp::printfh(nqp::getstderr(), self.group_exception().gist());
+        }
+
+        # Install POD-related variables.
+        $*POD_PAST := self.add_constant(
+            'Array', 'type_new', :nocache, |$*POD_BLOCKS
+        );
+        self.install_lexical_symbol(
+            $*UNIT, '$=pod', $*POD_PAST.compile_time_value
+        );
+
+        # Tag UNIT with a magical lexical. Also if we're compiling CORE,
+        # give it such a tag too.
+        my $name := %*COMPILING<%?OPTIONS><setting> eq 'NULL'
+          ?? '!CORE_MARKER'
+          !! '!UNIT_MARKER';
+        my $marker := self.pkg_create_mo($/, %*HOW<package>, :$name);
+        $marker.HOW.compose($marker);
+        self.install_lexical_symbol($*UNIT, $name, $marker);
+
+        # CHECK time.
+        self.CHECK();
+    }
+
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
-        # Create pad, link to outer and add to stack.
+        # Create pad, link to outer, annotate with creating statement, and add to stack.
         my $pad := QAST::Block.new( QAST::Stmts.new( :node($/) ) );
         if +@!BLOCKS {
             $pad.annotate('outer', @!BLOCKS[+@!BLOCKS - 1]);
         }
+        $pad.annotate('statement_id', $*STATEMENT_ID);
+        $pad.annotate('in_stmt_mod', $*IN_STMT_MOD);
         @!BLOCKS[+@!BLOCKS] := $pad;
         $pad
     }
@@ -343,6 +486,240 @@ class Perl6::World is HLL::World {
             return nqp::ctxlexpad($setting);
         }
     }
+
+    method import_EXPORTHOW($/, $UNIT) {
+        if nqp::existskey($UNIT, 'EXPORTHOW') {
+            for self.stash_hash($UNIT<EXPORTHOW>) {
+                my str $key := $_.key;
+                if $key eq 'SUPERSEDE' {
+                    my %SUPERSEDE := self.stash_hash($_.value);
+                    for %SUPERSEDE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        unless nqp::existskey(%*HOW, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::NothingToSupersede',
+                                declarator => $pdecl);
+                        }
+                        if nqp::existskey(%*HOWUSE, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
+                                declarator => $pdecl, directive => $key);
+                        }
+                        %*HOW{$pdecl}    := $meta;
+                        %*HOWUSE{$pdecl} := nqp::hash('SUPERSEDE', $meta);
+                    }
+                }
+                elsif $key eq 'DECLARE' {
+                    my %DECLARE := self.stash_hash($_.value);
+                    for %DECLARE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        if nqp::existskey(%*HOW, $pdecl) {
+                            $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
+                                declarator => $pdecl, directive => $key);
+                        }
+                        %*HOW{$pdecl}    := $meta;
+                        %*HOWUSE{$pdecl} := nqp::hash('DECLARE', $meta);
+                        self.add_package_declarator($/,$pdecl);
+                    }
+                }
+                elsif $key eq 'COMPOSE' {
+                    my %COMPOSE := self.stash_hash($_.value);
+                    $/.CURSOR.NYI('EXPORTHOW::COMPOSE');
+                }
+                else {
+                    if $key eq nqp::lc($key) {
+                        # Support legacy API, which behaves like an unchecked
+                        # supersede.
+                        # XXX Can give deprecation warning in the future, remove
+                        # before 6.0.0.
+                        %*HOW{$key} := nqp::decont($_.value);
+                    }
+                    else {
+                        $/.CURSOR.typed_panic('X::EXPORTHOW::InvalidDirective', directive => $key);
+                    }
+                }
+            }
+        }
+    }
+
+    method add_package_declarator($/, str $pdecl) {
+        my $cursor := $/.CURSOR;
+
+        # Compute name of grammar/action entry.
+        my $canname := 'package_declarator:sym<' ~ $pdecl ~ '>';
+
+        # Add to grammar if needed.
+        unless nqp::can($cursor, $canname) {
+            my role PackageDeclarator[$meth_name, $declarator] {
+                token ::($meth_name) {
+                    :my $*OUTERPACKAGE := $*PACKAGE;
+                    :my $*PKGDECL := $declarator;
+                    :my $*LINE_NO := HLL::Compiler.lineof($cursor.orig(), $cursor.from(), :cache(1));
+                    $<sym>=[$declarator] <.end_keyword> <package_def>
+                }
+            }
+            $cursor.HOW.mixin($cursor, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
+
+            # This also becomes the current MAIN. Also place it in %?LANG.
+            %*LANG<MAIN> := $cursor.WHAT;
+            self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
+        }
+
+        # Add action method if needed.
+        unless nqp::can($*ACTIONS, $canname) {
+            my role PackageDeclaratorAction[$meth] {
+                method ::($meth)($/) {
+                    make $<package_def>.ast;
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
+        }
+    }
+
+    method do_import($/, $module, $package_source_name, $arglist?) {
+        if nqp::existskey($module, 'EXPORT') {
+            my $EXPORT := self.stash_hash($module<EXPORT>);
+            my @to_import := ['MANDATORY'];
+            my @positional_imports := [];
+            if nqp::defined($arglist) {
+                my $Pair := self.find_symbol(['Pair']);
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        $tag := nqp::unbox_s($tag.key);
+                        if nqp::existskey($EXPORT, $tag) {
+                            self.import($/, self.stash_hash($EXPORT{$tag}), $package_source_name);
+                        }
+                        else {
+                            nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
+                        }
+                    }
+                    else {
+                        nqp::push(@positional_imports, $tag);
+                    }
+                }
+            }
+            else {
+                nqp::push(@to_import, 'DEFAULT');
+            }
+            for @to_import -> $tag {
+                if nqp::existskey($EXPORT, $tag) {
+                    self.import($/, self.stash_hash($EXPORT{$tag}), $package_source_name);
+                }
+            }
+            if nqp::existskey($module, '&EXPORT') {
+                my $result := $module<&EXPORT>(|@positional_imports);
+                my $EnumMap := self.find_symbol(['EnumMap']);
+                if nqp::istype($result, $EnumMap) {
+                    my $storage := $result.hash.FLATTENABLE_HASH();
+                    self.import($/, $storage, $package_source_name);
+                }
+                else {
+                    nqp::die("&EXPORT sub did not return an EnumMap");
+                }
+            }
+            else {
+                if +@positional_imports {
+                    nqp::die("Error while importing from '$package_source_name':
+ no EXPORT sub, but you provided positional argument in the 'use' statement");
+                }
+            }
+        }
+    }
+
+    method use_lib($/,$arglist) {
+        my $INC := %*PRAGMAS<INC> := %*PRAGMAS<INC>
+          ?? nqp::clone(%*PRAGMAS<INC>)
+          !! nqp::list();
+
+        for $arglist -> $arg {
+            $INC.unshift( nqp::index($arg,':') == -1
+              ?? nqp::hllizefor("file:$arg", 'perl6')
+              !! $arg
+            );
+        }
+    }
+
+    method INC_for_perl6($/) {
+        nqp::hllizefor(
+          %*PRAGMAS<INC> ?? nqp::clone(%*PRAGMAS<INC>) !! nqp::list(),
+          'perl6'
+        );
+    }
+
+    method do_pragma($/,$name,$on,$arglist) {
+
+        # XXX maybe we need a hash with code to execute
+        if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            %*PRAGMAS<MONKEY-TYPING> := $on;
+        }
+        elsif $name eq 'fatal' {
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            %*PRAGMAS<fatal> := $on;
+        }
+        elsif $name eq 'cur' {   # temporary, will become 'lib'
+            self.use_lib($/,$arglist);
+        }
+        elsif $name eq 'strict' {
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            $*STRICT  := $on;
+        }
+        elsif $name eq 'nqp' {
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            %*PRAGMAS<nqp> := $on;
+        }
+        elsif $name eq 'soft' {
+            # This is an approximation; need to pay attention to
+            # argument list really.
+            %*PRAGMAS<soft> := $on;
+        }
+        else {
+            return 0;                        # go try module
+        }
+        1;
+    }
+
+    method arglist($/) {
+        my $arglist;
+        if $<arglist><EXPR> -> $expr {
+            $arglist := nqp::getattr(
+              self.compile_time_evaluate($/,$expr.ast).list.eager,
+              self.find_symbol(['List']),
+              '$!items',
+            );
+        }
+        $arglist;
+    }
+
+    method do_pragma_or_load_module($/,$use,$thisname?) {
+        my $name;
+        my %cp;
+        my $arglist;
+
+        if $thisname {
+            $name := $thisname;
+        }
+        else {
+            my $lnd  := self.dissect_longname($<module_name><longname>);
+            $name    := $lnd.name;
+            %cp      := $lnd.colonpairs_hash($use ?? 'use' !! 'no');
+            $arglist := self.arglist($/);
+        }
+
+        unless %cp {
+            if self.do_pragma($/,$name,$use,$arglist) { return }
+        }
+
+        if $use {
+            my $module := self.load_module($/, $name, %cp, $*GLOBALish);
+            self.do_import($/, $module, $name, $arglist);
+            self.import_EXPORTHOW($/, $module);
+        }
+        else {
+            nqp::die("Don't know how to 'no $name' just yet");
+        }
+    }
     
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
@@ -358,7 +735,7 @@ class Perl6::World is HLL::World {
             for %opts {
                 self.add_object($_.value);
                 $opt_hash.push(QAST::SVal.new( :value($_.key) ));
-                my $Str := $*W.find_symbol(['Str']);
+                my $Str := self.find_symbol(['Str']);
                 if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
                     $opt_hash.push(QAST::SVal.new( :value($_.value) ));
                 }
@@ -510,7 +887,7 @@ class Perl6::World is HLL::World {
         # chunk already. If so, use it for that part of the name.
         if +@parts {
             try {
-                $cur_pkg := $*W.find_symbol([@parts[0]]);
+                $cur_pkg := self.find_symbol([@parts[0]]);
                 $cur_lex := 0;
                 $create_scope := 'our';
                 @parts.shift();
@@ -687,33 +1064,33 @@ class Perl6::World is HLL::World {
                 $con);
         }
         if $sigil eq '@' {
-            %info<bind_constraint> := $*W.find_symbol(['Positional']);
+            %info<bind_constraint> := self.find_symbol(['Positional']);
             if @value_type {
                 my $vtype              := @value_type[0];
                 my $base_type_name     := nqp::objprimspec($vtype) ?? 'array' !! 'Array';
-                %info<container_base>  := $*W.find_symbol([$base_type_name]);
-                %info<container_type>  := $*W.parameterize_type_with_args(
+                %info<container_base>  := self.find_symbol([$base_type_name]);
+                %info<container_type>  := self.parameterize_type_with_args(
                     %info<container_base>, [$vtype], nqp::hash());
-                %info<bind_constraint> := $*W.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args(
                     %info<bind_constraint>, [$vtype], nqp::hash());
                 %info<value_type>      := $vtype;
                 %info<default_value>   := $vtype;
             }
             else {
-                %info<container_base> := $*W.find_symbol(['Array']);
+                %info<container_base> := self.find_symbol(['Array']);
                 %info<container_type> := %info<container_base>;
-                %info<value_type>     := $*W.find_symbol(['Mu']);
-                %info<default_value>  := $*W.find_symbol(['Any']);
+                %info<value_type>     := self.find_symbol(['Mu']);
+                %info<default_value>  := self.find_symbol(['Any']);
             }
             if $shape {
-                $*W.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
+                self.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
             }
         }
         elsif $sigil eq '%' {
-            %info<container_base>  := $*W.find_symbol(['Hash']);
-            %info<bind_constraint> := $*W.find_symbol(['Associative']);
+            %info<container_base>  := self.find_symbol(['Hash']);
+            %info<bind_constraint> := self.find_symbol(['Associative']);
             if $shape {
-                @value_type[0] := $*W.find_symbol(['Any']) unless +@value_type;
+                @value_type[0] := self.find_symbol(['Any']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
                 if $shape_ast.isa(QAST::Stmts) {
                     if +@($shape_ast) == 1 {
@@ -722,51 +1099,55 @@ class Perl6::World is HLL::World {
                         } elsif (my $op_ast := $shape_ast[0]).isa(QAST::Op) {
                             if $op_ast.op eq "call" && +@($op_ast) == 2 {
                                 if !nqp::isconcrete($op_ast[0].value) && !nqp::isconcrete($op_ast[1].value) {
-                                    $*W.throw($/, 'X::Comp::NYI',
+                                    self.throw($/, 'X::Comp::NYI',
                                         feature => "coercive type declarations");
                                 }
                             }
                         } else {
-                            $*W.throw($/, "X::Comp::AdHoc",
+                            self.throw($/, "X::Comp::AdHoc",
                                 payload => "Invalid hash shape; type expected");
                         }
                     } elsif +@($shape_ast) > 1 {
-                        $*W.throw($/, 'X::Comp::NYI',
+                        self.throw($/, 'X::Comp::NYI',
                             feature => "multidimensional shaped hashes");
                     }
                 } else {
-                    $*W.throw($/, "X::Comp::AdHoc",
+                    self.throw($/, "X::Comp::AdHoc",
                         payload => "Invalid hash shape; type expected");
                 }
             }
             if @value_type {
-                %info<container_type>  := $*W.parameterize_type_with_args(
+                if nqp::objprimspec(@value_type[0]) {
+                    self.throw($/, 'X::Comp::NYI',
+                      feature => "native value types for hashes");
+                }
+                %info<container_type>  := self.parameterize_type_with_args(
                     %info<container_base>, @value_type, nqp::hash());
-                %info<bind_constraint> := $*W.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args(
                     %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
                 %info<default_value>   := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
-                %info<value_type>     := $*W.find_symbol(['Mu']);
-                %info<default_value>  := $*W.find_symbol(['Any']);
+                %info<value_type>     := self.find_symbol(['Mu']);
+                %info<default_value>  := self.find_symbol(['Any']);
             }
         }
         elsif $sigil eq '&' {
-            %info<container_base>  := $*W.find_symbol(['Scalar']);
+            %info<container_base>  := self.find_symbol(['Scalar']);
             %info<container_type>  := %info<container_base>;
-            %info<bind_constraint> := $*W.find_symbol(['Callable']);
+            %info<bind_constraint> := self.find_symbol(['Callable']);
             if @value_type {
-                %info<bind_constraint> := $*W.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
             }
             %info<value_type>     := %info<bind_constraint>;
-            %info<default_value>  := $*W.find_symbol(['Callable']);
-            %info<scalar_value>   := $*W.find_symbol(['Callable']);
+            %info<default_value>  := self.find_symbol(['Callable']);
+            %info<scalar_value>   := self.find_symbol(['Callable']);
         }
         else {
-            %info<container_base>     := $*W.find_symbol(['Scalar']);
+            %info<container_base>     := self.find_symbol(['Scalar']);
             %info<container_type>     := %info<container_base>;
             if @value_type {
                 %info<bind_constraint> := @value_type[0];
@@ -774,9 +1155,9 @@ class Perl6::World is HLL::World {
                 %info<default_value>   := @value_type[0];
             }
             else {
-                %info<bind_constraint> := $*W.find_symbol(['Mu']);
-                %info<value_type>      := $*W.find_symbol(['Mu']);
-                %info<default_value>   := $*W.find_symbol(['Any']);
+                %info<bind_constraint> := self.find_symbol(['Mu']);
+                %info<value_type>      := self.find_symbol(['Mu']);
+                %info<default_value>   := self.find_symbol(['Any']);
             }
             %info<scalar_value> := %info<default_value>;
         }
@@ -1183,13 +1564,13 @@ class Perl6::World is HLL::World {
             $i++;
         }
         nqp::bindattr($signature, $sig_type, '$!arity',
-            $*W.add_constant('Int', 'int', $arity).value);
+            self.add_constant('Int', 'int', $arity).value);
         if $count == -1 {
             nqp::bindattr($signature, $sig_type, '$!count',
-                $*W.add_constant('Num', 'num', nqp::inf()).value);
+                self.add_constant('Num', 'num', nqp::inf()).value);
         } else {
             nqp::bindattr($signature, $sig_type, '$!count',
-                $*W.add_constant('Int', 'int', $count).value);
+                self.add_constant('Int', 'int', $count).value);
         }
 
         # Return created signature.
@@ -2467,7 +2848,7 @@ class Perl6::World is HLL::World {
                 my $cp_str;
                 if %*COMPILING<%?OPTIONS><setting> ne 'NULL' {
                     # Safe to evaluate it directly; no bootstrap issues.
-                    $cp_str := ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>';
+                    $cp_str := ':<' ~ ~self.compile_time_evaluate($_, $_.ast) ~ '>';
                 }
                 else {
                     my $ast := $_.ast;
@@ -2684,7 +3065,7 @@ class Perl6::World is HLL::World {
                     # Lookups start at the :: root.
                     $lookup := QAST::Op.new(
                         :op('callmethod'), :name('new'),
-                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
+                        QAST::WVal.new( :value(self.find_symbol(['PseudoStash'])) )
                     );
                 }
                 $lookup := QAST::Op.new(
@@ -3090,7 +3471,7 @@ class Perl6::World is HLL::World {
             }
         }
         if $nok {
-            $*W.rethrow($/, $ex);
+            self.rethrow($/, $ex);
         } else {
             $res;
         }
@@ -3160,7 +3541,8 @@ my class Perl5ModuleLoaderStub {
         {
             nqp::gethllsym('perl6', 'ModuleLoader').load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
             CATCH {
-                nqp::die("Please install Inline::Perl5 for Perl 5 support");
+                $*W.find_symbol(nqp::list('X','NYI','Available')).new(
+                    :available('Inline::Perl5'), :feature('Perl 5')).throw;
             }
         }
 

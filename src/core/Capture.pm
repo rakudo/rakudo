@@ -22,7 +22,7 @@ my class Capture { # declared in BOOTSTRAP
         if $!list {
             $WHICH ~= '|';
             $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
-              for $!list;
+              for flat $!list;
         }
         if $!hash {
             $WHICH ~= '|';
@@ -91,19 +91,18 @@ my class Capture { # declared in BOOTSTRAP
     }
     multi method gist(Capture:D:) { self.perl }
     multi method perl(Capture:D:) {
-        my @list := self.list;
         my %hash := self.hash;
         if self.^name eq 'Capture' {
             "\\({
                 join ', ', 
-                    (@list[$_].perl for ^@list.elems),
+                    (nqp::atpos($!list, $_).perl for ^nqp::elems($!list)),
                     %hash.sort.map( *.perl )
             })";
         } else {
             self.^name
               ~ '.new('
-              ~ ( 'list => (' ~ (@list[$_].perl for ^@list.elems).join(', ') ~ ',)' if +@list)
-              ~ (', ' if +@list and +%hash)
+              ~ ( 'list => (' ~ (nqp::atpos($!list, $_).perl for ^nqp::elems($!list)).join(', ') ~ ',)' if $!list)
+              ~ (', ' if +$!list and +%hash)
               ~ ( 'hash => {' ~ %hash.sort.map( *.perl ).join(', ') ~ '}' if +%hash)
               ~ ')';
         }

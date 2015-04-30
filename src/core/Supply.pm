@@ -342,28 +342,52 @@ my role Supply {
     }
 
     proto method rotor(|) {*}
-    multi method rotor(Supply:D $self: Pair $teeth-gap) { self.rotor($teeth-gap.key, -$teeth-gap.value) }
-    multi method rotor(Supply:D $self: $elems? is copy, $overlap? is copy ) {
-
-        $elems   //= 2;
-        $overlap //= 1;
-        return $self if $elems == 1 and $overlap == 0;  # nothing to do
+    multi method rotor(Supply:D:) {
+        DEPRECATED('.rotor( $elems => -$gap )',|<2015.04 2015.09>);
+        self.rotor( (2 => -1) );
+    }
+    multi method rotor(Supply:D $self: *@cycle, :$partial) {
+        my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
 
         on -> $res {
             $self => do {
+                my Int $elems;
+                my Int $gap;
+                my int $to-skip;
+                my int $skip;
+                sub next-batch() {
+                    given @c.shift {
+                        when Pair {
+                            $elems   = +.key;
+                            $gap     = +.value;
+                            $to-skip = $gap > 0 ?? $gap !! 0;
+                        }
+                        default {
+                            $elems   = +$_;
+                            $gap     = 0;
+                            $to-skip = 0;
+                        }
+                    }
+                }
+                next-batch;
+
                 my @batched;
-                sub flush {
+                sub flush() {
                     $res.emit( [@batched] );
-                    @batched.splice( 0, +@batched - $overlap );
+                    @batched.splice( 0, +@batched + $gap );
+                    $skip = $to-skip;
                 }
 
                 {
                     emit => -> \val {
-                        @batched.push: val;
-                        flush if @batched.elems == $elems;
+                        @batched.push: val unless $skip && $skip--;
+                        if @batched.elems == $elems {
+                            flush;
+                            next-batch;
+                        }
                     },
                     done => {
-                        flush if @batched;
+                        flush if @batched and $partial;
                         $res.done;
                     }
                 }

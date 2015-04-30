@@ -15,7 +15,7 @@ my class Variable {
     has $.slash;
 
     # make throwing easier
-    submethod throw ( |c ) is hidden-from-backtrace {
+    submethod throw ( |c ) {
         $*W.throw( self.slash, |c );
     }
 }

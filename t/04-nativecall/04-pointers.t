@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 13;
+plan 15;
 
 compile_test_lib('04-pointers');
 
@@ -28,3 +28,30 @@ is Pointer.gist,           '(Pointer)',       'The Pointer type object gistifies
 is ReturnNullPointer().gist, '(Pointer)',     'A returned NULL pointer is the Pointer type object itself';
 ok ReturnNullPointer().defined == False,      'A returned NULL pointer is the Pointer type object itself';
 ok ReturnNullPointer().Bool == False,         'A returned NULL pointer is the Pointer type object itself';
+
+{
+    eval_lives_ok q:to 'CODE', 'Signature matching with Pointer[Int] works (RT #124321)';
+        use NativeCall;
+
+        sub TakeTwoPointersToInt( Pointer[Int], Pointer[Int] )
+          is native( './04-pointers' ) { * }
+
+        my Pointer[Int] $r;
+        my Pointer[Int] $c;
+
+        TakeTwoPointersToInt( $r, $c );
+        CODE
+}
+
+{
+    eval_lives_ok q:to 'CODE', 'Signature matching with CArray[Int] works';
+        use NativeCall;
+
+        sub TakeCArrayToInt8( CArray[int8] )
+          is native( './04-pointers' ) { * }
+
+        my CArray[int8] $x;
+
+        TakeCArrayToInt8( $x );
+        CODE
+}

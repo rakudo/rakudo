@@ -30,7 +30,7 @@ my class Backtrace::Frame {
                 my $to   = min $!line + $extra, +@lines;
                 for $from..$to -> $line {
                     my $star = $line == $!line ?? '*' !! ' ';
-                    $text ~= "$line.fmt('%5d') $star@lines[$line - 1]\n";
+                    $text ~= "$line.fmt('%5d')$star @lines[$line - 1]\n";
                 }
                 $text ~= "\n";
             }

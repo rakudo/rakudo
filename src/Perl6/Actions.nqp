@@ -1933,11 +1933,7 @@ Compilation unit '$file' contained the following violations:
             $past := QAST::WVal.new( :value($pragmas) );
         }
         elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {
-            my $debug := nqp::hllizefor(
-              +nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0
-            ), 'perl6');
-            $*W.add_object($debug);
-            $past := QAST::WVal.new( :value($debug) );
+            $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
         }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));

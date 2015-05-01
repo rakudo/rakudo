@@ -341,7 +341,7 @@ my class DateTime does Dateish {
 
         given $unit {
             when 'second' | 'seconds' {
-                return self.new(self.Instant + $amount, :$.timezone);
+                return self.new(self.Instant + $amount, :$.timezone, :&.formatter);
             }
 
             when 'minute' | 'minutes' { $minute += $amount; proceed }

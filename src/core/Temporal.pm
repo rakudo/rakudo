@@ -390,7 +390,7 @@ my class DateTime does Dateish {
                 }
             }
         }
-        self.new(:$date, :$hour, :$minute, :$second, :$.timezone);
+        self.new(:$date, :$hour, :$minute, :$second, :$.timezone, :&.formatter);
     }
 
     method earlier(*%unit) {

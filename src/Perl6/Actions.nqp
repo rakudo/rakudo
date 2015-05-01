@@ -4988,9 +4988,20 @@ Compilation unit '$file' contained the following violations:
                 # first item is a pair
                 $is_hash := 1;
             }
-            elsif $elem ~~ QAST::Var
-                    && nqp::eqat($elem.name, '%', 0) {
-                # first item is a hash
+            elsif $elem ~~ QAST::Op && $elem.op eq 'call' &&
+                    $elem[0] ~~ QAST::Op && $elem[0].name eq '&METAOP_REVERSE' &&
+                    $elem[0][0] ~~ QAST::Var && $elem[0][0].name eq '&infix:<=>>' {
+                # first item is a pair constructed with R=>
+                $is_hash := 1;
+            }
+            elsif $elem ~~ QAST::Var && nqp::eqat($elem.name, '%', 0) {
+                # first item is a hash (%foo or %!foo)
+                $is_hash := 1;
+            }
+            elsif $elem ~~ QAST::Op && $elem.name eq '&DYNAMIC' &&
+                    $elem[0] ~~ QAST::Want && $elem[0][1] eq 'Ss' &&
+                    $elem[0][2] ~~ QAST::SVal && nqp::substr($elem[0][2].value, 0, 1) eq '%' {
+                # first item is a hash (%*foo)
                 $is_hash := 1;
             }
         }

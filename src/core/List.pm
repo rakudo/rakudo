@@ -179,7 +179,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method pick() {
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
+        $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
     }
     multi method pick(Whatever, :$eager!) {
         return self.pick(*) if !$eager;
@@ -228,7 +228,7 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless $elems;
 
         my int $n = number > $elems ?? $elems !! number.Int;
-        return self.AT-POS($elems.rand.floor) if $n == 1;
+        return nqp::atpos($!items,$elems.rand.floor) if $n == 1;
 
         my Mu $rpa := nqp::clone($!items);
         my int $i;
@@ -380,18 +380,30 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method roll() {
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
-        $elems ?? self.AT-POS($elems.rand.floor) !! Nil;
+        $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
     }
-    multi method roll($n is copy) {
+    multi method roll(Whatever) {
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         return unless $elems;
-        $n = Inf if nqp::istype($n, Whatever);
-        return self.AT-POS($elems.rand.floor) if $n == 1;
+
+        my $list := gather loop {
+            take nqp::atpos($!items,$elems.rand.floor);
+        }
+        nqp::bindattr($list,List,'$!infinite',True);
+        $list;
+    }
+    multi method roll(\number) {
+        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
+        my $elems = self.elems;
+        return unless $elems;
+
+        my int $n = number.Int;
+        return nqp::atpos($!items,$elems.rand.floor) if $n == 1;
 
         gather while $n > 0 {
-            take nqp::atpos($!items, nqp::unbox_i($elems.rand.floor.Int));
-            $n--;
+            take nqp::atpos($!items,$elems.rand.floor);
+            $n = $n - 1;
         }
     }
 

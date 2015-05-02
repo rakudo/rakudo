@@ -190,14 +190,14 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless $elems;
 
         my Mu $picked := nqp::clone($!items);
-        my Int $i;
+        my int $i;
         my Mu $val;
         while $elems {
-            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $i     = $elems.rand.floor;
             $elems = $elems - 1;
             # switch them
-            $val  := nqp::atpos($picked,nqp::unbox_i($i));
-            nqp::bindpos($picked,nqp::unbox_i($i),nqp::atpos($picked,nqp::unbox_i($elems)));
+            $val  := nqp::atpos($picked,$i);
+            nqp::bindpos($picked,$i,nqp::atpos($picked,nqp::unbox_i($elems)));
             nqp::bindpos($picked,nqp::unbox_i($elems),$val);
         }
         nqp::p6parcel($picked,Any);
@@ -209,13 +209,13 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless $elems;
 
         my Mu $rpa := nqp::clone($!items);
-        my Int $i;
+        my int $i;
         gather while $elems {
-            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $i     = $elems.rand.floor;
             $elems = $elems - 1;
-            take-rw nqp::atpos($rpa,nqp::unbox_i($i));
+            take-rw nqp::atpos($rpa,$i);
             # replace selected element with last unpicked one
-            nqp::bindpos($rpa,nqp::unbox_i($i),nqp::atpos($rpa,nqp::unbox_i($elems)));
+            nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
         }
     }
     multi method pick(\number) {
@@ -231,14 +231,14 @@ my class List does Positional { # declared in BOOTSTRAP
         return self.AT-POS($elems.rand.floor) if $n == 1;
 
         my Mu $rpa := nqp::clone($!items);
-        my Int $i;
+        my int $i;
         gather while $n {
-            $i     = nqp::rand_I(nqp::decont($elems), Int);
+            $i     = $elems.rand.floor;
             $elems = $elems - 1;
             $n     = $n - 1;
-            take-rw nqp::atpos($rpa,nqp::unbox_i($i));
+            take-rw nqp::atpos($rpa,$i);
             # replace selected element with last unpicked one
-            nqp::bindpos($rpa,nqp::unbox_i($i),nqp::atpos($rpa,nqp::unbox_i($elems)));
+            nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
         }
     }
 

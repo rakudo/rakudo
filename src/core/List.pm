@@ -394,6 +394,8 @@ my class List does Positional { # declared in BOOTSTRAP
         $list;
     }
     multi method roll(\number) {
+        return self.roll(*) if number == Inf;
+
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
         return unless $elems;

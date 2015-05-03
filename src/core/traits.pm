@@ -504,7 +504,7 @@ multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
       line       => $?LINE,
       type       => 'will',
       subtype    => c.hash.keys[0],
-      declaring  => ' attribute',
+      declaring  => 'n attribute',
       highexpect => <lazy>,
     ).throw;
 }

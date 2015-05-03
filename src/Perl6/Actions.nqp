@@ -392,8 +392,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @violations := @*NQP_VIOLATIONS;
         if @violations {
             my $file := nqp::getlexdyn('$?FILES');
-            my $text := "===============================================================================
-The use of nqp::operations has been deprecated for non-CORE code.  Please
+            my $bar  := nqp::gethostname() eq 'ns1'
+              ?? ""
+              !! '===============================================================================
+';
+            my $text := $bar ~ "The use of nqp::operations has been deprecated for non-CORE code.  Please
 change your code to not use these non-portable functions.  If you really want
 to keep using nqp::operations in your Perl6 code, you must add a:
 
@@ -415,9 +418,7 @@ Compilation unit '$file' contained the following violations:
                   ~ " Line $line:\n"
                   ~ "  nqp::$oplist\n";
             }
-            nqp::printfh(nqp::getstderr(),$text
-              ~ "===============================================================================
-");
+            nqp::printfh(nqp::getstderr(),$text ~ $bar);
         }
         make $compunit;
     }

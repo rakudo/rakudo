@@ -140,8 +140,8 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$init! ) {
 #    $*W.add_phaser($v.slash, 'INIT', $block)  # doesn't work :-(
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
-# for some reason exceptions are caught and not rethrown
-#    $*W.add_phaser($v.slash, 'END', $block)  # doesn't work :-(
+    $*W.add_object($block);
+    $*W.add_phaser($v.slash, 'END', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
     $v.block.add_phaser('ENTER', $block)

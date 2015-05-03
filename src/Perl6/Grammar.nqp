@@ -2915,7 +2915,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule trait_mod:sym<is>      { <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'>] }
     rule trait_mod:sym<hides>   { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<does>    { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
-    rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock> }
+    rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock(1)> }
     rule trait_mod:sym<of>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<as>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<returns> { <sym> [ <typename> || <.panic: 'Invalid typename'>] }

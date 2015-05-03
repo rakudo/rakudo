@@ -236,7 +236,7 @@ multi sub is-approx(Mu $got, Mu $expected, $desc = '') is export {
 multi sub todo($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     $todo_upto_test_num = $num_of_tests_run + $count;
-    $todo_reason = '# TODO ' ~ $reason;
+    $todo_reason = '# TODO ' ~ $reason.subst(:g, '#', '\\#');
     $time_before = nqp::time_n;
 }
 

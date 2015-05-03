@@ -128,7 +128,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $block(); # no need to delay execution
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$check! ) {
-    $*W.add_phaser($v.slash, 'CHECK', $block)
+    $*W.add_phaser($v.slash, 'CHECK', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$final! ) {
     $v.throw( 'X::Comp::NYI',
@@ -136,36 +136,36 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$final! ) {
     );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$init! ) {
-# for some reason exceptions are caught and not rethrown
-#    $*W.add_phaser($v.slash, 'INIT', $block)  # doesn't work :-(
+#    $*W.add_object($block);
+#    $*W.add_phaser($v.slash, 'INIT', $block);    # doesn't work yet  :-(
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
     $*W.add_object($block);
     $*W.add_phaser($v.slash, 'END', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
-    $v.block.add_phaser('ENTER', $block)
+    $v.block.add_phaser('ENTER', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
-    $v.block.add_phaser('LEAVE', $block)
+    $v.block.add_phaser('LEAVE', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$keep! ) {
-    $v.block.add_phaser('KEEP', $block)
+    $v.block.add_phaser('KEEP', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
-    $v.block.add_phaser('UNDO', $block)
+    $v.block.add_phaser('UNDO', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$first! ) {
-    $v.block.add_phaser('FIRST', $block)
+    $v.block.add_phaser('FIRST', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$next! ) {
-    $v.block.add_phaser('NEXT', $block)
+    $v.block.add_phaser('NEXT', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$last! ) {
-    $v.block.add_phaser('LAST', $block)
+    $v.block.add_phaser('LAST', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
-    $v.block.add_phaser('PRE', $block)
+    $v.block.add_phaser('PRE', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$post! ) {
 # for some reason exceptions are caught and not rethrown

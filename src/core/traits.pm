@@ -513,8 +513,7 @@ multi sub trait_mod:<will>(Attribute:D $attr, $block, :$lazy!) {
         method compose(|) {
             callsame();
             $attr.package.^method_table{$attr.name.substr(2)}.wrap(-> \self {
-                once $attr.set_value(self, $block());
-                callsame();
+                callsame() // $attr.set_value(self, $block());
             });
         }
     }

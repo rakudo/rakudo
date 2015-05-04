@@ -141,6 +141,9 @@ sub PARSE-INCLUDE-SPECS(Str:D $specs) {
     my @found;
     my $default-short-id = 'file';
 
+RAKUDO_MODULE_DEBUG("Parsing specs: $specs")
+  if $?RAKUDO_MODULE_DEBUG;
+
     # for all possible specs
     for $specs.split(/ \s* ',' \s* /) -> $spec {
         if PARSE-INCLUDE-SPEC($spec, $default-short-id) -> $triplet {
@@ -150,7 +153,7 @@ sub PARSE-INCLUDE-SPECS(Str:D $specs) {
               $triplet[2];
             $default-short-id = $triplet[0];
         }
-        else {
+        elsif $spec {
             die "Don't know how to handle $spec";
         }
     }

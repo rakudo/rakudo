@@ -6,6 +6,8 @@ class CompUnitRepo {
     my Mu $p6ml := nqp::gethllsym('perl6', 'ModuleLoader');
     my $lock     = Lock.new;
 
+    method new(Str $spec) { INCLUDE-SPEC2CUR($spec) }
+
     method files($file, :$name, :$auth, :$ver) {
         for @*INC -> $spec {
             if INCLUDE-SPEC2CUR($spec) -> $cur {

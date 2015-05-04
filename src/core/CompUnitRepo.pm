@@ -7,8 +7,8 @@ class CompUnitRepo {
     my $lock     = Lock.new;
 
     method files($file, :$name, :$auth, :$ver) {
-        for @*INC {
-            if nqp::istype($_,Str) ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+        for @*INC -> $spec {
+            if INCLUDE-SPEC2CUR($spec) -> $cur {
                 if $cur.files($file, :$name,:$auth,:$ver).list -> @candi {
                     return @candi;
                 }
@@ -18,8 +18,12 @@ class CompUnitRepo {
     }
 
     method candidates($name, :$file, :$auth, :$ver) {
-        for @*INC {
-            if nqp::istype($_,Str) ?? CompUnitRepo::Local::File.new($_) !! $_ -> $cur {
+        for @*INC -> $spec {
+
+RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
+  if $?RAKUDO_MODULE_DEBUG;
+
+            if INCLUDE-SPEC2CUR($spec) -> $cur {
                 if $cur.candidates($name, :$file,:$auth,:$ver).list -> @candi {
                     return @candi;
                 }
@@ -54,90 +58,105 @@ class CompUnitRepo {
     }
 }
 
-# prime the short-id -> class lookup
-my %SHORT-ID2CLASS = (
-  file => CompUnitRepo::Local::File,
-  inst => CompUnitRepo::Local::Installation,
-);
+sub SHORT-ID2CLASS(Str:D $short-id) {
+    state %SHORT-ID2CLASS;
+    state $lock = Lock.new;
 
-sub SHORT-ID(Str \spec) {
-    my $index = spec.index(":");
-    $index.defined ?? substr(spec,0,$index) !! '';
+    Proxy.new(
+      FETCH => {
+          $lock.protect( {
+              if %SHORT-ID2CLASS.EXISTS-KEY($short-id) {
+                  %SHORT-ID2CLASS.AT-KEY($short-id);
+              }
+              else {
+                  my $type = try ::($short-id);
+                  if $type !=== Any {
+                      if $type.?short-id -> $id {
+                          die "Have '$id' already registered for %SHORT-ID2CLASS{$id}.^name()"
+                            if %SHORT-ID2CLASS.EXISTS-KEY($id);
+                          %SHORT-ID2CLASS.BIND-KEY($id,$type);
+                      }
+                      else {
+                          die "Class '$type.^name()' is not a CompUnitRepo";
+                      }
+                  } 
+                  else {
+                      die "No CompUnitRepo known by '$short-id'";
+                  }
+              }
+          } );
+      },
+      STORE => -> $, $class {
+          my $type = ::($class);
+          die "Must load class '$class' first" if nqp::istype($type,Failure);
+          $lock.protect( { %SHORT-ID2CLASS{$short-id} := $type } );
+      },
+    );
 }
 
-sub PARSE-INCLUDE-SPEC(Str $specs) {
+# prime the short-id -> class lookup
+SHORT-ID2CLASS('file') = 'CompUnitRepo::Local::File';
+SHORT-ID2CLASS('inst') = 'CompUnitRepo::Local::Installation';
+
+sub INCLUDE-SPEC2CUR(Str:D $spec) {
+    state %INCLUDE-SPEC2CUR;
+    state $lock = Lock.new;
+
+    my ($short-id,%options,$path) := PARSE-INCLUDE-SPEC($spec);
+    my $class = SHORT-ID2CLASS($short-id);
+    die "No class loaded for short-id '$short-id': $spec -> $path" 
+      if $class === Any;
+
+    my $abspath = $class.?absolutify($path) // $path;
+    my $id      = "$short-id:$abspath";
+    $lock.protect( {
+        %INCLUDE-SPEC2CUR{$id}:exists
+          ?? %INCLUDE-SPEC2CUR{$id}
+          !! (%INCLUDE-SPEC2CUR{$id} := $class.new($abspath,|%options));
+    } );
+}
+
+sub PARSE-INCLUDE-SPEC(Str:D $spec, Str:D $default-short-id = 'file') {
+    my %options;
+
+    # something we understand
+    if $spec ~~ /^
+      [
+        $<type>=[ <.ident>+ % '::' ]
+        [ '#' $<n>=\w+
+          <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
+          { %options{$<n>} = ~$<v> }
+        ]*
+        '#'
+      ]?
+      $<path>=.+
+    $/ {
+        ( ~$<type> || $default-short-id, %options, ~$<path> );
+    }
+}
+
+sub PARSE-INCLUDE-SPECS(Str:D $specs) {
     my @found;
-    my $class = %SHORT-ID2CLASS<file>;
+    my $default-short-id = 'file';
 
     # for all possible specs
     for $specs.split(/ \s* ',' \s* /) -> $spec {
-        my %options;
-
-        # something we understand
-        if $spec ~~ /^
-          [
-            $<type>=[ <.ident>+ % '::' ]
-            [ ':' $<n>=\w+
-              <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
-              { %options{$<n>} = ~$<v> }
-            ]*
-            ':'
-          ]?
-          $<path>=.+
-        $/ {
-
-            # a type (short-id or class name) was specified
-            if $<type> -> $this {
-                for %SHORT-ID2CLASS{ $class = ~$this }:v -> $type {
-                    $class = $type;
-                }
-            }
-
-            # still don't have a type object
-            if nqp::istype($class,Str) {
-                my $type = ::($class);
-
-                # alas, no a known class
-                if nqp::istype($type,Failure) {
-
-                    # it's a short-id
-                    if %SHORT-ID2CLASS.EXISTS-KEY($class) {
-                        $class = %SHORT-ID2CLASS{$class}
-                    }
-
-                    # give up
-                    else {
-                        die $class ~~ m/\:/
-                          ?? "Must load class '$class' first"
-                          !! "Unknown short-id '$class'";
-                    }
-                }
-
-                # successfully converted string to type
-                else {
-                    $class = $type;
-                    %SHORT-ID2CLASS{$class.short-id} //= $class;
-                }
-            }
-
-            # keep this one
-            @found.push: $(my $ = $class, ~$<path>, %options);
+        if PARSE-INCLUDE-SPEC($spec, $default-short-id) -> $triplet {
+            @found.push: join "#",
+              $triplet[0],
+              $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }),
+              $triplet[2];
+            $default-short-id = $triplet[0];
         }
-
-        # huh?
-        elsif $spec ~~ m/\w+/ {
-            die "Don't know what to do with '$spec'";
+        else {
+            die "Don't know how to handle $spec";
         }
     }
     @found;
 }
 
-sub CREATE-INCLUDE-SPEC(@INC) {
-    my $root = $*CWD ~ '/';
-    @INC.map( {
-        (nqp::istype($_,CompUnitRepo::Locally) ?? .short-id !! .^name)
-         ~ ':' ~ REMOVE-ROOT($root,.IO.abspath);
-    } ).join(',');
-}
+sub CREATE-INCLUDE-SPECS(*@INC) { @INC.join(',') }
 
-# vim: ft=perl6 expandtab sw=4
+sub RAKUDO_MODULE_DEBUG(*@str) { note "MODULE_DEBUG: @str[]" }
+
+# vim: ft=perl6 expy andtab sw=4

@@ -37,7 +37,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $name;
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
-    my @installations = @*INC.grep(CompUnitRepo::Local::Installation);
+    my @installations = @*INC.grep( { .starts-with("inst#") } );
     my @binaries = @installations>>.files(\'bin/#name#\', :$name, :$auth, :$ver);
     unless +@binaries {
         @binaries = @installations>>.files(\'bin/#name#\');

@@ -633,7 +633,10 @@ class Perl6::World is HLL::World {
           !! nqp::list();
 
         for $arglist -> $arg {
-            $INC.unshift($arg);
+            $INC.unshift( nqp::index($arg,'#') == -1
+              ?? nqp::hllizefor("file#$arg", 'perl6')
+              !! $arg
+            );
         }
     }
 

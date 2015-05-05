@@ -22,7 +22,7 @@ my class Backtrace::Frame {
         $s ~= ' ' if $s.chars;
         my $text = "  in {$s}$.subname at {$.file}:$.line\n";
 
-        if try +%*ENV<RAKUDO_VERBOSE_STACKFRAME> -> $extra {
+        if +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0) -> $extra {
             my $io = $!file.IO;
             if $io.e {
                 my @lines := $io.lines;

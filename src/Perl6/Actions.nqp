@@ -1935,11 +1935,6 @@ Compilation unit '$file' contained the following violations:
             $*W.add_object($p6inc);
             $past := QAST::WVal.new( :value($p6inc) );
         }
-        elsif $past.name() eq '%?PRAGMAS' {
-            my $pragmas := nqp::hllizefor(nqp::clone(%*PRAGMAS), 'perl6');
-            $*W.add_object($pragmas);
-            $past := QAST::WVal.new( :value($pragmas) );
-        }
         elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {
             $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
         }

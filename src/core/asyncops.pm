@@ -49,6 +49,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
     my @todo;
 #       |-- [ ordinal, kind, contestant, block, alternate_block? ]
     my %distinct-channels;
+    my %channels-by-kind;
 
     # sanity check and transmogrify possibly multiple channels into things to do
     while +@other {
@@ -68,21 +69,35 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
         my &block = @other.shift;
 
         for @contestant {
-            %distinct-channels{$_.WHICH} = $_;
+            %channels-by-kind{$kind}{$_.WHICH} = $_;
             @todo.push: [ +@todo, $kind, $_, &block ];
         }
     }
 
-    # transmogrify any earliest spec if nothing to do so far
-    if !@todo {
-        for @earliest {
-            when Channel {
-                %distinct-channels{$_.WHICH} = $_;
-                @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more, $wild_done ];
+    %distinct-channels = %channels-by-kind.values>>.pairs.flat;
+
+    # for the channels specified directly to the earliest then
+    # if they have not already got a done or more then add one
+    
+    for @earliest {
+        when Channel {
+            my $n = $_.WHICH;
+
+            if $wild_more.defined {
+                if not %channels-by-kind{$EARLIEST_KIND_MORE}{$n}:exists {
+                    @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more ];
+                    %distinct-channels{$n} = $_;
+                }
             }
-            default {
-                die "Got a {$_.WHAT.perl}, but expected a Channel";
+            if $wild_done.defined {
+                if not %channels-by-kind{$EARLIEST_KIND_DONE}{$n}:exists {
+                    @todo.push: [ +@todo, $EARLIEST_KIND_DONE, $_, $wild_done ];
+                    %distinct-channels{$n} = $_;
+                }
             }
+        }
+        default {
+            die "Got a {$_.WHAT.perl}, but expected a Channel";
         }
     }
 

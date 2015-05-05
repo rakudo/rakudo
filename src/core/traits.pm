@@ -498,7 +498,27 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
 }
 
 proto sub trait_mod:<will>(|) { * }
-multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {
+multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
+    X::Comp::Trait::Unknown.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'will',
+      subtype    => c.hash.keys[0],
+      declaring  => 'n attribute',
+      highexpect => <lazy>,
+    ).throw;
+}
+multi sub trait_mod:<will>(Attribute:D $attr, $block, :$lazy!) {
+    $attr does role {
+        method compose(|) {
+            callsame();
+            $attr.package.^method_table{$attr.name.substr(2)}.wrap(-> \self {
+                callsame() // $attr.set_value(self, $block());
+            });
+        }
+    }
+}
+multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {  # internal usage
     $attr.set_build($build)
 }
 

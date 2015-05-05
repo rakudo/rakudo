@@ -31,7 +31,7 @@ my class X::NYI { ... }
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is rw {
-    die "Indexing requires an instance, tried to do: {SELF.VAR.name}[ {$type.gist} ]";
+    die "Indexing requires an instance, tried to do: {try SELF.VAR.name}[ {$type.gist} ]";
 }
 
 # @a[int 1]

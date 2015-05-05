@@ -27,8 +27,8 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method EXISTS-KEY(|) is nodal { * }
-    multi method EXISTS-KEY(Any:U: $) is nodal { False }
-    multi method EXISTS-KEY(Any:D: $) is nodal { False }
+    multi method EXISTS-KEY(Any:U: $) { False }
+    multi method EXISTS-KEY(Any:D: $) { False }
 
     method delete_key(|c) is nodal {
         DEPRECATED('DELETE-KEY',|<2015.03 2015.09>);
@@ -36,8 +36,8 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method DELETE-KEY(|) is nodal { * }
-    multi method DELETE-KEY(Any:U: $) is nodal { Nil }
-    multi method DELETE-KEY(Any:D: $) is nodal {
+    multi method DELETE-KEY(Any:U: $) { Nil }
+    multi method DELETE-KEY(Any:D: $) {
         fail "Can not remove values from a {self.^name}";
     }
 
@@ -47,30 +47,30 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method DELETE-POS(|) is nodal { * }
-    multi method DELETE-POS(Any:U: $pos) is nodal { Nil }
-    multi method DELETE-POS(Any:D: $pos) is nodal {
+    multi method DELETE-POS(Any:U: $pos) { Nil }
+    multi method DELETE-POS(Any:D: $pos) {
         fail "Can not remove elements from a {self.^name}";
     }
 
     proto method list(|) is nodal { * }
-    multi method list(Any:U:) is nodal { nqp::p6list(nqp::list(),     List, Mu) }
-    multi method list(Any:D:) is nodal { nqp::p6list(nqp::list(self), List, Mu) }
+    multi method list(Any:U:) { nqp::p6list(nqp::list(),     List, Mu) }
+    multi method list(Any:D:) { nqp::p6list(nqp::list(self), List, Mu) }
 
     proto method flat(|) is nodal { * }
-    multi method flat(Any:U:) is nodal { nqp::p6list(nqp::list(),     List, Bool::True) }
-    multi method flat(Any:D:) is nodal { nqp::p6list(nqp::list(self), List, Bool::True) }
+    multi method flat(Any:U:) { nqp::p6list(nqp::list(),     List, Bool::True) }
+    multi method flat(Any:D:) { nqp::p6list(nqp::list(self), List, Bool::True) }
 
     proto method eager(|) is nodal { * }
-    multi method eager(Any:U:) is nodal {
+    multi method eager(Any:U:) {
         nqp::p6list(nqp::list(),     List, Mu).eager;
     }
-    multi method eager(Any:D:) is nodal {
+    multi method eager(Any:D:) {
         nqp::p6list(nqp::list(self), List, Mu).eager;
     }
 
     proto method hash(|) is nodal { * }
-    multi method hash(Any:U:) is nodal { my % = () }
-    multi method hash(Any:D:) is nodal { my % = self }
+    multi method hash(Any:U:) { my % = () }
+    multi method hash(Any:D:) { my % = self }
     method Hash() is nodal { self.hash }
 
     # derived from .list
@@ -78,38 +78,38 @@ my class Any { # declared in BOOTSTRAP
     method List() is nodal { self.list }
 
     proto method elems(|) is nodal { * }
-    multi method elems(Any:U:) is nodal { 0 }
-    multi method elems(Any:D:) is nodal { self.list.elems }
+    multi method elems(Any:U:) { 0 }
+    multi method elems(Any:D:) { self.list.elems }
 
     proto method end(|) is nodal { * }
-    multi method end(Any:U:) is nodal { -1 }
-    multi method end(Any:D:) is nodal { self.list.end }
+    multi method end(Any:U:) { -1 }
+    multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal { * }
-    multi method keys(Any:U:) is nodal { ().list }
-    multi method keys(Any:D:) is nodal { self.list.keys }
+    multi method keys(Any:U:) { ().list }
+    multi method keys(Any:D:) { self.list.keys }
 
     proto method kv(|) is nodal { * }
-    multi method kv(Any:U:) is nodal { ().list }
-    multi method kv(Any:D:) is nodal { self.list.kv }
+    multi method kv(Any:U:) { ().list }
+    multi method kv(Any:D:) { self.list.kv }
 
     proto method values(|) is nodal { * }
-    multi method values(Any:U:) is nodal { ().list }
-    multi method values(Any:D:) is nodal { self.list }
+    multi method values(Any:U:) { ().list }
+    multi method values(Any:D:) { self.list }
 
     proto method pairs(|) is nodal { * }
-    multi method pairs(Any:U:) is nodal { ().list }
-    multi method pairs(Any:D:) is nodal { self.list.pairs }
+    multi method pairs(Any:U:) { ().list }
+    multi method pairs(Any:D:) { self.list.pairs }
 
     proto method antipairs(|) is nodal { * }
-    multi method antipairs(Any:U:) is nodal { ().list }
-    multi method antipairs(Any:D:) is nodal { self.list.antipairs }
+    multi method antipairs(Any:U:) { ().list }
+    multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal { * }
 
     proto method pairup(|) is nodal { * }
-    multi method pairup(Any:U:) is nodal { ().list }
-    multi method pairup(Any:D:) is nodal {
+    multi method pairup(Any:U:) { ().list }
+    multi method pairup(Any:D:) {
 
         my $list := self.list;
         my int $i;
@@ -147,26 +147,26 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method pick(|) is nodal { * }
-    multi method pick()   is nodal { self.list.pick     }
-    multi method pick($n) is nodal { self.list.pick($n) }
+    multi method pick()   { self.list.pick     }
+    multi method pick($n) { self.list.pick($n) }
 
     proto method roll(|) is nodal { * }
-    multi method roll()   is nodal { self.list.roll     }
-    multi method roll($n) is nodal { self.list.roll($n) }
+    multi method roll()   { self.list.roll     }
+    multi method roll($n) { self.list.roll($n) }
 
     proto method classify(|) is nodal { * }
-    multi method classify($test)   is nodal {
+    multi method classify($test)   {
         Hash.^parameterize(Any,Any).new.classify-list( $test, self.list );
     }
-    multi method classify($test, :$into!)   is nodal {
+    multi method classify($test, :$into!)   {
         ( $into // $into.new ).classify-list( $test, self.list );
     }
 
     proto method categorize(|) is nodal { * }
-    multi method categorize($test) is nodal {
+    multi method categorize($test) {
         Hash.^parameterize(Any,Any).new.categorize-list( $test, self.list );
     }
-    multi method categorize($test, :$into!) is nodal {
+    multi method categorize($test, :$into!) {
         ( $into // $into.new ).categorize-list( $test, self.list );
     }
 
@@ -175,8 +175,8 @@ my class Any { # declared in BOOTSTRAP
         MapIter.new(self.list, { .item }, Mu).list
     }
     proto method map (|) is nodal { * }
-    multi method map(Whatever) is rw is nodal { self }
-    multi method map($block, :$label) is rw is nodal {
+    multi method map(Whatever) is rw { self }
+    multi method map($block, :$label) is rw {
         MapIter.new(self, $block, Bool::False, :$label).list
     }
     proto method FOR (|) { * }
@@ -189,8 +189,8 @@ my class Any { # declared in BOOTSTRAP
         self.flatmap(|c);
     }
     proto method flatmap (|) is nodal { * }
-    multi method flatmap(Whatever) is rw is nodal { self }
-    multi method flatmap($block, :$label) is rw is nodal {
+    multi method flatmap(Whatever) is rw { self }
+    multi method flatmap($block, :$label) is rw {
         MapIter.new(self, $block, Bool::True, :$label).list
     }
     method nodemap($block) is rw is nodal { nodemap($block, self) }
@@ -198,19 +198,19 @@ my class Any { # declared in BOOTSTRAP
     method deepmap($block) is rw is nodal { deepmap($block, self) }
 
     proto method tree(|) is nodal { * }
-    multi method tree(Any:U:) is nodal { self }
-    multi method tree(Any:D:) is nodal {
+    multi method tree(Any:U:) { self }
+    multi method tree(Any:D:) {
         nqp::istype(self,Positional)
             ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
             !! self
     }
-    multi method tree(Any:D: Whatever ) is nodal { self.tree }
+    multi method tree(Any:D: Whatever ) { self.tree }
     multi method tree(Any:D: Int(Cool) $count) {
         nqp::istype(self,Positional) && $count > 0
             ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
             !! self
     }
-    multi method tree(Any:D: *@ [&first, *@rest]) is nodal {
+    multi method tree(Any:D: *@ [&first, *@rest]) {
         nqp::istype(self,Positional)
             ?? @rest ?? first MapIter.new(self.list, { .tree(|@rest) }, Mu).list
                      !! first self.list
@@ -221,36 +221,36 @@ my class Any { # declared in BOOTSTRAP
 
     # auto-vivifying
     proto method push(|) is nodal { * }
-    multi method push(Any:U \SELF: *@values) is nodal {
+    multi method push(Any:U \SELF: *@values) {
         SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
         SELF.push(@values);
     }
 
     proto method unshift(|) is nodal { * }
-    multi method unshift(Any:U \SELF: *@values) is nodal {
+    multi method unshift(Any:U \SELF: *@values) {
         SELF = Array.new;
         SELF.unshift(@values);
     }
 
     proto method grep(|) is nodal { * }
-    multi method grep(Bool:D $t) is rw is nodal {
+    multi method grep(Bool:D $t) is rw {
         fail X::Match::Bool.new( type => '.grep' );
     }
-    multi method grep(Regex:D $test) is rw is nodal {
+    multi method grep(Regex:D $test) is rw {
         self.map({ next unless .match($test); $_ });
     }
-    multi method grep(Callable:D $test) is rw is nodal {
+    multi method grep(Callable:D $test) is rw {
         self.map({ next unless $test($_); $_ });
     }
-    multi method grep(Mu $test) is rw is nodal {
+    multi method grep(Mu $test) is rw {
         self.map({ next unless $_ ~~ $test; $_ });
     }
 
     proto method grep-index(|) is nodal { * }
-    multi method grep-index(Bool:D $t) is rw is nodal {
+    multi method grep-index(Bool:D $t) is rw {
         fail X::Match::Bool.new( type => '.grep-index' );
     }
-    multi method grep-index(Regex:D $test) is nodal {
+    multi method grep-index(Regex:D $test) {
         my int $index = -1;
         self.map: {
             $index = $index+1;
@@ -258,7 +258,7 @@ my class Any { # declared in BOOTSTRAP
             nqp::box_i($index,Int);
         };
     }
-    multi method grep-index(Callable:D $test) is nodal {
+    multi method grep-index(Callable:D $test) {
         my int $index = -1;
         self.map: {
             $index = $index + 1;
@@ -266,7 +266,7 @@ my class Any { # declared in BOOTSTRAP
             nqp::box_i($index,Int);
         };
     }
-    multi method grep-index(Mu $test) is nodal {
+    multi method grep-index(Mu $test) {
         my int $index = -1;
         self.map: {
             $index = $index + 1;
@@ -276,27 +276,27 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method first(|) is nodal { * }
-    multi method first(Bool:D $t) is rw is nodal {
+    multi method first(Bool:D $t) is rw {
         fail X::Match::Bool.new( type => '.first' );
     }
-    multi method first(Regex:D $test) is rw is nodal {
+    multi method first(Regex:D $test) is rw {
         self.map({ return-rw $_ if .match($test) });
         Nil;
     }
-    multi method first(Callable:D $test) is rw is nodal {
+    multi method first(Callable:D $test) is rw {
         self.map({ return-rw $_ if $test($_) });
         Nil;
     }
-    multi method first(Mu $test) is rw is nodal {
+    multi method first(Mu $test) is rw {
         self.map({ return-rw $_ if $_ ~~ $test });
         Nil;
     }
 
     proto method first-index(|) is nodal { * }
-    multi method first-index(Bool:D $t) is rw is nodal {
+    multi method first-index(Bool:D $t) is rw {
         fail X::Match::Bool.new( type => '.first-index' );
     }
-    multi method first-index(Regex:D $test) is nodal {
+    multi method first-index(Regex:D $test) {
         my int $index = -1;
         self.map: {
             $index = $index + 1;
@@ -304,7 +304,7 @@ my class Any { # declared in BOOTSTRAP
         };
         Nil;
     }
-    multi method first-index(Callable:D $test) is nodal {
+    multi method first-index(Callable:D $test) {
         my int $index = -1;
         self.map: {
             $index = $index + 1;
@@ -312,7 +312,7 @@ my class Any { # declared in BOOTSTRAP
         };
         Nil;
     }
-    multi method first-index(Mu $test) is nodal {
+    multi method first-index(Mu $test) {
         my int $index = -1;
         self.map: {
             $index = $index + 1;
@@ -322,10 +322,10 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method last-index(|) is nodal { * }
-    multi method last-index(Bool:D $t) is rw is nodal {
+    multi method last-index(Bool:D $t) is rw {
         fail X::Match::Bool.new( type => '.last-index' );
     }
-    multi method last-index(Regex:D $test) is nodal {
+    multi method last-index(Regex:D $test) {
         my $elems = self.elems;
         return Inf if $elems == Inf;
 
@@ -336,7 +336,7 @@ my class Any { # declared in BOOTSTRAP
         }
         Nil;
     }
-    multi method last-index(Callable:D $test) is nodal {
+    multi method last-index(Callable:D $test) {
         my $elems = self.elems;
         return Inf if $elems == Inf;
 
@@ -347,7 +347,7 @@ my class Any { # declared in BOOTSTRAP
         }
         Nil;
     }
-    multi method last-index(Mu $test) is nodal {
+    multi method last-index(Mu $test) {
         my $elems = self.elems;
         return Inf if $elems == Inf;
 
@@ -378,14 +378,14 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method min (|) is nodal { * }
-    multi method min(Any:D:) is nodal {
+    multi method min(Any:D:) {
         my $min;
         self.map: {
             $min = $_ if .defined and !$min.defined || $_ cmp $min < 0;
         }
         $min // Inf;
     }
-    multi method min(Any:D: $by) is nodal {
+    multi method min(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min;
         self.map: {
@@ -395,14 +395,14 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method max (|) is nodal { * }
-    multi method max(Any:D:) is nodal {
+    multi method max(Any:D:) {
         my $max;
         self.map: {
             $max = $_ if .defined and !$max.defined || $_ cmp $max > 0;
         }
         $max // -Inf;
     }
-    multi method max(Any:D: $by) is nodal {
+    multi method max(Any:D: $by) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max;
         self.map: {
@@ -412,7 +412,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method minmax (|) is nodal { * }
-    multi method minmax(Any:D: $by = &infix:<cmp>) is nodal {
+    multi method minmax(Any:D: $by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
         my $min;
@@ -465,27 +465,27 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method EXISTS-POS(|) is nodal { * }
-    multi method EXISTS-POS(Any:U: Any:D $) is nodal { False }
-    multi method EXISTS-POS(Any:U: Any:U $pos) is rw is nodal {
+    multi method EXISTS-POS(Any:U: Any:D $) { False }
+    multi method EXISTS-POS(Any:U: Any:U $pos) is rw {
         die "Cannot use '{$pos.^name}' as an index";
     }
 
-    multi method EXISTS-POS(Any:D: int \pos) is nodal {
+    multi method EXISTS-POS(Any:D: int \pos) {
         nqp::p6bool(nqp::iseq_i(pos,0));
     }
-    multi method EXISTS-POS(Any:D: Int:D \pos) is nodal {
+    multi method EXISTS-POS(Any:D: Int:D \pos) {
         pos == 0;
     }
-    multi method EXISTS-POS(Any:D: Num:D \pos) is nodal {
+    multi method EXISTS-POS(Any:D: Num:D \pos) {
         X::Item.new(aggregate => self, index => pos).throw
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
         pos == 0;
     }
-    multi method EXISTS-POS(Any:D: Any:D \pos) is nodal {
+    multi method EXISTS-POS(Any:D: Any:D \pos) {
         pos.Int == 0;
     }
-    multi method EXISTS-POS(Any:D: Any:U \pos) is nodal {
+    multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
 
@@ -495,47 +495,47 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method AT-POS(|) is nodal {*}
-    multi method AT-POS(Any:U \SELF: int \pos) is rw is nodal {
+    multi method AT-POS(Any:U \SELF: int \pos) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Array.new);
                  SELF.BIND-POS(pos, $v) });
         $v
     }
-    multi method AT-POS(Any:U \SELF: Int:D \pos) is rw is nodal {
+    multi method AT-POS(Any:U \SELF: Int:D \pos) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Array.new);
                  SELF.BIND-POS(nqp::unbox_i(pos), $v) });
         $v
     }
-    multi method AT-POS(Any:U: Num:D \pos) is rw is nodal {
+    multi method AT-POS(Any:U: Num:D \pos) is rw {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method AT-POS(Any:U: Any:D \pos) is rw is nodal {
+    multi method AT-POS(Any:U: Any:D \pos) is rw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method AT-POS(Any:D: int \pos) is rw is nodal {
+    multi method AT-POS(Any:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           unless nqp::not_i(pos);
         self;
     }
-    multi method AT-POS(Any:D: Int:D \pos) is rw is nodal {
+    multi method AT-POS(Any:D: Int:D \pos) is rw {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           if pos != 0;
         self;
     }
-    multi method AT-POS(Any:D: Num:D \pos) is rw is nodal {
+    multi method AT-POS(Any:D: Num:D \pos) is rw {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method AT-POS(Any:D: Any:D \pos) is rw is nodal {
+    multi method AT-POS(Any:D: Any:D \pos) is rw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method AT-POS(Any:   Any:U \pos) is rw is nodal {
+    multi method AT-POS(Any:   Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
     }
 
@@ -550,25 +550,25 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method ASSIGN-POS(|) is nodal { * }
-    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) is nodal {
+    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check
     }
 
-    multi method ASSIGN-POS(Any:D: int \pos, Mu \assignee) is nodal {
+    multi method ASSIGN-POS(Any:D: int \pos, Mu \assignee) {
         self.AT-POS(pos) = assignee;                    # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Int:D \pos, Mu \assignee) is nodal {
+    multi method ASSIGN-POS(Any:D: Int:D \pos, Mu \assignee) {
         self.AT-POS(pos) = assignee;                    # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) is nodal {
+    multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) is nodal {
+    multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) {
         self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) is nodal {
+    multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
 
@@ -584,10 +584,10 @@ my class Any { # declared in BOOTSTRAP
 
     # internals
     proto method AT-KEY(|) is nodal { * }
-    multi method AT-KEY(Any:D: $key) is rw is nodal {
+    multi method AT-KEY(Any:D: $key) is rw {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
-    multi method AT-KEY(Any:U \SELF: $key) is rw is nodal {
+    multi method AT-KEY(Any:U \SELF: $key) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Hash.new);
                  SELF.BIND-KEY($key, $v) });
@@ -600,10 +600,10 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) is nodal { * }
-    multi method BIND-KEY(Any:D: \k, \v) is rw is nodal {
+    multi method BIND-KEY(Any:D: \k, \v) is rw {
         fail X::Bind.new(target => self.^name);
     }
-    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw is nodal {
+    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw {
         SELF = Hash.new;
         SELF.BIND-KEY($key, $BIND);
         $BIND
@@ -615,7 +615,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method ASSIGN-KEY(|) is nodal { * }
-    multi method ASSIGN-KEY(\SELF: \key, Mu \assignee) is nodal {
+    multi method ASSIGN-KEY(\SELF: \key, Mu \assignee) {
         SELF.AT-KEY(key) = assignee;
     }
 
@@ -760,7 +760,7 @@ proto sub kv(|) { * }
 multi sub kv($x) { $x.kv }
 
 proto sub elems(|) is nodal { * }
-multi sub elems($a) is nodal { $a.elems }
+multi sub elems($a) { $a.elems }
 
 proto sub end(|) { * }
 multi sub end($a) { $a.end }

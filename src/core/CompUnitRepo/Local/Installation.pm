@@ -37,7 +37,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $name;
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
-    my @installations = @*INC.grep(CompUnitRepo::Local::Installation);
+    my @installations = @*INC.grep( { .starts-with("inst#") } );
     my @binaries = @installations>>.files(\'bin/#name#\', :$name, :$auth, :$ver);
     unless +@binaries {
         @binaries = @installations>>.files(\'bin/#name#\');
@@ -84,7 +84,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # Build patterns to choose what goes into "provides" section.
-        my $ext = regex { [pm|pm6|pir|pbc|jar|moarvm] };
+        my $ext = regex { [pm|pm6|jar|moarvm] };
         my @provides;
         for %($d.provides).kv -> $k, $v is copy {
             $v = $v.subst('\\', '/', :g);

@@ -392,8 +392,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @violations := @*NQP_VIOLATIONS;
         if @violations {
             my $file := nqp::getlexdyn('$?FILES');
-            my $text := "===============================================================================
-The use of nqp::operations has been deprecated for non-CORE code.  Please
+            my $bar  := nqp::gethostname() eq 'ns1'
+              ?? ""
+              !! '===============================================================================
+';
+            my $text := $bar ~ "The use of nqp::operations has been deprecated for non-CORE code.  Please
 change your code to not use these non-portable functions.  If you really want
 to keep using nqp::operations in your Perl6 code, you must add a:
 
@@ -415,9 +418,7 @@ Compilation unit '$file' contained the following violations:
                   ~ " Line $line:\n"
                   ~ "  nqp::$oplist\n";
             }
-            nqp::printfh(nqp::getstderr(),$text
-              ~ "===============================================================================
-");
+            nqp::printfh(nqp::getstderr(),$text ~ $bar);
         }
         make $compunit;
     }
@@ -1919,7 +1920,14 @@ Compilation unit '$file' contained the following violations:
                         HLL::Compiler.lineof($/.orig, $/.from, :cache(1)));
             }
             else {
-                $past := $*W.add_string_constant(nqp::getlexdyn('$?FILES') // '<unknown file>');
+                my $file := nqp::getlexdyn('$?FILES');
+                if nqp::isnull($file) {
+                    $file := '<unknown file>';
+                }
+                elsif !nqp::eqat($file,'/',0) {
+                    $file := nqp::cwd ~ '/' ~ $file;
+                }
+                $past := $*W.add_string_constant($file);
             }
         }
         elsif $past.name() eq '@?INC' {
@@ -1927,10 +1935,8 @@ Compilation unit '$file' contained the following violations:
             $*W.add_object($p6inc);
             $past := QAST::WVal.new( :value($p6inc) );
         }
-        elsif $past.name() eq '%?PRAGMAS' {
-            my $pragmas := nqp::hllizefor(nqp::clone(%*PRAGMAS), 'perl6');
-            $*W.add_object($pragmas);
-            $past := QAST::WVal.new( :value($pragmas) );
+        elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {
+            $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
         }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
@@ -4981,9 +4987,20 @@ Compilation unit '$file' contained the following violations:
                 # first item is a pair
                 $is_hash := 1;
             }
-            elsif $elem ~~ QAST::Var
-                    && nqp::eqat($elem.name, '%', 0) {
-                # first item is a hash
+            elsif $elem ~~ QAST::Op && $elem.op eq 'call' &&
+                    $elem[0] ~~ QAST::Op && $elem[0].name eq '&METAOP_REVERSE' &&
+                    $elem[0][0] ~~ QAST::Var && $elem[0][0].name eq '&infix:<=>>' {
+                # first item is a pair constructed with R=>
+                $is_hash := 1;
+            }
+            elsif $elem ~~ QAST::Var && nqp::eqat($elem.name, '%', 0) {
+                # first item is a hash (%foo or %!foo)
+                $is_hash := 1;
+            }
+            elsif $elem ~~ QAST::Op && $elem.name eq '&DYNAMIC' &&
+                    $elem[0] ~~ QAST::Want && $elem[0][1] eq 'Ss' &&
+                    $elem[0][2] ~~ QAST::SVal && nqp::substr($elem[0][2].value, 0, 1) eq '%' {
+                # first item is a hash (%*foo)
                 $is_hash := 1;
             }
         }

@@ -700,6 +700,7 @@ S17-promise/anyof.t
 S17-promise/basic.t
 S17-promise/in.t
 S17-promise/start.t
+S17-promise/stress.t        # stress
 S17-promise/then.t
 S17-scheduler/at.t
 S17-scheduler/basic.t

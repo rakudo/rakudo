@@ -69,12 +69,12 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $cap
     }
 
-    method elems() { nqp::elems($!storage) }
-    method item()  { my $ = self }
-    method flat()  { nqp::p6list(nqp::clone($!storage), List, Bool::True) }
-    method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
-    method lol()   { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
-    method eager() { nqp::p6list(nqp::clone($!storage), List, Mu).eager }
+    method elems() is nodal { nqp::elems($!storage) }
+    method item()  is nodal { my $ = self }
+    method flat()  is nodal { nqp::p6list(nqp::clone($!storage), List, Bool::True) }
+    method list()  is nodal { nqp::p6list(nqp::clone($!storage), List, Mu) }
+    method lol()   is nodal { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
+    method eager() is nodal { nqp::p6list(nqp::clone($!storage), List, Mu).eager }
     method FOR(|c) {
         if nqp::elems($!storage) == 1 and !nqp::isnull(nqp::atpos($!storage,0)) and !nqp::iscont(nqp::atpos($!storage,0)) {
             try { nqp::atpos($!storage,0).map(|c) } // nqp::p6list(nqp::clone($!storage), List, Mu).map(|c);
@@ -83,10 +83,10 @@ my class Parcel does Positional { # declared in BOOTSTRAP
             nqp::p6list(nqp::clone($!storage), List, Mu).map(|c);
         }
     }
-    method map(|c) { nqp::p6list(nqp::clone($!storage), List, Mu).map(|c) }
-    method join(|c) { nqp::p6list(nqp::clone($!storage), List, Mu).join(|c) }
+    method map(|c) is nodal { nqp::p6list(nqp::clone($!storage), List, Mu).map(|c) }
+    method join(|c) is nodal { nqp::p6list(nqp::clone($!storage), List, Mu).join(|c) }
 
-    method reverse() {
+    method reverse() is nodal {
         my Mu $reverse  := nqp::list();
         my Mu $original := nqp::clone($!storage);
         nqp::push($reverse, nqp::pop($original)) while $original;
@@ -95,7 +95,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $parcel;
     }
 
-    method rotate (Int $n is copy = 1) {
+    method rotate (Int $n is copy = 1) is nodal {
         my $elems := nqp::p6box_i(nqp::elems($!storage));
         return self if !$elems;
 
@@ -114,23 +114,23 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $parcel;
     }
 
-    multi method EXISTS-POS(Parcel:D: int \pos) {
+    multi method EXISTS-POS(Parcel:D: int \pos) is nodal {
         nqp::p6bool(
           nqp::islt_i(pos,nqp::elems($!storage)) && nqp::isge_i(pos,0)
         );
     }
-    multi method EXISTS-POS(Parcel:D: Int:D \pos) {
+    multi method EXISTS-POS(Parcel:D: Int:D \pos) is nodal {
         pos < nqp::elems($!storage) && pos >= 0;
     }
 
-    multi method AT-POS(Parcel:D: int \pos) is rw {
+    multi method AT-POS(Parcel:D: int \pos) is rw is nodal {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::isge_i(pos,nqp::elems($!storage))
           ?? Nil
           !! nqp::atpos($!storage,pos);
     }
-    multi method AT-POS(Parcel:D: Int:D \pos) is rw {
+    multi method AT-POS(Parcel:D: Int:D \pos) is rw is nodal {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
@@ -139,7 +139,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
           !! nqp::atpos($!storage,$pos);
     }
 
-    multi method ASSIGN-POS(Parcel:D: int \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Parcel:D: int \pos, Mu \assignee) is rw is nodal {
         X::OutOfRange.new(
           :what<Index>,
           :got(pos),
@@ -148,7 +148,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
           if nqp::isge_i(pos,nqp::elems($!storage)) || nqp::islt_i(pos,0);
         nqp::atpos($!storage,pos) = assignee;
     }
-    multi method ASSIGN-POS(Parcel:D: Int:D \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Parcel:D: Int:D \pos, Mu \assignee) is rw is nodal {
         my int $pos = nqp::unbox_i(pos);
         X::OutOfRange.new(
           :what<Index>,
@@ -159,14 +159,14 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         nqp::atpos($!storage,$pos) = assignee;
     }
 
-    multi method gist(Parcel:D:) {
+    multi method gist(Parcel:D:) is nodal {
         my Mu $gist := nqp::list();
         my Mu $iter := nqp::iterator($!storage);
         nqp::push($gist, nqp::unbox_s(nqp::shift($iter).gist)) while $iter;
         nqp::p6box_s(nqp::join(' ', $gist))
     }
 
-    multi method perl(Parcel:D \SELF:) {
+    multi method perl(Parcel:D \SELF:) is nodal {
         my Mu $rpa := nqp::clone($!storage);
         my $perl = nqp::iscont(SELF) ?? '$(' !! '(';
         if $rpa {
@@ -188,7 +188,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         }
     }
 
-    method STORE(|) {
+    method STORE(|) is nodal {
         # get the list of rvalues to store and lhs containers
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
@@ -239,7 +239,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     method FLATTENABLE_LIST() { $!storage }
     method FLATTENABLE_HASH() { nqp::hash() }
 
-    method fmt($format = '%s', $separator = ' ') {
+    method fmt($format = '%s', $separator = ' ') is nodal {
         self.list.fmt($format, $separator);
     }
 }

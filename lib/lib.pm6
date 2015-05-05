@@ -1,5 +1,5 @@
 module lib { };
 my sub EXPORT(*@a) {
-    @*INC.unshift: @a.map( { CompUnitRepo::Local::File.new($_) } );
+    @*INC.unshift: PARSE-INCLUDE-SPECS(@a.join(','));
     return ().hash;
 }

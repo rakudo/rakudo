@@ -236,7 +236,7 @@ multi sub is-approx(Mu $got, Mu $expected, $desc = '') is export {
 multi sub todo($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     $todo_upto_test_num = $num_of_tests_run + $count;
-    $todo_reason = '# TODO ' ~ $reason;
+    $todo_reason = '# TODO ' ~ $reason.subst(:g, '#', '\\#');
     $time_before = nqp::time_n;
 }
 
@@ -513,7 +513,7 @@ sub proclaim($cond, $desc) {
     unless $cond {
         my $caller;
         my $level = 3; # sub proclaim is not called directly, so 3 is minimum level
-        repeat until $caller.file ne $?FILE {
+        repeat until !$?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
         if $desc ne '' {

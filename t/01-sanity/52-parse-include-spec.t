@@ -6,59 +6,52 @@ plan 14;
 for (
 
   ( '/foo/bar' =>
-    [ $( CompUnitRepo::Local::File, '/foo/bar', ().hash ) ] ),
-  ( 'file:/foo/bar' =>
-    [ $( CompUnitRepo::Local::File, '/foo/bar', ().hash ) ] ),
-  ( 'inst:/installed' =>
-    [ $( CompUnitRepo::Local::Installation, '/installed', ().hash ) ] ),
-  ( 'CompUnitRepo::Local::Installation:/installed' =>
-    [ $( CompUnitRepo::Local::Installation, '/installed', ().hash ) ] ),
-  ( 'inst:name<work>:/installed' =>
-    [ $( CompUnitRepo::Local::Installation, '/installed', (:name<work>).hash)]),
-  ( 'inst:name[work]:/installed' =>
-    [ $( CompUnitRepo::Local::Installation, '/installed', (:name<work>).hash)]),
-  ( 'inst:name{work}:/installed' =>
-    [ $( CompUnitRepo::Local::Installation, '/installed', (:name<work>).hash)]),
-  ( '/foo/bar  ,  /foo/baz' =>
-    [ $( CompUnitRepo::Local::File, '/foo/bar', ().hash ),
-      $( CompUnitRepo::Local::File, '/foo/baz', ().hash ) ] ),
-  ( 'inst:/installed, /also' =>
-    [ $( CompUnitRepo::Local::Installation, '/installed', ().hash ),
-      $( CompUnitRepo::Local::Installation, '/also', ().hash ) ] ),
+    [ 'file#/foo/bar' ] ),
+  ( 'file#/foo/bar' =>
+    [ 'file#/foo/bar' ] ),
+  ( 'inst#/installed' =>
+    [ 'inst#/installed' ] ),
+  ( 'CompUnitRepo::Local::Installation#/installed' =>
+    [ 'CompUnitRepo::Local::Installation#/installed' ] ),
+  ( 'inst#name<work>#/installed' =>
+    [ 'inst#name<work>#/installed' ] ),
+  ( 'inst#name[work]#/installed' =>
+    [ 'inst#name<work>#/installed' ] ),
+  ( 'inst#name{work}#/installed' =>
+    [ 'inst#name<work>#/installed' ] ),
+  ( "/foo/bar  ,  /foo/baz" =>
+    [ 'file#/foo/bar', 'file#/foo/baz' ] ),
+  ( "inst#/installed, /also" =>
+    [ 'inst#/installed', 'inst#/also' ] ),
+  ( "/foo/bar , inst#/installed" =>
+    [ 'file#/foo/bar', 'inst#/installed' ] )
 
 ) -> $to-check { parse_ok( $to-check ) };
 
-ok 1, '#122137';
-##?rakudo todo 'RT #122137'
-#parse_ok( 
-#  ( '/foo/bar , inst:/installed' =>
-#    [ $( CompUnitRepo::Local::File, '/foo/bar', ().hash ),
-#      $( CompUnitRepo::Local::Installation, '/installed', ().hash ) ] )
-#);
-
-dies_ok { CompUnitRepo.parse-spec('CompUnitRepo::GitHub:masak/html-template') },
+dies_ok { CompUnitRepo.parse-spec('CompUnitRepo::GitHub#masak/html-template') },
   "must have module loaded";
 
 # need EVAL to create and check class at runtime
 EVAL '
-class CompUnitRepo::GitHub { method short-id { "gith" } };
+class CompUnitRepo::GitHub {
+    method short-id { "gith" };
+};
 for (
-  ( "CompUnitRepo::GitHub:masak/html-template" =>
-    [ $( CompUnitRepo::GitHub, "masak/html-template", ().hash ) ] ),
-  ( "gith:masak/html-template" =>
-    [ $( CompUnitRepo::GitHub, "masak/html-template", ().hash ) ] ),
+  ( "CompUnitRepo::GitHub#masak/html-template" =>
+    [ "CompUnitRepo::GitHub#masak/html-template" ] ),
+  ( "gith#masak/html-template" =>
+    [ "gith#masak/html-template" ] ),
 ) -> $to-check { parse_ok( $to-check ) };
 ';
 
-my $current = CREATE-INCLUDE-SPEC(@*INC);
-my @INC = PARSE-INCLUDE-SPEC($current).map: { $_[0].new($_[1]) };
-is_deeply @INC, @*INC, 'can we reprodice an @*INC setting';
+is_deeply @*INC, PARSE-INCLUDE-SPECS(CREATE-INCLUDE-SPECS(@*INC)),
+  'can we reproduce an @*INC setting';
 
 #========================================================
 sub parse_ok ($to-check) {
     my $checking := $to-check.key;
     my $answers  := $to-check.value;
 
-    my $result = PARSE-INCLUDE-SPEC($checking);
+    my $result = PARSE-INCLUDE-SPECS($checking);
     is_deeply $result, $answers, "'$checking' returned the right thing";
 }

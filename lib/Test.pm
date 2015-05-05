@@ -513,7 +513,7 @@ sub proclaim($cond, $desc) {
     unless $cond {
         my $caller;
         my $level = 3; # sub proclaim is not called directly, so 3 is minimum level
-        repeat until $caller.file ne $?FILE {
+        repeat until !$?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
         if $desc ne '' {

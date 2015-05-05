@@ -27,8 +27,3 @@ class Distribution {
         }
     }
 }
-
-# during panda migration period
-class CompUnitRepo::Distribution is Distribution {
-    method Hash { self.hash }
-}

@@ -27,3 +27,8 @@ class Distribution {
         }
     }
 }
+
+# during CURLI migration period
+class CompUnitRepo::Distribution is Distribution {
+    method Hash { self.hash }
+}

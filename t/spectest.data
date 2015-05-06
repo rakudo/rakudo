@@ -314,6 +314,7 @@ S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
+S05-capture/alias.t
 S05-capture/caps.t
 S05-capture/dot.t
 S05-capture/match-object.t

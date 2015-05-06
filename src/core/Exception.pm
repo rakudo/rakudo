@@ -817,7 +817,8 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
 my class X::Parameter::BadType does X::Comp {
     has Mu $.type;
     method message() {
-        "$!type.^name() cannot be used as a type on a parameter"
+        my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
+        "$what $!type.^name() is insufficiently type-like to qualify a parameter"
     }
 }
 
@@ -963,7 +964,8 @@ my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
 my class X::Syntax::Variable::BadType does X::Comp {
     has Mu $.type;
     method message() {
-        "$!type.^name() cannot be used as a type on a variable"
+        my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
+        "$what $!type.^name() is insufficiently type-like to qualify a variable"
     }
 }
 

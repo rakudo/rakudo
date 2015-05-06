@@ -41,7 +41,7 @@ my class Match is Capture is Cool {
             if nqp::istype($p.value,Array) {
                 @caps.push: $p.key => $_ for $p.value.list
             } else {
-                @caps.push: $p;
+                @caps.push: $p if $p.value.DEFINITE
             }
         }
         @caps.sort: -> $p { $p.value.from }

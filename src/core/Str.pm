@@ -586,7 +586,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $multi = True;
             if nqp::istype($x, Int) {
                 @matches := @matches.gimme($x) >= $x
-                            ?? @matches[^$x]
+                            ?? @matches[^$x].list
                             !! ().list
             }
             elsif nqp::istype($x, Range) {

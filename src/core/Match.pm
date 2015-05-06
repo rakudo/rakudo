@@ -40,8 +40,8 @@ my class Match is Capture is Cool {
         for self.pairs -> $p {
             if nqp::istype($p.value,Array) {
                 @caps.push: $p.key => $_ for $p.value.list
-            } else {
-                @caps.push: $p if $p.value.DEFINITE
+            } elsif $p.value.DEFINITE {
+                @caps.push: $p
             }
         }
         @caps.sort: -> $p { $p.value.from }

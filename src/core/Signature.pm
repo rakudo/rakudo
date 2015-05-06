@@ -91,7 +91,7 @@ my class Signature { # declared in BOOTSTRAP
     # XXX TODO: Parameter separators.
     multi method perl(Signature:D:) {
         # Opening.
-        my $perl = '';
+        my $perl = ':(';
 
         # Parameters.
         my $params = self.params();
@@ -108,9 +108,8 @@ my class Signature { # declared in BOOTSTRAP
         if !nqp::isnull($!returns) && $!returns !=:= Mu {
             $perl ~= ' --> ' ~ $!returns.perl
         }
-
-        # Finalize.
-        $perl ?? ":($perl)" !! ":(*%_)"
+        # Closer.
+        $perl ~ ')'
     }
 
     multi method gist(Signature:D:) {

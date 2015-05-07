@@ -132,7 +132,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, |c ) {
     );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
-    $block(); # no need to delay execution
+    $block($v.var); # no need to delay execution
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$check! ) {
     $*W.add_phaser($v.slash, 'CHECK', $block);

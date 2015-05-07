@@ -12,8 +12,8 @@ New in 2015.05
  + Deprecations:
    + List/Supply.rotor now *must* have elems and gap specified
  + Fixes:
-   + Hashes yse much less memory on Moar
-   + my $a will enter/leave/keep/undo/fist/pre now set $_ properly
+   + Hashes use much less memory on Moar
+   + my $a will begin/enter/leave/keep/undo/first/pre now set $_ properly
    + List.roll(Inf) now knows it's infinite, so is lazy
  
 New in 2015.04

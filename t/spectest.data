@@ -524,7 +524,7 @@ S12-class/magical-vars.t
 S12-class/mro.t
 S12-class/namespaced.t
 S12-class/open.t
-# S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
+S12-class/parent_attributes.t
 S12-class/rw.t
 S12-class/self-inheritance.t
 S12-class/stubs.t

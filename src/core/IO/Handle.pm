@@ -135,46 +135,6 @@ my class IO::Handle does IO {
     }
 
     proto method words (|) { * }
-    multi method words(IO::Handle:D: :$close) {
-        my str $str;
-        my int $chars;
-        my int $pos;
-        my int $left;
-        my int $nextpos;
-
-        gather {
-            until nqp::eoffh($!PIO) {
-
-#?if moar
-                # optimize for ASCII
-                $str   = $str ~ nqp::readcharsfh($!PIO, 65536);
-#?endif
-#?if !moar
-                my Buf $buf := Buf.new;
-                nqp::readfh($!PIO, $buf, 65536);
-                $str = $str ~ nqp::unbox_s($buf.decode);
-#?endif
-                $chars = nqp::chars($str);
-                $pos   = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
-
-                while ($left = $chars - $pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
-                    last unless $left = $chars - $nextpos; # broken word
-
-                    take
-                      nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str);
-
-                    $pos = nqp::findnotcclass(
-                      nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
-                }
-
-                $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
-            }
-            self.close if $close;
-        }
-    }
     # can probably go after GLR
     multi method words(IO::Handle:D: :$eager!, :$close) {
         return self.words(:$close) if !$eager;
@@ -257,6 +217,46 @@ my class IO::Handle does IO {
         self.close if $close;
         nqp::box_i($found, Int);
     }
+    multi method words(IO::Handle:D: :$close) {
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+
+        gather {
+            until nqp::eoffh($!PIO) {
+
+#?if moar
+                # optimize for ASCII
+                $str   = $str ~ nqp::readcharsfh($!PIO, 65536);
+#?endif
+#?if !moar
+                my Buf $buf := Buf.new;
+                nqp::readfh($!PIO, $buf, 65536);
+                $str = $str ~ nqp::unbox_s($buf.decode);
+#?endif
+                $chars = nqp::chars($str);
+                $pos   = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+                while ($left = $chars - $pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                    last unless $left = $chars - $nextpos; # broken word
+
+                    take
+                      nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str);
+
+                    $pos = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+                }
+
+                $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+            }
+            self.close if $close;
+        }
+    }
     multi method words(IO::Handle:D: $limit, :$eager, :$close) {
         return self.words(:$eager,:$close)
           if $limit == Inf or nqp::istype($limit,Whatever);
@@ -303,27 +303,6 @@ my class IO::Handle does IO {
     }
 
     proto method lines (|) { * }
-    multi method lines(IO::Handle:D: :$close) {
-
-        if $.chomp {
-            gather {
-                until nqp::eoffh($!PIO) {
-                    $!ins = $!ins + 1;
-                    take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
-                }
-                self.close if $close;
-            }
-        }
-        else {
-            gather {
-                until nqp::eoffh($!PIO) {
-                    $!ins = $!ins + 1;
-                    take nqp::p6box_s(nqp::readlinefh($!PIO));
-                }
-                self.close if $close;
-            }
-        }
-    }
     # can probably go after GLR
     multi method lines(IO::Handle:D: :$eager!, :$close) {
         return self.lines if !$eager;
@@ -351,6 +330,27 @@ my class IO::Handle does IO {
             $!ins = $!ins + 1;
         }
         nqp::box_i($!ins, Int);
+    }
+    multi method lines(IO::Handle:D: :$close) {
+
+        if $.chomp {
+            gather {
+                until nqp::eoffh($!PIO) {
+                    $!ins = $!ins + 1;
+                    take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
+                }
+                self.close if $close;
+            }
+        }
+        else {
+            gather {
+                until nqp::eoffh($!PIO) {
+                    $!ins = $!ins + 1;
+                    take nqp::p6box_s(nqp::readlinefh($!PIO));
+                }
+                self.close if $close;
+            }
+        }
     }
     multi method lines(IO::Handle:D: $limit, :$eager, :$close) {
         return self.lines(:$eager, :$close)

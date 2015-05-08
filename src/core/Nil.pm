@@ -1,9 +1,5 @@
 my class Nil is Cool { # declared in BOOTSTRAP
-    # class Nil is Iterator {
-
     method new(*@) { Nil }
-    method iterator(*@) { self }
-    method reify($n) { () }
     method gist(*@) { 'Nil' }
     method Str(*@) { '' }       # XXX still needs warning
     method sink(*@) { Nil }     # required by RESTRICTED setting
@@ -27,5 +23,11 @@ Nil.^add_fallback(
         anon sub (|) { Nil }
     }
 );
+
+my class Empty is Nil {
+    # class Empty is Iterator
+    method iterator(*@) { self }
+    method reify($n) { () }
+}
 
 # vim: ft=perl6 expandtab sw=4

@@ -42,6 +42,7 @@ my class BOOTSTRAPATTR {
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Empty metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -2588,10 +2589,13 @@ BEGIN {
     Iterator.HOW.add_parent(Iterator, Iterable);
     Iterator.HOW.compose_repr(Iterator);
 
-    # class Nil is Iterator {
-    Nil.HOW.add_parent(Nil, Iterator);
+    # class Nil is Cool {
     Nil.HOW.compose_repr(Nil);
     
+    # class Empty is Iterator {
+    Empty.HOW.add_parent(Empty, Iterator);
+    Empty.HOW.compose_repr(Empty);
+
     # class ListIter is Iterator {
     #     has Mu $!reified;
     #     has Mu $!nextiter;
@@ -2783,6 +2787,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Any>        := Any;
     EXPORT::DEFAULT.WHO<Cool>       := Cool;
     EXPORT::DEFAULT.WHO<Nil>        := Nil;
+    EXPORT::DEFAULT.WHO<Empty>      := Empty;
     EXPORT::DEFAULT.WHO<Attribute>  := Attribute;
     EXPORT::DEFAULT.WHO<Signature>  := Signature;
     EXPORT::DEFAULT.WHO<Parameter>  := Parameter;

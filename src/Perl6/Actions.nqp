@@ -826,7 +826,7 @@ Compilation unit '$file' contained the following violations:
                     $past := $cond_block;
                 }
                 $mc_ast.push($past);
-                $mc_ast.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+                $mc_ast.push(QAST::WVal.new( :value($*W.find_symbol(['Empty'])) ));
                 $past := $mc_ast;
             }
             if $ml {

@@ -22,6 +22,9 @@ New in 2015.04
      $PREFIX/languages
    + "0" (0 as a string) is now True, no special-casing anymore
    + an Int() coercion type in a multi now creates two candidates: Any and Int
+   + The readline integration that existed on the VM level has been removed;
+     it now exists as a module.  To restore readline operations in the REPL
+     (ex. history, line control), install the Linenoise module via Panda
  + Fixes:
    + try now implies "use fatal", so failures are not leaked
    + "use fatal" now only works in its scope, and not in deeper ones
@@ -68,6 +71,7 @@ New in 2015.04
    + can now reduce ([Z]) with list infixes over an arbitrary number of lists
    + use Foo:from<Perl5> supported when Inline::Perl5 is installed
    + EVAL $code, :lang<perl5> supported when Inline::Perl5 is installed
+   + Rudimentary tab completion available via the Linenoise module
  + Speedups:
    + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
    + List.pick about 10% faster

@@ -26,6 +26,9 @@ Nil.^add_fallback(
 
 my class Empty is Nil {
     # class Empty is Iterator
+    method new(*@) { Empty }
+    method Str() { '' }
+    method gist(*@) { 'Empty' }
     method iterator(*@) { self }
     method reify($n) { () }
 }

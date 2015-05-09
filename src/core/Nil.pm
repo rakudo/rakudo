@@ -15,14 +15,8 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method STORE(*@)      { die "Attempted to STORE to Nil." }
     method push(*@)       { die "Attempted to push to Nil." }
     method unshift(*@)    { die "Attempted to unshift to Nil." }
+    method FALLBACK(*@)   { Nil }
 }
-
-Nil.^add_fallback(
-    -> $, $name { True },
-    -> $, $name {
-        anon sub (|) { Nil }
-    }
-);
 
 my class Empty is Nil {
     # class Empty is Iterator

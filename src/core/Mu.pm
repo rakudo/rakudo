@@ -315,7 +315,7 @@ my class Mu { # declared in BOOTSTRAP
         }
         @attrs
           ?? self.^name ~ '.new' ~ '(' ~ @attrs.join(', ') ~ ')'
-          !! self.^name ~ '.new()';
+          !! self.^name ~ '.new';
     }
 
     proto method DUMP(|) { * }

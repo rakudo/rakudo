@@ -225,7 +225,9 @@ my class List does Positional { # declared in BOOTSTRAP
         ## of the list, resulting in an O(n) algorithm.
 
         my Int $elems = self.elems;
-        return () unless $elems;
+        unless $elems {
+            return number == 1 ?? Nil !! ();
+        }
 
         my int $n = number > $elems ?? $elems !! number.Int;
         return nqp::atpos($!items,$elems.rand.floor) if $n == 1;
@@ -398,7 +400,9 @@ my class List does Positional { # declared in BOOTSTRAP
 
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
-        return () unless $elems;
+        unless $elems {
+            return number == 1 ?? Nil !! ();
+        }
 
         my int $n = number.Int;
         return nqp::atpos($!items,$elems.rand.floor) if $n == 1;

@@ -8,7 +8,9 @@ New in 2015.05
    + RAKUDO_VERBOSE_STACKFRAME environment variable shows source lines
  + Incompatible changes:
    + hashes no longer maintain insert order on Moar (on JVM they never did)
-   + .map no longer flattens, map as a listop does
+   + .map no longer flattens, map as a listop does. Use .flatmap to get the
+      old behavior
+   + Nil no longer iterates like the empty List. Use Empty instead.
  + Deprecations:
    + List/Supply.rotor now *must* have elems and gap specified
  + Fixes:

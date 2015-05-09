@@ -310,7 +310,7 @@ role STD {
 
                             CATCH {}
                         }
-                        $*W.throw($var, ['X', 'Undeclared'], symbol => $name, suggestions => @suggestions);
+                        $*W.throw($var, ['X', 'Undeclared'], symbol => $name, suggestions => @suggestions, precursor => '1');
                     }
                 }
                 else {

@@ -1208,8 +1208,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             if defined $!next_substitution {
                 if $!complement {
                     my $oldidx = $!index;
-                    my $result = self.get_next_substitution_result;
                     if $!unsubstituted_text {
+                        my $result = self.get_next_substitution_result;
                         self.increment_index($!next_substitution.key);
                         $!substituted_text = $!source.substr($oldidx + $!unsubstituted_text.chars,
                             $!index - $oldidx - $!unsubstituted_text.chars);
@@ -1217,12 +1217,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             !! $result x $!unsubstituted_text.chars;
                     }
                     else {
+                        return if $!next_match == $!source.chars;
+                        my $result = self.get_next_substitution_result;
                         self.increment_index($!next_substitution.key);
                         $!substituted_text = '';
                         $!unsubstituted_text = $!source.substr($oldidx, $!index - $oldidx);
                     }
                 }
                 else {
+                    return if $!next_match == $!source.chars;
                     $!substituted_text = self.get_next_substitution_result;
                     self.increment_index($!next_substitution.key);
                 }

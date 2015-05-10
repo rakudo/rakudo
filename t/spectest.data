@@ -412,8 +412,8 @@ S05-modifier/counted.t
 # S05-modifier/exhaustive.t
 S05-modifier/global.t
 S05-modifier/ignorecase.t
-S05-modifier/ignorecase-and-ignoremark.t
-S05-modifier/ignoremark.t
+S05-modifier/ignorecase-and-ignoremark.t    # moar
+S05-modifier/ignoremark.t                   # moar
 S05-modifier/ii.t
 S05-modifier/my.t
 S05-modifier/overlapping.t

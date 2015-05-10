@@ -187,8 +187,14 @@ multi sub die(*@msg) {
 }
 
 multi sub warn(*@msg) {
+    my $msg = @msg.join || "Warning: something's wrong";
+    my $i = 1;
+    my %anno := callframe($i).annotations;
+    %anno := callframe(++$i).annotations while %anno<file> ~~ /\.setting$/;
+    $msg ~= ' at ' ~ %anno<file> ~ ' line ' ~ %anno<line> unless $msg ~~ /\n$/ or !%anno;
+    
     my $ex := nqp::newexception();
-    nqp::setmessage($ex, nqp::unbox_s(@msg.join));
+    nqp::setmessage($ex, nqp::unbox_s($msg));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);
     nqp::throw($ex);
     0;

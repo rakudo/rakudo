@@ -146,7 +146,7 @@ my class Cursor does NQPCursorRole {
     # $i is case insensitive flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE(\var, $i = 0, $s = 0, $a = 0) {
+    method INTERPOLATE(\var, $i = 0, $s = 0, $a = 0) { # XXX $m
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);

@@ -6073,6 +6073,7 @@ Compilation unit '$file' contained the following violations:
     );
     my %REGEX_ADVERBS_CANONICAL := hash(
         ignorecase  => 'i',
+        ignoremark  => 'm',
         ratchet     => 'r',
         sigspace    => 's',
         continue    => 'c',
@@ -6096,7 +6097,7 @@ Compilation unit '$file' contained the following violations:
         ss        => 's',
     );
     INIT {
-        my str $mods := 'i ignorecase s sigspace r ratchet Perl5 P5';
+        my str $mods := 'i ignorecase m ignoremark s sigspace r ratchet Perl5 P5';
         for nqp::split(' ', $mods) {
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }

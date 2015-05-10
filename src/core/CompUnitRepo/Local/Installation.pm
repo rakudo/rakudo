@@ -2,7 +2,7 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
 
-    method BUILD(:$!IO, :$!lock, :$!WHICH) {
+    submethod BUILD(:$!IO, :$!lock, :$!WHICH) {
         my $manifest := $!IO.child("MANIFEST");
         my $abspath  := $!IO.abspath;
         %!dists{$abspath} = $manifest.e

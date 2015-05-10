@@ -1130,7 +1130,7 @@ Compilation unit '$file' contained the following violations:
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
                     ?? pblock_immediate( $<else>.ast )
-                    !! QAST::WVal.new( :value($*W.find_symbol(['Nil'])) )
+                    !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
         );
         # build if/then/elsif structure
         while $count > 0 {

@@ -133,7 +133,7 @@ sub PARSE-INCLUDE-SPEC(Str:D $spec, Str:D $default-short-id = 'file') {
       ]?
       $<path>=.+
     $/ {
-        ( ~$<type> || $default-short-id, %options, ~$<path> );
+        ( $<type> ?? ~$<type> !! $default-short-id, %options, ~$<path> );
     }
 }
 

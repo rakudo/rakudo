@@ -108,7 +108,7 @@ multi sub infix:<or>(Mu \a, Mu \b)        { a || b }
 proto sub infix:<xor>(|)                   { * }
 multi sub infix:<xor>(Mu $x = Bool::False) { $x }
 multi sub infix:<xor>(Mu \a, Mu \b)        { a ^^ b }
-multi sub infix:<xor>(*@a)                 { &infix:<^^>(@a); }
+multi sub infix:<xor>(*@a)                 { &infix:<^^>(|@a); }
 
 proto sub infix:<orelse>(|)               { * }
 multi sub infix:<orelse>(Mu $x = Any)     { $x }

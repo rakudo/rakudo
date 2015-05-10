@@ -228,7 +228,6 @@ my class List does Positional { # declared in BOOTSTRAP
         return () unless $elems;
 
         my int $n = number > $elems ?? $elems !! number.Int;
-        return nqp::atpos($!items,$elems.rand.floor) if $n == 1;
 
         my Mu $rpa := nqp::clone($!items);
         my int $i;
@@ -401,7 +400,6 @@ my class List does Positional { # declared in BOOTSTRAP
         return () unless $elems;
 
         my int $n = number.Int;
-        return nqp::atpos($!items,$elems.rand.floor) if $n == 1;
 
         gather while $n > 0 {
             take nqp::atpos($!items,$elems.rand.floor);

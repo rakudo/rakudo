@@ -1930,11 +1930,6 @@ Compilation unit '$file' contained the following violations:
                 $past := $*W.add_string_constant($file);
             }
         }
-        elsif $past.name() eq '@?INC' {
-            my $p6inc := $*W.INC_for_perl6($/);
-            $*W.add_object($p6inc);
-            $past := QAST::WVal.new( :value($p6inc) );
-        }
         elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {
             $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
         }

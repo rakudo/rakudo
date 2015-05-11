@@ -146,7 +146,7 @@ my class Cursor does NQPCursorRole {
     # $i is case insensitive flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE(\var, $i = 0, $s = 0, $a = 0) { # XXX $m
+    method INTERPOLATE(\var, $i = 0, $s = 0, $a = 0, $context = PseudoStash) { # XXX $m
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);
@@ -177,7 +177,7 @@ my class Cursor does NQPCursorRole {
                             # regex rules.
                             return $cur.'!cursor_start_cur'()
                               if nqp::istype($topic,Associative);
-                            my $rx := MAKE_REGEX($topic, :$i);
+                            my $rx := MAKE_REGEX($topic, :$i, :$context);
                             my Mu $nfas := nqp::findmethod($rx, 'NFA')($rx);
                             $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
                         }
@@ -225,7 +225,7 @@ my class Cursor does NQPCursorRole {
                     # regex rules.
                     return $cur.'!cursor_start_cur'()
                       if nqp::istype($topic,Associative);
-                    my $rx := MAKE_REGEX($topic, :$i);
+                    my $rx := MAKE_REGEX($topic, :$i, :$context);
                     $match := self.$rx;
                     $len   := $match.pos - $match.from;
                 }
@@ -293,7 +293,7 @@ my class Cursor does NQPCursorRole {
     }
 }
 
-sub MAKE_REGEX($arg, :$i) {
+sub MAKE_REGEX($arg, :$i, :$context) {
     my role CachedCompiledRegex {
         has $.regex;
     }
@@ -304,7 +304,8 @@ sub MAKE_REGEX($arg, :$i) {
         $arg.regex
     }
     else {
-        my $rx := $i ?? EVAL("anon regex \{ :i $arg\}") !! EVAL("anon regex \{ $arg\}");
+        my $rx := $i ?? EVAL("anon regex \{ :i $arg\}", :$context)
+                     !! EVAL("anon regex \{ $arg\}",    :$context);
         $arg does CachedCompiledRegex($rx);
         $rx
     }

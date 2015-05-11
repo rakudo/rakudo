@@ -649,6 +649,7 @@ class Perl6::World is HLL::World {
               !! nqp::unshift($INC,$string);
         }
 
+        $INC := nqp::p6parcel($INC, self.find_symbol(['Any']));
         self.add_object($INC);
         self.install_lexical_symbol(self.cur_lexpad,'@?INC',$INC);
     }

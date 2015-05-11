@@ -243,7 +243,6 @@ class Perl6::World is HLL::World {
     }
 
     method loading_and_symbol_setup($/) {
-        my $setting_name;
 
         # Create unit outer (where we assemble any lexicals accumulated
         # from e.g. REPL) and the real UNIT.
@@ -254,12 +253,11 @@ class Perl6::World is HLL::World {
         # our setting. Otherwise, load one.
         my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
         if $have_outer {
-            $setting_name := '';
             $*UNIT.annotate('IN_DECL', 'eval');
         }
         else {
-            $setting_name := %*COMPILING<%?OPTIONS><setting> // 'CORE';
-            $*SETTING := self.load_setting($/,$setting_name);
+            $*SETTING :=
+              self.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
         $/.CURSOR.unitstart();
@@ -332,7 +330,7 @@ class Perl6::World is HLL::World {
         }
 
         # Bootstrap
-        if $setting_name eq 'NULL' {
+        if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
             my $module := self.load_module($/, $name, {}, $*GLOBALish);
             self.do_import($/, $module, $name);
@@ -347,12 +345,6 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
             self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
             $*DECLARAND := self.stub_code_object('Block');
-
-            # initialize %?INC
-            my $INIT := self.find_symbol(['&INITIALIZE_INC']);
-            unless nqp::isnull($INIT) {
-                self.use_lib( $INIT().FLATTENABLE_LIST, :push);
-            }
         }
 
         my $M := %*COMPILING<%?OPTIONS><M>;
@@ -635,23 +627,24 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method use_lib($arglist,:$push) {
+    method use_lib($/,$arglist) {
         my $INC := %*PRAGMAS<INC> := %*PRAGMAS<INC>
           ?? nqp::clone(%*PRAGMAS<INC>)
           !! nqp::list();
 
         for $arglist -> $arg {
-            my $string := nqp::index($arg,'#') == -1
+            nqp::unshift($INC, nqp::index($arg,'#') == -1
               ?? nqp::hllizefor("file#$arg", 'perl6')
-              !! $arg;
-            $push
-              ?? nqp::push($INC,$string)
-              !! nqp::unshift($INC,$string);
+              !! $arg
+            );
         }
+    }
 
-        $INC := nqp::p6parcel($INC, self.find_symbol(['Any']));
-        self.add_object($INC);
-        self.install_lexical_symbol(self.cur_lexpad,'@?INC',$INC);
+    method INC_for_perl6($/) {
+        nqp::hllizefor(
+          %*PRAGMAS<INC> ?? nqp::clone(%*PRAGMAS<INC>) !! nqp::list(),
+          'perl6'
+        );
     }
 
     method do_pragma($/,$name,$on,$arglist) {
@@ -666,7 +659,7 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<fatal> := $on;
         }
         elsif $name eq 'cur' {   # temporary, will become 'lib'
-            self.use_lib($arglist);
+            self.use_lib($/,$arglist);
         }
         elsif $name eq 'strict' {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }

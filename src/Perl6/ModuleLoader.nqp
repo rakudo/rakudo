@@ -112,8 +112,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     nqp::die("Could not find file '$file' for module $module_name");
                 }
                 else {
-                    nqp::die("Could not find $module_name in any of: " ~
-                        join(', ', @prefixes));
+                    nqp::die("Could not find $module_name in any of:\n  " ~
+                        join("\n  ", @prefixes));
                 }
             }
             %chosen := @candidates[0];

@@ -109,7 +109,7 @@ class CompUnit {
       $out  = self.precomp-path,
       :$INC = @*INC,
       :$force,
-      --> Bool) {
+    ) {
 
         my $io = $out.IO;
         die "Cannot pre-compile over a newer existing file: $out"
@@ -124,13 +124,19 @@ class CompUnit {
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $?RAKUDO_MODULE_DEBUG;
 
-        my Bool $result = ?shell(
-          "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path"
-        );
+        my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path";
+        my $handle = pipe("$cmd 2>&1", :r, :!chomp);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 
-        $!has-precomp = $result if $out eq self.precomp-path;
-        $result;
+        my $result = '';
+        $result ~= $_ for $handle.lines;
+        if $handle.close.status -> $status {  # something wrong
+            $result ~= "Return status $status\n";
+        }
+        fail $result if $result;
+
+        $!has-precomp = True if $out eq self.precomp-path;
+        True;
     }
 }
 

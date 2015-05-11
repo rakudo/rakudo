@@ -1,4 +1,5 @@
 sub INITIALIZE_INC(|) {
+    nqp::scwbdisable();
     my @INC;
     my %CUSTOM_LIB;
     my %ENV := %*ENV; # only look up environment once
@@ -96,6 +97,7 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
     PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
 
     nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
+    nqp::scwbenable();
 
     @INC;
 }

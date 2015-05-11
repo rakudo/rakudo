@@ -1,4 +1,4 @@
-{
+sub INITIALIZE_INC(|) {
     my @INC;
     my %CUSTOM_LIB;
     my %ENV := %*ENV; # only look up environment once
@@ -96,6 +96,8 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
     PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
 
     nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
+
+    @INC;
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -155,6 +155,7 @@ my %repr_map =
     'CStruct'   => 'cstruct',
     'CPointer'  => 'cpointer',
     'CArray'    => 'carray',
+    'CUnion'    => 'cunion',
     'VMArray'   => 'vmarray',
     ;
 sub type_code_for(Mu ::T) {
@@ -411,6 +412,10 @@ multi trait_mod:<is>(Parameter $p, :$encoded!) is export(:DEFAULT, :traits) {
 }
 multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded[$encoded];
+}
+
+multi trait_mod:<is>(Attribute $a, :$inlined!) is export(:DEFAULT, :traits) {
+    nqp::bindattr_i(nqp::decont($a), $a.WHAT, '$!inlined', 1);
 }
 
 role ExplicitlyManagedString {

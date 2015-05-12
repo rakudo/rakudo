@@ -1138,7 +1138,6 @@ integration/advent2013-day23.t
 integration/advent2014-day05.t
 integration/advent2014-day13.t
 integration/advent2014-day16.t
-# integration/class-name-and-attribute-conflict.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t
 integration/lazy-bentley-generator.t

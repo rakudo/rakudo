@@ -1004,7 +1004,7 @@ S32-str/ords.t
 S32-str/pack.t
 S32-str/pos.t
 S32-str/rindex.t
-# S32-str/sameaccent.t
+S32-str/samemark.t
 S32-str/samecase.t
 S32-str/split-simple.t
 S32-str/split.t

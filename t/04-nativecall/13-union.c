@@ -18,13 +18,29 @@ typedef union {
 typedef struct {
     long intval;
     double numval;
-    char byteval;
+    signed char byteval;
     onion vegval;
     float floatval;
 } MyStruct;
 
+typedef struct {
+    long intval;
+    float numval1;
+    float numval2;
+    signed char byteval;
+} YourStruct;
+
+typedef union {
+    MyStruct   a;
+    YourStruct b;
+} UnionOfStructs;
+
 DLLEXPORT int SizeofMyStruct() {
     return sizeof(MyStruct);
+}
+
+DLLEXPORT int SizeofUnionOfStructs() {
+    return sizeof(UnionOfStructs);
 }
 
 DLLEXPORT void SetLongMyStruct(MyStruct *obj) {
@@ -96,6 +112,13 @@ DLLEXPORT MyStruct2 *ReturnMyStruct2() {
     obj->vegval->c = 1 << 6;
 
     obj->floatval  = -6.28;
+
+    return obj;
+}
+
+DLLEXPORT UnionOfStructs *ReturnUnionOfStructs() {
+    UnionOfStructs *obj = (UnionOfStructs *)malloc(sizeof(UnionOfStructs));
+    obj->b.byteval      = 42;
 
     return obj;
 }

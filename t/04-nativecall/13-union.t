@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 23;
+plan 28;
 
 compile_test_lib('13-union');
 
@@ -115,5 +115,27 @@ is $onion.s, 1 +< 13, 'short in union*';
 
 SetCharMyUnion($onion);
 is $onion.c, 1 +< 6,  'char in union*';
+
+class YourStruct is repr('CStruct') {
+    has long  $.long;
+    has num32 $.num1;
+    has num32 $.num2;
+    has int8  $.byte;
+}
+
+class UnionOfStructs is repr('CUnion') {
+    has MyStruct   $.a is inlined;
+    has YourStruct $.b is inlined;
+}
+
+sub ReturnUnionOfStructs() returns UnionOfStructs is native('./13-union') { * }
+sub SizeofUnionOfStructs() returns int32          is native('./13-union') { * }
+
+is nativesizeof(UnionOfStructs), SizeofUnionOfStructs(), 'sizeof(UnionOfStructs)';
+my $uos = ReturnUnionOfStructs;
+isa-ok $uos.a, MyStruct,   'member a of union is-a MyStruct';
+isa-ok $uos.b, YourStruct, 'member b of union is-a YourStruct';
+is $uos.a.byte, 42, 'a.byte was set to 42 by C';
+is $uos.b.byte, 42, 'b.byte must be the same';
 
 # vim:ft=perl6

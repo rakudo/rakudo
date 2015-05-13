@@ -13,11 +13,30 @@ my class IO::Handle does IO {
         self.open(:p, |c);
     }
 
-    method open(IO::Handle:D:
-      :$r is copy,
-      :$w is copy,
-      :$rw,
-      :$a,
+    proto method open(|) { * }
+
+    multi method open(IO::Handle:D: :$r!, :$w!, *%_) {
+        die "Cannot use both :r and :w - use :rw, :wr or :wrx instead";
+    }
+
+    multi method open(IO::Handle:D: :$r!, :$a!, *%_) {
+        die "Cannot use both :r and :a - use :ra or :ar instead";
+    }
+
+    multi method open(IO::Handle:D: :$r!  , *%_) { self!open('r'  , 'r'  , |%_) }
+    multi method open(IO::Handle:D: :$rw! , *%_) { self!open('rw' , '+'  , |%_) }
+    multi method open(IO::Handle:D: :$ra! , *%_) { self!open('ra' , '+a' , |%_) }
+    multi method open(IO::Handle:D: :$w!  , *%_) { self!open('w'  , 'w'  , |%_) }
+    multi method open(IO::Handle:D: :$wx! , *%_) { self!open('wx' , '-cx', |%_) }
+    multi method open(IO::Handle:D: :$wr! , *%_) { self!open('wr' , '+ct', |%_) }
+    multi method open(IO::Handle:D: :$wrx!, *%_) { self!open('wrx', '+cx', |%_) }
+    multi method open(IO::Handle:D: :$a!  , *%_) { self!open('a'  , 'wa' , |%_) }
+    multi method open(IO::Handle:D: :$ar! , *%_) { self!open('ar' , '+ca', |%_) }
+    multi method open(IO::Handle:D:         *%_) { self!open(''   , 'r'  , |%_) }
+
+    method !open(IO::Handle:D:
+       $mode,
+       $llmode,
       :$p,
       :$bin,
       :$chomp = True,
@@ -26,11 +45,17 @@ my class IO::Handle does IO {
     ) {
 
         if $!path eq '-' {
-            $!path =
-              IO::Special.new(:what( $w ?? << <STDOUT> >> !! << <STDIN> >> ));
+            $!path = IO::Special.new:
+                what => do given $mode {
+                    when  ''|'r' { '<STDIN>'  }
+                    when 'w'|'a' { '<STDOUT>' }
+                    default {
+                        die "Cannot open standard stream in mode :$_";
+                    }
+                }
         }
 
-        if nqp::istype($!path,IO::Special) {
+        if nqp::istype($!path, IO::Special) {
             my $what := $!path.what;
             if $what eq '<STDIN>' {
                 $!PIO := nqp::getstdin();
@@ -51,7 +76,6 @@ my class IO::Handle does IO {
 
         fail (X::IO::Directory.new(:$!path, :trying<open>))
           if $!path.e && $!path.d;
-        $r = $w = True if $rw;
 
         if $p {
             $!pipe = 1;
@@ -65,11 +89,10 @@ my class IO::Handle does IO {
             );
         }
         else {
-            my $mode =  $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
             # TODO: catch error, and fail()
             $!PIO := nqp::open(
               nqp::unbox_s($!path.abspath),
-              nqp::unbox_s($mode),
+              nqp::unbox_s($llmode),
             );
         }
 

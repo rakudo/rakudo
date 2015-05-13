@@ -899,7 +899,7 @@ S32-basics/warn.t
 S32-basics/xxKEY.t
 S32-basics/xxPOS.t
 S32-basics/xxPOS-native.t    # moar
-# S32-container/cat.t
+S32-container/cat.t
 S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t

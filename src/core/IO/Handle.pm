@@ -36,17 +36,17 @@ my class IO::Handle does IO {
 
         my $m = do given $mode {
             when '<'  { 'r' }
-            when '>'  { '-ct' }
-            when '>>' { '-ca' }
+            when '>'  { 'w' }
+            when '>>' { 'wa' }
 
             when '+<'  { '+' }
             when '+>'  { '+ct' }
             when '+>>' { '+ca' }
 
             when 'r'  { 'r' }
-            when 'w'  { '-ct' }
-            when 'a'  { '-ca' }
-            when 'wx' { '-cx' }
+            when 'w'  { 'w' }
+            when 'a'  { 'wa' }
+            when 'wx' { 'wx' }
 
             when 'r+'  { '+' }
             when 'w+'  { '+ct' }
@@ -54,9 +54,9 @@ my class IO::Handle does IO {
             when 'w+x' { '+cx' }
 
             when 'rb'  { $bin = True; 'r' }
-            when 'wb'  { $bin = True; '-ct' }
-            when 'ab'  { $bin = True; '-ca' }
-            when 'wbx' { $bin = True; '-cx' }
+            when 'wb'  { $bin = True; 'w' }
+            when 'ab'  { $bin = True; 'wa' }
+            when 'wbx' { $bin = True; 'wx' }
 
             when 'r+b' |'rb+'  { $bin = True; '+' }
             when 'w+b' |'wb+'  { $bin = True; '+ct' }
@@ -70,7 +70,7 @@ my class IO::Handle does IO {
             $!path = IO::Special.new:
                 what => do given $m.substr(0, 1) {
                     when 'r' { '<STDIN>'  }
-                    when '-' { '<STDOUT>' }
+                    when 'w' { '<STDOUT>' }
                     default {
                         die "Cannot open standard stream in mode '$mode'";
                     }

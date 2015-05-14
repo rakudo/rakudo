@@ -10,8 +10,6 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
   if $?RAKUDO_MODULE_DEBUG;
 
         @INC = specs.split(','); # assume well formed strings
-        $*VM;     # we need $*VM to be populated for valid precomps
-        $*DISTRO; # we need $*DISTRO to be populated for valid precomps
     }
 
     # normal start up

@@ -2783,6 +2783,7 @@ Compilation unit '$file' contained the following violations:
         my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
         $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
         $*W.add_proto_to_sort($code);
+        $*W.install_lexical_symbol($p_past, '&?ROUTINE', $code);
         $code
     }
 

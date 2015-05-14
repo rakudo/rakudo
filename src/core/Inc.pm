@@ -40,7 +40,13 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
         }
 #?endif
 
-        my $prefix  := $*VM.prefix ~ '/share/perl6';
+#?if jvm
+        my $prefix := $*VM.prefix ~ '/share/perl6';
+#?endif
+#?if moar
+        my $prefix := nqp::p6box_s(nqp::atkey(nqp::backendconfig(), 'prefix'))
+            ~ '/share/perl6';
+#?endif
         my $abspath := "$prefix/share/libraries.json";
         if IO::Path.new-from-absolute-path($abspath).e {
             my $config = from-json( slurp $abspath );

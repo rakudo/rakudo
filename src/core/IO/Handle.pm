@@ -13,44 +13,44 @@ my class IO::Handle does IO {
         self.open(:p, |c);
     }
 
-    proto method open(|) { * }
-
-    multi method open(IO::Handle:D: :$r!, :$w!, *%_) {
-        die "Cannot use both :r and :w - use :rw, :wr or :wrx instead";
-    }
-
-    multi method open(IO::Handle:D: :$r!, :$a!, *%_) {
-        die "Cannot use both :r and :a - use :ra or :ar instead";
-    }
-
-    multi method open(IO::Handle:D: :$r!  , *%_) { self!open('r'  , 'r'  , |%_) }
-    multi method open(IO::Handle:D: :$rw! , *%_) { self!open('rw' , '+'  , |%_) }
-    multi method open(IO::Handle:D: :$ra! , *%_) { self!open('ra' , '+a' , |%_) }
-    multi method open(IO::Handle:D: :$w!  , *%_) { self!open('w'  , 'w'  , |%_) }
-    multi method open(IO::Handle:D: :$wx! , *%_) { self!open('wx' , '-cx', |%_) }
-    multi method open(IO::Handle:D: :$wr! , *%_) { self!open('wr' , '+ct', |%_) }
-    multi method open(IO::Handle:D: :$wrx!, *%_) { self!open('wrx', '+cx', |%_) }
-    multi method open(IO::Handle:D: :$a!  , *%_) { self!open('a'  , 'wa' , |%_) }
-    multi method open(IO::Handle:D: :$ar! , *%_) { self!open('ar' , '+ca', |%_) }
-    multi method open(IO::Handle:D:         *%_) { self!open(''   , 'r'  , |%_) }
-
-    method !open(IO::Handle:D:
-       $mode,
-       $llmode,
-      :$p,
+    method open(IO::Handle:D:
+      :$p, :$r, :$w, :$x, :$a, :$update,
+      :$rw, :$rx, :$ra,
+      :$mode is copy,
+      :$create is copy,
+      :$append is copy,
+      :$truncate is copy,
+      :$exclusive is copy,
       :$bin,
       :$chomp = True,
       :$enc   = 'utf8',
       :$nl    = "\n",
     ) {
 
+        $mode //= do {
+            when $p { 'p' }
+
+            when ($r && $w) || $rw { $create              = True; 'rw' }
+            when ($r && $x) || $rx { $create = $exclusive = True; 'rw' }
+            when ($r && $a) || $ra { $create = $append    = True; 'rw' }
+
+            when $r { 'ro' }
+            when $w { $create = $truncate  = True; 'wo' }
+            when $x { $create = $exclusive = True; 'wo' }
+            when $a { $create = $append    = True; 'wo' }
+
+            when $update { 'rw' }
+
+            default { 'ro' }
+        }
+
         if $!path eq '-' {
             $!path = IO::Special.new:
                 what => do given $mode {
-                    when  ''|'r' { '<STDIN>'  }
-                    when 'w'|'a' { '<STDOUT>' }
+                    when 'ro' { '<STDIN>'  }
+                    when 'wo' { '<STDOUT>' }
                     default {
-                        die "Cannot open standard stream in mode :$_";
+                        die "Cannot open standard stream in mode '$_'";
                     }
                 }
         }
@@ -77,7 +77,7 @@ my class IO::Handle does IO {
         fail (X::IO::Directory.new(:$!path, :trying<open>))
           if $!path.e && $!path.d;
 
-        if $p {
+        if $mode eq 'p' {
             $!pipe = 1;
 
             my str $errpath;
@@ -89,6 +89,28 @@ my class IO::Handle does IO {
             );
         }
         else {
+            # TODO: support Parrot, which understands r, w, a, p, b
+            #       cf io/utilities.c, Parrot_io_parse_open_flags()
+            my $llmode = do given $mode {
+                when 'ro' { 'r' }
+                when 'wo' { '-' }
+                when 'rw' { '+' }
+                default { die "Unknown mode '$_'" }
+            }
+
+            $llmode = join '', $llmode,
+                $create    ?? 'c' !! '',
+                $append    ?? 'a' !! '',
+                $truncate  ?? 't' !! '',
+                $exclusive ?? 'x' !! '';
+
+            # use backwards-compatible modes where available
+            $llmode = do given $llmode {
+                when '-ct' { 'w' }
+                when '-ca' { 'wa' }
+                default    { $llmode }
+            }
+
             # TODO: catch error, and fail()
             $!PIO := nqp::open(
               nqp::unbox_s($!path.abspath),
@@ -101,7 +123,6 @@ my class IO::Handle does IO {
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
         self;
     }
-
 
     method input-line-separator {
         DEPRECATED("nl",|<2015.03 2015.09>);

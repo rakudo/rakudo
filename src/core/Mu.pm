@@ -523,13 +523,13 @@ my class Mu { # declared in BOOTSTRAP
         my $listcan = List.can($name);
         if $listcan and $listcan[0].?nodal {
             c
-                ?? hyper( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
-                !! hyper( sub (\obj) is nodal { obj."$name"() }, SELF )
+                ?? HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
+                !! HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
         }
         else {
             c
-                ?? hyper( -> \obj { obj."$name"(|c) }, SELF )
-                !! hyper( -> \obj { obj."$name"() }, SELF )
+                ?? HYPER( -> \obj { obj."$name"(|c) }, SELF )
+                !! HYPER( -> \obj { obj."$name"() }, SELF )
         }
     }
 

@@ -24,7 +24,7 @@ my class IO::Spec {
 #?if moar
           nqp::p6box_s(nqp::atkey(nqp::backendconfig(), 'osname'));
 #?endif
-        ::('IO::Spec::' ~ ( %module{ lc $token } // 'Unix' ));
+        IO::Spec::{%module{ lc $token } // 'Unix'};
     }
 
     method MODULE(IO::Spec:U:) {

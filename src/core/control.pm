@@ -190,7 +190,12 @@ multi sub warn(*@msg) {
     my $msg = @msg.join || "Warning: something's wrong";
     my $i = 1;
     my %anno := callframe($i).annotations;
+#?if jvm
+    %anno := callframe(++$i).annotations while nqp::isconcrete(%anno<file>) && %anno<file> ~~ /\.setting$/;
+#?endif
+#?if !jvm
     %anno := callframe(++$i).annotations while !nqp::isnull_s(%anno<file>) && %anno<file> ~~ /\.setting$/;
+#?endif
     $msg ~= ' at ' ~ %anno<file> ~ ' line ' ~ %anno<line> unless $msg ~~ /\n$/ or !%anno or !%anno<line> or nqp::isnull_s(%anno<file>);
 
     my $ex := nqp::newexception();

@@ -17,7 +17,8 @@ New in 2015.05
    + Hashes use much less memory on Moar
    + my $a will begin/enter/leave/keep/undo/first/pre now set $_ properly
    + List.roll(Inf) now knows it's infinite, so is lazy
- 
+   + The REPL is strict by default now, that leaves only '-e' lines to be lax
+
 New in 2015.04
  + Incompatible changes:
    + Installation directory layout changed: it now uses $PREFIX/share instead of

@@ -330,7 +330,7 @@ class Perl6::World is HLL::World {
         }
         else {
             my $FILES := nqp::getlexdyn('$?FILES');
-            $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
+            $*STRICT  := nqp::isnull($FILES) || $FILES ne '-e';
         }
 
         # Bootstrap

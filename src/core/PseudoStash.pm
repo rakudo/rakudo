@@ -44,10 +44,6 @@ my class PseudoStash is EnumMap {
         'CALLER' => sub ($cur) {
             my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
-            if nqp::existskey(nqp::ctxlexpad($ctx), '&?ROUTINE') {
-                my $r := nqp::atkey(nqp::ctxlexpad($ctx), '&?ROUTINE');
-                $ctx := nqp::ctxcallerskipthunks($ctx) if $r && $r.?onlystar;
-            }
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);

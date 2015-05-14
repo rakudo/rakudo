@@ -2753,6 +2753,7 @@ Compilation unit '$file' contained the following violations:
     method autogenerate_proto($/, $name, $install_in) {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
+        $p_past.is_thunk(1);
         $p_past.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(

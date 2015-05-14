@@ -2808,7 +2808,7 @@ class Perl6::World is HLL::World {
             'CORE', 1, 'SETTING', 1, 'UNIT', 1,
             'OUTER', 1, 'OUTERS', 1, 'LEXICAL', 1,
             'CALLER', 1, 'CALLERS', 1, 'DYNAMIC', 1,
-            'COMPILING', 1, 'PARENT', 1, );
+            'COMPILING', 1, 'PARENT', 1, 'CLIENT', 1);
         method is_pseudo_package($comp) {
             !nqp::istype($comp, QAST::Node) && %pseudo{$comp};
         }

@@ -2897,7 +2897,9 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
-# Put PROCESS in place.
+# Put PROCESS in place, and ensure it's never repossessed.
+nqp::neverrepossess(PROCESS.WHO);
+nqp::neverrepossess(nqp::getattr(PROCESS.WHO, EnumMap, '$!storage'));
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 
 # HLL configuration: interop, boxing and exit handling.

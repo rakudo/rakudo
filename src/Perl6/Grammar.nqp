@@ -2149,6 +2149,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 {
                     $*IN_DECL := '';
                     $*begin_compunit := 0;
+                    if $*SCOPE eq 'unit' {
+                        $/.CURSOR.typed_panic("X::Declaration::Scope", scope => 'unit', declaration => "block form of $*PKGDECL");
+                    }
                 }
                 <blockoid>
                 ]

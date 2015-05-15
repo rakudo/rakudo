@@ -666,7 +666,7 @@ my class Binder {
             # Could it be a named slurpy?
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
                 # We'll either take the current named arguments copy hash which
-                # will by definition contain all unbound named parameters and use
+                # will by definition contain all unbound named arguments and use
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
@@ -789,7 +789,7 @@ my class Binder {
                     }
                     elsif !$suppress_arity_fail {
                         if nqp::defined($error) {
-                            $error[0] := "Required named parameter '" ~
+                            $error[0] := "Required named argument '" ~
                                 $named_names[0] ~ "' not passed";
                         }
                         return $BIND_RESULT_FAIL;
@@ -822,10 +822,10 @@ my class Binder {
                     nqp::push(@names, $_.key);
                 }
                 if $num_extra == 1 {
-                    $error[0] := "Unexpected named parameter '" ~ @names[0] ~ "' passed";
+                    $error[0] := "Unexpected named argument '" ~ @names[0] ~ "' passed";
                 }
                 else {
-                    $error[0] := $num_extra ~ " unexpected named parameters passed (" ~
+                    $error[0] := $num_extra ~ " unexpected named arguments passed (" ~
                         nqp::join(",", @names) ~")";
                 }
             }
@@ -2736,7 +2736,7 @@ BEGIN {
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
             if !nqp::isconcrete($self) && !nqp::can($self, 'CALL-ME') && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
-                nqp::die("Cannot coerce to $coercer_name with named parameters")
+                nqp::die("Cannot coerce to $coercer_name with named arguments")
                   if +%named;
                 if +@pos == 1 {
                     @pos[0]."$coercer_name"()

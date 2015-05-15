@@ -2344,9 +2344,6 @@ Compilation unit '$file' contained the following violations:
             if $desigilname eq '' {
                 $/.CURSOR.panic("Cannot declare an anonymous attribute");
             }
-            elsif $twigil eq '' {
-                $/.CURSOR.panic("Missing twigil in attribute '$name': must indicate private (!) or public (.)");
-            }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(

@@ -665,6 +665,9 @@ class Perl6::World is HLL::World {
           ?? nqp::clone(%*PRAGMAS<INC>)
           !! nqp::list();
 
+        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+        $DEBUG(($push ?? "Push" !! "Unshift") ~ "ing to @?INC:") if $DEBUG;
+
         for $arglist -> $arg {
             my $string := nqp::index($arg,'#') == -1
               ?? nqp::hllizefor("file#$arg", 'perl6')
@@ -672,6 +675,7 @@ class Perl6::World is HLL::World {
             $push
               ?? nqp::push($INC,$string)
               !! nqp::unshift($INC,$string);
+            $DEBUG("  $arg") if $DEBUG;
         }
 
         $INC := nqp::p6parcel($INC, self.find_symbol(['Any']));

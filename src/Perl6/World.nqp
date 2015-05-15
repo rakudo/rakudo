@@ -226,6 +226,9 @@ class Perl6::World is HLL::World {
     
     # Cache of container info and descriptor for magicals.
     has %!magical_cds;
+
+    # are we module debugging?
+    has $!RAKUDO_MODULE_DEBUG;
     
     method BUILD(*%adv) {
         @!BLOCKS := [];
@@ -240,6 +243,21 @@ class Perl6::World is HLL::World {
         %!const_cache := {};
         @!cleanup_tasks := [];
         %!magical_cds := {};
+    }
+
+    method RAKUDO_MODULE_DEBUG() {
+        unless nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
+            $!RAKUDO_MODULE_DEBUG :=
+              nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_MODULE_DEBUG'),0)
+              ?? -> *@strs {
+                     my $err := nqp::getstderr();
+                     nqp::printfh($err, "MODULE_DEBUG: ");
+                     for @strs { nqp::printfh($err, $_) };
+                     nqp::printfh($err, "\n");
+                 }
+              !! 0;
+        }
+        $!RAKUDO_MODULE_DEBUG;
     }
 
     method loading_and_symbol_setup($/) {
@@ -663,6 +681,9 @@ class Perl6::World is HLL::World {
 
     method do_pragma($/,$name,$on,$arglist) {
 
+        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+        $DEBUG("Attempting '$name' as a pragma") if $DEBUG;
+
         # XXX maybe we need a hash with code to execute
         if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
@@ -689,8 +710,11 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<soft> := $on;
         }
         else {
+            $DEBUG("'$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module
         }
+
+        $DEBUG("Successfully handled '$name' as a pragma") if $DEBUG;
         1;
     }
 

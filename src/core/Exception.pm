@@ -255,6 +255,7 @@ do {
 
 my role X::OS is Exception {
     has $.os-error;
+    method message() { $.os-error }
 }
 
 my role X::IO does X::OS { };

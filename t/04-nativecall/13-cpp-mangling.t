@@ -2,7 +2,7 @@ use v6;
 use NativeCall;
 use Test;
 
-plan 20;
+plan 21;
 
 my $cmd    = $*DISTRO.is-win
            ?? 'cl /LD /EHsc /Fe13-cpp-mangling.dll t/04-nativecall/13-cpp-mangling.cpp'
@@ -41,6 +41,7 @@ class Foo is repr<CPPStruct> {
     method TakeALongLongPointer(Pointer[longlong]) returns int32 is native("./13-cpp-mangling") { * }
     method TakeAFloatPointer(Pointer[num32])       returns int32 is native("./13-cpp-mangling") { * }
     method TakeADoublePointer(Pointer[num64])      returns int32 is native("./13-cpp-mangling") { * }
+    method TakeAConstString(Str is cpp-const)      returns int32 is native("./13-cpp-mangling") { * }
 }
 
 my $foo = Foo.new;
@@ -65,3 +66,4 @@ is $foo.TakeALongPointer(Pointer[long].new),         16, 'long* mangling';
 is $foo.TakeALongLongPointer(Pointer[longlong].new), 17, 'long long* mangling';
 is $foo.TakeAFloatPointer(Pointer[num32].new),       18, 'float* mangling';
 is $foo.TakeADoublePointer(Pointer[num64].new),      19, 'double* mangling';
+is $foo.TakeAConstString("1"),                       20, 'const char* mangling';

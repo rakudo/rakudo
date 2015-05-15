@@ -30,6 +30,7 @@ public:
     virtual int TakeALongLongPointer(long long *i) { return 17; }
     virtual int TakeAFloatPointer(float *i)        { return 18; }
     virtual int TakeADoublePointer(double *i)      { return 19; }
+    virtual int TakeAConstString(const char *i)    { return 20; }
 };
 
 Foo::Foo()  { };

@@ -253,13 +253,13 @@ do {
 
 }
 
-my role X::OS {
+my role X::OS is Exception {
     has $.os-error;
 }
 
 my role X::IO does X::OS { };
 
-my class X::IO::Rename does X::IO is Exception {
+my class X::IO::Rename does X::IO {
     has $.from;
     has $.to;
     method message() {
@@ -267,7 +267,7 @@ my class X::IO::Rename does X::IO is Exception {
     }
 }
 
-my class X::IO::Copy does X::IO is Exception {
+my class X::IO::Copy does X::IO {
     has $.from;
     has $.to;
     method message() {
@@ -275,7 +275,7 @@ my class X::IO::Copy does X::IO is Exception {
     }
 }
 
-my class X::IO::DoesNotExist does X::IO is Exception {
+my class X::IO::DoesNotExist does X::IO {
     has $.path;
     has $.trying;
     method message() {
@@ -283,7 +283,7 @@ my class X::IO::DoesNotExist does X::IO is Exception {
     }
 }
 
-my class X::IO::NotAFile does X::IO is Exception {
+my class X::IO::NotAFile does X::IO {
     has $.path;
     has $.trying;
     method message() {
@@ -291,7 +291,7 @@ my class X::IO::NotAFile does X::IO is Exception {
     }
 }
 
-my class X::IO::Directory does X::IO is Exception {
+my class X::IO::Directory does X::IO {
     has $.path;
     has $.trying;
     has $.use;
@@ -302,7 +302,7 @@ my class X::IO::Directory does X::IO is Exception {
     }
 }
 
-my class X::IO::Symlink does X::IO is Exception {
+my class X::IO::Symlink does X::IO {
     has $.target;
     has $.name;
     method message() {
@@ -310,7 +310,7 @@ my class X::IO::Symlink does X::IO is Exception {
     }
 }
 
-my class X::IO::Link does X::IO is Exception {
+my class X::IO::Link does X::IO {
     has $.target;
     has $.name;
     method message() {
@@ -318,7 +318,7 @@ my class X::IO::Link does X::IO is Exception {
     }
 }
 
-my class X::IO::Mkdir does X::IO is Exception {
+my class X::IO::Mkdir does X::IO {
     has $.path;
     has $.mode;
     method message() {
@@ -326,41 +326,41 @@ my class X::IO::Mkdir does X::IO is Exception {
     }
 }
 
-my class X::IO::Chdir does X::IO is Exception {
+my class X::IO::Chdir does X::IO {
     has $.path;
     method message() {
         "Failed to change the working directory to '$.path': $.os-error"
     }
 }
 
-my class X::IO::Dir does X::IO is Exception {
+my class X::IO::Dir does X::IO {
     has $.path;
     method message() {
         "Failed to get the directory contents of '$.path': $.os-error"
     }
 }
 
-my class X::IO::Cwd does X::IO is Exception {
+my class X::IO::Cwd does X::IO {
     method message() {
         "Failed to get the working directory: $.os-error"
     }
 }
 
-my class X::IO::Rmdir does X::IO is Exception {
+my class X::IO::Rmdir does X::IO {
     has $.path;
     method message() {
         "Failed to remove the directory '$.path': $.os-error"
     }
 }
 
-my class X::IO::Unlink does X::IO is Exception {
+my class X::IO::Unlink does X::IO {
     has $.path;
     method message() {
         "Failed to remove the file '$.path': $.os-error"
     }
 }
 
-my class X::IO::Chmod does X::IO is Exception {
+my class X::IO::Chmod does X::IO {
     has $.path;
     has $.mode;
     method message() {

@@ -1,6 +1,5 @@
 use lib 't/04-nativecall';
 use CompileTestLib;
-use lib 'lib';
 use NativeCall;
 use Test;
 

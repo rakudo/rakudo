@@ -121,6 +121,30 @@ my class X::Pragma::NoArgs is Exception {
     method message { "The '$.name' pragma does not take any arguments." }
 }
 
+my role X::Control is Exception {
+}
+my class CX::Next does X::Control {
+    method message() { "<next control exception>" }
+}
+my class CX::Redo does X::Control {
+    method message() { "<redo control exception>" }
+}
+my class CX::Last does X::Control {
+    method message() { "<last control exception>" }
+}
+my class CX::Take does X::Control {
+    method message() { "<take control exception>" }
+}
+my class CX::Warn does X::Control {
+    method message() { "<warn control exception>" }
+}
+my class CX::Succeed does X::Control {
+    method message() { "<succeed control exception>" }
+}
+my class CX::Proceed does X::Control {
+    method message() { "<proceed control exception>" }
+}
+
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
@@ -130,16 +154,35 @@ sub EXCEPTION(|) {
     } else {
         my int $type = nqp::getextype($vm_ex);
         my $ex;
-        if
-            nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
-
+        if $type == nqp::const::CONTROL_NEXT {
+            $ex := CX::Next.new();
+        }
+        elsif $type == nqp::const::CONTROL_REDO {
+            $ex := CX::Redo.new();
+        }
+        elsif $type == nqp::const::CONTROL_LAST {
+            $ex := CX::Last.new();
+        }
+        elsif $type == nqp::const::CONTROL_TAKE {
+            $ex := CX::Take.new();
+        }
+        elsif $type == nqp::const::CONTROL_WARN {
+            $ex := CX::Warn.new();
+        }
+        elsif $type == nqp::const::CONTROL_SUCCEED {
+            $ex := CX::Succeed.new();
+        }
+        elsif $type == nqp::const::CONTROL_PROCEED {
+            $ex := CX::Proceed.new();
+        }
+        elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
+                nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
             $ex := X::Method::NotFound.new(
                 method   => ~$0,
                 typename => ~$1,
             );
         }
         else {
-
             $ex := nqp::create(X::AdHoc);
             nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
         }

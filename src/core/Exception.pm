@@ -210,12 +210,18 @@ sub COMP_EXCEPTION(|) {
 do {
     sub is_runtime($bt) {
         for $bt.keys {
-            try {
-                my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
-                my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
-                my $is_nqp = $codeobj && $codeobj.^name eq 'NQPRoutine';
-                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval') && $is_nqp;
-                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
+            my $p6sub := $bt[$_]<sub>;
+            if nqp::istype($p6sub, Sub) {
+                return True if $p6sub.name eq 'THREAD-ENTRY';
+            }
+            elsif nqp::istype($p6sub, ForeignCode) {
+                try {
+                    my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
+                    my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
+                    return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');
+                }
             }
         }
         False;

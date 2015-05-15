@@ -136,7 +136,7 @@ my class CX::Take does X::Control {
     method message() { "<take control exception>" }
 }
 my class CX::Warn does X::Control {
-    method message() { "<warn control exception>" }
+    has $.message;
 }
 my class CX::Succeed does X::Control {
     method message() { "<succeed control exception>" }
@@ -167,7 +167,9 @@ sub EXCEPTION(|) {
             $ex := CX::Take.new();
         }
         elsif $type == nqp::const::CONTROL_WARN {
-            $ex := CX::Warn.new();
+            my str $message = nqp::getmessage($vm_ex);
+            $message = 'Warning' if nqp::isnull_s($message) || $message eq '';
+            $ex := CX::Warn.new(:$message);
         }
         elsif $type == nqp::const::CONTROL_SUCCEED {
             $ex := CX::Succeed.new();

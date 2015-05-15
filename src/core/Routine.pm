@@ -25,12 +25,6 @@ my class Routine { # declared in BOOTSTRAP
     method returns() { self.signature.returns }
     method onlystar() { nqp::p6bool($!onlystar) }
 
-    method assuming($r: |curried) {
-        sub CURRIED (|direct) {
-            $r(|curried, |direct)
-        }
-    }
-
     method candidates() {
         self.is_dispatcher ??
             nqp::hllize($!dispatchees) !!

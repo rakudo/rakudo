@@ -35,6 +35,12 @@ my class Block { # declared in BOOTSTRAP
         ()
     }
 
+    method assuming(Block:D $b: |curried) {
+        anon sub CURRIED (|direct) {
+            $b(|curried, |direct)
+        }
+    }
+
     multi method perl(Block:D:) {
         my $perl = '-> ';
         $perl ~= substr(self.signature().perl,1); # lose colon prefix

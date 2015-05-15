@@ -56,7 +56,7 @@ is $foo.TakeAFloat(5e0),                              7, 'float mangling';
 is $foo.TakeADouble(6e0),                             8, 'double mangling';
 is $foo.TakeAString("1"),                             9, 'string mangling';
 is $foo.TakeAnArray(CArray[int32].new),              10, 'CArray mangling';
-is $foo.TakeAPointer,                                11, 'Pointer mangling';
+is $foo.TakeAPointer(Pointer.new),                   11, 'Pointer mangling';
 is $foo.TakeABoolPointer(Pointer[Bool].new),         12, 'bool* mangling';
 is $foo.TakeACharPointer(Pointer[int8].new),         13, 'char* mangling';
 is $foo.TakeAShortPointer(Pointer[int16].new),       14, 'short* mangling';

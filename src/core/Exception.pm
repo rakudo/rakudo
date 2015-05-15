@@ -258,8 +258,7 @@ do {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::getmessage($ex));
             nqp::printfh($err, $msg.chars ?? "$msg" !! "Warning");
-            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
-            nqp::printfh($err, "\n");
+            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).first-none-setting-line);
             nqp::resume($ex)
         }
         if ($type == nqp::const::CONTROL_LAST) {

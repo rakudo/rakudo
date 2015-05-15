@@ -2164,13 +2164,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $/.CURSOR.panic("Compilation unit cannot be anonymous");
                         }
                         unless $*SCOPE eq 'unit' {
+                            if $*PKGDECL eq 'package' {
+                                $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style declaration like "unit package Foo;" or "unit module Foo;", or use the block form instead of the semicolon form.');
+                            }
                             $/.CURSOR.worry("Semicolon form without 'unit' declarator is deprecated");
                         }
                         unless $outer =:= $*UNIT {
                             $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => $*PKGDECL, where => "in a subscope");
-                        }
-                        if $*PKGDECL eq 'package' {
-                            $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
                         }
                         $*begin_compunit := 0;
                     }

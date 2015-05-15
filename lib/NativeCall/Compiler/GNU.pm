@@ -17,9 +17,9 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     }
 
     my $params = join '', @params.map: {
-        my $R = $_.?cpp-ref                 ?? 'R' !! ''; # reference
-        my $P = .rw                         ?? 'P' !! ''; # pointer
-        my $K = ($R || $P) && $_.?cpp-const ?? 'K' !! ''; # const
+        my $R = $_.?cpp-ref                                  ?? 'R' !! ''; # reference
+        my $P = .rw                                          ?? 'P' !! ''; # pointer
+        my $K = ($R || $P || .type === Str) && $_.?cpp-const ?? 'K' !! ''; # const
         cpp_param_letter(.type, :$R, :$P, :$K)
     };
     $mangled ~= $params || 'v';
@@ -55,7 +55,7 @@ sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
             $R ~ $P ~ $K ~ 'd'
         }
         when Str {
-            'Pc'
+            'P' ~ $K ~ 'c'
         }
         when NativeCall::Types::CArray | NativeCall::Types::Pointer {
             'P' ~ $K ~ cpp_param_letter(.of);

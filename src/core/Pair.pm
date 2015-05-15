@@ -1,5 +1,4 @@
 my class Pair is Enum {
-    method key() { nqp::getattr(self, Enum, '$!key') }
     method value() is rw { nqp::getattr(self, Enum, '$!value') }
 
     multi method ACCEPTS(Pair:D: %h) {
@@ -11,7 +10,7 @@ my class Pair is Enum {
 }
 
 sub infix:«=>»($key, Mu $value) {
-    Pair.new(:key($key), :value($value))
+    Pair.new(:$key, :$value)
 }
 
 # vim: ft=perl6 expandtab sw=4

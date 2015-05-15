@@ -1,6 +1,6 @@
 # all sub postcircumfix {} candidates here please
 
-proto sub postcircumfix:<{ }>(|) { * }
+proto sub postcircumfix:<{ }>(|) is nodal { * }
 
 # %h<key>
 multi sub postcircumfix:<{ }>( \SELF, \key ) is rw {
@@ -38,12 +38,12 @@ multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is rw {
 multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
     nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! key.map({ SELF{$_} }).eager.Parcel;
+      !! key.flatmap({ SELF{$_} }).eager.Parcel;
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, Mu \ASSIGN) is rw {
     (nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! key.map({ SELF{$_} }).eager.Parcel) = ASSIGN
+      !! key.flatmap({ SELF{$_} }).eager.Parcel) = ASSIGN
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
@@ -138,7 +138,7 @@ multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
             if keys[0].isa(HyperWhatever);
 
         if [||] %adv<kv p k> {
-            postcircumfix:<{ }>(SELF, keys[0], :kv).map(-> \key, \value {
+            postcircumfix:<{ }>(SELF, keys[0], :kv).flatmap(-> \key, \value {
                 map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2), value2 } !!
                     %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
                     # .item so that recursive calls don't map the LoL's elems
@@ -149,7 +149,7 @@ multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
             (keys[0].isa(Whatever)
                 ?? SELF{SELF.keys}.Parcel
                 !! SELF{keys[0].list}.Parcel
-            ).map(-> \elem {
+            ).flatmap(-> \elem {
                 postcircumfix:<{ }>(elem, LoL.new(|keys[1..*]), |%adv);
             }).eager.Parcel;
         }

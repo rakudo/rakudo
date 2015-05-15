@@ -7,6 +7,7 @@ role CompUnitRepo::Locally {
 
     method new(CompUnitRepo::Locally: $dir) {
         my $abspath := $*SPEC.rel2abs($dir);
+        try mkdir $abspath;
         my $IO      := IO::Path.new-from-absolute-path($abspath);
         return Nil unless $IO.d and $IO.r;
 
@@ -23,7 +24,7 @@ role CompUnitRepo::Locally {
     }
 
     method path(CompUnitRepo::Locally:D:) {
-        DEPRECATED( 'IO', |<2014.11 2015.11> );
+        DEPRECATED( 'IO', |<2014.11 2015.09> );
         $!IO;
     }
 

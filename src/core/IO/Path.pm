@@ -39,7 +39,7 @@ my class IO::Path is Cool {
       :$SPEC   = $*SPEC,
       :$CWD    = $*CWD,
     ) {
-        DEPRECATED(':dirname', |<2014.10 2015.10>, :what<IO::Path.new with :directory>);
+        DEPRECATED(':dirname', |<2014.10 2015.09>, :what<IO::Path.new with :directory>);
         self.bless(
           :path($SPEC.join($volume,$directory,$basename)), :$SPEC, :$CWD);
     }
@@ -381,7 +381,7 @@ my class IO::Path is Cool {
     }
 
     method contents(IO::Path:D: |c) {
-        DEPRECATED('dir', |<2014.10 2015.10>);
+        DEPRECATED('dir', |<2014.10 2015.09>);
         self.dir(|c);
     }
 
@@ -613,7 +613,7 @@ my class IO::Path is Cool {
     }
 
     method directory() {
-        DEPRECATED("dirname", |<2014.10 2015.10>);
+        DEPRECATED("dirname", |<2014.10 2015.09>);
         self.dirname;
     }
 }

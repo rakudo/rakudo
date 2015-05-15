@@ -134,7 +134,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
       subtype    => c.hash.keys[0],
       declaring  => ' ' ~ lc( $r.^name ),
       highexpect => ('rw parcel hidden-from-backtrace hidden-from-USAGE',
-                     'pure default DEPRECATED inlinable',
+                     'pure default DEPRECATED inlinable nodal',
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
 }
@@ -186,6 +186,7 @@ multi sub trait_mod:<is>(Routine $r, :&tighter!) {
         trait_mod:<is>($r, :prec(&tighter.prec))
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, '@=');
+    $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :&looser!) {
     die "Routine given to looser does not appear to be an operator"
@@ -194,6 +195,7 @@ multi sub trait_mod:<is>(Routine $r, :&looser!) {
         trait_mod:<is>($r, :prec(&looser.prec))
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, ':=');
+    $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :$assoc!) {
     trait_mod:<is>($r, :prec({ :$assoc }))
@@ -243,7 +245,7 @@ my $_;
 
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
-    for nqp::hllize(@*PACKAGES) {
+    for flat nqp::hllize(@*PACKAGES) {
         unless .WHO.EXISTS-KEY('EXPORT') {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;
@@ -379,6 +381,12 @@ multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
     });
 }
 
+multi sub trait_mod:<is>(Routine:D $r, :$nodal!) {
+    $r.^mixin( role {
+        method nodal { True }
+    });
+}
+
 proto sub trait_mod:<returns>(|) { * }
 multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
@@ -479,7 +487,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
 multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     my $pkg := $m.signature.params[0].type;
     my $call_name := $m.name;
-    for thunk() -> $meth_name {
+    for flat thunk() -> $meth_name {
         my $meth := method (|c) is rw {
             self."$call_name"()."$meth_name"(|c);
         }
@@ -490,7 +498,27 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
 }
 
 proto sub trait_mod:<will>(|) { * }
-multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {
+multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
+    X::Comp::Trait::Unknown.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'will',
+      subtype    => c.hash.keys[0],
+      declaring  => 'n attribute',
+      highexpect => <lazy>,
+    ).throw;
+}
+multi sub trait_mod:<will>(Attribute:D $attr, $block, :$lazy!) {
+    $attr does role {
+        method compose(|) {
+            callsame();
+            $attr.package.^method_table{$attr.name.substr(2)}.wrap(-> \self {
+                callsame() // $attr.set_value(self, $block());
+            });
+        }
+    }
+}
+multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {  # internal usage
     $attr.set_build($build)
 }
 

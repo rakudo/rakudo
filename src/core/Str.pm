@@ -17,6 +17,7 @@ sub NORMALIZE_ENCODING(Str:D $s) {
         'utf32'             => 'utf32',
         'ascii'             => 'ascii',
         'iso-8859-1'        => 'iso-8859-1',
+        'windows-1252'      => 'windows-1252',
         # with dash
         'utf-8'             => 'utf8',
         'utf-16'            => 'utf16',
@@ -55,7 +56,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Bool(Str:D:) {
-        nqp::p6bool(nqp::chars($!value) && nqp::isne_s($!value,"0"));
+        nqp::p6bool(nqp::chars($!value));
     }
 
     multi method Str(Str:D:)     { self }
@@ -97,9 +98,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method chop(Str:D: $chars = 1) {
-        my str $sself = nqp::unbox_s(self);
-        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - $chars))
+    method chop(Str:D: Int() $chopping = 1) {
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str) - $chopping;
+        $chars > 0 ?? nqp::p6box_s(nqp::substr($str,0,$chars)) !! '';
     }
 
     # chars used to handle ranges for pred/succ
@@ -161,7 +163,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 return ($pos, $end) unless nqp::iseq_s($ch, '.');
             }
         }
-        return (0, -1);
+        (0, -1);
     }
 
     method pred(Str:D:) {
@@ -267,6 +269,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 # Integer part, if any
                 my Int:D $int := 0;
                 if nqp::isne_i($ch, 46) {  # '.'
+                    parse_fail "Cannot convert radix of $radix (max 36)"
+                        if $radix > 36;
                     $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
                     $p      = nqp::atpos($parse, 2);
                     parse_fail "base-$radix number must begin with valid digits or '.'"
@@ -461,7 +465,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                         !! $result / $denom;
             }
 
-            return $result;
+            $result;
         }
 
         # Parse a real number, magnitude of a pure imaginary number,
@@ -505,7 +509,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         parse_fail "trailing characters after number"
             if nqp::islt_i($pos, $eos);
 
-        return $result;
+        $result;
     }
 
     my %esc = (
@@ -582,7 +586,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $multi = True;
             if nqp::istype($x, Int) {
                 @matches := @matches.gimme($x) >= $x
-                            ?? @matches[^$x]
+                            ?? @matches[^$x].list
                             !! ().list
             }
             elsif nqp::istype($x, Range) {
@@ -694,7 +698,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my \case-or-space  := case || space;
             my \case-and-space := case && space;
 
-            for matches -> $m {
+            for flat matches -> $m {
                 try cds = $m if SDS;
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
@@ -732,7 +736,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # simple string replacement
         else {
-            for matches -> $m {
+            for flat matches -> $m {
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                 );
@@ -1081,6 +1085,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
+#?if moar
+    method NFC() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
+    }
+    method NFD() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFD, nqp::create(NFD))
+    }
+    method NFKC() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKC, nqp::create(NFKC))
+    }
+    method NFKD() {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
+    }
+#?endif
+
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {
             my Str $s = $m.Str;
@@ -1091,40 +1110,52 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my class LSM {
         has Str $!source;
         has @!substitutions;
+        has $!squash;
+        has $!complement;
 
         has int $!index;
         has int $!next_match;
+        has $!first_substitution; # need this one for :c with arrays
         has $!next_substitution;
         has $!substitution_length;
+        has $!prev_result;
+        has $!match_obj;
+        has $!last_match_obj;
 
         has str $.unsubstituted_text;
         has str $.substituted_text;
 
-        submethod BUILD(:$!source) { }
+        submethod BUILD(:$!source, :$!squash, :$!complement) { }
 
         method add_substitution($key, $value) {
+            $/ := CALLERS::('$/');
             push @!substitutions, $key => $value;
         }
 
         submethod compare_substitution($substitution, Int $pos, Int $length) {
+            $/ := CALLERS::('$/');
             if $!next_match > $pos
                || $!next_match == $pos && $!substitution_length < $length {
 
                 $!next_match = $pos;
                 $!substitution_length = $length;
                 $!next_substitution = $substitution;
+                $!match_obj = $!last_match_obj;
             }
         }
 
         proto method triage_substitution(|) {*}
         multi method triage_substitution($_ where { nqp::istype(.key,Regex) }) {
+            $/ := CALLERS::('$/');
             my $m := $!source.match(.key, :continue($!index));
             return unless $m;
+            $!last_match_obj = $/;
             self.compare_substitution($_, $m.from, $m.to - $m.from);
             True
         }
 
         multi method triage_substitution($_ where { nqp::istype(.key,Cool) }) {
+            $/ := CALLERS::('$/');
             my $pos := index($!source, .key, $!index);
             return unless defined $pos;
             self.compare_substitution($_, $pos, .key.chars);
@@ -1137,37 +1168,78 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         proto method increment_index(|) {*}
         multi method increment_index(Regex $s) {
+            $/ := CALLERS::('$/');
             substr($!source,$!index) ~~ $s;
+            $!last_match_obj = $/;
             $!index = $!next_match + $/.chars;
         }
 
         multi method increment_index(Cool $s) {
+            $/ := CALLERS::('$/');
             $!index = $!next_match + nqp::chars($s.Str);
         }
 
+        method get_next_substitution_result {
+            my $result = $!complement ?? $!first_substitution.value !! $!next_substitution.value;
+            my $cds := CALLERS::('$/');
+            $/ := CALLERS::('$/');
+            $cds = $!match_obj;
+            my $orig-result = $result = ($result ~~ Callable ?? $result() !! $result).Str;
+            if $!prev_result
+                && $!prev_result eq $result
+                && $!unsubstituted_text eq ''
+                && $!squash {
+                $result = '';
+            }
+            $!prev_result = $orig-result;
+            nqp::unbox_s($result)
+        }
+
         method next_substitution() {
+            $/ := CALLERS::('$/');
             $!next_match = $!source.chars;
+            $!first_substitution //= @!substitutions[0];
 
             # triage_substitution has a side effect!
-            @!substitutions = @!substitutions.grep: {self.triage_substitution($_) }
+            @!substitutions = @!substitutions.grep: { self.triage_substitution($_) }
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
                 = substr($!source,$!index, $!next_match - $!index);
             if defined $!next_substitution {
-                my $result = $!next_substitution.value;
-                $!substituted_text
-                    = nqp::unbox_s((nqp::istype($result,Callable) ?? $result() !! $result).Str);
-                self.increment_index($!next_substitution.key);
+                if $!complement {
+                    my $oldidx = $!index;
+                    if $!unsubstituted_text {
+                        my $result = self.get_next_substitution_result;
+                        self.increment_index($!next_substitution.key);
+                        $!substituted_text = $!source.substr($oldidx + $!unsubstituted_text.chars,
+                            $!index - $oldidx - $!unsubstituted_text.chars);
+                        $!unsubstituted_text = $!squash ?? $result
+                            !! $result x $!unsubstituted_text.chars;
+                    }
+                    else {
+                        return if $!next_match == $!source.chars;
+                        my $result = self.get_next_substitution_result;
+                        self.increment_index($!next_substitution.key);
+                        $!substituted_text = '';
+                        $!unsubstituted_text = $!source.substr($oldidx, $!index - $oldidx);
+                    }
+                }
+                else {
+                    return if $!next_match == $!source.chars;
+                    $!substituted_text = self.get_next_substitution_result;
+                    self.increment_index($!next_substitution.key);
+                }
             }
 
             return $!next_match < $!source.chars && @!substitutions;
         }
     }
 
-    proto method trans(|) { * }
+    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
     multi method trans(Pair:D \what, *%n) {
         my $from = what.key;
         my $to   = what.value;
+        $/ := CALLERS::('$/');
         return self.trans(|%n, (what,))
           if !nqp::istype($from,Str)   # from not a string
           || !$from.defined            # or a type object
@@ -1257,7 +1329,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         nqp::p6box_s(nqp::join('',$result));
     }
-    multi method trans(Str:D: *@changes) {
+    multi method trans(Str:D: *@changes, :complement(:$c), :squash(:$s), :delete(:$d)) {
         my sub expand($s) {
             return $s.list
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
@@ -1266,8 +1338,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             };
         }
 
-        my $lsm = LSM.new(:source(self));
-        for (@changes) -> $p {
+        $/ := CALLERS::('$/');
+        my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
+        for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
               unless nqp::istype($p,Pair);
             if nqp::istype($p.key,Regex) {
@@ -1282,7 +1355,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             else {
                 my @from = expand $p.key;
                 my @to = expand $p.value;
-                for @from Z (@to ?? @to xx ceiling(@from / @to) !! '' xx @from) -> $f, $t {
+                if @to {
+                    my $padding = $d ?? '' !! @to[@to - 1];
+                    @to = @to, $padding xx @from - @to;
+                }
+                else {
+                    @to = '' xx @from
+                }
+                for flat @from Z @to -> $f, $t {
                     $lsm.add_substitution($f, $t);
                 }
             }
@@ -1305,7 +1385,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        return self.comb(/:r ^^ \N* \n?/).map({
+        self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -1331,12 +1411,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Negative indent (outdent)
     multi method indent(Int() $steps where { $_ < 0 }) {
-        return outdent(self, $steps);
+        outdent(self, $steps);
     }
 
     # Whatever indent (outdent)
     multi method indent(Whatever $steps) {
-        return outdent(self, $steps);
+        outdent(self, $steps);
     }
 
     sub outdent($obj, $steps) {
@@ -1383,17 +1463,85 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    method codes(Str:D:) returns Int:D {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
-    }
-
     method path(Str:D:) returns IO::Path:D {
-        DEPRECATED('IO', |<2014.11 2015.11>);
+        DEPRECATED('IO', |<2014.11 2015.09>);
         IO::Path.new(self)
     }
 
-    method unival(Str:D:)  { unival(self.ord) };
-    method univals(Str:D:) { univals(self) };
+    proto method codes(|) { * }
+    multi method codes(Str:D:) returns Int:D {
+#?if moar
+        self.NFC.codes
+#?endif
+#?if jvm
+        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
+#?endif
+    }
+    multi method codes(Str:U:) returns Int:D {
+        self.Str;  # generate undefined warning
+        0
+    }
+
+    proto method chars(|) { * }
+    multi method chars(Str:D:) returns Int:D {
+        nqp::p6box_i(nqp::chars($!value))
+    }
+	multi method chars(Str:U:) returns Int:D {
+        self.Str;  # generate undefined warning
+        0
+    }
+
+    proto method uc(|) { * }
+    multi method uc(Str:D:) {
+        nqp::p6box_s(nqp::uc($!value));
+    }
+    multi method uc(Str:U:) {
+        self.Str;
+    }
+
+    proto method lc(|) { * }
+    multi method lc(Str:D:) {
+        nqp::p6box_s(nqp::lc($!value));
+    }
+    multi method lc(Str:U:) {
+        self.Str;
+    }
+
+    proto method tc(|) { * }
+    multi method tc(Str:D:) {
+        nqp::p6box_s(nqp::uc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1));
+    }
+    multi method tc(Str:U:) {
+        self.Str
+    }
+
+    proto method tclc(|) { * }
+    multi method tclc(Str:D:) {
+        nqp::p6box_s(nqp::tclc($!value))
+    }
+    multi method tclc(Str:U:) {
+        self.Str
+    }
+
+    proto method flip(|) { * }
+    multi method flip(Str:D:) {
+        nqp::p6box_s(nqp::flip($!value))
+    }
+    multi method flip(Str:U:) {
+        self.Str
+    }
+
+    proto method ord(|) { * }
+    multi method ord(Str:D:) returns Int {
+        nqp::chars($!value)
+          ?? nqp::p6box_i(nqp::ord($!value))
+          !! Int;
+    }
+    multi method ord(Str:U:) {
+        self.Str;
+        Int
+    }
+
 }
 
 
@@ -1404,6 +1552,7 @@ multi sub infix:<~>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
+multi sub infix:<~>(*@args) returns Str:D { @args.join }
 
 multi sub infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
     $repetition < 0
@@ -1440,6 +1589,13 @@ multi sub infix:<eq>(Str:D \a, Str:D \b) returns Bool:D {
 }
 multi sub infix:<eq>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::iseq_s($a, $b))
+}
+
+multi sub infix:<ne>(Str:D \a, Str:D \b) returns Bool:D {
+    nqp::p6bool(nqp::isne_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+}
+multi sub infix:<ne>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::isne_s($a, $b))
 }
 
 multi sub infix:<lt>(Str:D \a, Str:D \b) returns Bool:D {
@@ -1516,10 +1672,10 @@ sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }
-multi sub UNBASE(Int:D $base, Cool:D $num) is hidden-from-backtrace {
+multi sub UNBASE(Int:D $base, Cool:D $num) {
     X::Numeric::Confused.new(:what($num)).throw;
 }
-multi sub UNBASE(Int:D $base, Str:D $str) is hidden-from-backtrace {
+multi sub UNBASE(Int:D $base, Str:D $str) {
     my Str $prefix = substr($str,0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
@@ -1532,7 +1688,7 @@ multi sub UNBASE(Int:D $base, Str:D $str) is hidden-from-backtrace {
 }
 
 # for :16[1, 2, 3]
-sub UNBASE_BRACKET($base, @a) is hidden-from-backtrace {
+sub UNBASE_BRACKET($base, @a) {
     my $v = 0;
     my $denom = 1;
     my Bool $seen-dot = False;
@@ -1559,7 +1715,7 @@ sub chrs(*@c) returns Str:D {
 sub SUBSTR-START-OOR(\from,\max) {
     X::OutOfRange.new(
       :what<Start argument to substr>,
-      :got(from),
+      :got(from.gist),
       :range("0.." ~ max),
       :comment( nqp::istype(from, Callable) || -from > max
         ?? ''
@@ -1569,12 +1725,12 @@ sub SUBSTR-START-OOR(\from,\max) {
 sub SUBSTR-CHARS-OOR(\chars) {
     X::OutOfRange.new(
       :what<Number of characters argument to substr>,
-      :got(chars),
+      :got(chars.gist),
       :range("0..Inf"),
       :comment("use *{chars} if you want to index relative to the end"),
     );
 }
-sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) is hidden-from-backtrace {
+sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
     my Int $max := what.chars;
     from = nqp::istype($start, Callable) ?? $start($max) !! $start.Int;
     SUBSTR-START-OOR(from,$max).fail
@@ -1636,9 +1792,9 @@ multi sub substr(Str() $what, \start, $want?) {
       !! $r;
 }
 
-sub substr-rw(\what, \start, $want?) {
+sub substr-rw(\what, \start, $want?) is rw {
     my $Str := nqp::istype(what,Str) ?? what !! what.Str;
-    
+
     # should really be int, but \ then doesn't work for rw access
     my $r := SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
     $r.defined
@@ -1722,25 +1878,37 @@ sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
 
 # These probably belong in a separate unicodey file
 
-#?if jvm
-multi sub uniname(|)  { die 'uniname NYI on jvm backend' }
-multi sub uniprop(|)  { die 'uniprop NYI on jvm backend' }
-multi sub unibool(|)  { die 'unibool NYI on jvm backend' }
-multi sub unival(|)   { die 'unival NYI on jvm backend' }
-multi sub univals(|)  { die 'univals NYI on jvm backend' }
-multi sub unimatch(|) { die 'unimatch NYI on jvm backend' }
-#?endif
-#?if moar
-my %propcodecache;
-my %pvalcodecache;
 proto sub uniname(|) {*}
 multi sub uniname(Str $str) { uniname($str.ord) }
 multi sub uniname(Int $code) { nqp::getuniname($code) }
 
+proto sub uninames(|) {*}
+multi sub uninames(Str $str) { $str.comb.map:{uniname($_.ord)}; }
+
+#?if jvm
+multi sub unival(|)       { die 'unival NYI on jvm backend' }
+multi sub univals(|)      { die 'univals NYI on jvm backend' }
+multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
+multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
+multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
+multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
+multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
+#?endif
+
+#?if moar
+sub PROPCODE($propname) {
+    state %propcode;
+    %propcode{$propname} //= nqp::unipropcode($propname);
+}
+sub PVALCODE($prop,$pvalname) {
+    state %pvalcode;
+    %pvalcode{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
+}
+
 proto sub uniprop(|) {*}
 multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }
 multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    my $prop := PROPCODE($propname);
     state %prefs;  # could prepopulate this with various prefs
     given %prefs{$propname} // '' {
         when 'S' { nqp::getuniprop_str($code,$prop) }
@@ -1758,22 +1926,19 @@ multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
 proto sub uniprop-int(|) {*}
 multi sub uniprop-int(Str $str, Stringy $propname) { uniprop-int($str.ord, $propname) }
 multi sub uniprop-int(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    nqp::getuniprop_int($code,$prop);
+    nqp::getuniprop_int($code,PROPCODE($propname));
 }
 
 proto sub uniprop-bool(|) {*}
 multi sub uniprop-bool(Str $str, Stringy $propname) { uniprop-bool($str.ord, $propname) }
 multi sub uniprop-bool(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    so nqp::getuniprop_bool($code,$prop);
+    so nqp::getuniprop_bool($code,PROPCODE($propname));
 }
 
 proto sub uniprop-str(|) {*}
 multi sub uniprop-str(Str $str, Stringy $propname) { uniprop-str($str.ord, $propname) }
 multi sub uniprop-str(Int $code, Stringy $propname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    nqp::getuniprop_str($code,$prop);
+    nqp::getuniprop_str($code,PROPCODE($propname));
 }
 
 proto sub unival(|) {*}
@@ -1792,9 +1957,8 @@ multi sub univals(Str $str) { $str.ords.map: { unival($_) } }
 proto sub unimatch(|) {*}
 multi sub unimatch(Str $str, |c) { unimatch($str.ord, |c) }
 multi sub unimatch(Int $code, Stringy $pvalname, Stringy $propname = $pvalname) {
-    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
-    my $pval = %pvalcodecache{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
-    so nqp::matchuniprop($code,$prop,$pval);
+    my $prop := PROPCODE($propname);
+    so nqp::matchuniprop($code,$prop,PVALCODE($prop,$pvalname));
 }
 #?endif
 

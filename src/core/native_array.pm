@@ -73,7 +73,7 @@ class array is Iterable is repr('VMArray') {
         multi method push(array:D: @values) {
             fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
               if @values.infinite;
-            nqp::push_i(self, $_) for @values;
+            nqp::push_i(self, $_) for flat @values;
             self
         }
 
@@ -260,7 +260,7 @@ class array is Iterable is repr('VMArray') {
         multi method push(array:D: @values) {
             fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
               if @values.infinite;
-            nqp::push_n(self, $_) for @values;
+            nqp::push_n(self, $_) for flat @values;
             self
         }
 
@@ -419,10 +419,10 @@ class array is Iterable is repr('VMArray') {
             die "Must parameterize array[T] with a type before creating it";
     }
 
-    method BIND-POS(|) is hidden-from-backtrace {
+    method BIND-POS(|) {
         die "Cannot bind to a natively typed array";
     }
-    method DELETE-POS(|) is hidden-from-backtrace {
+    method DELETE-POS(|) {
         die "Cannot delete from a natively typed array";
     }
 

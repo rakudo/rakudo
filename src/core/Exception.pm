@@ -1,26 +1,37 @@
-my class Failure { ... }
 my role X::Comp { ... }
 my class X::ControlFlow { ... }
 
 my class Exception {
     has $!ex;
+    has $!bt;
 
-    method backtrace() { Backtrace.new(self) }
+    method backtrace() {
+        if $!bt { $!bt }
+        elsif nqp::isconcrete($!ex) { Backtrace.new($!ex); }
+        else { '' }
+    }
 
     multi method Str(Exception:D:) {
-        self.?message.Str // 'Something went wrong'
+        self.?message.Str // 'Something went wrong in ' ~ self.WHAT.gist;
     }
 
     multi method gist(Exception:D:) {
-        my $str = try self.?message;
-        return "Error while creating error string: $!" if $!;
-        $str ~= "\n";
-        try $str ~= self.backtrace;
-        return "$str\nError while creating backtrace: $!.message()\n$!.backtrace.full();" if $!;
-        return $str;
+        my $str = nqp::isconcrete($!ex)
+          ?? nqp::p6box_s(nqp::getmessage($!ex))
+          !! try self.?message;
+        $str //= "Internal error";
+
+        if nqp::isconcrete($!ex) {
+            $str ~= "\n";
+            try $str ~= self.backtrace
+              || Backtrace.new()
+              || '  (no backtrace available)';
+        }
+        $str;
     }
 
-    method throw() is hidden-from-backtrace {
+    method throw($bt?) {
+        nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
@@ -29,7 +40,7 @@ my class Exception {
             if $msg.defined;
         nqp::throw($!ex)
     }
-    method rethrow() is hidden-from-backtrace {
+    method rethrow() {
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
@@ -105,6 +116,11 @@ my class X::Role::Parametric::NoSuchCandidate is Exception {
     }
 }
 
+my class X::Pragma::NoArgs is Exception {
+    has $.name;
+    method message { "The '$.name' pragma does not take any arguments." }
+}
+
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
@@ -159,11 +175,11 @@ do {
                 return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
             }
         }
-        return False;
+        False;
     }
 
 
-    sub print_exception(|) is hidden-from-backtrace {
+    sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         try {
             my $e := EXCEPTION($ex);
@@ -186,7 +202,7 @@ do {
         }
     }
 
-    sub print_control(|) is hidden-from-backtrace {
+    sub print_control(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my int $type = nqp::getextype($ex);
         if ($type == nqp::const::CONTROL_WARN) {
@@ -237,13 +253,13 @@ do {
 
 }
 
-my role X::OS {
+my role X::OS is Exception {
     has $.os-error;
 }
 
 my role X::IO does X::OS { };
 
-my class X::IO::Rename does X::IO is Exception {
+my class X::IO::Rename does X::IO {
     has $.from;
     has $.to;
     method message() {
@@ -251,7 +267,7 @@ my class X::IO::Rename does X::IO is Exception {
     }
 }
 
-my class X::IO::Copy does X::IO is Exception {
+my class X::IO::Copy does X::IO {
     has $.from;
     has $.to;
     method message() {
@@ -259,7 +275,7 @@ my class X::IO::Copy does X::IO is Exception {
     }
 }
 
-my class X::IO::DoesNotExist does X::IO is Exception {
+my class X::IO::DoesNotExist does X::IO {
     has $.path;
     has $.trying;
     method message() {
@@ -267,7 +283,7 @@ my class X::IO::DoesNotExist does X::IO is Exception {
     }
 }
 
-my class X::IO::NotAFile does X::IO is Exception {
+my class X::IO::NotAFile does X::IO {
     has $.path;
     has $.trying;
     method message() {
@@ -275,7 +291,7 @@ my class X::IO::NotAFile does X::IO is Exception {
     }
 }
 
-my class X::IO::Directory does X::IO is Exception {
+my class X::IO::Directory does X::IO {
     has $.path;
     has $.trying;
     has $.use;
@@ -286,7 +302,7 @@ my class X::IO::Directory does X::IO is Exception {
     }
 }
 
-my class X::IO::Symlink does X::IO is Exception {
+my class X::IO::Symlink does X::IO {
     has $.target;
     has $.name;
     method message() {
@@ -294,7 +310,7 @@ my class X::IO::Symlink does X::IO is Exception {
     }
 }
 
-my class X::IO::Link does X::IO is Exception {
+my class X::IO::Link does X::IO {
     has $.target;
     has $.name;
     method message() {
@@ -302,7 +318,7 @@ my class X::IO::Link does X::IO is Exception {
     }
 }
 
-my class X::IO::Mkdir does X::IO is Exception {
+my class X::IO::Mkdir does X::IO {
     has $.path;
     has $.mode;
     method message() {
@@ -310,41 +326,41 @@ my class X::IO::Mkdir does X::IO is Exception {
     }
 }
 
-my class X::IO::Chdir does X::IO is Exception {
+my class X::IO::Chdir does X::IO {
     has $.path;
     method message() {
         "Failed to change the working directory to '$.path': $.os-error"
     }
 }
 
-my class X::IO::Dir does X::IO is Exception {
+my class X::IO::Dir does X::IO {
     has $.path;
     method message() {
         "Failed to get the directory contents of '$.path': $.os-error"
     }
 }
 
-my class X::IO::Cwd does X::IO is Exception {
+my class X::IO::Cwd does X::IO {
     method message() {
         "Failed to get the working directory: $.os-error"
     }
 }
 
-my class X::IO::Rmdir does X::IO is Exception {
+my class X::IO::Rmdir does X::IO {
     has $.path;
     method message() {
         "Failed to remove the directory '$.path': $.os-error"
     }
 }
 
-my class X::IO::Unlink does X::IO is Exception {
+my class X::IO::Unlink does X::IO {
     has $.path;
     method message() {
         "Failed to remove the file '$.path': $.os-error"
     }
 }
 
-my class X::IO::Chmod does X::IO is Exception {
+my class X::IO::Chmod does X::IO {
     has $.path;
     has $.mode;
     method message() {
@@ -370,8 +386,8 @@ my role X::Comp is Exception {
                 !! ("", "", "", "");
             my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
             my $r = $sorry ?? self.sorry_heading() !! "";
-            $r ~= "$.message\nat $.filename():$.line\n------> ";
-            $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
+            $r ~= "$.message\nat $.filename():$.line";
+            $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
                 for @.highexpect {
@@ -448,6 +464,34 @@ my class X::Comp::Group is Exception {
     }
 }
 
+my role X::MOP is Exception { }
+
+my class X::Comp::BeginTime does X::Comp {
+    has $.use-case;
+    has $.exception;
+
+    method message() {
+        $!exception ~~ X::MOP
+            ?? $!exception.message
+            !! "An exception occurred while $!use-case"
+    }
+
+    multi method gist(::?CLASS:D: :$sorry = True) {
+        my $r = $sorry ?? self.sorry_heading() !! "";
+        $r ~= "$.message\nat $.filename():$.line";
+        for @.modules.reverse[1..*] {
+            my $line = nqp::p6box_i($_<line>);
+            $r ~= $_<module>.defined
+                    ?? "\n  from module $_<module> ($_<filename>:$line)"
+                    !! "\n  from $_<filename>:$line";
+        }
+        unless $!exception ~~ X::MOP {
+            $r ~= "\nException details:\n" ~ $!exception.gist.indent(2);
+        }
+        $r;
+    }
+}
+
 # XXX a hack for getting line numbers from exceptions from the metamodel
 my class X::Comp::AdHoc is X::AdHoc does X::Comp {
     method is-compile-time() { True }
@@ -461,6 +505,18 @@ my class X::NYI is Exception {
     method message() { "$.feature not yet implemented. Sorry. " }
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
+my class X::NYI::Available is X::NYI {
+    has @.available = die("Must give :available<modules> for installation. ");
+    method available-str {
+        my @a = @.available;
+        my $a = @a.pop;
+        (@a.join(', ') || (), $a).join(" or ")
+    }
+    method message() {
+        "Please install { self.available-str } for $.feature support. "
+    }
+}
+
 
 my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.
@@ -502,9 +558,10 @@ my class X::OutOfRange is Exception {
     has $.range = '<unknown>';
     has $.comment;
     method message() {
-        $.comment.defined
+        my $result = $.comment.defined
            ?? "$.what out of range. Is: $.got, should be in $.range.gist(); $.comment"
-           !! "$.what out of range. Is: $.got, should be in $.range.gist()"
+           !! "$.what out of range. Is: $.got, should be in $.range.gist()";
+        $result;
     }
 }
 
@@ -556,6 +613,12 @@ my class X::Placeholder::NonPlaceholder does X::Comp {
 my class X::Placeholder::Mainline is X::Placeholder::Block {
     method message() {
         "Cannot use placeholder parameter $.placeholder in the mainline"
+    }
+}
+
+my class X::Placeholder::Attribute is X::Placeholder::Block {
+    method message() {
+        "Cannot use placeholder parameter $.placeholder in an attribute initializer"
     }
 }
 
@@ -751,6 +814,14 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
+my class X::Parameter::BadType does X::Comp {
+    has Mu $.type;
+    method message() {
+        my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
+        "$what $!type.^name() is insufficiently type-like to qualify a parameter"
+    }
+}
+
 my class X::Parameter::WrongOrder does X::Comp {
     has $.misplaced;
     has $.parameter;
@@ -768,7 +839,7 @@ my class X::Parameter::InvalidType does X::Comp {
         if +@.suggestions > 0 {
             $msg := $msg ~ " Did you mean '" ~ @.suggestions.join("', '") ~ "'?";
         }
-        return $msg;
+        $msg;
     }
 }
 
@@ -890,6 +961,22 @@ my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
     method message() { 'Cannot declare a variable by indirect name (use a hash instead?)' }
 }
 
+my class X::Syntax::Variable::BadType does X::Comp {
+    has Mu $.type;
+    method message() {
+        my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
+        "$what $!type.^name() is insufficiently type-like to qualify a variable"
+    }
+}
+
+my class X::Syntax::Variable::ConflictingTypes does X::Comp {
+    has Mu $.outer;
+    has Mu $.inner;
+    method message() {
+        "$!inner.^name() not allowed here; variable list already declared with type $!outer.^name()"
+    }
+}
+
 my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
     method message() { "augment not allowed without 'use MONKEY-TYPING'" };
 }
@@ -941,6 +1028,20 @@ my class X::Syntax::Missing does X::Syntax {
 my class X::Syntax::BlockGobbled does X::Syntax {
     has $.what;
     method message() { "{ $.what ?? 'Function ' ~ $.what !! 'Expression' } needs parens to avoid gobbling block" };
+}
+
+my class X::Syntax::ConditionalOperator::PrecedenceTooLoose does X::Syntax {
+    has $.operator;
+    method message() { "Precedence of $.operator is too loose to use inside ?? !!; please parenthesize" }
+}
+
+my class X::Syntax::ConditionalOperator::SecondPartGobbled does X::Syntax {
+    method message() { "Your !! was gobbled by the expression in the middle; please parenthesize" }
+}
+
+my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
+    has $.second-part;
+    method message() { "Please use !! rather than $.second-part" }
 }
 
 my class X::Syntax::Perl5Var does X::Syntax {
@@ -1028,6 +1129,10 @@ my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     method message() { "Radix $.radix out of range (allowed: 2..36)" }
 }
 
+my class X::Syntax::Number::IllegalDecimal does X::Syntax {
+    method message() { "Decimal point must be followed by digit" }
+}
+
 my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;
@@ -1036,7 +1141,7 @@ my class X::Syntax::NonAssociative does X::Syntax {
     }
 }
 
-my class X::Syntax::Can'tMeta does X::Syntax {
+my class X::Syntax::CannotMeta does X::Syntax {
     has $.meta;
     has $.operator;
     has $.reason;
@@ -1044,6 +1149,12 @@ my class X::Syntax::Can'tMeta does X::Syntax {
     method message() {
         "Cannot $.meta $.operator because $.dba operators are $.reason";
     }
+}
+
+my class X::Syntax::Adverb does X::Syntax {
+    has $.what;
+
+    method message() { "You can't adverb " ~ ($.what // "that")  }
 }
 
 my class X::Syntax::Regex::Adverb does X::Syntax {
@@ -1083,6 +1194,10 @@ my class X::Syntax::Regex::SpacesInBareRange does X::Syntax {
 
 my class X::Syntax::Regex::SolitaryQuantifier does X::Syntax {
     method message { 'Quantifier quantifies nothing' }
+}
+
+my class X::Syntax::Regex::SolitaryBacktrackControl does X::Syntax {
+    method message { "Backtrack control ':' does not seem to have a preceding atom to control" }
 }
 
 my class X::Syntax::Term::MissingInitializer does X::Syntax {
@@ -1136,6 +1251,10 @@ my class X::Syntax::DuplicatedPrefix does X::Syntax {
     }
 }
 
+my class X::Syntax::ArgFlattener does X::Syntax {
+    method message() { "Arg-flattening | is only valid in an argument list" }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-kind;
     has $.name;
@@ -1160,7 +1279,7 @@ my class X::Declaration::Scope::Multi is X::Declaration::Scope {
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
     has $.routine-type = 'routine';
-    method message() { "Cannot put $.multiness on anonymous $.routine-type" }
+    method message() { "An anonymous $.routine-type may not take a $.multiness declarator" }
 }
 my class X::Anon::Augment does X::Comp {
     has $.package-kind;
@@ -1321,7 +1440,15 @@ my class X::TypeCheck is Exception {
     has $.expected;
     method gotn()      { (try $!got.^name)      // "?" }
     method expectedn() { (try $!expected.^name) // "?" }
+    method priors() {
+        my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
+            "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n ";
+        }
+        else { '' }
+        $prior;
+    }
     method message() {
+        self.priors() ~
         "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
 
     }
@@ -1332,8 +1459,10 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     method operation { 'binding' }
     method message() {
         if $.symbol {
+            self.priors() ~
             "Type check failed in $.operation $.symbol; expected '$.expectedn' but got '$.gotn'";
         } else {
+            self.priors() ~
             "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
         }
     }
@@ -1341,6 +1470,7 @@ my class X::TypeCheck::Binding is X::TypeCheck {
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
+        self.priors() ~
         "Type check failed for return value; expected '$.expectedn' but got '$.gotn'";
     }
 }
@@ -1348,6 +1478,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     has $.symbol;
     method operation { 'assignment' }
     method message {
+        self.priors() ~
         $.symbol.defined
             ?? "Type check failed in assignment to '$.symbol'; expected '$.expectedn' but got '$.gotn'"
             !! "Type check failed in assignment; expected '$.expectedn' but got '$.gotn'";
@@ -1359,18 +1490,19 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     has $.objname;
     has $.signature;
     method message {
-            ($.protoguilt ?? "Calling proto of '" !! "Calling '") ~
-            $.objname ~ "' " ~
-            (+@.arguments == 0
-              ?? "requires arguments (if you meant to operate on \$_, please use .$.objname or use an explicit invocant or argument)\n"
-              !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n")
-            ~ $.signature
+            my $multi = $!signature ~~ /\n/ // '';
+            "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
+                $!protoguilt ?? 'proto signature ' !!
+                $multi       ?? 'any of these multi signatures:' !!
+                                'declared signature '
+            ) ~ $!signature;
     }
 }
 
 my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
     has $.action;
     method message {
+        self.priors() ~
         "Type check failed in {$.action}; expected '$.expectedn' but got '$.gotn'";
     }
 
@@ -1444,7 +1576,7 @@ my class X::Inheritance::UnknownParent is Exception {
         } elsif +@.suggestions == 1 {
             $message := $message ~ "\nDid you mean '" ~ @.suggestions[0] ~ "'?\n";
         }
-        return $message;
+        $message;
     }
 }
 
@@ -1575,6 +1707,7 @@ my class X::Item is Exception {
 my class X::Multi::Ambiguous is Exception {
     has $.dispatcher;
     has @.ambiguous;
+    has $.capture;
     method message {
         join "\n",
             "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
@@ -1584,10 +1717,47 @@ my class X::Multi::Ambiguous is Exception {
 
 my class X::Multi::NoMatch is Exception {
     has $.dispatcher;
+    has $.capture;
     method message {
-        join "\n",
-            "Cannot call '$.dispatcher.name()'; none of these signatures match:",
-            $.dispatcher.dispatchees.map(*.signature.perl)
+        my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my $where = so first / where /, @cand;
+        my @bits;
+        my @priors;
+        if $.capture {
+            for $.capture.list {
+                try @bits.push($where ?? .perl !! .WHAT.perl );
+                @bits.push($_.^name) if $!;
+                when Failure {
+                    @priors.push(" " ~ .mess);
+                }
+            }
+            for $.capture.hash {
+                if .value ~~ Failure {
+                    @priors.push(" " ~ .value.mess);
+                }
+                if .value ~~ Bool {
+                    @bits.push(':' ~ ('!' x !.value) ~ .key);
+                }
+                else {
+                    try @bits.push(":$(.key)($($where ?? .value.?perl !! .value.WHAT.?perl ))");
+                    @bits.push($_.value.^name) if $!;
+                }
+            }
+        }
+        else {
+            @bits.push('...');
+        }
+        if @cand[0] ~~ /': '/ {
+            my $invocant = @bits.shift;
+            my $first = @bits ?? @bits.shift !! '';
+            @bits.unshift($invocant ~ ': ' ~ $first);
+        }
+        my $cap = '(' ~ @bits.join(", ") ~ ')';
+        @priors = "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
+        @priors.join ~
+        join "\n    ",
+            "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
+            @cand;
     }
 }
 
@@ -1598,7 +1768,7 @@ my class X::Caller::NotDynamic is Exception {
     }
 }
 
-my class X::Inheritance::NotComposed is Exception {
+my class X::Inheritance::NotComposed does X::MOP {
     # normally, we try very hard to capture the types
     # and not just their names. But in this case, both types
     # involved aren't composed yet, so they basically aren't
@@ -1613,37 +1783,37 @@ my class X::Inheritance::NotComposed is Exception {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden-from-backtrace {
+    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) {
             X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, $expected) is hidden-from-backtrace {
+    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, Mu $expected) {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
-    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden-from-backtrace {
+    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
-    %c_ex<X::Assignment::RO> := sub ($typename = "value") is hidden-from-backtrace {
+    %c_ex<X::Assignment::RO> := sub ($typename = "value") {
             X::Assignment::RO.new(:$typename).throw;
         };
-    %c_ex{'X::ControlFlow::Return'} := sub () is hidden-from-backtrace {
+    %c_ex{'X::ControlFlow::Return'} := sub () {
             X::ControlFlow::Return.new().throw;
         };
-    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden-from-backtrace {
+    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
-    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous) is hidden-from-backtrace {
-            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous).throw
+    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) {
+            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
         };
-    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher) is hidden-from-backtrace {
-            X::Multi::NoMatch.new(:$dispatcher).throw
+    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) {
+            X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
         };
-    %c_ex{'X::Role::Initialization'} := sub ($role) is hidden-from-backtrace {
+    %c_ex{'X::Role::Initialization'} := sub ($role) {
             X::Role::Initialization.new(:$role).throw
         }
-    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) is hidden-from-backtrace {
+    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) {
         X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
         }
-    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) is hidden-from-backtrace {
+    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) {
         X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
     }
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));

@@ -4,15 +4,9 @@ my class Junction { # declared in BOOTSTRAP
     #     has str $!type;                # type of Junction
 
     proto method new(|) { * }
-    multi method new(@values, Str :$type!) {
+    multi method new(\values, Str :$type!) {
         my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
-        nqp::bindattr($junc, Junction, '$!type', $type);
-        $junc
-    }
-    multi method new(*@values, Str :$type!) {
-        my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', @values.eager);
+        nqp::bindattr($junc, Junction, '$!storage', values.eager);
         nqp::bindattr($junc, Junction, '$!type', $type);
         $junc
     }
@@ -74,7 +68,7 @@ my class Junction { # declared in BOOTSTRAP
             my @states := nqp::getattr(nqp::decont($arg), Junction, '$!storage');
 
             my Mu $res := nqp::list();
-            for @states -> \st {
+            @states.map: -> \st {
                 # Next line is Officially Naughty, since captures are meant to be
                 # immutable. But hey, it's our capture to be naughty with...
                 nqp::bindpos($pos_rpa, $i, st);
@@ -118,7 +112,7 @@ my class Junction { # declared in BOOTSTRAP
                 my @states := nqp::getattr(nqp::decont($v), Junction, '$!storage');
                 my $type   := nqp::getattr(nqp::decont($v), Junction, '$!type');
                 my Mu $res := nqp::list();
-                for @states -> \st {
+                @states.map: -> \st {
                     nqp::bindkey($nam_hash, $k, st);
                     nqp::push($res, call(|args));
                     Nil;

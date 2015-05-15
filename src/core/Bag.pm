@@ -16,10 +16,10 @@ my class Bag does Baggy {
     multi method antipairs(Bag:D:) { # must copy, else we would change the Bag
         %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
     }
-    multi method grab(Bag:D: $count?) is hidden-from-backtrace {
+    multi method grab(Bag:D: $count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    multi method grabpairs(Bag:D: $count?) is hidden-from-backtrace {
+    multi method grabpairs(Bag:D: $count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
@@ -32,10 +32,10 @@ my class Bag does Baggy {
         my \v := %!elems.AT-KEY(k.WHICH);
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
-    multi method ASSIGN-KEY(Bag:D: \k,\v) is hidden-from-backtrace {
+    multi method ASSIGN-KEY(Bag:D: \k,\v) {
         fail X::Assignment::RO.new(typename => self.^name);
     }
-    multi method DELETE-KEY(Bag:D: \k) is hidden-from-backtrace {
+    multi method DELETE-KEY(Bag:D: \k) {
         fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
     }
 }

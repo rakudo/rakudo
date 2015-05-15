@@ -2,10 +2,6 @@ my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
 my class Label { ... }
 
-# Make sure if we get this set early, else any fail calls in setting load will
-# recurse infinitely looking for it.
-$PROCESS::FATAL = False;
-
 sub THROW(Mu \arg, int $type) {
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);
@@ -181,24 +177,50 @@ my &samewith := -> *@pos, *%named {
     $dispatcher( $self, |@pos, |%named );
 }
 
-proto sub die(|) is hidden-from-backtrace {*};
-multi sub die(Exception $e) is hidden-from-backtrace { $e.throw }
-multi sub die($payload = "Died") is hidden-from-backtrace {
+proto sub die(|) {*};
+multi sub die(Exception $e) { $e.throw }
+multi sub die($payload = "Died") {
     X::AdHoc.new(:$payload).throw
 }
-multi sub die(*@msg) is hidden-from-backtrace {
+multi sub die(*@msg) {
     X::AdHoc.new(payload => @msg.join).throw
 }
 
-multi sub warn(*@msg) is hidden-from-backtrace {
+multi sub warn(*@msg) {
+    my $msg = @msg.join || "Warning: something's wrong";
+    my $i = 1;
+    my %anno := callframe($i).annotations;
+#?if jvm
+    %anno := callframe(++$i).annotations while nqp::isconcrete(%anno<file>) && %anno<file> ~~ /\.setting$/;
+#?endif
+#?if !jvm
+    %anno := callframe(++$i).annotations while !nqp::isnull_s(%anno<file>) && %anno<file> ~~ /\.setting$/;
+#?endif
+    $msg ~= ' at ' ~ %anno<file> ~ ' line ' ~ %anno<line> unless $msg ~~ /\n$/ or !%anno or !%anno<line> or nqp::isnull_s(%anno<file>);
+
     my $ex := nqp::newexception();
-    nqp::setmessage($ex, nqp::unbox_s(@msg.join));
+    nqp::setmessage($ex, nqp::unbox_s($msg));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);
     nqp::throw($ex);
     0;
 }
 
 proto sub EVAL($, *%) {*}
+multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'perl5' }, PseudoStash :$context) {
+    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
+    my $?FILES   := 'EVAL_' ~ (state $no)++;
+    state $p5;
+    unless $p5 {
+        {
+            require Inline::Perl5;
+            CATCH {
+                X::Eval::NoSuchLang.new(:$lang).throw;
+            }
+        }
+        $p5 = ::("Inline::Perl5").default_perl5;
+    }
+    $p5.run($code);
+}
 multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
@@ -229,7 +251,7 @@ sub THE_END {
 my class Proc::Status { ... }
 
 sub run(*@args ($, *@)) {
-    my $status = Proc::Status.new( :exit(255) );
+    my $status = Proc::Status.new( :exitcode(255) );
     try {
         $status.status(nqp::p6box_i(nqp::spawn(
           CLONE-LIST-DECONTAINERIZED(@args),
@@ -241,7 +263,7 @@ sub run(*@args ($, *@)) {
 }
 
 sub shell($cmd) {
-    my $status = Proc::Status.new( :exit(255) );
+    my $status = Proc::Status.new( :exitcode(255) );
     try {
         $status.status(nqp::p6box_i(nqp::shell(
           $cmd,

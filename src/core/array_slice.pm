@@ -1,5 +1,11 @@
 # all sub postcircumfix [] candidates here please
 
+sub NPOSITIONS(\pos, \elems) { # generate N positions
+    my Mu $indexes := nqp::list();
+    nqp::setelems($indexes,elems);
+    nqp::bindpos($indexes,$_,pos.AT-POS($_)) for 0..^elems;
+    $indexes;
+}
 sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
     my $positions := pos.flat;
 
@@ -8,13 +14,13 @@ sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
       || ($positions.gimme(*) && $positions.infinite) # an infinite list now
     {
         my $list = SELF.list;
-        $positions.map( {
+        $positions.flatmap( {
             last if $_ >= $list.gimme( $_ + 1 );
             $_;
         } ).eager.Parcel;
     }
     else {
-        $positions.map( {
+        $positions.flatmap( {
             nqp::istype($_,Callable) ?? $_(|(SELF.elems xx $_.count)) !! $_
         } ).eager.Parcel;
     }
@@ -22,10 +28,10 @@ sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
 
 my class X::NYI { ... }
 
-proto sub postcircumfix:<[ ]>(|) { * }
+proto sub postcircumfix:<[ ]>(|) is nodal { * }
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is rw {
-    die "Indexing requires an instance, tried to do: {SELF.VAR.name}[ {$type.gist} ]";
+    die "Indexing requires an instance, tried to do: {try SELF.VAR.name}[ {$type.gist} ]";
 }
 
 # @a[int 1]
@@ -128,12 +134,16 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is rw {
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos ) is rw {
     nqp::iscont(pos)
       ?? SELF.AT-POS(pos.Int)
-      !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
+      !! POSITIONS(SELF,pos).flatmap({ SELF[$_] }).eager.Parcel;
 }
-multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \assignee ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \val ) is rw {
     nqp::iscont(pos)
-      ?? SELF.ASSIGN-POS(pos.Int,assignee)
-      !! POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;
+      ?? SELF.ASSIGN-POS(pos.Int,val)
+      !! pos.?infinite
+        ?? val.?infinite
+          ?? ()
+          !! (SELF[NPOSITIONS(pos,val.elems)] = val)
+        !! (POSITIONS(SELF,pos.list).flatmap({SELF[$_]}).eager.Parcel = val);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
@@ -286,7 +296,7 @@ multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, *%adv) is rw {
             if keys[0].isa(HyperWhatever);
 
         if [||] %adv<kv p k> {
-            (SELF[keys[0]]:kv).map(-> \key, \value {
+            (SELF[keys[0]]:kv).flatmap(-> \key, \value {
                 # make sure to call .item so that recursive calls don't map the LoL's elems
                 map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2).item, value2 } !!
                     %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
@@ -297,7 +307,7 @@ multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, *%adv) is rw {
             (keys[0].isa(Whatever)
                 ?? SELF[^SELF.elems].Parcel
                 !! SELF[keys[0].list].Parcel
-            ).map(-> \elem {
+            ).flatmap(-> \elem {
                 postcircumfix:<[ ]>(elem, LoL.new(|keys[1..*]), |%adv);
             }).eager.Parcel;
         }

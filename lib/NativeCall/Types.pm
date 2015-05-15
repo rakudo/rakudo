@@ -1,7 +1,12 @@
+use nqp;
+
 module NativeCall::Types;
 
-our native long     is Int is ctype("long")     is repr("P6int") { };
-our native longlong is Int is ctype("longlong") is repr("P6int") { };
+our native long      is Int is ctype("long")     is repr("P6int") { };
+our native longlong  is Int is ctype("longlong") is repr("P6int") { };
+our native ulong     is Int is ctype("long")     is unsigned is repr("P6int") { };
+our native ulonglong is Int is ctype("longlong") is unsigned is repr("P6int") { };
+
 our class void                                  is repr('Uninstantiable') { };
 # Expose a Pointer class for working with raw pointers.
 our class Pointer                               is repr('CPointer') { };
@@ -51,9 +56,9 @@ augment class Pointer {
     }
     method ^parameterize($, Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
+            unless t ~~ Int || t ~~ Num || t ~~ Bool || t === Str || t === void || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedPointer[t];
-        typed.^make_pun;
+        typed.^inheritalize;
     }
 }
 
@@ -177,7 +182,7 @@ augment class CArray {
                 unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
             $typed := TypedCArray[t];
         }
-        $typed.^make_pun();
+        $typed.^inheritalize();
     }
 }
 

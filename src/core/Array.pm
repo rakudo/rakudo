@@ -115,7 +115,7 @@ class Array { # declared in BOOTSTRAP
     }
     method of() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Any !! $d.of;
+        nqp::isnull($d) ?? Mu !! $d.of;
     }
     method default() {
         my $d := $!descriptor;
@@ -126,13 +126,14 @@ class Array { # declared in BOOTSTRAP
         nqp::isnull($d) ?? Bool !! so $d.dynamic;
     }
     multi method perl(Array:D \SELF:) {
-        nqp::iscont(SELF)
-          ?? '[' ~ (  # simplify arrays that look 2D (in first 3 elems anyway)
+        '['
+        ~ (  # simplify arrays that look 2D (in first 3 elems anyway)
             nqp::istype(self[0],Parcel) || nqp::istype(self[1],Parcel) || nqp::istype(self[2],Parcel)
                 ?? self.map({.list.map({.perl}).join(', ')}).join('; ')
                 !! self.map({.perl}).join(', ')
-            ) ~ ']'
-          !! self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
+        )
+        ~ ']'
+        ~ '<>' x !nqp::iscont(SELF);
     }
 
     method REIFY(Parcel \parcel, Mu \nextiter) {
@@ -222,11 +223,8 @@ class Array { # declared in BOOTSTRAP
             nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            'Array['
-              ~ TValue.perl
-              ~ '].new('
-              ~ self.map({ ($_ // TValue).perl}).join(', ')
-              ~ ')';
+            my $args = self.map({ ($_ // TValue).perl(:arglist)}).join(', ');
+            'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
         }
         # XXX some methods to come here...
     }

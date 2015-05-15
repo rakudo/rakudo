@@ -84,7 +84,7 @@ public final class Binder {
             int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
         int count = 0;
-        String fail = tooMany ? "Too many" : "Not enough";
+        String fail = tooMany ? "Too many" : "Too few";
 
         /* Work out how many we could have been passed. */
         for (int i = 0; i < numParams; i++) {
@@ -113,16 +113,16 @@ public final class Binder {
         /* Now generate decent error. */
         if (arity == count)
             return String.format(
-                "%s positional parameters passed; got %d but expected %d",
-                fail, numPosArgs, arity);
+                "%s positionals passed; expected %d arguments but got %d",
+                fail, arity, numPosArgs);
         else if (count == -1)
             return String.format(
-                "%s positional parameters passed; got %d but expected at least %d",
-                fail, numPosArgs, arity);
+                "%s positionals passed; expected at least %d arguments but got only %d",
+                fail, arity, numPosArgs);
         else
             return String.format(
-                "%s positional parameters passed; got %d but expected between %d and %d",
-                fail, numPosArgs, arity, count);
+                "%s positionals passed; expected %d %s %d arguments but got %d",
+                fail, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
     }
     
     /* Returns an appropriate failure mode (junction fail or normal fail). */
@@ -441,7 +441,8 @@ public final class Binder {
                     Ops.invokeDirect(tc, coerceMeth,
                         Ops.invocantCallSite,
                         new Object[] { decontValue });
-                    decontValue = Ops.decont(Ops.result_o(tc.curFrame), tc);
+                    arg_o = Ops.result_o(tc.curFrame);
+                    decontValue = Ops.decont(arg_o, tc);
                 }
                 else {
                     if (error != null)
@@ -894,7 +895,7 @@ public final class Binder {
                     }
                     else if (!suppressArityFail) {
                         if (error != null)
-                            error[0] = "Required named parameter '" +
+                            error[0] = "Required named argument '" +
                                 namedNames.at_pos_boxed(tc, 0).get_str(tc) +
                                 "' not passed";
                         return BIND_RESULT_FAIL;
@@ -924,11 +925,11 @@ public final class Binder {
                 int numExtra = namedArgsCopy.size();
                 if (numExtra == 1) {
                     for (String name : namedArgsCopy.keySet())
-                        error[0] = "Unexpected named parameter '" + name + "' passed";
+                        error[0] = "Unexpected named argument '" + name + "' passed";
                 }
                 else {
                     boolean first = true;
-                    error[0] = numExtra + " unexpected named parameters passed (";
+                    error[0] = numExtra + " unexpected named arguments passed (";
                     for (String name : namedArgsCopy.keySet()) {
                         if (!first)
                             error[0] += ", ";

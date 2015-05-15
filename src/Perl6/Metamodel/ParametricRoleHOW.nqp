@@ -21,6 +21,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     has $!group;
     has $!signatured;
     has @!role_typecheck_list;
+    has $!specialize_lock;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
@@ -32,7 +33,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, :$signatured, *%extra) {
-        my $metarole := self.new(:signatured($signatured));
+        my $metarole := self.new(:signatured($signatured), :specialize_lock(NQPLock.new));
         my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
         $metarole.set_name($type, $name);
         $metarole.set_ver($type, $ver) if $ver;
@@ -131,23 +132,30 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
-        # Run the body block to get the type environment (we know
-        # the role in this csae).
-        my $type_env;
-        my $error;
-        try {
-            my @result := $!body_block(|@pos_args, |%named_args);
-            $type_env := @result[1];
-            CATCH {
-                $error := $!
+        # We only allow one specialization of a role to take place at a time,
+        # since the body block captures the methods into its lexical scope,
+        # but we don't do the appropriate cloning until a bit later. These
+        # must happen before another specialize happens and re-captures the
+        # things we are composing.
+        $!specialize_lock.protect({
+            # Run the body block to get the type environment (we know
+            # the role in this csae).
+            my $type_env;
+            my $error;
+            try {
+                my @result := $!body_block(|@pos_args, |%named_args);
+                $type_env := @result[1];
+                CATCH {
+                    $error := $!
+                }
             }
-        }
-        if $error {
-            nqp::die("Could not instantiate role '" ~ self.name($obj) ~ "':\n$error")
-        }
-        
-        # Use it to build concrete role.
-        self.specialize_with($obj, $type_env, @pos_args)
+            if $error {
+                nqp::die("Could not instantiate role '" ~ self.name($obj) ~ "':\n$error")
+            }
+
+            # Use it to build concrete role.
+            self.specialize_with($obj, $type_env, @pos_args)
+        })
     }
     
     method specialize_with($obj, $type_env, @pos_args) {

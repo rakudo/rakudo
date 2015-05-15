@@ -42,13 +42,18 @@ role Perl6::Metamodel::RolePunning {
         $pun
     }
     
-    # Produces something that can be inherited from (the pun).
-    method inheritalize($obj) {
+    # Returns the pun (only creating it if it wasn't already created)
+    method pun($obj) {
         unless $!made_pun {
             $!pun := self.make_pun($obj);
             $!made_pun := 1;
         }
         $!pun
+    }
+
+    # Produces something that can be inherited from (the pun).
+    method inheritalize($obj) {
+        self.pun($obj)
     }
     
     # Do a pun-based dispatch. If we pun, return a thunk that will delegate.

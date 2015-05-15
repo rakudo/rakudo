@@ -50,7 +50,6 @@ my role Mixy does Baggy  {
                 return $pair.key if ( $seen += $pair.value ) > $rand;
             }
         }
-        return roll-one if $rolls == 1;
 
         map &roll-one, 1 .. $rolls;
     }

@@ -21,22 +21,23 @@ sub INVOKE_KV(&block, $key, $value?) {
     my @names = map *.name, &block.signature.params;
 
     if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
-        return &block(:k($key), :v($value));
+        &block(:k($key), :v($value));
     }
     elsif @names eqv ['$_'] || (+@names == 1 && &block.signature.params[0].positional)  {
-        return &block($value);
+        &block($value);
     }
     elsif @names eqv ['$k'] {
-        return &block(:k($key));
+        &block(:k($key));
     }
     elsif @names eqv ['$v'] {
-        return &block(:v($value));
+        &block(:v($value));
     }
     elsif +@names == 0 {
-        return &block();
+        &block();
     }
-
-    die "Couldn't figure out how to invoke {&block.signature().perl}";
+    else {
+        die "Couldn't figure out how to invoke {&block.signature().perl}";
+    }
 }
 
 sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
@@ -48,6 +49,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
     my @todo;
 #       |-- [ ordinal, kind, contestant, block, alternate_block? ]
     my %distinct-channels;
+    my %channels-by-kind;
 
     # sanity check and transmogrify possibly multiple channels into things to do
     while +@other {
@@ -67,21 +69,35 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
         my &block = @other.shift;
 
         for @contestant {
-            %distinct-channels{$_.WHICH} = $_;
+            %channels-by-kind{$kind}{$_.WHICH} = $_;
             @todo.push: [ +@todo, $kind, $_, &block ];
         }
     }
 
-    # transmogrify any earliest spec if nothing to do so far
-    if !@todo {
-        for @earliest {
-            when Channel {
-                %distinct-channels{$_.WHICH} = $_;
-                @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more, $wild_done ];
+    %distinct-channels = %channels-by-kind.values>>.pairs.flat;
+
+    # for the channels specified directly to the earliest then
+    # if they have not already got a done or more then add one
+    
+    for @earliest {
+        when Channel {
+            my $n = $_.WHICH;
+
+            if $wild_more.defined {
+                if not %channels-by-kind{$EARLIEST_KIND_MORE}{$n}:exists {
+                    @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more ];
+                    %distinct-channels{$n} = $_;
+                }
             }
-            default {
-                die "Got a {$_.WHAT.perl}, but expected a Channel";
+            if $wild_done.defined {
+                if not %channels-by-kind{$EARLIEST_KIND_DONE}{$n}:exists {
+                    @todo.push: [ +@todo, $EARLIEST_KIND_DONE, $_, $wild_done ];
+                    %distinct-channels{$n} = $_;
+                }
             }
+        }
+        default {
+            die "Got a {$_.WHAT.perl}, but expected a Channel";
         }
     }
 
@@ -93,7 +109,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
     CHECK:
     loop {  # until something to return
-        for @todo.pick(*) -> $todo {
+        for @todo.pick(*,:eager) -> $todo {
             my $kind       := $todo[1];
             my $contestant := $todo[2];
 
@@ -150,7 +166,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 }
 
 sub WINNER(|c) {
-    DEPRECATED('earliest', |<2014.10 2015.10>, :what<winner>);
+    DEPRECATED('earliest', |<2014.10 2015.09>, :what<winner>);
     EARLIEST(|c);
 }
 

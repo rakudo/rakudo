@@ -24,7 +24,7 @@ role Perl6::Metamodel::MultiMethodContainer {
             method code() { $!code }
         }
         my $how := MultiToIncorporate.HOW.WHAT;
-        my $todo := MultiToIncorporate.new( :name($name), :code($code_obj) );
+        my $todo := MultiToIncorporate.new( :name($name), :code(nqp::decont($code_obj)) );
         @!multi_methods_to_incorporate[+@!multi_methods_to_incorporate] := $todo;
         $code_obj;
     }

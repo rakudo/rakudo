@@ -1,8 +1,23 @@
 my class Failure {
     has $.exception;
+    has $.backtrace;
     has $!handled;
 
-    method new($exception) { self.bless(:$exception) }
+    method new($exception) {
+         self.bless(:$exception);
+    }
+
+    submethod BUILD (:$!exception) {
+        $!backtrace = $!exception.backtrace() || Backtrace.new(9);
+    }
+
+    # "Shouldn't happen."  We use note here because the dynamic scope in GC is likely meaningless.
+    submethod DESTROY () { if not $!handled { note "WARNING: unhandled Failure detected in DESTROY:\n" ~ self.mess } }
+
+    # Turns out multidimensional lookups are one way to leak unhandled failures, so
+    # we'll just propagate the initial failure much as we propagate Nil on methods.
+    method AT-POS(|) { self }
+    method AT-KEY(|) { self }
 
     # TODO: should be Failure:D: multi just like method Bool,
     # but obscure problems prevent us from making Mu.defined
@@ -13,51 +28,48 @@ my class Failure {
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
-    method Int(Failure:D:)        { $!handled ?? 0   !! $!exception.throw; }
-    method Num(Failure:D:)        { $!handled ?? 0e0 !! $!exception.throw; }
-    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! $!exception.throw; }
-    multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw; }
-    multi method gist(Failure:D:) { $!handled ?? $.perl !! $!exception.throw; }
+    method Int(Failure:D:)        { $!handled ?? 0   !! $!exception.throw($!backtrace); }
+    method Num(Failure:D:)        { $!handled ?? 0e0 !! $!exception.throw($!backtrace); }
+    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! $!exception.throw($!backtrace); }
+    multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw($!backtrace); }
+    multi method gist(Failure:D:) { $!handled ?? $.mess !! $!exception.throw($!backtrace); }
+    method mess (Failure:D:) {
+        self.exception.message ~ "\n" ~ self.backtrace;
+    }
 
-    Failure.^add_fallback(
-        -> $, $ { True },
-        method ($name) {
-            $!exception.throw;
-        }
-    );
-    method sink() is hidden-from-backtrace {
-        $!exception.throw unless $!handled
+    method sink() {
+        $!exception.throw($!backtrace) unless $!handled
+    }
+    method FALLBACK(*@_) {
+        $!exception.throw;
     }
 }
 
-proto sub fail(|) is hidden-from-backtrace {*};
-multi sub fail(Exception $e) is hidden-from-backtrace {
-    die $e if $*FATAL;
+proto sub fail(|) {*};
+multi sub fail(Exception $e) {
     my $fail := Failure.new($e);
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail($payload) is hidden-from-backtrace {
-    die $payload if $*FATAL;
+multi sub fail($payload) {
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail(*@msg) is hidden-from-backtrace {
+multi sub fail(*@msg) {
     my $payload = @msg == 1 ?? @msg[0] !! @msg.join;
-    die $payload if $*FATAL;
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }
 
-multi sub die(Failure:D $failure) is hidden-from-backtrace {
+multi sub die(Failure:D $failure) {
     $failure.exception.throw
 }
-multi sub die(Failure:U) is hidden-from-backtrace {
+multi sub die(Failure:U) {
     X::AdHoc('Failure').throw
 }
 

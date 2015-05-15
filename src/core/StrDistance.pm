@@ -3,8 +3,20 @@ my class StrDistance is Cool {
     has Str $.after;
     has Int $!distance;
 
-    multi method Bool(StrDistance:D:)    { $.before ne $.after }
-    multi method Numeric(StrDistance:D:) { self.Int }
+    submethod BUILD(Str() :$!before, :$!after) {
+    }
+
+    method Bool() {
+        $.before ne $.after
+    }
+
+    method ACCEPTS(StrDistance:D: Mu \a) {
+        self
+    }
+
+    method Numeric() {
+        self.Int
+    }
 
     multi method Int(StrDistance:D:) {
         $!distance //= do {
@@ -14,7 +26,7 @@ my class StrDistance is Cool {
             @d[$_][ 0] = $_ for ^@s.end;
             @d[ 0][$_] = $_ for ^@t.end;
 
-            for 1..@s.end X 1..@t.end -> $i, $j {
+            for flat 1..@s.end X 1..@t.end -> $i, $j {
                 @d[$i][$j] = @s[$i] eq @t[$j]
                     ??   @d[$i-1][$j-1]    # No operation required when eq
                     !! ( @d[$i-1][$j  ],   # Deletion

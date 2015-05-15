@@ -42,6 +42,7 @@ my class BOOTSTRAPATTR {
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Empty metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -281,7 +282,7 @@ my class Binder {
                                 "'; expected " ~ $nom_type.HOW.name($nom_type) ~
                                 " but got " ~ $oval.HOW.name($oval);
                         } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval.WHAT, $nom_type.WHAT, $varname) };
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval, $nom_type.WHAT, $varname) };
                         }
                     }
 
@@ -293,23 +294,21 @@ my class Binder {
                 if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
                     if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            if $flags +& $SIG_ELEM_INVOCANT {
-                                $error[0] := "Invocant requires a type object, but an object instance was passed";
-                            }
-                            else {
-                                $error[0] := "Parameter '$varname' requires a type object, but an object instance was passed";
-                            }
+                            my $class := $oval.HOW.name($oval);
+                            my $what  := $flags +& $SIG_ELEM_INVOCANT
+                              ?? "Invocant"
+                              !! "Parameter '$varname'";
+                            $error[0] := "$what requires a '$class' type object, but an object instance was passed";
                         }
                         return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            if $flags +& $SIG_ELEM_INVOCANT {
-                                $error[0] := "Invocant requires an instance, but a type object was passed";
-                            }
-                            else {
-                                $error[0] := "Parameter '$varname' requires an instance, but a type object was passed";
-                            }
+                            my $class := $oval.HOW.name($oval);
+                            my $what  := $flags +& $SIG_ELEM_INVOCANT
+                              ?? "Invocant"
+                              !! "Parameter '$varname'";
+                            $error[0] := "$what requires a '$class' instance, but a type object was passed.  Did you forget a .new?";
                         }
                         return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                     }
@@ -667,7 +666,7 @@ my class Binder {
             # Could it be a named slurpy?
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
                 # We'll either take the current named arguments copy hash which
-                # will by definition contain all unbound named parameters and use
+                # will by definition contain all unbound named arguments and use
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
@@ -790,7 +789,7 @@ my class Binder {
                     }
                     elsif !$suppress_arity_fail {
                         if nqp::defined($error) {
-                            $error[0] := "Required named parameter '" ~
+                            $error[0] := "Required named argument '" ~
                                 $named_names[0] ~ "' not passed";
                         }
                         return $BIND_RESULT_FAIL;
@@ -823,10 +822,10 @@ my class Binder {
                     nqp::push(@names, $_.key);
                 }
                 if $num_extra == 1 {
-                    $error[0] := "Unexpected named parameter '" ~ @names[0] ~ "' passed";
+                    $error[0] := "Unexpected named argument '" ~ @names[0] ~ "' passed";
                 }
                 else {
-                    $error[0] := $num_extra ~ " unexpected named parameters passed (" ~
+                    $error[0] := $num_extra ~ " unexpected named arguments passed (" ~
                         nqp::join(",", @names) ~")";
                 }
             }
@@ -1742,7 +1741,7 @@ BEGIN {
                 }
 
                 # Also narrower if the first needs a bind check and the second doesn't, if
-                # we wouldn't deem the other one narrower than this one int terms of
+                # we wouldn't deem the other one narrower than this one in terms of
                 # slurpyness. Otherwise, they're tied.
                 return !(%b<max_arity> != $SLURPY_ARITY && %a<max_arity> == $SLURPY_ARITY)
                     && (%a<bind_check> && !%b<bind_check>);
@@ -1770,6 +1769,8 @@ BEGIN {
                 my int $min_arity         := 0;
                 my int $max_arity         := 0;
                 my int $num_types         := 0;
+                my @coerce_type_idxs;
+                my @coerce_type_objs;
                 for @params -> $param {
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
@@ -1843,6 +1844,15 @@ BEGIN {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_STR + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
+
+                    # Keep track of coercion types; they'll need an extra entry
+                    # in the things we sort.
+                    my $coerce_type := nqp::getattr($param, Parameter, '$!coerce_type');
+                    unless nqp::isnull($coerce_type) {
+                        nqp::push(@coerce_type_idxs, $significant_param);
+                        nqp::push(@coerce_type_objs, $coerce_type);
+                    }
+
                     $significant_param++;
                 }
                 %info<min_arity> := $min_arity;
@@ -1856,13 +1866,31 @@ BEGIN {
                     'edges_in',  0,
                     'edges_out', 0
                 ));
+
+                # If there were any coercion types, then we also need to create
+                # a candidate entry for the specific types.
+                if @coerce_type_idxs {
+                    my %c_info     := nqp::clone(%info);
+                    %c_info<types> := nqp::clone(%c_info<types>);
+                    my int $i      := 0;
+                    while $i < nqp::elems(@coerce_type_idxs) {
+                        %c_info<types>[@coerce_type_idxs[$i]] := @coerce_type_objs[$i];
+                        $i++;
+                    }
+                    nqp::push(@graph, nqp::hash(
+                        'info',      %c_info,
+                        'edges',     [],
+                        'edges_in',  0,
+                        'edges_out', 0
+                    ));
+                }
             }
 
             # Now analyze type narrowness of the candidates relative to each
             # other and create the edges.
             my int $i := 0;
             my int $j;
-            my int $n := nqp::elems(@candidates);
+            my int $n := nqp::elems(@graph);
             while $i < $n {
                 $j := 0;
                 while $j < $n {
@@ -1879,7 +1907,7 @@ BEGIN {
             }
 
             # Perform the topological sort.
-            my int $candidates_to_sort := nqp::elems(@candidates);
+            my int $candidates_to_sort := nqp::elems(@graph);
             my @result;
             while $candidates_to_sort > 0 {
                 my int $rem_results := nqp::elems(@result);
@@ -2219,7 +2247,7 @@ BEGIN {
                         "; no signatures match");
                 }
                 else {
-                    nqp::atkey(%ex, 'X::Multi::NoMatch')($self)
+                    nqp::atkey(%ex, 'X::Multi::NoMatch')($self, $self.'!p6capture'($capture))
                 }
             }
             else {
@@ -2232,10 +2260,19 @@ BEGIN {
                     for @possibles {
                         nqp::push(@ambig, $_<sub>);
                     }
-                    nqp::atkey(%ex, 'X::Multi::Ambiguous')($self, @ambig)
+                    nqp::atkey(%ex, 'X::Multi::Ambiguous')($self, @ambig, $self.'!p6capture'($capture))
                 }
             }
         }));
+    Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
+        sub assemble_capture(*@pos, *%named) {
+            my $c := nqp::create(Capture);
+            nqp::bindattr($c, Capture, '$!list', @pos);
+            nqp::bindattr($c, Capture, '$!hash', %named);
+            $c
+        }
+        nqp::invokewithcapture(&assemble_capture, $capture)
+    }));
     Routine.HOW.add_method(Routine, 'analyze_dispatch', nqp::getstaticcode(sub ($self, @args, @flags) {
             # Compile time dispatch result.
             my $MD_CT_NOT_SURE :=  0;  # Needs a runtime dispatch.
@@ -2517,7 +2554,7 @@ BEGIN {
     #     has str $!value is box_target;
     Str.HOW.add_parent(Str, Cool);
     Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
-    Str.HOW.set_boolification_mode(Str, 4);
+    Str.HOW.set_boolification_mode(Str, 3);
     Str.HOW.publish_boolification_spec(Str);
     Str.HOW.compose_repr(Str);
 
@@ -2552,10 +2589,13 @@ BEGIN {
     Iterator.HOW.add_parent(Iterator, Iterable);
     Iterator.HOW.compose_repr(Iterator);
 
-    # class Nil is Iterator {
-    Nil.HOW.add_parent(Nil, Iterator);
+    # class Nil is Cool {
     Nil.HOW.compose_repr(Nil);
     
+    # class Empty is Iterator {
+    Empty.HOW.add_parent(Empty, Iterator);
+    Empty.HOW.compose_repr(Empty);
+
     # class ListIter is Iterator {
     #     has Mu $!reified;
     #     has Mu $!nextiter;
@@ -2577,6 +2617,7 @@ BEGIN {
     List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
+    List.HOW.add_attribute(List, scalar_attr('$!infinite', Any, List));
     List.HOW.compose_repr(List);
 
     # class Array is List {
@@ -2695,7 +2736,7 @@ BEGIN {
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
             if !nqp::isconcrete($self) && !nqp::can($self, 'CALL-ME') && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
-                nqp::die("Cannot coerce to $coercer_name with named parameters")
+                nqp::die("Cannot coerce to $coercer_name with named arguments")
                   if +%named;
                 if +@pos == 1 {
                     @pos[0]."$coercer_name"()
@@ -2746,6 +2787,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Any>        := Any;
     EXPORT::DEFAULT.WHO<Cool>       := Cool;
     EXPORT::DEFAULT.WHO<Nil>        := Nil;
+    EXPORT::DEFAULT.WHO<Empty>      := Empty;
     EXPORT::DEFAULT.WHO<Attribute>  := Attribute;
     EXPORT::DEFAULT.WHO<Signature>  := Signature;
     EXPORT::DEFAULT.WHO<Parameter>  := Parameter;
@@ -2855,7 +2897,9 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
-# Put PROCESS in place.
+# Put PROCESS in place, and ensure it's never repossessed.
+nqp::neverrepossess(PROCESS.WHO);
+nqp::neverrepossess(nqp::getattr(PROCESS.WHO, EnumMap, '$!storage'));
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 
 # HLL configuration: interop, boxing and exit handling.

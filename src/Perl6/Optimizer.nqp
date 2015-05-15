@@ -32,6 +32,7 @@ my class Symbols {
     has $!PseudoStash;
     has $!Routine;
     has $!Nil;
+    has $!Failure;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -57,6 +58,7 @@ my class Symbols {
         $!PseudoStash := self.find_lexical('PseudoStash');
         $!Routine     := self.find_lexical('Routine');
         $!Nil         := self.find_lexical('Nil');
+        $!Failure     := self.find_lexical('Failure');
         nqp::pop(@!block_stack);
     }
 
@@ -97,6 +99,7 @@ my class Symbols {
     method Block()       { $!Block }
     method PseudoStash() { $!PseudoStash }
     method Nil()         { $!Nil }
+    method Failure()     { $!Failure }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -908,6 +911,12 @@ class Perl6::Optimizer {
         $!symbols.pop_block();
         my $vars_info := @!block_var_stack.pop();
 
+        # If this block is UNIT and we're in interactive mode, poison lexical
+        # to local lowering, or else we may lose symbols we need to remember.
+        if $block =:= $!symbols.UNIT && %!adverbs<interactive> {
+            $vars_info.poison_lowering();
+        }
+
         # We might be able to delete some of the magical variables when they
         # are trivially unused, and also simplify takedispatcher.
         $vars_info.delete_unused_magicals($block);
@@ -1018,7 +1027,7 @@ class Perl6::Optimizer {
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
         if $optype eq 'callmethod' && $op.name eq 'sink' &&
-              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'for' && @($op[0]) == 2 &&
+              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'FOR' && @($op[0]) == 2 &&
               nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
                 (nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) &&
                         nqp::existskey(%range_bounds, $c2.name)
@@ -1235,7 +1244,7 @@ class Perl6::Optimizer {
                             $survived := 0;
                         }
                     }
-                    if $survived {
+                    if $survived && !nqp::istype($ret_value, $!symbols.Failure) {
                         return $NULL if $!void_context && !$!in_declaration;
                         $*W.add_object($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));
@@ -1651,16 +1660,16 @@ class Perl6::Optimizer {
         %opts<objname> := $obj.name;
         %opts<signature> := $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
-                ["    Expected: " ~ try $obj.signature.perl ];
+                [try $obj.signature.gist];
 
         $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
     }
     
     # Signature list for multis.
     sub multi_sig_list($dispatcher) {
-        my @sigs := ["    Expected any of:"];
+        my @sigs := [];
         for $dispatcher.dispatchees {
-            @sigs.push("\n    " ~ $_.signature.perl);
+            @sigs.push("\n    " ~ $_.signature.gist);
         }
         @sigs
     }

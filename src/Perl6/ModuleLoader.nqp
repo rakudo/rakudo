@@ -16,9 +16,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         'NQP', nqp::gethllsym('nqp', 'ModuleLoader'),
     );
 
-    method register_language_module_loader($lang, $loader) {
+    method register_language_module_loader($lang, $loader, :$force) {
         nqp::die("Language loader already registered for $lang")
-            if nqp::existskey(%language_module_loaders, $lang);
+            if ! $force && nqp::existskey(%language_module_loaders, $lang);
         %language_module_loaders{$lang} := $loader;
     }
 
@@ -42,7 +42,11 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             if !nqp::existskey($PROCESS.WHO, '@INC') {
                 my &DYNAMIC :=
                   nqp::ctxlexpad(%settings_loaded{'CORE'})<&DYNAMIC>;
-                if !nqp::isnull(&DYNAMIC) {
+                if nqp::isnull(&DYNAMIC) {
+                    DEBUG('Could not initialize @*INC') if $DEBUG;
+                }
+                else {
+                    DEBUG('Initializing @*INC') if $DEBUG;
                     &DYNAMIC('@*INC');
                 }
             }
@@ -57,6 +61,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
         # Too early to have @*INC; probably no setting yet loaded to provide
         # the PROCESS initialization.
+        DEBUG('Setting up default paths: . blib') if $DEBUG;
         my @search_paths;
         @search_paths.push('.');
         @search_paths.push('blib');
@@ -107,8 +112,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     nqp::die("Could not find file '$file' for module $module_name");
                 }
                 else {
-                    nqp::die("Could not find $module_name in any of: " ~
-                        join(', ', @prefixes));
+                    nqp::die("Could not find $module_name in any of:\n  " ~
+                        join("\n  ", @prefixes));
                 }
             }
             %chosen := @candidates[0];
@@ -124,9 +129,11 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             %chosen := %chosen.FLATTENABLE_HASH();
         }
         if $DEBUG {
+            my $text := "chosen:";
             for %chosen {
-                say($_.key ~ ' => ' ~ $_.value);
+                $text := $text ~ "\n " ~ $_.key ~ ' => ' ~ $_.value;
             }
+            DEBUG($text);
         }
         # If we didn't already do so, load the module and capture
         # its mainline. Otherwise, we already loaded it so go on
@@ -269,6 +276,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         if $setting_name ne 'NULL' {
             # Unless we already did so, locate and load the setting.
             unless nqp::defined(%settings_loaded{$setting_name}) {
+                DEBUG("Loading settings $setting_name") if $DEBUG;
                 # Find it.
                 my $path := self.find_setting($setting_name);
 
@@ -284,6 +292,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
+                DEBUG("Settings $setting_name loaded") if $DEBUG;
             }
 
             $setting := %settings_loaded{$setting_name};

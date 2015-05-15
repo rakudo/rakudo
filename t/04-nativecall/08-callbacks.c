@@ -4,7 +4,6 @@
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
-#define long __int64
 #else
 #define DLLEXPORT extern
 #endif

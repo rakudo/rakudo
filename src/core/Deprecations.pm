@@ -24,6 +24,8 @@ class Deprecation {
     has Version $.from;    # release version from which deprecated
     has Version $.removed; # release version when will be removed
 
+    method camelia() { gethostname() eq 'ns1' } # until something better
+
     multi method WHICH (Deprecation:D:) {
         ($!file||"",$!type||"",$!package||"",$!name).join(':');
     }
@@ -33,10 +35,10 @@ class Deprecation {
         return Nil unless %DEPRECATIONS;
 
         my $message = "Saw {+%DEPRECATIONS} call{ 's' if +%DEPRECATIONS != 1 } to deprecated code during execution.\n";
-        $message ~= ("=" x 80) ~ "\n";
+        $message ~= ("=" x 80) ~ "\n" unless self.camelia;
         for %DEPRECATIONS.values -> $d {
             $message ~= $d.report;
-            $message ~= ("-" x 80) ~ "\n";
+            $message ~= ("-" x 80) ~ "\n" unless self.camelia;
         }
 
         %DEPRECATIONS = ();  # reset for new batches if applicable
@@ -78,10 +80,10 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
     $vremoved = Version.new($removed) if $removed;
 
     my $bt = Backtrace.new;
-    my $deprecated = $bt[ my $index = $bt.next-interesting-index(2, :named) ];
-    my $callsite;
-    $callsite = $bt[$index = $bt.next-interesting-index($index, :noproto)]
-      for ^$up;
+    my $deprecated =
+      $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
+    $index = $bt.next-interesting-index($index, :noproto, :setting) for ^$up;
+    my $callsite = $bt[$index];
 
     # get object, existing or new
     my $dep = $what
@@ -106,14 +108,15 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
 }
 
 END {
-    unless %*ENV<RAKUDO-NO-DEPRECATIONS> {
+    unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
         if Deprecation.report -> $message {
             note $message;   # q:to/TEXT/ doesn't work in settings
             note 'Please contact the author to have these calls to deprecated code adapted,
 so that this message will disappear!
 
-Please note that *ALL* deprecated features will be removed at the release
-of Perl 6.0.0 (expected sometime in 2015).'
+Please note that *ALL* deprecated features will be removed at the RC-0 release
+(expected september 2015).'
+              unless Deprecation.camelia;
         }
     }
 }

@@ -24,12 +24,12 @@ my class PairMap is Hash {
     multi method BIND-KEY(PairMap:D: \key) is rw {
         self.EXISTS-KEY(key)
           ?? nextsame()
-          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<BIND-KEY>);
+          !! X::PairMap::DoesNotExist.new(:key(key), :method<BIND-KEY>).throw;
     }
     multi method ASSIGN-KEY(PairMap:D: \key, Mu \assignval) {
         self.EXISTS-KEY(key)
           ?? nextsame()
-          !! fail X::PairMap::DoesNotExist.new(:key(key), :method<ASSIGN-KEY>);
+          !! X::PairMap::DoesNotExist.new(:key(key), :method<ASSIGN-KEY>).throw;
     }
     multi method DELETE-KEY(PairMap:D: \key) {
         fail X::PairMap::NotAllowed.new(:method<DELETE-KEY>);
@@ -47,7 +47,7 @@ my class PairMap is Hash {
     multi method perl(PairMap:D:) {
         self.^name
           ~ '.new('
-          ~ self.pairs.pick(*).map({.perl}).join(', ')
+          ~ self.pairs.map({.perl}).join(', ')
           ~ ')';
     }
 }

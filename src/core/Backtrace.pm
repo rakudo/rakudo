@@ -20,26 +20,41 @@ my class Backtrace::Frame {
     multi method Str(Backtrace::Frame:D:) {
         my $s = self.subtype;
         $s ~= ' ' if $s.chars;
-        "  in {$s}$.subname at {$.file}:$.line\n"
+        my $text = "  in {$s}$.subname at {$.file}:$.line\n";
+
+        if +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0) -> $extra {
+            my $io = $!file.IO;
+            if $io.e {
+                my @lines := $io.lines;
+                my $from = max $!line - $extra, 1;
+                my $to   = min $!line + $extra, +@lines;
+                for $from..$to -> $line {
+                    my $star = $line == $!line ?? '*' !! ' ';
+                    $text ~= "$line.fmt('%5d')$star @lines[$line - 1]\n";
+                }
+                $text ~= "\n";
+            }
+        }
+        $text;
     }
 
     method is-hidden(Backtrace::Frame:D:)  { $!code.?is-hidden-from-backtrace }
     method is-routine(Backtrace::Frame:D:) { nqp::istype($!code,Routine) }
-    method is-setting(Backtrace::Frame:D:) {
-        $!file.chars > 12 && substr($!file,*-12) eq 'CORE.setting'
-    }
+    method is-setting(Backtrace::Frame:D:) { $!file.ends-with("CORE.setting") }
 }
 
 my class Backtrace is List {
     proto method new(|) {*}
 
-    multi method new(Exception $e, Int $offset = 0) {
-        self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
+    multi method new(Mu $e, Int $offset = 0) {
+        $e.^name eq 'BOOTException'
+            ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)
+            !! self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
     }
 
-    multi method new() {
+    multi method new(Int $offset = 0) {
         try { die() };
-        self.new($!, 2);
+        self.new($!, 2 + $offset);
     }
 
     # note that backtraces are nqp::list()s, marshalled to us as Parcel
@@ -58,20 +73,12 @@ my class Backtrace is List {
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
-            next if $file eq 'src/gen/BOOTSTRAP.nqp' ||
-                    $file eq 'src/gen/m-BOOTSTRAP.nqp' ||
-                    $file eq 'src\\gen\\BOOTSTRAP.nqp' ||
-                    $file eq 'src\\gen\\m-BOOTSTRAP.nqp' ||
-                    $file eq 'gen/jvm/stage2/QRegex.nqp' ||
-                    $file eq 'gen/moar/stage2/QRegex.nqp';
-            last if $file eq 'src/stage2/gen/NQPHLL.nqp' ||
-                    $file eq 'src\\stage2\\gen\\NQPHLL.nqp' ||
-                    $file eq 'gen/jvm/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\jvm\\stage2\\NQPHLL.nqp' ||
-                    $file eq 'gen/moar/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\moar\\stage2\\NQPHLL.nqp';
+            next if $file.ends-with('BOOTSTRAP.nqp')
+                 || $file.ends-with('QRegex.nqp');
+            last if $file.ends-with('NQPHLL.nqp');
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
-            $subname = '<anon>' if substr($subname,0, 6) eq '_block';
+            $subname = '<anon>' if $subname.starts-with("_block");
+            last if $subname eq 'handle-begin-time-exceptions';
             $new.push: Backtrace::Frame.new(
                 :line($line.Int),
                 :$file,
@@ -83,7 +90,7 @@ my class Backtrace is List {
     }
 
     method next-interesting-index(Backtrace:D:
-      Int $idx is copy = 0, :$named, :$noproto) {
+      Int $idx is copy = 0, :$named, :$noproto, :$setting) {
         ++$idx;
         # NOTE: the < $.end looks like an off-by-one error
         # but it turns out that a simple   perl6 -e 'die "foo"'
@@ -95,6 +102,8 @@ my class Backtrace is List {
             next if $named && !$cand.subname; # only want named ones
             next if $noproto                  # no proto's please
               && $cand.code.?is_dispatcher;   #  if a dispatcher
+            next if !$setting                 # no settings please
+              && $cand.is-setting;            #  and in setting
             return $idx;
         }
         Int;
@@ -118,19 +127,18 @@ my class Backtrace is List {
             }
         }
 
-        return @outers;
+        @outers;
     }
 
     method nice(Backtrace:D: :$oneline) {
+        my $setting = %*ENV<RAKUDO_BACKTRACE_SETTING>;
         try {
             my @frames;
             my Int $i = self.next-interesting-index(-1);
             while $i.defined {
-                $i = self.next-interesting-index($i)
-                    while $oneline && $i.defined
-                          && self.AT-POS($i).is-setting;
-
+                $i = self.next-interesting-index($i, :$setting) if $oneline;
                 last unless $i.defined;
+
                 my $prev = self.AT-POS($i);
                 if $prev.is-routine {
                     @frames.push: $prev;
@@ -143,9 +151,8 @@ my class Backtrace is List {
                     $i = $target_idx;
                 }
                 last if $oneline;
-                $i = self.next-interesting-index($i);
+                $i = self.next-interesting-index($i, :$setting);
             }
-            return @frames.join;
             CATCH {
                 default {
                     return "<Internal error while creating backtrace: $_.message() $_.backtrace.full().\n"
@@ -154,6 +161,7 @@ my class Backtrace is List {
                         ~ "to get more information about your error>";
                 }
             }
+            @frames.join;
         }
     }
 

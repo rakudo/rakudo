@@ -9,7 +9,7 @@ multi sub prefix:<~>(\a)          { a.Stringy }
 multi sub prefix:<~>(int $a)      { nqp::p6box_s($a) }
 multi sub prefix:<~>(num $a)      { nqp::p6box_s($a) }
 
-proto sub infix:<~>(Mu $?, Mu $?) is pure { * }
+proto sub infix:<~>(|) is pure { * }
 multi sub infix:<~>($x = '')       { $x.Stringy }
 multi sub infix:<~>(\a, \b)      { a.Stringy ~ b.Stringy }
 
@@ -28,6 +28,7 @@ multi sub infix:<eq>(\a, \b)       { a.Stringy eq b.Stringy }
 proto sub infix:<ne>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<ne>($x?)            { Bool::True }
 multi sub infix:<ne>(Mu \a, Mu \b)   { a !eq b }
+multi sub infix:<ne>(Any \a, Any \b) { a.Stringy ne b.Stringy }
 
 proto sub infix:<lt>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<lt>($x?)          { Bool::True }

@@ -2,7 +2,7 @@ my class HashIter is Iterator {
     has $!reified;             # Parcel we return after reifying
     has Mu $!hashiter;         # the VM level hash iterator
     has Mu $!keystore;         # key store, if it's a typed hash
-    has int $!mode;            # pair = 0, kv = 1, k = 2, v = 3, invert = 4
+    has int $!mode;            # pair = 0, kv = 1, k = 2, v = 3, anti = 4, invert = 5
 
     method new($hash, :$keystore, :$pairs, :$kv, :$k, :$v, :$anti, :$invert) {
         nqp::create(self).BUILD($hash, $keystore,
@@ -117,7 +117,7 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :value($k),
                             :key($_)))
-                                for nqp::hllize(nqp::iterval($pairish)).list;
+                                for flat nqp::hllize(nqp::iterval($pairish)).list;
                     }
                 }
                 else {
@@ -127,7 +127,7 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :value($k),
                             :key($_)))
-                                for nqp::hllize(nqp::iterval($pairish)).list;
+                                for flat nqp::hllize(nqp::iterval($pairish)).list;
                     }
                 }
             }

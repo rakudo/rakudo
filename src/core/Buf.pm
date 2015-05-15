@@ -108,7 +108,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if ($ifrom < 0) {
             X::OutOfRange.new(
                 what    => 'From argument to subbuf',
-                got     => $from,
+                got     => $from.gist,
                 range   => (0..self.elems),
                 comment => "use *{$ifrom} if you want to index relative to the end"
             ).fail;
@@ -117,7 +117,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if ($ifrom > self.elems) {
             X::OutOfRange.new(
                 what => 'From argument to subbuf',
-                got  => $from,
+                got  => $from.gist,
                 range => (0..self.elems),
             ).fail;
         }
@@ -317,7 +317,7 @@ multi sub pack(Str $template, *@items) {
             }
             when 'H' {
                 my $hexstring = shift @items // '';
-                if $hexstring % 2 {
+                if $hexstring.chars % 2 {
                     $hexstring ~= '0';
                 }
                 @bytes.push: map { :16($_) }, $hexstring.comb(/../);
@@ -458,7 +458,7 @@ multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
     ($a cmp $b) != -1
 }
 
-sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) {
+sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) is rw {
     my Blob $subbuf = $b.subbuf($from, $elems);
     Proxy.new(
         FETCH   => sub ($) { $subbuf },

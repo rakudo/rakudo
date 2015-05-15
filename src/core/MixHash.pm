@@ -14,7 +14,7 @@ my class MixHash does Mixy {
     method Bag     { Bag.new-from-pairs(%!elems.values) }
     method BagHash { BagHash.new-from-pairs(%!elems.values) }
 
-    multi method AT-KEY(MixHash:D: \k) {
+    multi method AT-KEY(MixHash:D: \k) is rw {
         Proxy.new(
           FETCH => {
               my \v := %!elems.AT-KEY(k.WHICH);

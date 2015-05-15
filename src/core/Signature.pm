@@ -50,7 +50,7 @@ my class Signature { # declared in BOOTSTRAP
             return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
         }
 
-        for ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
+        for flat ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
             my $other;
             return False unless $other=($tclass{True} // ()).grep(
                 {!.optional and $_ ~~ $this });
@@ -59,7 +59,7 @@ my class Signature { # declared in BOOTSTRAP
 
         my $here=$sclass{True}.SetHash;
         my $hasslurpy=($sclass{True} // ()).grep({.slurpy}).Bool;
-        for @($tclass{True} // ()) -> $other {
+        for flat @($tclass{True} // ()) -> $other {
             my $this;
 
             if $other.slurpy {
@@ -73,7 +73,7 @@ my class Signature { # declared in BOOTSTRAP
                 return False unless $hasslurpy;
             }
         }
-        return True;
+        True;
     }
 
     method arity() {
@@ -100,6 +100,29 @@ my class Signature { # declared in BOOTSTRAP
         while $i < $params.elems {
             my $param := $params[$i];
             $perl = $perl ~ $sep ~ $param.perl;
+            # this works because methods always have at least one
+            # other parameter, *%_
+            $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';
+            $i = $i + 1;
+        }
+        if !nqp::isnull($!returns) && $!returns !=:= Mu {
+            $perl ~= ' --> ' ~ $!returns.perl
+        }
+        # Closer.
+        $perl ~ ')'
+    }
+
+    multi method gist(Signature:D:) {
+        # Opening.
+        my $perl = '(';
+
+        # Parameters.
+        my $params = self.params();
+        my $sep = '';
+        my int $i = 0;
+        while $i < $params.elems {
+            my $param := $params[$i];
+            $perl = $perl ~ $sep ~ $param.perl.subst(/' $'$/,'');
             # this works because methods always have at least one
             # other parameter, *%_
             $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';

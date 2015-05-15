@@ -78,7 +78,7 @@ my class PseudoStash is EnumMap {
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('OUTER')),
+                Metamodel::ModuleHOW.new_type(:name('OUTERS')),
                 $stash);
         },
         'DYNAMIC' => sub ($cur) {
@@ -96,7 +96,7 @@ my class PseudoStash is EnumMap {
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC);
             nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('CALLER')),
+                Metamodel::ModuleHOW.new_type(:name('CALLERS')),
                 $stash);
         },
         'UNIT' => sub ($cur) {
@@ -123,9 +123,28 @@ my class PseudoStash is EnumMap {
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('UNIT')),
+                Metamodel::ModuleHOW.new_type(:name('SETTING')),
+                $stash);
+        },
+        'CLIENT' => sub ($cur) {
+            my $pkg := nqp::getlexrel(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
+                '$?PACKAGE');
+            die "GLOBAL can have no client package" if $pkg.^name eq "GLOBAL";
+            my Mu $ctx := nqp::ctxcallerskipthunks(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
+            while nqp::getlexrel($ctx, '$?PACKAGE') === $pkg {
+                $ctx := nqp::ctxcallerskipthunks($ctx);
+                die "No client package found" unless $ctx;
+            }
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('CLIENT')),
                 $stash);
         },
         'OUR' => sub ($cur) {
@@ -153,13 +172,13 @@ my class PseudoStash is EnumMap {
             }
             $res;
         }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
             my $found := nqp::getlexreldyn(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 $nkey);
             nqp::isnull($found) ?? Any !! $found
         }
-        else {
+        else { # STATIC_CHAIN
             my $found := nqp::getlexrel(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 $nkey);
@@ -175,10 +194,10 @@ my class PseudoStash is EnumMap {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
             nqp::bindkey($store, nqp::unbox_s($key), value)
         }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
             die "Binding to dynamic variables not yet implemented";
         }
-        else {
+        else { # STATIC_CHAIN
             die "This case of binding is not yet implemented";
         }
     }
@@ -192,14 +211,14 @@ my class PseudoStash is EnumMap {
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key)))
         }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
             nqp::isnull(
                 nqp::getlexreldyn(
                     nqp::getattr(self, PseudoStash, '$!ctx'),
                     nqp::unbox_s($key)))
                 ?? False !! True
         }
-        else {
+        else { # STATIC_CHAIN
             nqp::isnull(
                 nqp::getlexrel(
                     nqp::getattr(self, PseudoStash, '$!ctx'),

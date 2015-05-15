@@ -83,137 +83,329 @@ multi sub infix:<but>(Mu:U \obj, @roles) {
     obj.^mixin(|@roles)
 }
 
-sub SEQUENCE($left, Mu $right, :$exclude_end) {
-    my @right := nqp::istype($right, Junction) || !$right.DEFINITE
-      ?? [$right] !! $right.flat;
+sub SEQUENCE(\left, Mu \right, :$exclude_end) {
+    my @right := nqp::iscont(right) ?? [right] !! (right,).list.flat;
+    die X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)'))
+        unless @right;
     my $endpoint = @right.shift;
+    $endpoint.sink if $endpoint ~~ Failure;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
     $endpoint = Bool::False if $infinite;
     my $tail := ().list;
     my $end_code_arity = 0;
     my $end_tail := ().list;
-    if nqp::istype($endpoint,Code) {
+    if nqp::istype($endpoint,Code) && !nqp::istype($endpoint,Regex) {
         $end_code_arity = $endpoint.arity;
         $end_code_arity = $endpoint.count if $end_code_arity == 0;
         $end_code_arity = -Inf if $end_code_arity == Inf;
     }
 
-    my sub succpred($cmp) {
-        ($cmp < 0) ?? { $^x.succ } !! ( $cmp > 0 ?? { $^x.pred } !! { $^x } )
+    my sub succpred($a,$b) {
+        my $cmp = $a cmp $b;
+        if $a.WHAT === $b.WHAT === $endpoint.WHAT {
+            $cmp < 0 && $a ~~ Stringy
+                ?? -> $x {
+                    my $new = $x.succ;
+                    last if $new after $endpoint or $new.chars > $endpoint.chars;
+                    $new;
+                }
+                !! $cmp < 0
+                    ?? -> $x {
+                        my $new = $x.succ;
+                        last if $new after $endpoint;
+                        $new;
+                    }
+                    !! $cmp > 0
+                        ?? -> $x {
+                            my $new = $x.pred;
+                            last if $x before $endpoint;
+                            $new;
+                        }
+                        !! { $_ }
+        }
+        else {
+            $cmp < 0
+                ?? { $^x.succ }
+                !! $cmp > 0
+                    ?? { $^x.pred }
+                    !! { $^x }
+        }
     }
-    my sub unisuccpred($cmp) {
-        ($cmp < 0) ?? { $^x.ord.succ.chr } !! ( $cmp > 0 ?? { $^x.ord.pred.chr } !! { $^x } )
+    my sub unisuccpred($a,$b) {
+        my $cmp = $a.ord cmp $b.ord;
+        $cmp < 0
+            ?? { $^x.ord.succ.chr }
+            !! $cmp > 0
+                ?? { $^x.ord.pred.chr }
+                !! { $^x }
     }
 
     (GATHER({
-        my @left := $left.flat;
+        my @left := nqp::iscont(left) ?? [left] !! (left,).list.flat;
+        die X::Cannot::Empty.new(:action('get sequence start value'), :what('list'))
+            unless @left;
         my $value;
         my $code;
         my $stop;
-        for @left -> $v {
-            $value := $v;
-            if nqp::istype($value,Code) { $code = $value; last }
+        for flat @left -> $v {
+            my \value = $v;
+            if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
-                $end_tail.push($value);
+                $end_tail.push(value);
                 if +@$end_tail >= $end_code_arity {
                     $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
-                    if $endpoint(|@$end_tail) { $stop = 1; last }
+                    if $endpoint(|@$end_tail) {
+                        $stop = 1;
+                        $tail.push(value) unless $exclude_end;
+                        last;
+                    }
                 }
-            } elsif $value ~~ $endpoint  { $stop = 1; last }
-            $tail.push($value);
-            take $value;
+            }
+            elsif value ~~ $endpoint {
+                $stop = 1;
+                $tail.push(value) unless $exclude_end;
+                last;
+            }
+            $tail.push(value);
         }
-        unless $stop {
+        if $stop {
+            take $_ for @$tail;
+        }
+        else {
             my $badseq;
             my ($a, $b, $c);
             unless $code.defined {
-                $tail.munch($tail.elems - 3) if $tail.elems > 3;
+                take $tail.shift while $tail.elems > 3;
                 $a = $tail[0];
                 $b = $tail[1];
                 $c = $tail[2];
             }
             if $code.defined { }
-            elsif $tail.grep(Numeric).elems != $tail.elems {
-                # non-numeric
-                if $tail.elems == 1 {
-                    if nqp::istype($a,Stringy) && nqp::istype($endpoint,Stringy) && $a.codes == 1 && $endpoint.codes == 1 {
-                        $code = $infinite ?? { $^x.ord.succ.chr } !! unisuccpred($a.ord cmp $endpoint.ord);
-                    } else {
-                        $code = $infinite ??  { $^x.succ } !! succpred($a cmp $endpoint);
+            elsif $tail.grep(Real).elems != $tail.elems {
+                if $tail.elems > 1 {
+                    if $tail[*-1].WHAT === $endpoint.WHAT {
+                        $code = succpred($tail[*-1], $endpoint);
+                    }
+                    else {
+                        $code = succpred($tail[*-2], $tail[*-1]);
                     }
                 }
+                elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {
+                    if $a.codes == 1 && $endpoint.codes == 1 {
+                        $code = unisuccpred($a, $endpoint);
+                    }
+                    elsif $a.codes == $endpoint.codes {
+                        my @a = $a.comb;
+                        my @e = $endpoint.comb;
+                        my @ranges;
+                        for flat @a Z @e -> $from, $to {
+                            @ranges.push: $($from ... $to);
+                        }
+                        .take for flat [X~] |@ranges;
+                        $stop = 1;
+                    }
+                    elsif $a lt $endpoint {
+                        $stop = 1 if $a gt $endpoint;
+                        $code = -> $x {
+                            my $new = $x.succ;
+                            last if $new gt $endpoint or $new.chars > $endpoint.chars;
+                            $new;
+                        }
+                    }
+                    else {
+                        $stop = 1 if $a lt $endpoint;
+                        $code = -> $x {
+                            my $new = $x.pred;
+                            last if $new lt $endpoint;
+                            $new;
+                        }
+                    }
+                }
+                elsif $infinite or nqp::istype($endpoint, Code) {
+                    $code = *.succ;
+                }
                 else {
-                    $code = succpred($tail[*-2] cmp $tail[*-1]);
+                    $code = succpred($a,$endpoint);
                 }
             }
             elsif $tail.elems == 3 {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
-                    if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) && nqp::istype($c,Numeric) {
-                        $code = { $^x + $ab }
+                    if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) && nqp::istype($c,Real) {
+                        if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                            if $ab > 0 {
+                                $stop = 1 if $a > $endpoint;
+                                $code = -> $x {
+                                    my $new = $x + $ab;
+                                    last if $new > $endpoint;
+                                    $new;
+                                }
+                            }
+                            else {
+                                $stop = 1 if $a < $endpoint;
+                                $code = -> $x {
+                                    my $new = $x + $ab;
+                                    last if $new < $endpoint;
+                                    $new;
+                                }
+                            }
+                        }
+                        else {
+                            $code = { $^x + $ab }
+                        }
                     }
                     else {
-                        $code = succpred($b cmp $c)
+                        $code = succpred($b, $c)
                     }
                 }
                 elsif $a != 0 && $b != 0 && $c != 0 {
                     $ab = $b / $a;
                     if $ab == $c / $b {
                         $ab = $ab.Int if nqp::istype($ab,Rat) && $ab.denominator == 1;
-                        $code = { $^x * $ab }
+                        if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                            if $ab > 0 {
+                                if $ab > 1  {
+                                    $stop = 1 if $a > $endpoint;
+                                    $code = -> $x {
+                                        my $new = $x * $ab;
+                                        last if $new > $endpoint;
+                                        $new;
+                                    }
+                                }
+                                else {
+                                    $stop = 1 if $a < $endpoint;
+                                    $code = -> $x {
+                                        my $new = $x * $ab;
+                                        last if $new < $endpoint;
+                                        $new;
+                                    }
+                                }
+                            }
+                            else {
+                                $code = -> $x {
+                                    my $new = $x * $ab;
+                                    my $absend = $endpoint.abs;
+                                    last if sign($x.abs - $absend) == -sign($new.abs - $absend);
+                                    $new;
+                                }
+                            }
+                        }
+                        else {
+                            $code = { $^x * $ab }
+                        }
                     }
                 }
-                $badseq = "$a,$b,$c" unless $code;
+                if $code {
+                    $tail.pop;
+                    $tail.pop;
+                }
+                else {
+                    $badseq = "$a,$b,$c" unless $code;
+                }
             }
             elsif $tail.elems == 2 {
                 my $ab = $b - $a;
-                if $ab != 0 || nqp::istype($a,Numeric) && nqp::istype($b,Numeric) {
-                    $code = { $^x + $ab }
+                if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
+                    if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                        if $ab > 0 {
+                            $stop = 1 if $a > $endpoint;
+                            $code = -> $x {
+                                my $new = $x + $ab;
+                                last if $new > $endpoint;
+                                $new;
+                            }
+                        }
+                        else {
+                            $stop = 1 if $a < $endpoint;
+                            $code = -> $x {
+                                my $new = $x + $ab;
+                                last if $new < $endpoint;
+                                $new;
+                            }
+                        }
+                    }
+                    else {
+                        $code = { $^x + $ab }
+                    }
                 }
                 else {
-                    $code = succpred($a cmp $b)
+                    $code = succpred($a, $b)
                 }
+                $tail.pop;
             }
             elsif $tail.elems == 1 {
-                $code = ($a cmp $endpoint > 0 && !nqp::istype($endpoint,Code))
-                  ?? { $^x.pred }
-                  !! { $^x.succ }
+                if nqp::istype($endpoint,Code) or not nqp::isconcrete($endpoint) {
+                    $code = { $^x.succ }
+                }
+                elsif nqp::istype($endpoint, Real) and nqp::istype($a, Real) {
+                    if $a < $endpoint {
+                        $code = -> $x {
+                            my $new = $x.succ;
+                            last if $new > $endpoint;
+                            $new;
+                        }
+                    }
+                    else {
+                        $code = -> $x {
+                            my $new = $x.pred;
+                            last if $new < $endpoint;
+                            $new;
+                        }
+                    }
+                }
+                else {
+                    $code = { $^x.succ }
+                }
             }
             elsif $tail.elems == 0 {
                 $code = {()}
             }
 
-            if $code.defined {
+            if $stop { }
+            elsif $code.defined {
+                take $_ for @$tail;
                 my $count = $code.count;
-                while 1 {
-                    $tail.munch($tail.elems - $count);
-                    $value := $code(|$tail);
+
+                until $stop {
+                    $tail.shift while $tail.elems > $count;
+                    my \value = $code(|$tail);
                     if $end_code_arity != 0 {
-                        $end_tail.push($value);
+                        $end_tail.push(|value);
                         if $end_tail.elems >= $end_code_arity {
                             $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
-                            last if $endpoint(|@$end_tail);
+                            if $endpoint(|@$end_tail) {
+                                (.take for value) unless $exclude_end;
+                                $stop = 1;
+                            }
                         }
-                    } else {
-                        last if $value ~~ $endpoint;
                     }
-                    $tail.push($value);
-                    if ! $value or $value ~~ Array {
-                        take $value;
+                    elsif value ~~ $endpoint {
+                        (.take for value) unless $exclude_end;
+                        $stop = 1;
+                    }
+
+                    if $stop { }
+                    elsif nqp::iscont(value) {
+                        $tail.push(value);
+                        take value;
+                    }
+                    elsif value {
+                        $tail.push(|value);
+                        .take for value;
                     }
                     else {
-                        take $value.flat
+                        $tail.push(value.item);
+                        take value;
                     }
                 }
             }
             elsif $badseq {
-                $value := (sub { fail X::Sequence::Deduction.new(:from($badseq)) })();
+                take (sub { fail X::Sequence::Deduction.new(:from($badseq)) })();
             }
             else {
-                $value := (sub { fail X::Sequence::Deduction.new() })();
+                take (sub { fail X::Sequence::Deduction.new() })();
             }
         }
-        take $value unless $exclude_end;
     }, :$infinite), @right).list;
 }
 
@@ -222,19 +414,20 @@ sub WHAT(Mu \x) { x.WHAT }
 sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) { * }
-multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
-multi sub infix:<...>(**@lol) {
+multi sub infix:<...>(\a, Mu \b) { SEQUENCE(a, b) }
+multi sub infix:<...>(|lol) {
+    my @lol := lol.list;
     my @ret;
     my int $i = 0;
     my int $m = +@lol - 1;
-    my @tail = @lol[$m].list.splice(1); # trailing elems of last list added back later
+    my @tail := @lol[$m].list.splice(1); # trailing elems of last list added back later
     my $current_left;
     while $m > $i {
         if @ret { # 1st elem of left part can be closure; take computed value instead
-            $current_left = (@ret.pop, @lol[$i].list.splice(1));
+            $current_left := (@ret.pop, @lol[$i].list.splice(1));
         }
         else { # no need to modify left part for first list
-            $current_left = @lol[$i];
+            $current_left := @lol[$i];
         }
         @ret := (@ret,
             SEQUENCE(
@@ -250,7 +443,7 @@ multi sub infix:<...>(**@lol) {
 }
 
 proto sub infix:<...^>(|) { * }
-multi sub infix:<...^>($a, Mu $b) { SEQUENCE($a, $b, :exclude_end(1)) }
+multi sub infix:<...^>(\a, Mu \b) { SEQUENCE(a, b, :exclude_end(1)) }
 
 proto sub infix:<…>(|) { * }
 multi sub infix:<…>(|c) { infix:<...>(|c) }
@@ -258,7 +451,9 @@ multi sub infix:<…>(|c) { infix:<...>(|c) }
 proto sub infix:<…^>(|) { * }
 multi sub infix:<…^>(|c) { infix:<...^>(|c) }
 
-sub undefine(Mu \x) is rw { x = Nil }
+multi sub undefine(Mu \x) is rw { x = Nil }
+multi sub undefine(Array \x) is rw { x = Empty }
+multi sub undefine(Hash \x) is rw { x = Empty }
 
 sub prefix:<temp>(\cont) is rw {
     my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');

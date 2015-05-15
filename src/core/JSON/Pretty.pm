@@ -102,12 +102,12 @@ multi sub to-json(Str:D $d, :$indent = 0, :$first = 0) {
     ~ '"'
 }
 multi sub to-json(Positional:D $d, :$indent = 0, :$first = 0) {
-    return (' ' x $first) ~ "\["
+    (' ' x $first) ~ "\["
             ~ ($d ?? $d.map({ "\n" ~ to-json($_, :indent($indent + 2), :first($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
             ~ ']';
 }
 multi sub to-json(Associative:D $d, :$indent = 0, :$first = 0) {
-    return (' ' x $first) ~ "\{"
+    (' ' x $first) ~ "\{"
             ~ ($d ?? $d.map({ "\n" ~ to-json(.key, :first($indent + 2)) ~ ' : ' ~ to-json(.value, :indent($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
             ~ '}';
 }
@@ -120,5 +120,5 @@ multi sub to-json(Mu:D $s, :$indent = 0, :$first = 0) {
 sub from-json($text) {
     my $a = JSONPrettyActions.new();
     my $o = JSONPrettyGrammar.parse($text, :actions($a));
-    return $o.ast;
+    $o.ast;
 }

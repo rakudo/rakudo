@@ -61,7 +61,7 @@ my class Proc::Async {
         self.bless(:$path,:@args,:$w);
     }
 
-    method !supply(\what,\supply,\type,\value) is hidden-from-backtrace {
+    method !supply(\what,\supply,\type,\value) {
         X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
           if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => what, proc => self).throw
@@ -173,7 +173,7 @@ my class Proc::Async {
 
         my Mu $callbacks := nqp::hash();
         nqp::bindkey($callbacks, 'done', -> Mu \status {
-            $!exit_promise.keep(Proc::Status.new(:exit(status)))
+            $!exit_promise.keep(Proc::Status.new(:exitcode(status)))
         });
         nqp::bindkey($callbacks, 'error', -> Mu \err {
             $!exit_promise.break(X::OS.new(os-error => err));

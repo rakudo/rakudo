@@ -91,13 +91,13 @@ sub declarator2text($pod) {
         when Sub {
             'sub ' ~ $_.name ~ signature2text($_.signature.params)
         }
-        when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ClassHOW)) {
+        when .HOW ~~ Metamodel::ClassHOW {
             'class ' ~ $_.perl
         }
-        when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ModuleHOW)) {
+        when .HOW ~~ Metamodel::ModuleHOW {
             'module ' ~ $_.perl
         }
-        when nqp::p6bool(nqp::istype($_.HOW, Metamodel::PackageHOW)) {
+        when .HOW ~~ Metamodel::PackageHOW {
             'package ' ~ $_.perl
         }
         default {

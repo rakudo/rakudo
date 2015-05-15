@@ -16,10 +16,10 @@ my class Mix does Mixy {
 
     method total (--> Real) { $!total //= [+] self.values }
 
-    multi method grab($count? --> Real) is hidden-from-backtrace {
+    multi method grab($count? --> Real) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    multi method grabpairs($count? --> Real) is hidden-from-backtrace {
+    multi method grabpairs($count? --> Real) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
@@ -33,10 +33,10 @@ my class Mix does Mixy {
         my \v := %!elems.AT-KEY(k.WHICH);
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
-    multi method ASSIGN-KEY(Mix:D: \k,\v) is hidden-from-backtrace {
+    multi method ASSIGN-KEY(Mix:D: \k,\v) {
         fail X::Assignment::RO.new(typename => self.^name);
     }
-    multi method DELETE-KEY(Mix:D: \k) is hidden-from-backtrace {
+    multi method DELETE-KEY(Mix:D: \k) {
         fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
     }
 }

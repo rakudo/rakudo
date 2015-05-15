@@ -1,66 +1,35 @@
 class Perl6::Metamodel::JavaHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::AttributeContainer
+    does Perl6::Metamodel::TypePretense
+    does Perl6::Metamodel::MethodContainer
 {
-    has %!methods;
-    has %!cache;
-
-    my $archetypes := Perl6::Metamodel::Archetypes.new( );
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal );
     method archetypes() {
         $archetypes
     }
-    
+
     method is_composed($obj) {
         1
     }
 
-    method methods($obj) {
-        my $iter := nqp::iterator(%!methods);
-        my @methods;
-        while $iter {
-            my $it := nqp::shift($iter);
-            @methods[+@methods] := nqp::hllizefor(nqp::iterkey_s($it), 'perl6');
-        }
-        @methods;
-    }
-
-    method find_method($obj, $name) {
-        my $iter := nqp::iterator(%!methods);
-        while $iter {
-            my $it := nqp::shift($iter);
-            my $methname := nqp::iterkey_s($it);
-            if $methname eq nqp::unbox_s($name) {
-                return nqp::iterval($it);
+    # While we normally end up locating methods through the method cache,
+    # this is here as a fallback.
+    method find_method($obj, $name, :$no_fallback, *%adverbs) {
+        if nqp::can($obj.HOW, 'submethod_table') {
+            my %submethods := $obj.HOW.submethod_table($obj);
+            if nqp::existskey(%submethods, $name) {
+                return %submethods{$name}
             }
         }
-        nqp::null()
-    }
-
-    # Add a method.
-    method add_method($obj, $name, $code_obj) {
-        # We may get VM-level subs in here during BOOTSTRAP; the try is to cope
-        # with them.
-        my $method_type := "Method";
-        try { $method_type := $code_obj.HOW.name($code_obj) };
-
-        # Ensure we haven't already got it.
-        if nqp::existskey(%!methods, $name) {
-            nqp::die("Package '"
-              ~ self.name($obj)
-              ~ "' already has a "
-              ~ $method_type
-              ~ " '"
-              ~ $name
-              ~ "' (did you mean to declare a multi-method?)");
+        if nqp::can($obj.HOW, 'method_table') {
+            my %methods := $obj.HOW.method_table($obj);
+            if nqp::existskey(%methods, $name) {
+                return %methods{$name}
+            }
         }
-
-        %!methods{$name} := $code_obj;
-
-        # Adding a method means any cache is no longer authoritative.
-        nqp::setmethcacheauth($obj, 0);
-        %!cache := {};
     }
 
+ 
 }

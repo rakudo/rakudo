@@ -1,3 +1,5 @@
+use nqp;
+
 module NativeCall;
 
 use NativeCall::Types;
@@ -6,6 +8,8 @@ use NativeCall::Compiler::MSVC;
 
 my constant long          is export(:types, :DEFAULT) = NativeCall::Types::long;
 my constant longlong      is export(:types, :DEFAULT) = NativeCall::Types::longlong;
+my constant ulong         is export(:types, :DEFAULT) = NativeCall::Types::ulong;
+my constant ulonglong     is export(:types, :DEFAULT) = NativeCall::Types::ulonglong;
 my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
 my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
@@ -30,6 +34,7 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
     my Mu $result := nqp::hash();
     my $type := $p.type();
     nqp::bindkey($result, 'typeobj', nqp::decont($type)) if $with-typeobj;
+    nqp::bindkey($result, 'rw', nqp::unbox_i(1)) if $p.rw;
     if $type ~~ Str {
         my $enc := $p.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
@@ -84,10 +89,18 @@ my %type_map =
     'Bool'     => 'char',
     'int16'    => 'short',
     'int32'    => 'int',
+    'int64'    => 'longlong',
     'long'     => 'long',
     'int'      => 'long',
-    'Int'      => 'longlong',
     'longlong' => 'longlong',
+    'Int'      => 'longlong',
+    'uint8'    => 'uchar',
+    'uint16'   => 'ushort',
+    'uint32'   => 'uint',
+    'uint64'   => 'ulonglong',
+    'ulonglong' => 'ulonglong',
+    'ulong'    => 'ulong',
+    'uint'     => 'ulong',
     'num32'    => 'float',
     'num64'    => 'double',
     'num'      => 'double',
@@ -140,7 +153,15 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-sub guess_library_name($libname) {
+sub guess_library_name($lib) {
+    my $libname;
+    if ($lib ~~ Callable) {
+        $libname = $lib();
+    }
+    else {
+        $libname = $lib;
+    }
+
     if !$libname.DEFINITE { '' }
     elsif $libname ~~ /\.<.alpha>+$/ { $libname }
     elsif $libname ~~ /\.so(\.<.digit>+)+$/ { $libname }
@@ -165,11 +186,11 @@ sub guess_library_name($libname) {
 
 # This role is mixed in to any routine that is marked as being a
 # native call.
-my role Native[Routine $r, Str $libname] {
+my role Native[Routine $r, $libname where Str|Callable] {
     has int $!setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;
-    
+
     method CALL-ME(|args) {
         unless $!setup {
             my Mu $arg_info := param_list_for($r.signature, $r);
@@ -290,7 +311,7 @@ sub nativesizeof($obj) is export(:DEFAULT) {
     nqp::nativecallsizeof($obj)
 }
 
-sub cglobal($libname, $symbol, $target-type) is export {
+sub cglobal($libname, $symbol, $target-type) is export is rw {
     Proxy.new(
         FETCH => -> $ {
             nqp::nativecallglobal(

@@ -28,9 +28,9 @@ exec ';
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
 
 my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
-my $jardir = $type eq 'install' ? File::Spec->catfile($prefix, 'languages', 'perl6', 'runtime') : $prefix;
-my $libdir = $type eq 'install' ? File::Spec->catfile($prefix, 'languages', 'perl6', 'lib') : 'blib';
-my $nqplibdir = File::Spec->catfile($nqpprefix, 'languages', 'nqp', 'lib');
+my $jardir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6', 'runtime') : $prefix;
+my $libdir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6', 'lib') : 'blib';
+my $nqplibdir = File::Spec->catfile($nqpprefix, 'share', 'nqp', 'lib');
 
 sub install {
     my ($name, $command) = @_;

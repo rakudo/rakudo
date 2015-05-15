@@ -264,12 +264,12 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method Numeric(|) { * }
     multi method Numeric(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.^name} in numeric context";
+        warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
     proto method Real(|) { * }
     multi method Real(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.^name} in numeric context";
+        warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
 
@@ -277,7 +277,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
-        warn "use of uninitialized value {$name}of type {self.^name} in string context";
+        warn "Use of uninitialized value {$name}of type {self.^name} in string context";
         ''
     }
     multi method Str(Mu:D:) {
@@ -307,13 +307,13 @@ my class Mu { # declared in BOOTSTRAP
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
         my @attrs;
-        for self.^attributes().grep: { .has_accessor } -> $attr {
+        for self.^attributes().flat.grep: { .has_accessor } -> $attr {
             my $name := substr($attr.Str,2);
             @attrs.push: $name
                         ~ ' => '
-                        ~ self."$name"().perl
+                        ~ $attr.get_value(self).perl
         }
-        self.^name ~ '.new(' ~  @attrs.join(', ') ~ ')';
+        self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
     }
 
     proto method DUMP(|) { * }
@@ -322,7 +322,7 @@ my class Mu { # declared in BOOTSTRAP
         return DUMP(self, :$indent-step) unless %ctx;
 
         my Mu $attrs := nqp::list();
-        for self.^attributes -> $attr {
+        for self.^attributes.flat -> $attr {
             my str $name       = $attr.name;
             my str $acc_name   = nqp::substr($name, 2, nqp::chars($name) - 2);
             my str $build_name = $attr.has_accessor ?? $acc_name !! $name;
@@ -401,17 +401,31 @@ my class Mu { # declared in BOOTSTRAP
 
     method clone(*%twiddles) {
         my $cloned := nqp::clone(nqp::decont(self));
-        for self.^attributes() -> $attr {
-            my $name := $attr.name;
-            my $package := $attr.package;
-            unless nqp::objprimspec($attr.type) {
-                my $attr_val := nqp::getattr($cloned, $package, $name);
-                nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
-                    if nqp::iscont($attr_val);
+        if %twiddles.elems {
+            for self.^attributes.flat -> $attr {
+                my $name := $attr.name;
+                my $package := $attr.package;
+                unless nqp::objprimspec($attr.type) {
+                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
+                        if nqp::iscont($attr_val);
+                }
+                my $acc_name := substr($name,2);
+                if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
+                    nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
+                }
             }
-            my $acc_name := substr($name,2);
-            if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
-                nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
+        }
+        else {
+            for self.^attributes.flat -> $attr {
+                unless nqp::objprimspec($attr.type) {
+                    my $name     := $attr.name;
+                    my $package  := $attr.package;
+                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    nqp::bindattr($cloned,
+                      $package, $name, nqp::clone($attr_val.VAR))
+                        if nqp::iscont($attr_val);
+                }
             }
         }
         $cloned
@@ -419,7 +433,7 @@ my class Mu { # declared in BOOTSTRAP
 
     method Capture() {
         my %attrs;
-        for self.^attributes -> $attr {
+        for self.^attributes.flat -> $attr {
             if $attr.has-accessor {
                 my $name = substr($attr.name,2);
                 unless %attrs.EXISTS-KEY($name) {
@@ -431,7 +445,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \SELF: $var, |c) is rw is hidden-from-backtrace {
+    method dispatch:<var>(Mu \SELF: $var, |c) is rw {
         $var(SELF, |c)
     }
 
@@ -447,7 +461,7 @@ my class Mu { # declared in BOOTSTRAP
         self.^find_method_qualified($type, $name)(SELF, |c)
     }
 
-    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw is hidden-from-backtrace {
+    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw {
         my $meth := $type.^find_private_method($name);
         $meth ??
             $meth(SELF, |c) !!
@@ -459,7 +473,7 @@ my class Mu { # declared in BOOTSTRAP
             ).throw;
     }
 
-    method dispatch:<.^>(Mu \SELF: $name, |c) is rw is hidden-from-backtrace {
+    method dispatch:<.^>(Mu \SELF: $name, |c) is rw {
         self.HOW."$name"(SELF, |c)
     }
 
@@ -468,7 +482,7 @@ my class Mu { # declared in BOOTSTRAP
         mutate = mutate."$name"(|c)
     }
 
-    method dispatch:<.?>(Mu \SELF: $name, |c) is rw is hidden-from-backtrace {
+    method dispatch:<.?>(Mu \SELF: $name, |c) is rw {
         nqp::can(SELF, $name) ??
             SELF."$name"(|c) !!
             Nil
@@ -506,9 +520,17 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {
-        c
-            ?? hyper( -> \obj { obj."$name"(|c) }, SELF )
-            !! hyper( -> \obj { obj."$name"() }, SELF )
+        my $listcan = List.can($name);
+        if $listcan and $listcan[0].?nodal {
+            c
+                ?? HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
+                !! HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
+        }
+        else {
+            c
+                ?? HYPER( -> \obj { obj."$name"(|c) }, SELF )
+                !! HYPER( -> \obj { obj."$name"() }, SELF )
+        }
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
@@ -524,7 +546,7 @@ my class Mu { # declared in BOOTSTRAP
                 push @classes, @search_list;
                 my @new_search_list;
                 for @search_list -> $current {
-                    for $current.^parents(:local) -> $next {
+                    for flat $current.^parents(:local) -> $next {
                         unless @new_search_list.grep({ $^c.WHAT =:= $next.WHAT }) {
                             push @new_search_list, $next;
                         }
@@ -536,7 +558,7 @@ my class Mu { # declared in BOOTSTRAP
             sub build_ascendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
                     push @classes, $class;
-                    for $class.^parents(:local) {
+                    for flat $class.^parents(:local) {
                         build_ascendent($^parent);
                     }
                 }
@@ -545,7 +567,7 @@ my class Mu { # declared in BOOTSTRAP
         } elsif $descendant {
             sub build_descendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
-                    for $class.^parents(:local) {
+                    for flat $class.^parents(:local) {
                         build_descendent($^parent);
                     }
                     push @classes, $class;
@@ -564,7 +586,7 @@ my class Mu { # declared in BOOTSTRAP
             if (!defined($include) || $include.ACCEPTS($class)) &&
               (!defined($omit) || !$omit.ACCEPTS($class)) {
                 try {
-                    for $class.^methods(:local) -> $method {
+                    for flat $class.^methods(:local) -> $method {
                         my $check_name = $method.?name;
                         if $check_name.defined && $check_name eq $name {
                             @methods.push($method);
@@ -575,7 +597,7 @@ my class Mu { # declared in BOOTSTRAP
             }
         }
 
-        return @methods;
+        @methods;
     }
 }
 
@@ -650,7 +672,7 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 
             my @pieces;
             {
-                for $topic {
+                for $topic.pairs {
                     @pieces.push: $_.key ~ ' => ' ~ DUMP($_.value, :$indent-step, :%ctx);
                 }
                 CATCH { default { @pieces.push: '...' } }

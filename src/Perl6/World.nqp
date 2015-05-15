@@ -918,6 +918,7 @@ class Perl6::World is HLL::World {
         my $cur_lex := $outer;
         
         # Can only install packages as our or my scope.
+        $create_scope := "our" if $create_scope eq 'unit';
         unless $create_scope eq 'my' || $create_scope eq 'our' {
             self.throw($/, 'X::Declaration::Scope',
                 scope       => $*SCOPE,

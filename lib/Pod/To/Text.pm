@@ -1,4 +1,4 @@
-class Pod::To::Text;
+unit class Pod::To::Text;
 
 method render($pod) {
     pod2text($pod)

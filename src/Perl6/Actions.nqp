@@ -2124,6 +2124,7 @@ Compilation unit '$file' contained the following violations:
     method scope_declarator:sym<anon>($/)    { make $<scoped>.ast; }
     method scope_declarator:sym<augment>($/) { make $<scoped>.ast; }
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
+    method scope_declarator:sym<unit>($/)    { make $<scoped>.ast; }
 
     method declarator($/) {
         if    $<routine_declarator>  { make $<routine_declarator>.ast  }
@@ -2685,7 +2686,7 @@ Compilation unit '$file' contained the following violations:
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
                 }
-                elsif $*SCOPE eq 'our' {
+                elsif $*SCOPE eq 'our' || $*SCOPE eq 'unit' {
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);

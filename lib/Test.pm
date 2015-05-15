@@ -1,6 +1,6 @@
 use nqp;
 
-module Test;
+unit module Test;
 # Copyright (C) 2007 - 2014 The Perl Foundation.
 
 # settable from outside

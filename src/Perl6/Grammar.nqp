@@ -2160,8 +2160,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         unless $longname {
                             $/.CURSOR.panic("Compilation unit cannot be anonymous");
                         }
+                        unless $*SCOPE eq 'unit' {
+                            $/.CURSOR.worry("Semicolon form without 'unit' declarator is deprecated");
+                        }
                         unless $outer =:= $*UNIT {
-                            $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => $*PKGDECL, where => "in subscopes");
+                            $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => $*PKGDECL, where => "in a subscope");
                         }
                         if $*PKGDECL eq 'package' {
                             $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
@@ -2172,7 +2175,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     <.finishpad>
                     <statementlist(1)>     # whole rest of file, presumably
                     { $*CURPAD := $*W.pop_lexpad() }
-                || { $/.CURSOR.typed_panic("X::SemicolonForm::TooLate", what => $*PKGDECL); }
+                || { $/.CURSOR.typed_panic("X::UnitScope::TooLate", what => $*PKGDECL); }
                 ]
             || <.panic("Unable to parse $*PKGDECL definition")>
             ]
@@ -2244,6 +2247,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token scope_declarator:sym<supersede> {
         <sym> <scoped('supersede')> <.NYI('"supersede"')>
     }
+    token scope_declarator:sym<unit>      { <sym> <scoped('unit')> }
 
     token scoped($*SCOPE) {
         <.end_keyword>
@@ -2393,16 +2397,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 if $<deflongname> ne 'MAIN' {
-                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "except on MAIN subs");
+                    $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
                 }
                 unless $*begin_compunit {
-                    $/.CURSOR.typed_panic("X::SemicolonForm::TooLate", what => "sub");
+                    $/.CURSOR.typed_panic("X::UnitScope::TooLate", what => "sub");
                 }
                 unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
-                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "on $*MULTINESS subs");
+                    $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "on a $*MULTINESS sub");
                 }
                 unless $outer =:= $*UNIT {
-                    $/.CURSOR.typed_panic("X::SemicolonForm::Invalid", what => "sub", where => "in subscopes");
+                    $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
                 }
                 $*begin_compunit := 0;
             }

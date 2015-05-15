@@ -1899,19 +1899,19 @@ my class X::EXPORTHOW::Conflict does X::Comp {
     }
 }
 
-my class X::SemicolonForm::Invalid does X::Syntax {
+my class X::UnitScope::Invalid does X::Syntax {
     has $.what;
     has $.where;
     method message() {
-        "Semicolon form of $.what definitions not allowed $.where;\n"
+        "A unit-scoped $.what definition is not allowed $.where;\n"
         ~ "Please use the block form."
     }
 }
 
-my class X::SemicolonForm::TooLate does X::Syntax {
+my class X::UnitScope::TooLate does X::Syntax {
     has $.what;
     method message() {
-        "Too late for semicolon form of $.what definitions;\n"
+        "Too late for unit-scoped $.what definition;\n"
         ~ "Please use the block form."
     }
 }

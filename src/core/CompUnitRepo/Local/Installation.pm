@@ -1,20 +1,53 @@
 class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
-    has %!dists;
+    has $!repo;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
+    has $!abspath;
 
-    submethod BUILD(:$!IO, :$!lock, :$!WHICH) {
-        my $manifest := $!IO.child("MANIFEST");
-        my $abspath  := $!IO.abspath;
-        %!dists{$abspath} = $manifest.e
-          ?? from-json($manifest.slurp)
-          !! {};
-        %!dists{$abspath}<file-count> //= 0;
-        %!dists{$abspath}<dist-count> //= 0;
-        %!dists{$abspath}<dists>      //= [ ];
+    my %extensions =
+      Perl6 => <pm6 pm>,
+      Perl5 => <pm5 pm>,
+      NQP   => <nqp>,
+      JVM   => ();
+
+    method serialize($obj is copy) {
+        my Mu $sh := nqp::list_s();
+        my $name   = 'CURLI_' ~ nqp::time_n();
+        my Mu $sc := nqp::createsc(nqp::unbox_s($name));
+        nqp::setobjsc($obj, $sc);
+        nqp::scsetobj($sc, 0, $obj);
+        my $serialized = nqp::serialize($sc, $sh);
+        nqp::scdisclaim($sc);
+        $name ~ "\n" ~ nqp::p6box_s(nqp::join("\n", $sh)) ~ "\n" ~ $serialized
     }
 
-    method writeable-path {
-        %!dists.keys.first( *.IO.w )
+    method deserialize() {
+        my $manifest      := $!IO.child("MANIFEST");
+        return {} unless $manifest.e;
+        my $b64            = $manifest.slurp;
+        my Mu $sh         := nqp::list_s();
+        my @lines          = $b64.split("\n");
+        my str $name       = nqp::unbox_s(@lines.shift);
+        my str $serialized = nqp::unbox_s(@lines.pop);
+        nqp::push_s($sh, nqp::null_s());
+        nqp::push_s($sh, nqp::unbox_s($_)) for @lines;
+
+        my Mu $sc := nqp::createsc(nqp::unbox_s($name));
+        my $conflicts := nqp::list();
+        my Mu $obj;
+        try {
+            nqp::deserialize($serialized, $sc, $sh, nqp::list(), $conflicts);
+            $obj := nqp::scgetobj($sc, 0);
+        }
+        nqp::scdisclaim($sc);
+        $obj || {}
+    }
+
+    method BUILD(:$!IO, :$!lock, :$!WHICH) {
+        $!abspath           := $!IO.abspath;
+        $!repo               = self.deserialize();
+        $!repo<file-count> //= 0;
+        $!repo<dist-count> //= 0;
+        $!repo<dists>      //= [ ];
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--
@@ -33,11 +66,11 @@ __END__
 :endofperl
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
+sub MAIN(:$name, :$auth, Str() :$ver = "", *@, *%) {
     shift @*ARGS if $name;
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
-    my @installations = @*INC.grep( { .starts-with("inst#") } );
+    my @installations = @*INC.grep( { .starts-with("inst#") } ).map({ INCLUDE-SPEC2CUR($_) });
     my @binaries = @installations>>.files(\'bin/#name#\', :$name, :$auth, :$ver);
     unless +@binaries {
         @binaries = @installations>>.files(\'bin/#name#\');
@@ -47,15 +80,15 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 No candidate found for \'#name#\' that match your criteria.
                 Did you perhaps mean one of these?
                 SORRY
-            my %caps = :name([\'Distribution\', 12]), :auth([\'Author(ity)\', 11]), :ver([\'Version\', 7]);
+            my %caps = :name(["Distribution", 12]), :auth(["Author(ity)", 11]), :ver(["Version", 7]);
             for @binaries -> $dist {
                 for %caps.kv -> $caption, @opts is rw {
-                    @opts[1] = max @opts[1], ($dist{$caption} // \'\').Str.chars
+                    @opts[1] = max @opts[1], $dist."$caption"().Str.chars
                 }
             }
-            note \'  \' ~ %caps.values.map({ sprintf(\'%-*s\', .[1], .[0]) }).join(\' | \');
+            note "  " ~ %caps.values.map({ sprintf(\'%-*s\', .[1], .[0]) }).join(" | ");
             for @binaries -> $dist {
-                note \'  \' ~ %caps.kv.map( -> $k, $v { sprintf(\'%-*s\', $v.[1], $dist{$k} // \'\') } ).join(\' | \')
+                note "  " ~ %caps.kv.map( -> $k, $v { sprintf(\'%-*s\', $v.[1], $dist."$k"()) } ).join(" | ")
             }
         }
         else {
@@ -64,24 +97,16 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
-    exit run($*EXECUTABLE_NAME, @binaries[0]<files><bin/#name#>, @*ARGS).exitcode
+    exit run($*EXECUTABLE_NAME, @binaries[0].files<bin/#name#>, @*ARGS).exitcode
 }';
 
     method install(:$dist!, *@files) {
         $!lock.protect( {
-        my $path     = self.writeable-path or die "No writeable path found";
-        my $repo     = %!dists{$path};
-        my $file-id := $repo<file-count>;
-        my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
-        state $is-win //= $*DISTRO.is-win; # only look up once
-        if $repo<dists>.first({ ($_<name> // '') eq  ($d.name // '') &&
-                                ($_<auth> // '') eq  ($d.auth // '') &&
-                               ~($_<ver>  //  0) eq ~($d.ver  //  0) }) -> $installed {
-            $d.id = $installed<id>
-        }
-        else {
-            $d.id = $repo<dist-count>++
-        }
+        state $is-win        //= $*DISTRO.is-win; # only look up once
+        state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
+        my $file-id           := $!repo<file-count>;
+        my $d                  = Distribution.new( |$dist.metainfo );
+        $d.id                  = $!repo<dist-id>{$d.auth}{$d.name}{$d.ver} //= $!repo<dist-count>++;
 
         # Build patterns to choose what goes into "provides" section.
         my $ext = regex { [pm|pm6|jar|moarvm] };
@@ -103,38 +128,57 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my $has-provides;
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+            # This is a module that shall be 'use'd.
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 $has-provides = True;
-                $d.provides{ $/.ast }{ $<ext> } = {
-                    :file($file-id),
-                    :time(try $file.IO.modified.Num),
-                    :$!cver
+                my $name      = $/.ast;
+                my $extension = ~$<ext>;
+                # Create a CompUnit and attach it to the Distribution.
+                if $extension eq $precomp-ext {
+                    $d.provides{$name}<precomp>
+                        = CompUnit.new("$!abspath/$file-id", :$name, :auth($d.auth), :ver($d.ver),
+                        :$extension, :!has-source, :has-precomp);
+                    copy($file, "$!abspath/$file-id.$extension");
+                }
+                else {
+                    $d.provides{$name}<source>
+                        = CompUnit.new("$!abspath/$file-id", :$name, :auth($d.auth), :ver($d.ver),
+                        :$extension, :has-source);
+                    copy($file, "$!abspath/$file-id");
                 }
             }
+            # This is a file we might want to expose via %?RESOURCE.
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
-                    mkdir "$path/bin" unless "$path/bin".IO.d;
+                    mkdir "$!abspath/bin" unless "$!abspath/bin".IO.d;
                     my $basename   = $file.IO.basename;
                     my $withoutext = $basename;
                     $withoutext.=subst(/\.[exe|bat]$/, '');
+                    # Create wrapper scripts that we put in PATH.
                     for '', < -p -j -m > -> $be {
-                        "$path/bin/$withoutext$be".IO.spurt:
+                        "$!abspath/bin/$withoutext$be".IO.spurt:
                             $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
                         if $is-win {
-                            "$path/bin/$withoutext$be.bat".IO.spurt:
+                            "$!abspath/bin/$withoutext$be.bat".IO.spurt:
                                 $windows_wrapper.subst('#perl#', "perl6$be", :g);
                         }
                         else {
-                            "$path/bin/$withoutext$be".IO.chmod(0o755);
+                            "$!abspath/bin/$withoutext$be".IO.chmod(0o755);
                         }
                     }
                 }
-                $d.files{$file} = $file-id
+                $d.files{$file} = "$!abspath/$file-id";
+                copy($file, "$!abspath/$file-id");
             }
-            copy($file, $path ~ '/' ~ $file-id);
             $file-id++;
         }
 
+        # Put provided CompUnits in a hash table of the repository, prefer precompiled CUs.
+        for $d.provides.keys -> $name {
+            $!repo<provides>{$name}.push: $d.provides{$name}<precomp> // $d.provides{$name}<source>;
+        }
+
+        # Warn about not sufficient meta information.
         if !$has-provides && $d.files.keys.first(/^blib\W/) {
             my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
             my ($red, $green, $yellow, $clear) = $color
@@ -150,63 +194,36 @@ file location in the distribution.
 See http://design.perl6.org/S22.html#provides for more information.\n";
         }
 
-        $repo<dists>[$d.id] = $d.Hash;
+        # Add the Distribution to the repository.
+        $!repo<dists>[$d.id] = $d;
 
         # XXX Create path if needed.
-        "$path/MANIFEST".IO.spurt: to-json( $repo )
+        "$!abspath/MANIFEST".IO.spurt: self.serialize($!repo);
     } ) }
 
     method files($file, :$name, :$auth, :$ver) {
         my @candi;
-        for %!dists.kv -> $path, $repo {
-            for @($repo<dists>) -> $dist {
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( $dist<ver> )
-                        !! Version.new('0');
-
-                if (!$name || $dist<name> ~~ $name)
-                && (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver)
-                && $dist<files>{$file} {
-                    my $candi   = %$dist;
-                    $candi<ver> = $dver;
-                    $candi<files>{$file} = $path ~ '/' ~ $candi<files>{$file}
-                        unless $candi<files>{$file} ~~ /^$path/;
-                    @candi.push: $candi;
-                }
+        for @($!repo<dists>) -> $dist {
+            if (!$name || $dist.name ~~ $name)
+            && (!$auth || $dist.auth ~~ $auth)
+            && (!$ver  || $dist.ver  ~~ $ver)
+            && $dist.files{$file} {
+                @candi.push: $dist;
             }
         }
         @candi
     }
 
     method candidates($name, :$file, :$auth, :$ver) {
+        state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
         my @candi;
-        for %!dists.kv -> $path, $repo {
-            for @($repo<dists>) -> $dist {
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( ~$dist<ver> )
-                        !! Version.new('0');
-
-                if (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver)
-                && $dist<provides>{$name} {
-                    my $candi   = %$dist;
-                    $candi<ver> = $dver;
-                    for $candi<provides>.kv -> $ln, $files {
-                        for $files.kv -> $type, $file {
-                            $candi<provides>{$ln}{$type}<file> = $path ~ '/' ~ $file<file>
-                                unless $candi<provides>{$ln}{$type}<file> ~~ /^$path/
-                        }
-                    }
-                    @candi.push: $candi;
-                }
+        for @($!repo<provides>{$name}) -> $cu {
+            if (!$auth || $cu.auth ~~ $auth)
+            && (!$ver  || $cu.ver  ~~ $ver) {
+                @candi.push: $cu
             }
         }
-        @candi
+        @candi.sort: { $^b.ver cmp $^a.ver }
     }
 
     method short-id() { 'inst' }

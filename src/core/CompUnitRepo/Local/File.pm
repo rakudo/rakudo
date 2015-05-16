@@ -12,9 +12,8 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
     method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) {
         my $base := $file.IO;
-        $base.f
-         ?? { files => { $file => $base.path }, ver => Version.new('0') }
-         !! ();
+        $base.f ?? Distribution.new( :files($file => $base.path), :ver(Version.new('0')) )
+                !! ();
     }
 
     method candidates(

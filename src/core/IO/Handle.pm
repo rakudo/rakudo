@@ -14,23 +14,48 @@ my class IO::Handle does IO {
     }
 
     method open(IO::Handle:D:
-      :$r is copy,
-      :$w is copy,
-      :$rw,
-      :$a,
-      :$p,
+      :$p, :$r, :$w, :$x, :$a, :$update,
+      :$rw, :$rx, :$ra,
+      :$mode is copy,
+      :$create is copy,
+      :$append is copy,
+      :$truncate is copy,
+      :$exclusive is copy,
       :$bin,
       :$chomp = True,
       :$enc   = 'utf8',
       :$nl    = "\n",
     ) {
 
-        if $!path eq '-' {
-            $!path =
-              IO::Special.new(:what( $w ?? << <STDOUT> >> !! << <STDIN> >> ));
+        $mode //= do {
+            when so $p { 'pipe' }
+
+            when so ($r && $w) || $rw { $create              = True; 'rw' }
+            when so ($r && $x) || $rx { $create = $exclusive = True; 'rw' }
+            when so ($r && $a) || $ra { $create = $append    = True; 'rw' }
+
+            when so $r { 'ro' }
+            when so $w { $create = $truncate  = True; 'wo' }
+            when so $x { $create = $exclusive = True; 'wo' }
+            when so $a { $create = $append    = True; 'wo' }
+
+            when so $update { 'rw' }
+
+            default { 'ro' }
         }
 
-        if nqp::istype($!path,IO::Special) {
+        if $!path eq '-' {
+            $!path = IO::Special.new:
+                what => do given $mode {
+                    when 'ro' { '<STDIN>'  }
+                    when 'wo' { '<STDOUT>' }
+                    default {
+                        die "Cannot open standard stream in mode '$_'";
+                    }
+                }
+        }
+
+        if nqp::istype($!path, IO::Special) {
             my $what := $!path.what;
             if $what eq '<STDIN>' {
                 $!PIO := nqp::getstdin();
@@ -51,9 +76,8 @@ my class IO::Handle does IO {
 
         fail (X::IO::Directory.new(:$!path, :trying<open>))
           if $!path.e && $!path.d;
-        $r = $w = True if $rw;
 
-        if $p {
+        if $mode eq 'pipe' {
             $!pipe = 1;
 
             my str $errpath;
@@ -65,11 +89,40 @@ my class IO::Handle does IO {
             );
         }
         else {
-            my $mode =  $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
+            my $llmode = do given $mode {
+                when 'ro' { 'r' }
+                when 'wo' { '-' }
+                when 'rw' { '+' }
+                default { die "Unknown mode '$_'" }
+            }
+
+            $llmode = join '', $llmode,
+                $create    ?? 'c' !! '',
+                $append    ?? 'a' !! '',
+                $truncate  ?? 't' !! '',
+                $exclusive ?? 'x' !! '';
+
+#?if !moar
+            # don't use new modes on anything but MoarVM
+            # TODO: check what else can be made to work on Parrot
+            #       cf io/utilities.c, Parrot_io_parse_open_flags()
+            #          platform/generic/io.c, convert_flags_to_unix()
+            #          platform/win32/io.c, convert_flags_to_win32 ()
+            $llmode = do given $llmode {
+                when 'r'   { 'r' }
+                when '-ct' { 'w' }
+                when '-ca' { 'wa' }
+                default {
+                    die "Backend { $*VM.name
+                        } does not support opening files in mode '$llmode'";
+                }
+            }
+#?endif
+
             # TODO: catch error, and fail()
             $!PIO := nqp::open(
               nqp::unbox_s($!path.abspath),
-              nqp::unbox_s($mode),
+              nqp::unbox_s($llmode),
             );
         }
 
@@ -78,7 +131,6 @@ my class IO::Handle does IO {
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
         self;
     }
-
 
     method input-line-separator {
         DEPRECATED("nl",|<2015.03 2015.09>);

@@ -10,8 +10,8 @@ class CompUnit {
     has Bool     $.has-precomp;
     has Bool     $.is-loaded;
 
-    has Version  $.ver;
-    has Str      $.auth;
+    has Version  $.ver  = Version.new('0');
+    has Str      $.auth = '';
 
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';

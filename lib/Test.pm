@@ -455,7 +455,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                         my $ok = $got ~~ $v,;
                         ok $ok, ".$k matches $v.gist()";
                         unless $ok {
-                            diag "Expected: $v";
+                            diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl);
                             diag "Got:      $got";
                         }
                     }

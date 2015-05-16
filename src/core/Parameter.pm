@@ -162,7 +162,7 @@ my class Parameter { # declared in BOOTSTRAP
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $type ~~ /^^ Callable >> / {
             $type ~~ / .*? \[ <( .* )> \] $$/;
-            $perl = ~$/;
+            $perl = ~$/ if $/;
             $truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
         }
         else {

@@ -10,8 +10,6 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
   if $?RAKUDO_MODULE_DEBUG;
 
         @INC = specs.split(','); # assume well formed strings
-        $*VM;     # we need $*VM to be populated for valid precomps
-        $*DISTRO; # we need $*DISTRO to be populated for valid precomps
     }
 
     # normal start up
@@ -42,7 +40,10 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
         }
 #?endif
 
-        my $prefix  := $*VM.prefix ~ '/share/perl6';
+        my $prefix := nqp::p6box_s(
+          nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
+        );
+
         my $abspath := "$prefix/share/libraries.json";
         if nqp::istype($abspath.IO,IO::File) {
             my $config = from-json( slurp $abspath );

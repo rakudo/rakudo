@@ -113,9 +113,12 @@ class CompUnit {
       $out  = self.precomp-path,
       :$INC = @*INC,
       :$force,
-      --> Bool) {
-        die "Cannot pre-compile over an existing file: $out"
-          if !$force and FILETEST-e($out);
+    ) {
+
+        my $io = $out.IO;
+        die "Cannot pre-compile over a newer existing file: $out"
+          if $io.e && !$force && $io.modified > $!path.modified;
+            
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'
@@ -125,13 +128,19 @@ class CompUnit {
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $?RAKUDO_MODULE_DEBUG;
 
-        my Bool $result = ?shell(
-          "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!abspath"
-        );
+        my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path";
+        my $handle = pipe("$cmd 2>&1", :r, :!chomp);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 
-        $!has-precomp = $result if $out eq self.precomp-path;
-        $result;
+        my $result = '';
+        $result ~= $_ for $handle.lines;
+        if $handle.close.status -> $status {  # something wrong
+            $result ~= "Return status $status\n";
+        }
+        fail $result if $result;
+
+        $!has-precomp = True if $out eq self.precomp-path;
+        True;
     }
 }
 

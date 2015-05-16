@@ -187,7 +187,7 @@ my class List does Positional { # declared in BOOTSTRAP
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
 
         my Int $elems = self.elems;
-        return unless $elems;
+        return () unless $elems;
 
         my Mu $picked := nqp::clone($!items);
         my int $i;
@@ -206,7 +206,7 @@ my class List does Positional { # declared in BOOTSTRAP
         fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
 
         my Int $elems = self.elems;
-        return unless $elems;
+        return () unless $elems;
 
         my Mu $rpa := nqp::clone($!items);
         my int $i;
@@ -225,10 +225,9 @@ my class List does Positional { # declared in BOOTSTRAP
         ## of the list, resulting in an O(n) algorithm.
 
         my Int $elems = self.elems;
-        return unless $elems;
+        return () unless $elems;
 
         my int $n = number > $elems ?? $elems !! number.Int;
-        return nqp::atpos($!items,$elems.rand.floor) if $n == 1;
 
         my Mu $rpa := nqp::clone($!items);
         my int $i;
@@ -385,7 +384,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method roll(Whatever) {
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
-        return unless $elems;
+        return () unless $elems;
 
         my $list := gather loop {
             take nqp::atpos($!items,$elems.rand.floor);
@@ -398,10 +397,9 @@ my class List does Positional { # declared in BOOTSTRAP
 
         fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
         my $elems = self.elems;
-        return unless $elems;
+        return () unless $elems;
 
         my int $n = number.Int;
-        return nqp::atpos($!items,$elems.rand.floor) if $n == 1;
 
         gather while $n > 0 {
             take nqp::atpos($!items,$elems.rand.floor);

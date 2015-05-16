@@ -128,6 +128,25 @@ my class PseudoStash is EnumMap {
                 Metamodel::ModuleHOW.new_type(:name('SETTING')),
                 $stash);
         },
+        'CLIENT' => sub ($cur) {
+            my $pkg := nqp::getlexrel(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
+                '$?PACKAGE');
+            die "GLOBAL can have no client package" if $pkg.^name eq "GLOBAL";
+            my Mu $ctx := nqp::ctxcallerskipthunks(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
+            while nqp::getlexrel($ctx, '$?PACKAGE') === $pkg {
+                $ctx := nqp::ctxcallerskipthunks($ctx);
+                die "No client package found" unless $ctx;
+            }
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('CLIENT')),
+                $stash);
+        },
         'OUR' => sub ($cur) {
             nqp::getlexrel(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),

@@ -19,7 +19,6 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::BoolificationProtocol
 {
     has @!candidates;
-    has @!add_to_selector;
     has $!selector;
     has @!role_typecheck_list;
 
@@ -90,7 +89,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     
     method add_possibility($obj, $possible) {
         @!candidates[+@!candidates] := $possible;
-        @!add_to_selector[+@!add_to_selector] := $possible;
+        $!selector.add_dispatchee($possible.HOW.body_block($possible));
         self.update_role_typecheck_list($obj);
     }
     
@@ -100,7 +99,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         my $selected_body;
         try {
             sub try_select(*@pos, *%named) {
-                self.get_selector($obj).find_best_dispatchee(nqp::usecapture(), 0)
+                $!selector.find_best_dispatchee(nqp::usecapture(), 0)
             }
             $selected_body := try_select(|@pos_args, |%named_args);
             CATCH { $error := $! }
@@ -129,16 +128,6 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 
         # Having picked the appropriate one, specialize it.
         $selected.HOW.specialize($selected, |@pos_args, |%named_args);
-    }
-    
-    method get_selector($obj) {
-        if @!add_to_selector {
-            for @!add_to_selector {
-                $!selector.add_dispatchee($_.HOW.body_block($_));
-            }
-            @!add_to_selector := [];
-        }
-        $!selector
     }
     
     method update_role_typecheck_list($obj) {

@@ -165,6 +165,9 @@ my class Backtrace is List {
         }
     }
 
+    method first-none-setting-line(Backtrace:D:) {
+        self.first({ !.is-hidden && !.is-setting }).Str
+    }
 
     method concise(Backtrace:D:) {
         self.grep({ !.is-hidden && .is-routine && !.is-setting }).join

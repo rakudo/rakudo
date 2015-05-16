@@ -146,7 +146,7 @@ my class Cursor does NQPCursorRole {
     # $i is case insensitive flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE(\var, $i = 0, $s = 0, $a = 0) {
+    method INTERPOLATE(\var, $i = 0, $m = 0, $s = 0, $a = 0, $context = PseudoStash) {
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);
@@ -159,6 +159,7 @@ my class Cursor does NQPCursorRole {
             my $fate   := 0;
             my $count  := 0;
             my $start  := 1;
+            my $im     := $i && $m;
             my Mu $alts := nqp::list();
             my Mu $order := nqp::list();
 
@@ -177,7 +178,7 @@ my class Cursor does NQPCursorRole {
                             # regex rules.
                             return $cur.'!cursor_start_cur'()
                               if nqp::istype($topic,Associative);
-                            my $rx := MAKE_REGEX($topic, :$i);
+                            my $rx := MAKE_REGEX($topic, :$i, :$m, :$context);
                             my Mu $nfas := nqp::findmethod($rx, 'NFA')($rx);
                             $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
                         }
@@ -189,7 +190,9 @@ my class Cursor does NQPCursorRole {
                         else {
                             # The pattern is a string.
                             my Mu $lit  := QAST::Regex.new( :rxtype<literal>, $topic,
-                                                            :subtype( $i ?? 'ignorecase' !! '') );
+                                                            :subtype( $im ?? 'ignorecase+ignoremark' !!
+                                                                      $i  ?? 'ignorecase' !!
+                                                                      $m  ?? 'ignoremark' !! '') );
                             my Mu $nfa2 := QRegex::NFA.new;
                             my Mu $node := nqp::findmethod($nfa2, 'addnode')($nfa2, $lit);
                             my Mu $save := nqp::findmethod($node, 'save')($node, :non_empty(1));
@@ -225,7 +228,7 @@ my class Cursor does NQPCursorRole {
                     # regex rules.
                     return $cur.'!cursor_start_cur'()
                       if nqp::istype($topic,Associative);
-                    my $rx := MAKE_REGEX($topic, :$i);
+                    my $rx := MAKE_REGEX($topic, :$i, :$m, :$context);
                     $match := self.$rx;
                     $len   := $match.pos - $match.from;
                 }
@@ -234,13 +237,38 @@ my class Cursor does NQPCursorRole {
                     $match := self.$topic;
                     $len   := $match.pos - $match.from;
                 }
+                elsif ($len := nqp::chars(my str $topic_str = $topic.Str)) < 1 {
+                    # The pattern is a string. $len and and $topic_str are used later on
+                    # if this condition does not hold.
+                    $match := 1
+                }
+                elsif $im {
+                    # ignorecase+ignoremark
+                    $match       := 1;
+                    my $k        := 0;
+                    my $tgt_lc   := nqp::lc(nqp::substr($tgt, $pos, $len));
+                    my $topic_lc := nqp::lc($topic_str);
+                    while $match && nqp::islt_i($k, $len) {
+                        $match := $match && nqp::ordbaseat($tgt_lc, $pos + $k) == nqp::ordbaseat($topic_lc, $k);
+                        $k     := nqp::add_i($k, 1);
+                    }
+                }
+                elsif $m {
+                    # ignoremark
+                    $match := 1;
+                    my $k  := 0;
+                    while $match && nqp::islt_i($k, $len) {
+                        $match := $match && nqp::ordbaseat($tgt, $pos + $k) == nqp::ordbaseat($topic_str, $k);
+                        $k     := nqp::add_i($k, 1);
+                    }
+                }
+                elsif $i {
+                    # ignorecase
+                    $match := nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic_str)
+                }
                 else {
-                    # The pattern is a string.
-                    my str $topic_str = $topic.Str;
-                    $len   := nqp::chars( $topic_str );
-                    $match := $len < 1
-                            ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic_str)
-                                    !! nqp::eqat($tgt, $topic_str, $pos));
+                    # no modifier, match literally
+                    $match := nqp::eqat($tgt, $topic_str, $pos)
                 }
 
                 if $match && $len > $maxlen && $pos + $len <= $eos {
@@ -293,7 +321,7 @@ my class Cursor does NQPCursorRole {
     }
 }
 
-sub MAKE_REGEX($arg, :$i) {
+sub MAKE_REGEX($arg, :$i, :$m, :$context) {
     my role CachedCompiledRegex {
         has $.regex;
     }
@@ -304,7 +332,10 @@ sub MAKE_REGEX($arg, :$i) {
         $arg.regex
     }
     else {
-        my $rx := $i ?? EVAL("anon regex \{ :i $arg\}") !! EVAL("anon regex \{ $arg\}");
+        my $rx := $i && $m ?? EVAL("anon regex \{ :i :m $arg\}", :$context) !!
+                        $i ?? EVAL("anon regex \{ :i $arg\}",    :$context) !!
+                        $m ?? EVAL("anon regex \{ :m $arg\}",    :$context) !!
+                              EVAL("anon regex \{ $arg\}",       :$context);
         $arg does CachedCompiledRegex($rx);
         $rx
     }

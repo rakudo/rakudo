@@ -6,16 +6,14 @@ my class Enum does Associative {
     method BUILD($!key, Mu $!value) { self }
 
     multi method ACCEPTS(Enum:D: Associative:D $topic) {
-        $topic{$.key} ~~ $.value
+        $topic{$!key} ~~ $!value
     }
 
     multi method ACCEPTS(Enum:D: Mu $topic) {
-        my $method = $.key;
-        $topic."$method"() === $.value;
+        my $method = $!key;
+        $topic."$method"() === $!value;
     }
 
-    method key(Enum:D:)   { $!key }
-    method value(Enum:D:) { $!value }
     method antipair(Enum:D:) { self.new(key => $!value, value => $!key) }
 
     multi method keys(Enum:D:)      { ($!key,).list }
@@ -25,32 +23,32 @@ my class Enum does Associative {
     multi method antipairs(Enum:D:) { self.new(key => $!value, value => $!key) }
     multi method invert(Enum:D:)    { $!value »=>» $!key }
 
-    multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
+    multi method Str(Enum:D:) { $!key ~ "\t" ~ $!value }
 
     multi method gist(Enum:D:) {
-        if nqp::istype($.key, Enum) {
-            '(' ~ $.key.gist ~ ') => ' ~ $.value.gist;
+        if nqp::istype($!key, Enum) {
+            '(' ~ $!key.gist ~ ') => ' ~ $!value.gist;
         } else {
-            $.key.gist ~ ' => ' ~ $.value.gist;
+            $!key.gist ~ ' => ' ~ $!value.gist;
         }
     }
 
     multi method perl(Enum:D: :$arglist) {
-        if nqp::istype($.key, Enum) {
-            '(' ~ $.key.perl ~ ') => ' ~ $.value.perl;
-        } elsif nqp::istype($.key, Str) and !$arglist and $.key ~~ /^ [<alpha>\w*] +% <[\-']> $/ {
-            if nqp::istype($.value,Bool) {
-                ':' ~ '!' x !$.value ~ $.key;
+        if nqp::istype($!key, Enum) {
+            '(' ~ $!key.perl ~ ') => ' ~ $!value.perl;
+        } elsif nqp::istype($!key, Str) and !$arglist and $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/ {
+            if nqp::istype($!value,Bool) {
+                ':' ~ '!' x !$!value ~ $!key;
             } else {
-                ':' ~ $.key ~ '(' ~ $.value.perl ~ ')';
+                ':' ~ $!key ~ '(' ~ $!value.perl ~ ')';
             }
         } else {
-            $.key.perl ~ ' => ' ~ $.value.perl;
+            $!key.perl ~ ' => ' ~ $!value.perl;
         }
     }
 
     method fmt($format = "%s\t%s") {
-        sprintf($format, $.key, $.value);
+        sprintf($format, $!key, $!value);
     }
 
     multi method AT-KEY(Enum:D: $key)     { $key eq $!key ?? $!value !! Mu }

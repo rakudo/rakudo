@@ -831,12 +831,12 @@ sub SLICE_HUH ( \SELF, @nogo, Mu $d, %adv ) {
         @keys.push: nqp::p6box_s(nqp::iterkey_s(nqp::shift($iter))) while $iter;
 
         $elems > 1
-          ?? fail "$elems unexpected named parameters (@keys.join(', ')) passed to {OBJECT_HUH(SELF)}"
-          !! fail "Unexpected named parameter '@keys[0]' passed to {OBJECT_HUH(SELF)}";
+          ?? fail "$elems unexpected named arguments (@keys.join(', ')) passed to {OBJECT_HUH(SELF)}"
+          !! fail "Unexpected named argument '@keys[0]' passed to {OBJECT_HUH(SELF)}";
     }
 
     else {
-        fail "Unsupported combination of named parameters (@nogo.join(', ')) passed to {OBJECT_HUH(SELF)}";
+        fail "Unsupported combination of named arguments (@nogo.join(', ')) passed to {OBJECT_HUH(SELF)}";
     }
 } #SLICE_HUH
 

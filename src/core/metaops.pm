@@ -219,7 +219,7 @@ sub METAOP_REDUCE_XOR(\op, :$triangle) {
 }
 
 sub METAOP_HYPER(\op, *%opt) {
-    -> Mu \a, Mu \b { hyper(op, a, b, |%opt) }
+    -> Mu \a, Mu \b { HYPER(op, a, b, |%opt) }
 }
 
 proto sub METAOP_HYPER_POSTFIX(|) {*}
@@ -242,14 +242,14 @@ sub METAOP_HYPER_PREFIX(\op, \obj) {
 
 sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
-proto sub hyper(|) { * }
+proto sub HYPER(|) { * }
 
-multi sub hyper(&op, \left, \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&op, \left, \right, :$dwim-left, :$dwim-right) {
     op(left, right);
 }
 
 # XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
-multi sub hyper(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
     my @result;
     X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.infinite;
     my int $elems = left.elems;
@@ -257,14 +257,14 @@ multi sub hyper(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right
         unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
     my @left := left.eager;
     for ^$elems {
-        @result[$_] := hyper(&operator, @left[$_], right, :$dwim-left, :$dwim-right);
+        @result[$_] := HYPER(&operator, @left[$_], right, :$dwim-left, :$dwim-right);
     }
     # Coerce to the original type
     my $type = left.WHAT;
     nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
 }
 
-multi sub hyper(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
     my @result;
     X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right.infinite;
     my int $elems = right.elems;
@@ -272,14 +272,14 @@ multi sub hyper(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right
         unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;
     my @right := right.eager;
     for ^$elems {
-        @result[$_] := hyper(&operator, left, @right[$_], :$dwim-left, :$dwim-right);
+        @result[$_] := HYPER(&operator, left, @right[$_], :$dwim-left, :$dwim-right);
     }
     # Coerce to the original type
     my $type = right.WHAT;
     nqp::iscont(right) ?? $type(@result.eager).item !! $type(@result.eager)
 }
 
-multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&operator, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
     my @result;
 
     # Check if a dwimmy side ends *. If so, that's considered a replication of the final element
@@ -330,7 +330,7 @@ multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
     @left.gimme($max-elems);
     @right.gimme($max-elems);
     for ^$min-elems {
-        @result[$_] := hyper(&operator, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
+        @result[$_] := HYPER(&operator, @left[$_], @right[$_], :$dwim-left, :$dwim-right);
     }
 
     # Check if 0 < $elems since if either side is empty and dwimmy (or both are empty),
@@ -341,12 +341,12 @@ multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
             # Repeat last element
             my $last-elem := @left[$left-elems - 1];
             for $left-elems..^$max-elems {
-                @result[$_] := hyper(&operator, $last-elem, @right[$_], :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, $last-elem, @right[$_], :$dwim-left, :$dwim-right);
             }
         } else {
             # Cycle through the elements
             for $left-elems..^$max-elems {
-                @result[$_] := hyper(&operator, @left[$_ % $left-elems], @right[$_], :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, @left[$_ % $left-elems], @right[$_], :$dwim-left, :$dwim-right);
             }
         }
     } elsif 0 < $right-elems < $max-elems {
@@ -354,12 +354,12 @@ multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
             # Repeat last element
             my $last-elem := @right[$right-elems - 1];
             for $right-elems..^$max-elems {
-                @result[$_] := hyper(&operator, @left[$_], $last-elem, :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, @left[$_], $last-elem, :$dwim-left, :$dwim-right);
             }
         } else {
             # Cycle through the elements
             for $right-elems..^$max-elems {
-                @result[$_] := hyper(&operator, @left[$_], @right[$_ % $right-elems], :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, @left[$_], @right[$_ % $right-elems], :$dwim-left, :$dwim-right);
             }
         }
     }
@@ -369,7 +369,7 @@ multi sub hyper(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
     nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
 }
 
-multi sub hyper(\op, \obj) {
+multi sub HYPER(\op, \obj) {
     op.?nodal
         ?? nodemap(op, obj)
         !! deepmap(op,obj);
@@ -466,7 +466,7 @@ multi sub duckmap(\op, Associative \h) {
     hash @keys Z duckmap(op, h{@keys})
 }
 
-multi sub hyper(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
     my %keyset;
     if !$dwim-left {
         %keyset{$_} = 1 for left.keys;
@@ -479,21 +479,21 @@ multi sub hyper(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$d
     }
     my @keys := %keyset.keys;
     my $type = left.WHAT;
-    my %result := $type(@keys Z=> hyper(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
+    my %result := $type(@keys Z=> HYPER(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
     nqp::iscont(left) ?? $%result !! %result;
 }
 
-multi sub hyper(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
     my @keys = left.keys;
     my $type = left.WHAT;
-    my %result := $type(@keys Z=> hyper(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
+    my %result := $type(@keys Z=> HYPER(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
     nqp::iscont(left) ?? $%result !! %result;
 }
 
-multi sub hyper(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
     my @keys = right.keys;
     my $type = right.WHAT;
-    my %result := $type(@keys Z=> hyper(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
+    my %result := $type(@keys Z=> HYPER(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
     nqp::iscont(right) ?? $%result !! %result;
 }
 

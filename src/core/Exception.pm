@@ -121,6 +121,30 @@ my class X::Pragma::NoArgs is Exception {
     method message { "The '$.name' pragma does not take any arguments." }
 }
 
+my role X::Control is Exception {
+}
+my class CX::Next does X::Control {
+    method message() { "<next control exception>" }
+}
+my class CX::Redo does X::Control {
+    method message() { "<redo control exception>" }
+}
+my class CX::Last does X::Control {
+    method message() { "<last control exception>" }
+}
+my class CX::Take does X::Control {
+    method message() { "<take control exception>" }
+}
+my class CX::Warn does X::Control {
+    has $.message;
+}
+my class CX::Succeed does X::Control {
+    method message() { "<succeed control exception>" }
+}
+my class CX::Proceed does X::Control {
+    method message() { "<proceed control exception>" }
+}
+
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
@@ -130,16 +154,37 @@ sub EXCEPTION(|) {
     } else {
         my int $type = nqp::getextype($vm_ex);
         my $ex;
-        if
-            nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
-
+        if $type == nqp::const::CONTROL_NEXT {
+            $ex := CX::Next.new();
+        }
+        elsif $type == nqp::const::CONTROL_REDO {
+            $ex := CX::Redo.new();
+        }
+        elsif $type == nqp::const::CONTROL_LAST {
+            $ex := CX::Last.new();
+        }
+        elsif $type == nqp::const::CONTROL_TAKE {
+            $ex := CX::Take.new();
+        }
+        elsif $type == nqp::const::CONTROL_WARN {
+            my str $message = nqp::getmessage($vm_ex);
+            $message = 'Warning' if nqp::isnull_s($message) || $message eq '';
+            $ex := CX::Warn.new(:$message);
+        }
+        elsif $type == nqp::const::CONTROL_SUCCEED {
+            $ex := CX::Succeed.new();
+        }
+        elsif $type == nqp::const::CONTROL_PROCEED {
+            $ex := CX::Proceed.new();
+        }
+        elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
+                nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
             $ex := X::Method::NotFound.new(
                 method   => ~$0,
                 typename => ~$1,
             );
         }
         else {
-
             $ex := nqp::create(X::AdHoc);
             nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
         }
@@ -167,12 +212,18 @@ sub COMP_EXCEPTION(|) {
 do {
     sub is_runtime($bt) {
         for $bt.keys {
-            try {
-                my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
-                my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
-                my $is_nqp = $codeobj && $codeobj.^name eq 'NQPRoutine';
-                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval') && $is_nqp;
-                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
+            my $p6sub := $bt[$_]<sub>;
+            if nqp::istype($p6sub, Sub) {
+                return True if $p6sub.name eq 'THREAD-ENTRY';
+            }
+            elsif nqp::istype($p6sub, ForeignCode) {
+                try {
+                    my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
+                    my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
+                    return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');
+                }
             }
         }
         False;
@@ -209,8 +260,7 @@ do {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::getmessage($ex));
             nqp::printfh($err, $msg.chars ?? "$msg" !! "Warning");
-            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
-            nqp::printfh($err, "\n");
+            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).first-none-setting-line);
             nqp::resume($ex)
         }
         if ($type == nqp::const::CONTROL_LAST) {
@@ -253,13 +303,14 @@ do {
 
 }
 
-my role X::OS {
+my role X::OS is Exception {
     has $.os-error;
+    method message() { $.os-error }
 }
 
 my role X::IO does X::OS { };
 
-my class X::IO::Rename does X::IO is Exception {
+my class X::IO::Rename does X::IO {
     has $.from;
     has $.to;
     method message() {
@@ -267,7 +318,7 @@ my class X::IO::Rename does X::IO is Exception {
     }
 }
 
-my class X::IO::Move does X::IO is Exception {
+my class X::IO::Move does X::IO {
     has $.from;
     has $.to;
     method message() {
@@ -275,7 +326,7 @@ my class X::IO::Move does X::IO is Exception {
     }
 }
 
-my class X::IO::Copy does X::IO is Exception {
+my class X::IO::Copy does X::IO {
     has $.from;
     has $.to;
     method message() {
@@ -283,7 +334,7 @@ my class X::IO::Copy does X::IO is Exception {
     }
 }
 
-my class X::IO::DoesNotExist does X::IO is Exception {
+my class X::IO::DoesNotExist does X::IO {
     has $.path;
     has $.trying;
     method message() {
@@ -291,7 +342,7 @@ my class X::IO::DoesNotExist does X::IO is Exception {
     }
 }
 
-my class X::IO::NotAFile does X::IO is Exception {
+my class X::IO::NotAFile does X::IO {
     has $.path;
     has $.trying;
     method message() {
@@ -299,7 +350,7 @@ my class X::IO::NotAFile does X::IO is Exception {
     }
 }
 
-my class X::IO::Directory does X::IO is Exception {
+my class X::IO::Directory does X::IO {
     has $.path;
     has $.trying;
     has $.use;
@@ -310,7 +361,7 @@ my class X::IO::Directory does X::IO is Exception {
     }
 }
 
-my class X::IO::Symlink does X::IO is Exception {
+my class X::IO::Symlink does X::IO {
     has $.target;
     has $.name;
     method message() {
@@ -318,7 +369,7 @@ my class X::IO::Symlink does X::IO is Exception {
     }
 }
 
-my class X::IO::Link does X::IO is Exception {
+my class X::IO::Link does X::IO {
     has $.target;
     has $.name;
     method message() {
@@ -326,7 +377,7 @@ my class X::IO::Link does X::IO is Exception {
     }
 }
 
-my class X::IO::Mkdir does X::IO is Exception {
+my class X::IO::Mkdir does X::IO {
     has $.path;
     has $.mode;
     method message() {
@@ -334,41 +385,41 @@ my class X::IO::Mkdir does X::IO is Exception {
     }
 }
 
-my class X::IO::Chdir does X::IO is Exception {
+my class X::IO::Chdir does X::IO {
     has $.path;
     method message() {
         "Failed to change the working directory to '$.path': $.os-error"
     }
 }
 
-my class X::IO::Dir does X::IO is Exception {
+my class X::IO::Dir does X::IO {
     has $.path;
     method message() {
         "Failed to get the directory contents of '$.path': $.os-error"
     }
 }
 
-my class X::IO::Cwd does X::IO is Exception {
+my class X::IO::Cwd does X::IO {
     method message() {
         "Failed to get the working directory: $.os-error"
     }
 }
 
-my class X::IO::Rmdir does X::IO is Exception {
+my class X::IO::Rmdir does X::IO {
     has $.path;
     method message() {
         "Failed to remove the directory '$.path': $.os-error"
     }
 }
 
-my class X::IO::Unlink does X::IO is Exception {
+my class X::IO::Unlink does X::IO {
     has $.path;
     method message() {
         "Failed to remove the file '$.path': $.os-error"
     }
 }
 
-my class X::IO::Chmod does X::IO is Exception {
+my class X::IO::Chmod does X::IO {
     has $.path;
     has $.mode;
     method message() {
@@ -825,7 +876,8 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
 my class X::Parameter::BadType does X::Comp {
     has Mu $.type;
     method message() {
-        "$!type.^name() cannot be used as a type on a parameter"
+        my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
+        "$what $!type.^name() is insufficiently type-like to qualify a parameter"
     }
 }
 
@@ -971,7 +1023,8 @@ my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
 my class X::Syntax::Variable::BadType does X::Comp {
     has Mu $.type;
     method message() {
-        "$!type.^name() cannot be used as a type on a variable"
+        my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
+        "$what $!type.^name() is insufficiently type-like to qualify a variable"
     }
 }
 
@@ -1855,19 +1908,19 @@ my class X::EXPORTHOW::Conflict does X::Comp {
     }
 }
 
-my class X::SemicolonForm::Invalid does X::Syntax {
+my class X::UnitScope::Invalid does X::Syntax {
     has $.what;
     has $.where;
     method message() {
-        "Semicolon form of $.what definitions not allowed $.where;\n"
+        "A unit-scoped $.what definition is not allowed $.where;\n"
         ~ "Please use the block form."
     }
 }
 
-my class X::SemicolonForm::TooLate does X::Syntax {
+my class X::UnitScope::TooLate does X::Syntax {
     has $.what;
     method message() {
-        "Too late for semicolon form of $.what definitions;\n"
+        "Too late for unit-scoped $.what definition;\n"
         ~ "Please use the block form."
     }
 }

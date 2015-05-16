@@ -1,19 +1,33 @@
 New in 2015.05
- + Features
+ + Features:
    + NFG, NFC, NFD
    + List/Supply.rotor expects a list of Pairs (elems|elems => gap)
-   + implemented unicode property pairs with explicit arguments
+   + Implemented unicode property pairs with explicit arguments
+   + Normal stacktraces no longer include references to code in settings
+   + RAKUDO_BACKTRACE_SETTING to *do* include code in settings
+   + RAKUDO_VERBOSE_STACKFRAME environment variable shows source lines
  + Incompatible changes:
-   + .map no longer flattens, map as a listop does
- + Deprecations
+   + hashes no longer maintain insert order on Moar (on JVM they never did)
+   + .map no longer flattens, map as a listop does. Use .flatmap to get the
+      old behavior
+   + Nil no longer iterates like the empty List. Use Empty instead.
+ + Deprecations:
    + List/Supply.rotor now *must* have elems and gap specified
- 
+ + Fixes:
+   + Hashes use much less memory on Moar
+   + my $a will begin/enter/leave/keep/undo/first/pre now set $_ properly
+   + List.roll(Inf) now knows it's infinite, so is lazy
+   + The REPL is strict by default now, that leaves only '-e' lines to be lax
+
 New in 2015.04
  + Incompatible changes:
    + Installation directory layout changed: it now uses $PREFIX/share instead of
      $PREFIX/languages
    + "0" (0 as a string) is now True, no special-casing anymore
    + an Int() coercion type in a multi now creates two candidates: Any and Int
+   + The readline integration that existed on the VM level has been removed;
+     it now exists as a module.  To restore readline operations in the REPL
+     (ex. history, line control), install the Linenoise module via Panda
  + Fixes:
    + try now implies "use fatal", so failures are not leaked
    + "use fatal" now only works in its scope, and not in deeper ones
@@ -60,6 +74,7 @@ New in 2015.04
    + can now reduce ([Z]) with list infixes over an arbitrary number of lists
    + use Foo:from<Perl5> supported when Inline::Perl5 is installed
    + EVAL $code, :lang<perl5> supported when Inline::Perl5 is installed
+   + Rudimentary tab completion available via the Linenoise module
  + Speedups:
    + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
    + List.pick about 10% faster

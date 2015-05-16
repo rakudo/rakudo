@@ -4,28 +4,28 @@ use Test;
 
 plan 17;
 
-my $start = +@?INC;
+BEGIN my $start = +@?INC;
 
 use cur <foo>;
-is @?INC[0],    'foo', 'can we force a (default) CURLF';
-is +@?INC, $start + 1, 'did we add it to @?INC? (1)';
+is (BEGIN @?INC)[0], 'file#foo', 'can we force a (default) CURLF';
+is (BEGIN +@?INC), $start + 1, 'did we add it to @?INC? (1)';
 
-use cur <file:bar>;
-is @?INC[0], 'file:bar', 'can we force a specific CURLF';
-is @?INC[1],      'foo', 'do we have the previous entry moved up (1)';
-is +@?INC,   $start + 2, 'did we add it to @?INC? (2)';
+use cur <file#bar>;
+is (BEGIN @?INC)[0], 'file#bar', 'can we force a specific CURLF';
+is (BEGIN @?INC)[1], 'file#foo', 'do we have the previous entry moved up (1)';
+is (BEGIN +@?INC),   $start + 2, 'did we add it to @?INC? (2)';
 
 {
-    use cur <inst:baz>;
-    is @?INC[0], 'inst:baz', 'can we add in a scope with another CURLF id';
-    is @?INC[1], 'file:bar', 'do we have the previous entry moved up (2)';
-    is @?INC[2],      'foo', 'do we have the previous entry moved up (3)';
-    is +@?INC,   $start + 3, 'did we add it to @?INC? (3)';
+    use cur <inst#baz>;
+    is (BEGIN @?INC[0]), 'inst#baz', 'can we add in a scope';
+    is (BEGIN @?INC[1]), 'file#bar', 'do we have previous entry moved up (2)';
+    is (BEGIN @?INC[2]), 'file#foo', 'do we have previous entry moved up (3)';
+    is (BEGIN +@?INC),   $start + 3, 'did we add it to @?INC? (3)';
 }
 
-is @?INC[0], 'file:bar', 'did we revert to previous setting';
-is @?INC[1],      'foo', 'do we have the previous entry moved down again';
-is +@?INC,   $start + 2, 'did we revert number of elements';
+is (BEGIN @?INC[0]), 'file#bar', 'did we revert to previous setting';
+is (BEGIN @?INC[1]), 'file#foo', 'do we have previous entry moved down again';
+is (BEGIN +@?INC),   $start + 2, 'did we revert number of elements';
 
 throws_like( { @?INC[0] = "boom" },
   X::Assignment::RO,

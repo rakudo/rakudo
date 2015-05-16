@@ -1,6 +1,6 @@
 use nqp;
 
-module NativeCall;
+unit module NativeCall;
 
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.

@@ -187,8 +187,9 @@ multi sub die(*@msg) {
 }
 
 multi sub warn(*@msg) {
+    my $msg = @msg.join || "Warning: something's wrong";
     my $ex := nqp::newexception();
-    nqp::setmessage($ex, nqp::unbox_s(@msg.join));
+    nqp::setmessage($ex, nqp::unbox_s($msg));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);
     nqp::throw($ex);
     0;

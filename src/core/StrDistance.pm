@@ -3,7 +3,7 @@ my class StrDistance is Cool {
     has Str $.after;
     has Int $!distance;
 
-    method BUILD(Str() :$!before, :$!after) {
+    submethod BUILD(Str() :$!before, :$!after) {
     }
 
     method Bool() {

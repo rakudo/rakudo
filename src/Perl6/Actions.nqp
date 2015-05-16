@@ -826,7 +826,7 @@ Compilation unit '$file' contained the following violations:
                     $past := $cond_block;
                 }
                 $mc_ast.push($past);
-                $mc_ast.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+                $mc_ast.push(QAST::WVal.new( :value($*W.find_symbol(['Empty'])) ));
                 $past := $mc_ast;
             }
             if $ml {
@@ -1130,7 +1130,7 @@ Compilation unit '$file' contained the following violations:
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
                     ?? pblock_immediate( $<else>.ast )
-                    !! QAST::WVal.new( :value($*W.find_symbol(['Nil'])) )
+                    !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
         );
         # build if/then/elsif structure
         while $count > 0 {
@@ -1930,11 +1930,6 @@ Compilation unit '$file' contained the following violations:
                 $past := $*W.add_string_constant($file);
             }
         }
-        elsif $past.name() eq '@?INC' {
-            my $p6inc := $*W.INC_for_perl6($/);
-            $*W.add_object($p6inc);
-            $past := QAST::WVal.new( :value($p6inc) );
-        }
         elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {
             $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
         }
@@ -2129,6 +2124,7 @@ Compilation unit '$file' contained the following violations:
     method scope_declarator:sym<anon>($/)    { make $<scoped>.ast; }
     method scope_declarator:sym<augment>($/) { make $<scoped>.ast; }
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
+    method scope_declarator:sym<unit>($/)    { make $<scoped>.ast; }
 
     method declarator($/) {
         if    $<routine_declarator>  { make $<routine_declarator>.ast  }
@@ -2690,7 +2686,7 @@ Compilation unit '$file' contained the following violations:
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
                 }
-                elsif $*SCOPE eq 'our' {
+                elsif $*SCOPE eq 'our' || $*SCOPE eq 'unit' {
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
@@ -2758,6 +2754,7 @@ Compilation unit '$file' contained the following violations:
     method autogenerate_proto($/, $name, $install_in) {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
+        $p_past.is_thunk(1);
         $p_past.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
@@ -2788,6 +2785,7 @@ Compilation unit '$file' contained the following violations:
         my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
         $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
         $*W.add_proto_to_sort($code);
+        $*W.install_lexical_symbol($p_past, '&?ROUTINE', $code);
         $code
     }
 
@@ -6073,6 +6071,7 @@ Compilation unit '$file' contained the following violations:
     );
     my %REGEX_ADVERBS_CANONICAL := hash(
         ignorecase  => 'i',
+        ignoremark  => 'm',
         ratchet     => 'r',
         sigspace    => 's',
         continue    => 'c',
@@ -6096,7 +6095,7 @@ Compilation unit '$file' contained the following violations:
         ss        => 's',
     );
     INIT {
-        my str $mods := 'i ignorecase s sigspace r ratchet Perl5 P5';
+        my str $mods := 'i ignorecase m ignoremark s sigspace r ratchet Perl5 P5';
         for nqp::split(' ', $mods) {
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }
@@ -7760,7 +7759,11 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                     QAST::SVal.new( :value('INTERPOLATE') ),
                                     $<var>.ast,
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ) ),
+                                    QAST::Op.new( :op<callmethod>, :name<new>,
+                                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                                    ),
                               :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -7770,8 +7773,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::SVal.new( :value('INTERPOLATE') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(1) ) ),
+                    QAST::IVal.new( :value(1) ),
+                    QAST::Op.new( :op<callmethod>, :name<new>,
+                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                    ),
+                ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -7803,8 +7811,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::SVal.new( :value('INTERPOLATE') ),
                     $<var>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(1) ) ),
+                    QAST::IVal.new( :value(1) ),
+                    QAST::Op.new( :op<callmethod>, :name<new>,
+                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                    ),
+                ),
                 :rxtype<subrule>, :subtype<method>, :node($/));
         }
     }
@@ -7945,8 +7958,13 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::SVal.new( :value('INTERPOLATE') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(0) ),
                     QAST::IVal.new( :value(1) ),
-                    QAST::IVal.new( :value(1) ) ),
+                    QAST::IVal.new( :value(1) ),
+                    QAST::Op.new( :op<callmethod>, :name<new>,
+                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                    ),
+                ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -7955,6 +7973,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                                     QAST::SVal.new( :value('INTERPOLATE') ),
                                     $<var>.ast,
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value(0) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*INTERPOLATION) ) ),
                               :rxtype<subrule>, :subtype<method>, :node($/));

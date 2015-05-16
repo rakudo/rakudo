@@ -14,7 +14,7 @@ my class Thread {
 
     submethod BUILD(:&code!, Bool() :$!app_lifetime = False, Str() :$!name = "<anon>") {
         $!vm_thread := nqp::newthread(
-            {
+            anon sub THREAD-ENTRY() {
                 my $*THREAD = self;
                 CONTROL {
                     default {

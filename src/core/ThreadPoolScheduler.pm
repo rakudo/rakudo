@@ -42,12 +42,20 @@ my class ThreadPoolScheduler does Scheduler {
                     my Mu $task := nqp::shift($!queue);
                     $!counts_lock.protect: { $!loads = $!loads + 1 };
                     try {
-                        if nqp::islist($task) {
-                            my Mu $code := nqp::shift($task);
-                            $code(|nqp::p6parcel($task, Any));
-                        }
-                        else {
-                            $task();
+                        try {
+                            if nqp::islist($task) {
+                                my Mu $code := nqp::shift($task);
+                                $code(|nqp::p6parcel($task, Any));
+                            }
+                            else {
+                                $task();
+                            }
+                            CONTROL {
+                                default {
+                                    my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                                    nqp::getcomp('perl6').handle-control($vm-ex);
+                                }
+                            }
                         }
                         CATCH {
                             default {

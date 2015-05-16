@@ -11,6 +11,14 @@ my class Failure {
         $!backtrace = $!exception.backtrace() || Backtrace.new(9);
     }
 
+    # "Shouldn't happen."  We use note here because the dynamic scope in GC is likely meaningless.
+    submethod DESTROY () { if not $!handled { note "WARNING: unhandled Failure detected in DESTROY:\n" ~ self.mess } }
+
+    # Turns out multidimensional lookups are one way to leak unhandled failures, so
+    # we'll just propagate the initial failure much as we propagate Nil on methods.
+    method AT-POS(|) { self }
+    method AT-KEY(|) { self }
+
     # TODO: should be Failure:D: multi just like method Bool,
     # but obscure problems prevent us from making Mu.defined
     # a multi. See http://irclog.perlgeek.de/perl6/2011-06-28#i_4016747
@@ -29,14 +37,11 @@ my class Failure {
         self.exception.message ~ "\n" ~ self.backtrace;
     }
 
-    Failure.^add_fallback(
-        -> $, $ { True },
-        method ($name) {
-            $!exception.throw;
-        }
-    );
     method sink() {
         $!exception.throw($!backtrace) unless $!handled
+    }
+    method FALLBACK(*@_) {
+        $!exception.throw;
     }
 }
 

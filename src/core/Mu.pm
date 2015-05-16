@@ -264,12 +264,12 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method Numeric(|) { * }
     multi method Numeric(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.^name} in numeric context";
+        warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
     proto method Real(|) { * }
     multi method Real(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.^name} in numeric context";
+        warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
 
@@ -277,7 +277,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
-        warn "use of uninitialized value {$name}of type {self.^name} in string context";
+        warn "Use of uninitialized value {$name}of type {self.^name} in string context";
         ''
     }
     multi method Str(Mu:D:) {
@@ -313,7 +313,7 @@ my class Mu { # declared in BOOTSTRAP
                         ~ ' => '
                         ~ $attr.get_value(self).perl
         }
-        self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs);
+        self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
     }
 
     proto method DUMP(|) { * }
@@ -523,13 +523,13 @@ my class Mu { # declared in BOOTSTRAP
         my $listcan = List.can($name);
         if $listcan and $listcan[0].?nodal {
             c
-                ?? hyper( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
-                !! hyper( sub (\obj) is nodal { obj."$name"() }, SELF )
+                ?? HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
+                !! HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
         }
         else {
             c
-                ?? hyper( -> \obj { obj."$name"(|c) }, SELF )
-                !! hyper( -> \obj { obj."$name"() }, SELF )
+                ?? HYPER( -> \obj { obj."$name"(|c) }, SELF )
+                !! HYPER( -> \obj { obj."$name"() }, SELF )
         }
     }
 

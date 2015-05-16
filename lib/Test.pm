@@ -1,6 +1,6 @@
 use nqp;
 
-module Test;
+unit module Test;
 # Copyright (C) 2007 - 2014 The Perl Foundation.
 
 # settable from outside
@@ -512,7 +512,7 @@ sub proclaim($cond, $desc) {
 
     unless $cond {
         my $caller;
-        my $level = 3; # sub proclaim is not called directly, so 3 is minimum level
+        my $level = 2; # sub proclaim is not called directly, so 2 is minimum level
         repeat until !$?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }

@@ -226,6 +226,9 @@ class Perl6::World is HLL::World {
     
     # Cache of container info and descriptor for magicals.
     has %!magical_cds;
+
+    # are we module debugging?
+    has $!RAKUDO_MODULE_DEBUG;
     
     method BUILD(*%adv) {
         @!BLOCKS := [];
@@ -242,22 +245,41 @@ class Perl6::World is HLL::World {
         %!magical_cds := {};
     }
 
+    method RAKUDO_MODULE_DEBUG() {
+        unless nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
+            $!RAKUDO_MODULE_DEBUG :=
+              nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_MODULE_DEBUG'),0)
+              ?? -> *@strs {
+                     my $err := nqp::getstderr();
+                     nqp::printfh($err, "MODULE_DEBUG: ");
+                     for @strs { nqp::printfh($err, $_) };
+                     nqp::printfh($err, "\n");
+                 }
+              !! 0;
+        }
+        $!RAKUDO_MODULE_DEBUG;
+    }
+
     method loading_and_symbol_setup($/) {
+        my $setting_name;
 
         # Create unit outer (where we assemble any lexicals accumulated
         # from e.g. REPL) and the real UNIT.
         $*UNIT_OUTER := self.push_lexpad($/);
         $*UNIT       := self.push_lexpad($/);
+        my $in_eval  := 0;
         
         # If we already have a specified outer context, then that's
         # our setting. Otherwise, load one.
         my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
         if $have_outer {
+            $setting_name := '';
             $*UNIT.annotate('IN_DECL', 'eval');
+            $in_eval := 1;
         }
         else {
-            $*SETTING :=
-              self.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
+            $setting_name := %*COMPILING<%?OPTIONS><setting> // 'CORE';
+            $*SETTING := self.load_setting($/,$setting_name);
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
         $/.CURSOR.unitstart();
@@ -326,11 +348,11 @@ class Perl6::World is HLL::World {
         }
         else {
             my $FILES := nqp::getlexdyn('$?FILES');
-            $*STRICT := !nqp::isnull($FILES) && $FILES ne '-e';
+            $*STRICT  := nqp::isnull($FILES) || $FILES ne '-e';
         }
 
         # Bootstrap
-        if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+        if $setting_name eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
             my $module := self.load_module($/, $name, {}, $*GLOBALish);
             self.do_import($/, $module, $name);
@@ -345,6 +367,17 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
             self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
             $*DECLARAND := self.stub_code_object('Block');
+
+            # initialize %?INC if not in an eval
+            unless $in_eval {
+                my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+                unless nqp::isnull($PROCESS) {
+                    my $INC := $PROCESS.WHO<@INC>;
+                    unless nqp::isnull($INC) {
+                        self.use_lib( $INC.FLATTENABLE_LIST, :push );
+                    }
+                }
+            }
         }
 
         my $M := %*COMPILING<%?OPTIONS><M>;
@@ -627,27 +660,33 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method use_lib($/,$arglist) {
+    method use_lib($arglist,:$push) {
         my $INC := %*PRAGMAS<INC> := %*PRAGMAS<INC>
           ?? nqp::clone(%*PRAGMAS<INC>)
           !! nqp::list();
 
-        for $arglist -> $arg {
-            nqp::unshift($INC, nqp::index($arg,'#') == -1
-              ?? nqp::hllizefor("file#$arg", 'perl6')
-              !! $arg
-            );
-        }
-    }
+        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+        $DEBUG(($push ?? "Push" !! "Unshift") ~ "ing to @?INC:") if $DEBUG;
 
-    method INC_for_perl6($/) {
-        nqp::hllizefor(
-          %*PRAGMAS<INC> ?? nqp::clone(%*PRAGMAS<INC>) !! nqp::list(),
-          'perl6'
-        );
+        for $arglist -> $arg {
+            my $string := nqp::index($arg,'#') == -1
+              ?? nqp::hllizefor("file#$arg", 'perl6')
+              !! $arg;
+            $push
+              ?? nqp::push($INC,$string)
+              !! nqp::unshift($INC,$string);
+            $DEBUG("  $arg") if $DEBUG;
+        }
+
+        $INC := nqp::p6parcel($INC, self.find_symbol(['Any']));
+        self.add_object($INC);
+        self.install_lexical_symbol(self.cur_lexpad,'@?INC',$INC);
     }
 
     method do_pragma($/,$name,$on,$arglist) {
+
+        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+        $DEBUG("Attempting '$name' as a pragma") if $DEBUG;
 
         # XXX maybe we need a hash with code to execute
         if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
@@ -659,7 +698,7 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<fatal> := $on;
         }
         elsif $name eq 'cur' {   # temporary, will become 'lib'
-            self.use_lib($/,$arglist);
+            self.use_lib($arglist);
         }
         elsif $name eq 'strict' {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
@@ -675,8 +714,11 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<soft> := $on;
         }
         else {
+            $DEBUG("'$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module
         }
+
+        $DEBUG("Successfully handled '$name' as a pragma") if $DEBUG;
         1;
     }
 
@@ -876,6 +918,7 @@ class Perl6::World is HLL::World {
         my $cur_lex := $outer;
         
         # Can only install packages as our or my scope.
+        $create_scope := "our" if $create_scope eq 'unit';
         unless $create_scope eq 'my' || $create_scope eq 'our' {
             self.throw($/, 'X::Declaration::Scope',
                 scope       => $*SCOPE,
@@ -2794,7 +2837,7 @@ class Perl6::World is HLL::World {
             'CORE', 1, 'SETTING', 1, 'UNIT', 1,
             'OUTER', 1, 'OUTERS', 1, 'LEXICAL', 1,
             'CALLER', 1, 'CALLERS', 1, 'DYNAMIC', 1,
-            'COMPILING', 1, 'PARENT', 1, );
+            'COMPILING', 1, 'PARENT', 1, 'CLIENT', 1);
         method is_pseudo_package($comp) {
             !nqp::istype($comp, QAST::Node) && %pseudo{$comp};
         }

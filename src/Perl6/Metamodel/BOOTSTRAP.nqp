@@ -42,6 +42,7 @@ my class BOOTSTRAPATTR {
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Empty metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -665,7 +666,7 @@ my class Binder {
             # Could it be a named slurpy?
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
                 # We'll either take the current named arguments copy hash which
-                # will by definition contain all unbound named parameters and use
+                # will by definition contain all unbound named arguments and use
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
@@ -788,7 +789,7 @@ my class Binder {
                     }
                     elsif !$suppress_arity_fail {
                         if nqp::defined($error) {
-                            $error[0] := "Required named parameter '" ~
+                            $error[0] := "Required named argument '" ~
                                 $named_names[0] ~ "' not passed";
                         }
                         return $BIND_RESULT_FAIL;
@@ -821,10 +822,10 @@ my class Binder {
                     nqp::push(@names, $_.key);
                 }
                 if $num_extra == 1 {
-                    $error[0] := "Unexpected named parameter '" ~ @names[0] ~ "' passed";
+                    $error[0] := "Unexpected named argument '" ~ @names[0] ~ "' passed";
                 }
                 else {
-                    $error[0] := $num_extra ~ " unexpected named parameters passed (" ~
+                    $error[0] := $num_extra ~ " unexpected named arguments passed (" ~
                         nqp::join(",", @names) ~")";
                 }
             }
@@ -2588,10 +2589,13 @@ BEGIN {
     Iterator.HOW.add_parent(Iterator, Iterable);
     Iterator.HOW.compose_repr(Iterator);
 
-    # class Nil is Iterator {
-    Nil.HOW.add_parent(Nil, Iterator);
+    # class Nil is Cool {
     Nil.HOW.compose_repr(Nil);
     
+    # class Empty is Iterator {
+    Empty.HOW.add_parent(Empty, Iterator);
+    Empty.HOW.compose_repr(Empty);
+
     # class ListIter is Iterator {
     #     has Mu $!reified;
     #     has Mu $!nextiter;
@@ -2732,7 +2736,7 @@ BEGIN {
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
             if !nqp::isconcrete($self) && !nqp::can($self, 'CALL-ME') && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
-                nqp::die("Cannot coerce to $coercer_name with named parameters")
+                nqp::die("Cannot coerce to $coercer_name with named arguments")
                   if +%named;
                 if +@pos == 1 {
                     @pos[0]."$coercer_name"()
@@ -2783,6 +2787,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Any>        := Any;
     EXPORT::DEFAULT.WHO<Cool>       := Cool;
     EXPORT::DEFAULT.WHO<Nil>        := Nil;
+    EXPORT::DEFAULT.WHO<Empty>      := Empty;
     EXPORT::DEFAULT.WHO<Attribute>  := Attribute;
     EXPORT::DEFAULT.WHO<Signature>  := Signature;
     EXPORT::DEFAULT.WHO<Parameter>  := Parameter;
@@ -2892,7 +2897,9 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
-# Put PROCESS in place.
+# Put PROCESS in place, and ensure it's never repossessed.
+nqp::neverrepossess(PROCESS.WHO);
+nqp::neverrepossess(nqp::getattr(PROCESS.WHO, EnumMap, '$!storage'));
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 
 # HLL configuration: interop, boxing and exit handling.

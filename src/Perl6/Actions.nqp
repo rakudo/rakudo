@@ -3380,7 +3380,7 @@ Compilation unit '$file' contained the following violations:
 
         # Do the various tasks to turn the block into a method code object.
         my $invocant_type := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
-            $name && $*SCOPE ne 'my' && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+            $name && $*SCOPE ne 'my' && $*SCOPE ne 'our' && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
             :method, :$invocant_type);
         methodize_block($/, $code, $past, $signature, %sig_info);

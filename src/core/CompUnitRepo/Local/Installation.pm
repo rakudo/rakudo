@@ -17,6 +17,7 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
         nqp::scsetobj($sc, 0, $obj);
         my $serialized = nqp::serialize($sc, $sh);
         nqp::scdisclaim($sc);
+        nqp::shift_s($sh); # strip null string which is at front
         $name ~ "\n" ~ nqp::p6box_s(nqp::join("\n", $sh)) ~ "\n" ~ $serialized
     }
 

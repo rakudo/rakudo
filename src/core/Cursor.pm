@@ -24,12 +24,16 @@ my class Cursor does NQPCursorRole {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Cursor, '$!regexsub');
+            my Mu $onlyname := '';
+            my int $namecount = 0;
+
             if !nqp::isnull($rxsub) && nqp::defined($rxsub) {
                 $caplist := nqp::can($rxsub, 'CAPS') ?? nqp::findmethod($rxsub, 'CAPS')($rxsub) !! nqp::null();
                 if !nqp::isnull($caplist) && nqp::istrue($caplist) {
                     my $iter := nqp::iterator($caplist);
                     while $iter {
                         my $curcap := nqp::shift($iter);
+                        $namecount++;
 #?if jvm
                         my Mu $curval := nqp::iterval($curcap);
                         if (nqp::isint($curval) && nqp::isge_i($curval, 2))
@@ -39,6 +43,7 @@ my class Cursor does NQPCursorRole {
                         if nqp::iterval($curcap) >= 2 {
 #?endif
                             my str $name = nqp::iterkey_s($curcap);
+                            $onlyname := $name if $namecount == 1;
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(
                                         nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
@@ -51,12 +56,34 @@ my class Cursor does NQPCursorRole {
 
             # Walk the Cursor stack and populate the Cursor.
             my Mu $cs := nqp::getattr(self, Cursor, '$!cstack');
-#?if jvm
-            if !nqp::isnull($cs) && nqp::istrue($cs) {
-#?endif
+            if nqp::isnull($cs) || !nqp::istrue($cs) {}
 #?if !jvm
-            if $caplist && !nqp::isnull($cs) && nqp::istrue($cs) {
+            elsif !$caplist {}
 #?endif
+            elsif $namecount == 1 && $onlyname ne '' && nqp::eqat($onlyname,'$!',0) {
+                # If there's only one destination, avoid repeated hash lookups
+                my int $cselems = nqp::elems($cs);
+#                note("$onlyname $cselems");
+                my int $csi;
+                my Mu $dest;
+                if nqp::ord($onlyname) < 58 {
+                    $dest := nqp::atpos($list, $onlyname);
+                }
+                else {
+                    $dest := nqp::atkey($hash, $onlyname);
+                }
+                while $csi < $cselems {
+                    my $subcur := nqp::atpos($cs, $csi);
+                    my $name := nqp::getattr($subcur, $?CLASS, '$!name');
+                    if !nqp::isnull($name) && nqp::defined($name) {
+                        my $submatch := $subcur.MATCH();
+                        nqp::push($dest, $submatch);
+                    }
+                    $csi = nqp::add_i($csi, 1);
+                }
+#                note("$onlyname " ~ nqp::elems($dest));
+            }
+            else {
                 my int $cselems = nqp::elems($cs);
                 my int $csi     = 0;
                 while $csi < $cselems {

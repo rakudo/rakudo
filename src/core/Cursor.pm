@@ -63,9 +63,10 @@ my class Cursor does NQPCursorRole {
             elsif $namecount == 1 && $onlyname ne '' && nqp::eqat($onlyname,'$!',0) {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);
-#                note("$onlyname $cselems");
                 my int $csi;
                 my Mu $dest;
+
+                # numeric: <= ord("9") so positional capture
                 if nqp::ord($onlyname) < 58 {
                     $dest := nqp::atpos($list, $onlyname);
                 }
@@ -81,7 +82,6 @@ my class Cursor does NQPCursorRole {
                     }
                     $csi = nqp::add_i($csi, 1);
                 }
-#                note("$onlyname " ~ nqp::elems($dest));
             }
             else {
                 my int $cselems = nqp::elems($cs);

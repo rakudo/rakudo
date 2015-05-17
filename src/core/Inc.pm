@@ -75,7 +75,7 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
                     my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
                     my $path := "$home/.perl6/$ver";
                     @INC.push: "file#$path/lib", "inst#$path";
-                    %CUSTOM_LIB<home> = INCLUDE-SPEC2CUR("inst#$path");
+                    %CUSTOM_LIB<home> = "inst#$path";
                 }
             }
             @INC.push:
@@ -86,9 +86,9 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
               "inst#$prefix/vendor",
               "inst#$prefix/site";
 
-            %CUSTOM_LIB<perl>   = INCLUDE-SPEC2CUR("inst#$prefix");
-            %CUSTOM_LIB<vendor> = INCLUDE-SPEC2CUR("inst#$prefix/vendor");
-            %CUSTOM_LIB<site>   = INCLUDE-SPEC2CUR("inst#$prefix/site");
+            %CUSTOM_LIB<perl>   = "inst#$prefix";
+            %CUSTOM_LIB<vendor> = "inst#$prefix/vendor";
+            %CUSTOM_LIB<site>   = "inst#$prefix/site";
         }
     }
 

@@ -32,6 +32,11 @@ typedef struct {
     char *second;
 } StringStruct;
 
+typedef struct {
+    IntStruct a;
+    int i;
+} StructIntStruct;
+
 DLLEXPORT MyStruct *ReturnAStruct()
 {
     MyStruct *obj = (MyStruct *) malloc(sizeof(MyStruct));
@@ -101,4 +106,13 @@ DLLEXPORT int TakeAStringStruct(StringStruct *obj) {
 
 DLLEXPORT long _deref(long *ptr) {
     return *ptr;
+}
+
+DLLEXPORT StructIntStruct *ReturnAStructIntStruct() {
+    StructIntStruct *sis = (StructIntStruct *) malloc(sizeof(StructIntStruct));
+    sis->a.first = 101;
+    sis->a.second = 77;
+    sis->i = 42;
+
+    return sis;
 }

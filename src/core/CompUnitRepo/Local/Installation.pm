@@ -23,7 +23,7 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
 
     method deserialize() {
         my $manifest      := $!IO.child("MANIFEST");
-        return {} unless $manifest.e;
+        return Hash unless $manifest.e;
         my $b64            = $manifest.slurp;
         my Mu $sh         := nqp::list_s();
         my @lines          = $b64.split("\n");
@@ -40,7 +40,7 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
             $obj := nqp::scgetobj($sc, 0);
         }
         nqp::scdisclaim($sc);
-        $obj || {}
+        $obj || Hash
     }
 
     method BUILD(:$!IO, :$!lock, :$!WHICH) {

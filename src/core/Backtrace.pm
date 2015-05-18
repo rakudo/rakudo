@@ -45,9 +45,17 @@ my class Backtrace::Frame {
     method is-setting(Backtrace::Frame:D:) { $!file.ends-with("CORE.setting") }
 }
 
-my class Backtrace is List {
-    proto method new(|) {*}
+my class Backtrace {
+    has Mu $!bt;
+    has Mu $!frames;
+    has Int $!bt-next;   # next bt index to vivify
 
+    submethod BUILD(:$!bt, :$!bt-next) {
+        $!frames := nqp::list;
+        self;
+    }
+
+    proto method new(|) {*}
     multi method new(Mu $e, Int $offset = 0) {
         $e.^name eq 'BOOTException'
             ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)
@@ -60,14 +68,26 @@ my class Backtrace is List {
     }
 
     # note that backtraces are nqp::list()s, marshalled to us as Parcel
-    multi method new(Parcel $bt, Int $offset = 0) {
+    multi method new(Parcel $bt, Int $bt-next = 0) {
 
+        # only check for verbose stack frames once
         $RAKUDO-VERBOSE-STACKFRAME = +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
 
-        my $new = self.bless();
-        for $offset .. $bt.elems - 1 {
-            my $frame := $bt.AT-POS($_);
-            my $sub   := $frame<sub>;
+        nqp::create(self).BUILD(:$bt, :$bt-next);
+    }
+
+    method AT-POS($pos) {
+        if nqp::atpos($!frames,$pos) -> $frame {
+            return $frame;
+        }
+
+        my int $elems = $!bt.elems;
+        my int $todo  = $pos - nqp::elems($!frames) + 1;
+
+        while $!bt-next < $elems {
+
+            my $frame := $!bt.AT-POS($!bt-next++);
+            my $sub := $frame<sub>;
             next unless defined $sub;
 
             my Mu $do := nqp::getattr(nqp::decont($sub), ForeignCode, '$!do');
@@ -96,55 +116,63 @@ my class Backtrace is List {
                 $code := Any unless nqp::istype($code, Mu);
             };
 
-            $new.push: Backtrace::Frame.new(
+            nqp::push($!frames,
+              Backtrace::Frame.new(
                 :$code,
                 :$file,
                 :line($line.Int),
                 :subname($name.starts-with("_block") ?? '<anon>' !! $name),
+              )
             );
+            last unless $todo = $todo - 1;
         }
-        $new;
+
+        # whatever is there (or not)
+        nqp::atpos($!frames,$pos);
     }
 
     method next-interesting-index(Backtrace:D:
       Int $idx is copy = 0, :$named, :$noproto, :$setting) {
         ++$idx;
-        # NOTE: the < $.end looks like an off-by-one error
-        # but it turns out that a simple   perl6 -e 'die "foo"'
-        # has two bt frames from the mainline; so it's OK to never
-        # consider the last one
-        loop (; $idx < self.end; ++$idx) {
-            my $cand = self.AT-POS($idx);
+
+        while self.AT-POS($idx++) -> $cand {
             next if $cand.is-hidden;          # hidden is never interesting
             next if $named && !$cand.subname; # only want named ones
             next if $noproto                  # no proto's please
               && $cand.code.?is_dispatcher;   #  if a dispatcher
             next if !$setting                 # no settings please
               && $cand.is-setting;            #  and in setting
-            return $idx;
+            return $idx - 1;
         }
         Int;
     }
 
     method outer-caller-idx(Backtrace:D: Int $startidx) {
-        my %print;
-        my $start   = self.AT-POS($startidx).code;
-        return $startidx.list unless $start;
-        my $current = $start.outer;
-        my %outers;
-        while $current.DEFINITE {
-            %outers{$current.static_id} = $start;
-            $current = $current.outer;
-        }
-        my @outers;
-        loop (my Int $i = $startidx; $i < $.end; ++$i) {
-            if self.AT-POS($i).code.DEFINITE && %outers{self.AT-POS($i).code.static_id}.DEFINITE {
-                @outers.push: $i;
-                return @outers if self.AT-POS($i).is-routine;
+
+        if self.AT-POS($startidx).code -> $start {
+            my %outers;
+
+            my $current = $start.outer;
+            while $current.DEFINITE {
+                %outers{$current.static_id} = $start;
+                $current = $current.outer;
             }
+
+            my @outers;
+            my $i = $startidx;
+            while self.AT-POS($i++) -> $cand {
+                my $code = $cand.code;
+                next unless $code.DEFINITE && %outers{$code.static_id}.DEFINITE;
+
+                @outers.push: $i - 1;
+                last if $cand.is-routine;
+            }
+            @outers;
         }
 
-        @outers;
+        else {
+            $startidx.list;
+        }
     }
 
     method nice(Backtrace:D: :$oneline) {
@@ -182,24 +210,38 @@ my class Backtrace is List {
         }
     }
 
+    multi method Str(Backtrace:D:)  { self.nice }
+    multi method flat(Backtrace:D:) { self.list }
+    multi method first(Backtrace:D: Mu $test) {
+        my $pos = 0;
+        while self.AT-POS($pos++) -> $cand {
+            return $cand if $cand ~~ $test;
+        }
+        Nil;
+    }
+    multi method grep(Backtrace:D: Mu $test) {
+        my $pos = 0;
+        gather while self.AT-POS($pos++) -> $cand {
+            take $cand if $cand ~~ $test;
+        }
+    }
+    multi method list(Backtrace:D:) {
+        self.AT-POS(100);  # will stop when done, do we need more than 100???
+        nqp::p6parcel($!frames,Mu);
+    }
+
     method first-none-setting-line(Backtrace:D:) {
-        self.first({ !.is-hidden && !.is-setting }).Str
+        self.first({ !.is-hidden && !.is-setting }).Str;
     }
 
     method concise(Backtrace:D:) {
-        self.grep({ !.is-hidden && .is-routine && !.is-setting }).join
+        self.grep({ !.is-hidden && .is-routine && !.is-setting }).join;
     }
 
-    multi method Str(Backtrace:D:) {
-        self.nice;
-    }
-
-    method full(Backtrace:D:) {
-        self.join
-    }
+    method full(Backtrace:D:) { self.list.join }
 
     method summary(Backtrace:D:) {
-        self.grep({ !.is-hidden && (.is-routine || !.is-setting )}).join
+        self.grep({ !.is-hidden && (.is-routine || !.is-setting) }).join;
     }
 }
 

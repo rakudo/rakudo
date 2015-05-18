@@ -66,29 +66,39 @@ my class Backtrace is List {
 
         my $new = self.bless();
         for $offset .. $bt.elems - 1 {
-            next unless defined $bt[$_]<sub>;
-            my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
-            next if nqp::isnull($sub);
+            my $frame := $bt.AT-POS($_);
+            my $sub   := $frame<sub>;
+            next unless defined $sub;
+
+            my Mu $do := nqp::getattr(nqp::decont($sub), ForeignCode, '$!do');
+            next if nqp::isnull($do);
+
             my $code;
             try {
-                $code := nqp::getcodeobj($sub);
+                $code := nqp::getcodeobj($do);
                 $code := Any unless nqp::istype($code, Mu);
             };
-            my $line     = $bt[$_]<annotations><line>;
-            my $file     = $bt[$_]<annotations><file>;
-            next unless $line && $file;
+
+            my $annotations := $frame<annotations>;
+            my $file := $annotations<file>;
+            next unless $file;
+
+            my $line := $annotations<line>;
+            next unless $line;
+
             # now *that's* an evil hack
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp');
             last if $file.ends-with('NQPHLL.nqp');
-            my $subname  = nqp::p6box_s(nqp::getcodename($sub));
-            $subname = '<anon>' if $subname.starts-with("_block");
-            last if $subname eq 'handle-begin-time-exceptions';
+
+            my $name := nqp::p6box_s(nqp::getcodename($do));
+            last if $name eq 'handle-begin-time-exceptions';
+
             $new.push: Backtrace::Frame.new(
-                :line($line.Int),
-                :$file,
-                :$subname,
                 :$code,
+                :$file,
+                :line($line.Int),
+                :subname($name.starts-with("_block") ?? '<anon>' !! $name),
             );
         }
         $new;

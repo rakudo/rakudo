@@ -2,6 +2,8 @@ my class Exception { ... }
 
 my class Backtrace { ... }
 
+my $RAKUDO-VERBOSE-STACKFRAME;
+
 my class Backtrace::Frame {
     has Str $.file;
     has Int $.line;
@@ -22,7 +24,7 @@ my class Backtrace::Frame {
         $s ~= ' ' if $s.chars;
         my $text = "  in {$s}$.subname at {$.file}:$.line\n";
 
-        if +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0) -> $extra {
+        if $RAKUDO-VERBOSE-STACKFRAME -> $extra {
             my $io = $!file.IO;
             if $io.e {
                 my @lines := $io.lines;
@@ -59,6 +61,9 @@ my class Backtrace is List {
 
     # note that backtraces are nqp::list()s, marshalled to us as Parcel
     multi method new(Parcel $bt, Int $offset = 0) {
+
+        $RAKUDO-VERBOSE-STACKFRAME = +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
+
         my $new = self.bless();
         for $offset .. $bt.elems - 1 {
             next unless defined $bt[$_]<sub>;

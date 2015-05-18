@@ -73,26 +73,28 @@ my class Backtrace is List {
             my Mu $do := nqp::getattr(nqp::decont($sub), ForeignCode, '$!do');
             next if nqp::isnull($do);
 
-            my $code;
-            try {
-                $code := nqp::getcodeobj($do);
-                $code := Any unless nqp::istype($code, Mu);
-            };
-
             my $annotations := $frame<annotations>;
+            next unless $annotations;
+
             my $file := $annotations<file>;
             next unless $file;
-
-            my $line := $annotations<line>;
-            next unless $line;
 
             # now *that's* an evil hack
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp');
             last if $file.ends-with('NQPHLL.nqp');
 
+            my $line := $annotations<line>;
+            next unless $line;
+
             my $name := nqp::p6box_s(nqp::getcodename($do));
             last if $name eq 'handle-begin-time-exceptions';
+
+            my $code;
+            try {
+                $code := nqp::getcodeobj($do);
+                $code := Any unless nqp::istype($code, Mu);
+            };
 
             $new.push: Backtrace::Frame.new(
                 :$code,

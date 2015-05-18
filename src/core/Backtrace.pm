@@ -183,7 +183,7 @@ my class Backtrace is List {
     }
 
     method first-none-setting-line(Backtrace:D:) {
-        self.first({ !.is-hidden && !.is-setting }).Str
+        (self.first({ !.is-hidden && !.is-setting }) || "\n").Str
     }
 
     method concise(Backtrace:D:) {

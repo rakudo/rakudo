@@ -133,8 +133,8 @@ multi sub spurt(IO::Handle $fh, $what, :$enc = 'utf8', |c ) {
     my $result := $fh.spurt($what, :$enc, :nodepr, |c);
     $result // $result.throw;
 }
-multi sub spurt(Cool $path, $what, :$enc = 'utf8', |c) {
-    my $result := $path.IO.spurt($what, :$enc, |c);
+multi sub spurt(Cool $path, $what, :$bin, :$enc = 'utf8', |c) {
+    my $result := $path.IO.spurt($what, :$bin, :$enc, |c);
     $result // $result.throw;
 }
 

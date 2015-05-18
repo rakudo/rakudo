@@ -326,7 +326,7 @@ S04-statements/given.t
 S04-statements/if.t
 S04-statements/label.t
 S04-statements/last.t
-# S04-statements/lazy.t
+S04-statements/lazy.t
 # S04-statements/leave.t
 # S04-statements/lift.t
 S04-statements/loop.t

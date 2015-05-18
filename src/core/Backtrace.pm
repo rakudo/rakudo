@@ -212,17 +212,10 @@ my class Backtrace {
 
     multi method Str(Backtrace:D:)  { self.nice }
     multi method flat(Backtrace:D:) { self.list }
-    multi method first(Backtrace:D: Mu $test) {
-        my $pos = 0;
-        while self.AT-POS($pos++) -> $cand {
-            return $cand if $cand ~~ $test;
-        }
-        Nil;
-    }
-    multi method grep(Backtrace:D: Mu $test) {
+    multi method map(Backtrace:D: $block) {
         my $pos = 0;
         gather while self.AT-POS($pos++) -> $cand {
-            take $cand if $cand ~~ $test;
+            take $block($cand);
         }
     }
     multi method list(Backtrace:D:) {

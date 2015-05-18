@@ -77,8 +77,8 @@ my class Backtrace {
     }
 
     method AT-POS($pos) {
-        if nqp::atpos($!frames,$pos) -> $frame {
-            return $frame;
+        if nqp::existspos($!frames,$pos) {
+            return nqp::atpos($!frames,$pos);
         }
 
         my int $elems = $!bt.elems;
@@ -128,7 +128,7 @@ my class Backtrace {
         }
 
         # whatever is there (or not)
-        nqp::atpos($!frames,$pos);
+        nqp::existspos($!frames,$pos) ?? nqp::atpos($!frames,$pos) !! Nil;
     }
 
     method next-interesting-index(Backtrace:D:
@@ -217,6 +217,13 @@ my class Backtrace {
         gather while self.AT-POS($pos++) -> $cand {
             take $block($cand);
         }
+    }
+    multi method first(Backtrace:D: Mu $test) {
+        my $pos = 0;
+        while self.AT-POS($pos++) -> $cand {
+            return-rw $cand if $cand ~~ $test;
+        }
+        Nil;
     }
     multi method list(Backtrace:D:) {
         self.AT-POS(100);  # will stop when done, do we need more than 100???

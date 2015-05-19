@@ -176,11 +176,17 @@ multi sub infix:<%>(Rational \a, Rational \b) {
 }
 
 multi sub infix:<**>(Rational \a, Int \b) {
-    DIVIDE_NUMBERS
-        a.numerator ** b,
-        a.denominator ** b,
-        a,
-        b;
+    b >= 0 
+        ?? DIVIDE_NUMBERS
+            a.numerator ** b,
+            a.denominator ** b,
+            a,
+            b
+        !! DIVIDE_NUMBERS
+            a.denominator ** -b,
+            a.numerator ** -b,
+            a,
+            b
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {

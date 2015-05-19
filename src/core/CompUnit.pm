@@ -136,8 +136,10 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
         $result ~= $_ for $handle.lines;
         if $handle.close.status -> $status {  # something wrong
             $result ~= "Return status $status\n";
+            fail $result if $result;
         }
-        fail $result if $result;
+        note $result if $result;
+
 
         $!has-precomp = True if $out eq self.precomp-path;
         True;

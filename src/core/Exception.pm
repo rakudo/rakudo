@@ -246,6 +246,7 @@ do {
                 nqp::printfh($err, "\n");
             }
             THE_END();
+            CONTROL { when CX::Warn { .resume } }
         }
         if $! {
             nqp::rethrow(nqp::getattr(nqp::decont($!), Exception, '$!ex'));

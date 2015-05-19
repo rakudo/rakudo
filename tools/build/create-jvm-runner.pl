@@ -31,6 +31,7 @@ my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
 my $jardir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6', 'runtime') : $prefix;
 my $libdir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6', 'lib') : 'blib';
 my $nqplibdir = File::Spec->catfile($nqpprefix, 'share', 'nqp', 'lib');
+my $sharedir = File::Spec->catfile($prefix, 'share', 'perl6', 'site', 'lib');
 
 sub install {
     my ($name, $command) = @_;
@@ -56,6 +57,7 @@ my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
 my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $bootclasspath 
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . $prefix
+          . ' -Djna.library.path=' . $sharedir
           . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
 
 if ($debugger) {

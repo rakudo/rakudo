@@ -11,6 +11,7 @@ New in 2015.05
    + .map no longer flattens, map as a listop does. Use .flatmap to get the
       old behavior
    + Nil no longer iterates like the empty List. Use Empty instead.
+   + @*INC now contains strings (again), rather than CUR objects
  + Deprecations:
    + List/Supply.rotor now *must* have elems and gap specified
  + Fixes:
@@ -18,6 +19,9 @@ New in 2015.05
    + my $a will begin/enter/leave/keep/undo/first/pre now set $_ properly
    + List.roll(Inf) now knows it's infinite, so is lazy
    + The REPL is strict by default now, that leaves only '-e' lines to be lax
+ + Speedups:
+   + generating backtraces is now lazy, improving the speed of e.g. warnings
+   + bare startup time now below 100 ms on some machines
 
 New in 2015.04
  + Incompatible changes:

@@ -102,7 +102,7 @@ class Perl6::Compiler is HLL::Compiler {
 
             my $core_keys := self.eval('CORE::.keys');
 
-            my $i := 0;
+            my int $i := 0;
             my $core_elems := $core_keys.elems();
 
             while $i < $core_elems {

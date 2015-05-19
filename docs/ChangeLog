@@ -1,24 +1,39 @@
 New in 2015.05
  + Features:
-   + NFG, NFC, NFD
+   + NFG, NFC, NFD, Uni
    + List/Supply.rotor expects a list of Pairs (elems|elems => gap)
    + Implemented unicode property pairs with explicit arguments
+   + Implemented CLIENT:: (nearest CALLER:: from different package)
    + Normal stacktraces no longer include references to code in settings
    + RAKUDO_BACKTRACE_SETTING to *do* include code in settings
    + RAKUDO_VERBOSE_STACKFRAME environment variable shows source lines
+   + :m/:ignoremark implemented (now that we have NFG)
+   + Warnings now show file/line unless the end with a newline
+   + Implemented "is nodal" for signalling behaviour under hypers
+   + Added much faster List.pick(*,:eager) variant
  + Incompatible changes:
-   + hashes no longer maintain insert order on Moar (on JVM they never did)
+   + "unit" declaration needed for blockless packages
+   + Hashes no longer maintain insert order on Moar (on JVM they never did)
    + .map no longer flattens, map as a listop does. Use .flatmap to get the
       old behavior
    + Nil no longer iterates like the empty List. Use Empty instead.
    + @*INC now contains strings (again), rather than CUR objects
+   + Item seperator in INC spec is now ","
+   + Type / info seperator in INC spec is now "#"
+   + .pick($n)/roll($n) now always return lists, even when $n == 1
+   + $?FILE is now always an absolute path
+   + Variable will init/post/compose throw NYI instead of silently doing nothing
  + Deprecations:
    + List/Supply.rotor now *must* have elems and gap specified
  + Fixes:
+   + Many race conditions, specifically wrt to role specializations
    + Hashes use much less memory on Moar
    + my $a will begin/enter/leave/keep/undo/first/pre now set $_ properly
    + List.roll(Inf) now knows it's infinite, so is lazy
    + The REPL is strict by default now, that leaves only '-e' lines to be lax
+   + Undeclared variable compile time error made clearer
+   + IO::Handle.lines(:eager)/.words(:eager) now properly eager again
+   + 'earliest' now handles for remaining channels without specific handlers
  + Speedups:
    + generating backtraces is now lazy, improving the speed of e.g. warnings
    + bare startup time now below 100 ms on some machines

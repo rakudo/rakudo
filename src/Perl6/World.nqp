@@ -689,7 +689,7 @@ class Perl6::World is HLL::World {
         $DEBUG("Attempting '$name' as a pragma") if $DEBUG;
 
         # XXX maybe we need a hash with code to execute
-        if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
+        if $name eq 'MONKEY-TYPING' {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
@@ -713,6 +713,19 @@ class Perl6::World is HLL::World {
             # argument list really.
             %*PRAGMAS<soft> := $on;
         }
+        elsif $name eq 'MONKEY_TYPING' {
+            my $DEPRECATED := self.find_symbol(['&DEPRECATED']);
+            unless nqp::isnull($DEPRECATED) {
+                $DEPRECATED(
+                  'use MONKEY-TYPING', '2015.04', '2015.09',
+                  :what('use MONKEY_TYPING'),
+                  :file(self.current_file),
+                  :line(HLL::Compiler.lineof($/.orig, $/.from, :cache(1))),
+                );
+            }
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            %*PRAGMAS<MONKEY-TYPING> := $on;
+        }
         else {
             $DEBUG("'$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module
@@ -720,6 +733,17 @@ class Perl6::World is HLL::World {
 
         $DEBUG("Successfully handled '$name' as a pragma") if $DEBUG;
         1;
+    }
+
+    method current_file() {
+        my $file := nqp::getlexdyn('$?FILES');
+        if nqp::isnull($file) {
+            $file := '<unknown file>';
+        }
+        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) {
+            $file := nqp::cwd ~ '/' ~ $file;
+        }
+        $file;
     }
 
     method arglist($/) {

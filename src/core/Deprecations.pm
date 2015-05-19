@@ -67,7 +67,7 @@ class Deprecation {
     method obsolete (|c) { Obsolete.new(|c) }
 }
 
-sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
+sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
 
     # not deprecated yet
     state $version = $*PERL.compiler.version;
@@ -104,7 +104,7 @@ sub DEPRECATED ( $alternative, $from?, $removed?, :$up = 1, :$what ) {
     $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
 
     # update callsite
-    $dep.callsites{$callsite.file.IO}{$callsite.line}++;
+    $dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line}++;
 }
 
 END {

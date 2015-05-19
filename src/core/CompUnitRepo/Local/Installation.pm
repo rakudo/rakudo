@@ -9,12 +9,12 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
       NQP   => <nqp>,
       JVM   => ();
 
-    method serialize($obj is copy) {
+    method serialize() {
         my Mu $sh := nqp::list_s();
         my $name   = 'CURLI_' ~ nqp::time_n();
         my Mu $sc := nqp::createsc(nqp::unbox_s($name));
-        nqp::setobjsc($obj, $sc);
-        nqp::scsetobj($sc, 0, $obj);
+        nqp::setobjsc($!repo, $sc);
+        nqp::scsetobj($sc, 0, $!repo);
         my $serialized = nqp::serialize($sc, $sh);
         nqp::scdisclaim($sc);
         nqp::shift_s($sh); # strip null string which is at front
@@ -22,7 +22,8 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
     }
 
     method deserialize() {
-        my $manifest      := $!IO.child("MANIFEST");
+        state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
+        my $manifest      := $!IO.child("MANIFEST.$precomp-ext");
         return Hash unless $manifest.e;
         my $b64            = $manifest.slurp;
         my Mu $sh         := nqp::list_s();
@@ -199,7 +200,7 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
         $!repo<dists>[$d.id] = $d;
 
         # XXX Create path if needed.
-        "$!abspath/MANIFEST".IO.spurt: self.serialize($!repo);
+        "$!abspath/MANIFEST.$precomp-ext".IO.spurt: self.serialize();
     } ) }
 
     method files($file, :$name, :$auth, :$ver) {

@@ -34,7 +34,7 @@ class Deprecation {
     multi method report (Deprecation:U:) {
         return Nil unless %DEPRECATIONS;
 
-        my $message = "Saw {+%DEPRECATIONS} call{ 's' if +%DEPRECATIONS != 1 } to deprecated code during execution.\n";
+        my $message = "Saw {+%DEPRECATIONS} occurrence{ 's' if +%DEPRECATIONS != 1 } of deprecated code.\n";
         $message ~= ("=" x 80) ~ "\n" unless self.camelia;
         for %DEPRECATIONS.values -> $d {
             $message ~= $d.report;
@@ -49,7 +49,7 @@ class Deprecation {
         my $type    = $.type ?? "$.type " !! "";
         my $name    = $.name ?? "$.name " !! "";
         my $package = $.package ?? "(from $.package) " !! "";
-        my $message = $type ~ $name ~ $package ~ "called at:\n";
+        my $message = $type ~ $name ~ $package ~ "seen at:\n";
         for %.callsites.kv -> $file, $lines {
             $message ~=
               "  $file, line{ 's' if +$lines > 1 } {$lines.keys.sort.join(',')}\n";
@@ -111,8 +111,8 @@ END {
     unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
         if Deprecation.report -> $message {
             note $message;   # q:to/TEXT/ doesn't work in settings
-            note 'Please contact the author to have these calls to deprecated code adapted,
-so that this message will disappear!
+            note 'Please contact the author to have these occurrences of deprecated code
+adapted, so that this message will disappear!
 
 Please note that *ALL* deprecated features will be removed at the RC-0 release
 (expected september 2015).'

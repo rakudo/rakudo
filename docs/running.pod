@@ -58,6 +58,22 @@ error.
 Controls whether to emit ANSI codes for error highlighting. Defaults to true if unset, except on
 Win32.
 
+=item C<RAKUDO_MAX_THREADS> (src/core/ThreadPoolScheduler.pm)
+
+Controls the maximum number of threads used by a thread pool.
+
+=item C<RAKUDO_NO_DEPRECATIONS> (src/core/Deprecations.pm)
+
+If set, suppresses deprecation warnings.
+
+=item C<RAKUDO_VERBOSE_STACKFRAME> (src/core/Backtrace.pm)
+
+Controls stack frame verbosity.
+
+=item C<RAKUDO_BACKTRACE_SETTING> (src/core/Backtrace.pm)
+
+Controls whether .setting files are included in backtraces.
+
 =back
 
 =head1 AUTHORS

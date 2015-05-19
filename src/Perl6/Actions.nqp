@@ -1920,14 +1920,7 @@ Compilation unit '$file' contained the following violations:
                         HLL::Compiler.lineof($/.orig, $/.from, :cache(1)));
             }
             else {
-                my $file := nqp::getlexdyn('$?FILES');
-                if nqp::isnull($file) {
-                    $file := '<unknown file>';
-                }
-                elsif !nqp::eqat($file,'/',0) {
-                    $file := nqp::cwd ~ '/' ~ $file;
-                }
-                $past := $*W.add_string_constant($file);
+                $past := $*W.add_string_constant($*W.current_file);
             }
         }
         elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {

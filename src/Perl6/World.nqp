@@ -380,10 +380,12 @@ class Perl6::World is HLL::World {
             }
         }
 
-        my $M := %*COMPILING<%?OPTIONS><M>;
-        if nqp::defined($M) {
-            for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                self.do_pragma_or_load_module($/,1,$longname);
+        unless $in_eval {
+            my $M := %*COMPILING<%?OPTIONS><M>;
+            if nqp::defined($M) {
+                for nqp::islist($M) ?? $M !! [$M] -> $longname {
+                    self.do_pragma_or_load_module($/,1,$longname);
+                }
             }
         }
     }

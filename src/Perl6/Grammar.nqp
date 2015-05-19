@@ -1197,7 +1197,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARAND := $*W.stub_code_object('Block');
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
-        :dba('parameterized block')
+        :dba('block or pointy block')
         [
         | <lambda>
             <.newpad>

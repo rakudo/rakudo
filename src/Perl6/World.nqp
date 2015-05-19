@@ -3433,8 +3433,12 @@ class Perl6::World is HLL::World {
                         elsif $c.MARKED('baresigil') {
                             %opts<reason> := "Name must begin with alphabetic character";
                         }
-                        else {
+                        elsif @locprepost[1] ~~ / ^ \s* <[ $ @ \w ' " ]> / ||
+                              @locprepost[1] ~~ / ^ \s+ <[ ( [ { « . ]> / {
                             %opts<reason> := "Two terms in a row";
+                        }
+                        elsif @locprepost[1] ~~ / ^ \S / {
+                            %opts<reason> := "Bogus postfix";
                         }
                     }
                 }

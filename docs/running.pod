@@ -44,7 +44,7 @@ The supported values for C<--target> are:
 
 =over
 
-=item C<RAKUDOLIB>, C<PERL6LIB> (src/core/terms.pm)
+=item C<RAKUDOLIB>, C<PERL6LIB> (src/core/Inc.pm)
 
 Appends a delimited list of paths to C<@INC>. C<RAKUDOLIB> is evaluated first.
 

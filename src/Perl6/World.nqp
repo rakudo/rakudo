@@ -714,15 +714,9 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<soft> := $on;
         }
         elsif $name eq 'MONKEY_TYPING' {
-            my $DEPRECATED := self.find_symbol(['&DEPRECATED']);
-            unless nqp::isnull($DEPRECATED) {
-                $DEPRECATED(
-                  'use MONKEY-TYPING', '2015.04', '2015.09',
-                  :what('use MONKEY_TYPING'),
-                  :file(self.current_file),
-                  :line(HLL::Compiler.lineof($/.orig, $/.from, :cache(1))),
-                );
-            }
+            self.DEPRECATED($/,"'use MONKEY-TYPING'",'2015.04','2015.09',
+              :what("'use MONKEY_TYPING'"),
+            );
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
@@ -733,6 +727,17 @@ class Perl6::World is HLL::World {
 
         $DEBUG("Successfully handled '$name' as a pragma") if $DEBUG;
         1;
+    }
+
+    method DEPRECATED($/,$alternative,$from,$removed,:$what) {
+        my $DEPRECATED := self.find_symbol(['&DEPRECATED']);
+        unless nqp::isnull($DEPRECATED) {
+            $DEPRECATED($alternative,$from,$removed,
+              :$what,
+              :file(self.current_file),
+              :line(HLL::Compiler.lineof($/.orig, $/.from, :cache(1))),
+            );
+        }
     }
 
     method current_file() {

@@ -73,7 +73,7 @@ skip( 'skip with reason' );
 skip;
 skip( 'skip with count and reason', 2 );
 
-# skip_rest();
+# skip-rest();
 
 diag( 'diag works, FYI' );
 
@@ -82,54 +82,54 @@ flunk( 'flunk' );
 
 {
     my $x = 3;
-    my $isa1 = isa_ok( $x, Int, 'isa_ok with message' );
-    ok $isa1, 'isa_ok returns True';
-    isa_ok( $x, Int );
+    my $isa1 = isa-ok( $x, Int, 'isa-ok with message' );
+    ok $isa1, 'isa-ok returns True';
+    isa-ok( $x, Int );
 
     # NOT_TODO
-    todo( 'failing isa_ok returns False' );
-    my $isa2 = isa_ok( 'abc', Int );
-    nok $isa2, 'Failing isa_ok returns False';
+    todo( 'failing isa-ok returns False' );
+    my $isa2 = isa-ok( 'abc', Int );
+    nok $isa2, 'Failing isa-ok returns False';
 }
 
-my $dies_ok1 = dies_ok { skip( 2, 'reason' ) },
+my $dies-ok1 = dies-ok { skip( 2, 'reason' ) },
         'skip() dies when given the arguments in the wrong order';
-ok $dies_ok1, 'dies_ok returns True';
+ok $dies-ok1, 'dies-ok returns True';
 
 # NOT_TODO
-todo( 'failing dies_ok returns False' );
-my $dies_ok2 = dies_ok { 1 }, 'dies_ok {1}';
-nok $dies_ok2, 'dies_ok returns False if code did not die';
+todo( 'failing dies-ok returns False' );
+my $dies-ok2 = dies-ok { 1 }, 'dies-ok {1}';
+nok $dies-ok2, 'dies-ok returns False if code did not die';
 
-dies_ok { die }, 'dies_ok';
-dies_ok { die };
+dies-ok { die }, 'dies-ok';
+dies-ok { die };
 
-my $lives_ok1 = lives_ok { 1 }, 'lives_ok';
-ok $lives_ok1, 'lives_ok returns True';
-lives_ok { 1 };
-
-# NOT_TODO
-todo( 'failing lives_ok returns False' );
-my $lives_ok2 = lives_ok { die }, 'lives_ok { die }';
-nok $lives_ok2, 'failing lives_ok returns False';
-
-my $ed_ok1 = eval_dies_ok 'die', 'eval_dies_ok';
-ok $ed_ok1, 'eavl_dies_ok returns True';
-eval_dies_ok 'die';
+my $lives_ok1 = lives-ok { 1 }, 'lives_ok';
+ok $lives_ok1, 'lives-ok returns True';
+lives-ok { 1 };
 
 # NOT_TODO
-todo( 'eval_dies_ok 1 returns False' );
-my $ed_ok2 = eval_dies_ok '1', 'eval_dies_ok 1 fails';
-nok $ed_ok2, 'eval_dies_ok 1 returns False';
+todo( 'failing lives-ok returns False' );
+my $lives-ok2 = lives-ok { die }, 'lives-ok { die }';
+nok $lives-ok2, 'failing lives-ok returns False';
 
-my $el_ok1 = eval_lives_ok '1', 'eval_lives_ok';
-ok $el_ok1, 'eval_lives_ok 1 returns True';
-eval_lives_ok '1';
+my $ed-ok1 = eval-dies-ok 'die', 'eval-dies-ok';
+ok $ed-ok1, 'eavl-dies-ok returns True';
+eval-dies-ok 'die';
 
 # NOT_TODO
-todo( 'failing eval_lives_ok returns False' );
-my $el_ok2 = eval_lives_ok 'die', 'lives_ok { die }';
-nok $el_ok2, 'failing eval_lives_ok returns False';
+todo( 'eval-dies-ok 1 returns False' );
+my $ed-ok2 = eval-dies-ok '1', 'eval-dies-ok 1 fails';
+nok $ed-ok2, 'eval-dies-ok 1 returns False';
+
+my $el-ok1 = eval-lives-ok '1', 'eval-lives-ok';
+ok $el-ok1, 'eval-lives-ok 1 returns True';
+eval-lives-ok '1';
+
+# NOT_TODO
+todo( 'failing eval-lives-ok returns False' );
+my $el-ok2 = eval-lives-ok 'die', 'lives-ok { die }';
+nok $el-ok2, 'failing eval-lives-ok returns False';
 
 {
     my $deeply = {
@@ -143,15 +143,15 @@ nok $el_ok2, 'failing eval_lives_ok returns False';
         bool  => Bool::True,
         array => [3, 4],
     };
-    my $is_deeply = is_deeply $deeply, $deeply, 'is_deeply';
-    ok $is_deeply, 'is_deeply returns True';
-    is_deeply $deeply, $deeply;
+    my $is-deeply = is-deeply $deeply, $deeply, 'is-deeply';
+    ok $is-deeply, 'is-deeply returns True';
+    is-deeply $deeply, $deeply;
 }
 
 # NOT_TODO
-todo( 'failing is_deeply returns False' );
-my $is_deeply = is_deeply {a => 1}, {}, 'is_deeply with exta key fails';
-nok $is_deeply, 'failing is_deeply returns False';
+todo( 'failing is-deeply returns False' );
+my $is-deeply = is-deeply {a => 1}, {}, 'is-deeply with exta key fails';
+nok $is-deeply, 'failing is-deeply returns False';
 
 done;
 

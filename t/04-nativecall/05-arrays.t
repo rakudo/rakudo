@@ -72,7 +72,7 @@ compile_test_lib('05-arrays');
     @arr[1].set(11);
     @arr[2].set(13);
 
-    is_deeply @arr[100], Struct, 'out-of-bounds access on managed array';
+    is-deeply @arr[100], Struct, 'out-of-bounds access on managed array';
 
     is TakeAStructArray(@arr), 14, 'struct in position 0..2, C-side';
 }

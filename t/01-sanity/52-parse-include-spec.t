@@ -28,7 +28,7 @@ for (
 
 ) -> $to-check { parse_ok( $to-check ) };
 
-dies_ok { CompUnitRepo.parse-spec('CompUnitRepo::GitHub#masak/html-template') },
+dies-ok { CompUnitRepo.parse-spec('CompUnitRepo::GitHub#masak/html-template') },
   "must have module loaded";
 
 # need EVAL to create and check class at runtime
@@ -44,7 +44,7 @@ for (
 ) -> $to-check { parse_ok( $to-check ) };
 ';
 
-is_deeply @*INC, PARSE-INCLUDE-SPECS(CREATE-INCLUDE-SPECS(@*INC)),
+is-deeply @*INC, PARSE-INCLUDE-SPECS(CREATE-INCLUDE-SPECS(@*INC)),
   'can we reproduce an @*INC setting';
 
 #========================================================
@@ -53,5 +53,5 @@ sub parse_ok ($to-check) {
     my $answers  := $to-check.value;
 
     my $result = PARSE-INCLUDE-SPECS($checking);
-    is_deeply $result, $answers, "'$checking' returned the right thing";
+    is-deeply $result, $answers, "'$checking' returned the right thing";
 }

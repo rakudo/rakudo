@@ -27,13 +27,13 @@ is (BEGIN @?INC[0]), 'file#bar', 'did we revert to previous setting';
 is (BEGIN @?INC[1]), 'file#foo', 'do we have previous entry moved down again';
 is (BEGIN +@?INC),   $start + 2, 'did we revert number of elements';
 
-throws_like( { @?INC[0] = "boom" },
+throws-like( { @?INC[0] = "boom" },
   X::Assignment::RO,
   typename => 'Str',
 );
 for <unshift("boom") push("boom")> -> $method {
-    throws_like( "@?INC.$method", X::Multi::NoMatch );
+    throws-like( "@?INC.$method", X::Multi::NoMatch );
 }
 for <shift pop> -> $method {
-    throws_like( "@?INC.$method", X::Method::NotFound );
+    throws-like( "@?INC.$method", X::Method::NotFound );
 }

@@ -390,7 +390,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $compunit.annotate('W', $*W);
 
         my @violations := @*NQP_VIOLATIONS;
-        if @violations {
+        if @violations &&
+          !+nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_NO_DEPRECATIONS'),0) {
+
             my $file := nqp::getlexdyn('$?FILES');
             my $bar  := nqp::gethostname() eq 'ns1'
               ?? ""

@@ -1359,15 +1359,18 @@ Compilation unit '$file' contained the following violations:
         make when_handler_helper($<block>.ast);
     }
 
-    method term:sym<winner>($/) { self.term:sym<earliest>($/,'&WINNER') }
-    method term:sym<earliest>($/, $name = '&EARLIEST') {
+    method term:sym<winner>($/) {
+        $*W.DEPRECATED($/,"'earliest'",'2014.10','2015.09',:what("'winner'"));
+        self.term:sym<earliest>($/);
+    }
+    method term:sym<earliest>($/) {
         my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
         my $wild_done;
         my $wild_more;
         my $wait;
         my $wait_time;
 
-        my $past := QAST::Op.new( :op('call'), :$name, :node($/) );
+        my $past := QAST::Op.new( :op('call'), :name('&EARLIEST'), :node($/) );
         if $<xblock> {
             if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
                 $past.push( QAST::Op.new(

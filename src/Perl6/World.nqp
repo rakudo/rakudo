@@ -3440,7 +3440,9 @@ class Perl6::World is HLL::World {
                         elsif @locprepost[1] ~~ / ^ \S / {
                             %opts<reason> := "Bogus postfix";
                         }
+                        # "Confused" is already the default, so no "else" clause needed here.
                     }
+                    # or here...
                 }
             }
             

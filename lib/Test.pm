@@ -216,11 +216,6 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    DEPRECATED('is-approx',|<2015.05 2015.09>);
-    is-approx($got, $expected, $desc);
-}
-
-multi sub is-approx(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;

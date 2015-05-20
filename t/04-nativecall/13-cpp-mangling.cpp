@@ -31,6 +31,7 @@ public:
     virtual int TakeAFloatPointer(float *i)        { return 18; }
     virtual int TakeADoublePointer(double *i)      { return 19; }
     virtual int TakeAConstString(const char *i)    { return 20; }
+    virtual int DoConst() const                    { return 21; }
 };
 
 Foo::Foo()  { };

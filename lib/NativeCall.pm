@@ -283,6 +283,10 @@ role CPPConst {
 multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }
+multi trait_mod:<is>(Routine $p, :$cpp-const!) is export(:DEFAULT, :traits) {
+    $p does CPPConst;
+}
+
 
 role CPPRef {
     method cpp-ref() { 1 }

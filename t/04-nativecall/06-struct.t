@@ -93,7 +93,7 @@ class PointerStruct is repr('CStruct') {
 
 class StructIntStruct is repr('CStruct') {
     has IntStruct $.a is inlined;
-    has int $.i;
+    has int32 $.i;
 }
 
 sub ReturnAStruct()            returns MyStruct2 is native('./06-struct') { * }

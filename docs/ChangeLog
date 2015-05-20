@@ -23,6 +23,7 @@ New in 2015.05
    + .pick($n)/roll($n) now always return lists, even when $n == 1
    + $?FILE is now always an absolute path
    + Variable will init/post/compose throw NYI instead of silently doing nothing
+   + The "is cached" trait no longer works on methods.
  + Deprecations:
    + List/Supply.rotor now *must* have elems and gap specified
  + Fixes:

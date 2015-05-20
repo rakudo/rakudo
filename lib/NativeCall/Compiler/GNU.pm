@@ -8,6 +8,7 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
 
     my $mangled = '_Z'
                 ~ ($r.package.REPR eq 'CPPStruct' ?? 'N' !! '')
+                ~ ($r.?cpp-const ?? 'K' !! '')
                 ~ $symbol.split('::').map({$_ eq 'new' ?? 'C1' !! $_.chars ~ $_}).join('')
                 ~ ($r.package.REPR eq 'CPPStruct' ?? 'E' !! '');
     my @params  = $r.signature.params;

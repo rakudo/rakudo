@@ -1,4 +1,4 @@
-module CompileTestLib;
+unit module CompileTestLib;
 
 my @cleanup;  # files to be cleaned up afterwards
 

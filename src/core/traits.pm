@@ -508,16 +508,6 @@ multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
       highexpect => <lazy>,
     ).throw;
 }
-multi sub trait_mod:<will>(Attribute:D $attr, $block, :$lazy!) {
-    $attr does role {
-        method compose(|) {
-            callsame();
-            $attr.package.^method_table{$attr.name.substr(2)}.wrap(-> \self {
-                callsame() // $attr.set_value(self, $block());
-            });
-        }
-    }
-}
 multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {  # internal usage
     $attr.set_build($build)
 }

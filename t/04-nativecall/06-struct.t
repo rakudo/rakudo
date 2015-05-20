@@ -92,7 +92,7 @@ class PointerStruct is repr('CStruct') {
 }
 
 class StructIntStruct is repr('CStruct') {
-    has IntStruct $.a;
+    has IntStruct $.a is inlined;
     has int $.i;
 }
 

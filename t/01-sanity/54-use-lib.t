@@ -29,7 +29,7 @@ is (BEGIN +@?INC),   $start + 2, 'did we revert number of elements';
 
 throws-like( { @?INC[0] = "boom" },
   X::Assignment::RO,
-  typename => 'Str',
+  typename => $*VM.name eq 'jvm' ?? 'value' !! 'Str',
 );
 for <unshift("boom") push("boom")> -> $method {
     throws-like( "@?INC.$method", X::Multi::NoMatch );

@@ -477,8 +477,10 @@ sub EXPORT(|) {
             nqp::bindattr(nqp::decont($/), $/.WHAT, '$!made', $scoped);
         }
     }
-    nqp::bindkey(%*LANG, 'MAIN',         %*LANG<MAIN>.HOW.mixin(%*LANG<MAIN>,         HAS-decl-grammar));
-    nqp::bindkey(%*LANG, 'MAIN-actions', %*LANG<MAIN>.HOW.mixin(%*LANG<MAIN-actions>, HAS-decl-actions));
+    my Mu $MAIN-grammar := nqp::atkey(%*LANG, 'MAIN');
+    my Mu $MAIN-actions := nqp::atkey(%*LANG, 'MAIN-actions');
+    nqp::bindkey(%*LANG, 'MAIN',         $MAIN-grammar.HOW.mixin($MAIN-grammar, HAS-decl-grammar));
+    nqp::bindkey(%*LANG, 'MAIN-actions', $MAIN-actions.HOW.mixin($MAIN-actions, HAS-decl-actions));
 
     {}
 }

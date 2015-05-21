@@ -471,6 +471,12 @@ sub EXPORT(|) {
             # my $scoped := $<scoped>.ast;
             my Mu $scoped := nqp::atkey(nqp::findmethod($/, 'hash')($/), 'scoped').ast;
             my Mu $attr   := $scoped.ann('metaattr');
+            if $attr.package.REPR ne 'CStruct' && $attr.package.REPR ne 'CUnion' {
+                die "Can only use HAS-scoped attributes in classes with repr CStruct or CUnion, not " ~ $attr.package.REPR;
+            }
+            if nqp::objprimspec($attr.type) != 0 {
+                warn "Useless use of HAS scope on an attribute with type { $attr.type.^name }.";
+            }
             # Mark $attr as inlined, that's why we do all this.
             nqp::bindattr_i(nqp::decont($attr), $attr.WHAT, '$!inlined', 1);
             # make $scoped

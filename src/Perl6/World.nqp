@@ -671,9 +671,10 @@ class Perl6::World is HLL::World {
         $DEBUG(($push ?? "Push" !! "Unshift") ~ "ing to @?INC:") if $DEBUG;
 
         for $arglist -> $arg {
-            my $string := nqp::index($arg,'#') == -1
+            my $string := nqp::decont(nqp::index($arg,'#') == -1
               ?? nqp::hllizefor("file#$arg", 'perl6')
-              !! $arg;
+              !! $arg
+            );
             $push
               ?? nqp::push($INC,$string)
               !! nqp::unshift($INC,$string);

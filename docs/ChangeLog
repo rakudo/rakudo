@@ -36,7 +36,7 @@ New in 2015.05
    + The REPL is strict by default now, that leaves only '-e' lines to be lax
    + Undeclared variable compile time error made clearer
    + IO::Handle.lines(:eager)/.words(:eager) now properly eager again
-   + 'earliest' now handles for remaining channels without specific handlers
+   + 'earliest' now handles remaining channels without specific handlers
    + Int/Rat ** -Int now generates a Rat if possible, else a Num
    + IO::Path.resolve now returns IO::Path as specced
  + Speedups:

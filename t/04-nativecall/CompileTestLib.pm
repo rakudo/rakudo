@@ -6,15 +6,7 @@ sub compile_test_lib($name) is export {
     my ($c_line, $l_line);
     my $VM  := $*VM;
     my $cfg := $VM.config;
-    if $VM.name eq 'parrot' {
-        my $o  = $cfg<o>;
-        my $so = $cfg<load_ext>;
-        $c_line = "$cfg<cc> -c $cfg<cc_shared> $cfg<cc_o_out>$name$o $cfg<ccflags> t/04-nativecall/$name.c";
-        $l_line = "$cfg<ld> $cfg<ld_load_flags> $cfg<ldflags> " ~
-            "$cfg<libs> $cfg<ld_out>$name$so $name$o";
-        @cleanup = << "$name$so" "$name$o" >>;
-    }
-    elsif $VM.name eq 'moar' {
+    if $VM.name eq 'moar' {
         my $o  = $cfg<obj>;
         my $so = $cfg<dll>;
         $so ~~ s/^.*\%s//;

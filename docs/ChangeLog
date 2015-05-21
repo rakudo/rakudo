@@ -23,9 +23,10 @@ New in 2015.05
    + .pick($n)/roll($n) now always return lists, even when $n == 1
    + $?FILE is now always an absolute path
    + Variable will init/post/compose throw NYI instead of silently doing nothing
-   + The "is cached" trait no longer works on methods.
+   + The "is cached" trait no longer works on methods, throws a NYI instead
  + Deprecations:
    + List/Supply.rotor now *must* have elems and gap specified
+   + Test.pm functions are now kebab-cased (e.g. throws_like -> throws-like)
  + Fixes:
    + Many race conditions, specifically wrt to role specializations
    + Hashes use much less memory on Moar
@@ -35,6 +36,8 @@ New in 2015.05
    + Undeclared variable compile time error made clearer
    + IO::Handle.lines(:eager)/.words(:eager) now properly eager again
    + 'earliest' now handles for remaining channels without specific handlers
+   + Int/Rat ** -Int now generates a Rat if possible, else a Num
+   + IO::Path.resolve now returns IO::Path as specced
  + Speedups:
    + generating backtraces is now lazy, improving the speed of e.g. warnings
    + bare startup time now below 100 ms on some machines

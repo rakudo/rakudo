@@ -25,6 +25,7 @@ New in 2015.05
    + Variable will init/post/compose throw NYI instead of silently doing nothing
    + The "is cached" trait no longer works on methods, throws a NYI instead
  + Deprecations:
+   + Method .map should be used instead of .for
    + List/Supply.rotor now *must* have elems and gap specified
    + Test.pm functions are now kebab-cased (e.g. throws_like -> throws-like)
  + Fixes:

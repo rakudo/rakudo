@@ -732,13 +732,13 @@ class Perl6::World is HLL::World {
         1;
     }
 
-    method DEPRECATED($/,$alternative,$from,$removed,:$what) {
+    method DEPRECATED($/,$alternative,$from,$removed,:$what,:$line,:$file) {
         my $DEPRECATED := self.find_symbol(['&DEPRECATED']);
         unless nqp::isnull($DEPRECATED) {
             $DEPRECATED($alternative,$from,$removed,
               :$what,
-              :file(self.current_file),
-              :line(HLL::Compiler.lineof($/.orig, $/.from, :cache(1))),
+              :file($file // self.current_file),
+              :line($line // HLL::Compiler.lineof($/.orig, $/.from, :cache(1))),
             );
         }
     }

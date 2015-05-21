@@ -115,7 +115,7 @@ END {
 adapted, so that this message will disappear!
 
 Please note that *ALL* deprecated features will be removed at the RC-0 release
-(expected september 2015).'
+(expected September 2015).'
               unless Deprecation.camelia;
         }
     }

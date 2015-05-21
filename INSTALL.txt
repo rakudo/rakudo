@@ -1,7 +1,7 @@
   Build requirements (Installing from source)
     For building Rakudo you need at least a C compiler, a "make" utility,
     and Perl 5.8 or newer. To automatically obtain and build MoarVM
-    as well as NQP, you may also need a a git client, which is also needed
+    as well as NQP, you may also need a git client, which is also needed
     for fetching the test suite.
 
     Building rakudo can take up to 1G of memory when compiling for the

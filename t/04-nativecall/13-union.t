@@ -21,7 +21,7 @@ class MyStruct is repr('CStruct') {
     has long  $.long;
     has num64 $.num;
     has int8  $.byte;
-    has Onion $.onion is inlined;
+    HAS Onion $.onion;
     has num32 $.float;
 
     method init() {
@@ -122,8 +122,8 @@ class YourStruct is repr('CStruct') {
 }
 
 class UnionOfStructs is repr('CUnion') {
-    has MyStruct   $.a is inlined;
-    has YourStruct $.b is inlined;
+    HAS MyStruct   $.a;
+    HAS YourStruct $.b;
 }
 
 sub ReturnUnionOfStructs() returns UnionOfStructs is native('./13-union') { * }

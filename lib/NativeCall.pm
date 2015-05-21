@@ -1,6 +1,6 @@
 use nqp;
 
-unit module NativeCall;
+module NativeCall {
 
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
@@ -414,10 +414,6 @@ multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded[$encoded];
 }
 
-multi trait_mod:<is>(Attribute $a, :$inlined!) is export(:DEFAULT, :traits) {
-    nqp::bindattr_i(nqp::decont($a), $a.WHAT, '$!inlined', 1);
-}
-
 role ExplicitlyManagedString {
     has $.cstr is rw;
 }
@@ -454,6 +450,37 @@ sub cglobal($libname, $symbol, $target-type) is export is rw {
         },
         STORE => -> | { die "Writing to C globals NYI" }
     )
+}
+
+}
+
+sub EXPORT(|) {
+    use NQPHLL:from<NQP>;
+    my role HAS-decl-grammar {
+        # This is a direct copy of scope_declarator:sym<has>, besides the uppercase spelling.
+        token scope_declarator:sym<HAS> {
+            :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+            <sym>
+            :my $*HAS_SELF := 'partial';
+            :my $*ATTR_INIT_BLOCK;
+            <scoped('has')>
+        }
+    }
+    my role HAS-decl-actions {
+        method scope_declarator:sym<HAS>(Mu $/) {
+            # my $scoped := $<scoped>.ast;
+            my Mu $scoped := nqp::atkey(nqp::findmethod($/, 'hash')($/), 'scoped').ast;
+            my Mu $attr   := $scoped.ann('metaattr');
+            # Mark $attr as inlined, that's why we do all this.
+            nqp::bindattr_i(nqp::decont($attr), $attr.WHAT, '$!inlined', 1);
+            # make $scoped
+            nqp::bindattr(nqp::decont($/), $/.WHAT, '$!made', $scoped);
+        }
+    }
+    nqp::bindkey(%*LANG, 'MAIN',         %*LANG<MAIN>.HOW.mixin(%*LANG<MAIN>,         HAS-decl-grammar));
+    nqp::bindkey(%*LANG, 'MAIN-actions', %*LANG<MAIN>.HOW.mixin(%*LANG<MAIN-actions>, HAS-decl-actions));
+
+    {}
 }
 
 # vim:ft=perl6

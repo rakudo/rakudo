@@ -221,13 +221,13 @@ that prove impossible, you can omit the C<-s> from the command line.
 
 Sign the tarball with your PGP key:
 
-    $ gpg --sign rakudo-YYYY-MM.tar.gz
+    $ gpg -b --armor rakudo-YYYY-MM.tar.gz
 
 =item 15.
 
 Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
 
-  $ scp rakudo-YYYY.MM.tar.gz rakudo-YYY-MM.tar.gz.gpg \
+  $ scp rakudo-YYYY.MM.tar.gz rakudo-YYY-MM.tar.gz.asc \
        rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,

@@ -231,17 +231,17 @@ my class Backtrace {
     }
 
     method first-none-setting-line(Backtrace:D:) {
-        self.first({ !.is-hidden && !.is-setting }).Str;
+        (self.first({ !.is-hidden && !.is-setting }) // "\n").Str;
     }
 
     method concise(Backtrace:D:) {
-        self.grep({ !.is-hidden && .is-routine && !.is-setting }).join;
+        (self.grep({ !.is-hidden && .is-routine && !.is-setting }) // "\n").join;
     }
 
     method full(Backtrace:D:) { self.list.join }
 
     method summary(Backtrace:D:) {
-        self.grep({ !.is-hidden && (.is-routine || !.is-setting) }).join;
+        (self.grep({ !.is-hidden && (.is-routine || !.is-setting)}) // "\n").join;
     }
 }
 

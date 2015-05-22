@@ -58,7 +58,6 @@ New in 2015.05
    + site/lib is now in the C library (.dll/.so/.dylib etc) search path
    + Fix scoping bugs with statement modifier for and given.
    + Make { 1 R=> 'a' } and { %*h } construst hashes.
-   + $?FILE is now always absolute
    + Fix lexical context of regex interpolations
  + Speedups:
    + generating backtraces is now lazy, improving the speed of e.g. warnings

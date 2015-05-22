@@ -37,11 +37,14 @@ my class Failure {
         self.exception.message ~ "\n" ~ self.backtrace;
     }
 
+    Failure.^add_fallback(
+        -> $, $ { True },
+        method ($name) {
+            $!exception.throw;
+        }
+    );
     method sink() {
         $!exception.throw($!backtrace) unless $!handled
-    }
-    method FALLBACK(*@_) {
-        $!exception.throw;
     }
 }
 

@@ -4,14 +4,17 @@ my class Date     { ... }
 my @UNITS = <second minute hour day week month year> X~ '', 's';
 
 my role Dateish {
+    has Int $.year;
+    has Int $.month = 1;
+    has Int $.day = 1;
 
     method IO(|c) { IO::Path.new(self) }
 
-    method is-leap-year($y = $.year) {
+    method is-leap-year($y = $!year) {
         $y %% 4 and not $y %% 100 or $y %% 400
     }
 
-    method days-in-month($year = $.year, $month = $.month) {
+    method days-in-month($year = $!year, $month = $!month) {
            $month == 2        ?? self.is-leap-year($year) ?? 29 !! 28
         !! $month == 4|6|9|11 ?? 30
         !! 31
@@ -47,32 +50,32 @@ my role Dateish {
     }
 
     method get-daycount {
-        self.daycount-from-ymd($.year, $.month, $.day)
+        self.daycount-from-ymd($!year, $!month, $!day)
     }
 
-    method day-of-month() { $.day }
+    method day-of-month() { $!day }
 
     method day-of-week($daycount = self.get-daycount) {
         ($daycount + 2) % 7 + 1
     }
 
     method week() { # algorithm from Claus Tøndering
-        my $a = $.year - ($.month <= 2).floor.Int;
+        my $a = $!year - ($!month <= 2).floor.Int;
         my $b = $a div 4 - $a div 100 + $a div 400;
         my $c = ($a - 1) div 4 - ($a - 1) div 100 + ($a - 1) div 400;
         my $s = $b - $c;
-        my $e = $.month <= 2 ?? 0 !! $s + 1;
-        my $f = $.day + do $.month <= 2
-         ?? 31*($.month - 1) - 1
-         !! (153*($.month - 3) + 2) div 5 + 58 + $s;
+        my $e = $!month <= 2 ?? 0 !! $s + 1;
+        my $f = $!day + do $!month <= 2
+         ?? 31*($!month - 1) - 1
+         !! (153*($!month - 3) + 2) div 5 + 58 + $s;
 
         my $g = ($a + $b) % 7;
         my $d = ($f + $g - $e) % 7;
         my $n = $f + 3 - $d;
 
-           $n < 0           ?? ($.year - 1, 53 - ($g - $s) div 5)
-        !! $n > 364 + $s    ?? ($.year + 1, 1)
-        !!                     ($.year,     $n div 7 + 1);
+           $n < 0           ?? ($!year - 1, 53 - ($g - $s) div 5)
+        !! $n > 364 + $s    ?? ($!year + 1, 1)
+        !!                     ($!year,     $n div 7 + 1);
     }
 
     method week-year() {
@@ -84,11 +87,11 @@ my role Dateish {
     }
 
     method weekday-of-month {
-        ($.day - 1) div 7 + 1
+        ($!day - 1) div 7 + 1
     }
 
     method day-of-year() {
-        [+] $.day, map { self.days-in-month($.year, $^m) }, 1 ..^ $.month
+        [+] $!day, map { self.days-in-month($!year, $^m) }, 1 ..^ $!month
     }
 
     method check-value($val is copy, $name, $range, :$allow-nonint) {
@@ -102,8 +105,8 @@ my role Dateish {
     }
 
     method check-date {
-        self.check-value($.month, 'month', 1 .. 12);
-        self.check-value($.day, "day of $.year/$.month",
+        self.check-value($!month, 'month', 1 .. 12);
+        self.check-value($!day, "day of $!year/$!month",
             1 .. self.days-in-month);
     }
 
@@ -159,10 +162,6 @@ sub get-local-timezone-offset {
 }
 
 my class DateTime does Dateish {
-     has Int $.year;
-     has Int $.month = 1;
-     has Int $.day = 1;
-
      has Int $.hour      = 0;
      has Int $.minute    = 0;
      has     $.second    = 0.0;
@@ -296,20 +295,20 @@ my class DateTime does Dateish {
     }
 
     method Instant() {
-        Instant.from-posix: self.posix + $.second % 1, $.second >= 60;
+        Instant.from-posix: self.posix + $!second % 1, $!second >= 60;
     }
 
     method posix($ignore-timezone?) {
         $ignore-timezone or self.offset == 0
             or return self.utc.posix;
         # algorithm from Claus Tøndering
-        my $a = (14 - $.month.Int) div 12;
-        my $y = $.year.Int + 4800 - $a;
-        my $m = $.month.Int + 12 * $a - 3;
-        my $jd = $.day + (153 * $m + 2) div 5 + 365 * $y
+        my $a = (14 - $!month.Int) div 12;
+        my $y = $!year.Int + 4800 - $a;
+        my $m = $!month.Int + 12 * $a - 3;
+        my $jd = $!day + (153 * $m + 2) div 5 + 365 * $y
             + $y div 4 - $y div 100 + $y div 400 - 32045;
         ($jd - 2440588) * 24 * 60 * 60
-            + 60*(60*$.hour + $.minute) + self.whole-second;
+            + 60*(60*$!hour + $!minute) + self.whole-second;
     }
 
     method offset {
@@ -415,7 +414,7 @@ my class DateTime does Dateish {
     }
 
     method whole-second() {
-        floor($.second).Int
+        floor($!second).Int
     }
 
     method in-timezone($timezone) {
@@ -448,7 +447,7 @@ my class DateTime does Dateish {
     }
 
     method Date() {
-        Date.new(:$.year, :$.month, :$.day);
+        Date.new(:$!year, :$!month, :$!day);
     }
 
     method Str() {
@@ -457,10 +456,10 @@ my class DateTime does Dateish {
 
     multi method perl(DateTime:D:) {
         sprintf '%s.new(%s)', self.^name, join ', ', map { "{.key} => {.value}" }, do
-            :$.year, :$.month, :$.day, :$.hour, :$.minute,
-            second => $.second.perl,
-            (timezone => $.timezone.perl
-                unless $.timezone === 0),
+            :$!year, :$!month, :$!day, :$!hour, :$!minute,
+            second => $!second.perl,
+            (timezone => $!timezone.perl
+                unless $!timezone === 0),
             (formatter => $.formatter.perl
                 unless &.formatter eqv &default-formatter)
     }
@@ -471,10 +470,6 @@ my class DateTime does Dateish {
 }
 
 my class Date does Dateish {
-    has Int $.year;
-    has Int $.month = 1;
-    has Int $.day = 1;
-
     has Int $.daycount;
 
     method !set-daycount($dc) { $!daycount = $dc }
@@ -602,19 +597,19 @@ my class Date does Dateish {
     }
 
     multi method gist(Date:D:) {
-        sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
+        sprintf '%04d-%02d-%02d', $!year, $!month, $!day;
     }
 
     multi method Str(Date:D:) {
-        sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
+        sprintf '%04d-%02d-%02d', $!year, $!month, $!day;
     }
 
     multi method perl(Date:D:) {
-        self.^name ~ ".new($.year.perl(), $.month.perl(), $.day.perl())";
+        self.^name ~ ".new($!year.perl(), $!month.perl(), $!day.perl())";
     }
 
     multi method ACCEPTS(Date:D: DateTime:D $dt) {
-        $dt.year == $.year && $dt.month == $.month && $dt.day == $.day;
+        $dt.year == $!year && $dt.month == $!month && $dt.day == $!day;
     }
 }
 

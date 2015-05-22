@@ -5,6 +5,7 @@ binmode STDOUT, ':encoding(UTF-8)';
 #use 5.010;
 use utf8;
 
+use Cwd;
 use Date::Simple qw(today ymd);
 
 my %contrib;
@@ -12,26 +13,33 @@ my %contrib;
 my $last_release = shift;
 $last_release = release_date_of_prev_month() if not defined $last_release;
 my $nick_to_name = nick_to_name_from_CREDITS();
-open my $c, '-|', 'git', 'log', "--since=$last_release", '--pretty=format:%an|%cn|%s'
-    or die "Can't open pipe to git log: $!";
-binmode $c, ':encoding(UTF-8)';
-while (my $line = <$c>) {
-    my ($author, $comitter, $msg) = split /\|/, $line, 3;
-    $contrib{nick_to_name($author)}++;
-    $contrib{nick_to_name($comitter)}++ if $comitter ne 'Rakudo Perl';
-    while ($msg =~ /\(([^)]{2,})\)\+\+/g) {
-        $contrib{nick_to_name($1)}++;
+
+my $cwd = getcwd();
+
+for my $dir ($cwd, "$cwd/../MoarVM", "$cwd/../nqp", "$cwd/../roast",
+             "$cwd/nqp", "$cwd/nqp/MoarVM", "$cwd/t/spec") {
+    chdir $dir if -d $dir && -d "$dir/.git/";
+    open my $c, '-|', 'git', 'log', "--since=$last_release", '--pretty=format:%an|%cn|%s'
+        or die "Can't open pipe to git log: $!";
+    binmode $c, ':encoding(UTF-8)';
+    while (my $line = <$c>) {
+        my ($author, $comitter, $msg) = split /\|/, $line, 3;
+        $contrib{nick_to_name($author)}++;
+        $contrib{nick_to_name($comitter)}++ if $comitter ne 'Rakudo Perl';
+        while ($msg =~ /\(([^)]{2,})\)\+\+/g) {
+            $contrib{nick_to_name($1)}++;
+        }
+        while ($msg =~ /([^\s():]{2,})\+\+/g) {
+            my $nick = $1;
+            next if $nick =~ /^[\$\@]/;
+            $contrib{nick_to_name($nick)}++;
+        }
+        while ($msg =~ /courtesy of:?\s*(\S.*)/gi) {
+            $contrib{nick_to_name($1)}++;
+        }
     }
-    while ($msg =~ /([^\s():]{2,})\+\+/g) {
-        my $nick = $1;
-        next if $nick =~ /^[\$\@]/;
-        $contrib{nick_to_name($nick)}++;
-    }
-    while ($msg =~ /courtesy of:?\s*(\S.*)/gi) {
-        $contrib{nick_to_name($1)}++;
-    }
+    close $c or warn $!;
 }
-close $c or warn $!;
 
 my @contrib = reverse sort { $contrib{$a} <=> $contrib{$b} } keys %contrib;
 

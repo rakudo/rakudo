@@ -1,7 +1,7 @@
 my class DateTime { ... }
 my class Date     { ... }
 
-my @UNITS = <second minute hour day week month year> X~ '', 's';
+my %UNITS = (<second minute hour day week month year> X~ "","s").map: {$_ => 1};
 
 my role Dateish {
     has Int $.year;
@@ -113,7 +113,7 @@ my role Dateish {
     method truncate-parts(Cool:D $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
         X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless $unit eq any(@UNITS);
+            unless %UNITS.EXISTS-KEY($unit);
         if $unit eq 'week' | 'weeks' {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
@@ -333,7 +333,7 @@ my class DateTime does Dateish {
         my ($unit, $amount) = %unit.kv;
 
         X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless $unit eq any(@UNITS);
+            unless %UNITS.EXISTS-KEY($unit);
 
         my ($hour, $minute) = $!hour, $!minute;
         my $date;
@@ -547,7 +547,7 @@ my class Date does Dateish {
         my ($unit, $amount) = %unit.kv;
 
         X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless $unit eq any(@UNITS);
+            unless %UNITS.EXISTS-KEY($unit);
 
         my $date;
 

@@ -13,10 +13,14 @@ New in 2015.05
    + Added much faster List.pick(*,:eager) variant
  + Incompatible changes:
    + "unit" declaration needed for blockless packages
-   + Hashes no longer maintain insert order on Moar (on JVM they never did)
+   + Various API changes for the Great List Refactor, such as...
+   + 'for' loops not longer flatten; use 'for flat' for that
    + .map no longer flattens, map as a listop does. Use .flatmap to get the
       old behavior
-   + Nil no longer iterates like the empty List. Use Empty instead.
+   + Likewise other methods that used to flatten their invocant no longer do:
+     all, any, one, none, unique, squish, min, max, minmax, classify, and categorize
+   + Nil no longer iterates like the empty List. Use () or Empty instead.
+   + Hashes no longer maintain insert order on Moar (on JVM they never did)
    + @*INC now contains strings (again), rather than CUR objects
    + Item seperator in INC spec is now ","
    + Type / info seperator in INC spec is now "#"
@@ -28,6 +32,8 @@ New in 2015.05
    + Method .map should be used instead of .for
    + List/Supply.rotor now *must* have elems and gap specified
    + Test.pm functions are now kebab-cased (e.g. throws_like -> throws-like)
+   + in regexes, avoid non-significant whitespace between alphanumerics
+   + Unhandled Failure leaks are now warned about if detected by DESTROY
  + Fixes:
    + Many race conditions, specifically wrt to role specializations
    + Hashes use much less memory on Moar
@@ -39,6 +45,8 @@ New in 2015.05
    + 'earliest' now handles remaining channels without specific handlers
    + Int/Rat ** -Int now generates a Rat if possible, else a Num
    + IO::Path.resolve now returns IO::Path as specced
+   + CALLER now produces consistent results in the dynamic scope of implicit protos
+   + A regex may now be used as the smartmatch of a sequence operator
  + Speedups:
    + generating backtraces is now lazy, improving the speed of e.g. warnings
    + bare startup time now below 100 ms on some machines

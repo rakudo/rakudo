@@ -120,9 +120,7 @@ section at the bottom of the announcement.)
 Include a list of contributors since the last release in the announcement.
 You can get an automatically generated list by running
 
-  $ perl tools/contributors.pl
-
-B<Note>: this program requires the perl module L<Date::Simple> be installed.
+  $ perl6 tools/contributors.pl6
 
 Please check the result manually for duplicates and other errors.
 

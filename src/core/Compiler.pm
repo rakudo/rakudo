@@ -1,6 +1,6 @@
 class Compiler does Systemic {
     has Str $.release;
-    has DateTime $.build-date;
+    has Str $!build-date;
     has Str $.codename;
 
     submethod BUILD (
@@ -17,10 +17,14 @@ class Compiler does Systemic {
           $version // nqp::p6box_s(nqp::atkey($compiler, 'version')) );
         $!release =
           $release // nqp::p6box_s(nqp::atkey($compiler, 'release-number'));
-        $!build-date = DateTime.new(
-          $build-date // nqp::p6box_s(nqp::atkey($compiler, 'build-date')) );
+        $!build-date =
+          $build-date // nqp::p6box_s(nqp::atkey($compiler, 'build-date'));
         $!codename =
           $codename // nqp::p6box_s(nqp::atkey($compiler, 'codename'));
+    }
+
+    method build-date() {
+        DateTime.new($!build-date)
     }
 }
 

@@ -1,3 +1,7 @@
+New in 2015.06
+ + Features:
+   + Lexical pragma 'use trace' now outputs statements on STDERR
+
 New in 2015.05
  + Features:
    + NFG, NFC, NFD, Uni

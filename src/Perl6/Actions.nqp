@@ -861,9 +861,19 @@ Compilation unit '$file' contained the following violations:
 
         if $past {
             my $id := $*STATEMENT_ID;
-            if %*PRAGMAS<trace> {
+            $past.annotate('statement_id', $id);
+
+            # only trace when running in source
+            if %*PRAGMAS<trace> && !$*W.is_precompilation_mode {
                 my $code := ~$/;
-                if $code ne 'use trace' {
+
+                # don't bother putting ops for activating it
+                if $code eq 'use trace' {
+                    $past := 0;
+                }
+
+                # need to generate code
+                else {
                     my $line := $*W.current_line($/);
                     my $file := $*W.current_file;
                     $code    := subst($code, /\s+$/, ''); # chomp!
@@ -877,7 +887,6 @@ Compilation unit '$file' contained the following violations:
                     );
                 }
             }
-            $past.annotate('statement_id', $id);
         }
 
         make $past;

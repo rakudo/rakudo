@@ -741,7 +741,7 @@ class Perl6::World is HLL::World {
             $DEPRECATED($alternative,$from,$removed,
               :$what,
               :file($file // self.current_file),
-              :line($line // HLL::Compiler.lineof($/.orig, $/.from, :cache(1))),
+              :line($line // self.current_line($/)),
             );
         }
     }
@@ -755,6 +755,10 @@ class Perl6::World is HLL::World {
             $file := nqp::cwd ~ '/' ~ $file;
         }
         $file;
+    }
+
+    method current_line($/) {
+        HLL::Compiler.lineof($/.orig,$/.from,:cache(1));
     }
 
     method arglist($/) {
@@ -802,7 +806,7 @@ class Perl6::World is HLL::World {
     # during the deserialization.
     method load_module($/, $module_name, %opts, $cur_GLOBALish) {
         # Immediate loading.
-        my $line   := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+        my $line   := self.current_line($/);
         my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, %opts,
             $cur_GLOBALish, :$line);
         
@@ -3586,8 +3590,7 @@ class Perl6::World is HLL::World {
             $xcbt.SET_FILE_LINE(
                 nqp::box_s(nqp::getlexdyn('$?FILES'),
                     self.find_symbol(['Str'])),
-                nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from, :cache(1)),
-                    self.find_symbol(['Int'])),
+                nqp::box_i(self.current_line($/),self.find_symbol(['Int'])),
             );
             $xcbt.throw;
         }
@@ -3612,8 +3615,7 @@ class Perl6::World is HLL::World {
             $p6ex.SET_FILE_LINE(
                 nqp::box_s(nqp::getlexdyn('$?FILES'),
                     self.find_symbol(['Str'])),
-                nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from, :cache(1)),
-                    self.find_symbol(['Int'])),
+                nqp::box_i(self.current_line($/),self.find_symbol(['Int'])),
             );
         }
         $p6ex.rethrow();

@@ -1,6 +1,8 @@
 New in 2015.06
  + Features:
    + Lexical pragma 'use trace' now outputs statements on STDERR
+ + Incompatible changes:
+   + DateTime default timezone format is now +HH:MM (used to be +HHMM)
 
 New in 2015.05
  + Features:

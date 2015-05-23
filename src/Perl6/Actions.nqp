@@ -122,8 +122,6 @@ role STDActions {
 class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
-    our $STATEMENT_PRINT;
-
     # Could add to this based on signatures.
     our %commatrap := nqp::hash(
         '&categorize', 1,
@@ -142,8 +140,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If, e.g., we support Perl up to v6.1.2, set
         # @MAX_PERL_VERSION to [6, 1, 2].
         @MAX_PERL_VERSION[0] := 6;
-
-        $STATEMENT_PRINT := 0;
     }
 
     sub sink($past) {
@@ -862,16 +858,21 @@ Compilation unit '$file' contained the following violations:
         elsif $<statement> { $past := $<statement>.ast; }
         elsif $<statement_control> { $past := $<statement_control>.ast; }
         else { $past := 0; }
-        if $STATEMENT_PRINT && $past {
-            $past := QAST::Stmts.new(:node($/),
-                QAST::Op.new(
-                    :op<say>,
-                    QAST::SVal.new(:value(~$/))
-                ),
-                $past
-            );
+
+        if $past {
+            my $id := $*STATEMENT_ID;
+            if %*PRAGMAS<trace> {
+                $past := QAST::Stmts.new(:node($/),
+                    QAST::Op.new(
+                        :op<say>,
+                        QAST::SVal.new(:value( $id ~ ": " ~ $/))
+                    ),
+                    $past
+                );
+            }
+            $past.annotate('statement_id', $id);
         }
-        $past.annotate('statement_id', $*STATEMENT_ID) if $past;
+
         make $past;
     }
 
@@ -1267,10 +1268,6 @@ Compilation unit '$file' contained the following violations:
 #                    $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
 #                }
 #            }
-        } elsif $<module_name> {
-            if ~$<module_name> eq 'Devel::Trace' {
-                $STATEMENT_PRINT := 1;
-            }
         }
         make $past;
     }

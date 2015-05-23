@@ -716,6 +716,9 @@ class Perl6::World is HLL::World {
             # argument list really.
             %*PRAGMAS<soft> := $on;
         }
+        elsif $name eq 'trace' {
+            %*PRAGMAS<trace> := $on;
+        }
         elsif $name eq 'MONKEY_TYPING' {
             self.DEPRECATED($/,"'use MONKEY-TYPING'",'2015.04','2015.09',
               :what("'use MONKEY_TYPING'"),

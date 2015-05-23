@@ -862,14 +862,20 @@ Compilation unit '$file' contained the following violations:
         if $past {
             my $id := $*STATEMENT_ID;
             if %*PRAGMAS<trace> {
-                $past := QAST::Stmts.new(:node($/),
-                    QAST::Op.new(
-                        :op<sayfh>,
-                        QAST::Op.new(:op<getstderr>),
-                        QAST::SVal.new(:value( $id ~ ": " ~ $/))
-                    ),
-                    $past
-                );
+                my $code := ~$/;
+                if $code ne 'use trace' {
+                    my $line := $*W.current_line($/);
+                    my $file := $*W.current_file;
+                    $code    := subst($code, /\s+$/, ''); # chomp!
+                    $past := QAST::Stmts.new(:node($/),
+                        QAST::Op.new(
+                            :op<sayfh>,
+                            QAST::Op.new(:op<getstderr>),
+                            QAST::SVal.new(:value("$id ($file:$line)\n$code"))
+                        ),
+                        $past
+                    );
+                }
             }
             $past.annotate('statement_id', $id);
         }
@@ -1919,8 +1925,7 @@ Compilation unit '$file' contained the following violations:
                 );
             }
             if $past.name() eq '$?LINE' {
-                $past := $*W.add_constant('Int', 'int',
-                        HLL::Compiler.lineof($/.orig, $/.from, :cache(1)));
+                $past := $*W.add_constant('Int', 'int', $*W.current_line($/));
             }
             else {
                 $past := $*W.add_string_constant($*W.current_file);
@@ -4662,7 +4667,7 @@ Compilation unit '$file' contained the following violations:
 
         # using nqp::op outside of setting
         if $*SETTING && !%*PRAGMAS<nqp> {
-            my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+            my $line := $*W.current_line($/);
             @*NQP_VIOLATIONS[$line] := @*NQP_VIOLATIONS[$line] // [];
             @*NQP_VIOLATIONS[$line].push($op);
         }

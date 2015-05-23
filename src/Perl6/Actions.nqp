@@ -864,7 +864,8 @@ Compilation unit '$file' contained the following violations:
             if %*PRAGMAS<trace> {
                 $past := QAST::Stmts.new(:node($/),
                     QAST::Op.new(
-                        :op<say>,
+                        :op<sayfh>,
+                        QAST::Op.new(:op<getstderr>),
                         QAST::SVal.new(:value( $id ~ ": " ~ $/))
                     ),
                     $past

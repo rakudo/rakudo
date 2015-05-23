@@ -70,8 +70,7 @@ multi sub plan($number_of_tests) is export {
         $num_of_tests_planned = $number_of_tests;
         $no_plan = 0;
 
-        $output.print: $indents;
-        $output.say: '1..' ~ $number_of_tests;
+        $output.say: $indents ~ '1..' ~ $number_of_tests;
     }
     # Get two successive timestamps to say how long it takes to read the
     # clock, and to let the first test timing work just like the rest.
@@ -80,10 +79,9 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::time_n.
     $time_before = nqp::time_n;
     $time_after  = nqp::time_n;
-    $output.print: $indents
+    $output.say: $indents
       ~ '# between two timestamps '
       ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
-      ~ "\n"
         if $perl6_test_times;
     # Take one more reading to serve as the begin time of the first test
     $time_before = nqp::time_n;
@@ -216,11 +214,6 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    DEPRECATED('is-approx',|<2015.05 2015.09>);
-    is-approx($got, $expected, $desc);
-}
-
-multi sub is-approx(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
@@ -489,25 +482,24 @@ sub proclaim($cond, $desc) {
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
 
-    $output.print: $indents;
+    my $tap = $indents;
     unless $cond {
-        $output.print: "not ";
+        $tap ~= "not ";
         unless  $num_of_tests_run <= $todo_upto_test_num {
             $num_of_tests_failed = $num_of_tests_failed + 1
         }
     }
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
         # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-        $output.print: "ok ", $num_of_tests_run, " - ", $desc.subst('#', '', :g), $todo_reason;
+        $tap ~= "ok $num_of_tests_run - " ~ $desc.subst('#', '', :g) ~ $todo_reason;
     }
     else {
-        $output.print: "ok ", $num_of_tests_run, " - ", $desc;
+        $tap ~= "ok $num_of_tests_run - $desc";
     }
-    $output.print: "\n";
-    $output.print: $indents
+    $output.say: $tap;
+    $output.say: $indents
       ~ "# t="
       ~ ceiling(($time_after-$time_before)*1_000_000)
-      ~ "\n"
         if $perl6_test_times;
 
     unless $cond {
@@ -541,8 +533,7 @@ sub done() is export {
 
     if $no_plan {
         $num_of_tests_planned = $num_of_tests_run;
-        $output.print: $indents;
-        $output.say: "1..$num_of_tests_planned";
+        $output.say: $indents ~ "1..$num_of_tests_planned";
     }
 
     if ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests

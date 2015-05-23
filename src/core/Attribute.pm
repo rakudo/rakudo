@@ -8,6 +8,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has Mu $!auto_viv_container;
     #     has Mu $!build_closure;
     #     has Mu $!package;
+    #     has int $!inlined;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
     #     has Mu $!why;
@@ -110,6 +111,7 @@ my class Attribute { # declared in BOOTSTRAP
     method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }
     method package() { $!package }
+    method inlined() { $!inlined }
     multi method Str(Attribute:D:) { self.name }
     multi method gist(Attribute:D:) { self.type.^name ~ " " ~ self.name }
 

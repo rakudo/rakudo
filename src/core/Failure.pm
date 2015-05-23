@@ -40,8 +40,11 @@ my class Failure {
     method sink() {
         $!exception.throw($!backtrace) unless $!handled
     }
-    method FALLBACK(*@_) {
-        $!exception.throw;
+    method CALL-ME(|) {
+        $!exception.throw($!backtrace)
+    }
+    method FALLBACK(*@) {
+        $!exception.throw($!backtrace)
     }
 }
 

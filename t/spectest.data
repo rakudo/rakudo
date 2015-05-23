@@ -865,7 +865,7 @@ S26-documentation/why-trailing.t
 S26-documentation/why-leading.t
 S28-named-variables/cwd.t
 S28-named-variables/inc.t
-S28-named-variables/slangs.t
+S28-named-variables/slangs.t    # moar
 S29-any/cmp.t
 S29-any/isa.t
 S29-context/die.t
@@ -932,7 +932,7 @@ S32-io/io-path.t
 S32-io/note.t
 S32-io/other.t
 # S32-io/path.t
-S32-io/pipe.t
+S32-io/pipe.t               # moar
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
@@ -1125,7 +1125,7 @@ integration/advent2013-day08.t
 integration/advent2013-day09.t
 integration/advent2013-day10.t
 integration/advent2013-day12.t
-integration/advent2013-day14.t
+# integration/advent2013-day14.t
 integration/advent2013-day15.t
 integration/advent2013-day18.t
 integration/advent2013-day19.t
@@ -1147,7 +1147,7 @@ integration/no-indirect-new.t
 integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
-integration/precompiled.t
+integration/precompiled.t   # moar
 integration/real-strings.t
 integration/role-composition-vs-attribute.t
 integration/rule-in-class-Str.t

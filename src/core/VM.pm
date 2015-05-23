@@ -34,21 +34,6 @@ class VM does Systemic {
     }
 }
 
-multi sub postcircumfix:<{ }> (VM $d, "name" )   {
-    DEPRECATED('$*VM.name', |<2014.05 2015.05>, :what('$*VM<name>') );
-    $d.name
-}
-multi sub postcircumfix:<{ }> (VM $d, "config" ) {
-    DEPRECATED('$*VM.config', |<2014.05 2015.05>, :what('$*VM<config>') );
-    $d.config
-}
-#?if jvm
-multi sub postcircumfix:<{ }> (VM $d, "properties" ) {
-    DEPRECATED('$*VM.properties', |<2014.05 2015.05>, :what('$*VM<properties>') );
-    $d.properties
-}
-#?endif
-
 sub INITIALIZE-A-VM-NOW() {
     my $desc := DateTime.now.Str;
 #?if moar

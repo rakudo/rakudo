@@ -21,10 +21,12 @@ my class BOOTSTRAPATTR {
     has $!type;
     has $!box_target;
     has $!package;
+    has $!inlined;
     method name() { $!name }
     method type() { $!type }
     method box_target() { $!box_target }
     method package() { $!package }
+    method inlined() { $!inlined }
     method has_accessor() { 0 }
     method has-accessor() { 0 }
     method positional_delegate() { 0 }
@@ -1081,6 +1083,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!inlined>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!positional_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));
@@ -1088,13 +1091,14 @@ BEGIN {
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
-        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$has_accessor,
+        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$inlined = 0, :$has_accessor,
                 :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
             my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', nqp::decont($type));
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
+            nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
             if nqp::existskey(%other, 'container_descriptor') {
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
                 if nqp::existskey(%other, 'auto_viv_container') {

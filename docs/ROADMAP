@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2014-09-14
+Last updated: 2015-05-22
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -48,7 +48,6 @@ Regexes
 
 Built-ins/Data Structures
 2 ***   packed arrays (jnthn)
-1 ***** NFG strings, .codes, .graphs, etc.
 2 **    Rat/FatRat/Rational cleanup
 2 **    sized/shaped arrays (jnthn)
 2 ***   val() (japhb)

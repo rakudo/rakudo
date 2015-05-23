@@ -9,7 +9,6 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
     # global cache of files seen
     my %seen;
 
-    method install($source, $from?) { ... }
     method files($file, :$name, :$auth, :$ver) {
         my $base := $file.IO;
         $base.f

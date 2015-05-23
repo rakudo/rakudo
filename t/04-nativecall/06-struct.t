@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 22;
+plan 25;
 
 compile_test_lib('06-struct');
 
@@ -91,6 +91,11 @@ class PointerStruct is repr('CStruct') {
     has PointerThing $.p;
 }
 
+class StructIntStruct is repr('CStruct') {
+    HAS IntStruct $.a;
+    has int32 $.i;
+}
+
 sub ReturnAStruct()            returns MyStruct2 is native('./06-struct') { * }
 sub TakeAStruct(MyStruct $arg) returns int32     is native('./06-struct') { * }
 
@@ -101,6 +106,8 @@ sub ReturnAPointerStruct() returns PointerStruct is native('./06-struct') { * }
 
 sub ReturnAStringStruct()                returns StringStruct is native('./06-struct') { * }
 sub TakeAStringStruct(StringStruct $arg) returns int32        is native('./06-struct') { * }
+
+sub ReturnAStructIntStruct() returns StructIntStruct is native('./06-struct') { * }
 
 # Perl-side tests:
 my MyStruct $obj .= new;
@@ -149,5 +156,10 @@ $strstr2.init;
 #$strstr2.first  := "Lorem";
 #$strstr2.second := "ipsum";
 is TakeAStringStruct($strstr2), 33, 'C-side strict values in struct';
+
+my StructIntStruct $sis = ReturnAStructIntStruct();
+is $sis.i, 42, 'and the int after is 42';
+is $sis.a.first, 101, 'nested first is 101';
+is $sis.a.second, 77, 'nested second is 77';
 
 # vim:ft=perl6

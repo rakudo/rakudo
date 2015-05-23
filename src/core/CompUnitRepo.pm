@@ -110,7 +110,7 @@ sub INCLUDE-SPEC2CUR(Str:D $spec) {
       if $class === Any;
 
     my $abspath = $class.?absolutify($path) // $path;
-    my $id      = "$short-id:$abspath";
+    my $id      = "$short-id#$abspath";
     $lock.protect( {
         %INCLUDE-SPEC2CUR{$id}:exists
           ?? %INCLUDE-SPEC2CUR{$id}

@@ -165,9 +165,4 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
     $action();
 }
 
-sub WINNER(|c) {
-    DEPRECATED('earliest', |<2014.10 2015.09>, :what<winner>);
-    EARLIEST(|c);
-}
-
 # vim: ft=perl6 expandtab sw=4

@@ -390,7 +390,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $compunit.annotate('W', $*W);
 
         my @violations := @*NQP_VIOLATIONS;
-        if @violations {
+        if @violations &&
+          !+nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_NO_DEPRECATIONS'),0) {
+
             my $file := nqp::getlexdyn('$?FILES');
             my $bar  := nqp::gethostname() eq 'ns1'
               ?? ""
@@ -1359,15 +1361,18 @@ Compilation unit '$file' contained the following violations:
         make when_handler_helper($<block>.ast);
     }
 
-    method term:sym<winner>($/) { self.term:sym<earliest>($/,'&WINNER') }
-    method term:sym<earliest>($/, $name = '&EARLIEST') {
+    method term:sym<winner>($/) {
+        $*W.DEPRECATED($/,"'earliest'",'2014.10','2015.09',:what("'winner'"));
+        self.term:sym<earliest>($/);
+    }
+    method term:sym<earliest>($/) {
         my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
         my $wild_done;
         my $wild_more;
         my $wait;
         my $wait_time;
 
-        my $past := QAST::Op.new( :op('call'), :$name, :node($/) );
+        my $past := QAST::Op.new( :op('call'), :name('&EARLIEST'), :node($/) );
         if $<xblock> {
             if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
                 $past.push( QAST::Op.new(
@@ -1920,14 +1925,7 @@ Compilation unit '$file' contained the following violations:
                         HLL::Compiler.lineof($/.orig, $/.from, :cache(1)));
             }
             else {
-                my $file := nqp::getlexdyn('$?FILES');
-                if nqp::isnull($file) {
-                    $file := '<unknown file>';
-                }
-                elsif !nqp::eqat($file,'/',0) {
-                    $file := nqp::cwd ~ '/' ~ $file;
-                }
-                $past := $*W.add_string_constant($file);
+                $past := $*W.add_string_constant($*W.current_file);
             }
         }
         elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {

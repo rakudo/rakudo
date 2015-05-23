@@ -14,7 +14,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-05-21   Rakudo #88 FROGGS
   2015-06-18   Rakudo #89
   2015-07-23   Rakudo #90
   2015-08-20   Rakudo #91 duff
@@ -121,9 +120,7 @@ section at the bottom of the announcement.)
 Include a list of contributors since the last release in the announcement.
 You can get an automatically generated list by running
 
-  $ perl tools/contributors.pl
-
-B<Note>: this program requires the perl module L<Date::Simple> be installed.
+  $ perl6 tools/contributors.pl6
 
 Please check the result manually for duplicates and other errors.
 
@@ -222,13 +219,13 @@ that prove impossible, you can omit the C<-s> from the command line.
 
 Sign the tarball with your PGP key:
 
-    $ gpg --sign rakudo-YYYY-MM.tar.gz
+    $ gpg -b --armor rakudo-YYYY-MM.tar.gz
 
 =item 15.
 
 Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
 
-  $ scp rakudo-YYYY.MM.tar.gz rakudo-YYY-MM.tar.gz.gpg \
+  $ scp rakudo-YYYY.MM.tar.gz rakudo-YYY-MM.tar.gz.asc \
        rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
@@ -336,6 +333,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2015-02-19   Rakudo #85 "Berlin"             (lizmat)
   2015-03-19   Rakudo #86 "Cluj"               (FROGGS)
   2015-04-23   Rakudo #87 "Vladivostok"        (masak)
+  2015-05-21   Rakudo #88 "Dresden"            (FROGGS)
 
 =head1 COPYRIGHT
 

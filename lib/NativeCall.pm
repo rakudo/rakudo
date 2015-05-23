@@ -1,6 +1,6 @@
 use nqp;
 
-unit module NativeCall;
+module NativeCall {
 
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
@@ -155,6 +155,7 @@ my %repr_map =
     'CStruct'   => 'cstruct',
     'CPointer'  => 'cpointer',
     'CArray'    => 'carray',
+    'CUnion'    => 'cunion',
     'VMArray'   => 'vmarray',
     ;
 sub type_code_for(Mu ::T) {
@@ -449,6 +450,45 @@ sub cglobal($libname, $symbol, $target-type) is export is rw {
         },
         STORE => -> | { die "Writing to C globals NYI" }
     )
+}
+
+}
+
+sub EXPORT(|) {
+    use NQPHLL:from<NQP>;
+    my role HAS-decl-grammar {
+        # This is a direct copy of scope_declarator:sym<has>, besides the uppercase spelling.
+        token scope_declarator:sym<HAS> {
+            :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+            <sym>
+            :my $*HAS_SELF := 'partial';
+            :my $*ATTR_INIT_BLOCK;
+            <scoped('has')>
+        }
+    }
+    my role HAS-decl-actions {
+        method scope_declarator:sym<HAS>(Mu $/) {
+            # my $scoped := $<scoped>.ast;
+            my Mu $scoped := nqp::atkey(nqp::findmethod($/, 'hash')($/), 'scoped').ast;
+            my Mu $attr   := $scoped.ann('metaattr');
+            if $attr.package.REPR ne 'CStruct' && $attr.package.REPR ne 'CUnion' {
+                die "Can only use HAS-scoped attributes in classes with repr CStruct or CUnion, not " ~ $attr.package.REPR;
+            }
+            if nqp::objprimspec($attr.type) != 0 {
+                warn "Useless use of HAS scope on an attribute with type { $attr.type.^name }.";
+            }
+            # Mark $attr as inlined, that's why we do all this.
+            nqp::bindattr_i(nqp::decont($attr), $attr.WHAT, '$!inlined', 1);
+            # make $scoped
+            nqp::bindattr(nqp::decont($/), $/.WHAT, '$!made', $scoped);
+        }
+    }
+    my Mu $MAIN-grammar := nqp::atkey(%*LANG, 'MAIN');
+    my Mu $MAIN-actions := nqp::atkey(%*LANG, 'MAIN-actions');
+    nqp::bindkey(%*LANG, 'MAIN',         $MAIN-grammar.HOW.mixin($MAIN-grammar, HAS-decl-grammar));
+    nqp::bindkey(%*LANG, 'MAIN-actions', $MAIN-actions.HOW.mixin($MAIN-actions, HAS-decl-actions));
+
+    {}
 }
 
 # vim:ft=perl6

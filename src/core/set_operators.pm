@@ -7,11 +7,11 @@ multi sub infix:<(elem)>($a, Set $b --> Bool) {
     $b.EXISTS-KEY($a);
 }
 # U+2208 ELEMENT OF
-only sub infix:<<"\x2208">>($a, $b --> Bool) {
+only sub infix:<∈>($a, $b --> Bool) {
     $a (elem) $b;
 }
 # U+2209 NOT AN ELEMENT OF
-only sub infix:<<"\x2209">>($a, $b --> Bool) {
+only sub infix:<∉>($a, $b --> Bool) {
     $a !(elem) $b;
 }
 
@@ -23,11 +23,11 @@ multi sub infix:<(cont)>(Set $a, $b --> Bool) {
     $a.EXISTS-KEY($b);
 }
 # U+220B CONTAINS AS MEMBER
-only sub infix:<<"\x220B">>($a, $b --> Bool) {
+only sub infix:<∋>($a, $b --> Bool) {
     $a (cont) $b;
 }
 # U+220C DOES NOT CONTAIN AS MEMBER
-only sub infix:<<"\x220C">>($a, $b --> Bool) {
+only sub infix:<∌>($a, $b --> Bool) {
     $a !(cont) $b;
 }
 
@@ -53,7 +53,7 @@ only sub infix:<(|)>(**@p) {
     }
 }
 # U+222A UNION
-only sub infix:<<"\x222A">>(|p) {
+only sub infix:<∪>(|p) {
     infix:<(|)>(|p);
 }
 
@@ -93,7 +93,7 @@ only sub infix:<(&)>(**@p) {
     }
 }
 # U+2229 INTERSECTION
-only sub infix:<<"\x2229">>(|p) {
+only sub infix:<∩>(|p) {
     infix:<(&)>(|p);
 }
 
@@ -133,14 +133,14 @@ only sub infix:<(-)>(**@p) {
     }
 }
 # U+2216 SET MINUS
-only sub infix:<<"\x2216">>(|p) {
+only sub infix:<∖>(|p) {
     infix:<(-)>(|p);
 }
 only sub infix:<(^)>(**@p) {
     Set.new(BagHash.new(@p.map(*.Set(:view).keys)).pairs.map({.key if .value == 1}));
 }
 # U+2296 CIRCLED MINUS
-only sub infix:<<"\x2296">>($a, $b --> Setty) {
+only sub infix:<⊖>($a, $b --> Setty) {
     $a (^) $b;
 }
 
@@ -160,11 +160,11 @@ multi sub infix:<<(<=)>>(Setty $a, Setty $b --> Bool) {
     $a <= $b and so $a.keys.all (elem) $b
 }
 # U+2286 SUBSET OF OR EQUAL TO
-only sub infix:<<"\x2286">>($a, $b --> Bool) {
+only sub infix:<⊆>($a, $b --> Bool) {
     $a (<=) $b;
 }
 # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
-only sub infix:<<"\x2288">>($a, $b --> Bool) {
+only sub infix:<⊈>($a, $b --> Bool) {
     $a !(<=) $b;
 }
 
@@ -176,11 +176,11 @@ multi sub infix:<<(<)>>(Setty $a, Setty $b --> Bool) {
     $a < $b and so $a.keys.all (elem) $b;
 }
 # U+2282 SUBSET OF
-only sub infix:<<"\x2282">>($a, $b --> Bool) {
+only sub infix:<⊂>($a, $b --> Bool) {
     $a (<) $b;
 }
 # U+2284 NOT A SUBSET OF
-only sub infix:<<"\x2284">>($a, $b --> Bool) {
+only sub infix:<⊄>($a, $b --> Bool) {
     $a !(<) $b;
 }
 
@@ -192,11 +192,11 @@ multi sub infix:<<(>=)>>(Setty $a, Setty $b --> Bool) {
     $a >= $b and so $b.keys.all (elem) $a;
 }
 # U+2287 SUPERSET OF OR EQUAL TO
-only sub infix:<<"\x2287">>($a, $b --> Bool) {
+only sub infix:<⊇>($a, $b --> Bool) {
     $a (>=) $b;
 }
 # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
-only sub infix:<<"\x2289">>($a, $b --> Bool) {
+only sub infix:<⊉>($a, $b --> Bool) {
     $a !(>=) $b;
 }
 
@@ -208,11 +208,11 @@ multi sub infix:<<(>)>>(Setty $a, Setty $b --> Bool) {
     $a > $b and so $b.keys.all (elem) $a;
 }
 # U+2283 SUPERSET OF
-only sub infix:<<"\x2283">>($a, $b --> Bool) {
+only sub infix:<⊃>($a, $b --> Bool) {
     $a (>) $b;
 }
 # U+2285 NOT A SUPERSET OF
-only sub infix:<<"\x2285">>($a, $b --> Bool) {
+only sub infix:<⊅>($a, $b --> Bool) {
     $a !(>) $b;
 }
 
@@ -244,7 +244,7 @@ only sub infix:<(.)>(**@p) {
     }
 }
 # U+228D MULTISET MULTIPLICATION
-only sub infix:<<"\x228D">>(|p) {
+only sub infix:<⊍>(|p) {
     infix:<(.)>(|p);
 }
 
@@ -270,7 +270,7 @@ only sub infix:<(+)>(**@p) {
     }
 }
 # U+228E MULTISET UNION
-only sub infix:<<"\x228E">>(|p) {
+only sub infix:<⊎>(|p) {
     infix:<(+)>(|p);
 }
 
@@ -289,7 +289,7 @@ multi sub infix:<<(<+)>>(QuantHash $a, QuantHash $b --> Bool) {
     True;
 }
 # U+227C PRECEDES OR EQUAL TO
-only sub infix:<<"\x227C">>($a, $b --> Bool) {
+only sub infix:<≼>($a, $b --> Bool) {
     $a (<+) $b;
 }
 
@@ -308,7 +308,7 @@ multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool) {
     }
 }
 # U+227D SUCCEEDS OR EQUAL TO
-only sub infix:<<"\x227D">>($a, $b --> Bool) {
+only sub infix:<≽>($a, $b --> Bool) {
     $a (>+) $b;
 }
 

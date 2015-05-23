@@ -46,6 +46,9 @@ role Perl6::Metamodel::REPRComposeProtocol {
                         if $attr.associative_delegate {
                             %attr_info<associative_delegate> := 1;
                         }
+                        if nqp::can($attr, 'inlined') {
+                            %attr_info<inlined> := $attr.inlined;
+                        }
                         nqp::push(@attrs, %attr_info);
                     }
                 

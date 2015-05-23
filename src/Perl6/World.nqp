@@ -380,10 +380,12 @@ class Perl6::World is HLL::World {
             }
         }
 
-        my $M := %*COMPILING<%?OPTIONS><M>;
-        if nqp::defined($M) {
-            for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                self.do_pragma_or_load_module($/,1,$longname);
+        unless $in_eval {
+            my $M := %*COMPILING<%?OPTIONS><M>;
+            if nqp::defined($M) {
+                for nqp::islist($M) ?? $M !! [$M] -> $longname {
+                    self.do_pragma_or_load_module($/,1,$longname);
+                }
             }
         }
     }
@@ -669,9 +671,10 @@ class Perl6::World is HLL::World {
         $DEBUG(($push ?? "Push" !! "Unshift") ~ "ing to @?INC:") if $DEBUG;
 
         for $arglist -> $arg {
-            my $string := nqp::index($arg,'#') == -1
+            my $string := nqp::decont(nqp::index($arg,'#') == -1
               ?? nqp::hllizefor("file#$arg", 'perl6')
-              !! $arg;
+              !! $arg
+            );
             $push
               ?? nqp::push($INC,$string)
               !! nqp::unshift($INC,$string);
@@ -689,7 +692,7 @@ class Perl6::World is HLL::World {
         $DEBUG("Attempting '$name' as a pragma") if $DEBUG;
 
         # XXX maybe we need a hash with code to execute
-        if $name eq 'MONKEY-TYPING' || $name eq 'MONKEY_TYPING' {
+        if $name eq 'MONKEY-TYPING' {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
@@ -713,6 +716,13 @@ class Perl6::World is HLL::World {
             # argument list really.
             %*PRAGMAS<soft> := $on;
         }
+        elsif $name eq 'MONKEY_TYPING' {
+            self.DEPRECATED($/,"'use MONKEY-TYPING'",'2015.04','2015.09',
+              :what("'use MONKEY_TYPING'"),
+            );
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            %*PRAGMAS<MONKEY-TYPING> := $on;
+        }
         else {
             $DEBUG("'$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module
@@ -720,6 +730,28 @@ class Perl6::World is HLL::World {
 
         $DEBUG("Successfully handled '$name' as a pragma") if $DEBUG;
         1;
+    }
+
+    method DEPRECATED($/,$alternative,$from,$removed,:$what,:$line,:$file) {
+        my $DEPRECATED := self.find_symbol(['&DEPRECATED']);
+        unless nqp::isnull($DEPRECATED) {
+            $DEPRECATED($alternative,$from,$removed,
+              :$what,
+              :file($file // self.current_file),
+              :line($line // HLL::Compiler.lineof($/.orig, $/.from, :cache(1))),
+            );
+        }
+    }
+
+    method current_file() {
+        my $file := nqp::getlexdyn('$?FILES');
+        if nqp::isnull($file) {
+            $file := '<unknown file>';
+        }
+        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) {
+            $file := nqp::cwd ~ '/' ~ $file;
+        }
+        $file;
     }
 
     method arglist($/) {
@@ -3402,10 +3434,16 @@ class Perl6::World is HLL::World {
                         elsif $c.MARKED('baresigil') {
                             %opts<reason> := "Name must begin with alphabetic character";
                         }
-                        else {
+                        elsif @locprepost[1] ~~ / ^ \s* <[ $ @ \w ' " ]> / ||
+                              @locprepost[1] ~~ / ^ \s+ <[ ( [ { « . ]> / {
                             %opts<reason> := "Two terms in a row";
                         }
+                        elsif @locprepost[1] ~~ / ^ \S / {
+                            %opts<reason> := "Bogus postfix";
+                        }
+                        # "Confused" is already the default, so no "else" clause needed here.
                     }
+                    # or here...
                 }
             }
             

@@ -15,7 +15,7 @@ role CompUnitRepo::Locally {
 
     multi method Str(CompUnitRepo::Locally:D:) { $!IO.abspath }
     multi method gist(CompUnitRepo::Locally:D:) {
-        "{self.short-id}#$!IO.abspath()";
+        self.path-spec
     }
     multi method perl(CompUnitRepo::Locally:D:) {
         $?CLASS.^name ~ ".new('$!IO.abspath()')";
@@ -29,11 +29,10 @@ role CompUnitRepo::Locally {
     multi method WHICH(CompUnitRepo::Locally:D:) { $!WHICH }
 
     method path-spec(CompUnitRepo::Locally:D:) {
-        self.short-id ~ ':' ~ $!IO.abspath;
+        self.short-id ~ '#' ~ $!IO.abspath;
     }
 
     # stubs
-    method install(CompUnitRepo::Locally:D: $source, $from? )             {...}
     method files(CompUnitRepo::Locally:D: $file, :$name, :$auth, :$ver)   {...}
     method candidates(CompUnitRepo::Locally:D: $name,:$file,:$auth,:$ver) {...}
     method short-id(CompUnitRepo::Locally:D:)                             {...}

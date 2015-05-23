@@ -1,27 +1,73 @@
 New in 2015.05
  + Features:
-   + NFG, NFC, NFD
+   + NFG, NFC, NFD, Uni
+   + Implemented unicode property pairs with explicit arguments, e.g.
+     <:NumericValue(0 .. 1)>, <:Name(/LATIN/)> etc (MoarVM only)
+   + :m/:ignoremark implemented (now that we have NFG)
+   + Implement <&foo: $arg>, <&foo($arg)> and my $a = "alpha"; /<::($a)>/
    + List/Supply.rotor expects a list of Pairs (elems|elems => gap)
-   + Implemented unicode property pairs with explicit arguments
+   + Added much faster List.pick(*,:eager) variant
+   + Implemented CLIENT:: (nearest CALLER:: from different package)
    + Normal stacktraces no longer include references to code in settings
    + RAKUDO_BACKTRACE_SETTING to *do* include code in settings
    + RAKUDO_VERBOSE_STACKFRAME environment variable shows source lines
+   + Warnings now show file/line unless the end with a newline
+   + Implemented "is nodal" for signalling behaviour under hypers
+   + Rudimentary tab completion available via the Linenoise module
  + Incompatible changes:
-   + hashes no longer maintain insert order on Moar (on JVM they never did)
+   + The readline integration that existed on the VM level has been removed;
+     it now exists as a module.  To restore readline operations in the REPL
+     (ex. history, line control), install the Linenoise module via Panda
+   + "unit" declaration needed for blockless packages
+   + Various API changes for the Great List Refactor, such as...
+   + 'for' loops not longer flatten; use 'for flat' for that
    + .map no longer flattens, map as a listop does. Use .flatmap to get the
       old behavior
-   + Nil no longer iterates like the empty List. Use Empty instead.
+   + Likewise other methods that used to flatten their invocant no longer do:
+     all, any, one, none, unique, squish, min, max, minmax, classify, and categorize
+   + Nil no longer iterates like the empty List. Use () or Empty instead.
+   + Hashes no longer maintain insert order on Moar (on JVM they never did)
    + @*INC now contains strings (again), rather than CUR objects
+   + Item seperator in INC spec is now ","
+   + Type / info seperator in INC spec is now "#"
+   + .pick($n)/roll($n) now always return lists, even when $n == 1
+   + $?FILE is now always an absolute path
+   + Variable will init/post/compose throw NYI instead of silently doing nothing
+   + The "is cached" trait no longer works on methods, throws a NYI instead
  + Deprecations:
+   + Method .map should be used instead of .for
    + List/Supply.rotor now *must* have elems and gap specified
+   + Test.pm functions are now kebab-cased (e.g. throws_like -> throws-like)
+   + in regexes, avoid non-significant whitespace between alphanumerics
+   + Unhandled Failure leaks are now warned about if detected by DESTROY
  + Fixes:
+   + Many race conditions, specifically wrt to role specializations
    + Hashes use much less memory on Moar
    + my $a will begin/enter/leave/keep/undo/first/pre now set $_ properly
    + List.roll(Inf) now knows it's infinite, so is lazy
    + The REPL is strict by default now, that leaves only '-e' lines to be lax
+   + Undeclared variable compile time error made clearer
+   + IO::Handle.lines(:eager)/.words(:eager) now properly eager again
+   + 'earliest' now handles remaining channels without specific handlers
+   + Int/Rat ** -Int now generates a Rat if possible, else a Num
+   + IO::Path.resolve now returns IO::Path as specced
+   + CALLER now produces consistent results in the dynamic scope of implicit protos
+   + A regex may now be used as the smartmatch of a sequence operator
+   + Fix /a ~ (c) (b)/ capture order bug.
+   + map <:alpha> in regexes etc to proper lookup on JVM
+   + site/lib is now in the C library (.dll/.so/.dylib etc) search path
+   + Fix scoping bugs with statement modifier for and given.
+   + Make { 1 R=> 'a' } and { %*h } construct hashes.
+   + Fix lexical context of regex interpolations
  + Speedups:
    + generating backtraces is now lazy, improving the speed of e.g. warnings
-   + bare startup time now below 100 ms on some machines
+   + Make List.pick about 3% faster, List.pick(*) about 7% faster
+   + Implement new @*INC handling (about 30% faster startup time)
+     (bare startup time is now below 100 ms on some machines)
++ NativeCall:
+   + Implemented CUnions which map to the union C type definition
+   + Implemented HAS declarator for attributes to mark it embedded into the
+     CStruct or CUnion
 
 New in 2015.04
  + Incompatible changes:
@@ -29,9 +75,6 @@ New in 2015.04
      $PREFIX/languages
    + "0" (0 as a string) is now True, no special-casing anymore
    + an Int() coercion type in a multi now creates two candidates: Any and Int
-   + The readline integration that existed on the VM level has been removed;
-     it now exists as a module.  To restore readline operations in the REPL
-     (ex. history, line control), install the Linenoise module via Panda
  + Fixes:
    + try now implies "use fatal", so failures are not leaked
    + "use fatal" now only works in its scope, and not in deeper ones
@@ -78,7 +121,6 @@ New in 2015.04
    + can now reduce ([Z]) with list infixes over an arbitrary number of lists
    + use Foo:from<Perl5> supported when Inline::Perl5 is installed
    + EVAL $code, :lang<perl5> supported when Inline::Perl5 is installed
-   + Rudimentary tab completion available via the Linenoise module
  + Speedups:
    + Str.codes/chars/uc/lc/tc/tclc/ord/flip about 25% faster
    + List.pick about 10% faster

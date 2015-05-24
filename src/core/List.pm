@@ -574,22 +574,34 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    method rotor(*@cycle, :$partial) is nodal {
+    method rotor(List:D: *@cycle, :$partial) is nodal {
+        die "Must specify *how* to rotor a List" unless @cycle;
+
         my $finished = 0;
         # (Note, the xx should be harmless if the cycle is already infinite by accident.)
         my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
         gather for @c -> $s {
             my $elems;
             my $gap;
-            if $s ~~ Pair { $elems = +$s.key; $gap = +$s.value; }
-            else          { $elems = +$s;     $gap = 0; }
+            if $s ~~ Pair {
+                $elems = +$s.key;
+                $gap   = +$s.value;
+            }
+            elsif $s < 1 {
+                die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
+            }
+            else {
+                $elems = +$s;
+                $gap   = 0;
+            }
 
             if $finished + $elems <= self.gimme($finished + $elems) {
                 take self[$finished ..^ $finished + $elems];
                 $finished += $elems + $gap;
             }
             else {
-                take self[$finished .. *] if $partial and $finished < self.elems;
+                take self[$finished .. *]
+                  if $partial and $finished < self.elems;
                 last;
             }
         }

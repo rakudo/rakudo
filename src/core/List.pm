@@ -575,7 +575,8 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method rotor(List:D: *@cycle, :$partial) is nodal {
-        die "Must specify *how* to rotor a List" unless @cycle;
+        die "Must specify *how* to rotor a List"
+          unless @cycle.infinite || @cycle;
 
         my $finished = 0;
         # (Note, the xx should be harmless if the cycle is already infinite by accident.)

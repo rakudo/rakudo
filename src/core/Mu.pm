@@ -623,15 +623,17 @@ multi sub infix:<eqv>(Any $a, Any $b) {
 }
 
 multi sub infix:<eqv>(@a, @b) {
-    unless @a.WHAT === @b.WHAT && (my int $n = @a.elems) == @b.elems {
-        return Bool::False
+    if @a.WHAT === @b.WHAT && (my int $n = @a.elems) == @b.elems {
+        my int $i;
+        while $i < $n {
+            return Bool::False unless @a.AT-POS($i) eqv @b.AT-POS($i);
+            $i = $i + 1;
+        }
+        Bool::True
     }
-    my int $i = 0;
-    while $i < $n {
-        return Bool::False unless @a.AT-POS($i) eqv @b.AT-POS($i);
-        $i = $i + 1;
+    else {
+        Bool::False;
     }
-    Bool::True
 }
 
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {

@@ -155,11 +155,11 @@ my class Any { # declared in BOOTSTRAP
     multi method roll($n) { self.list.roll($n) }
 
     proto method classify(|) is nodal { * }
-    multi method classify($test)   {
-        Hash.^parameterize(Any,Any).new.classify-list( $test, self.list );
+    multi method classify($test, |c)   {
+        Hash.^parameterize(Any,Any).new.classify-list( $test, self.list, |c );
     }
-    multi method classify($test, :$into!)   {
-        ( $into // $into.new ).classify-list( $test, self.list );
+    multi method classify($test, :$into!, |c)   {
+        ( $into // $into.new ).classify-list( $test, self.list, |c );
     }
 
     proto method categorize(|) is nodal { * }

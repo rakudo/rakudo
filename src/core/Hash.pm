@@ -129,7 +129,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method classify-list(|) { * }
-    multi method classify-list( &test, @list ) {
+    multi method classify-list( &test, @list, :&as ) {
         fail X::Cannot::Infinite.new(:action<.classify>) if @list.infinite;
         if @list {
 
@@ -141,22 +141,39 @@ my class Hash { # declared in BOOTSTRAP
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
                     nqp::push(
-                      nqp::p6listitems(nqp::decont($hash{$last} //= [])), $l );
+                      nqp::p6listitems(nqp::decont($hash{$last} //= [])),
+                      &as ?? as($l) !! $l
+                    );
+                }
+            }
+
+            # simple classify with to store a specific value
+            elsif &as {
+                @list.map: {
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+                      as($_)
+                    )
                 }
             }
 
             # just a simple classify
             else {
-                @list.map: { nqp::push( nqp::p6listitems(nqp::decont(self{test $_} //= [])), $_ ) }
+                @list.map: {
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+                      $_
+                    )
+                }
             }
         }
         self;
     }
-    multi method classify-list( %test, $list ) {
-        samewith( { %test{$^a} }, $list );
+    multi method classify-list( %test, $list, |c ) {
+        samewith( { %test{$^a} }, $list, |c );
     }
-    multi method classify-list( @test, $list ) {
-        samewith( { @test[$^a] }, $list );
+    multi method classify-list( @test, $list, |c ) {
+        samewith( { @test[$^a] }, $list, |c );
     }
 
     proto method categorize-list(|) { * }

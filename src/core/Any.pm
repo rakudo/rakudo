@@ -155,6 +155,12 @@ my class Any { # declared in BOOTSTRAP
     multi method roll($n) { self.list.roll($n) }
 
     proto method classify(|) is nodal { * }
+    multi method classify() {
+        die "Must specify something to classify with, a Callable, Hash or List";
+    }
+    multi method classify(Whatever) {
+        die "Doesn't make sense to classify with itself";
+    }
     multi method classify($test, |c)   {
         Hash.^parameterize(Any,Any).new.classify-list( $test, self.list, |c );
     }
@@ -163,6 +169,12 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method categorize(|) is nodal { * }
+    multi method categorize() {
+        die "Must specify something to categorize with, a Callable, Hash or List";
+    }
+    multi method categorize(Whatever) {
+        die "Doesn't make sense to categorize with itself";
+    }
     multi method categorize($test) {
         Hash.^parameterize(Any,Any).new.categorize-list( $test, self.list );
     }

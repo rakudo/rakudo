@@ -382,7 +382,7 @@ my class Hash { # declared in BOOTSTRAP
             HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if TKey === Any and TValue === Mu and nqp::iscont(SELF) {
+            if nqp::iscont(SELF) and TKey === Any and TValue === Mu {
                 ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {

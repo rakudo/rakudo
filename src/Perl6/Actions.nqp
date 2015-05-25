@@ -3010,6 +3010,23 @@ Compilation unit '$file' contained the following violations:
                 QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
             ));
         }
+
+        # attach return type
+        if $*OFTYPE {
+            my $sig := $code.signature;
+            if $sig.has_returns {
+                my $prev_returns := $sig.returns;
+                $*W.throw($*OFTYPE, 'X::Redeclaration',
+                    what    => 'return type for',
+                    symbol  => $code,
+                    postfix => " (previous return type was "
+                                ~ $prev_returns.HOW.name($prev_returns)
+                                ~ ')',
+                );
+            }
+            $sig.set_returns($*OFTYPE.ast);
+        }
+
         
         # Document it
         Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);

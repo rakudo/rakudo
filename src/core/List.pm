@@ -103,7 +103,7 @@ my class List does Positional { # declared in BOOTSTRAP
         self.EXISTS-POS($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }
 
-    multi method eager(List:D:) { self.gimme(*); self }
+    method eager() { self.gimme(*); self }
 
     method elems() is nodal {
         return 0 unless self.DEFINITE;

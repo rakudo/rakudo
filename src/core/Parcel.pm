@@ -74,10 +74,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     method flat()  is nodal { nqp::p6list(nqp::clone($!storage), List, Bool::True) }
     method list()  is nodal { nqp::p6list(nqp::clone($!storage), List, Mu) }
     method lol()   is nodal { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
-
-    multi method eager(Parcel:D:) {
-        nqp::p6list(nqp::clone($!storage), List, Mu).eager;
-    }
+    method eager() is nodal { nqp::p6list(nqp::clone($!storage), List, Mu).eager }
     method FOR(|c) {
         if nqp::elems($!storage) == 1 and !nqp::isnull(nqp::atpos($!storage,0)) and !nqp::iscont(nqp::atpos($!storage,0)) {
             try { nqp::atpos($!storage,0).map(|c) } // nqp::p6list(nqp::clone($!storage), List, Mu).map(|c);

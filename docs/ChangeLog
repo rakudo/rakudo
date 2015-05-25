@@ -3,6 +3,7 @@ New in 2015.06
    + Lexical pragma 'use trace' now outputs statements on STDERR
  + Incompatible changes:
    + DateTime default timezone format is now +HH:MM (used to be +HHMM)
+   + "".IO / IO::Path.new("") no longer legal, use "." for current dir
 
 New in 2015.05
  + Features:

@@ -777,20 +777,22 @@ multi sub elems($a) { $a.elems }
 proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
-proto sub classify(|) { * }
-multi sub classify( $test, *@items, :&as ) {
-    Hash.^parameterize(Any,Any).new.classify-list( $test, @items, :&as );
+sub classify( $test, *@items, *%named ) {
+    if %named.EXISTS-KEY('into') && %named.DELETE-KEY -> $into {
+        ( $into // $into.new).classify-list($test, @items, |%named);
+    }
+    else {
+        Hash.^parameterize(Any,Any).new.classify-list($test, @items, |%named);
+    }
 }
-#multi sub classify( $test, *@items, :$into!, :&as ) {   # problem in MMD
-#    ( $into // $into.new).classify-list( $test, @items, :&as );
-#}
-
-proto sub categorize(|) { * }
-multi sub categorize( $test, *@items, :&as ) {
-    Hash.^parameterize(Any,Any).new.categorize-list( $test, @items, :&as ) }
-#multi sub categorize( $test, *@items, :$into!, :&as ) {   # problem in MMD
-#    ( $into // $into.new).categorize-list( $test, @items, :&as );
-#}
+sub categorize( $test, *@items, *%named ) {
+    if %named.EXISTS-KEY('into') && %named.DELETE-KEY -> $into {
+        ( $into // $into.new).categorize-list($test, @items, |%named);
+    }
+    else {
+        Hash.^parameterize(Any,Any).new.categorize-list($test, @items, |%named);
+    }
+}
 
 proto sub uniq(|) { * }
 multi sub uniq(*@values, |c) {

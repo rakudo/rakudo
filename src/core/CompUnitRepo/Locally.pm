@@ -7,9 +7,7 @@ role CompUnitRepo::Locally {
 
     method new(CompUnitRepo::Locally: $dir) {
         my $abspath := $*SPEC.rel2abs($dir);
-        try mkdir $abspath;
         my $IO      := IO::Path.new-from-absolute-path($abspath);
-        return Nil unless $IO.d and $IO.r;
 
         %instances{$abspath} //=
           self.bless(:$IO,:lock(Lock.new),:WHICH(self.^name ~ '|' ~ $abspath));

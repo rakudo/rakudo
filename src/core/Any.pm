@@ -161,11 +161,11 @@ my class Any { # declared in BOOTSTRAP
     multi method classify(Whatever) {
         die "Doesn't make sense to classify with itself";
     }
-    multi method classify($test, :&as)   {
-        Hash.^parameterize(Any,Any).new.classify-list( $test, self.list, :&as );
-    }
     multi method classify($test, :$into!, :&as)   {
         ( $into // $into.new ).classify-list( $test, self.list, :&as);
+    }
+    multi method classify($test, :&as)   {
+        Hash.^parameterize(Any,Any).new.classify-list( $test, self.list, :&as );
     }
 
     proto method categorize(|) is nodal { * }
@@ -175,11 +175,11 @@ my class Any { # declared in BOOTSTRAP
     multi method categorize(Whatever) {
         die "Doesn't make sense to categorize with itself";
     }
-    multi method categorize($test, :&as) {
-        Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
-    }
     multi method categorize($test, :$into!, :&as) {
         ( $into // $into.new ).categorize-list( $test, self.list, :&as );
+    }
+    multi method categorize($test, :&as) {
+        Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
     }
 
     # derived from MapIter/list

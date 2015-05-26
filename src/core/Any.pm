@@ -778,7 +778,8 @@ proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
 sub classify( $test, *@items, *%named ) {
-    if %named.EXISTS-KEY('into') && %named.DELETE-KEY -> $into {
+    if %named.EXISTS-KEY("into") {
+        my $into := %named.DELETE-KEY("into");
         ( $into // $into.new).classify-list($test, @items, |%named);
     }
     else {
@@ -786,7 +787,8 @@ sub classify( $test, *@items, *%named ) {
     }
 }
 sub categorize( $test, *@items, *%named ) {
-    if %named.EXISTS-KEY('into') && %named.DELETE-KEY -> $into {
+    if %named.EXISTS-KEY("into") {
+        my $into := %named.DELETE-KEY("into");
         ( $into // $into.new).categorize-list($test, @items, |%named);
     }
     else {

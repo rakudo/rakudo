@@ -82,8 +82,13 @@ multi sub take(|) {
 }
 #?endif
 
-my &last := -> | {
+proto sub last(|) { * }
+multi sub last() {
+    THROW(Nil, nqp::const::CONTROL_LAST);
+}
+multi sub last(*@) {
     my Mu $args := nqp::p6argvmarray();
+
     if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
         nqp::atpos($args, 0).last()
     }
@@ -91,10 +96,15 @@ my &last := -> | {
         my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
         THROW($parcel, nqp::const::CONTROL_LAST)
     }
-};
+}
 
-my &next := -> | {
+proto sub next(|) { * }
+multi sub next() {
+    THROW(Nil, nqp::const::CONTROL_NEXT);
+}
+multi sub next(*@) {
     my Mu $args := nqp::p6argvmarray();
+
     if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
         nqp::atpos($args, 0).next()
     }
@@ -102,10 +112,15 @@ my &next := -> | {
         my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
         THROW($parcel, nqp::const::CONTROL_NEXT)
     }
-};
+}
 
-my &redo := -> | {
+proto sub redo(|) { * }
+multi sub redo() {
+    THROW(Nil, nqp::const::CONTROL_REDO);
+}
+multi sub redo(*@) {
     my Mu $args := nqp::p6argvmarray();
+
     if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
         nqp::atpos($args, 0).redo()
     }
@@ -113,7 +128,7 @@ my &redo := -> | {
         my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
         THROW($parcel, nqp::const::CONTROL_REDO)
     }
-};
+}
 
 proto sub succeed(|) { * }
 multi sub succeed() {

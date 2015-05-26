@@ -161,11 +161,11 @@ my class Any { # declared in BOOTSTRAP
     multi method classify(Whatever) {
         die "Doesn't make sense to classify with itself";
     }
-    multi method classify($test, |c)   {
-        Hash.^parameterize(Any,Any).new.classify-list( $test, self.list, |c );
+    multi method classify($test, :&as)   {
+        Hash.^parameterize(Any,Any).new.classify-list( $test, self.list, :&as );
     }
-    multi method classify($test, :$into!, |c)   {
-        ( $into // $into.new ).classify-list( $test, self.list, |c );
+    multi method classify($test, :$into!, :&as)   {
+        ( $into // $into.new ).classify-list( $test, self.list, :&as);
     }
 
     proto method categorize(|) is nodal { * }
@@ -175,11 +175,11 @@ my class Any { # declared in BOOTSTRAP
     multi method categorize(Whatever) {
         die "Doesn't make sense to categorize with itself";
     }
-    multi method categorize($test) {
-        Hash.^parameterize(Any,Any).new.categorize-list( $test, self.list );
+    multi method categorize($test, :&as) {
+        Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
     }
-    multi method categorize($test, :$into!) {
-        ( $into // $into.new ).categorize-list( $test, self.list );
+    multi method categorize($test, :$into!, :&as) {
+        ( $into // $into.new ).categorize-list( $test, self.list, :&as );
     }
 
     # derived from MapIter/list
@@ -778,15 +778,18 @@ proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
 proto sub classify(|) { * }
-multi sub classify( $test, *@items ) { Hash.^parameterize(Any,Any).new.classify-list( $test, @items ) }
-#multi sub classify( $test, *@items, :$into! ) {   # problem in MMD
-#    ( $into // $into.new).classify-list( $test, @items );
+multi sub classify( $test, *@items, :&as ) {
+    Hash.^parameterize(Any,Any).new.classify-list( $test, @items, :&as );
+}
+#multi sub classify( $test, *@items, :$into!, :&as ) {   # problem in MMD
+#    ( $into // $into.new).classify-list( $test, @items, :&as );
 #}
 
 proto sub categorize(|) { * }
-multi sub categorize( $test, *@items ) { Hash.^parameterize(Any,Any).new.categorize-list( $test, @items ) }
-#multi sub categorize( $test, *@items, :$into! ) {   # problem in MMD
-#    ( $into // $into.new).categorize-list( $test, @items );
+multi sub categorize( $test, *@items, :&as ) {
+    Hash.^parameterize(Any,Any).new.categorize-list( $test, @items, :&as ) }
+#multi sub categorize( $test, *@items, :$into!, :&as ) {   # problem in MMD
+#    ( $into // $into.new).categorize-list( $test, @items, :&as );
 #}
 
 proto sub uniq(|) { * }

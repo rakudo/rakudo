@@ -147,7 +147,7 @@ my class Hash { # declared in BOOTSTRAP
                 }
             }
 
-            # simple classify with to store a specific value
+            # simple classify to store a specific value
             elsif &as {
                 @list.map: {
                     nqp::push(
@@ -177,21 +177,23 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method categorize-list(|) { * }
-    multi method categorize-list( &test, @list ) {
+    multi method categorize-list( &test, @list, :&as ) {
         fail X::Cannot::Infinite.new(:action<.categorize>) if @list.infinite;
         if @list {
 
             # multi-level categorize
             if nqp::istype(test(@list[0])[0],List) {
                 @list.map: -> $l {
+                    my $value := &as ?? as($l) !! $l;
                     for test($l) -> $k {
                         my @keys = @($k);
                         my $last := @keys.pop;
                         my $hash  = self;
                         $hash = $hash{$_} //= self.new for @keys;
                         nqp::push(
-                          nqp::p6listitems(
-                            nqp::decont($hash{$last} //= [])), $l );
+                          nqp::p6listitems(nqp::decont($hash{$last} //= [])),
+                          $value
+                        );
                     }
                 }
             }
@@ -199,8 +201,9 @@ my class Hash { # declared in BOOTSTRAP
             # just a simple categorize
             else {
                 @list.map: -> $l {
+                    my $value := &as ?? as($l) !! $l;
                     nqp::push(
-                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
                       for test($l);
                 }
             }

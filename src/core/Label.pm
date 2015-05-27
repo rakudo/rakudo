@@ -20,7 +20,9 @@ my class Label {
         $!name
     }
 
-    # XXX method leave(@args)
+    method leave(*@) {
+        X::NYI.new(:feature("{self.^name}.leave()")).throw;
+    }
 
     multi method gist(Label:D:) {
         my $is-win := $*DISTRO.is-win;

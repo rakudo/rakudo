@@ -135,6 +135,10 @@ my class Routine { # declared in BOOTSTRAP
     method set_why($why) {
         $!why := $why;
     }
+
+    method leave(*@) {
+        X::NYI.new(:feature("{self.^name}.leave()")).throw;
+    }
 }
 
 multi sub trait_mod:<is>(Routine $r, :$cached!) {

@@ -89,13 +89,9 @@ multi sub last() {
 multi sub last(*@) {
     my Mu $args := nqp::p6argvmarray();
 
-    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
-        nqp::atpos($args, 0).last()
-    }
-    else {
-        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
-        THROW($parcel, nqp::const::CONTROL_LAST)
-    }
+    nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label)
+      ?? nqp::atpos($args, 0).last
+      !! die "Can only specify a Label with 'last'";
 }
 
 proto sub next(|) { * }
@@ -105,13 +101,9 @@ multi sub next() {
 multi sub next(*@) {
     my Mu $args := nqp::p6argvmarray();
 
-    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
-        nqp::atpos($args, 0).next()
-    }
-    else {
-        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
-        THROW($parcel, nqp::const::CONTROL_NEXT)
-    }
+    nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label)
+      ?? nqp::atpos($args, 0).next
+      !! die "Can only specify a Label with 'next'";
 }
 
 proto sub redo(|) { * }
@@ -121,13 +113,9 @@ multi sub redo() {
 multi sub redo(*@) {
     my Mu $args := nqp::p6argvmarray();
 
-    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
-        nqp::atpos($args, 0).redo()
-    }
-    else {
-        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
-        THROW($parcel, nqp::const::CONTROL_REDO)
-    }
+    nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label)
+      ?? nqp::atpos($args, 0).redo
+      !! die "Can only specify a Label with 'redo'";
 }
 
 proto sub succeed(|) { * }

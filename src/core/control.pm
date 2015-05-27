@@ -83,40 +83,19 @@ multi sub take(|) {
 #?endif
 
 proto sub last(|) { * }
-multi sub last() {
-    THROW(Nil, nqp::const::CONTROL_LAST);
-}
-multi sub last(*@) {
-    my Mu $args := nqp::p6argvmarray();
-
-    nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label)
-      ?? nqp::atpos($args, 0).last
-      !! die "Can only specify a Label with 'last'";
-}
+multi sub last()           { THROW(Nil, nqp::const::CONTROL_LAST) }
+multi sub last(Label:D \x) { x.last }
+multi sub last(*@)         { die "Can only specify a Label with 'last'" }
 
 proto sub next(|) { * }
-multi sub next() {
-    THROW(Nil, nqp::const::CONTROL_NEXT);
-}
-multi sub next(*@) {
-    my Mu $args := nqp::p6argvmarray();
-
-    nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label)
-      ?? nqp::atpos($args, 0).next
-      !! die "Can only specify a Label with 'next'";
-}
+multi sub next()           { THROW(Nil, nqp::const::CONTROL_NEXT) }
+multi sub next(Label:D \x) { x.next }
+multi sub next(*@)         { die "Can only specify a Label with 'next'" }
 
 proto sub redo(|) { * }
-multi sub redo() {
-    THROW(Nil, nqp::const::CONTROL_REDO);
-}
-multi sub redo(*@) {
-    my Mu $args := nqp::p6argvmarray();
-
-    nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label)
-      ?? nqp::atpos($args, 0).redo
-      !! die "Can only specify a Label with 'redo'";
-}
+multi sub redo()           { THROW(Nil, nqp::const::CONTROL_REDO) }
+multi sub redo(Label:D \x) { x.redo }
+multi sub redo(*@)         { die "Can only specify a Label with 'redo'" }
 
 proto sub succeed(|) { * }
 multi sub succeed() {

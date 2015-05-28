@@ -1061,7 +1061,14 @@ my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
 my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
     has $.type;
     has $.spaces;
-    method message() { "'=begin' not terminated by matching '$.spaces=end $.type'" }
+    has $.instead;
+    method message() {
+        if $.instead {
+            qq{Expected "=end $.type" to terminate "=begin $.type"; found "=end $.instead" instead.}
+        } else {
+            "'=begin' not terminated by matching '$.spaces=end $.type'"
+        }
+    }
 }
 
 my class X::Syntax::Confused does X::Syntax {

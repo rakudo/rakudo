@@ -75,6 +75,9 @@ multi sub take(|) {
 }
 #?endif
 
+proto sub goto(|) { * }
+multi sub goto(Label:D \x) { x.goto }
+
 proto sub last(|) { * }
 multi sub last()           { THROW-NIL(nqp::const::CONTROL_LAST) }
 multi sub last(Label:D \x) { x.last }

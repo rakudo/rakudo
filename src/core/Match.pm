@@ -82,7 +82,7 @@ my class Match is Capture is Cool {
     }
 
     method make(Match:D: Mu \made) {
-        $!made = made;
+        $!made := made;
         nqp::bindattr(
             nqp::decont(self.CURSOR),
             Cursor,

@@ -385,17 +385,15 @@ my class Hash { # declared in BOOTSTRAP
             HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if nqp::iscont(SELF) and TKey === Any and TValue === Mu {
+            my $TKey-perl   := TKey.perl;
+            my $TValue-perl := TValue.perl;
+            if nqp::iscont(SELF) && $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
                 ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
-                'Hash['
-                  ~ TValue.perl
-                  ~ ','
-                  ~ TKey.perl
-                  ~ '].new('
-                  ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
-                  ~ ')';
+                "Hash[$TValue-perl,$TKey-perl].new({
+                  self.pairs.sort.map({.perl(:arglist)}).join(', ')
+                })";
             }
         }
         multi method DELETE-KEY($key) {

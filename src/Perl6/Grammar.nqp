@@ -190,7 +190,7 @@ role STD {
         <babble($l, @base_tweaks)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <nibble($lang)> [ $stop || { $/.CURSOR.panic("Couldn't find terminator $stop (corresponding $start was at line {HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from())})") } ]
+        $start <nibble($lang)> [ $stop || { $/.CURSOR.typed_panic('X::Comp::AdHoc', payload => "Couldn't find terminator $stop (corresponding $start was at line {HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from())})", expected => [$stop] ) } ]
 
         {
             nqp::can($lang, 'herelang') && self.queue_heredoc(

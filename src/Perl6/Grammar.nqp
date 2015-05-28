@@ -788,8 +788,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          $<pod_content> = [ .*? ]
-         ^^ $<spaces> '=end' \h+ 'comment' [ <pod_newline> | $ ]
-         || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>}
+         ^^ $<spaces> '=end' \h+
+         [
+            'comment' [ <pod_newline> | $ ]
+            || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+         ]
         ]
     }
 
@@ -813,8 +816,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          <pod_content> *
-         ^^ $<spaces> '=end' \h+ $<type> [ <pod_newline> | $ ]
-         || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>}
+         ^^ $<spaces> '=end' \h+
+         [
+             $<type> [ <pod_newline> | $ ]
+             || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+         ]
         ]
     }
 
@@ -827,8 +833,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          [ $<table_row>=<.table_row_or_blank> ]*
-         ^^ \h* '=end' \h+ 'table' [ <pod_newline> | $ ]
-         || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>}
+         ^^ \h* '=end' \h+
+         [
+            'table' [ <pod_newline> | $ ]
+             || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+         ]
         ]
     }
 
@@ -841,8 +850,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_DELIMITED_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>+
         [
-        || <delimited_code_content($<spaces>)>
-        || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'code', spaces => ~$<spaces>}
+        || <delimited_code_content($<spaces>)> $<spaces> '=end' \h+
+            [ 'code' [ <pod_newline> | $ ]
+              || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'code', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+            ]
         ]
     }
 
@@ -854,7 +865,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <pod_string>**0..1 <pod_newline>
         | <pod_newline>
         )*
-        $spaces '=end' \h+ 'code' [ <pod_newline> | $ ]
     }
 
     token table_row {

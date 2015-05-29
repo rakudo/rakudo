@@ -285,6 +285,10 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::push_i(@splicees, @values.shift) while @values;
         nqp::splice(self, @splicees, $length, 0);
     }
+
+    multi method push(Buf:D: *@values) {
+        self.push(@values);
+    }
 }
 
 constant buf8 = Buf[uint8];

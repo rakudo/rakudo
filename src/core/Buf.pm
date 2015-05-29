@@ -275,8 +275,15 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::bindpos_i(self,$pos,assignee)
     }
 
-    method push(Buf:D: Mu $value) {
+    multi method push(Buf:D: Mu $value) {
         nqp::push_i(self, $value);
+    }
+
+    multi method push(Buf:D: @values) {
+        my int $length = nqp::elems(self);
+        my @splicees := nqp::create(self);
+        nqp::push_i(@splicees, @values.shift) while @values;
+        nqp::splice(self, @splicees, $length, 0);
     }
 }
 

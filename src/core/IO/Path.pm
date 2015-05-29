@@ -306,7 +306,7 @@ my class IO::Path is Cool {
         nqp::rename($.abspath, nqp::unbox_s($to.abspath));
         CATCH { default {
             fail X::IO::Rename.new(
-              :from($!abspath), :$to($to.abspath), :os-error(.Str) );
+              :from($!abspath), :to($to.abspath), :os-error(.Str) );
         } }
         True;
     }

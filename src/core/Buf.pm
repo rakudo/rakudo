@@ -276,9 +276,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     method push(Buf:D: Mu $value) {
-        my int $length = nqp::elems(self);
-        nqp::setelems(self, $length + 1);
-        nqp::bindpos_i(self, $length, $value);
+        nqp::push_i(self, $value);
     }
 }
 

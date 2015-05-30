@@ -1855,7 +1855,19 @@ Compilation unit '$file' contained the following violations:
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
         my $past := QAST::Var.new( :name(@name[+@name - 1]), :node($/));
+
         if $twigil eq '*' {
+
+            # DEPRECATIONS
+            if $past.name() eq '$*OS' {
+                $*W.DEPRECATED($/,
+                  '$*DISTRO.name','2014.09','2015.09',:what('$*OS'));
+            }
+            elsif $past.name() eq '$*OSVER' {
+                $*W.DEPRECATED($/,
+                  '$*DISTRO.version','2014.09','2015.09',:what('$*OSVER'));
+            }
+
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
                 $*W.add_string_constant($past.name()));

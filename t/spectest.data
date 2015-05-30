@@ -835,7 +835,6 @@ S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 # S19-command-line-options/04-negation.t
 # S19-command-line-options/05-delimited-options.t
-# S19-command-line-options/06-deprecated.t
 S22-package-format/local.t
 S24-testing/0-compile.t
 # S24-testing/1-basic.t

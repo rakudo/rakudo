@@ -42,7 +42,16 @@ class Kernel does Systemic {
                       !! $unamev.chomp;
                 }
                 default {
-                    uname '-v';
+                    given $.name {
+                        when 'linux' {
+                            # somewhat counter-intuitively the '-r' is what
+                            # most people think of the kernel version
+                            uname '-r';
+                        }
+                        default {
+                            uname '-v';
+                        }
+                    }
                 }
             }
         } );

@@ -9,11 +9,6 @@ sub print(|) {
 
 proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
-multi sub say(Obsolete:D \o) {
-    my $out := $*OUT;
-    $out.print: o.gist;
-    $out.print-nl;
-}
 multi sub say(Str:D \x) {
     my $out := $*OUT;
     $out.print: x;

@@ -1,6 +1,7 @@
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
+my class X::Cannot::Infinite    { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     proto method new(|) { * }
@@ -280,6 +281,9 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method push(Buf:D: @values is copy) {
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
+
         my int $length = nqp::elems(self);
         my @splicees := nqp::create(self);
         nqp::push_i(@splicees, @values.shift) while @values;

@@ -933,6 +933,7 @@ S32-io/note.t
 S32-io/other.t
 # S32-io/path.t
 S32-io/pipe.t               # moar
+S32-io/rename.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t

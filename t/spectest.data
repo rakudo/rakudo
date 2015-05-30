@@ -1125,7 +1125,7 @@ integration/advent2013-day08.t
 integration/advent2013-day09.t
 integration/advent2013-day10.t
 integration/advent2013-day12.t
-# integration/advent2013-day14.t
+integration/advent2013-day14.t
 integration/advent2013-day15.t
 integration/advent2013-day18.t
 integration/advent2013-day19.t

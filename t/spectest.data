@@ -840,7 +840,6 @@ S24-testing/0-compile.t
 # S24-testing/1-basic.t
 # S24-testing/2-force_todo.t
 S24-testing/3-output.t
-# S24-testing/4-version_lt.t
 # S24-testing/6-done_testing.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t

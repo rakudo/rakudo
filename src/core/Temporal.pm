@@ -140,7 +140,7 @@ sub default-formatter(DateTime $dt, Bool :$subseconds) {
           ?? $dt.second.fmt('%09.6f')
           !! $dt.whole-second.fmt('%02d'),
         do $o
-         ?? sprintf '%s%02d%02d',
+         ?? sprintf '%s%02d:%02d',
                 $o < 0 ?? '-' !! '+',
                 ($o.abs / 60 / 60).floor,
                 ($o.abs / 60 % 60).floor
@@ -255,7 +255,7 @@ my class DateTime does Dateish {
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',
-                    format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+0100)',
+                    format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
                 ).throw;
         my $year   = (+$0).Int;
         my $month  = (+$1).Int;

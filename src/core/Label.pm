@@ -20,7 +20,8 @@ my class Label {
         $!name
     }
 
-    # XXX method leave(@args)
+    method goto(*@)  { X::NYI.new(:feature("{self.^name}.goto()")).throw }
+    method leave(*@) { X::NYI.new(:feature("{self.^name}.leave()")).throw }
 
     multi method gist(Label:D:) {
         my $is-win := $*DISTRO.is-win;
@@ -35,7 +36,6 @@ my class Label {
 
     method Int() { nqp::where(nqp::decont(self)) }
 
-    # XXX method goto
     method next() {
         my Mu $ex := nqp::newexception();
         nqp::setpayload($ex, nqp::decont(self));

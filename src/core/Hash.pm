@@ -129,7 +129,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method classify-list(|) { * }
-    multi method classify-list( &test, @list ) {
+    multi method classify-list( &test, @list, :&as ) {
         fail X::Cannot::Infinite.new(:action<.classify>) if @list.infinite;
         if @list {
 
@@ -141,40 +141,59 @@ my class Hash { # declared in BOOTSTRAP
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
                     nqp::push(
-                      nqp::p6listitems(nqp::decont($hash{$last} //= [])), $l );
+                      nqp::p6listitems(nqp::decont($hash{$last} //= [])),
+                      &as ?? as($l) !! $l
+                    );
+                }
+            }
+
+            # simple classify to store a specific value
+            elsif &as {
+                @list.map: {
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+                      as($_)
+                    )
                 }
             }
 
             # just a simple classify
             else {
-                @list.map: { nqp::push( nqp::p6listitems(nqp::decont(self{test $_} //= [])), $_ ) }
+                @list.map: {
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+                      $_
+                    )
+                }
             }
         }
         self;
     }
-    multi method classify-list( %test, $list ) {
-        samewith( { %test{$^a} }, $list );
+    multi method classify-list( %test, $list, |c ) {
+        samewith( { %test{$^a} }, $list, |c );
     }
-    multi method classify-list( @test, $list ) {
-        samewith( { @test[$^a] }, $list );
+    multi method classify-list( @test, $list, |c ) {
+        samewith( { @test[$^a] }, $list, |c );
     }
 
     proto method categorize-list(|) { * }
-    multi method categorize-list( &test, @list ) {
+    multi method categorize-list( &test, @list, :&as ) {
         fail X::Cannot::Infinite.new(:action<.categorize>) if @list.infinite;
         if @list {
 
             # multi-level categorize
             if nqp::istype(test(@list[0])[0],List) {
                 @list.map: -> $l {
+                    my $value := &as ?? as($l) !! $l;
                     for test($l) -> $k {
                         my @keys = @($k);
                         my $last := @keys.pop;
                         my $hash  = self;
                         $hash = $hash{$_} //= self.new for @keys;
                         nqp::push(
-                          nqp::p6listitems(
-                            nqp::decont($hash{$last} //= [])), $l );
+                          nqp::p6listitems(nqp::decont($hash{$last} //= [])),
+                          $value
+                        );
                     }
                 }
             }
@@ -182,8 +201,9 @@ my class Hash { # declared in BOOTSTRAP
             # just a simple categorize
             else {
                 @list.map: -> $l {
+                    my $value := &as ?? as($l) !! $l;
                     nqp::push(
-                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
                       for test($l);
                 }
             }
@@ -365,17 +385,15 @@ my class Hash { # declared in BOOTSTRAP
             HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if TKey === Any and TValue === Mu and nqp::iscont(SELF) {
+            my $TKey-perl   := TKey.perl;
+            my $TValue-perl := TValue.perl;
+            if nqp::iscont(SELF) && $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
                 ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
-                'Hash['
-                  ~ TValue.perl
-                  ~ ','
-                  ~ TKey.perl
-                  ~ '].new('
-                  ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
-                  ~ ')';
+                "Hash[$TValue-perl,$TKey-perl].new({
+                  self.pairs.sort.map({.perl(:arglist)}).join(', ')
+                })";
             }
         }
         multi method DELETE-KEY($key) {

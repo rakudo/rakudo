@@ -16,7 +16,7 @@ my $last_release = @*ARGS.shift // do {
 
 say "Contributors to Rakudo since the release on $last_release:";
 say
-< . ../MoarVM ../nqp ../roast nqp nqp/MoarVM t/spec >.map({
+< . ../MoarVM ../nqp ../roast ../doc nqp nqp/MoarVM t/spec >.map({
   get-committers($_,$last_release);
 }).unique(:as(*.key))>>.value.Bag.sort(*.value).reverse>>.key.join(', ');
 

@@ -122,8 +122,6 @@ role STDActions {
 class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
-    our $STATEMENT_PRINT;
-
     # Could add to this based on signatures.
     our %commatrap := nqp::hash(
         '&categorize', 1,
@@ -142,8 +140,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If, e.g., we support Perl up to v6.1.2, set
         # @MAX_PERL_VERSION to [6, 1, 2].
         @MAX_PERL_VERSION[0] := 6;
-
-        $STATEMENT_PRINT := 0;
     }
 
     sub sink($past) {
@@ -862,16 +858,37 @@ Compilation unit '$file' contained the following violations:
         elsif $<statement> { $past := $<statement>.ast; }
         elsif $<statement_control> { $past := $<statement_control>.ast; }
         else { $past := 0; }
-        if $STATEMENT_PRINT && $past {
-            $past := QAST::Stmts.new(:node($/),
-                QAST::Op.new(
-                    :op<say>,
-                    QAST::SVal.new(:value(~$/))
-                ),
-                $past
-            );
+
+        if $past {
+            my $id := $*STATEMENT_ID;
+            $past.annotate('statement_id', $id);
+
+            # only trace when running in source
+            if %*PRAGMAS<trace> && !$*W.is_precompilation_mode {
+                my $code := ~$/;
+
+                # don't bother putting ops for activating it
+                if $code eq 'use trace' {
+                    $past := 0;
+                }
+
+                # need to generate code
+                else {
+                    my $line := $*W.current_line($/);
+                    my $file := $*W.current_file;
+                    $code    := subst($code, /\s+$/, ''); # chomp!
+                    $past := QAST::Stmts.new(:node($/),
+                        QAST::Op.new(
+                            :op<sayfh>,
+                            QAST::Op.new(:op<getstderr>),
+                            QAST::SVal.new(:value("$id ($file:$line)\n$code"))
+                        ),
+                        $past
+                    );
+                }
+            }
         }
-        $past.annotate('statement_id', $*STATEMENT_ID) if $past;
+
         make $past;
     }
 
@@ -1267,10 +1284,6 @@ Compilation unit '$file' contained the following violations:
 #                    $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
 #                }
 #            }
-        } elsif $<module_name> {
-            if ~$<module_name> eq 'Devel::Trace' {
-                $STATEMENT_PRINT := 1;
-            }
         }
         make $past;
     }
@@ -1921,8 +1934,7 @@ Compilation unit '$file' contained the following violations:
                 );
             }
             if $past.name() eq '$?LINE' {
-                $past := $*W.add_constant('Int', 'int',
-                        HLL::Compiler.lineof($/.orig, $/.from, :cache(1)));
+                $past := $*W.add_constant('Int', 'int', $*W.current_line($/));
             }
             else {
                 $past := $*W.add_string_constant($*W.current_file);
@@ -2998,6 +3010,23 @@ Compilation unit '$file' contained the following violations:
                 QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
             ));
         }
+
+        # attach return type
+        if $*OFTYPE {
+            my $sig := $code.signature;
+            if $sig.has_returns {
+                my $prev_returns := $sig.returns;
+                $*W.throw($*OFTYPE, 'X::Redeclaration',
+                    what    => 'return type for',
+                    symbol  => $code,
+                    postfix => " (previous return type was "
+                                ~ $prev_returns.HOW.name($prev_returns)
+                                ~ ')',
+                );
+            }
+            $sig.set_returns($*OFTYPE.ast);
+        }
+
         
         # Document it
         Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);
@@ -4664,7 +4693,7 @@ Compilation unit '$file' contained the following violations:
 
         # using nqp::op outside of setting
         if $*SETTING && !%*PRAGMAS<nqp> {
-            my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+            my $line := $*W.current_line($/);
             @*NQP_VIOLATIONS[$line] := @*NQP_VIOLATIONS[$line] // [];
             @*NQP_VIOLATIONS[$line].push($op);
         }

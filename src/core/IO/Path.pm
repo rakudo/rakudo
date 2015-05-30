@@ -20,6 +20,7 @@ my class IO::Path is Cool {
     submethod BUILD(Str() :$!path!, :$!SPEC!, Str() :$!CWD!) { }
 
     multi method new(IO::Path: $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+        die "Must specify something as a path: did you mean '.' for the current directory?" unless $path;
         self.bless(:$path, :$SPEC, :$CWD);
     }
     multi method new(IO::Path:
@@ -35,12 +36,15 @@ my class IO::Path is Cool {
     }
     multi method new(IO::Path:
       :$basename!,
-      :$dirname = '.',
+      :$dirname = '',
       :$volume  = '',
       :$SPEC    = $*SPEC,
       :$CWD     = $*CWD,
     ) {
         self.bless(:path($SPEC.join($volume,$dirname,$basename)),:$SPEC,:$CWD);
+    }
+    multi method new(IO::Path:) {
+        die "Must specify something as a path: did you mean '.' for the current directory?";
     }
 
     method abspath() {
@@ -271,7 +275,7 @@ my class IO::Path is Cool {
         nqp::rename($.abspath, nqp::unbox_s($to.abspath));
         CATCH { default {
             fail X::IO::Rename.new(
-              :from($!abspath), :$to($to.abspath), :os-error(.Str) );
+              :from($!abspath), :to($to.abspath), :os-error(.Str) );
         } }
         True;
     }

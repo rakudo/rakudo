@@ -2,12 +2,19 @@ my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
 my class Label { ... }
 
-sub THROW(Mu \arg, int $type) {
+sub THROW(int $type, Mu \arg) {
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);
     nqp::setextype($ex, $type);
     nqp::throw($ex);
-    0
+    arg;
+}
+sub THROW-NIL(int $type) {
+    my Mu $ex := nqp::newexception();
+#    nqp::setpayload($ex, Nil);
+    nqp::setextype($ex, $type);
+    nqp::throw($ex);
+    Nil
 }
 
 sub RETURN-PARCEL(Mu \parcel) is rw {
@@ -36,24 +43,16 @@ my &return := -> | {
 #?if jvm
 my &take-rw := -> | {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW($parcel, nqp::const::CONTROL_TAKE);
-    $parcel
+    THROW(nqp::const::CONTROL_TAKE, $parcel);
 }
 #?endif
 #?if !jvm
 proto sub take-rw(|) { * }
-multi sub take-rw() {
-    THROW(Nil, nqp::const::CONTROL_TAKE);
-    Nil
-}
-multi sub take-rw(\x) {
-    THROW(x, nqp::const::CONTROL_TAKE);
-    x
-}
+multi sub take-rw()   { THROW-NIL(nqp::const::CONTROL_TAKE) }
+multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW($parcel, nqp::const::CONTROL_TAKE);
-    $parcel
+    THROW(nqp::const::CONTROL_TAKE, $parcel);
 }
 #?endif
 
@@ -61,75 +60,45 @@ multi sub take-rw(|) {
 #?if jvm
 my &take := -> | {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
+    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($parcel) );
     $parcel
 }
 #?endif
 #?if !jvm
 proto sub take(|) { * }
-multi sub take() {
-    THROW(Nil, nqp::const::CONTROL_TAKE);
-    Nil
-}
-multi sub take(\x) {
-    THROW(nqp::p6recont_ro(x), nqp::const::CONTROL_TAKE);
-    x
-}
+multi sub take()   { THROW-NIL(nqp::const::CONTROL_TAKE) }
+multi sub take(\x) { THROW(nqp::const::CONTROL_TAKE,nqp::p6recont_ro(x)); x }
 multi sub take(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
+    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($parcel) );
     $parcel
 }
 #?endif
 
-my &last := -> | {
-    my Mu $args := nqp::p6argvmarray();
-    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
-        nqp::atpos($args, 0).last()
-    }
-    else {
-        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
-        THROW($parcel, nqp::const::CONTROL_LAST)
-    }
-};
+proto sub goto(|) { * }
+multi sub goto(Label:D \x) { x.goto }
 
-my &next := -> | {
-    my Mu $args := nqp::p6argvmarray();
-    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
-        nqp::atpos($args, 0).next()
-    }
-    else {
-        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
-        THROW($parcel, nqp::const::CONTROL_NEXT)
-    }
-};
+proto sub last(|) { * }
+multi sub last()           { THROW-NIL(nqp::const::CONTROL_LAST) }
+multi sub last(Label:D \x) { x.last }
 
-my &redo := -> | {
-    my Mu $args := nqp::p6argvmarray();
-    if nqp::islist($args) && nqp::istype(nqp::atpos($args, 0), Label) {
-        nqp::atpos($args, 0).redo()
-    }
-    else {
-        my $parcel := nqp::decont(&RETURN-PARCEL(nqp::p6parcel($args, Nil)));
-        THROW($parcel, nqp::const::CONTROL_REDO)
-    }
-};
+proto sub next(|) { * }
+multi sub next()           { THROW-NIL(nqp::const::CONTROL_NEXT) }
+multi sub next(Label:D \x) { x.next }
+
+proto sub redo(|) { * }
+multi sub redo()           { THROW-NIL(nqp::const::CONTROL_REDO) }
+multi sub redo(Label:D \x) { x.redo }
 
 proto sub succeed(|) { * }
-multi sub succeed() {
-    THROW(Nil, nqp::const::CONTROL_SUCCEED)
-}
-multi sub succeed(\x) {
-    THROW(nqp::decont(x), nqp::const::CONTROL_SUCCEED)
-}
+multi sub succeed()   { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
+multi sub succeed(\x) { THROW(nqp::const::CONTROL_SUCCEED, nqp::decont(x)) }
 multi sub succeed(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::decont($parcel), nqp::const::CONTROL_SUCCEED)
+    THROW( nqp::const::CONTROL_SUCCEED, nqp::decont($parcel));
 }
 
-sub proceed() {
-    THROW(Nil, nqp::const::CONTROL_PROCEED)
-}
+sub proceed() { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
 my &callwith := -> *@pos, *%named {
     my Mu $dispatcher := nqp::p6finddispatcher('callwith');

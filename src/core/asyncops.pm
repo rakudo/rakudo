@@ -4,14 +4,17 @@
 # pool that blocks; for now, this cheat gets the basic idea in place.
 
 proto sub await(|) { * }
+multi sub await() {
+    die "Must specify a Promise or Channel to await on";
+}
 multi sub await(Promise:D $p) {
     $p.result
 }
-multi sub await(*@awaitables) {
-    @awaitables.eager.map(&await)
-}
 multi sub await(Channel:D $c) {
     $c.receive
+}
+multi sub await(*@awaitables) {
+    @awaitables.eager.map(&await)
 }
 
 sub cas (\val,&code) { val = code(val) } # naive implementation of cas

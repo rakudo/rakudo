@@ -77,13 +77,12 @@ my class Backtrace {
     }
 
     method AT-POS($pos) {
-        if nqp::existspos($!frames,$pos) {
-            return nqp::atpos($!frames,$pos);
-        }
+        return nqp::atpos($!frames,$pos) if nqp::existspos($!frames,$pos);
 
         my int $elems = $!bt.elems;
-        my int $todo  = $pos - nqp::elems($!frames) + 1;
+        return Nil if $!bt-next == $elems;
 
+        my int $todo = $pos - nqp::elems($!frames) + 1;
         while $!bt-next < $elems {
 
             my $frame := $!bt.AT-POS($!bt-next++);
@@ -127,8 +126,16 @@ my class Backtrace {
             last unless $todo = $todo - 1;
         }
 
-        # whatever is there (or not)
-        nqp::existspos($!frames,$pos) ?? nqp::atpos($!frames,$pos) !! Nil;
+        # found something
+        if nqp::existspos($!frames,$pos) {
+            nqp::atpos($!frames,$pos);
+        }
+
+        # we've reached the end, don't show the last <unit-outer>
+        else {
+            nqp::pop($!frames);
+            Nil;
+        }
     }
 
     method next-interesting-index(Backtrace:D:

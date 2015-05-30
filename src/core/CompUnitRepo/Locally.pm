@@ -7,7 +7,6 @@ role CompUnitRepo::Locally {
 
     method new(CompUnitRepo::Locally: Str() $dir) {
         my $IO := CHANGE-DIRECTORY($dir,$*CWD.Str,&FILETEST-r);
-        return Nil unless $IO;
 
         %instances{$IO.abspath} //=
           self.bless(:$IO,:lock(Lock.new),:WHICH(self.^name ~ '|' ~ $IO.abspath));

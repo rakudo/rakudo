@@ -163,16 +163,33 @@ my class Range is Iterable is Cool does Positional {
         gather loop { take self.roll }
     }
     multi method roll(Range:D:) {
-        return self.list.roll unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
-        my Int:D $least = $!excludes-min ?? $!min + 1 !! $!min;
-        my Int:D $elems = 1 + ($!excludes-max ?? $!max - 1 !! $!max) - $least;
+        return self.list.roll
+          unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
+
+        my Int:D $least =
+          $!excludes-min ?? $!min + 1 !! $!min;
+        my Int:D $elems =
+          1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
         $elems ?? ($least + nqp::rand_I(nqp::decont($elems), Int)) !! Any;
     }
     multi method roll(Int(Cool) $num) {
-        return self.list.roll($num) unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
-        my int $n = nqp::unbox_i($num);
-        gather loop (my int $i = 0; $i < $n; $i = $i + 1) {
-            take self.roll;
+        return self.list.roll($num)
+          unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
+
+        my Int:D $least =
+          $!excludes-min ?? $!min + 1 !! $!min;
+        my Int:D $elems =
+          1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
+
+        my int $todo = nqp::unbox_i($num.Int);
+        if $elems {
+            gather while $todo {
+                take $least + nqp::rand_I(nqp::decont($elems), Int);
+                $todo = $todo - 1;
+            }
+        }
+        else {
+            Any xx $todo;
         }
     }
 
@@ -180,18 +197,25 @@ my class Range is Iterable is Cool does Positional {
     multi method pick()          { self.roll };
     multi method pick(Whatever)  { self.list.pick(*) };
     multi method pick(Int(Cool) $n) {
-        return self.list.pick($n) unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
-        my Int:D $least = $!excludes-min ?? $!min + 1 !! $!min;
-        my Int:D $elems = 1 + ($!excludes-max ?? $!max - 1 !! $!max) - $least;
-        return self.list.pick($n) unless $elems > 3 * $n;
+        return self.list.pick($n)
+          unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
+
+        my Int:D $least =
+          $!excludes-min ?? $!min + 1 !! $!min;
+        my Int:D $elems =
+          1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
+        my int $todo = nqp::unbox_i($n.Int);
+
+        # faster to make list and then take from there
+        return self.list.pick($n) if $elems < 3 * $todo;  
+
         my %seen;
-        my int $i_n = nqp::unbox_i($n);
-        gather while $i_n > 0 {
-            my Int $x = $least + nqp::rand_I(nqp::decont($elems), Int);
-            unless %seen{$x} {
+        gather while $todo {
+            my Int $x  := $least + nqp::rand_I(nqp::decont($elems), Int);
+            unless %seen.EXISTS-KEY($x) {
                 %seen{$x} = 1;
-                $i_n = $i_n - 1;
                 take $x;
+                $todo = $todo - 1;
             }
         }
     }

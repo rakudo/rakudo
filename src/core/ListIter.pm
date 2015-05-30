@@ -43,7 +43,8 @@ my class ListIter { # declared in BOOTSTRAP
                                     !! nqp::p6box_i($count - nqp::elems($rpa)),
                                   :$sink)
                             if nqp::istype($x, Iterable);
-                        nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
+                        nqp::splice($!rest,nqp::getattr($x,Parcel,'$!storage'),0,0)
+                          if nqp::isconcrete($x);
 
                     }
                     elsif nqp::not_i(nqp::istype($x, Nil)) {

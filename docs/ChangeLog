@@ -1,3 +1,14 @@
+New in 2015.06
+ + Features:
+   + Lexical pragma 'use trace' now outputs statements on STDERR
+   + Added :as named param to .classify / .categorize
+ + Fixes:
+   + (10e6).pick/roll no longer build the whole list to pick a value
+ + Incompatible changes:
+   + DateTime default timezone format is now +HH:MM (used to be +HHMM)
+   + "".IO / IO::Path.new("") no longer legal, use "." for current dir
+   + next/last/redo don't allow expressions to be evaluated anymore
+
 New in 2015.05
  + Features:
    + NFG, NFC, NFD, Uni

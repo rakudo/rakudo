@@ -51,7 +51,7 @@ role STDActions {
     method quibble($/) {
         make $<nibble>.ast;
     }
-    
+
     method trim_heredoc($doc, $stop, $origast) {
         $origast.pop();
         $origast.pop();
@@ -226,7 +226,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
     }
-    
+
     method defterm($/) {
         my $name := ~$<identifier>;
         if $<colonpair> {
@@ -283,7 +283,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.finish_code_object($*DECLARAND, $*UNIT);
             $*W.add_phasers_handling_code($*DECLARAND, $*UNIT);
         }
-        
+
         # Checks.
         $*W.assert_stubs_defined($/);
         $*W.sort_protos();
@@ -352,7 +352,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Wrap everything in a QAST::CompUnit.
         my $compunit := QAST::CompUnit.new(
             :hll('perl6'),
-            
+
             # Serialization related bits.
             :sc($*W.sc()),
             :code_ref_blocks($*W.code_ref_blocks()),
@@ -1219,7 +1219,7 @@ Compilation unit '$file' contained the following violations:
         }
         make $loop;
     }
-    
+
     sub tweak_loop($loop) {
         if $*LABEL {
             $loop.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
@@ -1334,7 +1334,7 @@ Compilation unit '$file' contained the following violations:
             }
             $past.push($import_past);
         }
-        
+
         $past.push(QAST::WVal.new( :value($*W.find_symbol(['True'])) ));
 
         make $past;
@@ -1476,7 +1476,7 @@ Compilation unit '$file' contained the following violations:
     method statement_prefix:sym<INIT>($/)    { make $*W.add_phaser($/, 'INIT', ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block')); }
     method statement_prefix:sym<ENTER>($/)   { make $*W.add_phaser($/, 'ENTER', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<FIRST>($/)   { make $*W.add_phaser($/, 'FIRST', ($<blorst>.ast).ann('code_object')); }
-    
+
     method statement_prefix:sym<END>($/)   { make $*W.add_phaser($/, 'END', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<LEAVE>($/) { make $*W.add_phaser($/, 'LEAVE', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<KEEP>($/)  { make $*W.add_phaser($/, 'KEEP', ($<blorst>.ast).ann('code_object')); }
@@ -1558,7 +1558,7 @@ Compilation unit '$file' contained the following violations:
             $block := QAST::Op.new(:op<call>, $block);
             $past := QAST::Op.new(
                 :op('handle'),
-                
+
                 # Success path puts Any into $! and evaluates to the block.
                 QAST::Stmt.new(
                     :resultchild(0),
@@ -1618,7 +1618,7 @@ Compilation unit '$file' contained the following violations:
     method statement_mod_cond:sym<when>($/) {
         make QAST::Op.new( :op<if>,
             QAST::Op.new( :name('ACCEPTS'), :op('callmethod'),
-                          $<modifier_expr>.ast, 
+                          $<modifier_expr>.ast,
                           QAST::Var.new( :name('$_'), :scope('lexical') ) ),
             :node($/)
         );
@@ -1663,7 +1663,7 @@ Compilation unit '$file' contained the following violations:
     method fatarrow($/) {
         make make_pair($<key>.Str, $<val>.ast);
     }
-    
+
     method coloncircumfix($/) {
         make $<circumfix>
             ?? $<circumfix>.ast
@@ -1688,7 +1688,7 @@ Compilation unit '$file' contained the following violations:
             else {
                 make make_pair($*key, QAST::Op.new(
                     :op('p6bool'),
-                    QAST::IVal.new( :value($*value) ) 
+                    QAST::IVal.new( :value($*value) )
                 ));
             }
         }
@@ -1699,7 +1699,7 @@ Compilation unit '$file' contained the following violations:
             make $*value.ast;
         }
     }
-    
+
     method colonpair_variable($/) {
         if $<capvar> {
             make QAST::Op.new(
@@ -1724,7 +1724,7 @@ Compilation unit '$file' contained the following violations:
             $key, $value
         )
     }
-    
+
     method desigilname($/) {
         if $<variable> {
             make QAST::Op.new( :op('callmethod'), $<variable>.ast );
@@ -1973,7 +1973,7 @@ Compilation unit '$file' contained the following violations:
                     $past.scope('lexicalref');
                 }
             }
-            
+
             # If it's a late-bound sub lookup, we may not find it, so be sure
             # to handle the case where the lookup comes back null.
             if $sigil eq '&' {
@@ -2069,7 +2069,7 @@ Compilation unit '$file' contained the following violations:
             # do this we make a list of closures, which each point to the
             # outer context. These surive serialization and thus point at
             # what has to be fixed up.
-            my $throwaway_block_past := QAST::Block.new( 
+            my $throwaway_block_past := QAST::Block.new(
                 :blocktype('declaration'),
                 QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
             );
@@ -2098,11 +2098,11 @@ Compilation unit '$file' contained the following violations:
             # Create code object and add it as the role's body block.
             my $code := $*W.create_code_object($block, 'Sub', $sig);
             $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
-            
+
             # Compose before we add the role to the group, so the group sees
             # it composed.
             $*W.pkg_compose($*PACKAGE);
-            
+
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
@@ -2112,7 +2112,7 @@ Compilation unit '$file' contained the following violations:
         else {
             # Compose.
             $*W.pkg_compose($*PACKAGE);
-            
+
             # Make a code object for the block.
             $*W.create_code_object($block, 'Block',
                 $*W.create_signature(nqp::hash('parameter_objects', [])));
@@ -2231,7 +2231,7 @@ Compilation unit '$file' contained the following violations:
                         %cont_info<value_type>, 1, 'anon', %cont_info<default_value>)));
                 }
             }
-            
+
             if $<initializer> {
                 my $orig_list := $list;
                 if $<initializer><sym> eq '=' {
@@ -2260,7 +2260,7 @@ Compilation unit '$file' contained the following violations:
                         $list, $orig_list);
                 }
             }
-            
+
             make $list;
         }
         elsif $<defterm> {
@@ -2440,7 +2440,7 @@ Compilation unit '$file' contained the following violations:
             # Install the container.
             my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
                 :scope($*SCOPE), :package($*PACKAGE));
-            
+
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
             if $past.isa(QAST::Var) {
@@ -2454,7 +2454,7 @@ Compilation unit '$file' contained the following violations:
                         QAST::Op.new( :op('p6var'), $past ),
                         QAST::Op.new( :op('curlexpad') ));
                 }
-                
+
                 if $*SCOPE eq 'our' {
                     $BLOCK[0].push(QAST::Op.new(
                         :op('bind'),
@@ -2463,7 +2463,7 @@ Compilation unit '$file' contained the following violations:
                     ));
                 }
             }
-            
+
             # Twigil handling.
             if $twigil eq '.' {
                 add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
@@ -2475,7 +2475,7 @@ Compilation unit '$file' contained the following violations:
                     scope  => $*SCOPE,
                 );
             }
-            
+
             # Apply any traits.
             if $trait_list {
                 my $Variable := $*W.find_symbol(['Variable']);
@@ -2504,7 +2504,7 @@ Compilation unit '$file' contained the following violations:
 
         $past
     }
-    
+
     sub add_lexical_accessor($/, $var_past, $meth_name, $install_in) {
         # Generate and install code block for accessor.
         my $a_past := $*W.push_lexpad($/);
@@ -2519,7 +2519,7 @@ Compilation unit '$file' contained the following violations:
         my %sig_info := hash(parameters => []);
         my $signature := $*W.create_signature_and_params($/, %sig_info, $a_past, 'Any',
             :method, :$invocant_type);
-        my $code := methodize_block($/, $*W.stub_code_object('Method'), 
+        my $code := methodize_block($/, $*W.stub_code_object('Method'),
             $a_past, $signature, %sig_info);
         install_method($/, $meth_name, 'has', $code, $install_in);
     }
@@ -2588,7 +2588,7 @@ Compilation unit '$file' contained the following violations:
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
-        
+
         # If it's a proto but not an onlystar, need some variables for the
         # {*} implementation to use.
         if $*MULTINESS eq 'proto' && !$<onlystar> {
@@ -2608,7 +2608,7 @@ Compilation unit '$file' contained the following violations:
         if $<deflongname> {
             $block.name(~$<deflongname>.ast);
         }
-        
+
         # Finish code object, associating it with the routine body.
         my $code := $*DECLARAND;
         $*W.attach_signature($code, $signature);
@@ -2622,7 +2622,7 @@ Compilation unit '$file' contained the following violations:
                 $*W.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
                     symbol  => $code,
-                    postfix => " (previous return type was " 
+                    postfix => " (previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',
                 );
@@ -2762,7 +2762,7 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
-        
+
         # If it's a proto, add it to the sort-at-CHECK-time queue.
         if $*MULTINESS eq 'proto' {
             $*W.add_proto_to_sort($code);
@@ -2772,7 +2772,7 @@ Compilation unit '$file' contained the following violations:
         $closure.annotate('sink_ast', QAST::Op.new( :op('null') ));
         make $closure;
     }
-    
+
     method autogenerate_proto($/, $name, $install_in) {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
@@ -2870,7 +2870,7 @@ Compilation unit '$file' contained the following violations:
             || nqp::istype($node, QAST::NVal) {
                 return $node.node ?? clear_node($node.shallow_clone()) !! $node;
             }
-            
+
             # WVal is OK, though special case for PseudoStash usage (which means
             # we are doing funny lookup stuff).
             elsif nqp::istype($node, QAST::WVal) {
@@ -2881,7 +2881,7 @@ Compilation unit '$file' contained the following violations:
                     return $node.node ?? clear_node($node.shallow_clone()) !! $node;
                 }
             }
-            
+
             # Operations need checking for their inlinability. If they are OK in
             # themselves, it comes down to the children.
             elsif nqp::istype($node, QAST::Op) {
@@ -2899,7 +2899,7 @@ Compilation unit '$file' contained the following violations:
                     nqp::die("Non-inlinable op '" ~ $node.op ~ "' encountered");
                 }
             }
-            
+
             # Variables are fine *if* they are arguments.
             elsif nqp::istype($node, QAST::Var) && ($node.scope eq 'lexical' || $node.scope eq '') {
                 if nqp::existskey(%arg_placeholders, $node.name) {
@@ -2915,7 +2915,7 @@ Compilation unit '$file' contained the following violations:
                     nqp::die("Cannot inline with non-argument variables");
                 }
             }
-            
+
             # Statements need to be cloned and then each of the nodes below them
             # visited.
             elsif nqp::istype($node, QAST::Stmt) || nqp::istype($node, QAST::Stmts) {
@@ -2928,7 +2928,7 @@ Compilation unit '$file' contained the following violations:
                 }
                 return clear_node($replacement);
             }
-            
+
             # Want nodes need copying and every other child visiting.
             elsif nqp::istype($node, QAST::Want) {
                 my $replacement := $node.shallow_clone();
@@ -2940,7 +2940,7 @@ Compilation unit '$file' contained the following violations:
                 }
                 return clear_node($replacement);
             }
-            
+
             # Otherwise, we don't know what to do with it.
             else {
                 nqp::die("Unhandled node type; won't inline");
@@ -3039,7 +3039,7 @@ Compilation unit '$file' contained the following violations:
             $sig.set_returns($*OFTYPE.ast);
         }
 
-        
+
         # Document it
         Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);
         if ~$*POD_BLOCK ne '' {
@@ -3074,7 +3074,7 @@ Compilation unit '$file' contained the following violations:
                 routine-type    => 'method',
             );
         }
-        
+
         # If it's a proto, add it to the sort-at-CHECK-time queue.
         if $*MULTINESS eq 'proto' {
             $*W.add_proto_to_sort($code);
@@ -3187,7 +3187,7 @@ Compilation unit '$file' contained the following violations:
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
-        
+
         # Finish up code object.
         $*W.attach_signature($code, $signature);
         $*W.finish_code_object($code, $past, $*MULTINESS eq 'proto', :yada($yada));
@@ -3255,7 +3255,7 @@ Compilation unit '$file' contained the following violations:
             }
             1;
         }
-        
+
         # Only analyse things with a single simple statement.
         if +$block[1].list == 1 && nqp::istype($block[1][0], QAST::Stmt) && +$block[1][0].list == 1 {
             # Ensure there's no nested blocks.
@@ -3278,7 +3278,7 @@ Compilation unit '$file' contained the following violations:
             0
         }
     }
-    
+
     sub is_yada($/) {
         if $<blockoid><statementlist> && +$<blockoid><statementlist><statement> == 1 {
             my $btxt := ~$<blockoid><statementlist><statement>[0];
@@ -3406,7 +3406,7 @@ Compilation unit '$file' contained the following violations:
         }
         $past.name($name);
         $past.blocktype("declaration_static");
-        
+
         # Install a $?REGEX (mostly for the benefit of <~~>).
         $block[0].push(QAST::Op.new(
             :op('bind'),
@@ -3433,14 +3433,14 @@ Compilation unit '$file' contained the following violations:
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*W.cur_lexpad();
         $outer[0].push($past);
-        
+
         # Apply traits.
         if $traits {
             for $traits {
                 if $_.ast { ($_.ast)($code) }
             }
         }
-        
+
         # Install in needed scopes.
         install_method($/, $name, $scope, $code, $outer) if $name ne '';
 
@@ -3723,7 +3723,7 @@ Compilation unit '$file' contained the following violations:
         # Evaluate to the constant.
         make QAST::WVal.new( :value($value), :returns($type) );
     }
-    
+
     method initializer:sym<=>($/) {
         make $<EXPR>.ast;
     }
@@ -3758,7 +3758,7 @@ Compilation unit '$file' contained the following violations:
 
         $*W.cur_lexpad()[0].push($fake_pad);
         $*W.create_code_object($fake_pad, 'Block', $sig);
-        
+
         make QAST::WVal.new( :value($sig) );
     }
 
@@ -3807,7 +3807,7 @@ Compilation unit '$file' contained the following violations:
             %*PARAM_INFO<sigil>         := '';
             self.declare_param($/, $name);
         }
-        
+
         # Sanity checks.
         my $quant := $<quant>;
         if $<default_value> {
@@ -4146,7 +4146,7 @@ Compilation unit '$file' contained the following violations:
                     $arg.compile_time_value !!
                     $*W.create_thunk($/, $<circumfix>[0].ast)();
             }
-        
+
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
             my @name := $*W.dissect_longname($<longname>).components();
@@ -4381,13 +4381,13 @@ Compilation unit '$file' contained the following violations:
         }
         make $past;
     }
-    
+
     sub whine_if_args($/, $past, $name) {
         if +@($past) > 0 {
            $*W.throw($/, ['X', 'Syntax', 'Argument', 'MOPMacro'], macro => $name);
         }
     }
-    
+
     method term:sym<::?IDENT>($/) {
         make instantiated_type([~$/], $/);
     }
@@ -4628,7 +4628,7 @@ Compilation unit '$file' contained the following violations:
             if $<arglist> {
                 # Look up parametric type.
                 my $ptype := $*W.find_symbol(@name);
-                
+
                 # Do we know all the arguments at compile time?
                 my int $all_compile_time := 1;
                 for @($<arglist>.ast) {
@@ -4738,7 +4738,7 @@ Compilation unit '$file' contained the following violations:
     method term:sym<capterm>($/) {
         make $<capterm>.ast;
     }
-    
+
     method term:sym<onlystar>($/) {
         my $dc_name := QAST::Node.unique('dispatch_cap');
         my $stmts := QAST::Stmts.new(
@@ -4974,7 +4974,7 @@ Compilation unit '$file' contained the following violations:
     method circumfix:sym<ang>($/) { make $<nibble>.ast; }
 
     method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
-    
+
     method circumfix:sym<« »>($/) { make $<nibble>.ast; }
 
     method circumfix:sym<{ }>($/) {
@@ -5232,7 +5232,7 @@ Compilation unit '$file' contained the following violations:
                 make $past;
                 return 1;
             }
-            
+
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
             $past.unshift($/[0].ast);
@@ -5384,7 +5384,7 @@ Compilation unit '$file' contained the following violations:
                         name => ($target.name // ''),
                 );
             }
-            
+
             # We may need to decontainerize the right, depending on sigil.
             my $sigil := nqp::substr($target.name(), 0, 1);
             if $sigil eq '@' || $sigil eq '%' {
@@ -5524,7 +5524,7 @@ Compilation unit '$file' contained the following violations:
         }
         $past
     }
-    
+
     sub mixin_op($/, $sym) {
         my $rhs  := $/[1].ast;
         my $past := QAST::Op.new(
@@ -5554,7 +5554,7 @@ Compilation unit '$file' contained the following violations:
         }
         $past
     }
-    
+
     sub xx_op($/, $lhs, $rhs) {
         if $lhs.has_compile_time_value {
             # Constant expression on the left; need not thunk.
@@ -5591,7 +5591,7 @@ Compilation unit '$file' contained the following violations:
         }
         $past;
     }
-    
+
     sub flipflop($lhs, $rhs, $min_excl, $max_excl, $one_only) {
         # Need various constants.
         my $zero  := $*W.add_numeric_constant(NQPMu, 'Int', 0);
@@ -5600,7 +5600,7 @@ Compilation unit '$file' contained the following violations:
         my $false := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'False'])) );
         my $true  := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'True'])) );
         my $topic := QAST::Var.new( :name('$_'), :scope<lexical> );
-        
+
         # Need a state variable to track the state.
         my %cont;
         my $id    := $lhs.unique('FLIPFLOP_STATE_');
@@ -5613,12 +5613,12 @@ Compilation unit '$file' contained the following violations:
         $*W.install_lexical_container($*W.cur_lexpad(), $state, %cont,
             $*W.create_container_descriptor(%cont{'bind_constraint'}, 1, $state),
             :scope('state'));
-            
+
         # Twiddle to make special-case RHS * work.
         if istype($rhs.returns, $*W.find_symbol(['Whatever'])) {
             $rhs := $false;
         }
-        
+
         # Evaluate LHS and RHS. Note that in one-only mode, we use
         # the state bit to decide which side to evaluate.
         my $ff_code := QAST::Stmts.new(
@@ -5647,13 +5647,13 @@ Compilation unit '$file' contained the following violations:
                     QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $rhs ))
             )
         );
-        
+
         # Now decide what to do based on current state and current
         # results.
         $ff_code.push(QAST::Op.new(
             :op('if'),
             QAST::Var.new( :name($state), :scope('lexical') ),
-            
+
             # State is currently true. Check RHS. If it's false, then we
             # increment the sequence count. If it's true, then we reset,
             # the state to zero and and what we return depends on $max_excl.
@@ -5695,7 +5695,7 @@ Compilation unit '$file' contained the following violations:
                     )
                 )
             ),
-            
+
             # State is currently false. Check LHS. If it's false, then we
             # stay in a false state. If it's true, then we flip the bit,
             # but only if the RHS is not also true. We return a result
@@ -5719,7 +5719,7 @@ Compilation unit '$file' contained the following violations:
                 $nil
             )
         ));
-        
+
         QAST::Op.new( :op('locallifetime'), $ff_code, $id ~ '_lhs', $id ~ '_rhs' );
     }
 
@@ -5736,7 +5736,7 @@ Compilation unit '$file' contained the following violations:
     sub baseop_reduce($/) {
         my str $reduce := 'LEFT';
         if $<prec> eq 'f='         { $reduce := 'LISTINFIX'; }
-        elsif $<assoc> eq 'right'  
+        elsif $<assoc> eq 'right'
            || $<assoc> eq 'list'   { $reduce := nqp::uc($<assoc>); }
         elsif $<prec> eq 'm='      { $reduce := 'CHAIN'; }
         elsif $<pasttype> eq 'xor' { $reduce := 'XOR'; }
@@ -5779,7 +5779,7 @@ Compilation unit '$file' contained the following violations:
                 if $metasym eq 'X' || $metasym eq 'Z';
             $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
         }
-        
+
         if $<infix_postfix_meta_operator> {
             my $basesym;
             if $<infix> {
@@ -5870,7 +5870,7 @@ Compilation unit '$file' contained the following violations:
                     $past.name('&METAOP_HYPER_CALL');
                 }
                 else {
-                    my $basepast := $past.name 
+                    my $basepast := $past.name
                                     ?? QAST::Var.new( :name($past.name), :scope<lexical>)
                                     !! $past[0];
                     $past.push($basepast);
@@ -6290,7 +6290,7 @@ Compilation unit '$file' contained the following violations:
         # First we get ourselves a local variable to store the original LHS,
         # which might be $_ or a LHS to ~~ - in both cases $_ holds the value.
         my $orig_lhs := $*W.cur_lexpad.unique('orig_lhs');
-        
+
         # Next we build a Pair to pass to .trans.
         $left.named('key');
         $right.named('value');
@@ -6301,7 +6301,7 @@ Compilation unit '$file' contained the following violations:
         );
 
         # We store the value currently in $_ to get the distance later.
-        my $store := QAST::Op.new( :op<bind>, 
+        my $store := QAST::Op.new( :op<bind>,
             QAST::Var.new( :name($orig_lhs), :scope<lexical>, :decl<var> ),
             QAST::Op.new( :op<decont>,
                 QAST::Var.new( :name('$_'), :scope<lexical> )
@@ -6889,7 +6889,7 @@ Compilation unit '$file' contained the following violations:
                 placeholder => $full_name,
             );
         }
-        
+
         # Obtain/create placeholder parameter list.
         my @params := $block.ann('placeholder_sig') || $block.annotate('placeholder_sig', []);
 
@@ -7066,7 +7066,7 @@ Compilation unit '$file' contained the following violations:
             :name('&succeed'),
             $when_block,
         );
-        
+
         # wrap it in a handle op so that we can use a PROCEED exception
         # to skip the succeed call
         QAST::Op.new(
@@ -7093,7 +7093,7 @@ Compilation unit '$file' contained the following violations:
         # Handler needs its own $/ and $!.
         $*W.install_lexical_magical($handler.ann('past_block'), '$!');
         $*W.install_lexical_magical($handler.ann('past_block'), '$/');
-        
+
         # unshift handler preamble: create exception object and store it into $_
         my $exceptionreg := $handler.unique('exception_');
         $handler.ann('past_block')[0].unshift(QAST::Var.new(
@@ -7113,7 +7113,7 @@ Compilation unit '$file' contained the following violations:
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
             )
         ));
-        
+
         # If the handler has a succeed handler, then make sure we sink
         # the exception it will produce.
         if $handler.ann('past_block').ann('handlers') && nqp::existskey($handler.ann('past_block').ann('handlers'), 'SUCCEED') {
@@ -7145,7 +7145,7 @@ Compilation unit '$file' contained the following violations:
                     :op('rethrow'),
                     QAST::Op.new( :op('exception') )
                 )));
-                
+
             # rethrow the exception if we reach the end of the handler
             # (if a when {} clause matches this will get skipped due
             # to the BREAK exception)
@@ -7289,7 +7289,7 @@ Compilation unit '$file' contained the following violations:
 
         while $i < $upto_arity {
             my $check := $past[$i];
-            $check := $check[0] if (nqp::istype($check, QAST::Stmts) || 
+            $check := $check[0] if (nqp::istype($check, QAST::Stmts) ||
                                     nqp::istype($check, QAST::Stmt)) &&
                                    +@($check) == 1;
             $whatevers++ if nqp::bitand_i($curried, 1) && istype($check.returns, $Whatever) && nqp::isconcrete($check.value)
@@ -7464,7 +7464,7 @@ Compilation unit '$file' contained the following violations:
             $*W.throw($/, ['X', 'Value', 'Dynamic'], what => $usage);
         }
     }
-    
+
     sub istype($val, $type) {
         try { return nqp::istype($val, $type) }
         0
@@ -7576,7 +7576,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method nibbler($/) {
         my @asts;
         my $lastlit := '';
-        
+
         for @*nibbles {
             if nqp::istype($_, NQPMatch) {
                 if nqp::istype($_.ast, QAST::Node) {
@@ -7599,29 +7599,29 @@ class Perl6::QActions is HLL::Actions does STDActions {
         if $lastlit ne '' || !@asts {
             @asts.push($*W.add_string_constant($lastlit));
         }
-        
+
         my $past := @asts.shift();
         for @asts {
             $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
         }
-        
+
         if nqp::can($/.CURSOR, 'postprocessor') {
             my $pp := $/.CURSOR.postprocessor;
             $past := self."postprocess_$pp"($/, $past);
         }
-        
+
         $past.node($/);
         make $past;
     }
-    
+
     method postprocess_null($/, $past) {
         $past
     }
-    
+
     method postprocess_run($/, $past) {
         QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
     }
-    
+
     method postprocess_words($/, $past) {
         if $past.has_compile_time_value {
             my @words := HLL::Grammar::split_words($/,
@@ -7640,7 +7640,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
         }
         $past
     }
-    
+
     method postprocess_quotewords($/, $past) {
         my $result := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
         sub walk($node) {
@@ -7677,7 +7677,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method backslash:delim ($/) { make $<text>.Str; }
     method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
     method backslash:sym<misc>($/) { make ~$/; }
-    
+
     method backslash:sym<a>($/) { make nqp::chr(7) }
     method backslash:sym<b>($/) { make "\b" }
     method backslash:sym<c>($/) { make $<charspec>.ast }
@@ -7698,7 +7698,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('p6capturelex'), $<block>.ast ),
                 :node($/)));
     }
-    
+
     # The next three are currently only used for tr///.
     method escape:ch ($/)     { make ~$/; }
     method escape:sym<..>($/) { make ~$/; }
@@ -7729,7 +7729,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         make QAST::Regex.new( $<codeblock>.ast,
                               :rxtype<qastnode>, :node($/) );
     }
-    
+
     method metachar:sym<qw>($/) {
         my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
         my $nib  := $<nibble>.ast[0];
@@ -7744,7 +7744,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         }
         make $qast;
     }
-    
+
     method metachar:sym<'>($/) { self.rxquote($/) }
     method metachar:sym<">($/) { self.rxquote($/) }
     method rxquote($/) {
@@ -7807,7 +7807,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method assertion:sym<{ }>($/) {
-        make QAST::Regex.new( 
+        make QAST::Regex.new(
                  QAST::NodeList.new(
                     QAST::SVal.new( :value('INTERPOLATE') ),
                     $<codeblock>.ast,
@@ -7860,7 +7860,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 :rxtype<subrule>, :subtype<method>, :node($/));
         }
     }
-    
+
     method assertion:sym<name>($/) {
         my $lng := $*W.dissect_longname($<longname>);
         my $qast;
@@ -7882,7 +7882,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     self.subrule_alias($qast, $name);
                 }
                 else {
-                    $qast := QAST::Regex.new( $qast, :name($name), 
+                    $qast := QAST::Regex.new( $qast, :name($name),
                                               :rxtype<subcapture>, :node($/) );
                 }
             }
@@ -7900,7 +7900,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
                     $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
                                              :node($/), QAST::NodeList.new(
-                                                QAST::SVal.new( :value('OTHERGRAMMAR') ), 
+                                                QAST::SVal.new( :value('OTHERGRAMMAR') ),
                                                 $gref, QAST::SVal.new( :value($name) )),
                                              :name(~$<longname>) );
                 } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
@@ -7916,7 +7916,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 }
                 else {
                     $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                             :node($/), QAST::NodeList.new(QAST::SVal.new( :value($name) )), 
+                                             :node($/), QAST::NodeList.new(QAST::SVal.new( :value($name) )),
                                              :name($name) );
                 }
                 if $<arglist> {
@@ -7933,7 +7933,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         }
         make $qast;
     }
-    
+
     method assertion:sym<~~>($/) {
         if $<num> {
             $/.CURSOR.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
@@ -7946,7 +7946,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 QAST::NodeList.new(QAST::SVal.new( :value('RECURSE') )), :node($/) );
         }
     }
-    
+
     method codeblock($/) {
         my $blockref := $<block>.ast;
         my $past :=
@@ -7992,7 +7992,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     }
 
     method p5metachar:sym<(??{ })>($/) {
-        make QAST::Regex.new( 
+        make QAST::Regex.new(
                  QAST::NodeList.new(
                     QAST::SVal.new( :value('INTERPOLATE') ),
                     $<codeblock>.ast,

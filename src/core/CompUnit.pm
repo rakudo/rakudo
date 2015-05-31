@@ -114,7 +114,7 @@ class CompUnit {
         my $io = $out.IO;
         die "Cannot pre-compile over a newer existing file: $out"
           if $io.e && !$force && $io.modified > $!path.modified;
-            
+
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'

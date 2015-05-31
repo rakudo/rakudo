@@ -81,7 +81,7 @@ sub SHORT-ID2CLASS(Str:D $short-id) {
                       else {
                           die "Class '$type.^name()' is not a CompUnitRepo";
                       }
-                  } 
+                  }
                   else {
                       die "No CompUnitRepo known by '$short-id'";
                   }
@@ -106,7 +106,7 @@ sub INCLUDE-SPEC2CUR(Str:D $spec) {
 
     my ($short-id,%options,$path) := PARSE-INCLUDE-SPEC($spec);
     my $class = SHORT-ID2CLASS($short-id);
-    die "No class loaded for short-id '$short-id': $spec -> $path" 
+    die "No class loaded for short-id '$short-id': $spec -> $path"
       if $class === Any;
 
     my $abspath = $class.?absolutify($path) // $path;

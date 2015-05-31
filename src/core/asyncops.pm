@@ -81,7 +81,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
     # for the channels specified directly to the earliest then
     # if they have not already got a done or more then add one
-    
+
     for @earliest {
         when Channel {
             my $n = $_.WHICH;

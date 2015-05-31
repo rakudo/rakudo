@@ -3554,7 +3554,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!infixstopper>
         :dba('infix')
         [
-        | <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
+        | <!{ $*IN_REDUCE }> <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
         |   [
             | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
                 # XXX Gets false positives.

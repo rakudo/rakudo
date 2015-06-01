@@ -1,18 +1,17 @@
-# this is a list of all spec tests that are supposed to pass
-# on current rakudo.
-# empty lines and those beginning with a # are ignored
+# This is a list of all spec tests that are expected to pass.
+#
+# Empty lines and those beginning with a # are ignored
 #
 # We intend to include *all* tests from roast, even when we
-# skip most of the tests or the entire test file. To check
-# that we cover all tests from roast run:
-# perl6 -e 'say (qx"find t/spec/*".lines.grep(/\.t$/)\
-#       .map({ /^t\/spec\/ <( \S+/ && ~$/ }).Set (-)
-#   "t/spectest.data".IO.lines.grep(/^<-[#]>/)\
-#       .map({ /^\S+/ && ~$/ }).Set (-)
-#   (-) "t/fudge.t").list.sort.join: "\n"'
-# If all is well you shall see no output, otherwise you should
-# add the shown test files to this file, and make sure they are
-# fudged correctly.
+# skip most of the tests or the entire test file. To verify
+# we are running all tests, run:
+#
+# perl tools/update-passing-test-data.pl
+#
+# If a file appears in the output of the script, it is not run
+# by default. It may need to be fudged in order to run successfully.
+# Open an RT when necessary as part of the fudge process, using the
+# RT in the fudge message, and then add the test file to this file, sorted.
 #
 # Each file may have one or more markers that deselects the test:
 #     long   - run tests only if --long=1     (default is 1)

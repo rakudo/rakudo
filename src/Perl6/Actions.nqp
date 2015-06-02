@@ -3444,6 +3444,10 @@ Compilation unit '$file' contained the following violations:
         # Install in needed scopes.
         install_method($/, $name, $scope, $code, $outer) if $name ne '';
 
+        # Bind original source to $!source
+        my $Regex := $*W.find_symbol(['Regex']);
+        nqp::bindattr($code, $Regex, '$!source', ~$/);
+
         # Return a reference to the code object
         reference_to_code_object($code, $past);
     }

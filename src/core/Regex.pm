@@ -2,7 +2,8 @@ my class Regex { # declared in BOOTSTRAP
     # class Regex is Method {
     #     has Mu $!caps;
     #     has Mu $!nfa;
-    #     has Mu $!alt_nfas
+    #     has Mu $!alt_nfas;
+    #     has Mu $!source;
 
     multi method ACCEPTS(Regex:D \SELF: Mu \topic) {
         my $dollar_slash := nqp::getlexrelcaller(
@@ -41,6 +42,14 @@ my class Regex { # declared in BOOTSTRAP
             '$_');
         $dollar_slash = $dollar_underscore.match(self);
         $dollar_slash.Bool()
+    }
+
+    method gist(Regex:D:) {
+        nqp::isnull($!source) ?? '' !! $!source
+    }
+
+    method perl(Regex:D:) {
+        nqp::isnull($!source) ?? '' !! $!source
     }
 }
 

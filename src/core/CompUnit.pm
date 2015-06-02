@@ -117,7 +117,7 @@ class CompUnit {
 
         my $io = $out.IO;
         die "Cannot pre-compile over a newer existing file: $out"
-          if $io.e && !$force && $io.modified > $!path.modified;
+          if $io.e && !$force && $io.modified > $!abspath.modified;
 
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
@@ -128,7 +128,7 @@ class CompUnit {
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $?RAKUDO_MODULE_DEBUG;
 
-        my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path";
+        my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!abspath";
         my $handle = pipe("$cmd 2>&1", :r, :!chomp);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 

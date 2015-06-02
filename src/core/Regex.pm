@@ -44,11 +44,11 @@ my class Regex { # declared in BOOTSTRAP
         $dollar_slash.Bool()
     }
 
-    method gist(Regex:D:) {
+    multi method gist(Regex:D:) {
         nqp::isnull($!source) ?? '' !! $!source
     }
 
-    method perl(Regex:D:) {
+    multi method perl(Regex:D:) {
         nqp::isnull($!source) ?? '' !! $!source
     }
 }

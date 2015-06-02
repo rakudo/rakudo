@@ -1,7 +1,6 @@
 my class X::Constructor::Positional { ... }
 my class X::Method::NotFound        { ... }
 my class X::Method::InvalidQualifier { ... }
-my class Obsolete { ... }
 
 my class Mu { # declared in BOOTSTRAP
     proto method ACCEPTS(|) { * }
@@ -294,7 +293,6 @@ my class Mu { # declared in BOOTSTRAP
     method item(Mu \item:) is rw { item }
 
     proto method say(|) { * }
-    multi method say(Obsolete:D:) { say(self.gist) }
     multi method say() { say(self) }
     method print() { print(self) }
     method note() { note(self) }

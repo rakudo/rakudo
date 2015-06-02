@@ -1,18 +1,17 @@
-# this is a list of all spec tests that are supposed to pass
-# on current rakudo.
-# empty lines and those beginning with a # are ignored
+# This is a list of all spec tests that are expected to pass.
+#
+# Empty lines and those beginning with a # are ignored
 #
 # We intend to include *all* tests from roast, even when we
-# skip most of the tests or the entire test file. To check
-# that we cover all tests from roast run:
-# perl6 -e 'say (qx"find t/spec/*".lines.grep(/\.t$/)\
-#       .map({ /^t\/spec\/ <( \S+/ && ~$/ }).Set (-)
-#   "t/spectest.data".IO.lines.grep(/^<-[#]>/)\
-#       .map({ /^\S+/ && ~$/ }).Set (-)
-#   (-) "t/fudge.t").list.sort.join: "\n"'
-# If all is well you shall see no output, otherwise you should
-# add the shown test files to this file, and make sure they are
-# fudged correctly.
+# skip most of the tests or the entire test file. To verify
+# we are running all tests, run:
+#
+# perl tools/update-passing-test-data.pl
+#
+# If a file appears in the output of the script, it is not run
+# by default. It may need to be fudged in order to run successfully.
+# Open an RT when necessary as part of the fudge process, using the
+# RT in the fudge message, and then add the test file to this file, sorted.
 #
 # Each file may have one or more markers that deselects the test:
 #     long   - run tests only if --long=1     (default is 1)
@@ -23,14 +22,10 @@
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
 S01-perl-5-integration/class.t              # perl5
-# S01-perl-5-integration/context.t                # perl5
-# S01-perl-5-integration/eval_lex.t               # perl5
 S01-perl-5-integration/exception_handling.t # perl5
 S01-perl-5-integration/hash.t               # perl5
 S01-perl-5-integration/import.t             # perl5
 S01-perl-5-integration/method.t             # perl5
-# S01-perl-5-integration/modify_inside_p5.t       # perl5
-# S01-perl-5-integration/modify_inside_p5_p6.t    # perl5
 S01-perl-5-integration/return.t             # perl5
 S01-perl-5-integration/roundtrip.t          # perl5
 S01-perl-5-integration/strings.t            # perl5
@@ -170,7 +165,6 @@ S03-binding/hashes.t
 S03-binding/nested.t
 S03-binding/ro.t
 S03-binding/scalars.t
-# S03-binding/subs.t
 S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t
@@ -237,7 +231,6 @@ S03-operators/repeat.t
 S03-operators/scalar-assign.t
 S03-operators/set.t
 S03-operators/short-circuit.t
-# S03-operators/shortcuts.t
 S03-operators/so.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
@@ -296,13 +289,10 @@ S04-phasers/descending-order.t
 S04-phasers/end.t
 S04-phasers/enter-leave.t
 S04-phasers/eval-in-begin.t
-# S04-phasers/exit-in-begin.t
-# S04-phasers/exit-in-check.t
 S04-phasers/first.t
 S04-phasers/init.t
 S04-phasers/in-eval.t
 S04-phasers/in-loop.t
-# S04-phasers/interpolate.t
 S04-phasers/keep-undo.t
 S04-phasers/multiple.t
 S04-phasers/next.t
@@ -322,19 +312,15 @@ S04-statements/for.t
 S04-statements/for_with_only_one_item.t
 S04-statements/gather.t
 S04-statements/given.t
-# S04-statements/goto.t
 S04-statements/if.t
 S04-statements/label.t
 S04-statements/last.t
 S04-statements/lazy.t
-# S04-statements/leave.t
-# S04-statements/lift.t
 S04-statements/loop.t
 S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
 S04-statements/no-implicit-block.t
 S04-statements/once.t
-# S04-statements/quietly.t
 S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t
@@ -346,16 +332,12 @@ S04-statements/until.t
 S04-statements/when.t
 S04-statements/while.t
 S05-capture/alias.t
-# S05-capture/array-alias.t
 S05-capture/caps.t
 S05-capture/dot.t
-# S05-capture/external-aliasing.t
-# S05-capture/hash.t
 S05-capture/match-object.t
 S05-capture/named.t
 S05-capture/subrule.t
 S05-grammar/action-stubs.t
-# S05-grammar/example.t
 S05-grammar/inheritance.t
 S05-grammar/methods.t
 S05-grammar/namespace.t
@@ -364,7 +346,6 @@ S05-grammar/polymorphism.t
 S05-grammar/protoregex.t
 S05-grammar/protos.t
 S05-grammar/signatures.t
-# S05-grammar/std.t
 S05-grammar/ws.t
 S05-interpolation/lexicals.t
 S05-interpolation/regex-in-variable.t
@@ -382,7 +363,7 @@ S05-match/blocks.t
 S05-match/capturing-contexts.t
 S05-match/make.t
 S05-match/non-capturing.t
-# S05-match/perl.t # err: Default constructor only takes named arguments
+S05-match/perl.t
 S05-match/positions.t
 S05-metachars/closure.t
 S05-metachars/line-anchors.t
@@ -408,7 +389,6 @@ S05-metasyntax/unicode-property-pair.t
 S05-modifier/continue.t
 S05-modifier/counted-match.t
 S05-modifier/counted.t
-# S05-modifier/exhaustive.t
 S05-modifier/global.t
 S05-modifier/ignorecase.t
 S05-modifier/ignorecase-and-ignoremark.t    # moar
@@ -427,27 +407,20 @@ S05-modifier/perl5_7.t
 S05-modifier/perl5_8.t
 S05-modifier/perl5_9.t
 S05-modifier/pos.t
-# S05-modifier/ratchet.t
 S05-modifier/repetition-exhaustive.t
 S05-modifier/repetition.t
-# S05-modifier/samemark.t
 S05-modifier/sigspace.t
-# S05-nonstrings/basic.t
 S05-substitution/67222.t
 S05-substitution/match.t
 S05-substitution/subst.t
-# S05-syntactic-categories/new-symbols.t
 S05-transliteration/79778.t
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
-# S06-advanced/caller.t
 S06-advanced/callframe.t
 S06-advanced/callsame.t
 S06-advanced/lexical-subs.t
 S06-advanced/recurse.t
 S06-advanced/return.t
-# S06-advanced/return_function.t
-# S06-advanced/stub.t
 S06-advanced/wrap.t
 S06-currying/assuming-and-mmd.t
 S06-currying/named.t
@@ -455,10 +428,6 @@ S06-macros/errors.t
 S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
 S06-macros/opaque-ast.t
-# S06-macros/postfix.t
-# S06-macros/returning-closure.t
-# S06-macros/returning-string.t
-# S06-multi/by-trait.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
@@ -496,7 +465,6 @@ S06-signature/errors.t
 S06-signature/introspection.t
 S06-signature/mixed-placeholders.t
 S06-signature/multidimensional.t
-# S06-signature/multiple-signatures.t
 S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/named-renaming.t
@@ -509,7 +477,6 @@ S06-signature/positional.t
 S06-signature/scalar-type.t
 S06-signature/sigilless.t
 S06-signature/slurpy-and-interpolation.t
-# S06-signature/slurpy-blocks.t
 S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
@@ -529,7 +496,6 @@ S06-traits/native-is-copy.t
 S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S06-traits/slurpy-is-rw.t
-# S07-iterators/range-iterator.t
 S09-autovivification/autoincrement.t
 S09-autovivification/autovivification.t
 S09-hashes/objecthash.t
@@ -542,12 +508,8 @@ S09-typed-arrays/native-decl.t
 S09-typed-arrays/native-int.t
 S09-typed-arrays/native-num.t
 S10-packages/basic.t
-# S10-packages/export.t
 S10-packages/joined-namespaces.t
-# S10-packages/nested-use.t
 S10-packages/precompilation.t
-# S10-packages/require-and-use.t
-# S10-packages/scope.t
 S10-packages/use-with-class.t
 S11-modules/export.t
 S11-modules/importing.t
@@ -555,14 +517,9 @@ S11-modules/import-multi.t
 S11-modules/import-tag.t
 S11-modules/import.t
 S11-modules/lexical.t
-# S11-modules/module-file.t
-# S11-modules/module.t
 S11-modules/need.t
 S11-modules/nested.t
-# S11-modules/re-export.t
 S11-modules/require.t
-# S11-modules/use-perl-6.t
-# S12-attributes/augment-and-initialization.t
 S12-attributes/class.t
 S12-attributes/clone.t
 S12-attributes/defaults.t
@@ -572,7 +529,6 @@ S12-attributes/instance.t
 S12-attributes/mutators.t
 S12-attributes/native.t
 S12-attributes/recursive.t
-# S12-attributes/trusts.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t
 S12-class/attributes.t
@@ -590,7 +546,6 @@ S12-class/magical-vars.t
 S12-class/mro.t
 S12-class/namespaced.t
 S12-class/open.t
-# S12-class/open_closed.t
 S12-class/parent_attributes.t
 S12-class/rw.t
 S12-class/self-inheritance.t
@@ -600,7 +555,6 @@ S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
-# S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-enums/anonymous.t
@@ -651,16 +605,11 @@ S12-methods/typed-attributes.t
 S12-methods/what.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
-# S12-traits/basic.t
-# S12-traits/parameterized.t
-# S13-overloading/fallbacks-deep.t
 S13-overloading/metaoperators.t
-# S13-overloading/multiple-signatures.t
 S13-overloading/operators.t
 S13-overloading/typecasting-long.t
 S13-overloading/typecasting-mixed.t
 S13-overloading/typecasting-short.t
-# S13-syntax/aliasing.t
 S13-type-casting/methods.t
 S14-roles/anonymous.t
 S14-roles/attributes.t
@@ -680,9 +629,7 @@ S14-roles/parameter-subtyping.t
 S14-roles/stubs.t
 S14-roles/submethods.t
 S14-traits/attributes.t
-# S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
-# S14-traits/variables.t # err: Invalid typename in parameter declaration
 S15-nfg/case-change.t           # moar
 S15-nfg/concatenation.t         # moar
 S15-nfg/from-buf.t              # moar
@@ -739,15 +686,12 @@ S15-normalization/nfkd-7.t      # moar stress
 S15-normalization/nfkd-8.t      # moar stress
 S15-normalization/nfkd-9.t      # moar stress
 S15-normalization/nfkd-sanity.t # moar
-# S15-string-types/NF-types.t
-# S15-string-types/NFK-types.t
 S15-string-types/Uni.t          # moar
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar
 S15-unicode-information/unival.t	        # moar
 S16-filehandles/chmod.t
-# S16-filehandles/dir.t
 S16-filehandles/filestat.t
 S16-filehandles/filetest.t
 S16-filehandles/io_in_for_loops.t
@@ -761,11 +705,9 @@ S16-io/basic-open.t
 S16-io/cwd.t
 S16-io/getc.t
 S16-io/print.t
-# S16-io/quoting-syntax.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/tmpdir.t
-# S16-unfiled/getpeername.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/earliest.t
@@ -830,19 +772,11 @@ S19-command-line/arguments.t
 S19-command-line/dash-e.t
 S19-command-line/help.t
 S19-command-line/repl.t
-# S19-command-line-options/01-dash-uppercase-i.t
 S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
-# S19-command-line-options/04-negation.t
-# S19-command-line-options/05-delimited-options.t
-# S19-command-line-options/06-deprecated.t
 S22-package-format/local.t
 S24-testing/0-compile.t
-# S24-testing/1-basic.t
-# S24-testing/2-force_todo.t
 S24-testing/3-output.t
-# S24-testing/4-version_lt.t
-# S24-testing/6-done_testing.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
@@ -854,8 +788,6 @@ S26-documentation/07-tables.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
-# S26-documentation/block-leading.t
-# S26-documentation/block-trailing.t
 S26-documentation/module-comment.t
 S26-documentation/multiline-leading.t
 S26-documentation/multiline-trailing.t
@@ -870,7 +802,7 @@ S29-any/cmp.t
 S29-any/isa.t
 S29-context/die.t
 S29-context/eval.t
-# S29-context/evalfile.t
+S29-context/evalfile.t
 S29-context/exit-in-if.t
 S29-context/exit.t
 S29-context/sleep.t
@@ -927,12 +859,10 @@ S32-io/io-path-unix.t
 S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
-# S32-io/IO-Socket-Async.t    # moar
-# S32-io/mkdir_rmdir.t
 S32-io/note.t
 S32-io/other.t
-# S32-io/path.t
 S32-io/pipe.t               # moar
+S32-io/rename.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
@@ -1025,7 +955,6 @@ S32-temporal/Date.t
 S32-temporal/DateTime-Instant-Duration.t
 S32-temporal/DateTime.t
 S32-temporal/local.t
-# S32-temporal/time.t
 S32-trig/atan2.t
 S32-trig/cosech.t
 S32-trig/cosec.t
@@ -1125,7 +1054,7 @@ integration/advent2013-day08.t
 integration/advent2013-day09.t
 integration/advent2013-day10.t
 integration/advent2013-day12.t
-# integration/advent2013-day14.t
+integration/advent2013-day14.t
 integration/advent2013-day15.t
 integration/advent2013-day18.t
 integration/advent2013-day19.t

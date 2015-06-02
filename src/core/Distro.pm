@@ -132,25 +132,11 @@ sub INITIALIZE-A-DISTRO-NOW() {
 multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
     PROCESS::<$DISTRO> := INITIALIZE-A-DISTRO-NOW();
 }
-
 multi sub INITIALIZE_DYNAMIC('$*OS') {
-    PROCESS::<$OS> := Deprecation.obsolete(
-      :name('$*OS'),
-      :from<2014.09>,
-      :removed<2015.09>,
-      :value($*DISTRO.name),
-      :instead('$*DISTRO.name'),
-    );
+    PROCESS::<$OS> := $*DISTRO.name;
 }
-
 multi sub INITIALIZE_DYNAMIC('$*OSVER') {
-    PROCESS::<$OSVER> := Deprecation.obsolete(
-      :name('$*OSVER'),
-      :from<2014.09>,
-      :removed<2015.09>,
-      :value($*DISTRO.version),
-      :instead('$*DISTRO.version'),
-    );
+    PROCESS::<$OSVER> := $*DISTRO.version;
 }
 
 # vim: ft=perl6 expandtab sw=4

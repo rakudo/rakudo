@@ -207,7 +207,7 @@ my class Range is Iterable is Cool does Positional {
         my int $todo = nqp::unbox_i($n.Int);
 
         # faster to make list and then take from there
-        return self.list.pick($n) if $elems < 3 * $todo;  
+        return self.list.pick($n) if $elems < 3 * $todo;
 
         my %seen;
         gather while $todo {

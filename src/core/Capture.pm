@@ -94,7 +94,7 @@ my class Capture { # declared in BOOTSTRAP
         my %hash := self.hash;
         if self.^name eq 'Capture' {
             "\\({
-                join ', ', 
+                join ', ',
                     (nqp::atpos($!list, $_).perl for ^nqp::elems($!list)),
                     %hash.sort.map( *.perl )
             })";

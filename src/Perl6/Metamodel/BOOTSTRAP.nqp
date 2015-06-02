@@ -2521,11 +2521,13 @@ BEGIN {
     # class Regex is Method {
     #     has Mu $!caps;
     #     has Mu $!nfa;
-    #     has Mu $!alt_nfas
+    #     has Mu $!alt_nfas;
+    #     has Mu $!source;
     Regex.HOW.add_parent(Regex, Method);
     Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!alt_nfas', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', Mu, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
             nqp::bindattr(nqp::decont($self), Regex, '$!caps', $caps)
         }));

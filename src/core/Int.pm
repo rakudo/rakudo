@@ -154,7 +154,7 @@ my class Int does Real { # declared in BOOTSTRAP
         }
     }
 
-    method s() { self == 1 ?? '' !! 's' }
+    method s($what = 's') { self == 1 ?? '' !! $what }
 }
 
 multi sub prefix:<++>(Int:D $a is rw) {

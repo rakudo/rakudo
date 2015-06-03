@@ -2,6 +2,7 @@ New in 2015.06
  + Features:
    + Lexical pragma 'use trace' now outputs statements on STDERR
    + $=finish now contains text after first =finish/=for finish/=begin finish
+   + __END__/__DATA__ now marked as obsolete Perl 5 features
    + Added :as named param to .classify / .categorize
  + Fixes:
    + (10e6).pick/roll no longer build the whole list to pick a value

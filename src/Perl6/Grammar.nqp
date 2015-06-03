@@ -882,7 +882,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | '=for'   \h+ 'finish' <pod_newline>
             | '=finish' <pod_newline>
         ]
-        .*
+        $<finish> = .*
     }
 
     token pod_block:sym<paragraph> {

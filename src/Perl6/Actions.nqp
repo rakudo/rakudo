@@ -580,6 +580,8 @@ Compilation unit '$file' contained the following violations:
     }
 
     method pod_block:sym<finish>($/) {
+        $*W.install_lexical_symbol(
+          $*UNIT,'$=finish', nqp::hllizefor(~$<finish>, 'perl6'));
     }
 
     method pod_content:sym<config>($/) {
@@ -1927,8 +1929,9 @@ Compilation unit '$file' contained the following violations:
                 $past.push($wval);
             }
         }
-        elsif $twigil eq '=' && $desigilname ne 'pod' {
-            $*W.throw($/, 'X::Comp::NYI', feature => 'Pod variables other than $=pod');
+        elsif $twigil eq '=' && $desigilname ne 'pod' && $desigilname ne 'finish' {
+            $*W.throw($/,
+              'X::Comp::NYI', feature => 'Pod variable ' ~ $past.name);
         }
         elsif $past.name() eq '@_' {
             if $*W.nearest_signatured_block_declares('@_') {

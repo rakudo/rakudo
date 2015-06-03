@@ -1594,6 +1594,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
     }
+    token term:sym<p5end> {
+        ^^ __END__ $$
+        <.obs('__END__ as end of code',
+          'the =finish pod marker and $=finish to read')>
+    }
+    token term:sym<p5data> {
+        ^^ __DATA__ $$
+        <.obs('__DATA__ as start of data',
+          'the =finish pod marker and $=finish to read')>
+    }
 
     token infix:sym<lambda> {
         <?before '{' | '->' > <!{ $*IN_META }> {

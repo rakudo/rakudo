@@ -153,6 +153,8 @@ my class Int does Real { # declared in BOOTSTRAP
             }
         }
     }
+
+    method s() { self == 1 ?? '' !! 's' }
 }
 
 multi sub prefix:<++>(Int:D $a is rw) {

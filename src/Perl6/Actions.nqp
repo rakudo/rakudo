@@ -1530,6 +1530,16 @@ Compilation unit '$file' contained the following violations:
         );
     }
 
+    method statement_prefix:sym<start>($/) {
+        make QAST::Op.new(
+            :op('callmethod'),
+            :name('start'),
+            :returns($*W.find_symbol(['Promise'])),
+            QAST::WVal.new( :value($*W.find_symbol(['Promise'])) ),
+            $<blorst>.ast
+        );
+    }
+
     method statement_prefix:sym<lazy>($/) {
         make QAST::Op.new( :op('call'), $<blorst>.ast );
     }

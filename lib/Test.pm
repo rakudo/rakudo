@@ -537,10 +537,10 @@ sub done() is export {
     }
 
     if ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
-        diag("Looks like you planned $num_of_tests_planned test$num_of_tests_planned.s(), but ran $num_of_tests_run");
+        diag("Looks like you planned $num_of_tests_planned test{ $num_of_tests_planned == 1 ?? '' !! 's'}, but ran $num_of_tests_run");
     }
     if ($num_of_tests_failed) {
-        diag("Looks like you failed $num_of_tests_failed test$num_of_tests_failed.s() of $num_of_tests_run");
+        diag("Looks like you failed $num_of_tests_failed test{ $num_of_tests_failed == 1 ?? '' !! 's'} of $num_of_tests_run");
     }
 }
 

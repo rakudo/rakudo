@@ -20,7 +20,7 @@ class Deprecation {
     multi method report (Deprecation:U:) {
         return Nil unless %DEPRECATIONS;
 
-        my $message = "Saw {+%DEPRECATIONS} occurrence{(+%DEPRECATIONS).s} of deprecated code.\n";
+        my $message = "Saw {+%DEPRECATIONS} occurrence{ 's' if +%DEPRECATIONS != 1 } of deprecated code.\n";
         $message ~= ("=" x 80) ~ "\n" unless self.camelia;
         for %DEPRECATIONS.values -> $d {
             $message ~= $d.report;
@@ -38,7 +38,7 @@ class Deprecation {
         my $message = $type ~ $name ~ $package ~ "seen at:\n";
         for %.callsites.kv -> $file, $lines {
             $message ~=
-              "  $file, line{(+$lines).s} {$lines.keys.sort.join(',')}\n";
+              "  $file, line{ 's' if +$lines > 1 } {$lines.keys.sort.join(',')}\n";
             $message ~=
               "Deprecated since v$.from, will be removed {$.removed
                 ?? 'with release v' ~ $.removed ~ '!'

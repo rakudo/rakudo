@@ -5,11 +5,14 @@ New in 2015.06
  + Fixes:
    + (10e6).pick/roll no longer build the whole list to pick a value
    + Regex.gist/perl return code of regex
+   + start now takes a statement also
  + Incompatible changes:
    + DateTime default timezone format is now +HH:MM (used to be +HHMM)
    + "".IO / IO::Path.new("") no longer legal, use "." for current dir
    + next/last/redo don't allow expressions to be evaluated anymore
    + sign(NaN) is now NaN
+ + Deprecations:
+   + Using start as a sub with parentheses, e.g. start( { ... } )
 
 New in 2015.05
  + Features:

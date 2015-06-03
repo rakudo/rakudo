@@ -46,6 +46,7 @@ multi sub abs(\a) { abs a.Numeric }
 
 proto sub sign($) is pure {*}
 multi sub sign(Numeric \x) { x.sign }
+multi sub sign(NaN \x)     { NaN }
 multi sub sign(Cool \x)    { x.Numeric.sign }
 
 proto sub log($, $?) is pure {*}

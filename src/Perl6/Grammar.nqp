@@ -3366,7 +3366,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token quote:sym<s> {
-        <sym> (s)**0..1
+        <sym=[Ss]> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
         {

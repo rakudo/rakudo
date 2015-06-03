@@ -6382,7 +6382,7 @@ Compilation unit '$file' contained the following violations:
         # make $/ = $_.subst-mutate(...)
         my $past := QAST::Op.new(
             :node($/),
-            :op('callmethod'), :name('subst-mutate'),
+            :op('callmethod'), :name($<sym> eq 'S' ?? 'subst' !! 'subst-mutate'),
             QAST::Var.new( :name('$_'), :scope('lexical') ),
             $rx_coderef, $closure
         );

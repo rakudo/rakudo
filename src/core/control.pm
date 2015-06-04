@@ -191,6 +191,11 @@ multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
     $compiled();
 }
 
+proto sub EVALFILE($, *%) {*}
+multi sub EVALFILE($filename, :$lang = 'perl6') {
+    EVAL slurp($filename), :$lang, :context(CALLER::);
+}
+
 sub exit($status = 0) {
     state $exit;
     $exit = $status;

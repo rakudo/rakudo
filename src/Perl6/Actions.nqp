@@ -2231,7 +2231,7 @@ Compilation unit '$file' contained the following violations:
                 if $_<variable_name> {
                     my $past := QAST::Var.new( :name($_<variable_name>) );
                     $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
-                        $_<desigilname>, []);
+                        $_<desigilname>, $<trait>);
                     unless $past.isa(QAST::Op) && $past.op eq 'null' {
                         $list.push($past);
                     }

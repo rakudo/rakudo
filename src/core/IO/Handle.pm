@@ -82,12 +82,13 @@ my class IO::Handle does IO {
             DEPRECATED('pipe($path,...)',|<2015.06 2015.09>,:what(':p for pipe')) unless $nodepr;
             $!pipe = 1;
 
-            my str $errpath;
-            $!PIO := nqp::openpipe(
+            $!PIO := nqp::syncpipe();
+            nqp::openpipe(
               nqp::unbox_s($!path.Str),
               nqp::unbox_s($*CWD.Str),
               CLONE-HASH-DECONTAINERIZED(%*ENV),
-              $errpath,
+              nqp::null(), $!PIO, nqp::null(),
+              nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
             );
         }
         else {

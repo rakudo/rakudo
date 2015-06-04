@@ -252,8 +252,13 @@ constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
-    my Mu $pio := nqp::openpipe(
-      nqp::unbox_s($cmd), $*CWD.Str, CLONE-HASH-DECONTAINERIZED(%*ENV), ''
+    my Mu $pio := nqp::syncpipe();
+    my $pid    := nqp::openpipe(
+        nqp::unbox_s($cmd),
+        nqp::unbox_s($*CWD.Str),
+        CLONE-HASH-DECONTAINERIZED(%*ENV),
+        nqp::null(), $pio, nqp::null(),
+        nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
     );
     fail "Unable to execute '$cmd'" unless $pio;
     my $result = nqp::p6box_s(nqp::readallfh($pio));

@@ -6931,6 +6931,17 @@ Compilation unit '$file' contained the following violations:
             placeholder   => $full_name,
             sigil         => ~$sigil);
 
+        # Apply any type implied by the sigil.
+        if $sigil eq '@' {
+            %param_info<nominal_type> := $*W.find_symbol(['Positional']);
+        }
+        elsif $sigil eq '%' {
+            %param_info<nominal_type> := $*W.find_symbol(['Associative']);
+        }
+        elsif $sigil eq '&' {
+            %param_info<nominal_type> := $*W.find_symbol(['Callable']);
+        }
+
         # If it's slurpy, just goes on the end.
         if $pos_slurpy || $named_slurpy {
             @params.push(%param_info);

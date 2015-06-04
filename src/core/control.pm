@@ -195,10 +195,10 @@ sub exit($status = 0) {
     state $exit;
     $exit = $status;
 
-    return if $++;  # already exiting
-
-    THE_END();
-    nqp::exit(nqp::unbox_i($exit.Int));
+    once {
+        THE_END();
+        nqp::exit(nqp::unbox_i($exit.Int));
+    }
     $exit;
 }
 

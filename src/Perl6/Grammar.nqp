@@ -882,7 +882,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | '=for'   \h+ 'finish' <pod_newline>
             | '=finish' <pod_newline>
         ]
-        .*
+        $<finish> = .*
     }
 
     token pod_block:sym<paragraph> {
@@ -1543,6 +1543,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     token statement_prefix:sym<gather>{ <sym><.kok> <blorst> }
     token statement_prefix:sym<once>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<start> { <sym><.kok> <blorst> }
     token statement_prefix:sym<do>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<DOC>   {
         <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
@@ -1592,6 +1593,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
+    }
+    token term:sym<p5end> {
+        ^^ __END__ $$
+        <.obs('__END__ as end of code',
+          'the =finish pod marker and $=finish to read')>
+    }
+    token term:sym<p5data> {
+        ^^ __DATA__ $$
+        <.obs('__DATA__ as start of data',
+          'the =finish pod marker and $=finish to read')>
     }
 
     token infix:sym<lambda> {
@@ -3365,7 +3376,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token quote:sym<s> {
-        <sym> (s)**0..1
+        <sym=[Ss]> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
         {

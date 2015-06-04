@@ -788,6 +788,8 @@ S26-documentation/07-tables.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
+S26-documentation/block-leading.t
+S26-documentation/block-trailing.t
 S26-documentation/module-comment.t
 S26-documentation/multiline-leading.t
 S26-documentation/multiline-trailing.t

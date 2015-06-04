@@ -5,6 +5,7 @@ my role Real does Numeric {
     method abs()  { self < 0 ?? -self !! self }
     proto method sign(|) {*}
     multi method sign(Real:U:) { Mu }
+    multi method sign(NaN:)    { NaN }
     multi method sign(Real:D:) { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
     method conj(Real:D:) { self }
     method sqrt() { self.Bridge.sqrt }

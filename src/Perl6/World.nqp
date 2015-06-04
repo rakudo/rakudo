@@ -377,6 +377,9 @@ class Perl6::World is HLL::World {
                         self.use_lib( $INC.FLATTENABLE_LIST, :push );
                     }
                 }
+
+                self.install_lexical_symbol(
+                  $*UNIT,'$=finish',self.find_symbol(['Mu']));
             }
         }
 

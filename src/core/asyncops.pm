@@ -168,4 +168,9 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
     $action();
 }
 
+sub start(&code, :&catch) {
+    DEPRECATED('start { ... }',|<2015.06 2015.09>,:what('start({ ... })'));
+    Promise.start(&code, :&catch);
+}
+
 # vim: ft=perl6 expandtab sw=4

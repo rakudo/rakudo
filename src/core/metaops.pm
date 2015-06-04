@@ -97,9 +97,7 @@ sub METAOP_ZIP(\op, &reduce) {
 }
 
 proto sub METAOP_REDUCE_LEFT(|) { * }
-multi sub METAOP_REDUCE_LEFT(\op, :$triangle!) {
-    return METAOP_REDUCE_LEFT(op) unless $triangle;
-
+multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
@@ -134,9 +132,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
 }
 
 proto sub METAOP_REDUCE_RIGHT(|) { * }
-multi sub METAOP_REDUCE_RIGHT(\op, :$triangle!) {
-    return METAOP_REDUCE_RIGHT(op) unless $triangle;
-
+multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
@@ -175,9 +171,7 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
 }
 
 proto sub METAOP_REDUCE_LIST(|) { * }
-multi sub METAOP_REDUCE_LIST(\op, :$triangle!) {
-    return METAOP_REDUCE_LIST(op) unless $triangle;
-
+multi sub METAOP_REDUCE_LIST(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
@@ -201,9 +195,7 @@ multi sub METAOP_REDUCE_LIST(\op) {
 }
 
 proto sub METAOP_REDUCE_LISTINFIX(|) { * }
-multi sub METAOP_REDUCE_LISTINFIX(\op, :$triangle!) {
-    return METAOP_REDUCE_LISTINFIX(op) unless $triangle;
-
+multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
@@ -235,9 +227,7 @@ multi sub METAOP_REDUCE_LISTINFIX(\op) {
 }
 
 proto sub METAOP_REDUCE_CHAIN(|) { * }
-multi sub METAOP_REDUCE_CHAIN(\op, :$triangle!) {
-    return METAOP_REDUCE_CHAIN(op) unless $triangle;
-
+multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
@@ -271,7 +261,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
     }
 }
 
-sub METAOP_REDUCE_XOR(\op, :$triangle) {
+sub METAOP_REDUCE_XOR(\op, $triangle?) {
     X::NYI.new(feature => 'xor reduce').throw;
 }
 

@@ -5834,9 +5834,7 @@ Compilation unit '$file' contained the following violations:
         my $metaop   := baseop_reduce($base<OPER><O>);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), $basepast);
         if $<triangle> {
-            my $tri := $*W.add_constant('Int', 'int', 1);
-            $tri.named('triangle');
-            $metapast.push($tri);
+            $metapast.push($*W.add_constant('Int', 'int', 1));
         }
         my $args := $<args>.ast;
         $args.name('&infix:<,>');

@@ -100,7 +100,10 @@ proto sub METAOP_REDUCE_LEFT(|) { * }
 multi sub METAOP_REDUCE_LEFT(\op, :$triangle!) {
     return METAOP_REDUCE_LEFT(op) unless $triangle;
 
-    my $x := sub (*@values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
         return () unless @values.gimme(1);
 
         GATHER({
@@ -112,7 +115,10 @@ multi sub METAOP_REDUCE_LEFT(\op, :$triangle!) {
     }
 }
 multi sub METAOP_REDUCE_LEFT(\op) {
-    my $x := sub (*@values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
         return op.() unless @values.gimme(1);
 
         my $result := @values.shift;
@@ -131,7 +137,10 @@ proto sub METAOP_REDUCE_RIGHT(|) { * }
 multi sub METAOP_REDUCE_RIGHT(\op, :$triangle!) {
     return METAOP_REDUCE_RIGHT(op) unless $triangle;
 
-    my $x := sub (*@values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
         my $list := @values.reverse;
         return () unless $list.gimme(1);
 
@@ -145,7 +154,10 @@ multi sub METAOP_REDUCE_RIGHT(\op, :$triangle!) {
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
 
-    my $x := sub (*@values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
         my $list := @values.reverse;
         return op.() unless $list.gimme(1);
 
@@ -166,7 +178,10 @@ proto sub METAOP_REDUCE_LIST(|) { * }
 multi sub METAOP_REDUCE_LIST(\op, :$triangle!) {
     return METAOP_REDUCE_LIST(op) unless $triangle;
 
-    my $x := sub (*@values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
         return () unless @values.gimme(1);
 
         GATHER({
@@ -179,14 +194,20 @@ multi sub METAOP_REDUCE_LIST(\op, :$triangle!) {
     }
 }
 multi sub METAOP_REDUCE_LIST(\op) {
-    my $x := sub (*@values) { op.(|@values) }
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) { op.(|@values) }
 }
 
 proto sub METAOP_REDUCE_LISTINFIX(|) { * }
 multi sub METAOP_REDUCE_LISTINFIX(\op, :$triangle!) {
     return METAOP_REDUCE_LISTINFIX(op) unless $triangle;
 
-    my $x := sub (|values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (|values) {
         my \p = values[0];
         return () unless p.elems;
 
@@ -202,7 +223,10 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, :$triangle!) {
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {
-    my $x := sub (|values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (|values) {
         my \p = values[0];
         nqp::iscont(p[0])
           ?? op.(|p.map({nqp::decont($_).list.Parcel}))
@@ -214,7 +238,10 @@ proto sub METAOP_REDUCE_CHAIN(|) { * }
 multi sub METAOP_REDUCE_CHAIN(\op, :$triangle!) {
     return METAOP_REDUCE_CHAIN(op) unless $triangle;
 
-    my $x := sub (*@values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
         my $state = True;
         my Mu $current = @values.shift;
         gather {
@@ -229,7 +256,10 @@ multi sub METAOP_REDUCE_CHAIN(\op, :$triangle!) {
     }
 }
 multi sub METAOP_REDUCE_CHAIN(\op) {
-    my $x := sub (*@values) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
         my $state = True;
         my Mu $current := @values.shift;
         while @values.gimme(1) {

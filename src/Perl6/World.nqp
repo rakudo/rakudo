@@ -714,6 +714,10 @@ class Perl6::World is HLL::World {
             if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
             %*PRAGMAS<nqp> := $on;
         }
+        elsif $name eq 'internals' {
+            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            %*PRAGMAS<internals> := $on;
+        }
         elsif $name eq 'soft' {
             # This is an approximation; need to pay attention to
             # argument list really.

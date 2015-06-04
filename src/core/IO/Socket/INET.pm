@@ -45,7 +45,7 @@ my class IO::Socket::INET does IO::Socket {
                 ?? v6-split(%args<host>)
                 !! v4-split(%args<host>);
             if $port {
-                %args<port> //= $port;
+                %args<port> //= $port.Int;
                 %args<host> = $host;
             }
         }
@@ -54,7 +54,7 @@ my class IO::Socket::INET does IO::Socket {
                 ?? v6-split(%args<localhost>)
                 !! v4-split(%args<localhost>);
             if $port {
-                %args<localport> //= $port;
+                %args<localport> //= $port.Int;
                 %args<localhost> = $peer;
             }
         }

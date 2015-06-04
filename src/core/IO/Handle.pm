@@ -54,6 +54,7 @@ my class IO::Handle does IO {
         $r = $w = True if $rw;
 
         if $p {
+            DEPRECATED('pipe($path,...)',|<2015.06 2015.09>,:what(':p for pipe'));
             $!pipe = 1;
 
             my str $errpath;

@@ -1595,12 +1595,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<sym> = [ '::?' <identifier> ] »
     }
     token term:sym<p5end> {
-        ^^ __END__ $$
+        << __END__ >>
         <.obs('__END__ as end of code',
           'the =finish pod marker and $=finish to read')>
     }
     token term:sym<p5data> {
-        ^^ __DATA__ $$
+        << __DATA__ >>
         <.obs('__DATA__ as start of data',
           'the =finish pod marker and $=finish to read')>
     }

@@ -48,7 +48,7 @@ my &take-rw := -> | {
 #?endif
 #?if !jvm
 proto sub take-rw(|) { * }
-multi sub take-rw()   { THROW-NIL(nqp::const::CONTROL_TAKE) }
+multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
@@ -66,7 +66,7 @@ my &take := -> | {
 #?endif
 #?if !jvm
 proto sub take(|) { * }
-multi sub take()   { THROW-NIL(nqp::const::CONTROL_TAKE) }
+multi sub take()   { die "take without parameters doesn't make sense" }
 multi sub take(\x) { THROW(nqp::const::CONTROL_TAKE,nqp::p6recont_ro(x)); x }
 multi sub take(|) {
     my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));

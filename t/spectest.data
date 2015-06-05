@@ -636,6 +636,7 @@ S15-nfg/from-buf.t              # moar
 S15-nfg/from-file.t             # moar
 S15-nfg/long-uni.t              # moar
 S15-nfg/mass-chars.t            # moar
+S15-nfg/many-combiners.t        # moar
 S15-nfg/mass-equality.t         # moar
 S15-nfg/mass-roundtrip-nfc.t    # moar
 S15-nfg/mass-roundtrip-nfd.t    # moar

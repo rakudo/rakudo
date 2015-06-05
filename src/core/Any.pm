@@ -688,27 +688,30 @@ multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
 multi sub infix:<min>(*@args) { @args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
-#proto sub min(|)     { * }
+proto sub min(|)     { * }
 #multi sub min(*@args) { @args.min() }
 #multi sub min(*@args, :&by!) { @args.min(&by) }
-sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
+multi sub min() { die "min without parameters doesn't make sense" }
+multi sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
 
 proto sub infix:<max>(|) is pure { * }
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
 multi sub infix:<max>(*@args) { @args.max }
-#proto sub max(|) { * }
+proto sub max(|) { * }
 #multi sub max(*@args) { @args.max() }
 #multi sub max(*@args, :&by!) { @args.max(&by) }
-sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
+multi sub max() { die "max without parameters doesn't make sense" }
+multi sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
 
 proto sub infix:<minmax>(|) is pure { * }
 multi sub infix:<minmax>(**@args) { @args.minmax }
-#proto sub minmax(|) { * }
+proto sub minmax(|) { * }
 #multi sub minmax(*@args) { @args.minmax() }
 #multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
-sub minmax(**@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
+multi sub minmax() { die "minmax without parameters doesn't make sense" }
+multi sub minmax(**@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13

@@ -1359,43 +1359,56 @@ class Perl6::Optimizer {
         if +@($op) > 0 {
             # if we know we're directly calling the result, we can be smarter
             # about METAOPs
+            my $is_var := 0;
             if nqp::istype((my $metaop := $op[0]), QAST::Op) && ($metaop.op eq 'call' || $metaop.op eq 'callstatic') {
                 if $metaop.name eq '&METAOP_ASSIGN' && $!symbols.is_from_core('&METAOP_ASSIGN') {
-                    if nqp::istype($metaop[0], QAST::Var) && nqp::istype($op[1], QAST::Var) {
-                        my str $sigil := nqp::substr($op[1].name, 0, 1);
-                        my str $assignop;
+                    if nqp::istype($metaop[0], QAST::Var) {
+                        if (nqp::istype($op[1], QAST::Var) && ($is_var := 1))
+                            # instead of $foo += 1 we may have $foo.bar += 1, which we really want to
+                            # unpack here as well. this second branch of the if statement achieves this.
+                            || (nqp::istype($op[1], QAST::Op)
+                                && ($op[1].op eq 'callmethod'
+                                    || ($op[1].op eq 'hllize'
+                                        && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'callmethod'))) {
+                            my str $assignop;
+                            if $is_var {
+                                my str $sigil := nqp::substr($op[1].name, 0, 1);
 
-                        if nqp::objprimspec($op[1].returns) -> $spec {
-                            $assignop := @native_assign_ops[$spec];
-                        } elsif $sigil eq '$' {
-                            $assignop := 'assign';
-                        } else {
-                            # TODO support @ and % sigils
-                            # TODO check what else we need to "copy" from assign_op in Actions
-                            return NQPMu;
-                        }
+                                if nqp::objprimspec($op[1].returns) -> $spec {
+                                    $assignop := @native_assign_ops[$spec];
+                                } elsif $sigil eq '$' {
+                                    $assignop := 'assign';
+                                } else {
+                                    # TODO support @ and % sigils
+                                    # TODO check what else we need to "copy" from assign_op in Actions
+                                    return NQPMu;
+                                }
+                            } else {
+                                $assignop := "assign";
+                            }
 
-                        # since the optimizer will only ever walk the first
-                        # branch of a Want node, we have to make sure to change
-                        # the node in place, since it's most likely shared with
-                        # the other branch.
-                        $op.op($assignop);
-                        my $target_var := $op[1];
-                        my $operand    := $op[2];
+                            # since the optimizer will only ever walk the first
+                            # branch of a Want node, we have to make sure to change
+                            # the node in place, since it's most likely shared with
+                            # the other branch.
+                            $op.op($assignop);
+                            my $target_var := $op[1];
+                            my $operand    := $op[2];
 
-                        $op.pop;
-                        $op.pop;
-                        $op.pop;
+                            $op.pop;
+                            $op.pop;
+                            $op.pop;
 
-                        $op.push($target_var);
-                        $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                    QAST::Op.new( :op('defor'), :name('&infix:<//>'),
-                                        $target_var,
-                                        QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
-                                    $operand));
+                            $op.push($target_var);
+                            $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
+                            QAST::Op.new( :op('defor'), :name('&infix:<//>'),
+                            $target_var,
+                            QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
+                            $operand));
 
-                        if $assignop ne 'assign' && nqp::objprimspec($target_var.returns) {
-                            $op.returns($target_var.returns);
+                            if $assignop ne 'assign' && nqp::objprimspec($target_var.returns) {
+                                $op.returns($target_var.returns);
+                            }
                         }
                     }
                 } elsif $metaop.name eq '&METAOP_NEGATE' && $!symbols.is_from_core('&METAOP_NEGATE') {

@@ -1508,7 +1508,6 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_prefix:sym<once>($/) {
-
         # create state variable to remember whether we ran the block
         my $pad := $*W.cur_lexpad();
         my $sym := $pad.unique('once_');
@@ -1599,6 +1598,15 @@ Compilation unit '$file' contained the following violations:
             );
         }
         make $past;
+    }
+
+    method statement_prefix:sym<quietly>($/) {
+        make QAST::Op.new(
+            :op('handle'),
+            QAST::Op.new( :op('call'), $<blorst>.ast ),
+            'WARN',
+            QAST::Op.new( :op('resume'), QAST::Op.new( :op('exception') ) )
+        );
     }
 
     method blorst($/) {

@@ -321,6 +321,7 @@ S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
 S04-statements/no-implicit-block.t
 S04-statements/once.t
+S04-statements/quietly.t
 S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t

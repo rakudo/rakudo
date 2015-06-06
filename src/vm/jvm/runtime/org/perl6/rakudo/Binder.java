@@ -125,14 +125,6 @@ public final class Binder {
                 fail, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
     }
     
-    /* Returns an appropriate failure mode (junction fail or normal fail). */
-    private static int junc_or_fail(RakOps.GlobalExt gcx, SixModelObject value) {
-        if (value.st.WHAT == gcx.Junction)
-            return BIND_RESULT_JUNCTION;
-        else
-            return BIND_RESULT_FAIL;
-    }
-    
     /* Binds any type captures. */
     public static void bindTypeCaptures(ThreadContext tc, SixModelObject typeCaps, CallFrame cf, SixModelObject type) {
         long elems = typeCaps.elems(tc);
@@ -175,7 +167,7 @@ public final class Binder {
     
     /* Returns an appropriate failure mode (junction fail or normal fail). */
     private static int juncOrFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject value) {
-        if (value.st.WHAT == gcx.Junction)
+        if (value.st.WHAT == gcx.Junction && Ops.isconcrete(value, tc))
             return BIND_RESULT_JUNCTION;
         else
             return BIND_RESULT_FAIL;

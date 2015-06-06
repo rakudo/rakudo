@@ -289,7 +289,9 @@ my class Binder {
                     }
 
                     # Report junction failure mode if it's a junction.
-                    return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                    return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
+                        ?? $BIND_RESULT_JUNCTION
+                        !! $BIND_RESULT_FAIL;
                 }
             
                 # Also enforce definedness constraints.
@@ -302,7 +304,9 @@ my class Binder {
                               !! "Parameter '$varname'";
                             $error[0] := "$what requires a '$class' type object, but an object instance was passed";
                         }
-                        return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                        return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
+                            ?? $BIND_RESULT_JUNCTION
+                            !! $BIND_RESULT_FAIL;
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
@@ -312,7 +316,9 @@ my class Binder {
                               !! "Parameter '$varname'";
                             $error[0] := "$what requires a '$class' instance, but a type object was passed.  Did you forget a .new?";
                         }
-                        return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                        return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
+                            ?? $BIND_RESULT_JUNCTION
+                            !! $BIND_RESULT_FAIL;
                     }
                 }
             }
@@ -2223,7 +2229,8 @@ BEGIN {
                 $i := 0;
                 while $i < $num_args {
                     if !nqp::captureposprimspec($capture, $i) {
-                        if nqp::istype(nqp::captureposarg($capture, $i), Junction) {
+                        my $arg := nqp::captureposarg($capture, $i);
+                        if nqp::istype($arg, Junction) && nqp::isconcrete($arg) {
                             $has_junc_args := 1;
                         }
                     }

@@ -19,12 +19,12 @@ my class Capture { # declared in BOOTSTRAP
     }
     multi method WHICH (Capture:D:) {
         my $WHICH = self.^name;
-        if $!list {
+        if !nqp::isnull($!list) && $!list {
             $WHICH ~= '|';
             $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
               for flat $!list;
         }
-        if $!hash {
+        if !nqp::isnull($!hash) && $!hash {
             $WHICH ~= '|';
             $WHICH ~= ( $_ ~ '(' ~ nqp::atkey($!hash, nqp::unbox_s($_)).WHICH ~ ')' )
               for self.hash.keys.sort;
@@ -67,11 +67,11 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method list(Capture:D:) {
-        nqp::p6list(nqp::clone($!list), List, Mu);
+        nqp::isnull($!list) ?? nqp::p6list(nqp::null, List, Mu) !! nqp::p6list(nqp::clone($!list), List, Mu);
     }
 
     method elems(Capture:D:) {
-        nqp::p6box_i(nqp::elems($!list))
+        nqp::isnull($!list) ?? 0 !! nqp::p6box_i(nqp::elems($!list))
     }
 
     multi method Str(Capture:D:) {

@@ -1943,9 +1943,7 @@ my class X::PairMap::NotAllowed is Exception {
 }
 
 my class X::StubCode is Exception {
-    method message() {
-        'Stub code executed'
-    }
+    has $.message = 'Stub code executed';
 }
 
 # vim: ft=perl6 expandtab sw=4

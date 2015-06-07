@@ -3,7 +3,12 @@
 sub NPOSITIONS(\pos, \elems) { # generate N positions
     my Mu $indexes := nqp::list();
     nqp::setelems($indexes,elems);
-    nqp::bindpos($indexes,$_,pos.AT-POS($_)) for 0..^elems;
+    my int $i;
+    my int $end = elems;
+    while $i < $end {
+        nqp::bindpos($indexes,$i,pos.AT-POS($i));
+        $i = $i + 1;
+    }
     $indexes;
 }
 sub POSITIONS(\SELF, \pos) { # handle possible infinite slices

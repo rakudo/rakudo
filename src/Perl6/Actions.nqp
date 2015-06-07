@@ -4442,20 +4442,20 @@ Compilation unit '$file' contained the following violations:
         $past.name($name);
         $past.node($/);
         unless +$past.list() {
-            # Since we stub out a number of things in the setting,
-            # we don't always have X::StubCode available.  If that
-            # is the case, fall back to using the string variant
-            try {
-                my $X_StubCode := $*W.find_symbol(['X', 'StubCode']);
-                $past.push(QAST::Op.new(
-                    :op('callmethod'), :name('new'),
-                    QAST::WVal.new( :value($X_StubCode) ),
-                ));
+            $past.push($*W.add_string_constant('Stub code executed'));
+        }
 
-                CATCH {
-                    $past.push($*W.add_string_constant('Stub code executed'));
-                }
-            }
+        # Since we stub out a number of things in the setting,
+        # we don't always have X::StubCode available.  If that
+        # is the case, fall back to using the string variant
+        try {
+            my $X_StubCode := $*W.find_symbol(['X', 'StubCode']);
+            $past[0].named('message');
+            $past[0] := QAST::Op.new(
+                :op('callmethod'), :name('new'),
+                QAST::WVal.new( :value($X_StubCode) ),
+                $past[0],
+            );
         }
         $past
     }

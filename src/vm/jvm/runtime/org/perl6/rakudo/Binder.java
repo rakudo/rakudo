@@ -167,7 +167,7 @@ public final class Binder {
     
     /* Returns an appropriate failure mode (junction fail or normal fail). */
     private static int juncOrFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject value) {
-        if (value.st.WHAT == gcx.Junction && Ops.isconcrete(value, tc))
+        if (value.st.WHAT == gcx.Junction && Ops.isconcrete(value, tc) != 0)
             return BIND_RESULT_JUNCTION;
         else
             return BIND_RESULT_FAIL;

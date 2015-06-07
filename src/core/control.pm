@@ -231,6 +231,8 @@ sub run(*@args ($, *@)) {
           CLONE-LIST-DECONTAINERIZED(@args),
           $*CWD.Str,
           CLONE-HASH-DECONTAINERIZED(%*ENV),
+          nqp::null, nqp::null, nqp::null,
+          nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_INHERIT_OUT + nqp::const::PIPE_INHERIT_ERR
         )));
     }
     $status
@@ -243,6 +245,8 @@ sub shell($cmd) {
           $cmd,
           $*CWD.Str,
           CLONE-HASH-DECONTAINERIZED(%*ENV),
+          nqp::null, nqp::null, nqp::null,
+          nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_INHERIT_OUT + nqp::const::PIPE_INHERIT_ERR
         )));
     }
     $status

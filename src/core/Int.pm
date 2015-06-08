@@ -66,11 +66,15 @@ my class Int does Real { # declared in BOOTSTRAP
     method polymod(Int:D: *@mods) {
         my $more = self;
         my $inf = @mods.elems == Inf;
-        fail X::OutOfRange.new(what => 'invocant to polymod', got => $more, range => "0..*") if $more < 0;
+        fail X::OutOfRange.new(
+          what => 'invocant to polymod', got => $more, range => "0..*"
+        ) if $more < 0;
         gather {
             for @mods -> $mod {
                 last if $inf and not $more;
-                fail X::Numeric::DivideByZero.new(using => 'polymod') unless $mod;
+                fail X::Numeric::DivideByZero.new(
+                  using => 'polymod', numerator => $more
+                ) unless $mod;
                 take $more mod $mod;
                 $more div= $mod;
             }
@@ -224,7 +228,9 @@ multi sub infix:<*>(int $a, int $b) returns int {
 }
 
 multi sub infix:<div>(Int:D \a, Int:D \b) {
-    fail X::Numeric::DivideByZero.new unless b;
+    fail X::Numeric::DivideByZero.new(
+      using => 'div', numerator => a,
+    ) unless b;
     nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
 }
 multi sub infix:<div>(int $a, int $b) returns int {
@@ -233,7 +239,9 @@ multi sub infix:<div>(int $a, int $b) returns int {
 }
 
 multi sub infix:<%>(Int:D \a, Int:D \b) returns Int {
-    fail X::Numeric::DivideByZero.new(using => 'infix:<%>') unless b;
+    fail X::Numeric::DivideByZero.new(
+      using => 'infix:<%>', numerator => a
+    ) unless b;
     nqp::mod_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi sub infix:<%>(int $a, int $b) returns int {

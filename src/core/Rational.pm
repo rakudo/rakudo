@@ -17,7 +17,7 @@ my role Rational[::NuT, ::DeT] does Real {
 
     method new(NuT \nu = 0, DeT \de = 1) {
         my $new     := nqp::create(self);
-        my $gcd     := nu gcd de;
+        my $gcd     := de == 0 ?? 1 !! nu gcd de;
         my $numerator   = nu div $gcd;
         my $denominator = de div $gcd;
         if $denominator < 0 {

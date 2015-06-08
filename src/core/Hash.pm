@@ -361,27 +361,27 @@ my class Hash { # declared in BOOTSTRAP
               !! False
         }
         method keys(EnumMap:) {
-            return unless self.DEFINITE && nqp::defined($!keys);
+            return ().list unless self.DEFINITE && nqp::defined($!keys);
             HashIter.keys(self,$!keys).list
         }
         method kv(EnumMap:) {
-            return unless self.DEFINITE && nqp::defined($!keys);
+            return ().list unless self.DEFINITE && nqp::defined($!keys);
             HashIter.kv(self,$!keys).list
         }
         method values(EnumMap:) {
-            return unless self.DEFINITE && nqp::defined($!keys);
+            return ().list unless self.DEFINITE && nqp::defined($!keys);
             HashIter.values(self,$!keys).list
         }
         method pairs(EnumMap:) {
-            return unless self.DEFINITE && nqp::defined($!keys);
+            return ().list unless self.DEFINITE && nqp::defined($!keys);
             HashIter.pairs(self,$!keys).list
         }
         method antipairs(EnumMap:) {
-            return unless self.DEFINITE && nqp::defined($!keys);
+            return ().list unless self.DEFINITE && nqp::defined($!keys);
             HashIter.antipairs(self,$!keys).list
         }
         method invert(EnumMap:) {
-            return unless self.DEFINITE && nqp::defined($!keys);
+            return ().list unless self.DEFINITE && nqp::defined($!keys);
             HashIter.invert(self,$!keys).list
         }
         multi method perl(::?CLASS:D \SELF:) {

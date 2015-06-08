@@ -27,7 +27,7 @@ my class FatRat is Cool does Rational[Int, Int] {
 }
 
 sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
-    my Int $gcd         := nu gcd de;
+    my Int $gcd         := de == 0 ?? 1 !! nu gcd de;
     my Int $numerator   := nu div $gcd;
     my Int $denominator := de div $gcd;
     my $r;

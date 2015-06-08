@@ -1508,7 +1508,6 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_prefix:sym<once>($/) {
-
         # create state variable to remember whether we ran the block
         my $pad := $*W.cur_lexpad();
         my $sym := $pad.unique('once_');
@@ -1599,6 +1598,15 @@ Compilation unit '$file' contained the following violations:
             );
         }
         make $past;
+    }
+
+    method statement_prefix:sym<quietly>($/) {
+        make QAST::Op.new(
+            :op('handle'),
+            QAST::Op.new( :op('call'), $<blorst>.ast ),
+            'WARN',
+            QAST::Op.new( :op('resume'), QAST::Op.new( :op('exception') ) )
+        );
     }
 
     method blorst($/) {
@@ -2231,7 +2239,7 @@ Compilation unit '$file' contained the following violations:
                 if $_<variable_name> {
                     my $past := QAST::Var.new( :name($_<variable_name>) );
                     $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
-                        $_<desigilname>, []);
+                        $_<desigilname>, $<trait>);
                     unless $past.isa(QAST::Op) && $past.op eq 'null' {
                         $list.push($past);
                     }
@@ -4436,6 +4444,19 @@ Compilation unit '$file' contained the following violations:
         unless +$past.list() {
             $past.push($*W.add_string_constant('Stub code executed'));
         }
+
+        # Since we stub out a number of things in the setting,
+        # we don't always have X::StubCode available.  If that
+        # is the case, fall back to using the string variant
+        try {
+            my $X_StubCode := $*W.find_symbol(['X', 'StubCode']);
+            $past[0].named('message');
+            $past[0] := QAST::Op.new(
+                :op('callmethod'), :name('new'),
+                QAST::WVal.new( :value($X_StubCode) ),
+                $past[0],
+            );
+        }
         $past
     }
 
@@ -5834,9 +5855,7 @@ Compilation unit '$file' contained the following violations:
         my $metaop   := baseop_reduce($base<OPER><O>);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), $basepast);
         if $<triangle> {
-            my $tri := $*W.add_constant('Int', 'int', 1);
-            $tri.named('triangle');
-            $metapast.push($tri);
+            $metapast.push($*W.add_constant('Int', 'int', 1));
         }
         my $args := $<args>.ast;
         $args.name('&infix:<,>');
@@ -6932,6 +6951,17 @@ Compilation unit '$file' contained the following violations:
             named_slurpy  => $named_slurpy,
             placeholder   => $full_name,
             sigil         => ~$sigil);
+
+        # Apply any type implied by the sigil.
+        if $sigil eq '@' {
+            %param_info<nominal_type> := $*W.find_symbol(['Positional']);
+        }
+        elsif $sigil eq '%' {
+            %param_info<nominal_type> := $*W.find_symbol(['Associative']);
+        }
+        elsif $sigil eq '&' {
+            %param_info<nominal_type> := $*W.find_symbol(['Callable']);
+        }
 
         # If it's slurpy, just goes on the end.
         if $pos_slurpy || $named_slurpy {

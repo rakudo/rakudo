@@ -1739,8 +1739,10 @@ my class X::Numeric::Real is Exception {
 
 my class X::Numeric::DivideByZero is Exception {
     has $.using;
+    has $.numerator;
     method message() {
-        "Divide by zero" ~ ( $.using ?? " using $.using" !! '' );
+        "Attempt to divide{$.numerator ?? " $.numerator" !! ''} by zero"
+          ~ ( $.using ?? " using $.using" !! '' );
     }
 }
 
@@ -1946,6 +1948,10 @@ my class X::PairMap::NotAllowed is Exception {
     method message() {
         "Not allowed to do PairMap.$.method"
     }
+}
+
+my class X::StubCode is Exception {
+    has $.message = 'Stub code executed';
 }
 
 # vim: ft=perl6 expandtab sw=4

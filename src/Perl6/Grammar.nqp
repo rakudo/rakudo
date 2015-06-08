@@ -1534,18 +1534,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<PRE>   { <sym><.kok> <blorst> }
     token statement_prefix:sym<POST>  { <sym><.kok> <blorst> }
 
-    token statement_prefix:sym<eager> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<lazy>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<sink>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<try>   {
+    token statement_prefix:sym<eager>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<lazy>    { <sym><.kok> <blorst> }
+    token statement_prefix:sym<sink>    { <sym><.kok> <blorst> }
+    token statement_prefix:sym<try>     {
         :my %*PRAGMAS := self.shallow_copy(nqp::getlexdyn('%*PRAGMAS'));
         <sym><.kok> { %*PRAGMAS<fatal> := 1; } <blorst>
     }
-    token statement_prefix:sym<gather>{ <sym><.kok> <blorst> }
-    token statement_prefix:sym<once>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<start> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<do>    { <sym><.kok> <blorst> }
-    token statement_prefix:sym<DOC>   {
+    token statement_prefix:sym<quietly> { <sym><.kok> <blorst> }
+    token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<once>    { <sym><.kok> <blorst> }
+    token statement_prefix:sym<start>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
+    token statement_prefix:sym<DOC>     {
         <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
         <blorst>
     }
@@ -1595,12 +1596,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<sym> = [ '::?' <identifier> ] »
     }
     token term:sym<p5end> {
-        ^^ __END__ $$
+        << __END__ >>
         <.obs('__END__ as end of code',
           'the =finish pod marker and $=finish to read')>
     }
     token term:sym<p5data> {
-        ^^ __DATA__ $$
+        << __DATA__ >>
         <.obs('__DATA__ as start of data',
           'the =finish pod marker and $=finish to read')>
     }

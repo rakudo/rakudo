@@ -96,125 +96,172 @@ sub METAOP_ZIP(\op, &reduce) {
     }
 }
 
-sub METAOP_REDUCE_LEFT(\op, :$triangle) {
-    my $x := $triangle ??
-        (sub (*@values) {
-            return () unless @values.gimme(1);
-            GATHER({
-                my $result := @values.shift;
-                take $result;
-                take ($result := op.($result, @values.shift))
-                    while @values.gimme(1);
-            }, :infinite(@values.infinite))
-        }) !!
-        (sub (*@values) {
-            return op.() unless @values.gimme(1);
-            my $result := @values.shift;
-            return op.($result) unless @values.gimme(1);
-            my int $i;
-            while my int $c = @values.gimme(1000) {
-                $i = 0;
-                $result := op.($result, @values.shift)
-                    while ($i = $i + 1) <= $c;
-            }
-            $result;
-        })
-}
-
-sub METAOP_REDUCE_RIGHT(\op, :$triangle) {
-    my $x :=
+proto sub METAOP_REDUCE_LEFT(|) { * }
+multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
+#?if jvm
+    my $ :=
+#?endif
     sub (*@values) {
-        my $list = @values.reverse;
-        if $triangle {
-            return () unless $list.gimme(1);
-            gather {
-                my $result := $list.shift;
-                take $result;
-                take ($result := op.($list.shift, $result))
-                    while $list.gimme(1);
-            }
-        }
-        else {
-            return op.() unless $list.gimme(1);
-            my $result := $list.shift;
-            return op.($result) unless $list.gimme(1);
+        return () unless @values.gimme(1);
+
+        GATHER({
+            my $result := @values.shift;
+            take $result;
+            take ($result := op.($result, @values.shift))
+                while @values.gimme(1);
+        }, :infinite(@values.infinite));
+    }
+}
+multi sub METAOP_REDUCE_LEFT(\op) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
+        return op.() unless @values.gimme(1);
+
+        my $result := @values.shift;
+        return op.($result) unless @values.gimme(1);
+
+        while my int $c = @values.gimme(1000) {
             my int $i;
-            while my int $c = $list.gimme(1000) {
-                $i = 0;
-                $result := op.($list.shift, $result)
-                    while ($i = $i + 1) <= $c;
-            }
-            $result;
+            $result := op.($result, @values.shift)
+                while ($i = $i + 1) <= $c;
         }
+        $result;
     }
 }
 
+proto sub METAOP_REDUCE_RIGHT(|) { * }
+multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
+        my $list := @values.reverse;
+        return () unless $list.gimme(1);
 
-sub METAOP_REDUCE_LIST(\op, :$triangle) {
-    $triangle
-        ??  sub (*@values) {
-                return () unless @values.gimme(1);
-                GATHER({
-                    my @list;
-                    while @values {
-                        @list.push(@values.shift);
-                        take op.(|@list);
-                    }
-                }, :infinite(@values.infinite))
-            }
-        !!  sub (*@values) { op.(|@values) }
+        gather {
+            my $result := $list.shift;
+            take $result;
+            take ($result := op.($list.shift, $result))
+              while $list.gimme(1);
+        }
+    }
+}
+multi sub METAOP_REDUCE_RIGHT(\op) {
+
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
+        my $list := @values.reverse;
+        return op.() unless $list.gimme(1);
+
+        my $result := $list.shift;
+        return op.($result) unless $list.gimme(1);
+
+        my int $i;
+        while my int $c = $list.gimme(1000) {
+            $i = 0;
+            $result := op.($list.shift, $result)
+              while ($i = $i + 1) <= $c;
+        }
+        $result;
+    }
 }
 
+proto sub METAOP_REDUCE_LIST(|) { * }
+multi sub METAOP_REDUCE_LIST(\op, \triangle) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
+        return () unless @values.gimme(1);
 
-sub METAOP_REDUCE_LISTINFIX(\op, :$triangle) {
-    $triangle
-        ??  sub (|values) {
-                my \p = values[0];
-                return () unless p.elems;
-                my int $i = 0;
-                GATHER({
-                    my @list;
-                    while $i < p.elems {
-                        @list.push(p[$i]);
-                        $i = $i + 1;
-                        take op.(|@list);
-                    }
-                }, :infinite(p.infinite))
+        GATHER({
+            my @list;
+            while @values {
+                @list.push(@values.shift);
+                take op.(|@list);
             }
-        !!  sub (|values) { my \p = values[0]; nqp::iscont(p[0]) ?? op.(|p.map({nqp::decont($_).list.Parcel})) !! op.(|p) }
+        }, :infinite(@values.infinite));
+    }
+}
+multi sub METAOP_REDUCE_LIST(\op) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) { op.(|@values) }
 }
 
+proto sub METAOP_REDUCE_LISTINFIX(|) { * }
+multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (|values) {
+        my \p = values[0];
+        return () unless p.elems;
 
-sub METAOP_REDUCE_CHAIN(\op, :$triangle) {
-    $triangle
-        ??  sub (*@values) {
-                my $state = True;
-                my Mu $current = @values.shift;
-                gather {
-                    take $state;
-                    while $state && @values.gimme(1) {
-                        $state = op.($current, @values[0]);
-                        take $state;
-                        $current = @values.shift;
-                    }
-                    take False for @values;
-                }
-
+        my int $i;
+        GATHER({
+            my @list;
+            while $i < p.elems {
+                @list.push(p[$i]);
+                $i = $i + 1;
+                take op.(|@list);
             }
-        !! sub (*@values) {
-                my $state = True;
-                my Mu $current = @values.shift;
-                while @values.gimme(1) {
-                    $state = op.($current, @values[0]);
-                    $current = @values.shift;
-                    return $state unless $state;
-                }
-                $state;
-            }
+        }, :infinite(p.infinite));
+    }
+}
+multi sub METAOP_REDUCE_LISTINFIX(\op) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (|values) {
+        my \p = values[0];
+        nqp::iscont(p[0])
+          ?? op.(|p.map({nqp::decont($_).list.Parcel}))
+          !! op.(|p);
+    }
 }
 
+proto sub METAOP_REDUCE_CHAIN(|) { * }
+multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
+        my $state = True;
+        my Mu $current = @values.shift;
+        gather {
+            take $state;
+            while $state && @values.gimme(1) {
+                $state = op.($current, @values[0]);
+                take $state;
+                $current = @values.shift;
+            }
+            take False for @values;
+        }
+    }
+}
+multi sub METAOP_REDUCE_CHAIN(\op) {
+#?if jvm
+    my $ :=
+#?endif
+    sub (*@values) {
+        my $state = True;
+        my Mu $current := @values.shift;
+        while @values.gimme(1) {
+            $state = op.($current, @values[0]);
+            $current := @values.shift;
+            return $state unless $state;
+        }
+        $state;
+    }
+}
 
-sub METAOP_REDUCE_XOR(\op, :$triangle) {
+sub METAOP_REDUCE_XOR(\op, $triangle?) {
     X::NYI.new(feature => 'xor reduce').throw;
 }
 

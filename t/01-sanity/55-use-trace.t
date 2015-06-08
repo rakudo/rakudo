@@ -25,7 +25,7 @@ CODE
 my $p = pipe( "$*EXECUTABLE $filename 2>$stderr" );
 ok $p,                            "did we get a handle?";
 is $p.lines.join, "42",           "is the program output ok?";
-is slurp($stderr), qq:to/STDERR/, "is the trace ok?";
+is $stderr.IO.lines.join("\n"), qq:to/STDERR/.chomp, "is the trace ok?";
 4 ($filename:4)
 \$a++
 10 ($filename:10)

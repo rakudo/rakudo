@@ -2101,11 +2101,11 @@ Compilation unit '$file' contained the following violations:
                 'Block', $*W.create_signature(nqp::hash('parameter_objects', [])));
             my $fixup := $*W.create_lexical_capture_fixup();
             $fixup.push(QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::Op.new(
                     :op('p6capturelex'),
-                    QAST::WVal.new( :value($throwaway_block) )
-                )));
+                    QAST::Op.new(
+                        :op('callmethod'), :name('clone'),
+                        QAST::WVal.new( :value($throwaway_block) )
+                    )));
             $block[1].push($fixup);
 
             # As its last act, it should grab the current lexpad so that

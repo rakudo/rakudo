@@ -4,7 +4,7 @@ class Perl does Systemic {
     submethod BUILD (
       :$!name      = 'Perl 6',
       :$!auth      = "The Perl Foundation",
-      :$!version   = Version.new("unknown"),
+      :$!version   = Version.new("6 A"),
       :$!compiler  = Compiler.new,
     ) { }
 

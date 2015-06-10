@@ -25,6 +25,10 @@ my class Code does Callable { # declared in BOOTSTRAP
     method static_id(Code:D:) {
         nqp::p6box_i(nqp::where(nqp::getstaticcode($!do)));
     }
+
+    multi method new(Code:) {
+        die "Cannot make a {self.^name} object using .new";
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,3 +1,4 @@
+my class X::ControlFlow::Return { ... }
 my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
 my class Label { ... }

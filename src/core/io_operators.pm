@@ -227,8 +227,8 @@ multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();
 }
 
-sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $from.IO(:$SPEC,:$CWD).rename($to,:$SPEC,:$CWD);
+sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
+    my $result := $from.IO(:$SPEC,:$CWD).rename($to,:$SPEC,:$CWD,:$createonly);
     $result // $result.throw;
 }
 sub copy($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD) {

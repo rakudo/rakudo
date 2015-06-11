@@ -693,6 +693,7 @@ S15-string-types/Str.t
 S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar
 S15-unicode-information/unival.t	        # moar
+S16-filehandles/argfiles.t
 S16-filehandles/chmod.t
 S16-filehandles/filestat.t
 S16-filehandles/filetest.t

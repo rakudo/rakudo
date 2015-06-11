@@ -440,12 +440,10 @@ my class DateTime does Dateish {
     }
 
     method utc() {
-	$.timezone.WHAT.say;
-	$.timezone.perl.say;
-        self.in-timezone($.timezone.new(0))
+        self.in-timezone(0)
     }
     method local() {
-        self.in-timezone($.timezone.new(+$*TZ))
+        self.in-timezone($*TZ)
     }
 
     method Date() {

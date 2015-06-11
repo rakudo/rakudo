@@ -213,10 +213,36 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     return $ok;
 }
 
-multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
+multi sub is_approx(Numeric $got, Numeric $expected, $desc = '') is export {
+    return is_approx($got, $expected, 1e-6, $desc);
+}
+
+multi sub is_approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
-    my $test = ($got - $expected).abs <= $tol;
+    die "Tolerance must be a positive number greater than zero" unless $tol > 0;
+    my $abs-diff = ($got - $expected).abs;
+    my $abs-max = max($got.abs, $expected.abs);
+    my $rel-diff = $abs-max == 0 ?? 0 !! $abs-diff/$abs-max;
+    my $test = $rel-diff <= $tol;
+    my $ok = proclaim(?$test, $desc);
+    unless $test {
+        diag("expected: $expected");
+        diag("got:      $got");
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
+}
+
+multi sub is_approx(Numeric $got, Numeric $expected,
+                    Numeric :$rel_tol = 1e-6, Numeric :$abs_tol = 0,
+		    :$desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    die "Relative tolerance must be a positive number greater than zero" unless $rel_tol > 0;
+    die "Absolute tolerance must be a positive number greater than zero" unless $abs_tol > 0;
+    my $abs-diff = ($got - $expected).abs;
+    my $test = (($abs-diff <= ($rel_tol * $expected).abs) &&
+	       ($abs-diff <= ($rel_tol * $got).abs) ||
+	       ($abs-diff <= $abs_tol));
     my $ok = proclaim(?$test, $desc);
     unless $test {
         diag("expected: $expected");

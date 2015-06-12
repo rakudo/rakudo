@@ -44,7 +44,7 @@ my class Match is Capture is Cool {
                 @caps.push: $p
             }
         }
-        @caps.sort: -> $p { $p.value.from }
+        @caps.sort: -> $a { $a.value.from +< 32 + $a.value.to }
     }
 
     method chunks(Match:D:) {

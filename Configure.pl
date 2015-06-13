@@ -129,7 +129,19 @@ MAIN: {
     $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
     $config{'runner_suffix'} = $^O eq 'MSWin32' ? '.bat' : '';
 
-    my $make = $config{'make'} = $^O eq 'MSWin32' ? ($ENV{VisualStudioVersion} ? 'nmake' : 'gmake') : 'make';
+    my $make = 'make';
+    if ($^O eq 'MSWin32') {
+        my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
+        my $has_cl    = 0 == system('cl /? >NUL 2>&1');
+        my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
+        my $has_gcc   = 0 == system('gcc --version >NUL 2>&1');
+        if ($has_nmake && $has_cl) {
+            $make = 'nmake';
+        }
+        elsif ($has_gmake && $has_gcc) {
+            $make = 'gmake';
+        }
+    }
 
     open my $MAKEFILE, '>', 'Makefile'
         or die "Cannot open 'Makefile' for writing: $!";

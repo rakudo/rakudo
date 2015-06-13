@@ -135,7 +135,11 @@ MAIN: {
         my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
         my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
         my $has_gcc   = 0 == system('gcc --version >NUL 2>&1');
-        if ($has_nmake && $has_cl) {
+        if (-x "$prefix/bin/nqp-m.bat"
+        && ($_ = `$prefix/bin/nqp-m.bat -e "print(nqp::backendconfig()<make>)"`)) {
+            $make = $_;
+        }
+        elsif ($has_nmake && $has_cl) {
             $make = 'nmake';
         }
         elsif ($has_gmake && $has_gcc) {

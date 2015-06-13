@@ -256,7 +256,27 @@ my class List does Positional { # declared in BOOTSTRAP
           !! fail X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
     }
 
-    my &list_push = multi method push(List:D: *@values) {
+    multi method push(List:D: \value) {
+        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
+            $!nextiter.DEFINITE && self.gimme(*);
+            fail X::Cannot::Infinite.new(:action<.push to>)
+              if $!nextiter.DEFINITE;
+            nqp::p6listitems(self);
+            nqp::istype(value, self.of)
+                ?? nqp::push($!items, nqp::assign(nqp::p6scalarfromdesc(nqp::null), value))
+                !! X::TypeCheck.new(
+                      operation => '.push',
+                      expected  => self.of,
+                      got       => value,
+                    ).throw;
+            self
+        }
+        else {
+            callsame();
+        }
+    }
+
+    multi method push(List:D: *@values) {
         fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
@@ -282,26 +302,6 @@ my class List does Positional { # declared in BOOTSTRAP
                 $elems, 0);
 
         self;
-    }
-
-    multi method push(List:D: \value) {
-        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
-            $!nextiter.DEFINITE && self.gimme(*);
-            fail X::Cannot::Infinite.new(:action<.push to>)
-              if $!nextiter.DEFINITE;
-            nqp::p6listitems(self);
-            nqp::istype(value, self.of)
-                ?? nqp::push($!items, nqp::assign(nqp::p6scalarfromdesc(nqp::null), value))
-                !! X::TypeCheck.new(
-                      operation => '.push',
-                      expected  => self.of,
-                      got       => value,
-                    ).throw;
-            self
-        }
-        else {
-            list_push(self, value)
-        }
     }
 
     multi method unshift(List:D: \value) {

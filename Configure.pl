@@ -129,7 +129,7 @@ MAIN: {
     $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
     $config{'runner_suffix'} = $^O eq 'MSWin32' ? '.bat' : '';
 
-    my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
+    my $make = $config{'make'} = $^O eq 'MSWin32' ? ($ENV{VisualStudioVersion} ? 'nmake' : 'gmake') : 'make';
 
     open my $MAKEFILE, '>', 'Makefile'
         or die "Cannot open 'Makefile' for writing: $!";
@@ -241,8 +241,8 @@ MAIN: {
             
             # Add moar library to link command
             # TODO: Get this from Moar somehow
-            $config{'moarimplib'} = $^O eq 'MSWin32' ? "$prefix/bin/moar.dll.lib"
-                                  : $^O eq 'darwin'  ? "$prefix/lib/libmoar.dylib"
+            $config{'moarimplib'} = $^O =~ /^MSWin32|darwin$/
+                                  ? $nqp_config{'moar::libdir'} . '/' . $nqp_config{'moar::sharedlib'}
                                   : '';
 
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);

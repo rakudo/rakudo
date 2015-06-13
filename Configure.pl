@@ -132,7 +132,7 @@ MAIN: {
     my $make = 'make';
     if ($^O eq 'MSWin32') {
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
-        my $has_cl    = 0 == system('cl /? >NUL 2>&1');
+        my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
         my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
         my $has_gcc   = 0 == system('gcc --version >NUL 2>&1');
         if ($has_nmake && $has_cl) {

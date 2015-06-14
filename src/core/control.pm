@@ -222,53 +222,8 @@ sub THE_END {
     while @END.shift -> $end { $end() };
 }
 
-my class Proc::Status { ... }
-
-sub run(*@args ($, *@)) {
-    my $status = Proc::Status.new( :exitcode(255) );
-    try {
-        $status.status(nqp::p6box_i(nqp::spawn(
-          CLONE-LIST-DECONTAINERIZED(@args),
-          $*CWD.Str,
-          CLONE-HASH-DECONTAINERIZED(%*ENV),
-          nqp::null, nqp::null, nqp::null,
-          nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_INHERIT_OUT + nqp::const::PIPE_INHERIT_ERR
-        )));
-    }
-    $status
-}
-
-sub shell($cmd) {
-    my $status = Proc::Status.new( :exitcode(255) );
-    try {
-        $status.status(nqp::p6box_i(nqp::shell(
-          $cmd,
-          $*CWD.Str,
-          CLONE-HASH-DECONTAINERIZED(%*ENV),
-          nqp::null, nqp::null, nqp::null,
-          nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_INHERIT_OUT + nqp::const::PIPE_INHERIT_ERR
-        )));
-    }
-    $status
-}
-
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
-
-sub QX($cmd) {
-    my Mu $pio := nqp::syncpipe();
-    my $pid    := nqp::openpipe(
-        nqp::unbox_s($cmd),
-        nqp::unbox_s($*CWD.Str),
-        CLONE-HASH-DECONTAINERIZED(%*ENV),
-        nqp::null(), $pio, nqp::null(),
-        nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
-    );
-    fail "Unable to execute '$cmd'" unless $pio;
-    my $result = nqp::p6box_s(nqp::readallfh($pio));
-    nqp::closefh($pio);
-    $result;
-}
 
 sub EXHAUST(|) {
     X::ControlFlow::Return.new.throw();

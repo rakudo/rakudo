@@ -1,6 +1,27 @@
 my class IO::Path { ... }
 my class IO::Special { ... }
 
+# Will be removed together with pipe() and open(:p).
+my class Proc::Status {
+    has $.exitcode = -1;  # distinguish uninitialized from 0 status
+    has $.pid;
+    has $.signal;
+
+    method exit {
+        DEPRECATED('Proc::Status.exitcode', |<2015.03 2015.09>);
+        $!exitcode;
+    }
+
+    proto method status(|) { * }
+    multi method status($new_status) {
+        $!exitcode = $new_status +> 8;
+        $!signal   = $new_status +& 0xFF;
+    }
+    multi method status(Proc::Status:D:)  { ($!exitcode +< 8) +| $!signal }
+    multi method Numeric(Proc::Status:D:) { $!exitcode }
+    multi method Bool(Proc::Status:D:)    { $!exitcode == 0 }
+}
+
 my class IO::Handle does IO {
     has $.path;
     has $!PIO;
@@ -10,6 +31,7 @@ my class IO::Handle does IO {
     has int $!pipe;
 
     method pipe(IO::Handle:D: |c) {
+        DEPRECATED('shell() or run() with :in, :out or :err', |<2015.07 2015.09>);
         self.open(:p, :nodepr, |c);
     }
 
@@ -79,7 +101,7 @@ my class IO::Handle does IO {
           if $!path.e && $!path.d;
 
         if $mode eq 'pipe' {
-            DEPRECATED('pipe($path,...)',|<2015.06 2015.09>,:what(':p for pipe')) unless $nodepr;
+            DEPRECATED('shell(...)/run(...) with :in, :out or :err', |<2015.07 2015.09>, :what(':p for pipe')) unless $nodepr;
             $!pipe = 1;
 
             $!PIO := nqp::syncpipe();

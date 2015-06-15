@@ -4,14 +4,25 @@ my class IO::ArgFiles {
     has $!io;
     has $.ins;
     has $!nl = "\n";
+    has $!has-args;
 
     method eof() {
         ! $!args && $!io.opened && $!io.eof
     }
 
     method get() {
+        unless $!has-args.defined {
+            $!has-args = ?$!args;
+        }
+
         unless $!io.defined && $!io.opened {
-            $!filename = $!args ?? $!args.shift !! '-';
+            if $!has-args {
+                return Str unless $!args;
+                $!filename = $!args.shift;
+            } else {
+                $!filename = '-';
+            }
+
             $!io = open($!filename, :r, :nl($!nl)) ||
                 fail "Unable to open file '$!filename'";
         }

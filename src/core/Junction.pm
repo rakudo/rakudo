@@ -28,6 +28,12 @@ my class Junction { # declared in BOOTSTRAP
         self.perl
     }
 
+    multi method ACCEPTS(Junction:U: Mu:D \topic) {
+        nqp::p6bool(nqp::istype(topic, Junction));
+    }
+    multi method ACCEPTS(Junction:U: Any \topic) {
+        nqp::p6bool(nqp::istype(topic, Junction));
+    }
     multi method ACCEPTS(Junction:D: Mu \topic) {
         SEQ($!storage.map({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
             if nqp::iseq_s($!type, 'any');

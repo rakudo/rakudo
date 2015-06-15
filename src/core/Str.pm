@@ -130,7 +130,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ~ "\x[249C,249D,249E,249F,24A0,24A1,24A2,24A3,24A4,24A5,24A6,24A7,24A8,24A9,24AA,24AB,24AC,24AD,24AE,24AF,24B0,24B1,24B2,24B3,24B4,24B5,249C]" # parenthesized latin lc
         ~ "\x[2581,2582,2583,2584,2585,2586,2587,2588]" # lower blocks
         ~ "\x[2680,2681,2682,2683,2684,2685,2680]" # die faces
-        ~ "\x[2776,2777,2778,2779,277A,277B,277C,277D,277E,277F,2776]"; # dingbat negative circled 1..10
+        ~ "\x[2776,2777,2778,2779,277A,277B,277C,277D,277E,277F,2776]" # dingbat negative circled 1..10
+        ~ "\x[1F37A,1F37B]"  # beer mugs
+        ~ "\x[1F42A,1F42B]"; # camels
 
     # digit to extend the string with if carried past first rangechar position
     my $carrydigit := nqp::hash(
@@ -144,6 +146,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
        "\xFF10", "\xFF11", # fullwidth XXX: should be treated as digit?
        "\x2070", "\x2071", # superscripts XXX: should be treated as digit?
        "\x2080", "\x2081", # subscripts XXX: should be treated as digit?
+       "\x1F37A","\x1F37B",# beer mugs
+       "\x1F42A","\x1F42B",# camels
     );
     # calculate the beginning and ending positions of <!after '.'><rangechar+>
     my sub RANGEPOS(str $str) {

@@ -894,7 +894,7 @@ static MVMuint8 s_p6invokeunder[] = {
     MVM_operand_obj | MVM_operand_read_reg
 };
 static void return_from_fake(MVMThreadContext *tc, void *sr_data) {
-    MVM_frame_try_return(tc);
+    MVM_frame_try_return_no_exit_handlers(tc);
 }
 static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMRegister *res  = &GET_REG(tc, 0);

@@ -1345,6 +1345,7 @@ Compilation unit '$file' contained the following violations:
     method statement_control:sym<given>($/) {
         my $past := $<xblock>.ast;
         $past.push($past.shift); # swap [0] and [1] elements
+        $past[0] := block_closure($past[0]);
         $past.op('call');
         make $past;
     }
@@ -2100,11 +2101,11 @@ Compilation unit '$file' contained the following violations:
                 'Block', $*W.create_signature(nqp::hash('parameter_objects', [])));
             my $fixup := $*W.create_lexical_capture_fixup();
             $fixup.push(QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::Op.new(
                     :op('p6capturelex'),
-                    QAST::WVal.new( :value($throwaway_block) )
-                )));
+                    QAST::Op.new(
+                        :op('callmethod'), :name('clone'),
+                        QAST::WVal.new( :value($throwaway_block) )
+                    )));
             $block[1].push($fixup);
 
             # As its last act, it should grab the current lexpad so that
@@ -7102,8 +7103,8 @@ Compilation unit '$file' contained the following violations:
         }
 
         # if this is not an immediate block create a call
-        if ($when_block.ann('past_block')) {
-            $when_block := QAST::Op.new( :op('call'), $when_block);
+        if $when_block.ann('past_block') {
+            $when_block := QAST::Op.new( :op('call'), block_closure($when_block) );
         }
 
         # call succeed with the block return value, succeed will throw

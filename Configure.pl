@@ -129,7 +129,23 @@ MAIN: {
     $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
     $config{'runner_suffix'} = $^O eq 'MSWin32' ? '.bat' : '';
 
-    my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
+    my $make = 'make';
+    if ($^O eq 'MSWin32') {
+        my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
+        my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
+        my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
+        my $has_gcc   = 0 == system('gcc --version >NUL 2>&1');
+        if (-x "$prefix/bin/nqp-m.bat"
+        && ($_ = `$prefix/bin/nqp-m.bat -e "print(nqp::backendconfig()<make>)"`)) {
+            $make = $_;
+        }
+        elsif ($has_nmake && $has_cl) {
+            $make = 'nmake';
+        }
+        elsif ($has_gmake && $has_gcc) {
+            $make = 'gmake';
+        }
+    }
 
     open my $MAKEFILE, '>', 'Makefile'
         or die "Cannot open 'Makefile' for writing: $!";
@@ -241,8 +257,8 @@ MAIN: {
             
             # Add moar library to link command
             # TODO: Get this from Moar somehow
-            $config{'moarimplib'} = $^O eq 'MSWin32' ? "$prefix/bin/moar.dll.lib"
-                                  : $^O eq 'darwin'  ? "$prefix/lib/libmoar.dylib"
+            $config{'moarimplib'} = $^O =~ /^MSWin32|darwin$/
+                                  ? $nqp_config{'moar::libdir'} . '/' . $nqp_config{'moar::sharedlib'}
                                   : '';
 
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);

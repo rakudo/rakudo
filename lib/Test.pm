@@ -97,14 +97,14 @@ multi sub ok(Mu $cond, $desc = '') is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(?$cond, $desc);
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub nok(Mu $cond, $desc = '') is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(!$cond, $desc);
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
@@ -124,7 +124,7 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
         }
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
@@ -151,7 +151,7 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
         diag "     got: ($got.^name())";
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
@@ -168,7 +168,7 @@ multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
         }
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
@@ -185,7 +185,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
         $ok = proclaim(True, $desc);
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
@@ -210,7 +210,7 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
         diag "Could not use '$op' as a comparator";
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
@@ -223,7 +223,46 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
         diag("got:      $got");
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
+}
+
+multi sub is-approx(Numeric $got, Numeric $expected, $desc = '') is export {
+    is-approx($got, $expected, 1e-6, $desc);
+}
+
+multi sub is-approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    die "Tolerance must be a positive number greater than zero" unless $tol > 0;
+    my $abs-diff = ($got - $expected).abs;
+    my $abs-max = max($got.abs, $expected.abs);
+    my $rel-diff = $abs-max == 0 ?? 0 !! $abs-diff/$abs-max;
+    my $test = $rel-diff <= $tol;
+    my $ok = proclaim(?$test, $desc);
+    unless $test {
+        diag("expected: $expected");
+        diag("got:      $got");
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+    $ok;
+}
+
+multi sub is-approx(Numeric $got, Numeric $expected,
+                    Numeric :$rel_tol = 1e-6, Numeric :$abs_tol = 0,
+		    :$desc = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    die "Relative tolerance must be a positive number greater than zero" unless $rel_tol > 0;
+    die "Absolute tolerance must be a positive number greater than zero" unless $abs_tol > 0;
+    my $abs-diff = ($got - $expected).abs;
+    my $test = (($abs-diff <= ($rel_tol * $expected).abs) &&
+	       ($abs-diff <= ($rel_tol * $got).abs) ||
+	       ($abs-diff <= $abs_tol));
+    my $ok = proclaim(?$test, $desc);
+    unless $test {
+        diag("expected: $expected");
+        diag("got:      $got");
+    }
+    $time_before = nqp::time_n;
+    $ok;
 }
 
 multi sub todo($reason, $count = 1) is export {
@@ -287,7 +326,7 @@ multi sub flunk($reason) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(0, $reason);
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
@@ -300,7 +339,7 @@ multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
     my $ok = proclaim($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub like(Str $got, Regex $expected, $desc = '') is export {
@@ -313,7 +352,7 @@ multi sub like(Str $got, Regex $expected, $desc = '') is export {
         diag "     got: '$got'";
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
@@ -326,7 +365,7 @@ multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
         diag "     got: '$got'";
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
@@ -336,7 +375,7 @@ multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
     }
     my $ok = proclaim((not defined $!), $msg) or diag($!);
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub dies_ok(Callable $code, $reason = '') is export {
@@ -353,7 +392,7 @@ multi sub dies-ok(Callable $code, $reason = '') is export {
     }
     my $ok = proclaim( $death, $reason );
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub lives_ok(Callable $code, $reason = '') is export {
@@ -368,7 +407,7 @@ multi sub lives-ok(Callable $code, $reason = '') is export {
     }
     my $ok = proclaim((not defined $!), $reason) or diag($!);
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub eval_dies_ok(Str $code, $reason = '') is export {
@@ -381,7 +420,7 @@ multi sub eval-dies-ok(Str $code, $reason = '') is export {
     my $ee = eval_exception($code);
     my $ok = proclaim( $ee.defined, $reason );
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub eval_lives_ok(Str $code, $reason = '') is export {
@@ -395,7 +434,7 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
     my $ok = proclaim((not defined $ee), $reason)
         or diag("Error: $ee");
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export {
@@ -416,7 +455,7 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
         }
     }
     $time_before = nqp::time_n;
-    return $ok;
+    $ok;
 }
 
 sub throws_like(|capture) is export {

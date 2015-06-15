@@ -107,7 +107,9 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
             }
             elsif $items { self.STORE_AT_KEY($x, $items.shift) }
             else {
-                X::Hash::Store::OddNumber.new.throw
+                nqp::istype($x,Failure)
+                  ?? $x.throw
+                  !! X::Hash::Store::OddNumber.new.throw;
             }
         }
         self

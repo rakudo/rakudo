@@ -7,6 +7,10 @@ my class Pair is Enum {
     multi method ACCEPTS(Pair:D: Mu $other) {
         $other."$.key"().Bool === $.value.Bool
     }
+    multi method AT-KEY(Pair:D: $key) { $key eq nqp::getattr(self, Enum, '$!key')
+      ?? nqp::getattr(self, Enum, '$!value')
+      !! Any;
+    }
 }
 
 sub infix:«=>»($key, Mu $value) {

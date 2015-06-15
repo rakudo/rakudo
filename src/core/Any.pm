@@ -15,6 +15,9 @@ my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
 
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
+    multi method ACCEPTS(Any:U: Any \topic) { # use of Any on topic to force autothreading
+        nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
+    }
 
     method invoke(|c) {
         DEPRECATED('CALL-ME',|<2015.03 2015.09>);

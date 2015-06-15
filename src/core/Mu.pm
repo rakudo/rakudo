@@ -4,7 +4,10 @@ my class X::Method::InvalidQualifier { ... }
 
 my class Mu { # declared in BOOTSTRAP
     proto method ACCEPTS(|) { * }
-    multi method ACCEPTS(Mu:U: Mu \topic) {
+    multi method ACCEPTS(Mu:U: Any \topic) {
+        nqp::p6bool(nqp::istype(topic, self))
+    }
+    multi method ACCEPTS(Mu:U: Mu:U \topic) {
         nqp::p6bool(nqp::istype(topic, self))
     }
 

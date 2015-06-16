@@ -6,7 +6,7 @@ New in 2015.06
    + Added :as named param to .classify / .categorize
    + EVALFILE added, for evalling source in a file
    + Implemented 'quietly' statement prefix to prevent warnings being issued
-   + MinGW (Windows with gcc/gmake) is not also supported besides MSVC
+   + MinGW (Windows with gcc/gmake) is now also supported besides MSVC
  + Fixes:
    + (10e6).pick/roll no longer build the whole list to pick a value
    + Regex.gist/perl return source of regex

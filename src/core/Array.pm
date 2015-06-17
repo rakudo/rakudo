@@ -270,8 +270,82 @@ class Array { # declared in BOOTSTRAP
         $tpos >= +$tseq;
     }
 
-}
+    multi method push(Array:D: \value) {
+        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
+            fail X::Cannot::Infinite.new(:action<.push to>)
+              if self.infinite;
+            self.gimme(*);
+            nqp::p6listitems(self);
+            nqp::push(
+              nqp::getattr(self,List,'$!items'),
+              nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
+            );
+            self
+        }
+        else {
+            callsame();
+        }
+    }
 
+    multi method push(Array:D: *@values) {
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
+        nqp::p6listitems(self);
+        my $elems = self.gimme(*);
+        fail X::Cannot::Infinite.new(:action<.push to>)
+          if self.infinite;
+
+        # push is always eager
+        @values.gimme(*);
+
+        self.gimme(*);
+        nqp::push(
+          nqp::getattr(self,List,'$!items'),
+          nqp::assign(nqp::p6scalarfromdesc($!descriptor), $_)
+        ) for @values;
+
+        self;
+    }
+
+    multi method unshift(Array:D: \value) {
+        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
+            fail X::Cannot::Infinite.new(:action<.push to>)
+              if self.infinite;
+            self.gimme(*);
+            nqp::p6listitems(self);
+            nqp::unshift(
+              nqp::getattr(self,List,'$!items'),
+              nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
+            );
+            self
+        }
+        else {
+            callsame();
+        }
+    }
+
+    multi method unshift(Array:D: *@values) {
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+          if @values.infinite;
+        nqp::p6listitems(self);
+        my $elems = self.gimme(*);
+        fail X::Cannot::Infinite.new(:action<.push to>)
+          if self.infinite;
+
+        # push is always eager
+        @values.gimme(*);
+
+        self.gimme(*);
+        while @values {
+            nqp::unshift(
+              nqp::getattr(self,List,'$!items'),
+              nqp::assign(nqp::p6scalarfromdesc($!descriptor), @values.pop)
+            );
+        }
+
+        self;
+    }
+}
 
 sub circumfix:<[ ]>(*@elems) is rw { my $ = @elems.eager }
 

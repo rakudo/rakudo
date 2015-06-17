@@ -251,10 +251,10 @@ my role Baggy does QuantHash {
         self;
     }
     multi method classify-list( %test, *@list ) {
-        samewith( { %test{$^a} }, @list );
+        self.classify-list( { %test{$^a} }, @list );
     }
     multi method classify-list( @test, *@list ) {
-        samewith( { @test[$^a] }, @list );
+        self.classify-list( { @test[$^a] }, @list );
     }
 
     proto method categorize-list(|) { * }
@@ -285,10 +285,10 @@ my role Baggy does QuantHash {
         self;
     }
     multi method categorize-list( %test, *@list ) {
-        samewith( { %test{$^a} }, @list );
+        self.categorize-list( { %test{$^a} }, @list );
     }
     multi method categorize-list( @test, *@list ) {
-        samewith( { @test[$^a] }, @list );
+        self.categorize-list( { @test[$^a] }, @list );
     }
 
     method Set()     {     Set.new(self.keys) }

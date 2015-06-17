@@ -170,10 +170,10 @@ my class Hash { # declared in BOOTSTRAP
         self;
     }
     multi method classify-list( %test, $list, |c ) {
-        samewith( { %test{$^a} }, $list, |c );
+        self.classify-list( { %test{$^a} }, $list, |c );
     }
     multi method classify-list( @test, $list, |c ) {
-        samewith( { @test[$^a] }, $list, |c );
+        self.classify-list( { @test[$^a] }, $list, |c );
     }
 
     proto method categorize-list(|) { * }
@@ -211,10 +211,10 @@ my class Hash { # declared in BOOTSTRAP
         self;
     }
     multi method categorize-list( %test, $list ) {
-        samewith( { %test{$^a} }, $list );
+        self.categorize-list( { %test{$^a} }, $list );
     }
     multi method categorize-list( @test, $list ) {
-        samewith( { @test[$^a] }, $list );
+        self.categorize-list( { @test[$^a] }, $list );
     }
 
     # push a value onto a hash slot, constructing an array if necessary

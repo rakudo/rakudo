@@ -138,13 +138,13 @@ my &lastcall := -> {
     True
 };
 
-my &samewith := -> *@pos, *%named {
+sub samewith(|c) {
     my $my   = callframe(1).my;
     my $self = $my<self>;
     die "Could not find 'self'" if !$self.DEFINITE;
     my $dispatcher = $my<&?ROUTINE>.dispatcher
       || die "Could not find dispatcher";
-    $dispatcher( $self, |@pos, |%named );
+    $dispatcher( $self, |c );
 }
 
 proto sub die(|) {*};

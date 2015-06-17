@@ -138,9 +138,8 @@ sub twine2text($twine) {
     return $r;
 }
 
-sub twrap($text is copy, :wrap($wrap)=75 ) {
-    return $text unless %*ENV<POD_TO_TEXT_WRAP>;
-    $text ~~ s:g/(. ** {$wrap} <[^\s]>*)\s+/$0\n/;
+sub twrap($text is copy, :$wrap=75 ) {
+    $text ~~ s:g/(. ** {$wrap} <[\s]>*)\s+/$0\n/;
     return $text
 }
 

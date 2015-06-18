@@ -7,18 +7,26 @@ New in 2015.06
    + EVALFILE added, for evalling source in a file
    + Implemented 'quietly' statement prefix to prevent warnings being issued
    + MinGW (Windows with gcc/gmake) is now also supported besides MSVC
+   + Implemented 'has Type method'
+   + Implemented Buf.push
+   + Implemented S/// (returns the new string rather than in-place substitution)
+   + Implemented X::StubCode for .../!!! code
+   + Add :createonly to rename()
  + Fixes:
    + (10e6).pick/roll no longer build the whole list to pick a value
    + Regex.gist/perl return source of regex
    + start now takes a statement also, or a block (as before)
    + .push/.unshift on typed arrays now create the right type of container
+   + Throwing a Failure counts as handling it
  + Incompatible changes:
    + DateTime default timezone format is now +HH:MM (used to be +HHMM)
    + "".IO / IO::Path.new("") no longer legal, use "." for current dir
    + next/last/redo don't allow expressions to be evaluated anymore
    + sign(NaN)/NaN.sign is now NaN
+   + Stubbed-out code (via .../!!!) no longer results in X::AdHoc
  + Deprecations:
    + Using start as a sub with parentheses, e.g. start( { ... } )
+   + open(:p)
 
 New in 2015.05
  + Features:

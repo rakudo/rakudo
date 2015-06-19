@@ -1050,11 +1050,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_PROTO := 0;                       # are we inside a proto?
         :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
         :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
+        :my $*COMPILING_CORE_SETTING := 0;         # are we compiling CORE.setting?
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
         :my $*PACKAGE;
-        :my $*SETTING;
         :my $*UNIT;
         :my $*UNIT_OUTER;
         :my $*EXPORT;

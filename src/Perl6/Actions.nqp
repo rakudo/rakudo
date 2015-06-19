@@ -4743,7 +4743,7 @@ Compilation unit '$file' contained the following violations:
         my $op   := ~$<op>;
 
         # using nqp::op outside of setting
-        if $*SETTING && !%*PRAGMAS<nqp> {
+        unless %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
             my $line := $*W.current_line($/);
             @*NQP_VIOLATIONS[$line] := @*NQP_VIOLATIONS[$line] // [];
             @*NQP_VIOLATIONS[$line].push($op);

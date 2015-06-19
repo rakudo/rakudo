@@ -279,7 +279,8 @@ class Perl6::World is HLL::World {
         }
         else {
             $setting_name := %*COMPILING<%?OPTIONS><setting> // 'CORE';
-            $*SETTING := self.load_setting($/,$setting_name);
+            $*COMPILING_CORE_SETTING := 1 if $setting_name eq 'NULL';
+            self.load_setting($/,$setting_name);
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
         $/.CURSOR.unitstart();

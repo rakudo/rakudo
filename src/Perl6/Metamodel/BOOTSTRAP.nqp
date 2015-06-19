@@ -1168,6 +1168,10 @@ BEGIN {
                 Attribute, '$!required', 1);
             nqp::p6bool(1)
         }));
+    Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
+            nqp::getattr(nqp::decont($self),
+                Attribute, '$!required');
+        }));
     Attribute.HOW.add_method(Attribute, 'default_to_rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {

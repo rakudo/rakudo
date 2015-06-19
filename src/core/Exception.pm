@@ -257,31 +257,32 @@ do {
     sub print_control(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my int $type = nqp::getextype($ex);
+        my $backtrace = Backtrace.new(nqp::backtrace($ex), 0);
         if ($type == nqp::const::CONTROL_WARN) {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::getmessage($ex));
             nqp::printfh($err, $msg.chars ?? "$msg" !! "Warning");
-            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).first-none-setting-line);
+            nqp::printfh($err, $backtrace.first-none-setting-line);
             nqp::resume($ex)
         }
         if ($type == nqp::const::CONTROL_LAST) {
-            X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct').throw;
+            X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct', :$backtrace).throw;
         }
         if ($type == nqp::const::CONTROL_NEXT) {
-            X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct').throw;
+            X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct', :$backtrace).throw;
         }
         if ($type == nqp::const::CONTROL_REDO) {
-            X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct').throw;
+            X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct', :$backtrace).throw;
         }
         if ($type == nqp::const::CONTROL_PROCEED) {
-            X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause').throw;
+            X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause', :$backtrace).throw;
         }
         if ($type == nqp::const::CONTROL_SUCCEED) {
             # XXX: should work like leave() ?
-            X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause').throw;
+            X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause', :$backtrace).throw;
         }
         if ($type == nqp::const::CONTROL_TAKE) {
-            X::ControlFlow.new(illegal => 'take', enclosing => 'gather').throw;
+            X::ControlFlow.new(illegal => 'take', enclosing => 'gather', :$backtrace).throw;
         }
     }
 
@@ -1485,6 +1486,7 @@ my class X::Backslash::NonVariableDollar does X::Syntax {
 my class X::ControlFlow is Exception {
     has $.illegal;   # something like 'next'
     has $.enclosing; # ....  outside a loop
+    has $.backtrace; # where the bougs control flow op was
 
     method message() { "$.illegal without $.enclosing" }
 }

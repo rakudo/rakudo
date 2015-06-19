@@ -227,8 +227,8 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method tree(Any:D: *@ [&first, *@rest]) {
         nqp::istype(self,Positional)
-            ?? @rest ?? first MapIter.new(self.list, { .tree(|@rest) }, Mu).list
-                     !! first self.list
+            ?? @rest ?? first(MapIter.new(self.list, { .tree(|@rest) }, Mu).list)
+                     !! first(self.list)
             !! self
     }
 

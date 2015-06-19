@@ -105,7 +105,7 @@ my class IO::Handle does IO {
             $!pipe = 1;
 
             $!PIO := nqp::syncpipe();
-            nqp::openpipe(
+            nqp::shell(
               nqp::unbox_s($!path.Str),
               nqp::unbox_s($*CWD.Str),
               CLONE-HASH-DECONTAINERIZED(%*ENV),

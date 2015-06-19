@@ -5,8 +5,13 @@ class Version {
     multi method new(Str() $s) {
         my @parts = $s.comb(/:r '*' || \d+ || <.alpha>+/);
         for @parts {
-            $_ .= Numeric if .Numeric.defined ;
-            $_ = * if $_ eq '*';
+            if $_ eq '*' {
+                $_ = *;
+            }
+            else {
+                my $numeric = .Numeric;
+                $_ = $numeric if $numeric.defined;
+            }
         }
         self.bless(
           :parts(@parts),

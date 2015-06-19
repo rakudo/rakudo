@@ -4237,12 +4237,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # Called when we add a new choice to an existing syntactic category, for
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
+    my %categorically-won't-work := nqp::hash(
+        'infix:sym<=>', nqp::null(),
+        'infix:sym<:=>', nqp::null(),
+        'infix:sym<::=>', nqp::null(),
+        'prefix:sym<|>', nqp::null());
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
 
-        # Ensure it's not a null name.
+        # Ensure it's not a null name or a compiler-handled op.
         if $opname eq '' {
             self.typed_panic('X::Syntax::Extension::Null');
+        }
+        if nqp::existskey(%categorically-won't-work, $canname) && !$*COMPILING_CORE_SETTING {
+            self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
         }
 
         # If we already have the required operator in the grammar, just return.

@@ -1294,6 +1294,15 @@ my class X::Syntax::Extension::Null does X::Syntax {
     }
 }
 
+my class X::Syntax::Extension::SpecialForm does X::Syntax {
+    has $.category;
+    has $.opname;
+    method message() {
+        "Cannot override $.category operator '$.opname', as it is a special form " ~
+            "handled directly by the compiler";
+    }
+}
+
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {

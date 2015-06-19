@@ -5131,9 +5131,7 @@ Compilation unit '$file' contained the following violations:
                 QAST::SVal.new( :value('$*DISPATCHER') )
             ));
             $past := block_closure($past);
-            $past.annotate('bare_block', QAST::Op.new(
-                :op('call'),
-                QAST::BVal.new( :value($past.ann('past_block')) )));
+            $past.annotate('bare_block', QAST::Op.new( :op('call'), $past ));
         }
         make $past;
     }

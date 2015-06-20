@@ -6804,7 +6804,23 @@ Compilation unit '$file' contained the following violations:
                 }
                 elsif %info<sigil> eq '@' {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        return 0;
+                        $var.push(
+                            QAST::Op.new( :op<bind>,
+                                QAST::Var.new( :name( my $array_copy_var := $block.unique('array_copy_var') ), :scope<local>, :decl<var> ),
+                                QAST::Op.new( :op<create>,
+                                        QAST::WVal.new( :value($*W.find_symbol(['Array'])) )
+                                    )));
+                        $var.push(
+                            QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                QAST::Var.new( :name($array_copy_var), :scope<local> ),
+                                QAST::Op.new( :op('decont'),
+                                    QAST::Var.new( :name($name), :scope('local') )
+                            ) ));
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            QAST::Var.new( :name($array_copy_var), :scope<local> )
+                            ));
                     }
                     else {
                         $var.push(QAST::Op.new(
@@ -6818,7 +6834,23 @@ Compilation unit '$file' contained the following violations:
                 }
                 elsif %info<sigil> eq '%' {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        return 0;
+                        $var.push(
+                            QAST::Op.new( :op<bind>,
+                                QAST::Var.new( :name( my $hash_copy_var := $block.unique('hash_copy_var') ), :scope<local>, :decl<var> ),
+                                QAST::Op.new( :op<create>,
+                                        QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
+                                    )));
+                        $var.push(
+                            QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                QAST::Var.new( :name($hash_copy_var), :scope<local> ),
+                                QAST::Op.new( :op('decont'),
+                                    QAST::Var.new( :name($name), :scope('local') )
+                            ) ));
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            QAST::Var.new( :name($hash_copy_var), :scope<local> )
+                            ));
                     }
                     else {
                         $var.push(QAST::Op.new(

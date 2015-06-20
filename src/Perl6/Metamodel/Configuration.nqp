@@ -9,4 +9,10 @@ class Perl6::Metamodel::Configuration {
     }
     method stash_type() { $stash_type }
     method stash_attr_type() { $stash_attr_type }
+
+    my $submethod_type := nqp::null();
+    method set_submethod_type($type) {
+        $submethod_type := $type;
+    }
+    method submethod_type() { $submethod_type }
 }

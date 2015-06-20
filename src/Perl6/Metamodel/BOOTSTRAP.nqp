@@ -2889,8 +2889,9 @@ Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
 Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 
-# Configure the stash type (not persisted as it ends up in a lexical...)
+# Configure the MOP (not persisted as it ends up in a lexical...)
 Perl6::Metamodel::Configuration.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
 
 # Register default parent types.
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);

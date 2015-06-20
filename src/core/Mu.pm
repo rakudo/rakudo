@@ -413,7 +413,7 @@ my class Mu { # declared in BOOTSTRAP
                 }
                 my $acc_name := substr($name,2);
                 if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
-                    nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
+                    nqp::getattr($cloned, $package, $name) = nqp::decont(%twiddles{$acc_name});
                 }
             }
         }

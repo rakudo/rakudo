@@ -2701,15 +2701,8 @@ BEGIN {
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.compose_repr(Stash);
 
-    # Set this Stash type for the various types of package.
-    Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
-    Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
-    Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
-    Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
-    Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
-    Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
-    Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
-    Perl6::Metamodel::NativeRefHOW.set_stash_type(Stash, EnumMap);
+    # Configure the stash type.
+    Perl6::Metamodel::Configuration.set_stash_type(Stash, EnumMap);
 
     # Give everything we've set up so far a Stash.
     Perl6::Metamodel::ClassHOW.add_stash(Mu);
@@ -2896,15 +2889,8 @@ Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
 Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 
-# Set this Stash type for the various types of package (not persisted as it ends
-# up in a lexical...)
-Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
-Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
-Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
-Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
-Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
-Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
-Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
+# Configure the stash type (not persisted as it ends up in a lexical...)
+Perl6::Metamodel::Configuration.set_stash_type(Stash, EnumMap);
 
 # Register default parent types.
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);

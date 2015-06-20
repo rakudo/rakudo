@@ -499,7 +499,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                 }
             }
         }
-    }, $reason // "did we throws_like {$ex_type.^name}?";
+    }, $reason // "did we throws-like {$ex_type.^name}?";
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {
@@ -664,7 +664,7 @@ Test - Rakudo Testing Library
 
 =head1 FUNCTIONS
 
-=head2 throws_like($code, Mu $expected_type, *%matchers)
+=head2 throws-like($code, Mu $expected_type, *%matchers)
 
 If C<$code> is C<Callable>, calls it, otherwise C<EVAL>s it,
 and expects it thrown an exception.

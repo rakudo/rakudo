@@ -6741,10 +6741,28 @@ Compilation unit '$file' contained the following violations:
                 }
                 else {
                     if %info<sigil> eq '@' {
-                        return 0;
+                        $var.default(
+                            QAST::Stmts.new(
+                                QAST::Op.new( :op<bind>,
+                                    QAST::Var.new( :name(my str $defname := $block.unique("array_default_val")),
+                                                   :scope<local>, :decl<var> ),
+                                    QAST::Op.new( :op<create>,
+                                                  QAST::WVal.new( :value( $*W.find_symbol(['Array']) ) )) ),
+
+                                QAST::Op.new( :op<bindattr>,
+                                    (my $varobj := QAST::Var.new( :name($defname), :scope<local> )),
+                                    QAST::WVal.new( :value( $*W.find_symbol(['List']) ) ),
+                                    QAST::SVal.new( :value<$!flattens> ),
+                                    QAST::Op.new( :op<p6bool>,
+                                                  QAST::IVal.new( :value(1) ) ) ),
+                                $varobj
+                            ));
                     }
                     elsif %info<sigil> eq '%' {
-                        return 0;
+                        $var.default(
+                                QAST::Op.new( :op<create>,
+                                              QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
+                            ));
                     }
                     else {
                         if $spec == 1 {
@@ -6876,17 +6894,33 @@ Compilation unit '$file' contained the following violations:
 
             # If it's an attributive parameter, do the bind.
             if %info<bind_attr> {
-                $var.push(QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new(
-                        :name(%info<variable_name>), :scope('attribute'),
-                        QAST::Var.new( :name('self'), :scope('lexical') ),
-                        QAST::WVal.new( :value(%info<attr_package>) )
-                    ),
-                    QAST::Op.new(
-                        :op('decont'),
-                        QAST::Var.new( :name($name), :scope('local') )
-                    )));
+                # We have to check if it's a generic type before
+                if %info<attr_package>.HOW.archetypes.generic {
+                    my $packagename := %info<attr_package>.HOW.name(%info<attr_package>);
+                    $var.push(QAST::Op.new(
+                        :op('p6store'),
+                        QAST::Var.new(
+                            :name(%info<variable_name>), :scope('attribute'),
+                            QAST::Var.new( :name('self'), :scope('lexical') ),
+                            QAST::Var.new( :name($packagename), :scope('typevar') )
+                        ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+                } else {
+                    $var.push(QAST::Op.new(
+                        :op('p6store'),
+                        QAST::Var.new(
+                            :name(%info<variable_name>), :scope('attribute'),
+                            QAST::Var.new( :name('self'), :scope('lexical') ),
+                            QAST::WVal.new( :value(%info<attr_package>) )
+                        ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+                }
             }
 
             # Add the generated var.

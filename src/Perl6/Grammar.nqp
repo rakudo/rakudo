@@ -1664,7 +1664,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token fatarrow {
-        <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
+        <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }
 
     token coloncircumfix($front) {
@@ -2921,7 +2921,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             <.ws>
             [
-            || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
+            || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i<=')>
             || <EXPR('e=')>
             ]
             || <.malformed: 'initializer'>
@@ -3986,7 +3986,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*GOAL := '!!';
         '??'
         <.ws>
-        <EXPR('j=')>
+        <EXPR('i=')>
         [ '!!'
         || <?before '::' <-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
         || <?before ':' <-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }

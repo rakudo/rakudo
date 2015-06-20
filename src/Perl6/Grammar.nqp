@@ -4080,7 +4080,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     token infix:sym<:>    {
         <?{ $*INVOCANT_OK && $*GOAL ne '!!' }>
-        <.unsp>? <sym> <?before \s | <.terminator> >
+        <.unsp>? <sym> <?before \s | <.terminator> | $ >
         <O('%comma, :fiddly<0>')>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
         { $*INVOCANT_OK := 0; }

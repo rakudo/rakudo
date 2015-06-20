@@ -6894,7 +6894,9 @@ Compilation unit '$file' contained the following violations:
 
             # If it's an attributive parameter, do the bind.
             if %info<bind_attr> {
-                # We have to check if it's a generic type before
+                # If the type given for the attr_package is generic, we're
+                # dealing with a role and have to look up what type it's
+                # supposed to grab the attribute from during run-time.
                 if %info<attr_package>.HOW.archetypes.generic {
                     my $packagename := %info<attr_package>.HOW.name(%info<attr_package>);
                     $var.push(QAST::Op.new(
@@ -6908,7 +6910,8 @@ Compilation unit '$file' contained the following violations:
                             :op('decont'),
                             QAST::Var.new( :name($name), :scope('local') )
                         )));
-                } else {
+                }
+                else {
                     $var.push(QAST::Op.new(
                         :op('p6store'),
                         QAST::Var.new(

@@ -6556,7 +6556,6 @@ Compilation unit '$file' contained the following violations:
             return 0 if nqp::existskey(%info, 'sub_signature');
             return 0 if nqp::existskey(%info, 'type_captures'); # XXX Support later
             return 0 if %info<bind_accessor>;                   # XXX Support later
-            return 0 if %info<nominal_generic>;                 # XXX Support later
             return 0 if %info<default_from_outer>;
 
             # Generate a var to bind into.
@@ -6651,9 +6650,10 @@ Compilation unit '$file' contained the following violations:
 
             # Add type checks.
             my $nomtype   := %info<nominal_type>;
+            my int $is_generic := %info<nominal_generic>;
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
             my int $spec  := nqp::objprimspec($nomtype);
-            if $spec {
+            if $spec && !%info<nominal_generic> {
                 if $is_rw {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op(@iscont_ops[$spec]),
@@ -6675,7 +6675,14 @@ Compilation unit '$file' contained the following violations:
                     )));
 
                 # Type-check, unless it's Mu, in which case skip it.
-                unless $nomtype =:= $*W.find_symbol(['Mu']) {
+                if $is_generic {
+                    my $genericname := $nomtype.HOW.name(%info<attr_package>);
+                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('istype'),
+                        QAST::Var.new( :name($name), :scope('local') ),
+                        QAST::Var.new( :name($genericname), :scope<typevar> )
+                    )));
+                } elsif !($nomtype =:= $*W.find_symbol(['Mu'])) {
                     if $nomtype.HOW.archetypes.generic {
                         return 0 unless %info<is_invocant>;
                     }

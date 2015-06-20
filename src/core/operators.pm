@@ -409,8 +409,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     }, :$infinite), @right).list;
 }
 
-# XXX Wants to be a macro when we have them.
+# XXX Wants to be macros when we have them.
 sub WHAT(Mu \x) { x.WHAT }
+sub HOW (Mu \x) { x.HOW }
 sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) { * }

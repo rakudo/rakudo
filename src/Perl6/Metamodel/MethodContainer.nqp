@@ -24,7 +24,8 @@ role Perl6::Metamodel::MethodContainer {
         }
         
         # Add to correct table depending on if it's a Submethod.
-        if nqp::istype($code_obj, Perl6::Metamodel::Configuration.submethod_type) {
+        if !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type) 
+            && nqp::istype($code_obj, Perl6::Metamodel::Configuration.submethod_type) {
             %!submethods{$name} := $code_obj;
         }
         else {

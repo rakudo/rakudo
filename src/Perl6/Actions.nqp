@@ -6563,7 +6563,6 @@ Compilation unit '$file' contained the following violations:
             my $param_obj := @p_objs[$i];
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             return 0 if nqp::existskey(%info, 'sub_signature');
-            return 0 if nqp::existskey(%info, 'type_captures'); # XXX Support later
             return 0 if %info<bind_accessor>;                   # XXX Support later
             return 0 if %info<default_from_outer>;
 
@@ -6796,6 +6795,25 @@ Compilation unit '$file' contained the following violations:
                     }
                 }
             }
+
+            # If there are type captures involved - most commonly $?CLASS and
+            # ::?CLASS - we emit a piece of code for each target that gets the
+            # WHAT of the given value and binds it.
+            #
+            # In theory, we could bind a local with the result of the WHAT
+            # operation, but I'm not convinced it's sufficiently expensive.
+            if %info<type_captures> {
+                for %info<type_captures> {
+                    $var.push( QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($_), :scope<lexical> ),
+                        QAST::Op.new( :op<what>,
+                            QAST::Var.new( :name($name), :scope<local> ) )
+                        )
+                    );
+                }
+            }
+
 
             # If it's the invocant, needs to go into self also.
             if %info<is_invocant> {

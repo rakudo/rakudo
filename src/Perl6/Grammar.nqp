@@ -2214,6 +2214,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token declarator {
+        :my $*LEFTSIGIL := '';
         [
         # STD.pm6 uses <defterm> here, but we need different
         # action methods

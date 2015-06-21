@@ -1,3 +1,11 @@
+New in 2015.07
+ + Features:
+ + Fixes:
+ + Incompatible changes:
+ + Deprecations:
+   + $*PROGRAM_NAME in favour of $PROGRAM-NAME
+   + $*EXECUTABLE_NAME in favour of $EXECUTABLE-NAME
+
 New in 2015.06
  + Features:
    + Lexical pragma 'use trace' now outputs statements on STDERR

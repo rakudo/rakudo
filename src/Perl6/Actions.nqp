@@ -1878,20 +1878,29 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Var.new( :name(@name[+@name - 1]), :node($/));
 
         if $twigil eq '*' {
+            my $name := $past.name;
 
             # DEPRECATIONS
-            if $past.name() eq '$*OS' {
+            if $name eq '$*OS' {
                 $*W.DEPRECATED($/,
                   '$*DISTRO.name','2014.09','2015.09',:what('$*OS'));
             }
-            elsif $past.name() eq '$*OSVER' {
+            elsif $name eq '$*OSVER' {
                 $*W.DEPRECATED($/,
                   '$*DISTRO.version','2014.09','2015.09',:what('$*OSVER'));
+            }
+            elsif $name eq '$*EXECUTABLE_NAME' {
+                $*W.DEPRECATED($/,
+                  '$*EXECUTABLE-NAME','2015.06','2015.09',:what('$*EXECUTABLE_NAME'));
+            }
+            elsif $name eq '$*PROGRAM_NAME' {
+                $*W.DEPRECATED($/,
+                  '$*PROGRAM-NAME','2015.06','2015.09',:what('$*PROGRAM_NAME'));
             }
 
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
-                $*W.add_string_constant($past.name()));
+                $*W.add_string_constant($name));
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.

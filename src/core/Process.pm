@@ -3,37 +3,33 @@ multi sub INITIALIZE_DYNAMIC('$*PID') {
 }
 
 multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE') {
-    my $EXECUTABLE =
+    PROCESS::<$EXECUTABLE> := IO::Path.new-from-absolute-path(
 #?if jvm
-        $*VM.properties<perl6.execname>
-        // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j';
+      $*VM.properties<perl6.execname>
+      // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j'
 #?endif
 #?if moar
-        nqp::execname()
-        // ($*VM.config<prefix> ~ '/bin/' ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'));
+      nqp::execname()
+      // ($*VM.config<prefix> ~ '/bin/'
+        ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'))
 #?endif
-    $EXECUTABLE := IO::Path.new-from-absolute-path($EXECUTABLE);
-    PROCESS::<$EXECUTABLE_NAME> := $EXECUTABLE.basename;
-    PROCESS::<$EXECUTABLE>      := $EXECUTABLE;
+    );
 }
 
-multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE_NAME') {
-    PROCESS::<$EXECUTABLE_NAME> := $*EXECUTABLE.basename;
+multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE-NAME') {
+    PROCESS::<$EXECUTABLE-NAME> := $*EXECUTABLE.basename;
 }
 
-multi sub INITIALIZE_DYNAMIC('$*PROGRAM_NAME') {
-    my Mu $comp := nqp::getcomp('perl6');
-    my $PROGRAM_NAME = $comp.user-progname();
-    PROCESS::<$PROGRAM>      := IO::Path.new($PROGRAM_NAME);
-    PROCESS::<$PROGRAM_NAME> := $PROGRAM_NAME;
+multi sub INITIALIZE_DYNAMIC('$*PROGRAM-NAME') {
+    PROCESS::<$PROGRAM-NAME> := nqp::getcomp('perl6').user-progname;
 }
 
 multi sub INITIALIZE_DYNAMIC('$*PROGRAM') {
-    PROCESS::<$PROGRAM> := IO::Path.new($*PROGRAM_NAME);
+    PROCESS::<$PROGRAM> := IO::Path.new($*PROGRAM-NAME);
 }
 
 multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
-    PROCESS::<$TMPDIR> = $*SPEC.tmpdir;
+    PROCESS::<$TMPDIR> := $*SPEC.tmpdir;
 }
 
 multi sub INITIALIZE_DYNAMIC('$*HOME') {
@@ -98,6 +94,16 @@ multi sub INITIALIZE_DYNAMIC('$*HOME') {
 
     IdFetch.new( :name<$USER> );
     IdFetch.new( :name<$GROUP> );
+}
+
+# Deprecations
+multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE_NAME') {
+    $*EXECUTABLE-NAME; # prime it
+    PROCESS::<$EXECUTABLE_NAME> := PROCESS::<$EXECUTABLE-NAME>;
+}
+multi sub INITIALIZE_DYNAMIC('$*PROGRAM_NAME') {
+    $*PROGRAM-NAME;  # prime it
+    PROCESS::<$PROGRAM_NAME> := PROCESS::<$PROGRAM-NAME>;
 }
 
 # vim: ft=perl6 expandtab sw=4

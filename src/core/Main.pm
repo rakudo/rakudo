@@ -83,7 +83,9 @@ my sub MAIN_HELPER($retval = 0) {
             $name;
         }
 
-        my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! strip_path_prefix($*PROGRAM_NAME);
+        my $prog-name = $*PROGRAM-NAME eq '-e'
+          ?? "-e '...'"
+          !! strip_path_prefix($*PROGRAM-NAME);
         for $m.candidates -> $sub {
             next if $sub.?is-hidden-from-USAGE;
             my (@required-named, @optional-named, @positional, $docs);

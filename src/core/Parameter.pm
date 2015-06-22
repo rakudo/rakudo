@@ -36,6 +36,44 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
 
+    method sigil() {
+        my $sigil = '';
+        my $name = $.name;
+        if $name {
+            $sigil = $name.substr(0,1);
+            if $!flags +& $SIG_ELEM_IS_CAPTURE {
+                $sigil = '|';
+            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+                $sigil = '\\' unless $sigil eq '@' or $sigil eq '$';
+            }
+        } else {
+            if $!flags +& $SIG_ELEM_IS_CAPTURE {
+                $sigil = '|';
+            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+                $sigil = '\\';
+            } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
+                $sigil = '@';
+            } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
+                $sigil = '%';
+            } elsif $!nominal_type.^name ~~ /^^ Callable >> / {
+                $sigil = '&';
+            } else {
+                $sigil = '$';
+            }
+        }
+        $sigil;
+    }
+
+    method twigil() {
+        my $twigil = '';
+        if ($!flags +& $SIG_ELEM_BIND_PUBLIC_ATTR) {
+            $twigil = '.';
+        } elsif ($!flags +& $SIG_ELEM_BIND_PRIVATE_ATTR) {
+            $twigil = '!';
+        }
+        $twigil;
+    }
+
     method constraint_list() {
         nqp::isnull($!post_constraints) ?? () !!
             nqp::hllize($!post_constraints)

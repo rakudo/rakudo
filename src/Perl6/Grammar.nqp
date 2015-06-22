@@ -4114,6 +4114,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment')>
         || <O('%list_assignment')>
         ]
+        { $*LEFTSIGIL := '' }
     }
 
     token infix:sym<and>  { <sym> >> <O('%loose_and, :iffy<1>, :pasttype<if>')> }

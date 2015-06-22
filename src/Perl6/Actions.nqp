@@ -1878,20 +1878,29 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Var.new( :name(@name[+@name - 1]), :node($/));
 
         if $twigil eq '*' {
+            my $name := $past.name;
 
             # DEPRECATIONS
-            if $past.name() eq '$*OS' {
+            if $name eq '$*OS' {
                 $*W.DEPRECATED($/,
                   '$*DISTRO.name','2014.09','2015.09',:what('$*OS'));
             }
-            elsif $past.name() eq '$*OSVER' {
+            elsif $name eq '$*OSVER' {
                 $*W.DEPRECATED($/,
                   '$*DISTRO.version','2014.09','2015.09',:what('$*OSVER'));
+            }
+            elsif $name eq '$*EXECUTABLE_NAME' {
+                $*W.DEPRECATED($/,
+                  '$*EXECUTABLE-NAME','2015.06','2015.09',:what('$*EXECUTABLE_NAME'));
+            }
+            elsif $name eq '$*PROGRAM_NAME' {
+                $*W.DEPRECATED($/,
+                  '$*PROGRAM-NAME','2015.06','2015.09',:what('$*PROGRAM_NAME'));
             }
 
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
-                $*W.add_string_constant($past.name()));
+                $*W.add_string_constant($name));
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
@@ -4743,7 +4752,7 @@ Compilation unit '$file' contained the following violations:
         my $op   := ~$<op>;
 
         # using nqp::op outside of setting
-        if $*SETTING && !%*PRAGMAS<nqp> {
+        unless %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
             my $line := $*W.current_line($/);
             @*NQP_VIOLATIONS[$line] := @*NQP_VIOLATIONS[$line] // [];
             @*NQP_VIOLATIONS[$line].push($op);
@@ -5131,9 +5140,7 @@ Compilation unit '$file' contained the following violations:
                 QAST::SVal.new( :value('$*DISPATCHER') )
             ));
             $past := block_closure($past);
-            $past.annotate('bare_block', QAST::Op.new(
-                :op('call'),
-                QAST::BVal.new( :value($past.ann('past_block')) )));
+            $past.annotate('bare_block', QAST::Op.new( :op('call'), $past ));
         }
         make $past;
     }
@@ -6556,9 +6563,7 @@ Compilation unit '$file' contained the following violations:
             my $param_obj := @p_objs[$i];
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             return 0 if nqp::existskey(%info, 'sub_signature');
-            return 0 if nqp::existskey(%info, 'type_captures'); # XXX Support later
             return 0 if %info<bind_accessor>;                   # XXX Support later
-            return 0 if %info<nominal_generic>;                 # XXX Support later
             return 0 if %info<default_from_outer>;
 
             # Generate a var to bind into.
@@ -6653,9 +6658,10 @@ Compilation unit '$file' contained the following violations:
 
             # Add type checks.
             my $nomtype   := %info<nominal_type>;
+            my int $is_generic := %info<nominal_generic>;
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
             my int $spec  := nqp::objprimspec($nomtype);
-            if $spec {
+            if $spec && !%info<nominal_generic> {
                 if $is_rw {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op(@iscont_ops[$spec]),
@@ -6677,7 +6683,14 @@ Compilation unit '$file' contained the following violations:
                     )));
 
                 # Type-check, unless it's Mu, in which case skip it.
-                unless $nomtype =:= $*W.find_symbol(['Mu']) {
+                if $is_generic {
+                    my $genericname := $nomtype.HOW.name(%info<attr_package>);
+                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('istype'),
+                        QAST::Var.new( :name($name), :scope('local') ),
+                        QAST::Var.new( :name($genericname), :scope<typevar> )
+                    )));
+                } elsif !($nomtype =:= $*W.find_symbol(['Mu'])) {
                     if $nomtype.HOW.archetypes.generic {
                         return 0 unless %info<is_invocant>;
                     }
@@ -6743,10 +6756,28 @@ Compilation unit '$file' contained the following violations:
                 }
                 else {
                     if %info<sigil> eq '@' {
-                        return 0;
+                        $var.default(
+                            QAST::Stmts.new(
+                                QAST::Op.new( :op<bind>,
+                                    QAST::Var.new( :name(my str $defname := $block.unique("array_default_val")),
+                                                   :scope<local>, :decl<var> ),
+                                    QAST::Op.new( :op<create>,
+                                                  QAST::WVal.new( :value( $*W.find_symbol(['Array']) ) )) ),
+
+                                QAST::Op.new( :op<bindattr>,
+                                    (my $varobj := QAST::Var.new( :name($defname), :scope<local> )),
+                                    QAST::WVal.new( :value( $*W.find_symbol(['List']) ) ),
+                                    QAST::SVal.new( :value<$!flattens> ),
+                                    QAST::Op.new( :op<p6bool>,
+                                                  QAST::IVal.new( :value(1) ) ) ),
+                                $varobj
+                            ));
                     }
                     elsif %info<sigil> eq '%' {
-                        return 0;
+                        $var.default(
+                                QAST::Op.new( :op<create>,
+                                              QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
+                            ));
                     }
                     else {
                         if $spec == 1 {
@@ -6764,6 +6795,25 @@ Compilation unit '$file' contained the following violations:
                     }
                 }
             }
+
+            # If there are type captures involved - most commonly $?CLASS and
+            # ::?CLASS - we emit a piece of code for each target that gets the
+            # WHAT of the given value and binds it.
+            #
+            # In theory, we could bind a local with the result of the WHAT
+            # operation, but I'm not convinced it's sufficiently expensive.
+            if %info<type_captures> {
+                for %info<type_captures> {
+                    $var.push( QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($_), :scope<lexical> ),
+                        QAST::Op.new( :op<what>,
+                            QAST::Var.new( :name($name), :scope<local> ) )
+                        )
+                    );
+                }
+            }
+
 
             # If it's the invocant, needs to go into self also.
             if %info<is_invocant> {
@@ -6788,7 +6838,23 @@ Compilation unit '$file' contained the following violations:
                 }
                 elsif %info<sigil> eq '@' {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        return 0;
+                        $var.push(
+                            QAST::Op.new( :op<bind>,
+                                QAST::Var.new( :name( my $array_copy_var := $block.unique('array_copy_var') ), :scope<local>, :decl<var> ),
+                                QAST::Op.new( :op<create>,
+                                        QAST::WVal.new( :value($*W.find_symbol(['Array'])) )
+                                    )));
+                        $var.push(
+                            QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                QAST::Var.new( :name($array_copy_var), :scope<local> ),
+                                QAST::Op.new( :op('decont'),
+                                    QAST::Var.new( :name($name), :scope('local') )
+                            ) ));
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            QAST::Var.new( :name($array_copy_var), :scope<local> )
+                            ));
                     }
                     else {
                         $var.push(QAST::Op.new(
@@ -6802,7 +6868,23 @@ Compilation unit '$file' contained the following violations:
                 }
                 elsif %info<sigil> eq '%' {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        return 0;
+                        $var.push(
+                            QAST::Op.new( :op<bind>,
+                                QAST::Var.new( :name( my $hash_copy_var := $block.unique('hash_copy_var') ), :scope<local>, :decl<var> ),
+                                QAST::Op.new( :op<create>,
+                                        QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
+                                    )));
+                        $var.push(
+                            QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                QAST::Var.new( :name($hash_copy_var), :scope<local> ),
+                                QAST::Op.new( :op('decont'),
+                                    QAST::Var.new( :name($name), :scope('local') )
+                            ) ));
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            QAST::Var.new( :name($hash_copy_var), :scope<local> )
+                            ));
                     }
                     else {
                         $var.push(QAST::Op.new(
@@ -6878,17 +6960,36 @@ Compilation unit '$file' contained the following violations:
 
             # If it's an attributive parameter, do the bind.
             if %info<bind_attr> {
-                $var.push(QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new(
-                        :name(%info<variable_name>), :scope('attribute'),
-                        QAST::Var.new( :name('self'), :scope('lexical') ),
-                        QAST::WVal.new( :value(%info<attr_package>) )
-                    ),
-                    QAST::Op.new(
-                        :op('decont'),
-                        QAST::Var.new( :name($name), :scope('local') )
-                    )));
+                # If the type given for the attr_package is generic, we're
+                # dealing with a role and have to look up what type it's
+                # supposed to grab the attribute from during run-time.
+                if %info<attr_package>.HOW.archetypes.generic {
+                    my $packagename := %info<attr_package>.HOW.name(%info<attr_package>);
+                    $var.push(QAST::Op.new(
+                        :op('p6store'),
+                        QAST::Var.new(
+                            :name(%info<variable_name>), :scope('attribute'),
+                            QAST::Var.new( :name('self'), :scope('lexical') ),
+                            QAST::Var.new( :name($packagename), :scope('typevar') )
+                        ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+                }
+                else {
+                    $var.push(QAST::Op.new(
+                        :op('p6store'),
+                        QAST::Var.new(
+                            :name(%info<variable_name>), :scope('attribute'),
+                            QAST::Var.new( :name('self'), :scope('lexical') ),
+                            QAST::WVal.new( :value(%info<attr_package>) )
+                        ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+                }
             }
 
             # Add the generated var.

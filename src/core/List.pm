@@ -262,13 +262,7 @@ my class List does Positional { # declared in BOOTSTRAP
             fail X::Cannot::Infinite.new(:action<.push to>)
               if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
-            nqp::istype(value, self.of)
-                ?? nqp::push($!items, nqp::assign(nqp::p6scalarfromdesc(nqp::null), value))
-                !! X::TypeCheck.new(
-                      operation => '.push',
-                      expected  => self.of,
-                      got       => value,
-                    ).throw;
+            nqp::push( $!items, my $ = value);
             self
         }
         else {
@@ -286,20 +280,7 @@ my class List does Positional { # declared in BOOTSTRAP
         # push is always eager
         @values.gimme(*);
 
-        # need type checks?
-        my $of := self.of;
-
-        unless $of =:= Mu {
-            X::TypeCheck.new(
-              operation => '.push',
-              expected  => $of,
-              got       => $_,
-            ).throw unless nqp::istype($_, $of) for @values;
-        }
-
-        nqp::splice($!items,
-                nqp::getattr(@values, List, '$!items'),
-                $elems, 0);
+        nqp::splice($!items, nqp::getattr(@values, List, '$!items'), $elems, 0);
 
         self;
     }
@@ -308,13 +289,7 @@ my class List does Positional { # declared in BOOTSTRAP
         if nqp::iscont(value) || !(nqp::istype(value, Iterable) || nqp::istype(value, Parcel)) {
             nqp::p6listitems(self);
             value.gimme(*) if nqp::istype(value, List); # fixes #121994
-            nqp::istype(value, self.of)
-                ?? nqp::unshift($!items, my $ = value)
-                !! X::TypeCheck.new(
-                      operation => '.push',
-                      expected  => self.of,
-                      got       => value,
-                    ).throw;
+            nqp::unshift($!items, my $ = value);
             self
         }
         else {
@@ -326,31 +301,7 @@ my class List does Positional { # declared in BOOTSTRAP
         fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
-
-        # don't bother with type checks
-        my $of := self.of;
-        if ( $of =:= Mu ) {
-            nqp::unshift($!items, @values.pop) while @values;
-        }
-
-        # we must check types
-        else {
-            while @values {
-                my $value := @values.pop;
-                if nqp::istype($value, $of) {
-                    nqp::unshift($!items, $value);
-                }
-
-                # huh?
-                else {
-                    X::TypeCheck.new(
-                      operation => '.unshift',
-                      expected  => $of,
-                      got       => $value,
-                    ).throw;
-                }
-            }
-        }
+        nqp::unshift($!items, @values.pop) while @values;
 
         self
     }

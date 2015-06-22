@@ -1050,11 +1050,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_PROTO := 0;                       # are we inside a proto?
         :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
         :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
+        :my $*COMPILING_CORE_SETTING := 0;         # are we compiling CORE.setting?
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
         :my $*PACKAGE;
-        :my $*SETTING;
         :my $*UNIT;
         :my $*UNIT_OUTER;
         :my $*EXPORT;
@@ -1664,7 +1664,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token fatarrow {
-        <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
+        <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }
 
     token coloncircumfix($front) {
@@ -2051,7 +2051,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # case we just stubbed it), a role (in which case multiple
                     # variants are OK) or else an illegal redecl.
                     if $exists && ($*PKGDECL ne 'role' || !nqp::can($*PACKAGE.HOW, 'configure_punning')) {
-                        if $*PKGDECL eq 'role' || $*PACKAGE.HOW.is_composed($*PACKAGE) {
+                        if $*PKGDECL eq 'role' || !nqp::can($*PACKAGE.HOW, 'is_composed') || $*PACKAGE.HOW.is_composed($*PACKAGE) {
                             $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => $longname.name(),
                             );
@@ -2214,6 +2214,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token declarator {
+        :my $*LEFTSIGIL := '';
         [
         # STD.pm6 uses <defterm> here, but we need different
         # action methods
@@ -2921,7 +2922,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             <.ws>
             [
-            || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
+            || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i<=')>
             || <EXPR('e=')>
             ]
             || <.malformed: 'initializer'>
@@ -3986,7 +3987,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*GOAL := '!!';
         '??'
         <.ws>
-        <EXPR('j=')>
+        <EXPR('i=')>
         [ '!!'
         || <?before '::' <-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
         || <?before ':' <-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
@@ -4080,7 +4081,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     token infix:sym<:>    {
         <?{ $*INVOCANT_OK && $*GOAL ne '!!' }>
-        <.unsp>? <sym> <?before \s | <.terminator> >
+        <.unsp>? <sym> <?before \s | <.terminator> | $ >
         <O('%comma, :fiddly<0>')>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
         { $*INVOCANT_OK := 0; }
@@ -4113,6 +4114,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment')>
         || <O('%list_assignment')>
         ]
+        { $*LEFTSIGIL := '' }
     }
 
     token infix:sym<and>  { <sym> >> <O('%loose_and, :iffy<1>, :pasttype<if>')> }
@@ -4237,12 +4239,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # Called when we add a new choice to an existing syntactic category, for
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
+    my %categorically-won't-work := nqp::hash(
+        'infix:sym<=>', nqp::null(),
+        'infix:sym<:=>', nqp::null(),
+        'infix:sym<::=>', nqp::null(),
+        'prefix:sym<|>', nqp::null());
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
 
-        # Ensure it's not a null name.
+        # Ensure it's not a null name or a compiler-handled op.
         if $opname eq '' {
             self.typed_panic('X::Syntax::Extension::Null');
+        }
+        if nqp::existskey(%categorically-won't-work, $canname) && !$*COMPILING_CORE_SETTING {
+            self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
         }
 
         # If we already have the required operator in the grammar, just return.

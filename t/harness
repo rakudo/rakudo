@@ -75,7 +75,15 @@ if ($list_file) {
 my @tfiles = map { all_in($_) } sort @files;
 
 if ($do_fudge) {
-    @tfiles = fudge(@tfiles);
+    sub batch {
+        my @batches;
+        while (@_) {
+            my @batch = splice @_, 0, 200;
+            push @batches, \@batch;
+        }
+        @batches
+    }
+    @tfiles = map { fudge(@$_) } batch @tfiles;
 }
 
 my $tap_harness_class = 'TAP::Harness';

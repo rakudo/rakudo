@@ -926,7 +926,9 @@ class Perl6::Optimizer {
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
         my $result        := $block;
-        if $block.blocktype eq 'immediate' && $block.arity == 0 && !$*DYNAMICALLY_COMPILED && !$vars_info.is_poisoned {
+        if $block.blocktype eq 'immediate' && $block.arity == 0
+                && !$*DYNAMICALLY_COMPILED && !$vars_info.is_poisoned
+                && !$block.has_exit_handler {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
             for $block.symtable() {

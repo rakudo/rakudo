@@ -11,25 +11,21 @@ role Perl6::Metamodel::MethodContainer {
 
     # Add a method.
     method add_method($obj, $name, $code_obj) {
-        # We may get VM-level subs in here during BOOTSTRAP; the try is to cope
-        # with them.
-        $code_obj := nqp::decont($code_obj);
-        my $method_type := "Method";
-        try { $method_type := $code_obj.HOW.name($code_obj) };
-        
         # Ensure we haven't already got it.
+        $code_obj := nqp::decont($code_obj);
         if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
             nqp::die("Package '"
               ~ self.name($obj)
               ~ "' already has a "
-              ~ $method_type
+              ~ (try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method')
               ~ " '"
               ~ $name
               ~ "' (did you mean to declare a multi-method?)");
         }
         
-        # Add to correct table depending on if it's a Submethod. Note, we
-        if $method_type eq 'Submethod' {
+        # Add to correct table depending on if it's a Submethod.
+        if !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type) 
+            && nqp::istype($code_obj, Perl6::Metamodel::Configuration.submethod_type) {
             %!submethods{$name} := $code_obj;
         }
         else {

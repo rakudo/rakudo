@@ -1,5 +1,6 @@
 my class X::ControlFlow::Return { ... }
 my class X::Eval::NoSuchLang { ... }
+my class X::Multi::NoMatch { ... }
 my class PseudoStash { ... }
 my class Label { ... }
 
@@ -138,13 +139,13 @@ my &lastcall := -> {
     True
 };
 
-my &samewith := -> *@pos, *%named {
+sub samewith(|c) {
     my $my   = callframe(1).my;
     my $self = $my<self>;
     die "Could not find 'self'" if !$self.DEFINITE;
     my $dispatcher = $my<&?ROUTINE>.dispatcher
       || die "Could not find dispatcher";
-    $dispatcher( $self, |@pos, |%named );
+    $dispatcher( $self, |c );
 }
 
 proto sub die(|) {*};
@@ -165,7 +166,25 @@ multi sub warn(*@msg) {
     0;
 }
 
-proto sub EVAL($, *%) {*}
+proto sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
+    # First look in compiler registry.
+    my $compiler := nqp::getcomp($lang);
+    if nqp::isnull($compiler) {
+        # Try a multi-dispatch to another EVAL candidate. If that fails to
+        # dispatch, map it to a typed exception.
+        CATCH {
+            when X::Multi::NoMatch {
+                X::Eval::NoSuchLang.new(:$lang).throw
+            }
+        }
+        return {*};
+    }
+    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
+    my $?FILES   := 'EVAL_' ~ (state $no)++;
+    my $compiled := $compiler.compile($code.Stringy, :outer_ctx($eval_ctx), :global(GLOBAL));
+    nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
+    $compiled();
+}
 multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'perl5' }, PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
@@ -180,16 +199,6 @@ multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'perl5' }, Pseudo
         $p5 = ::("Inline::Perl5").default_perl5;
     }
     $p5.run($code);
-}
-multi sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ (state $no)++;
-    my $compiler := nqp::getcomp($lang);
-    X::Eval::NoSuchLang.new(:$lang).throw
-        if nqp::isnull($compiler);
-    my $compiled := $compiler.compile($code.Stringy, :outer_ctx($eval_ctx), :global(GLOBAL));
-    nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
-    $compiled();
 }
 
 proto sub EVALFILE($, *%) {*}

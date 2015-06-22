@@ -3,7 +3,7 @@ my class Failure {
     has $.backtrace;
     has $!handled;
 
-    method new($exception) {
+    method new(Exception $exception) {
          self.bless(:$exception);
     }
 

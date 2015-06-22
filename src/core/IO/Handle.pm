@@ -10,7 +10,7 @@ my class IO::Handle does IO {
     has int $!pipe;
 
     method pipe(IO::Handle:D: |c) {
-        self.open(:p, |c);
+        self.open(:p, :nodepr, |c);
     }
 
     method open(IO::Handle:D:
@@ -23,6 +23,7 @@ my class IO::Handle does IO {
       :$chomp = True,
       :$enc   = 'utf8',
       :$nl    = "\n",
+      :$nodepr,
     ) {
 
         if $!path eq '-' {
@@ -54,7 +55,7 @@ my class IO::Handle does IO {
         $r = $w = True if $rw;
 
         if $p {
-            DEPRECATED('pipe($path,...)',|<2015.06 2015.09>,:what(':p for pipe'));
+            DEPRECATED('pipe($path,...)',|<2015.06 2015.09>,:what(':p for pipe')) unless $nodepr;
             $!pipe = 1;
 
             my str $errpath;

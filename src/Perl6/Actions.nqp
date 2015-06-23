@@ -2126,8 +2126,11 @@ Compilation unit '$file' contained the following violations:
                 QAST::WVal.new( :value($*PACKAGE) ),
                 QAST::Op.new( :op('curlexpad') )));
 
-            # Create code object and add it as the role's body block.
-            my $code := $*W.create_code_object($block, 'Sub', $sig);
+            # Finish code object and add it as the role's body block.
+            my $code := $*CODE_OBJECT;
+            $*W.attach_signature($code, $sig);
+            $*W.finish_code_object($code, $block, 0);
+            $*W.add_phasers_handling_code($code, $block);
             $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
 
             # Compose before we add the role to the group, so the group sees
@@ -2144,9 +2147,11 @@ Compilation unit '$file' contained the following violations:
             # Compose.
             $*W.pkg_compose($*PACKAGE);
 
-            # Make a code object for the block.
-            $*W.create_code_object($block, 'Block',
-                $*W.create_signature(nqp::hash('parameter_objects', [])));
+            # Finish code object for the block.
+            my $code := $*CODE_OBJECT;
+            $*W.attach_signature($code, $*W.create_signature(nqp::hash('parameter_objects', [])));
+            $*W.finish_code_object($code, $block, 0);
+            $*W.add_phasers_handling_code($code, $block);
         }
 
         # check up any private attribute usage

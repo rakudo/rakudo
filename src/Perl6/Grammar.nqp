@@ -2001,6 +2001,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $outer := $*W.cur_lexpad();
         :my $*IMPLICIT := 0;
         :my $*DECLARAND;
+        :my $*CODE_OBJECT := $*W.stub_code_object($*PKGDECL eq 'role' ?? 'Sub' !! 'Block');
         :my $*IN_DECL := 'package';
         :my $*HAS_SELF := '';
         :my $*CURPAD;

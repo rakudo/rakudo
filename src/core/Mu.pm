@@ -181,9 +181,10 @@ my class Mu { # declared in BOOTSTRAP
                 }
             }
             elsif nqp::iseq_i($code, 11) {
-                X::Attribute::Required.new(name => 
-                    nqp::p6box_s(nqp::atpos($task, 2))
-                ).throw;
+                my $attr_name = nqp::p6box_s(nqp::atpos($task, 2));
+                unless nqp::attrinited(self, nqp::atpos($task, 1), $attr_name)  {
+                    X::Attribute::Required.new(name => $attr_name).throw;
+                }
             }
             else {
                 die "Invalid BUILDALLPLAN";

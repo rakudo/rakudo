@@ -7518,6 +7518,8 @@ Compilation unit '$file' contained the following violations:
                 $i++;
             }
             my %sig_info := hash(parameters => @params);
+            my $*PRECEDING_DECL; # prevent parameter(s) created in create_signature_and_params
+                                 # from clobbering routine declaration for trailing comments
             my $signature := $*W.create_signature_and_params($/, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);

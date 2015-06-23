@@ -1,6 +1,7 @@
-my class X::Constructor::Positional { ... }
-my class X::Method::NotFound        { ... }
+my class X::Constructor::Positional  { ... }
+my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
+my class X::Attribute::Required      { ... }
 
 my class Mu { # declared in BOOTSTRAP
     proto method ACCEPTS(|) { * }
@@ -180,8 +181,9 @@ my class Mu { # declared in BOOTSTRAP
                 }
             }
             elsif nqp::iseq_i($code, 11) {
-                # TODO throw a typed exception
-                nqp::say("eek, a required field!");
+                X::Attribute::Required.new(name => 
+                    nqp::p6box_s(nqp::atpos($task, 2))
+                ).throw;
             }
             else {
                 die "Invalid BUILDALLPLAN";

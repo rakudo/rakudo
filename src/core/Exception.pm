@@ -219,7 +219,6 @@ do {
             elsif nqp::istype($p6sub, ForeignCode) {
                 try {
                     my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
-                    my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
                     return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
                     return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
                     return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');

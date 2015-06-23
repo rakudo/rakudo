@@ -1323,7 +1323,7 @@ my class X::Attribute::NoPackage does X::Comp {
     has $.name;
     method message() { "You cannot declare attribute '$.name' here; maybe you'd like a class or a role?" }
 }
-my class X::Attribute::Required {
+my class X::Attribute::Required does X::MOP {
     has $.name;
     method message() { "The attribute '$.name' is required, but you did not provide a value for it." }
 }

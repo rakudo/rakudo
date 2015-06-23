@@ -1808,13 +1808,13 @@ sub substr-rw(\what, \start, $want?) is rw {
                  nqp::unbox_s($Str), nqp::unbox_i($from), nqp::unbox_i($chars)
                ));
            },
-           STORE => sub ($, $new) {
+           STORE => sub ($, Str() $new) {
                my $str = nqp::unbox_s($Str);
                what = nqp::p6box_s(
                  nqp::concat(
                    nqp::substr($str,0,nqp::unbox_i($from)),
                    nqp::concat(
-                     nqp::unbox_s(nqp::istype($new, Str) ?? $new !! $new.Str),
+                     nqp::unbox_s($new),
                      nqp::substr($str,nqp::unbox_i($from + $chars))
                    )
                  )

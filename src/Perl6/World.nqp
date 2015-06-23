@@ -367,7 +367,7 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
             self.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
             self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
-            $*DECLARAND := self.stub_code_object('Block');
+            $*CODE_OBJECT := $*DECLARAND := self.stub_code_object('Block');
 
             # initialize %?INC if not in an eval
             unless $in_eval {

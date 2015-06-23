@@ -2514,7 +2514,7 @@ Compilation unit '$file' contained the following violations:
                 nqp::bindattr_s($varvar, $Variable, '$!name', $name);
                 nqp::bindattr_s($varvar, $Variable, '$!scope', $*SCOPE);
                 nqp::bindattr($varvar, $Variable, '$!var', $cont);
-                nqp::bindattr($varvar, $Variable, '$!block', $*DECLARAND);
+                nqp::bindattr($varvar, $Variable, '$!block', $*CODE_OBJECT);
                 nqp::bindattr($varvar, $Variable, '$!slash', $/);
                 for $trait_list {
                     my $applier := $_.ast;

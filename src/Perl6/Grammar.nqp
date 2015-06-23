@@ -1014,6 +1014,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
+        :my $*CODE_OBJECT;                         # the code object we're currently inside
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
         :my %*MYSTERY;                             # names we assume may be post-declared functions
@@ -1205,6 +1206,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pblock($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
         :dba('block or pointy block')
@@ -1251,6 +1253,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token block($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :dba('scoped block')
         [ <?[{]> || <.missing: 'block'>]
         <.newpad>
@@ -2388,6 +2391,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :my $*CURPAD;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
@@ -2458,6 +2462,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
         {
@@ -2519,6 +2524,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
+        :my $*CODE_OBJECT := $*DECLARAND;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2797,6 +2803,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Regex');
+        :my $*CODE_OBJECT := $*DECLARAND;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;

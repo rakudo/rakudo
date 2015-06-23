@@ -6107,7 +6107,8 @@ Compilation unit '$file' contained the following violations:
                 my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
-                    $type := $*W.parameterize_type($type, $<arglist>.ast, $/);
+                    $type := $*W.handle-begin-time-exceptions($/, "parameterizing $str_longname",
+                        { $*W.parameterize_type($type, $<arglist>.ast, $/) });
                 }
                 if $<accept> || $<accept_any> {
                     if $<typename> {

@@ -91,17 +91,16 @@ class Array { # declared in BOOTSTRAP
         my $items := nqp::getattr(self,List,'$!items');
         my $end   := self.end;
 
+        pos <= $end
+          ?? nqp::bindpos($items, pos, nqp::null())
+          !! return self.default;
+
         if pos == $end {
-            my $pos = pos;
+            my int $pos = pos;
             nqp::pop($items);
             nqp::pop($items)
-              while --$pos >= 0 && nqp::isnull(nqp::atpos($items,$pos));
-        }
-        elsif pos < $end {
-            nqp::bindpos($items, pos, nqp::null());
-        }
-        else {
-            return self.default;
+              while ($pos = $pos - 1) >= 0
+                && nqp::isnull(nqp::atpos($items,$pos));
         }
         $value;
     }

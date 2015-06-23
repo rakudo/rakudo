@@ -1814,7 +1814,7 @@ sub substr-rw(\what, \start, $want?) is rw {
                  nqp::concat(
                    nqp::substr($str,0,nqp::unbox_i($from)),
                    nqp::concat(
-                     nqp::unbox_s($new),
+                     nqp::unbox_s(nqp::istype($new, Str) ?? $new !! $new.Str),
                      nqp::substr($str,nqp::unbox_i($from + $chars))
                    )
                  )

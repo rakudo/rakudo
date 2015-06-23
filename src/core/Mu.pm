@@ -179,6 +179,10 @@ my class Mu { # declared in BOOTSTRAP
                         nqp::atpos($task, 3)(self, $cur_value));
                 }
             }
+            elsif nqp::iseq_i($code, 11) {
+                # TODO throw a typed exception
+                nqp::say("eek, a required field!");
+            }
             else {
                 die "Invalid BUILDALLPLAN";
             }

@@ -84,11 +84,14 @@ multi sub INITIALIZE_DYNAMIC('$*HOME') {
             }
         }
 
-        method Numeric { return Nil unless fetch(); +PROCESS::{$!name} }
-        method Str     { return Nil unless fetch(); ~PROCESS::{$!name} }
-        method gist    {
-            return Nil unless fetch();
-            PROCESS::{$!name} ~ ' (' ~ +PROCESS::{$!name} ~ ')';
+        multi method Numeric(IdFetch:D:) {
+            fetch() ?? +PROCESS::{$!name} !! Nil;
+        }
+        multi method Str(IdFetch:D:) {
+            fetch() ?? ~PROCESS::{$!name} !! Nil;
+        }
+        multi method gist(IdFetch:D:) {
+            fetch() ?? "{PROCESS::{$!name}} ({+PROCESS::{$!name}})" !! Nil;
         }
     }
 

@@ -86,6 +86,9 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
     );
     $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
 
+    state $fatal = %*ENV<RAKUDO_DEPRECATIONS_FATAL>;
+    die $dep.report if $fatal;
+
     # update callsite
     $dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line}++;
 }

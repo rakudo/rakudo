@@ -1,5 +1,6 @@
 New in 2015.07
  + Features:
+   + Cool.substr(-rw) and substr-(rw) now also accept a Range
  + Fixes:
  + Incompatible changes:
  + Deprecations:

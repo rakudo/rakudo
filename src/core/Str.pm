@@ -1736,17 +1736,23 @@ sub SUBSTR-CHARS-OOR(\chars) {
 }
 sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
     my Int $max := what.chars;
-    from = nqp::istype($start, Callable) ?? $start($max) !! $start.Int;
+    from = nqp::istype($start, Callable)
+      ?? $start($max)
+      !! nqp::istype($start, Range)
+        ?? $start.min + $start.excludes-min
+        !! $start.Int;
     SUBSTR-START-OOR(from,$max).fail
       if from < 0 || from > $max;
 
-    chars = $want.defined
-      ?? $want === Inf
-        ?? $max - from
-        !! nqp::istype($want,Callable)
-          ?? $want($max - from)
-          !! (nqp::istype($want,Int) ?? $want !! $want.Int)
-      !! $max - from;
+    chars = nqp::istype($start, Range)
+      ?? $start.max - $start.excludes-max - from
+      !! $want.defined
+        ?? $want === Inf
+          ?? $max - from
+          !! nqp::istype($want, Callable)
+            ?? $want($max - from)
+            !! (nqp::istype($want,Int) ?? $want !! $want.Int)
+        !! $max - from;
     chars < 0 ?? SUBSTR-CHARS-OOR(chars).fail !! 1;
 }
 

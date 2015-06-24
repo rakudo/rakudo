@@ -86,19 +86,6 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         my $items = (to_store,).flat.eager;
         $!storage := nqp::hash();
 
-        if $items.elems == 1 {
-            if nqp::istype($items[0],EnumMap) {
-                my Mu $x := $items.shift;
-                DEPRECATED(
-                  self.VAR.name ~ ' = %(itemized hash)',
-                  |<2014.07 2015.07>,
-                  :what(self.VAR.name ~ ' = itemized hash')
-                ) if nqp::iscont($x);
-                for $x.list { self.STORE_AT_KEY(.key, .value) }
-                return self;
-            }
-        }
-
         while $items {
             my Mu $x := $items.shift;
             if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }

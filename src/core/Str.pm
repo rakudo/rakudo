@@ -1215,7 +1215,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     if $!unsubstituted_text {
                         my $result = self.get_next_substitution_result;
                         self.increment_index($!next_substitution.key);
-                        $!substituted_text = $!source.substr($oldidx + $!unsubstituted_text.chars,
+                        $!substituted_text = substr($!source,$oldidx + $!unsubstituted_text.chars,
                             $!index - $oldidx - $!unsubstituted_text.chars);
                         $!unsubstituted_text = $!squash ?? $result
                             !! $result x $!unsubstituted_text.chars;
@@ -1225,7 +1225,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                         my $result = self.get_next_substitution_result;
                         self.increment_index($!next_substitution.key);
                         $!substituted_text = '';
-                        $!unsubstituted_text = $!source.substr($oldidx, $!index - $oldidx);
+                        $!unsubstituted_text = substr($!source,$oldidx, $!index - $oldidx);
                     }
                 }
                 else {

@@ -40,7 +40,7 @@ my class Parameter { # declared in BOOTSTRAP
         my $sigil = '';
         my $name = $.name;
         if $name {
-            $sigil = $name.substr(0,1);
+            $sigil = substr($name,0,1);
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $sigil = '|';
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {

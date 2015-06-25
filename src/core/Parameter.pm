@@ -113,6 +113,10 @@ my class Parameter { # declared in BOOTSTRAP
         ?($!flags +& $SIG_ELEM_INVOCANT)
     }
 
+    method multi-invocant() {
+        ?($!flags +& $SIG_ELEM_MULTI_INVOCANT)
+    }
+
     method default() {
         nqp::isnull($!default_value) ?? Any !!
             $!default_value ~~ Code ?? $!default_value !! { $!default_value }

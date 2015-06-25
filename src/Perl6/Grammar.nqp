@@ -2579,12 +2579,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule param_sep {
-        '' $<sep>=[','|':'|';;'|';']
-        { 
-            $/.CURSOR.worry("Use of ;; in signature not yet implemented")
-              if $<sep> eq ';;';
-            @*seps.push($<sep>);
-        }
+        '' $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
     }
 
     # XXX Not really implemented yet.

@@ -242,8 +242,12 @@ my class Parameter { # declared in BOOTSTRAP
         if self.slurpy {
             $name = '*' ~ $name;
         } elsif self.named {
-            my @names := self.named_names;
-            $name = ':' ~ $_ ~ '(' ~ $name ~ ')'for @names;
+            my $name1 := substr($name,1);
+            for @(self.named_names) {
+                $name = $_ && $_ eq $name1
+                  ?? ':' ~ $name
+                  !! ':' ~ $_ ~ '(' ~ $name ~ ')';
+            }
             $name ~= '!' unless self.optional;
         } elsif self.optional && !$default {
             $name ~= '?';

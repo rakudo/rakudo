@@ -198,22 +198,20 @@ my class Parameter { # declared in BOOTSTRAP
         my $rest = '';
         my $type = $!nominal_type.^name;
         my $truemu='';
+        my $modifier = $!flags +& $SIG_ELEM_DEFINED_ONLY
+          ?? ':D' !! $!flags +& $SIG_ELEM_UNDEFINED_ONLY
+            ?? ':U' !! '';
 
         # XXX Need a CODE_SIGIL too?
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $type ~~ /^^ Callable >> / {
             $type ~~ / .*? \[ <( .* )> \] $$/;
-            $perl = ~$/ if $/;
+            $perl = $/ ~ $modifier if $/;
             $truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
         }
         else {
-            $perl = $type;
-        }
-        if $!flags +& $SIG_ELEM_DEFINED_ONLY {
-            $perl ~= ':D';
-        } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
-            $perl ~= ':U';
+            $perl = $type ~ $modifier if $type ne 'Any' or $modifier;
         }
         $perl ~= " ::$_" for @($.type_captures);
         my $name = $.name;

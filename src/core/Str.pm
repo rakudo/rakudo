@@ -1745,7 +1745,7 @@ sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
       if from < 0 || from > $max;
 
     chars = nqp::istype($start, Range)
-      ?? $start.max - $start.excludes-max - from
+      ?? $start.max - $start.excludes-max - from + 1
       !! $want.defined
         ?? $want === Inf
           ?? $max - from

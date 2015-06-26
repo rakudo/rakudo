@@ -5,7 +5,6 @@ use Test;
 plan 3;
 
 my $filename = "$?FILE.trace";
-my $stderr   = "$filename.stderr";
 
 spurt( $filename, q:to/CODE/ );
 my $a = 42;
@@ -22,14 +21,14 @@ no trace;
 say $a;
 CODE
 
-my $p = pipe( "$*EXECUTABLE $filename 2>$stderr" );
-ok $p,                            "did we get a handle?";
-is $p.lines.join, "42",           "is the program output ok?";
-is $stderr.IO.lines.join("\n"), qq:to/STDERR/.chomp, "is the trace ok?";
+my $p = run($*EXECUTABLE, $filename, :out, :err);
+ok $p ~~ Proc,                    "did we get a Proc?";
+is $p.out.lines.join, "42",       "is the program output ok?";
+is $p.err.lines.join("\n"), qq:to/STDERR/, "is the trace ok?";
 4 ($filename:4)
 \$a++
 10 ($filename:10)
 \$a -= 1
 STDERR
 
-unlink $filename, $stderr;
+unlink $filename;

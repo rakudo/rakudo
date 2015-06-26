@@ -407,7 +407,7 @@ my class Mu { # declared in BOOTSTRAP
                 my $name := $attr.name;
                 my $package := $attr.package;
                 unless nqp::objprimspec($attr.type) {
-                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    my $attr_val = nqp::getattr($cloned, $package, $name);
                     nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
                         if nqp::iscont($attr_val);
                 }

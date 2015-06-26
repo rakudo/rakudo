@@ -129,4 +129,6 @@ my class Signature { # declared in BOOTSTRAP
     method returns() { $!returns }
 }
 
+multi sub infix:<eqv>(Signature $a, Signature $b) { $a.perl eq $b.perl }
+
 # vim: ft=perl6 expandtab sw=4

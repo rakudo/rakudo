@@ -7054,11 +7054,12 @@ Compilation unit '$file' contained the following violations:
 
         # Make descriptor.
         my %param_info := hash(
-            variable_name => $name,
-            pos_slurpy    => $pos_slurpy,
-            named_slurpy  => $named_slurpy,
-            placeholder   => $full_name,
-            sigil         => ~$sigil);
+            variable_name     => $name,
+            pos_slurpy        => $pos_slurpy,
+            named_slurpy      => $named_slurpy,
+            placeholder       => $full_name,
+            is_multi_invocant => 1,
+            sigil             => ~$sigil);
 
         # Apply any type implied by the sigil.
         if $sigil eq '@' {

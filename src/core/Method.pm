@@ -5,7 +5,7 @@ my class Method { # declared in BOOTSTRAP
 }
 
 multi sub trait_mod:<is>(Method $m, :$cached!) {
-    die X::NYI.new(:feature("'is cached' on methods"));
+    X::NYI.new(:feature("'is cached' on methods")).throw;
 }
 
 # vim: ft=perl6 expandtab sw=4

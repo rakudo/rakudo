@@ -193,11 +193,10 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method perl(Parameter:D:) {
+    multi method perl(Parameter:D: Mu:U :$elide-type = Any) {
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
-        my $truemu='';
         my $modifier = $!flags +& $SIG_ELEM_DEFINED_ONLY
           ?? ':D' !! $!flags +& $SIG_ELEM_UNDEFINED_ONLY
             ?? ':U' !! '';
@@ -208,10 +207,9 @@ my class Parameter { # declared in BOOTSTRAP
             $type ~~ /^^ Callable >> / {
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $perl = $/ ~ $modifier if $/;
-            $truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
         }
-        else {
-            $perl = $type ~ $modifier if $type ne 'Any' or $modifier;
+        elsif $!nominal_type.WHICH !=== $elide-type.WHICH or $modifier {
+            $perl = $type ~ $modifier;
         }
         $perl ~= " ::$_" for @($.type_captures);
         my $name = $.name;
@@ -267,9 +265,8 @@ my class Parameter { # declared in BOOTSTRAP
         }
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
-            $perl ~~ s/^^ \s* Mu \s+//;
         }
-        $truemu ~ $perl ~ $rest;
+        $perl ~ $rest;
     }
 
     method sub_signature(Parameter:D:) {

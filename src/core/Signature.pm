@@ -88,19 +88,21 @@ my class Signature { # declared in BOOTSTRAP
         nqp::p6list(nqp::clone($!params), List, Mu);
     }
 
-    method !gistperl(Signature:D: $perl) {
+    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {
         # Opening.
         my $text = $perl ?? ':(' !! '(';
 
         # Parameters.
         if self.params -> @params {
-            $text = $text ~ @params.shift.perl ~ ': ' if @params[0].invocant;
-            $text = $text ~ ';; ' if !@params[0].multi-invocant;
+            $text ~= @params.shift.perl(:$elide-type) ~ ': '
+                if @params[0].invocant;
+            $text ~= ';; '
+                if !@params[0].multi-invocant;
 
             my $sep = '';
             for @params.kv -> $i, $param {
-                $text = $text ~ $sep
-                  ~ ($perl ?? $param.perl !! $param.perl.subst(/' $'$/,''));
+                $text ~= $sep ~ $param.perl(:$elide-type);
+                $text .= subst(/' $'$/,'') unless $perl;
                 $sep = $param.multi-invocant && !@params[$i+1].?multi-invocant
                   ?? ';; '
                   !! ', '
@@ -113,8 +115,16 @@ my class Signature { # declared in BOOTSTRAP
         $text ~ ')'
     }
 
-    multi method perl(Signature:D:) { self!gistperl(True) }
-    multi method gist(Signature:D:) { self!gistperl(False) }
+    method !deftype(Signature:D:) {
+         $!code ~~ Routine ?? Any !! Mu
+    }
+
+    multi method perl(Signature:D:) {
+        self!gistperl(True, :elide-type(self!deftype))
+    }
+    multi method gist(Signature:D:) {
+        self!gistperl(False, :elide-type(self!deftype))
+    }
 
     method returns() { $!returns }
 }

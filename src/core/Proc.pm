@@ -11,7 +11,7 @@ my class Proc {
     has $!err_fh;
     has int $!flags;
 
-    submethod BUILD(:$in = '-', :$out = '-', :$err = '-',
+    submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
                     Bool :$bin, Bool :$chomp = True, Bool :$merge,
                     Str:D :$enc = 'utf8', Str:D :$nl = "\n") {
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
@@ -80,6 +80,10 @@ my class Proc {
         else {
             $!err_fh := nqp::null();
             $!flags  += nqp::const::PIPE_IGNORE_ERR;
+        }
+
+        if nqp::istype($exitcode, Int) && $exitcode.DEFINITE {
+            $!exitcode = $exitcode;
         }
     }
 

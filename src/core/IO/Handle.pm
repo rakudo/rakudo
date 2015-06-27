@@ -1,5 +1,6 @@
 my class IO::Path { ... }
 my class IO::Special { ... }
+my class Proc { ... }
 
 # Will be removed together with pipe() and open(:p).
 my class Proc::Status {

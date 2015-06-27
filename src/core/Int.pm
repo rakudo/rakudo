@@ -17,6 +17,9 @@ my class Int does Real { # declared in BOOTSTRAP
             ObjAt
         );
     }
+    method new($value) {
+        nqp::box_i($value, self.WHAT);
+    }
     multi method perl(Int:D:) {
         self.Str;
     }

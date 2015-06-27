@@ -32,7 +32,7 @@ my class IO::Handle does IO {
     has int $!pipe;
 
     method pipe(IO::Handle:D: |c) {
-        DEPRECATED('shell() or run() with :in, :out or :err', |<2015.07 2015.09>);
+        DEPRECATED('shell() or run() with :in, :out or :err', |<2015.06 2015.09>);
         self.open(:p, :nodepr, |c);
     }
 
@@ -102,7 +102,7 @@ my class IO::Handle does IO {
           if $!path.e && $!path.d;
 
         if $mode eq 'pipe' {
-            DEPRECATED('shell(...)/run(...) with :in, :out or :err', |<2015.07 2015.09>, :what(':p for pipe')) unless $nodepr;
+            DEPRECATED('shell(...)/run(...) with :in, :out or :err', |<2015.06 2015.09>, :what(':p for pipe')) unless $nodepr;
             $!pipe = 1;
 
             $!PIO := nqp::syncpipe();

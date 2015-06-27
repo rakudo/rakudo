@@ -123,7 +123,7 @@ sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str:D :$enc = 'utf8', Str:D :$nl = "\n") {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    try $proc.spawn(@args);
+    $proc.spawn(@args);
     $proc
 }
 
@@ -131,7 +131,7 @@ sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str:D :$enc = 'utf8', Str:D :$nl = "\n") {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    try $proc.shell($cmd);
+    $proc.shell($cmd);
     $proc
 }
 

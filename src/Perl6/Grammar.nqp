@@ -412,6 +412,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('indirect name') '(' ~ ')' <EXPR>
             ]
         || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
+        || $<bad>=[<.sigil><.identifier>] { my $b := $<bad>; self.malformed("lookup of ::$b; please use ::('$b'), ::\{'$b'\}, or ::<$b>") }
         ]?
     }
 

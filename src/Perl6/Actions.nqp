@@ -7909,7 +7909,15 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         my $quote := $<quote>.ast;
         if $quote.has_compile_time_value {
             my $qast := QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($quote.compile_time_value) );
-            $qast.subtype('ignorecase') if %*RX<i>;
+            if %*RX<i> && %*RX<m> { # >
+                $qast.subtype('ignorecase+ignoremark')
+            }
+            elsif %*RX<i> {
+                $qast.subtype('ignorecase')
+            }
+            elsif %*RX<m> { # >
+                $qast.subtype('ignoremark')
+            }
             make $qast;
         }
         else {

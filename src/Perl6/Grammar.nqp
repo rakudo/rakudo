@@ -2623,14 +2623,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <type_constraint>+
             [
             | $<quant>=['**'|'*'] <param_var>
-            | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr(), "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
+            | $<quant>=['\\'|'|'] <param_var> {
+                $/.CURSOR.worry('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+            }
             | $<quant>=['\\'|'|'] <defterm>?
 
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]
         | $<quant>=['**'|'*'] <param_var>
-        | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr, "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
+        | $<quant>=['\\'|'|'] <param_var> {
+            $/.CURSOR.worry('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+        }
         | $<quant>=['\\'|'|'] <defterm>?
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname>

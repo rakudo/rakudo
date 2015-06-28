@@ -3809,19 +3809,14 @@ Compilation unit '$file' contained the following violations:
         my %signature;
         my @parameter_infos;
         my int $param_idx := 0;
-        my int $multi_invocant := 1;
         for $<parameter> {
             my %info := $_.ast;
-            %info<is_multi_invocant> := $multi_invocant;
             my $sep := @*seps[$param_idx];
             if ~$sep eq ':' {
                 if $param_idx != 0 {
                     $*W.throw($/, 'X::Syntax::Signature::InvocantMarker')
                 }
                 %info<is_invocant> := 1;
-            }
-            elsif ~$sep eq ';;' {
-                $multi_invocant := 0;
             }
             @parameter_infos.push(%info);
             $param_idx := $param_idx + 1;

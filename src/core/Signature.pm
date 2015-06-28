@@ -116,7 +116,7 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     method !deftype(Signature:D:) {
-         $!code ~~ Routine ?? Any !! Mu
+         !nqp::isnull($!code) && $!code ~~ Routine ?? Any !! Mu
     }
 
     multi method perl(Signature:D:) {

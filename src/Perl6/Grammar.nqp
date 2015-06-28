@@ -2580,7 +2580,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule param_sep {
-        '' $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
+        '' $<sep>=[','|':'|';;'|';'] {
+            if $<sep> eq ';;' {
+                $/.CURSOR.panic("Can only specify ';;' once in a signature")
+                  if $*seen_semicoloncolon;
+                $*seen_semicoloncolon := 1;
+            }
+            @*seps.push($<sep>);
+        }
     }
 
     # XXX Not really implemented yet.
@@ -2602,6 +2609,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token signature {
         :my $*IN_DECL := 'sig';
         :my $*zone := 'posreq';
+        :my $*seen_semicoloncolon := 0;
         :my @*seps := nqp::list();
         :my $*INVOCANT_OK := 1;
         <.ws>

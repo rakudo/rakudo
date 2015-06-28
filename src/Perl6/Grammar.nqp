@@ -2632,7 +2632,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             | $<quant>=['**'|'*'] <param_var>
             | $<quant>=['\\'|'|'] <param_var> {
-                $/.CURSOR.worry('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+                $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
             }
             | $<quant>=['\\'|'|'] <defterm>?
 
@@ -2641,7 +2641,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]
         | $<quant>=['**'|'*'] <param_var>
         | $<quant>=['\\'|'|'] <param_var> {
-            $/.CURSOR.worry('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+            $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
         }
         | $<quant>=['\\'|'|'] <defterm>?
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]

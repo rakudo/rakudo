@@ -32,21 +32,21 @@ my class Capture { # declared in BOOTSTRAP
         $WHICH;
     }
 
-    multi method AT-KEY(Capture:D: \key) {
+    multi method AT-KEY(Capture:D: \key) is rw {
         my str $skey = nqp::unbox_s(key.Str);
         nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
     }
-    multi method AT-KEY(Capture:D: Str:D \key) {
+    multi method AT-KEY(Capture:D: Str:D \key) is rw {
         my str $skey = nqp::unbox_s(key);
         nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
     }
 
-    multi method AT-POS(Capture:D: int \pos) {
+    multi method AT-POS(Capture:D: int \pos) is rw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::existspos($!list,pos) ?? nqp::atpos($!list,pos) !! Nil;
     }
-    multi method AT-POS(Capture:D: Int:D \pos) {
+    multi method AT-POS(Capture:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);

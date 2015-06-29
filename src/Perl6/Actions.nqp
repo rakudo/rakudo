@@ -2748,10 +2748,18 @@ Compilation unit '$file' contained the following violations:
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
-                    $*W.install_package_symbol($*PACKAGE, $name, $code);
+                    my $package := $*PACKAGE;
+                    if nqp::existskey($package.WHO, $name) {
+                        $*W.throw($/, ['X', 'Redeclaration'],
+                            symbol  => ~$<deflongname>.ast,
+                            what    => 'routine',
+                            postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                        );
+                    }
+                    $*W.install_package_symbol($package, $name, $code);
                     $outer[0].push(QAST::Op.new(
                         :op('bindkey'),
-                        QAST::Op.new( :op('who'), QAST::WVal.new( :value($*PACKAGE) ) ),
+                        QAST::Op.new( :op('who'), QAST::WVal.new( :value($package) ) ),
                         QAST::SVal.new( :value($name) ),
                         QAST::Var.new( :name($name), :scope('lexical') )
                     ));
@@ -3259,11 +3267,27 @@ Compilation unit '$file' contained the following violations:
             }
         }
         elsif $scope eq 'my' {
-            $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
+            my $mang-name := '&' ~ $name;
+            if $outer.symbol($mang-name) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name, what => 'method');
+            }
+            $*W.install_lexical_symbol($outer, $mang-name, $code, :clone(1));
         }
         elsif $scope eq 'our' {
-            $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
-            $*W.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+            my $mang-name := '&' ~ $name;
+            if $outer.symbol($mang-name) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name, what => 'method');
+            }
+            $*W.install_lexical_symbol($outer, $mang-name, $code, :clone(1));
+            my $package := $*PACKAGE;
+            if nqp::existskey($package.WHO, $name) {
+                $*W.throw($/, ['X', 'Redeclaration'],
+                    symbol  => $name,
+                    what    => 'method',
+                    postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                );
+            }
+            $*W.install_package_symbol($package, '&' ~ $name, $code);
         }
     }
 

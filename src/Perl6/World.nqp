@@ -3076,7 +3076,7 @@ class Perl6::World is HLL::World {
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
-    method find_symbol(@name) {
+    method find_symbol(@name, :$setting-only) {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
@@ -3089,7 +3089,7 @@ class Perl6::World is HLL::World {
         # scopes.
         if +@name == 1 {
             my $final_name := @name[0];
-            my int $i := +@!BLOCKS;
+            my int $i := $setting-only ?? 1 !! +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($final_name);
@@ -3105,7 +3105,7 @@ class Perl6::World is HLL::World {
         my $result := $*GLOBALish;
         if +@name >= 2 {
             my $first := @name[0];
-            my int $i := +@!BLOCKS;
+            my int $i := $setting-only ?? 1 !! +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($first);
@@ -3385,8 +3385,10 @@ class Perl6::World is HLL::World {
                 nqp::print("Error while constructing error object:");
                 nqp::say($_);
             };
-            $ex := self.find_symbol(nqp::islist($ex_type) ?? $ex_type !! nqp::split('::', $ex_type));
-            my $x_comp := self.find_symbol(['X', 'Comp']);
+            $ex := self.find_symbol(
+                nqp::islist($ex_type) ?? $ex_type !! nqp::split('::', $ex_type),
+                :setting-only);
+            my $x_comp := self.find_symbol(['X', 'Comp'], :setting-only);
             unless nqp::istype($ex, $x_comp) {
                 $ex := $ex.HOW.mixin($ex, $x_comp);
             }

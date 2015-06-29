@@ -19,11 +19,10 @@ my class Variable {
         $*W.throw( self.slash, |c );
     }
 
-    submethod willdo(&block) {
-        -> { block(
-          nqp::atkey(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx())),self.name)
-             )
-        };
+    submethod willdo(&block, $caller-levels = 2) {
+        $caller-levels == 2
+            ?? -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx())), self.name)) }
+            !! -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctx()), self.name)) }
     }
 }
 
@@ -152,7 +151,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
     $*W.add_phaser($v.slash, 'END', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
-    $v.block.add_phaser('ENTER', $v.willdo($block) );
+    $v.block.add_phaser('ENTER', $v.willdo($block, 1) );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
     $v.block.add_phaser('LEAVE', $v.willdo($block) );
@@ -164,7 +163,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
     $v.block.add_phaser('UNDO', $v.willdo($block));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$first! ) {
-    $v.block.add_phaser('FIRST', $v.willdo($block));
+    $v.block.add_phaser('FIRST', $v.willdo($block, 1));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$next! ) {
     $v.block.add_phaser('NEXT', $block);
@@ -173,7 +172,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$last! ) {
     $v.block.add_phaser('LAST', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
-    $v.block.add_phaser('PRE', $v.willdo($block));
+    $v.block.add_phaser('PRE', $v.willdo($block, 1));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$post! ) {
     $v.throw( 'X::Comp::NYI',

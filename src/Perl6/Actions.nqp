@@ -1232,7 +1232,7 @@ Compilation unit '$file' contained the following violations:
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
         unless nqp::isnull($phasers) {
             if nqp::existskey($phasers, 'NEXT') {
-                my $phascode := $*W.run_phasers_code($code, $block_type, 'NEXT');
+                my $phascode := $*W.run_phasers_code($code, $loop[1], $block_type, 'NEXT');
                 if +@($loop) == 2 {
                     $loop.push($phascode);
                 }
@@ -1249,7 +1249,7 @@ Compilation unit '$file' contained the following violations:
                 $loop := QAST::Stmts.new(
                     :resultchild(0),
                     $loop,
-                    $*W.run_phasers_code($code, $block_type, 'LAST'));
+                    $*W.run_phasers_code($code, $loop[1], $block_type, 'LAST'));
             }
         }
         $loop

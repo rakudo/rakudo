@@ -539,7 +539,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $to-encode = self;
         if nqp::chars($to-encode) {
             my int $opener = ord(self);
-            if $opener >= 256 && uniprop($opener, 'Canonical_Combining_Class') {
+            if $opener >= 256 && +uniprop($opener, 'Canonical_Combining_Class') {
                 $result ~= char-to-escapes(self.substr(0, 1));
                 $to-encode = self.substr(1);
             }

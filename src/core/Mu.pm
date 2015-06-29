@@ -1,6 +1,7 @@
-my class X::Constructor::Positional { ... }
-my class X::Method::NotFound        { ... }
+my class X::Constructor::Positional  { ... }
+my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
+my class X::Attribute::Required      { ... }
 
 my class Mu { # declared in BOOTSTRAP
     proto method ACCEPTS(|) { * }
@@ -177,6 +178,12 @@ my class Mu { # declared in BOOTSTRAP
                 if nqp::isnull_s($cur_value) {
                     nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
                         nqp::atpos($task, 3)(self, $cur_value));
+                }
+            }
+            elsif nqp::iseq_i($code, 11) {
+                my $attr_name = nqp::p6box_s(nqp::atpos($task, 2));
+                unless nqp::attrinited(self, nqp::atpos($task, 1), $attr_name)  {
+                    X::Attribute::Required.new(name => $attr_name).throw;
                 }
             }
             else {

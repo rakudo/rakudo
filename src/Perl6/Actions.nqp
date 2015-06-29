@@ -3066,7 +3066,7 @@ Compilation unit '$file' contained the following violations:
                 my $prev_returns := $sig.returns;
                 $*W.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
-                    symbol  => $code,
+                    symbol  => $code.name,
                     postfix => " (previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',

@@ -38,36 +38,49 @@ role Perl6::ModuleLoaderVMConfig {
             # Go through the prefixes and build a candidate list.
             for @prefixes -> $prefix {
                 $prefix := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path(~$prefix);
-                my $have_pm    := nqp::stat("$prefix/$pm_path", 0);
-                my $have_pm6   := nqp::stat("$prefix/$pm6_path", 0);
-                my $have_class := nqp::stat("$prefix/$class_path", 0);
-                my $have_jar   := nqp::stat("$prefix/$jar_path", 0);
-                if $have_pm6 {
-                    # if there are both .pm and .pm6 we assume that
-                    # the former is a Perl 5 module and use the latter
-                    $have_pm := 1;
-                    $pm_path := $pm6_path;
-                }
-                if $have_jar {
-                    # might be good to error here?
-                    $have_class := 1;
-                    $class_path := $jar_path;
-                }
-                if $have_pm {
-                    my %cand;
-                    %cand<key> := "$prefix/$pm_path";
-                    %cand<pm>  := "$prefix/$pm_path";
-                    if $have_class && nqp::stat("$prefix/$class_path", 7)
-                                    >= nqp::stat("$prefix/$pm_path", 7) {
-                        %cand<load> := "$prefix/$class_path";
+                if nqp::stat($prefix, nqp::const::STAT_ISDIR) == 1 {
+                    my $have_pm    := nqp::stat("$prefix/$pm_path", 0);
+                    my $have_pm6   := nqp::stat("$prefix/$pm6_path", 0);
+                    my $have_class := nqp::stat("$prefix/$class_path", 0);
+                    my $have_jar   := nqp::stat("$prefix/$jar_path", 0);
+                    if $have_pm6 {
+                        # if there are both .pm and .pm6 we assume that
+                        # the former is a Perl 5 module and use the latter
+                        $have_pm := 1;
+                        $pm_path := $pm6_path;
                     }
-                    @candidates.push(%cand);
+                    if $have_jar {
+                        # might be good to error here?
+                        $have_class := 1;
+                        $class_path := $jar_path;
+                    }
+                    if $have_pm {
+                        my %cand;
+                        %cand<key> := "$prefix/$pm_path";
+                        %cand<pm>  := "$prefix/$pm_path";
+                        if $have_class && nqp::stat("$prefix/$class_path", 7)
+                                        >= nqp::stat("$prefix/$pm_path", 7) {
+                            %cand<load> := "$prefix/$class_path";
+                        }
+                        @candidates.push(%cand);
+                    }
+                    elsif $have_class {
+                        my %cand;
+                        %cand<key>  := "$prefix/$class_path";
+                        %cand<load> := "$prefix/$class_path";
+                        @candidates.push(%cand);
+                    }
                 }
-                elsif $have_class {
-                    my %cand;
-                    %cand<key>  := "$prefix/$class_path";
-                    %cand<load> := "$prefix/$class_path";
-                    @candidates.push(%cand);
+                elsif nqp::substr($prefix, nqp::chars($prefix) - 4) eq '.jar' {
+                # we have a jarfile as prefix, which means check inside for the module
+                    my $fileurl := nqp::getmoduleurl($base_path);
+                    if $fileurl {
+                        my %cand;
+                        nqp::say("fileurl: $fileurl") if nqp::getenvhash<NQP_BUILD_DEBUG>;
+                        %cand<key>  := $fileurl;
+                        %cand<load> := $fileurl;
+                        @candidates.push(%cand);
+                    }
                 }
             }
         }

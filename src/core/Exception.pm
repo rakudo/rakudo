@@ -1410,11 +1410,12 @@ my class X::Str::Numeric is Exception {
     has $.pos;
     has $.reason;
     method source-indicator {
-        constant marker = chr(0x23CF);
+        my constant marker = chr(0x23CF);
+        my sub escape($str) { $str.perl.substr(1).chop }
         join '', "in '",
-                substr($.source,0, $.pos),
+                escape(substr($.source,0, $.pos)),
                 marker,
-                substr($.source,$.pos),
+                escape(substr($.source,$.pos)),
                 "' (indicated by ",
                 marker,
                 ")",

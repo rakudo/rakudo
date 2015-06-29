@@ -170,9 +170,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             else {
                 # If we're doing module pre-compilation, we should only
                 # allow the modules we load to be pre-compiled also.
-                my $precomp := 0;
-                try $precomp := $*W.is_precompilation_mode();
-                if $precomp {
+                if $*W && $*W.is_precompilation_mode() {
                     nqp::die(
                         "When pre-compiling a module, its dependencies must be pre-compiled first.\n" ~
                         "Please pre-compile " ~ %chosen<pm>);

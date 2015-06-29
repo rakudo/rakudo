@@ -100,7 +100,8 @@ my class Backtrace {
 
             # now *that's* an evil hack
             next if $file.ends-with('BOOTSTRAP.nqp')
-                 || $file.ends-with('QRegex.nqp');
+                 || $file.ends-with('QRegex.nqp')
+                 || $file.ends-with('Perl6/Ops.nqp');
             last if $file.ends-with('NQPHLL.nqp');
 
             my $line := $annotations<line>;

@@ -523,27 +523,35 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
-        my $result = '"';
-        my $to-encode = self;
+        sub char-to-escapes($ch) {
 #?if moar
+            $ch.NFC.list.map(*.fmt('\x[%x]')).join
+#?endif
+#?if !moar
+            $ch.ord.fmt('\x[%x]')
+#?endif
+        }
+
         # Under NFG-supporting implementations, must be sure that any leading
         # combiners are escaped, otherwise they will be combined onto the "
         # under concatenation closure, which ruins round-tripping.
+        my $result = '"';
+        my $to-encode = self;
         if nqp::chars($to-encode) {
             my int $opener = ord(self);
             if $opener >= 256 && uniprop($opener, 'Canonical_Combining_Class') {
-                $result ~= self.substr(0, 1).NFC.list.map(*.fmt('\x[%x]')).join;
+                $result ~= char-to-escapes(self.substr(0, 1));
                 $to-encode = self.substr(1);
             }
         }
-#?endif
+
         for ^$to-encode.chars -> $i {
             my $ch = substr($to-encode, $i, 1);
             $result ~= %esc{$ch}
                        //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0)
                            ?? $ch
-                           !! $ch.ord.fmt('\x[%x]')
+                           !! char-to-escapes($ch)
                            );
         }
         $result ~ '"'

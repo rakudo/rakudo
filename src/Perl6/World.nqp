@@ -2520,6 +2520,13 @@ class Perl6::World is HLL::World {
                 }
                 $nok := 1;
             }
+            CONTROL {
+                if nqp::getextype($_) == nqp::const::CONTROL_WARN {
+                    $/.CURSOR.worry(nqp::getmessage($_));
+                    nqp::resume($_);
+                }
+                nqp::rethrow($_);
+            }
         }
         if $nok {
             self.rethrow($/, $ex);

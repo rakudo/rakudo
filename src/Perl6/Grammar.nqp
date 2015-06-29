@@ -1879,6 +1879,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     regex special_variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'
+        <!{ $*IN_DECL }>
         <!{ $*QSIGIL }>
         <?{
             my $sigil := $<sigil>.Str;

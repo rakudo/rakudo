@@ -12,6 +12,16 @@ my class Complex is Cool does Numeric {
         self;
     }
 
+    multi method WHICH(Complex:D:) {
+        nqp::box_s(
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
+                nqp::concat($!re, nqp::concat('|', $!im))
+            ),
+            ObjAt
+        );
+    }
+
     method reals(Complex:D:) {
         (self.re, self.im);
     }

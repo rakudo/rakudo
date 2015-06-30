@@ -3881,7 +3881,24 @@ Compilation unit '$file' contained the following violations:
             }
             my $val := $<default_value>[0].ast;
             if $val.has_compile_time_value {
-                %*PARAM_INFO<default_value> := $val.compile_time_value;
+                my $value := $val.compile_time_value;
+                if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
+                    my $expected := %*PARAM_INFO<nominal_type>;
+                    unless nqp::istype($value, $expected) {
+                        # Ensure both types are composed before complaining,
+                        # or we give spurious errors on stubbed things or
+                        # things we're in the middle of compiling.
+                        my $got_comp := try $value.HOW.is_composed($value);
+                        my $exp_comp := try $expected.HOW.is_composed($expected);
+                        if $got_comp && $exp_comp {
+                            $<default_value>[0].CURSOR.typed_sorry(
+                                'X::Parameter::Default::TypeCheck',
+                                got => $value,
+                                expected => %*PARAM_INFO<nominal_type>);
+                        }
+                    }
+                }
+                %*PARAM_INFO<default_value> := $value;
                 %*PARAM_INFO<default_is_literal> := 1;
             }
             else {

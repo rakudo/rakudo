@@ -831,6 +831,14 @@ my class X::Parameter::Default does X::Comp {
     }
 }
 
+my class X::Parameter::Default::TypeCheck does X::Comp {
+    has $.got;
+    has $.expected;
+    method message() {
+        "Default value '$.got.gist()' will never bind to a parameter of type $.expected.^name()"
+    }
+}
+
 my class X::Parameter::AfterDefault does X::Syntax {
     has $.type;
     has $.modifier;

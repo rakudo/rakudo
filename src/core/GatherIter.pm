@@ -35,7 +35,7 @@ class GatherIter is Iterator {
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 
-    method reify($n) {
+    method reify($n, :$sink) {
         if !$!reified.defined {
             my Mu $rpa := nqp::list();
             my Mu $parcel;

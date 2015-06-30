@@ -3882,26 +3882,14 @@ Compilation unit '$file' contained the following violations:
             my $val := $<default_value>[0].ast;
             if $val.has_compile_time_value {
                 my $value := $val.compile_time_value;
-                if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                    my $expected := %*PARAM_INFO<nominal_type>;
-                    unless nqp::istype($value, $expected) {
-                        # Ensure both types are composed before complaining,
-                        # or we give spurious errors on stubbed things or
-                        # things we're in the middle of compiling.
-                        my $got_comp := try $value.HOW.is_composed($value);
-                        my $exp_comp := try $expected.HOW.is_composed($expected);
-                        if $got_comp && $exp_comp {
-                            $<default_value>[0].CURSOR.typed_sorry(
-                                'X::Parameter::Default::TypeCheck',
-                                got => $value,
-                                expected => %*PARAM_INFO<nominal_type>);
-                        }
-                    }
-                }
+                check_param_default_type($/, $value);
                 %*PARAM_INFO<default_value> := $value;
                 %*PARAM_INFO<default_is_literal> := 1;
             }
             else {
+                if $val.ann('code_object') -> $co {
+                    check_param_default_type($/, $co);
+                }
                 %*PARAM_INFO<default_value> :=
                     $*W.create_thunk($<default_value>[0], $val);
             }
@@ -3924,6 +3912,25 @@ Compilation unit '$file' contained the following violations:
 
         # Result is the parameter info hash.
         make %*PARAM_INFO;
+    }
+
+    sub check_param_default_type($/, $value) {
+        if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
+            my $expected := %*PARAM_INFO<nominal_type>;
+            unless nqp::istype($value, $expected) {
+                # Ensure both types are composed before complaining,
+                # or we give spurious errors on stubbed things or
+                # things we're in the middle of compiling.
+                my $got_comp := try $value.HOW.is_composed($value);
+                my $exp_comp := try $expected.HOW.is_composed($expected);
+                if $got_comp && $exp_comp {
+                    $<default_value>[0].CURSOR.typed_sorry(
+                        'X::Parameter::Default::TypeCheck',
+                        got => $value,
+                        expected => %*PARAM_INFO<nominal_type>);
+                }
+            }
+        }
     }
 
     method param_var($/) {

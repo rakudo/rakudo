@@ -144,7 +144,7 @@ sub QX($cmd) {
         nqp::null(), $pio, nqp::null(),
         nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
     );
-    fail "Unable to execute '$cmd'" if $status;
+    fail "Unable to execute '$cmd' ($status.fmt('%x'))" if $status;
     my $result = nqp::p6box_s(nqp::readallfh($pio));
     nqp::closefh($pio);
     $result;

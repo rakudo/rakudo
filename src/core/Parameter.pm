@@ -260,11 +260,8 @@ my class Parameter { # declared in BOOTSTRAP
                and not $rest
                and nqp::isnull($!post_constraints) 
                and not $default
-               and nqp::isnull($!sub_signature)
-               {
-                if $name eq '$' and not $rest {
+               and nqp::isnull($!sub_signature) {
                     $name = '\\';
-                }
             }
             if $name.substr(0,1) ne '\\' {
                 $rest ~= ' is parcel';

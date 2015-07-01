@@ -43,11 +43,10 @@ multi sub trait_mod:<is>(Variable:D $v, Mu:U $is ) {
 multi sub trait_mod:<is>(Variable:D $v, :$default!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
-    try { nqp::getattr(
-            $var,
-            $what.^mixin_base,
-            '$!descriptor',
-          ).set_default(nqp::decont($default));
+
+    my $descriptor;
+    try {
+        $descriptor := nqp::getattr($var, $what.^mixin_base, '$!descriptor');
         CATCH {
             nqp::istype($default,Whatever)
               ?? $v.throw( 'X::Comp::NYI',
@@ -56,6 +55,12 @@ multi sub trait_mod:<is>(Variable:D $v, :$default!) {
                 :type<is>, :subtype<default> ); # can't find out native type yet
         }
     }
+
+    $v.throw( 'X::Parameter::Default::TypeCheck',
+      :expected($var.WHAT), :got($default) )
+      unless nqp::istype($descriptor.of, $default.WHAT)
+          or nqp::istype($descriptor.of, Mu);
+    $descriptor.set_default(nqp::decont($default));
 
     # make sure we start with the default if a scalar
     $var = $default if nqp::istype($what, Scalar);

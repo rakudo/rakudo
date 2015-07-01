@@ -3533,7 +3533,7 @@ class Perl6::World is HLL::World {
             }
         }
 
-        my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
+        my @err := ['Error while compiling, type ', (nqp::islist($ex_type) ?? join('::', $ex_type) !! $ex_type),  "\n"];
         for %opts -> $key {
             @err.push: '  ';
             @err.push: ~$key;

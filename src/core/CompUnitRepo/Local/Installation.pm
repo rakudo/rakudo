@@ -117,7 +117,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     my $basename   = $file.IO.basename;
                     my $withoutext = $basename;
                     $withoutext.=subst(/\.[exe|bat]$/, '');
-                    for '', < -p -j -m > -> $be {
+                    for '', < -j -m > -> $be {
                         "$path/bin/$withoutext$be".IO.spurt:
                             $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
                         if $is-win {

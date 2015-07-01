@@ -13,6 +13,7 @@ New in 2015.07
  + Deprecations:
    + $*PROGRAM_NAME in favour of $PROGRAM-NAME
    + $*EXECUTABLE_NAME in favour of $EXECUTABLE-NAME
+   + pipe() in favour of shell() or run() with :in, :out or :err
 
 New in 2015.06
  + Features:

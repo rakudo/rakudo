@@ -1860,7 +1860,7 @@ my class X::Inheritance::NotComposed does X::MOP {
     has $.child-name;
     has $.parent-name;
     method message() {
-        "'$.child-name' cannot inherit from '$.parent-name' because '$.parent-name' isn't compose yet"
+        "'$.child-name' cannot inherit from '$.parent-name' because '$.parent-name' isn't composed yet"
             ~ ' (maybe it is stubbed)';
     }
 }

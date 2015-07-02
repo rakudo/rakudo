@@ -47,6 +47,17 @@
 
         $ ./perl6 hello.pl
 
+    Simply running "perl6" will drop you into a REPL (read-eval-print-loop)
+    that you can use for exploratory programming:
+
+        $ ./perl6
+
+    If you would like readline-like features, such as command history, line
+    editing, and tab completion for builtins, you should install the Linenoise
+    module via panda:
+
+        $ panda install Linenoise
+
     Important: To run Rakudo from outside the build directory, you must run
 
         $ make install

@@ -90,6 +90,11 @@ my class IO::Socket::Async {
     }
 
     method chars_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
+        DEPRECATED('chars-supply',|<2015.07 2015.10>);
+        self.chars-supply(:$scheduler);
+    }
+
+    method chars-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
         my $cancellation;
         Supply.on-demand( -> $supply {
             $cancellation := nqp::asyncreadchars(
@@ -106,6 +111,11 @@ my class IO::Socket::Async {
     }
 
     method bytes_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
+        DEPRECATED('bytes-supply',|<2015.07 2015.10>);
+        self.bytes-supply(:$scheduler, :$buf);
+    }
+
+    method bytes-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
         my $cancellation;
         Supply.on-demand( -> $supply {
             $cancellation := nqp::asyncreadbytes(

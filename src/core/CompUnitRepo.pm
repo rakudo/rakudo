@@ -38,16 +38,18 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
 
     method load_module($module_name, %opts, *@GLOBALish is rw, :$line, :$file, :%chosen) {
         $lock.protect( {
-        my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];
-        if $candi {
-            %chosen<pm>   :=
-              $candi<provides>{$module_name}<pm><file> //
-              $candi<provides>{$module_name}<pm6><file>;
-            %chosen<pm>   := ~%chosen<pm> if %chosen<pm>.DEFINITE;
-            if $candi<provides>{$module_name}{$*VM.precomp-ext}<file> -> $load {
-                %chosen<load> := $load;
+        unless %opts<from> { # don't try to find other language's modules in our CUR, Perl6ModuleLoader handles those
+            my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];
+            if $candi {
+                %chosen<pm>   :=
+                  $candi<provides>{$module_name}<pm><file> //
+                  $candi<provides>{$module_name}<pm6><file>;
+                %chosen<pm>   := ~%chosen<pm> if %chosen<pm>.DEFINITE;
+                if $candi<provides>{$module_name}{$*VM.precomp-ext}<file> -> $load {
+                    %chosen<load> := $load;
+                }
+                %chosen<key>  := %chosen<pm> // %chosen<load>;
             }
-            %chosen<key>  := %chosen<pm> // %chosen<load>;
         }
         $p6ml.load_module($module_name, %opts, |@GLOBALish, :$line, :$file, :%chosen);
     } ) }

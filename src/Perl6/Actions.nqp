@@ -3917,17 +3917,19 @@ Compilation unit '$file' contained the following violations:
     sub check_param_default_type($/, $value) {
         if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
             my $expected := %*PARAM_INFO<nominal_type>;
-            unless nqp::istype($value, $expected) {
-                # Ensure both types are composed before complaining,
-                # or we give spurious errors on stubbed things or
-                # things we're in the middle of compiling.
-                my $got_comp := try $value.HOW.is_composed($value);
-                my $exp_comp := try $expected.HOW.is_composed($expected);
-                if $got_comp && $exp_comp {
-                    $<default_value>[0].CURSOR.typed_sorry(
-                        'X::Parameter::Default::TypeCheck',
-                        got => $value,
-                        expected => %*PARAM_INFO<nominal_type>);
+            if nqp::objprimspec($expected) == 0 {
+                unless nqp::istype($value, $expected) {
+                    # Ensure both types are composed before complaining,
+                    # or we give spurious errors on stubbed things or
+                    # things we're in the middle of compiling.
+                    my $got_comp := try $value.HOW.is_composed($value);
+                    my $exp_comp := try $expected.HOW.is_composed($expected);
+                    if $got_comp && $exp_comp {
+                        $<default_value>[0].CURSOR.typed_sorry(
+                            'X::Parameter::Default::TypeCheck',
+                            got => $value,
+                            expected => %*PARAM_INFO<nominal_type>);
+                    }
                 }
             }
         }

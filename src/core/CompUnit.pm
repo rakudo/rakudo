@@ -130,6 +130,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
 
         my $result = '';
         $result ~= $_ for $proc.out.lines;
+        $proc.out.close;
         if $proc.status -> $status {  # something wrong
             $result ~= "Return status $status\n";
             fail $result if $result;

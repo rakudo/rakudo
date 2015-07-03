@@ -3887,7 +3887,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<^^>  { <sym> <.dupprefix('^^')> <O('%symbolic_unary')> }
-    token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<^>   {
+        <sym>  <O('%symbolic_unary')>
+        [ \d+ <?before \. <?alpha> > <.worry: "Precedence of ^ is looser than method; please parenthesize"> ]?
+    }
     token prefix:sym<|>   {
         <sym> <O('%symbolic_unary')>
         [ <?{ $*ARG_FLAT_OK }> || <.typed_sorry('X::Syntax::ArgFlattener')> ]

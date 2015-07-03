@@ -163,7 +163,7 @@ my class Proc::Async {
         $promise;
     }
 
-    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV) {
+    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$CWD = $*CWD) {
         X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
         $!started = True;
 
@@ -191,7 +191,7 @@ my class Proc::Async {
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
             CLONE-LIST-DECONTAINERIZED($!path,@!args),
-            $*CWD.Str,
+            $CWD.Str,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,
         );

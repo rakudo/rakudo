@@ -75,7 +75,7 @@ multi sub postcircumfix:<{ }>( \SELF, Whatever ) is rw {
     SELF{SELF.keys};
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, Mu \ASSIGN) is rw {
-    SELF{SELF.keys} = ASSIGN;
+    die "Cannot assign to *, as the order of keys is non-deterministic";
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

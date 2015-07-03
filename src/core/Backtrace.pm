@@ -132,9 +132,9 @@ my class Backtrace {
             nqp::atpos($!frames,$pos);
         }
 
-        # we've reached the end, don't show the last <unit-outer>
+        # we've reached the end, don't show the last <unit-outer> if there is one
         else {
-            nqp::pop($!frames);
+            nqp::pop($!frames) if $!frames;
             Nil;
         }
     }

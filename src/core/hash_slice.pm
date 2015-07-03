@@ -101,6 +101,11 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$k!, *%other) is rw {
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
     SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
 }
+multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is rw {
+    %other
+      ?? SLICE_MORE_HASH( SELF, SELF.keys, :$v, |%other )
+      !! SELF{SELF.keys};
+}
 
 # %h{}
 multi sub postcircumfix:<{ }>( \SELF ) is rw {
@@ -129,6 +134,11 @@ multi sub postcircumfix:<{ }>(\SELF, :$k!, *%other) is rw {
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
     SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+}
+multi sub postcircumfix:<{ }>(\SELF, :$v!, *%other) is rw {
+    %other
+      ?? SLICE_MORE_HASH( SELF, SELF.keys, :$v, |%other )
+      !! SELF{SELF.keys};
 }
 
 # %h{;}

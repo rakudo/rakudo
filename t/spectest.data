@@ -844,6 +844,7 @@ S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t
 S32-exceptions/misc.t
+S32-hash/adverbs.t
 S32-hash/delete.t
 S32-hash/delete-adverb.t
 S32-hash/exists.t

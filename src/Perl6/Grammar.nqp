@@ -2575,7 +2575,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '\\'
         [
         | '(' <semiarglist> ')'
-        | <?before \S> <termish>
+        | <?before \S> <termish> {
+            my $sgl := nqp::substr(~$<termish>,0,1);
+            if $sgl eq '$' || $sgl eq '@' || $sgl eq '%' || $sgl eq '&' {
+                $/.CURSOR.typed_panic('X::Syntax::P5');
+            }
+        }
         | {} <.panic: "You can't backslash that">
         ]
     }

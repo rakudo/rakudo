@@ -370,7 +370,7 @@ multi sub infix:«<=>»(num $a, num $b) {
 }
 
 multi sub infix:<===>(Num:D \a, Num:D \b) {
-    nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    a.WHAT =:= b.WHAT && nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:<===>(NaN, NaN) {
     True;

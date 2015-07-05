@@ -7,14 +7,6 @@
     Building rakudo can take up to 1G of memory when compiling for the
     MoarVM runtime. The requirements are higher for the JVM backend.
 
-    To get readline support (command history and editing), you'll also
-    need the "libreadline-dev" library.
-
-    As an example, on Debian GNU/Linux or Ubuntu Linux, the necessary
-    components for building Rakudo can be installed via the command
-
-        aptitude install make gcc libreadline-dev git
-
     (Perl is installed by default already). To enable parallel testing you
     also need the CPAN module Test::Harness in version 3.16 or newer; you
     can control the number of parallel jobs with the "TEST_JOBS" environment
@@ -54,6 +46,17 @@
     Programs can then be run from the build directory using a command like:
 
         $ ./perl6 hello.pl
+
+    Simply running "perl6" will drop you into a REPL (read-eval-print-loop)
+    that you can use for exploratory programming:
+
+        $ ./perl6
+
+    If you would like readline-like features, such as command history, line
+    editing, and tab completion for builtins, you should install the Linenoise
+    module via panda:
+
+        $ panda install Linenoise
 
     Important: To run Rakudo from outside the build directory, you must run
 

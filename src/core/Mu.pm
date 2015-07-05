@@ -1,6 +1,7 @@
-my class X::Constructor::Positional { ... }
-my class X::Method::NotFound        { ... }
+my class X::Constructor::Positional  { ... }
+my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
+my class X::Attribute::Required      { ... }
 
 my class Mu { # declared in BOOTSTRAP
     proto method ACCEPTS(|) { * }
@@ -177,6 +178,12 @@ my class Mu { # declared in BOOTSTRAP
                 if nqp::isnull_s($cur_value) {
                     nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
                         nqp::atpos($task, 3)(self, $cur_value));
+                }
+            }
+            elsif nqp::iseq_i($code, 11) {
+                my $attr_name = nqp::p6box_s(nqp::atpos($task, 2));
+                unless nqp::attrinited(self, nqp::atpos($task, 1), $attr_name)  {
+                    X::Attribute::Required.new(name => $attr_name).throw;
                 }
             }
             else {
@@ -404,17 +411,16 @@ my class Mu { # declared in BOOTSTRAP
         my $cloned := nqp::clone(nqp::decont(self));
         if %twiddles.elems {
             for self.^attributes.flat -> $attr {
-                my $name := $attr.name;
+                my $name    := $attr.name;
                 my $package := $attr.package;
-                unless nqp::objprimspec($attr.type) {
-                    my $attr_val := nqp::getattr($cloned, $package, $name);
-                    nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
-                        if nqp::iscont($attr_val);
-                }
+                nqp::bindattr($cloned, $package, $name,
+                  nqp::clone(nqp::getattr($cloned, $package, $name).VAR)
+                ) unless nqp::objprimspec($attr.type);
+
                 my $acc_name := substr($name,2);
-                if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name) {
-                    nqp::getattr($cloned, $package, $name) = nqp::decont(%twiddles{$acc_name});
-                }
+                nqp::getattr($cloned, $package, $name) =
+                  nqp::decont(%twiddles{$acc_name})
+                  if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name);
             }
         }
         else {

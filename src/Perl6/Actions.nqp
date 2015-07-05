@@ -1232,7 +1232,7 @@ Compilation unit '$file' contained the following violations:
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
         unless nqp::isnull($phasers) {
             if nqp::existskey($phasers, 'NEXT') {
-                my $phascode := $*W.run_phasers_code($code, $block_type, 'NEXT');
+                my $phascode := $*W.run_phasers_code($code, $loop[1], $block_type, 'NEXT');
                 if +@($loop) == 2 {
                     $loop.push($phascode);
                 }
@@ -1249,7 +1249,7 @@ Compilation unit '$file' contained the following violations:
                 $loop := QAST::Stmts.new(
                     :resultchild(0),
                     $loop,
-                    $*W.run_phasers_code($code, $block_type, 'LAST'));
+                    $*W.run_phasers_code($code, $loop[1], $block_type, 'LAST'));
             }
         }
         $loop
@@ -2126,8 +2126,11 @@ Compilation unit '$file' contained the following violations:
                 QAST::WVal.new( :value($*PACKAGE) ),
                 QAST::Op.new( :op('curlexpad') )));
 
-            # Create code object and add it as the role's body block.
-            my $code := $*W.create_code_object($block, 'Sub', $sig);
+            # Finish code object and add it as the role's body block.
+            my $code := $*CODE_OBJECT;
+            $*W.attach_signature($code, $sig);
+            $*W.finish_code_object($code, $block, 0);
+            $*W.add_phasers_handling_code($code, $block);
             $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
 
             # Compose before we add the role to the group, so the group sees
@@ -2144,9 +2147,11 @@ Compilation unit '$file' contained the following violations:
             # Compose.
             $*W.pkg_compose($*PACKAGE);
 
-            # Make a code object for the block.
-            $*W.create_code_object($block, 'Block',
-                $*W.create_signature(nqp::hash('parameter_objects', [])));
+            # Finish code object for the block.
+            my $code := $*CODE_OBJECT;
+            $*W.attach_signature($code, $*W.create_signature(nqp::hash('parameter_objects', [])));
+            $*W.finish_code_object($code, $block, 0);
+            $*W.add_phasers_handling_code($code, $block);
         }
 
         # check up any private attribute usage
@@ -2514,7 +2519,7 @@ Compilation unit '$file' contained the following violations:
                 nqp::bindattr_s($varvar, $Variable, '$!name', $name);
                 nqp::bindattr_s($varvar, $Variable, '$!scope', $*SCOPE);
                 nqp::bindattr($varvar, $Variable, '$!var', $cont);
-                nqp::bindattr($varvar, $Variable, '$!block', $*DECLARAND);
+                nqp::bindattr($varvar, $Variable, '$!block', $*CODE_OBJECT);
                 nqp::bindattr($varvar, $Variable, '$!slash', $/);
                 for $trait_list {
                     my $applier := $_.ast;
@@ -2743,10 +2748,18 @@ Compilation unit '$file' contained the following violations:
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
-                    $*W.install_package_symbol($*PACKAGE, $name, $code);
+                    my $package := $*PACKAGE;
+                    if nqp::existskey($package.WHO, $name) {
+                        $*W.throw($/, ['X', 'Redeclaration'],
+                            symbol  => ~$<deflongname>.ast,
+                            what    => 'routine',
+                            postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                        );
+                    }
+                    $*W.install_package_symbol($package, $name, $code);
                     $outer[0].push(QAST::Op.new(
                         :op('bindkey'),
-                        QAST::Op.new( :op('who'), QAST::WVal.new( :value($*PACKAGE) ) ),
+                        QAST::Op.new( :op('who'), QAST::WVal.new( :value($package) ) ),
                         QAST::SVal.new( :value($name) ),
                         QAST::Var.new( :name($name), :scope('lexical') )
                     ));
@@ -3061,7 +3074,7 @@ Compilation unit '$file' contained the following violations:
                 my $prev_returns := $sig.returns;
                 $*W.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
-                    symbol  => $code,
+                    symbol  => $code.name,
                     postfix => " (previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',
@@ -3254,11 +3267,27 @@ Compilation unit '$file' contained the following violations:
             }
         }
         elsif $scope eq 'my' {
-            $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
+            my $mang-name := '&' ~ $name;
+            if $outer.symbol($mang-name) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name, what => 'method');
+            }
+            $*W.install_lexical_symbol($outer, $mang-name, $code, :clone(1));
         }
         elsif $scope eq 'our' {
-            $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
-            $*W.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+            my $mang-name := '&' ~ $name;
+            if $outer.symbol($mang-name) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name, what => 'method');
+            }
+            $*W.install_lexical_symbol($outer, $mang-name, $code, :clone(1));
+            my $package := $*PACKAGE;
+            if nqp::existskey($package.WHO, $name) {
+                $*W.throw($/, ['X', 'Redeclaration'],
+                    symbol  => $name,
+                    what    => 'method',
+                    postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                );
+            }
+            $*W.install_package_symbol($package, '&' ~ $name, $code);
         }
     }
 
@@ -3804,19 +3833,14 @@ Compilation unit '$file' contained the following violations:
         my %signature;
         my @parameter_infos;
         my int $param_idx := 0;
-        my int $multi_invocant := 1;
         for $<parameter> {
             my %info := $_.ast;
-            %info<is_multi_invocant> := $multi_invocant;
             my $sep := @*seps[$param_idx];
             if ~$sep eq ':' {
                 if $param_idx != 0 {
                     $*W.throw($/, 'X::Syntax::Signature::InvocantMarker')
                 }
                 %info<is_invocant> := 1;
-            }
-            elsif ~$sep eq ';;' {
-                $multi_invocant := 0;
             }
             @parameter_infos.push(%info);
             $param_idx := $param_idx + 1;
@@ -3857,10 +3881,15 @@ Compilation unit '$file' contained the following violations:
             }
             my $val := $<default_value>[0].ast;
             if $val.has_compile_time_value {
-                %*PARAM_INFO<default_value> := $val.compile_time_value;
+                my $value := $val.compile_time_value;
+                check_param_default_type($/, $value);
+                %*PARAM_INFO<default_value> := $value;
                 %*PARAM_INFO<default_is_literal> := 1;
             }
             else {
+                if $val.ann('code_object') -> $co {
+                    check_param_default_type($/, $co);
+                }
                 %*PARAM_INFO<default_value> :=
                     $*W.create_thunk($<default_value>[0], $val);
             }
@@ -3883,6 +3912,27 @@ Compilation unit '$file' contained the following violations:
 
         # Result is the parameter info hash.
         make %*PARAM_INFO;
+    }
+
+    sub check_param_default_type($/, $value) {
+        if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
+            my $expected := %*PARAM_INFO<nominal_type>;
+            if nqp::objprimspec($expected) == 0 {
+                unless nqp::istype($value, $expected) {
+                    # Ensure both types are composed before complaining,
+                    # or we give spurious errors on stubbed things or
+                    # things we're in the middle of compiling.
+                    my $got_comp := try $value.HOW.is_composed($value);
+                    my $exp_comp := try $expected.HOW.is_composed($expected);
+                    if $got_comp && $exp_comp {
+                        $<default_value>[0].CURSOR.typed_sorry(
+                            'X::Parameter::Default::TypeCheck',
+                            got => $value,
+                            expected => %*PARAM_INFO<nominal_type>);
+                    }
+                }
+            }
+        }
     }
 
     method param_var($/) {
@@ -6102,7 +6152,8 @@ Compilation unit '$file' contained the following violations:
                 my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
-                    $type := $*W.parameterize_type($type, $<arglist>.ast, $/);
+                    $type := $*W.handle-begin-time-exceptions($/, "parameterizing $str_longname",
+                        { $*W.parameterize_type($type, $<arglist>.ast, $/) });
                 }
                 if $<accept> || $<accept_any> {
                     if $<typename> {
@@ -7048,11 +7099,12 @@ Compilation unit '$file' contained the following violations:
 
         # Make descriptor.
         my %param_info := hash(
-            variable_name => $name,
-            pos_slurpy    => $pos_slurpy,
-            named_slurpy  => $named_slurpy,
-            placeholder   => $full_name,
-            sigil         => ~$sigil);
+            variable_name     => $name,
+            pos_slurpy        => $pos_slurpy,
+            named_slurpy      => $named_slurpy,
+            placeholder       => $full_name,
+            is_multi_invocant => 1,
+            sigil             => ~$sigil);
 
         # Apply any type implied by the sigil.
         if $sigil eq '@' {
@@ -7518,6 +7570,8 @@ Compilation unit '$file' contained the following violations:
                 $i++;
             }
             my %sig_info := hash(parameters => @params);
+            my $*PRECEDING_DECL; # prevent parameter(s) created in create_signature_and_params
+                                 # from clobbering routine declaration for trailing comments
             my $signature := $*W.create_signature_and_params($/, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
@@ -7900,7 +7954,15 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         my $quote := $<quote>.ast;
         if $quote.has_compile_time_value {
             my $qast := QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($quote.compile_time_value) );
-            $qast.subtype('ignorecase') if %*RX<i>;
+            if %*RX<i> && %*RX<m> { # >
+                $qast.subtype('ignorecase+ignoremark')
+            }
+            elsif %*RX<i> {
+                $qast.subtype('ignorecase')
+            }
+            elsif %*RX<m> { # >
+                $qast.subtype('ignoremark')
+            }
             make $qast;
         }
         else {

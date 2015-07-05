@@ -198,6 +198,9 @@ multi sub infix:<==>(Rational:D \a, Int:D \b) {
 multi sub infix:<==>(Int:D \a, Rational:D \b) {
     a == b.numerator && b.denominator == 1;
 }
+multi sub infix:<===>(Rational:D \a, Rational:D \b) returns Bool:D {
+    a.WHAT =:= b.WHAT && a == b
+}
 
 multi sub infix:«<»(Rational:D \a, Rational:D \b) {
     a.numerator * b.denominator < b.numerator * a.denominator

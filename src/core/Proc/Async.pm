@@ -163,7 +163,7 @@ my class Proc::Async {
         $promise;
     }
 
-    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV) {
+    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
         X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
         $!started = True;
 
@@ -173,7 +173,7 @@ my class Proc::Async {
 
         my Mu $callbacks := nqp::hash();
         nqp::bindkey($callbacks, 'done', -> Mu \status {
-            $!exit_promise.keep(Proc::Status.new(:exitcode(status)))
+            $!exit_promise.keep(Proc.new(:exitcode(status)))
         });
         nqp::bindkey($callbacks, 'error', -> Mu \err {
             $!exit_promise.break(X::OS.new(os-error => err));
@@ -191,7 +191,7 @@ my class Proc::Async {
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
             CLONE-LIST-DECONTAINERIZED($!path,@!args),
-            $*CWD.abspathp,
+            $cwd.abspath,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,
         );

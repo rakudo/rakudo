@@ -367,7 +367,7 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
             self.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
             self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
-            $*DECLARAND := self.stub_code_object('Block');
+            $*CODE_OBJECT := $*DECLARAND := self.stub_code_object('Block');
 
             # initialize %?INC if not in an eval
             unless $in_eval {
@@ -944,12 +944,12 @@ class Perl6::World is HLL::World {
         # categoricals.
         for %to_install {
             my $v := $_.value;
-            if nqp::isnull(nqp::getobjsc($v)) { self.add_object($v); }
+            self.add_object_if_no_sc($v);
             my $categorical := match($_.key, /^ '&' (\w+) ':<' (.+) '>' $/);
             if $categorical {
                 $/.CURSOR.add_categorical(~$categorical[0], ~$categorical[1],
                     ~$categorical[0] ~ ':sym<' ~$categorical[1] ~ '>',
-                    nqp::substr($_.key, 1), $_.value);
+                    nqp::substr($_.key, 1), $v);
             }
         }
     }
@@ -1886,24 +1886,21 @@ class Perl6::World is HLL::World {
     }
 
     # Generates code for running phasers.
-    method run_phasers_code($code, $block_type, $type) {
-        QAST::Op.new(
-            :op('for'),
-            QAST::Op.new(
-                :op('atkey'),
-                QAST::Var.new(
-                    :scope('attribute'), :name('$!phasers'),
-                    QAST::WVal.new( :value($code) ),
-                    QAST::WVal.new( :value($block_type) )
-                ),
-                QAST::SVal.new( :value($type) )
-            ),
-            QAST::Block.new(
-                :blocktype('immediate'),
-                QAST::Op.new(
-                    :op('call'),
-                    QAST::Var.new( :scope('lexical'), :name('$_'), :decl('param') )
-                )))
+    method run_phasers_code($code, $code_past, $block_type, $type) {
+        my @phasers := nqp::atkey(nqp::getattr($code, $block_type, '$!phasers'), $type);
+        my @results := $code_past.ann('phaser_results') || [];
+        my $result  := QAST::Stmts.new();
+        for @phasers -> $phaser {
+            self.add_object_if_no_sc($phaser);
+            my $call_code := QAST::Op.new( :op('call'), QAST::WVal.new( :value($phaser) ) );
+            for @results -> $pcheck, $res {
+                if $pcheck =:= $phaser {
+                    $call_code := QAST::Op.new( :op('bind'), $res, $call_code );
+                }
+            }
+            $result.push($call_code);
+        }
+        $result
     }
 
     # Adds any extra code needing for handling phasers.
@@ -1914,17 +1911,17 @@ class Perl6::World is HLL::World {
             unless nqp::isnull(%phasers) {
                 if nqp::existskey(%phasers, 'PRE') {
                     $code_past[0].push(QAST::Op.new( :op('p6setpre') ));
-                    $code_past[0].push(self.run_phasers_code($code, $block_type, 'PRE'));
+                    $code_past[0].push(self.run_phasers_code($code, $code_past, $block_type, 'PRE'));
                     $code_past[0].push(QAST::Op.new( :op('p6clearpre') ));
                 }
                 if nqp::existskey(%phasers, 'FIRST') {
                     $code_past[0].push(QAST::Op.new(
                         :op('if'),
                         QAST::Op.new( :op('p6takefirstflag') ),
-                        self.run_phasers_code($code, $block_type, 'FIRST')));
+                        self.run_phasers_code($code, $code_past, $block_type, 'FIRST')));
                 }
                 if nqp::existskey(%phasers, 'ENTER') {
-                    $code_past[0].push(self.run_phasers_code($code, $block_type, 'ENTER'));
+                    $code_past[0].push(self.run_phasers_code($code, $code_past, $block_type, 'ENTER'));
                 }
                 if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
                     $code_past.has_exit_handler(1);
@@ -2523,6 +2520,13 @@ class Perl6::World is HLL::World {
                 }
                 $nok := 1;
             }
+            CONTROL {
+                if nqp::getextype($_) == nqp::const::CONTROL_WARN {
+                    $/.CURSOR.worry(nqp::getmessage($_));
+                    nqp::resume($_);
+                }
+                nqp::rethrow($_);
+            }
         }
         if $nok {
             self.rethrow($/, $ex);
@@ -2690,6 +2694,16 @@ class Perl6::World is HLL::World {
 
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
             return QAST::Var.new(:name('Nil'), :scope('lexical'));
+        }
+        elsif $phaser eq 'ENTER' {
+            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            my $enclosing := @!BLOCKS[+@!BLOCKS - 1];
+            my $enter_tmp := $enclosing.unique('enter_result_');
+            $enclosing[0].push(QAST::Var.new( :name($enter_tmp), :scope('local'), :decl('var') ));
+            my @pres := $enclosing.ann('phaser_results') || $enclosing.annotate('phaser_results', []);
+            @pres.push($block);
+            @pres.push(my $var := QAST::Var.new( :name($enter_tmp), :scope('local') ));
+            return $var;
         }
         else {
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
@@ -3076,7 +3090,7 @@ class Perl6::World is HLL::World {
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
-    method find_symbol(@name) {
+    method find_symbol(@name, :$setting-only) {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
@@ -3089,7 +3103,7 @@ class Perl6::World is HLL::World {
         # scopes.
         if +@name == 1 {
             my $final_name := @name[0];
-            my int $i := +@!BLOCKS;
+            my int $i := $setting-only ?? 1 !! +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($final_name);
@@ -3105,7 +3119,7 @@ class Perl6::World is HLL::World {
         my $result := $*GLOBALish;
         if +@name >= 2 {
             my $first := @name[0];
-            my int $i := +@!BLOCKS;
+            my int $i := $setting-only ?? 1 !! +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($first);
@@ -3385,8 +3399,10 @@ class Perl6::World is HLL::World {
                 nqp::print("Error while constructing error object:");
                 nqp::say($_);
             };
-            $ex := self.find_symbol(nqp::islist($ex_type) ?? $ex_type !! nqp::split('::', $ex_type));
-            my $x_comp := self.find_symbol(['X', 'Comp']);
+            $ex := self.find_symbol(
+                nqp::islist($ex_type) ?? $ex_type !! nqp::split('::', $ex_type),
+                :setting-only);
+            my $x_comp := self.find_symbol(['X', 'Comp'], :setting-only);
             unless nqp::istype($ex, $x_comp) {
                 $ex := $ex.HOW.mixin($ex, $x_comp);
             }
@@ -3517,7 +3533,7 @@ class Perl6::World is HLL::World {
             }
         }
 
-        my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
+        my @err := ['Error while compiling, type ', (nqp::islist($ex_type) ?? join('::', $ex_type) !! $ex_type),  "\n"];
         for %opts -> $key {
             @err.push: '  ';
             @err.push: ~$key;
@@ -3627,6 +3643,14 @@ class Perl6::World is HLL::World {
             );
         }
         $p6ex.rethrow();
+    }
+
+    # Adds an object to this SC if it isn't already in one.
+    method add_object_if_no_sc($obj) {
+        if nqp::isnull(nqp::getobjsc($obj)) {
+            self.add_object($obj);
+        }
+        $obj
     }
 }
 

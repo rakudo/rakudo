@@ -22,8 +22,8 @@ class Deprecation {
 
         my $message = "Saw {+%DEPRECATIONS} occurrence{ 's' if +%DEPRECATIONS != 1 } of deprecated code.\n";
         $message ~= ("=" x 80) ~ "\n" unless self.camelia;
-        for %DEPRECATIONS.values -> $d {
-            $message ~= $d.report;
+        for %DEPRECATIONS.sort(*.key)>>.value>>.report -> $r {
+            $message ~= $r;
             $message ~= ("-" x 80) ~ "\n" unless self.camelia;
         }
 
@@ -85,6 +85,9 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
         :removed($vremoved),
     );
     $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
+
+    state $fatal = %*ENV<RAKUDO_DEPRECATIONS_FATAL>;
+    die $dep.report if $fatal;
 
     # update callsite
     $dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line}++;

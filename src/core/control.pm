@@ -140,12 +140,12 @@ my &lastcall := -> {
 };
 
 sub samewith(|c) {
-    my $my   = callframe(1).my;
-    my $self = $my<self>;
-    die "Could not find 'self'" if !$self.DEFINITE;
-    my $dispatcher = $my<&?ROUTINE>.dispatcher
-      || die "Could not find dispatcher";
-    $dispatcher( $self, |c );
+    my $my         := callframe(1).my;
+    my $caller     := $my<&?ROUTINE>;
+    my $dispatcher := $caller.dispatcher || die "Could not find dispatcher";
+    nqp::istype($caller,Method)
+      ?? $dispatcher($my<self> // $caller.package, |c)
+      !! $dispatcher(|c);
 }
 
 proto sub die(|) {*};
@@ -222,44 +222,8 @@ sub THE_END {
     while @END.shift -> $end { $end() };
 }
 
-my class Proc::Status { ... }
-
-sub run(*@args ($, *@)) {
-    my $status = Proc::Status.new( :exitcode(255) );
-    try {
-        $status.status(nqp::p6box_i(nqp::spawn(
-          CLONE-LIST-DECONTAINERIZED(@args),
-          $*CWD.abspath,
-          CLONE-HASH-DECONTAINERIZED(%*ENV),
-        )));
-    }
-    $status
-}
-
-sub shell($cmd) {
-    my $status = Proc::Status.new( :exitcode(255) );
-    try {
-        $status.status(nqp::p6box_i(nqp::shell(
-          $cmd,
-          $*CWD.abspath,
-          CLONE-HASH-DECONTAINERIZED(%*ENV),
-        )));
-    }
-    $status
-}
-
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
-
-sub QX($cmd) {
-    my Mu $pio := nqp::openpipe(
-      nqp::unbox_s($cmd), $*CWD.abspath, CLONE-HASH-DECONTAINERIZED(%*ENV), ''
-    );
-    fail "Unable to execute '$cmd'" unless $pio;
-    my $result = nqp::p6box_s(nqp::readallfh($pio));
-    nqp::closefh($pio);
-    $result;
-}
 
 sub EXHAUST(|) {
     X::ControlFlow::Return.new.throw();

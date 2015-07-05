@@ -82,7 +82,7 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
         :name('$!' ~ $name), :type(nqp::decont($type)),
         :has_accessor(1), :package($r)));
     for %enum_values.kv -> $key, $value {
-        my $meth = method () { self."$name"() === $value }
+        my $meth = method () { self."$name"() == $value }
         $meth.set_name($key);
         $r.^add_method($key, $meth);
     }

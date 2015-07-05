@@ -36,6 +36,44 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
 
+    method sigil() {
+        my $sigil = '';
+        my $name = $.name;
+        if $name {
+            $sigil = substr($name,0,1);
+            if $!flags +& $SIG_ELEM_IS_CAPTURE {
+                $sigil = '|';
+            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+                $sigil = '\\' unless $sigil eq '@' or $sigil eq '$';
+            }
+        } else {
+            if $!flags +& $SIG_ELEM_IS_CAPTURE {
+                $sigil = '|';
+            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+                $sigil = '\\';
+            } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
+                $sigil = '@';
+            } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
+                $sigil = '%';
+            } elsif $!nominal_type.^name ~~ /^^ Callable >> / {
+                $sigil = '&';
+            } else {
+                $sigil = '$';
+            }
+        }
+        $sigil;
+    }
+
+    method twigil() {
+        my $twigil = '';
+        if ($!flags +& $SIG_ELEM_BIND_PUBLIC_ATTR) {
+            $twigil = '.';
+        } elsif ($!flags +& $SIG_ELEM_BIND_PRIVATE_ATTR) {
+            $twigil = '!';
+        }
+        $twigil;
+    }
+
     method constraint_list() {
         nqp::isnull($!post_constraints) ?? () !!
             nqp::hllize($!post_constraints)
@@ -113,6 +151,10 @@ my class Parameter { # declared in BOOTSTRAP
         ?($!flags +& $SIG_ELEM_INVOCANT)
     }
 
+    method multi-invocant() {
+        ?($!flags +& $SIG_ELEM_MULTI_INVOCANT)
+    }
+
     method default() {
         nqp::isnull($!default_value) ?? Any !!
             $!default_value ~~ Code ?? $!default_value !! { $!default_value }
@@ -151,27 +193,23 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method perl(Parameter:D:) {
+    multi method perl(Parameter:D: Mu:U :$elide-type = Any) {
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
-        my $truemu='';
+        my $modifier = $!flags +& $SIG_ELEM_DEFINED_ONLY
+          ?? ':D' !! $!flags +& $SIG_ELEM_UNDEFINED_ONLY
+            ?? ':U' !! '';
 
         # XXX Need a CODE_SIGIL too?
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $type ~~ /^^ Callable >> / {
             $type ~~ / .*? \[ <( .* )> \] $$/;
-            $perl = ~$/ if $/;
-            $truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
+            $perl = $/ ~ $modifier if $/;
         }
-        else {
-            $perl = $type;
-        }
-        if $!flags +& $SIG_ELEM_DEFINED_ONLY {
-            $perl ~= ':D';
-        } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
-            $perl ~= ':U';
+        elsif $!nominal_type.WHICH !=== $elide-type.WHICH or $modifier {
+            $perl = $type ~ $modifier;
         }
         $perl ~= " ::$_" for @($.type_captures);
         my $name = $.name;
@@ -200,8 +238,12 @@ my class Parameter { # declared in BOOTSTRAP
         if self.slurpy {
             $name = '*' ~ $name;
         } elsif self.named {
-            my @names := self.named_names;
-            $name = ':' ~ $_ ~ '(' ~ $name ~ ')'for @names;
+            my $name1 := substr($name,1);
+            for @(self.named_names) {
+                $name = $_ && $_ eq $name1
+                  ?? ':' ~ $name
+                  !! ':' ~ $_ ~ '(' ~ $name ~ ')';
+            }
             $name ~= '!' unless self.optional;
         } elsif self.optional && !$default {
             $name ~= '?';
@@ -223,9 +265,8 @@ my class Parameter { # declared in BOOTSTRAP
         }
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
-            $perl ~~ s/^^ \s* Mu \s+//;
         }
-        $truemu ~ $perl ~ $rest;
+        $perl ~ $rest;
     }
 
     method sub_signature(Parameter:D:) {

@@ -466,6 +466,7 @@ S06-signature/errors.t
 S06-signature/introspection.t
 S06-signature/mixed-placeholders.t
 S06-signature/multidimensional.t
+S06-signature/multi-invocant.t
 S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/named-renaming.t
@@ -533,6 +534,7 @@ S12-attributes/recursive.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t
 S12-class/attributes.t
+S12-class/attributes-required.t
 S12-class/augment-supersede.t
 S12-class/basic.t
 S12-class/declaration-order.t
@@ -815,6 +817,7 @@ S29-context/sleep.t
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t
 S29-os/system.t
+S32-array/adverbs.t
 S32-array/bool.t
 S32-array/create.t
 S32-array/delete.t
@@ -842,6 +845,7 @@ S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t
 S32-exceptions/misc.t
+S32-hash/adverbs.t
 S32-hash/delete.t
 S32-hash/delete-adverb.t
 S32-hash/exists.t
@@ -867,7 +871,7 @@ S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/note.t
 S32-io/other.t
-S32-io/pipe.t               # moar
+S32-io/pipe.t
 S32-io/rename.t
 S32-io/slurp.t
 S32-io/spurt.t

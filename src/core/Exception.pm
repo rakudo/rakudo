@@ -219,7 +219,6 @@ do {
             elsif nqp::istype($p6sub, ForeignCode) {
                 try {
                     my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
-                    my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
                     return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
                     return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
                     return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');
@@ -840,6 +839,14 @@ my class X::Parameter::Default does X::Comp {
     }
 }
 
+my class X::Parameter::Default::TypeCheck does X::Comp {
+    has $.got;
+    has $.expected;
+    method message() {
+        "Default value '$.got.gist()' will never bind to a parameter of type $.expected.^name()"
+    }
+}
+
 my class X::Parameter::AfterDefault does X::Syntax {
     has $.type;
     has $.modifier;
@@ -1322,7 +1329,7 @@ my class X::Syntax::InfixInTermPosition does X::Syntax {
 my class X::Syntax::DuplicatedPrefix does X::Syntax {
     has $.prefixes;
     method message() {
-        my $prefix = $.prefixes.substr(0, 1);
+        my $prefix = substr($.prefixes,0,1);
         "Expected a term, but found either infix $.prefixes or redundant prefix $prefix\n"
         ~ "  (to suppress this message, please use a space like $prefix $prefix)";
     }
@@ -1340,6 +1347,10 @@ my class X::Attribute::Package does X::Comp {
 my class X::Attribute::NoPackage does X::Comp {
     has $.name;
     method message() { "You cannot declare attribute '$.name' here; maybe you'd like a class or a role?" }
+}
+my class X::Attribute::Required does X::MOP {
+    has $.name;
+    method message() { "The attribute '$.name' is required, but you did not provide a value for it." }
 }
 my class X::Declaration::Scope does X::Comp {
     has $.scope;
@@ -1415,11 +1426,12 @@ my class X::Str::Numeric is Exception {
     has $.pos;
     has $.reason;
     method source-indicator {
-        constant marker = chr(0x23CF);
+        my constant marker = chr(0x23CF);
+        my sub escape($str) { $str.perl.substr(1).chop }
         join '', "in '",
-                substr($.source,0, $.pos),
+                escape(substr($.source,0, $.pos)),
                 marker,
-                substr($.source,$.pos),
+                escape(substr($.source,$.pos)),
                 "' (indicated by ",
                 marker,
                 ")",
@@ -1856,7 +1868,7 @@ my class X::Inheritance::NotComposed does X::MOP {
     has $.child-name;
     has $.parent-name;
     method message() {
-        "'$.child-name' cannot inherit from '$.parent-name' because '$.parent-name' isn't compose yet"
+        "'$.child-name' cannot inherit from '$.parent-name' because '$.parent-name' isn't composed yet"
             ~ ' (maybe it is stubbed)';
     }
 }

@@ -85,8 +85,8 @@ multi sub infix:<but>(Mu:U \obj, @roles) {
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     my @right := nqp::iscont(right) ?? [right] !! (right,).list.flat;
-    die X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)'))
-        unless @right;
+    X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)')).throw
+      unless @right;
     my $endpoint = @right.shift;
     $endpoint.sink if $endpoint ~~ Failure;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
@@ -142,8 +142,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
 
     (GATHER({
         my @left := nqp::iscont(left) ?? [left] !! (left,).list.flat;
-        die X::Cannot::Empty.new(:action('get sequence start value'), :what('list'))
-            unless @left;
+        X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
+          unless @left;
         my $value;
         my $code;
         my $stop;

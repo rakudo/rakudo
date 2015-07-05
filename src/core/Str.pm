@@ -523,14 +523,37 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
+        sub char-to-escapes($ch) {
+#?if moar
+            $ch.NFC.list.map(*.fmt('\x[%x]')).join
+#?endif
+#?if !moar
+            $ch.ord.fmt('\x[%x]')
+#?endif
+        }
+
+        # Under NFG-supporting implementations, must be sure that any leading
+        # combiners are escaped, otherwise they will be combined onto the "
+        # under concatenation closure, which ruins round-tripping.
         my $result = '"';
-        for ^self.chars -> $i {
-            my $ch = substr(self,$i, 1);
+        my $to-encode = self;
+        if nqp::chars($to-encode) {
+            my int $opener = ord(self);
+#?if moar
+            if $opener >= 256 && +uniprop($opener, 'Canonical_Combining_Class') {
+                $result ~= char-to-escapes(self.substr(0, 1));
+                $to-encode = self.substr(1);
+            }
+#?endif
+        }
+
+        for ^$to-encode.chars -> $i {
+            my $ch = substr($to-encode, $i, 1);
             $result ~= %esc{$ch}
                        //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0)
                            ?? $ch
-                           !! $ch.ord.fmt('\x[%x]')
+                           !! char-to-escapes($ch)
                            );
         }
         $result ~ '"'
@@ -1215,7 +1238,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     if $!unsubstituted_text {
                         my $result = self.get_next_substitution_result;
                         self.increment_index($!next_substitution.key);
-                        $!substituted_text = $!source.substr($oldidx + $!unsubstituted_text.chars,
+                        $!substituted_text = substr($!source,$oldidx + $!unsubstituted_text.chars,
                             $!index - $oldidx - $!unsubstituted_text.chars);
                         $!unsubstituted_text = $!squash ?? $result
                             !! $result x $!unsubstituted_text.chars;
@@ -1225,7 +1248,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                         my $result = self.get_next_substitution_result;
                         self.increment_index($!next_substitution.key);
                         $!substituted_text = '';
-                        $!unsubstituted_text = $!source.substr($oldidx, $!index - $oldidx);
+                        $!unsubstituted_text = substr($!source,$oldidx, $!index - $oldidx);
                     }
                 }
                 else {
@@ -1736,17 +1759,23 @@ sub SUBSTR-CHARS-OOR(\chars) {
 }
 sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
     my Int $max := what.chars;
-    from = nqp::istype($start, Callable) ?? $start($max) !! $start.Int;
+    from = nqp::istype($start, Callable)
+      ?? $start($max)
+      !! nqp::istype($start, Range)
+        ?? $start.min + $start.excludes-min
+        !! $start.Int;
     SUBSTR-START-OOR(from,$max).fail
       if from < 0 || from > $max;
 
-    chars = $want.defined
-      ?? $want === Inf
-        ?? $max - from
-        !! nqp::istype($want,Callable)
-          ?? $want($max - from)
-          !! (nqp::istype($want,Int) ?? $want !! $want.Int)
-      !! $max - from;
+    chars = nqp::istype($start, Range)
+      ?? $start.max - $start.excludes-max - from + 1
+      !! $want.defined
+        ?? $want === Inf
+          ?? $max - from
+          !! nqp::istype($want, Callable)
+            ?? $want($max - from)
+            !! (nqp::istype($want,Int) ?? $want !! $want.Int)
+        !! $max - from;
     chars < 0 ?? SUBSTR-CHARS-OOR(chars).fail !! 1;
 }
 
@@ -1808,7 +1837,7 @@ sub substr-rw(\what, \start, $want?) is rw {
                  nqp::unbox_s($Str), nqp::unbox_i($from), nqp::unbox_i($chars)
                ));
            },
-           STORE => sub ($, $new) {
+           STORE => sub ($, Str() $new) {
                my $str = nqp::unbox_s($Str);
                what = nqp::p6box_s(
                  nqp::concat(

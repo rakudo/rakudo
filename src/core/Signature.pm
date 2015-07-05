@@ -88,54 +88,47 @@ my class Signature { # declared in BOOTSTRAP
         nqp::p6list(nqp::clone($!params), List, Mu);
     }
 
-    # XXX TODO: Parameter separators.
-    multi method perl(Signature:D:) {
+    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {
         # Opening.
-        my $perl = ':(';
+        my $text = $perl ?? ':(' !! '(';
 
         # Parameters.
-        my $params = self.params();
-        my $sep = '';
-        my int $i = 0;
-        while $i < $params.elems {
-            my $param := $params[$i];
-            $perl = $perl ~ $sep ~ $param.perl;
-            # this works because methods always have at least one
-            # other parameter, *%_
-            $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';
-            $i = $i + 1;
+        if self.params -> @params {
+            $text ~= @params.shift.perl(:$elide-type) ~ ': '
+                if @params[0].invocant;
+            $text ~= ';; '
+                if !@params[0].multi-invocant;
+
+            my $sep = '';
+            for @params.kv -> $i, $param {
+                $text ~= $sep ~ $param.perl(:$elide-type);
+                $text .= subst(/' $'$/,'') unless $perl;
+                $sep = $param.multi-invocant && !@params[$i+1].?multi-invocant
+                  ?? ';; '
+                  !! ', '
+            }
         }
         if !nqp::isnull($!returns) && $!returns !=:= Mu {
-            $perl ~= ' --> ' ~ $!returns.perl
+            $text = $text ~ ' --> ' ~ $!returns.perl
         }
         # Closer.
-        $perl ~ ')'
+        $text ~ ')'
     }
 
-    multi method gist(Signature:D:) {
-        # Opening.
-        my $perl = '(';
+    method !deftype(Signature:D:) {
+         !nqp::isnull($!code) && $!code ~~ Routine ?? Any !! Mu
+    }
 
-        # Parameters.
-        my $params = self.params();
-        my $sep = '';
-        my int $i = 0;
-        while $i < $params.elems {
-            my $param := $params[$i];
-            $perl = $perl ~ $sep ~ $param.perl.subst(/' $'$/,'');
-            # this works because methods always have at least one
-            # other parameter, *%_
-            $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';
-            $i = $i + 1;
-        }
-        if !nqp::isnull($!returns) && $!returns !=:= Mu {
-            $perl ~= ' --> ' ~ $!returns.perl
-        }
-        # Closer.
-        $perl ~ ')'
+    multi method perl(Signature:D:) {
+        self!gistperl(True, :elide-type(self!deftype))
+    }
+    multi method gist(Signature:D:) {
+        self!gistperl(False, :elide-type(self!deftype))
     }
 
     method returns() { $!returns }
 }
+
+multi sub infix:<eqv>(Signature $a, Signature $b) { $a.perl eq $b.perl }
 
 # vim: ft=perl6 expandtab sw=4

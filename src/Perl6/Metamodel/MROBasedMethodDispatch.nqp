@@ -32,7 +32,23 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             nqp::findmethod($qtype, $name)
         }
     }
-    
+
+    # Maybe this belongs on a role. Also, may be worth memoizing.
+    method can($obj, $name) {
+        my @meths;
+        my %smt := self.submethod_table($obj);
+        if nqp::existskey(%smt, $name) {
+            @meths.push(%smt{$name});
+        }
+        for self.mro($obj) {
+            my %mt := $_.HOW.method_table($_);
+            if nqp::existskey(%mt, $name) {
+                @meths.push(%mt{$name})
+            }
+        }
+        @meths
+    }
+
     method publish_method_cache($obj) {
         # Walk MRO and add methods to cache, unless another method
         # lower in the class hierarchy "shadowed" it.

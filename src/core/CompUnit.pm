@@ -129,12 +129,13 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $?RAKUDO_MODULE_DEBUG;
 
         my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!abspath";
-        my $handle = pipe("$cmd 2>&1", :r, :!chomp);
+        my $proc = shell("$cmd 2>&1", :out, :!chomp);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 
         my $result = '';
-        $result ~= $_ for $handle.lines;
-        if $handle.close.status -> $status {  # something wrong
+        $result ~= $_ for $proc.out.lines;
+        $proc.out.close;
+        if $proc.status -> $status {  # something wrong
             $result ~= "Return status $status\n";
             fail $result if $result;
         }

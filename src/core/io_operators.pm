@@ -187,15 +187,16 @@ sub slurp-rest(PIO:D $io, :$enc, |c) {
 }
 
 proto sub spurt(|) { * }
-multi sub spurt(PIO:D $fh,\what,|c ) {
+multi sub spurt(PIO:D $fh,\contents,|c ) {
     DEPRECATED('spurt($path,...)',|<2014.10 2015.09>,:what<spurt($handle,...)>);
-    my $result := $fh.spurt(what,:nodepr,|c);
+    my $result := $fh.spurt(contents,:nodepr,|c);
     $result // $result.throw;
 }
-multi sub spurt(Str() $path,\what,:$enc,|c) {
+multi sub spurt(Str() $path,\contents,:$enc,|c) {
     DEPRECATED(":encoding($enc)",|<2014.12 2015.12>,:what(":enc($enc)"))
       if $enc;
-    my $result := SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),what,:$enc,|c);
+    my $result :=
+      SPURT-PATH(MAKE-ABSOLUTE-PATH($path,$*CWD.Str),contents,:$enc,|c);
     $result // $result.throw;
 }
 

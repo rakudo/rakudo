@@ -162,17 +162,17 @@ sub get-local-timezone-offset {
 }
 
 my class DateTime does Dateish {
-     has Int $.hour      = 0;
-     has Int $.minute    = 0;
-     has     $.second    = 0.0;
-     has     $.timezone  = 0; # UTC
-     has     &.formatter = &default-formatter;
-       # Not an optimization but a necessity to ensure that
-       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
-       # DST-induced ambiguity could ruin our day.
+    has Int $.hour      = 0;
+    has Int $.minute    = 0;
+    has     $.second    = 0.0;
+    has     $.timezone  = 0; # UTC
+    has     &.formatter = &default-formatter;
+      # Not an optimization but a necessity to ensure that
+      # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
+      # DST-induced ambiguity could ruin our day.
 
-     multi method new() {
-        fail "Must provide arguments to DateTime.new()";
+    multi method new() {
+        fail "Required named parameter 'year' is missing for DateTime.new()";
     }
 
     multi method new(Int :$year!, :&formatter=&default-formatter, *%_) {

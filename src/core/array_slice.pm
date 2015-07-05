@@ -254,7 +254,9 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$k!, *%other) is rw {
     SLICE_MORE_LIST( SELF, ^SELF.elems, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$v!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$v, |%other );
+    %other
+      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, :$v, |%other )
+      !! SELF[^SELF.elems];
 }
 
 # @a[**]
@@ -291,7 +293,9 @@ multi sub postcircumfix:<[ ]>(\SELF, :$k!, *%other) is rw {
     SLICE_MORE_LIST( SELF, ^SELF.elems, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$v, |%other );
+    %other
+      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, :$v, |%other )
+      !! SELF[^SELF.elems];
 }
 
 # @a[;]

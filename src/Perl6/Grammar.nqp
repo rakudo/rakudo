@@ -412,6 +412,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('indirect name') '(' ~ ')' <EXPR>
             ]
         || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
+        || $<bad>=[<.sigil><.identifier>] { my $b := $<bad>; self.malformed("lookup of ::$b; please use ::('$b'), ::\{'$b'\}, or ::<$b>") }
         ]?
     }
 
@@ -1014,6 +1015,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
+        :my $*CODE_OBJECT;                         # the code object we're currently inside
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
         :my %*MYSTERY;                             # names we assume may be post-declared functions
@@ -1205,6 +1207,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pblock($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
         :dba('block or pointy block')
@@ -1251,6 +1254,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token block($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :dba('scoped block')
         [ <?[{]> || <.missing: 'block'>]
         <.newpad>
@@ -1654,7 +1658,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                  "the filehandle's .slurp method")>
         ]?
         [ <?before [ '(' || \h*<sigil><twigil>?\w ] >
-            <.obs('undef as a verb', 'undefine function or assignment of Nil')>
+            <.obs('undef as a verb', 'undefine() or assignment of Nil')>
         ]?
         <.obs('undef as a value', "something more specific:\n\tan undefined type object such as Any or Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of an expected value\n\tor fail() as a failure return\n\t   ")>
     }
@@ -1875,6 +1879,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     regex special_variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'
+        <!{ $*IN_DECL }>
         <!{ $*QSIGIL }>
         <?{
             my $sigil := $<sigil>.Str;
@@ -1998,6 +2003,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $outer := $*W.cur_lexpad();
         :my $*IMPLICIT := 0;
         :my $*DECLARAND;
+        :my $*CODE_OBJECT := $*W.stub_code_object($*PKGDECL eq 'role' ?? 'Sub' !! 'Block');
         :my $*IN_DECL := 'package';
         :my $*HAS_SELF := '';
         :my $*CURPAD;
@@ -2388,6 +2394,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :my $*CURPAD;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
@@ -2458,6 +2465,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
+        :my $*CODE_OBJECT := $*DECLARAND;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
         {
@@ -2519,6 +2527,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
+        :my $*CODE_OBJECT := $*DECLARAND;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2572,7 +2581,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule param_sep {
-        '' $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
+        '' $<sep>=[','|':'|';;'|';'] {
+            if $<sep> eq ';;' {
+                $/.CURSOR.panic("Can only specify ';;' once in a signature")
+                  if $*multi_invocant == 0;
+                $*multi_invocant := 0;
+            }
+            @*seps.push($<sep>);
+        }
     }
 
     # XXX Not really implemented yet.
@@ -2594,6 +2610,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token signature {
         :my $*IN_DECL := 'sig';
         :my $*zone := 'posreq';
+        :my $*multi_invocant := 1;
         :my @*seps := nqp::list();
         :my $*INVOCANT_OK := 1;
         <.ws>
@@ -2615,14 +2632,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <type_constraint>+
             [
             | $<quant>=['**'|'*'] <param_var>
-            | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr(), "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
+            | $<quant>=['\\'|'|'] <param_var> {
+                $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+            }
             | $<quant>=['\\'|'|'] <defterm>?
 
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]
         | $<quant>=['**'|'*'] <param_var>
-        | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr, "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
+        | $<quant>=['\\'|'|'] <param_var> {
+            $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+        }
         | $<quant>=['\\'|'|'] <defterm>?
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname>
@@ -2675,6 +2696,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*zone := 'var';
             }
 
+            %*PARAM_INFO<is_multi_invocant> := $*multi_invocant;
             %*PARAM_INFO<node> := $/;
         }
     }
@@ -2797,6 +2819,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Regex');
+        :my $*CODE_OBJECT := $*DECLARAND;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2947,7 +2970,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto rule trait_mod { <...> }
-    rule trait_mod:sym<is>      { <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'>] }
+    rule trait_mod:sym<is> {
+        :my %*MYSTERY;
+        <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'> ]
+        <.explain_mystery> <.cry_sorrows>
+    }
     rule trait_mod:sym<hides>   { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<does>    { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
     rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock(1)> }
@@ -3860,7 +3887,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<^^>  { <sym> <.dupprefix('^^')> <O('%symbolic_unary')> }
-    token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<^>   {
+        <sym>  <O('%symbolic_unary')>
+        <?before \d+ <?before \. <?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
+    }
     token prefix:sym<|>   {
         <sym> <O('%symbolic_unary')>
         [ <?{ $*ARG_FLAT_OK }> || <.typed_sorry('X::Syntax::ArgFlattener')> ]

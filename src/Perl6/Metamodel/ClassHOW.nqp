@@ -206,23 +206,7 @@ class Perl6::Metamodel::ClassHOW
     method is_composed($obj) {
         $!composed
     }
-    
-    # Maybe this belongs on a role. Also, may be worth memoizing.
-    method can($obj, $name) {
-        my @meths;
-        my %smt := self.submethod_table($obj);
-        if nqp::existskey(%smt, $name) {
-            @meths.push(%smt{$name});
-        }
-        for self.mro($obj) {
-            my %mt := $_.HOW.method_table($_);
-            if nqp::existskey(%mt, $name) {
-                @meths.push(%mt{$name})
-            }
-        }
-        @meths
-    }
-    
+
     # Stuff for junctiony dispatch fallback.
     my $junction_type;
     my $junction_autothreader;

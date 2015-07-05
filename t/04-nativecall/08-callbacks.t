@@ -23,7 +23,7 @@ sub TakeIntCallback(&cb (int32)) is native('./08-callbacks') { * }
 sub TakeStringCallback(&cb (Str)) is native('./08-callbacks') { * }
 sub TakeStructCallback(&cb (Struct)) is native('./08-callbacks') { * }
 
-sub CheckReturnsFloat(&cb (--> num))     returns int32 is native('./08-callbacks') { * }
+sub CheckReturnsFloat(&cb (--> num64))   returns int32 is native('./08-callbacks') { * }
 sub CheckReturnsStr(&cb (--> Str))       returns int32 is native('./08-callbacks') { * }
 sub CheckReturnsStruct(&cb (--> Struct)) returns int32 is native('./08-callbacks') { * }
 
@@ -44,7 +44,7 @@ sub struct_callback(Struct $struct) {
     is $struct.ival, -42, 'struct callback int argument';
 }
 
-sub return_float() returns num {
+sub return_float() returns num64 {
     return 1.23e0;
 }
 

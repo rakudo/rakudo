@@ -140,12 +140,12 @@ my &lastcall := -> {
 };
 
 sub samewith(|c) {
-    my $my   = callframe(1).my;
-    my $self = $my<self>;
-    die "Could not find 'self'" if !$self.DEFINITE;
-    my $dispatcher = $my<&?ROUTINE>.dispatcher
-      || die "Could not find dispatcher";
-    $dispatcher( $self, |c );
+    my $my         := callframe(1).my;
+    my $caller     := $my<&?ROUTINE>;
+    my $dispatcher := $caller.dispatcher || die "Could not find dispatcher";
+    nqp::istype($caller,Method)
+      ?? $dispatcher($my<self> // $caller.package, |c)
+      !! $dispatcher(|c);
 }
 
 proto sub die(|) {*};

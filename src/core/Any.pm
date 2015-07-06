@@ -1,6 +1,7 @@
 my class MapIter                { ... }
 my class Pair                   { ... }
 my class Range                  { ... }
+my class X::Adverb::Slice       { ... }
 my class X::Bind                { ... }
 my class X::Bind::Slice         { ... }
 my class X::Bind::ZenSlice      { ... }
@@ -830,8 +831,6 @@ sub RWPAIR(\k, \v) {   # internal fast pair creation
     p
 }
 
-sub OBJECT_HUH(\SELF) { try { SELF.VAR.name } // SELF.WHAT.perl }
-
 sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
@@ -842,15 +841,11 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
         }
     }
 
-    if %d.elems -> $elems {
-        $elems > 1
-          ?? fail "$elems unexpected named arguments (%d.keys.join(', ')) passed to {OBJECT_HUH(SELF)}"
-          !! fail "Unexpected named argument '%d.keys.[0]' passed to {OBJECT_HUH(SELF)}";
-    }
-
-    else {
-        fail "Unsupported combination of named arguments (@nogo.join(', ')) passed to {OBJECT_HUH(SELF)}";
-    }
+    fail X::Adverb::Slice.new(
+      :what(try { SELF.VAR.name } // SELF.WHAT.perl),
+      :unexpected(%d.keys.sort),
+      :@nogo,
+    );
 } #SLICE_HUH
 
 sub DELETEKEY(Mu \d, str $key) {

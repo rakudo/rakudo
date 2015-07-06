@@ -823,7 +823,6 @@ multi sub item(\x)    { my $ = x }
 multi sub item(*@a)   { my $ = nqp::p6parcel(nqp::p6argvmarray(), nqp::null()) }
 multi sub item(Mu $a) { $a }
 
-my $default= [];       # so that we can check missing parameters
 sub RWPAIR(\k, \v) {   # internal fast pair creation
     my \p := nqp::create(Pair);
     nqp::bindattr(p, Enum, '$!key', k);

@@ -1,7 +1,7 @@
 my class Failure {
     has $.exception;
     has $.backtrace;
-    has int $!handled;
+    has $!handled;
 
     method new(Exception $exception) {
          self.bless(:$exception);

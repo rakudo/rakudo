@@ -2575,12 +2575,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '\\'
         [
         | '(' <semiarglist> ')'
-        | <?before \S> <termish> {
-            my $sgl := nqp::substr(~$<termish>,0,1);
-            if $sgl eq '$' || $sgl eq '@' || $sgl eq '%' || $sgl eq '&' {
-                $/.CURSOR.typed_panic('X::Syntax::P5');
-            }
-        }
+        | <?before '$' | '@' | '%' | '&'> <.worry("To pass an array, hash or sub to a function in Perl 6, just pass it as is.  For other uses of Perl 5's ref operator consider binding with ::= instead.  Parenthesize as \\(...) if you intended a capture of a single variable.")> <termish>
+        | <?before \d> <.worry("To refer to a positional match capture, just use $0 (numbering starts at 0).  Parenthesize as \\(...) if you intended a capture of a single numeric value.")> <termish>
+        | <?before \S> <termish>
         | {} <.panic: "You can't backslash that">
         ]
     }

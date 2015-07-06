@@ -1266,7 +1266,7 @@ BEGIN {
             nqp::bindattr($dcself, Scalar, '$!value',
                 $val.HOW.instantiate_generic($val, $type_environment));
         }
-        $self
+        $dcself
     }));
     Scalar.HOW.compose_repr(Scalar);
 

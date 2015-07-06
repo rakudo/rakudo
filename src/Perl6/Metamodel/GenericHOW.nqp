@@ -27,7 +27,8 @@ class Perl6::Metamodel::GenericHOW
 
     method instantiate_generic($obj, $type_environment) {
         my $name := self.name($obj);
-        nqp::existskey($type_environment, $name) ?? $type_environment{$name} !! $obj
+        my $found := nqp::getlexrel($type_environment, $name);
+        nqp::isnull($found) ?? $obj !! $found
     }
     
     method compose($obj) {

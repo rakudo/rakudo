@@ -697,30 +697,42 @@ class Perl6::World is HLL::World {
 
         # XXX maybe we need a hash with code to execute
         if $name eq 'MONKEY-TYPING' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
         elsif $name eq 'fatal' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             %*PRAGMAS<fatal> := $on;
         }
         elsif $name eq 'cur' {   # temporary, will become 'lib'
             self.use_lib($arglist);
         }
         elsif $name eq 'strict' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             $*STRICT  := $on;
         }
         elsif $name eq 'nqp' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             %*PRAGMAS<nqp> := $on;
         }
         elsif $name eq 'internals' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             %*PRAGMAS<internals> := $on;
         }
         elsif $name eq 'worries' {
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             %*PRAGMAS<no-worries> := !$on;
         }
         elsif $name eq 'soft' {
@@ -729,13 +741,18 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<soft> := $on;
         }
         elsif $name eq 'trace' {
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             %*PRAGMAS<trace> := $on;
         }
         elsif $name eq 'MONKEY_TYPING' {
             self.DEPRECATED($/,"'use MONKEY-TYPING'",'2015.04','2015.09',
               :what("'use MONKEY_TYPING'"),
             );
-            if $arglist { self.throw($/, 'X::Pragma::NoArgs', :$name) }
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
             %*PRAGMAS<MONKEY-TYPING> := $on;
         }
         else {

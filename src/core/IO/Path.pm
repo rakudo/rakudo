@@ -252,7 +252,7 @@ my class IO::Path is Cool {
     }
     multi method chdir(IO::Path:D: Str() $path is copy, :$test = 'r') {
         if !$!SPEC.is-absolute($path) {
-            my ($volume,$dirs) = $!SPEC.splitpath(self, :nofile);
+            my ($volume,$dirs) = $!SPEC.splitpath(self.abspath, :nofile);
             my @dirs = $!SPEC.splitdir($dirs);
             @dirs.shift; # the first is always empty for absolute dirs
             for $!SPEC.splitdir($path) -> $dir {

@@ -844,7 +844,7 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
     fail X::Adverb::Slice.new(
       :what(try { SELF.VAR.name } // SELF.WHAT.perl),
       :unexpected(%d.keys.sort),
-      :@nogo,
+      :nogo(@nogo.sort),
     );
 } #SLICE_HUH
 

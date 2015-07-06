@@ -10,7 +10,7 @@ my class IO::Path is Cool {
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
-        nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.path.abspath)));
+        nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.abspath)));
     }
 
     multi method ACCEPTS(IO::Path:D: Mu \that) {

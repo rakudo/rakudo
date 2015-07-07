@@ -50,10 +50,9 @@ my class Block { # declared in BOOTSTRAP
                 return False unless $thing.WHO.EXISTS-KEY($_);
                 $thing := $thing.WHO{$_};
             }
-            return True;
+            True;
         }
 
-        
         # sub strip-parm
         # This is mostly a stripped-down version of Parameter.perl, removing
         # where clauses, turning "= { ... }" from defaults into just

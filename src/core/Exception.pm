@@ -584,6 +584,13 @@ q/To refer to a positional match capture, just use $0 (numbering starts at 0).
 Parenthesize as \\(...) if you intended a capture of a single numeric value./
     }
 }
+my class X::Worry::P5::LeadingZero is X::Worry::P5 {
+    has $.value;
+    method message {
+qq/Leading 0 does not indicate octal in Perl 6.
+Please use 0o$!value if you mean that./
+    }
+}
 
 my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.

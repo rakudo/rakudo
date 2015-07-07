@@ -3194,7 +3194,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | x '_'? <VALUE=hexint>
             | d '_'? <VALUE=decint>
             | <VALUE=decint>
-                <!!{ $/.CURSOR.worry("Leading 0 does not indicate octal in Perl 6; please use 0o" ~ $<VALUE>.Str ~ " if you mean that") }>
+                <!!{ $/.CURSOR.typed_worry('X::Worry::P5::LeadingZero', value => ~$<VALUE>) }>
             ]
         | <VALUE=decint>
         ]

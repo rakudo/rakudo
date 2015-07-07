@@ -635,4 +635,8 @@ my class IO::Path::Win32 is IO::Path {
     method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Win32) ) }
 }
 
+multi sub infix:</> (IO::Path:D $base, Str:D $child) is assoc<left> returns IO::Path:D {
+    $base.child($child);
+}
+
 # vim: ft=perl6 expandtab sw=4

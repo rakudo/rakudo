@@ -569,6 +569,25 @@ my class X::NYI::Available is X::NYI {
     }
 }
 
+my class X::Worry is Exception { }
+my class X::Worry::P5 is X::Worry { }
+my class X::Worry::P5::Reference is X::Worry::P5 {
+    method message {
+        q:to/MESSAGE/.chomp;
+To pass an array, hash or sub to a function in Perl 6, just pass it as is.
+For other uses of Perl 5's ref operator consider binding with ::= instead.
+Parenthesize as \\(...) if you intended a capture of a single variable.
+MESSAGE
+    }
+}
+my class X::Worry::P5::BackReference is X::Worry::P5 {
+    method message {
+        q:to/MESSAGE/.chomp;
+To refer to a positional match capture, just use $0 (numbering starts at 0).
+Parenthesize as \\(...) if you intended a capture of a single numeric value.
+MESSAGE
+    }
+}
 
 my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.

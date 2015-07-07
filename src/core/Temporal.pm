@@ -414,7 +414,7 @@ my class DateTime does Dateish {
     }
 
     method whole-second() {
-        floor($!second).Int
+        $!second.Int
     }
 
     method in-timezone($timezone) {
@@ -426,15 +426,17 @@ my class DateTime does Dateish {
         # I don't know, but it passes the tests!
         my $a = ($!second >= 60 ?? 59 !! $!second)
             + $new-offset - $old-offset;
-        %parts<second> = $!second >= 60 ?? $!second !! ($a % 60).Int;
-        my $b = $!minute + floor $a / 60;
-        %parts<minute> = ($b % 60).Int;
-        my $c = $!hour + floor $b / 60;
-        %parts<hour> = ($c % 24).Int;
+        %parts<second> = $!second >= 60 ?? $!second !! $a % 60;
+        my Int $b = $!minute + floor($a) div 60;
+        %parts<minute> = $b % 60;
+        my Int $c = $!hour + $b div 60;
+        %parts<hour> = $c % 24;
+
         # Let Dateish handle any further rollover.
-        floor $c / 24 and %parts<year month day> =
-           self.ymd-from-daycount\
-               (self.get-daycount + floor $c / 24);
+        if ($c div 24) {
+            %parts<year month day> =
+                self.ymd-from-daycount(self.get-daycount + $c div 24);
+        }
         self.clone-without-validating:
             :$timezone, |%parts;
     }

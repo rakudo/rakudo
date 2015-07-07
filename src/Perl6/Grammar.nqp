@@ -274,13 +274,6 @@ role STD {
             when        => $when,
         );
     }
-    method worryobs($old, $new, $when = 'in Perl 6') {
-        self.typed_worry('X::Obsolete',
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
-    }
 
     method dupprefix($prefixes) {
         self.typed_panic('X::Syntax::DuplicatedPrefix', :$prefixes);

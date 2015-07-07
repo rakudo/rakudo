@@ -98,7 +98,7 @@ my class Block { # declared in BOOTSTRAP
 #                $perl ~= ':U' if $perl ne '';
 #            }
             my $name = $parm.name;
-            if not $name.defined or $name.substr(0,1) ne $sigil {
+            if not $name.defined or !$name.starts-with($sigil) {
                 $name = $sigil ~ $parm.twigil ~ ($name // "");
             }
             if $parm.slurpy {
@@ -121,12 +121,11 @@ my class Block { # declared in BOOTSTRAP
                     if $name eq '$' and not $rest {
                         $name = '\\';
                     }
-                    elsif $name.substr(0,1) eq '\\'
-                          and ($rest or $name ne '\\') {
+                    elsif $name.starts-with('\\') and ($rest or $name ne '\\') {
                         $name = '$' ~ $name.substr(1);
                     }
                 }
-                if $name.substr(0,1) ne '\\' {
+                if !$name.starts-with('\\') {
                     $rest ~= ' is parcel';
                 }
             }

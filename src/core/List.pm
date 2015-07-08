@@ -397,7 +397,7 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::setelems(nqp::getattr(self,List,'$!items'),0);
         @ret;
     }
-    multi method splice(List:D: $offset = 0, $size?, *@values, :$SINK) {
+    multi method splice(List:D: $offset=0, $size=Whatever, *@values, :$SINK) {
         fail X::Cannot::Infinite.new(:action<.splice in>) if @values.infinite;
 
         self.gimme(*);
@@ -411,7 +411,9 @@ my class List does Positional { # declared in BOOTSTRAP
 
         my int $s = nqp::istype($size,Callable)
           ?? $size($elems - $o)
-          !! $size // $elems - ($o min $elems);
+          !! !defined($size) || nqp::istype($size,Whatever)
+             ?? $elems - ($o min $elems)
+             !! $size.Int;
         X::OutOfRange.new(
             :what<Size argument to List.splice>,
             :got($size),

@@ -435,7 +435,7 @@ my class List does Positional { # declared in BOOTSTRAP
             nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
         }
         else {
-            my @ret;
+            my @ret := Array[self.of].new;
             @ret = self[$o..($o + $s - 1)] if $s;
             nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
             @ret;

@@ -391,12 +391,12 @@ my class List does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    method splice($offset = 0, $size?, *@values) is nodal {
+    method splice($offset = 0, $size?, *@values, :$SINK) is nodal {
         self.gimme(*);
         my $elems = self.elems;
         my int $o = nqp::istype($offset,Callable) ?? $offset($elems) !! $offset;
         X::OutOfRange.new(
-            :what<offset argument to List.splice>,
+            :what<Offset argument to List.splice>,
             :got($offset),
             :range("0..^$elems"),
         ).fail if $o < 0;
@@ -405,14 +405,14 @@ my class List does Positional { # declared in BOOTSTRAP
           ?? $size($elems - $o)
           !! $size // $elems - ($o min $elems);
         X::OutOfRange.new(
-            :what<size argument to List.splice>,
+            :what<Size argument to List.splice>,
             :got($size),
             :range("0..^{$elems - $o}"),
         ).fail if $s < 0;
 
         # need to enforce type checking
         my @v := @values.eager;
-        if self.of !=:= Mu {
+        if self.of !=:= Mu && @v {
             my $expected := self.of;
             X::TypeCheck::Splice.new(
               :action<splice>,
@@ -421,9 +421,15 @@ my class List does Positional { # declared in BOOTSTRAP
             ).fail unless nqp::istype($_,$expected) for @v;
         }
 
-        my @ret = self[$o..($o + $s - 1)];
-        nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
-        @ret;
+        if $SINK {
+            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+        }
+        else {
+            my @ret;
+            @ret = self[$o..($o + $s - 1)] if $s;
+            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+            @ret;
+        }
     }
 
     method sort($by = &infix:<cmp>) is nodal {

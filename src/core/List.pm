@@ -391,7 +391,13 @@ my class List does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    method splice($offset = 0, $size?, *@values, :$SINK) is nodal {
+    proto method splice(|) is nodal { * }
+    multi method splice(List:D:) {
+        my @ret = self;
+        nqp::setelems(nqp::getattr(self,List,'$!items'),0);
+        @ret;
+    }
+    multi method splice(List:D: $offset = 0, $size?, *@values, :$SINK) {
         self.gimme(*);
         my $elems = self.elems;
         my int $o = nqp::istype($offset,Callable) ?? $offset($elems) !! $offset;

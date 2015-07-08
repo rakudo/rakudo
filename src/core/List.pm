@@ -1,5 +1,6 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my class X::TypeCheck::Splice { ... }
 my class X::Cannot::Infinite { ... }
 my class X::Cannot::Empty { ... }
 my role Supply { ... }
@@ -412,6 +413,12 @@ my class List does Positional { # declared in BOOTSTRAP
         # need to enforce type checking
         my @v := @values.eager;
         if self.of !=:= Mu {
+            my $expected := self.of;
+            X::TypeCheck::Splice.new(
+              :action<splice>,
+              :got($_.WHAT),
+              :$expected,
+            ).fail unless nqp::istype($_,$expected) for @v;
         }
 
         my @ret = self[$o..($o + $s - 1)];

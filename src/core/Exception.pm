@@ -13,14 +13,14 @@ my class Exception {
 
     multi method Str(Exception:D:) {
         my $msg = self.?message // '';
-        $msg.Str || 'Something went wrong in ' ~ self.WHAT.gist;
+        $msg.Str || 'Inchoate error of class ' ~ self.WHAT.^name;
     }
 
     multi method gist(Exception:D:) {
         my $str = nqp::isconcrete($!ex)
           ?? nqp::p6box_s(nqp::getmessage($!ex))
           !! try self.?message;
-        $str //= "Internal error";
+        $str //= "Unspecified error " ~ self.WHAT.gist;
 
         if nqp::isconcrete($!ex) {
             $str ~= "\n";
@@ -68,7 +68,7 @@ my class Exception {
 }
 
 my class X::AdHoc is Exception {
-    has $.payload;
+    has $.payload = "Unexplained error";
     method message() { $.payload.Str     }
     method Numeric() { $.payload.Numeric }
 }

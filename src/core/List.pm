@@ -392,27 +392,30 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method splice($offset = 0, $size?, *@values) is nodal {
         self.gimme(*);
-        my $o = $offset;
-        my $s = $size;
         my $elems = self.elems;
-        $o = $o($elems) if nqp::istype($o, Callable);
+        my int $o = nqp::istype($offset,Callable) ?? $offset($elems) !! $offset;
         X::OutOfRange.new(
-            what => 'offset argument to List.splice',
-            got  => $offset,
-            range => (0..^self.elems),
+            :what<offset argument to List.splice>,
+            :got($offset),
+            :range("0..^$elems"),
         ).fail if $o < 0;
-        $s //= self.elems - ($o min $elems);
-        $s = $s(self.elems - $o) if nqp::istype($s, Callable);
+
+        my int $s = nqp::istype($size,Callable)
+          ?? $size($elems - $o)
+          !! $size // $elems - ($o min $elems);
         X::OutOfRange.new(
-            what => 'size argument to List.splice',
-            got  => $size,
-            range => (0..^(self.elems - $o)),
+            :what<size argument to List.splice>,
+            :got($size),
+            :range("0..^{$elems - $o}"),
         ).fail if $s < 0;
 
+        # need to enforce type checking
+        my @v := @values.eager;
+        if self.of !=:= Mu {
+        }
+
         my @ret = self[$o..($o + $s - 1)];
-        nqp::splice($!items,
-                    nqp::getattr(@values.eager, List, '$!items'),
-                    $o.Int, $s.Int);
+        nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
         @ret;
     }
 

@@ -398,6 +398,8 @@ my class List does Positional { # declared in BOOTSTRAP
         @ret;
     }
     multi method splice(List:D: $offset = 0, $size?, *@values, :$SINK) {
+        fail X::Cannot::Infinite.new(:action<.splice in>) if @values.infinite;
+
         self.gimme(*);
         my $elems = self.elems;
         my int $o = nqp::istype($offset,Callable) ?? $offset($elems) !! $offset;

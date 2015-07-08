@@ -12,7 +12,8 @@ my class Exception {
     }
 
     multi method Str(Exception:D:) {
-        self.?message.Str // 'Something went wrong in ' ~ self.WHAT.gist;
+        my $msg = self.?message // '';
+        $msg.Str || 'Something went wrong in ' ~ self.WHAT.gist;
     }
 
     multi method gist(Exception:D:) {
@@ -36,8 +37,8 @@ my class Exception {
             unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
         my $msg := self.?message;
-        nqp::setmessage($!ex, nqp::unbox_s($msg.Str))
-            if $msg.defined;
+        $msg := $msg // self.WHAT.gist;
+        nqp::setmessage($!ex, nqp::unbox_s($msg.Str));
         nqp::throw($!ex)
     }
     method rethrow() {

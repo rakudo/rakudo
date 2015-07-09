@@ -1544,7 +1544,7 @@ class Perl6::World is HLL::World {
                     is_multi_invocant => 1
                 ));
             }
-            unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
+            unless has_named_slurpy_or_capture(@params) {
                 unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
                     @params.push(hash(
                         variable_name => '%_',
@@ -1639,6 +1639,13 @@ class Perl6::World is HLL::World {
         }
         %signature_info<parameter_objects> := @param_objs;
         self.create_signature(%signature_info)
+    }
+
+    sub has_named_slurpy_or_capture(@params) {
+        for @params {
+            return 1 if $_<named_slurpy> || $_<is_capture>;
+        }
+        0
     }
 
     # Creates a signature object from a set of parameters.

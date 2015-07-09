@@ -2064,6 +2064,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 symbol => $longname.name(),
                             );
                         }
+                        if nqp::defined($*REPR) {
+                            $*W.throw($/, ['X', 'TooLateForREPR'], type => $*PACKAGE);
+                        }
                     }
 
                     # If it's not a role, or it is a role but one with no name,

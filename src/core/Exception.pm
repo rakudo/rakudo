@@ -2010,4 +2010,11 @@ my class X::StubCode is Exception {
     has $.message = 'Stub code executed';
 }
 
+my class X::TooLateForREPR is X::Comp  {
+    has $.type;
+    method message() {
+        "Cannot change REPR of $!type.^name() now (must be set at initial declaration)";
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

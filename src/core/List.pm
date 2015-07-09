@@ -411,8 +411,8 @@ my class List does Positional { # declared in BOOTSTRAP
         X::OutOfRange.new(
             :what<Offset argument to List.splice>,
             :got($offset),
-            :range("0..^$elems"),
-        ).fail if $o < 0;
+            :range("0..$elems"),
+        ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
 
         my int $s = nqp::istype($size,Callable)
           ?? $size($elems - $o)
@@ -442,13 +442,8 @@ my class List does Positional { # declared in BOOTSTRAP
         }
         else {
             my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
-            if @v || $o < $elems {
-                @ret = self[$o..($o + $s - 1)] if $s;
-                nqp::splice($!items,nqp::getattr(@v,List,'$!items'),$o,$s);
-            }
-            else {  # offset past end, and nothing to put in, don't vivify
-                @ret = ($expected =:= Mu ?? Any !! $expected) xx $s;
-            }
+            @ret = self[$o..($o + $s - 1)] if $s;
+            nqp::splice($!items,nqp::getattr(@v,List,'$!items'),$o,$s);
             @ret;
         }
     }

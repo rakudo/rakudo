@@ -8,7 +8,7 @@ my class X::Supply::Migrate::Needs is Exception {
     }
 }
 
-my class SupplyOperations is repr('Uninstantiable') {
+my class SupplyOperations {
 
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.

@@ -2560,6 +2560,15 @@ Compilation unit '$file' contained the following violations:
         install_method($/, $meth_name, 'has', $code, $install_in);
     }
 
+    sub install_routine_symbol($block, $code) {
+        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
+        $block[0].unshift(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :scope('lexical'), :name('&?ROUTINE') ),
+            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+        ));
+    }
+
     method routine_declarator:sym<sub>($/) { make $<routine_def>.ast; }
     method routine_declarator:sym<method>($/) { make $<method_def>.ast; }
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
@@ -2683,8 +2692,7 @@ Compilation unit '$file' contained the following violations:
 #?endif
         $outer[0].push(QAST::Stmt.new($block));
 
-        # Install &?ROUTINE.
-        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
+        install_routine_symbol($block, $code);
 
         if $<deflongname> {
             # If it's a multi, need to associate it with the surrounding
@@ -2851,7 +2859,7 @@ Compilation unit '$file' contained the following violations:
         my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
         $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
         $*W.add_proto_to_sort($code);
-        $*W.install_lexical_symbol($p_past, '&?ROUTINE', $code);
+        install_routine_symbol($p_past, $code);
         $code
     }
 
@@ -3090,8 +3098,7 @@ Compilation unit '$file' contained the following violations:
             $*POD_BLOCK.set_docee($code);
         }
 
-        # Install &?ROUTINE.
-        $*W.install_lexical_symbol($past, '&?ROUTINE', $code);
+        install_routine_symbol($past, $code);
 
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*W.cur_lexpad();
@@ -3173,8 +3180,7 @@ Compilation unit '$file' contained the following violations:
         my $outer := $*W.cur_lexpad();
         $outer[0].push(QAST::Stmt.new($block));
 
-        # Install &?ROUTINE.
-        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
+        install_routine_symbol($block, $code);
 
         if $<deflongname> {
             my $name := '&' ~ ~$<deflongname>.ast;
@@ -3433,8 +3439,7 @@ Compilation unit '$file' contained the following violations:
             $*POD_BLOCK.set_docee($*DECLARAND);
         }
 
-        # Install &?ROUTINE.
-        $*W.install_lexical_symbol($*CURPAD, '&?ROUTINE', $*DECLARAND);
+        install_routine_symbol($*CURPAD, $*DECLARAND);
 
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);

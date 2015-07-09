@@ -399,7 +399,7 @@ my class List does Positional { # declared in BOOTSTRAP
         @ret;
     }
     multi method splice(List:D: $offset=0, $size=Whatever, *@values, :$SINK) {
-        fail X::Cannot::Infinite.new(:action<.splice in>) if @values.infinite;
+        fail X::Cannot::Infinite.new(:action<splice in>) if @values.infinite;
 
         self.gimme(*);
         my $elems = self.elems;
@@ -409,9 +409,9 @@ my class List does Positional { # declared in BOOTSTRAP
             ?? $elems
             !! $offset;
         X::OutOfRange.new(
-            :what<Offset argument to List.splice>,
-            :got($offset),
-            :range("0..$elems"),
+          :what<Offset argument to List.splice>,
+          :got($o),
+          :range("0..$elems"),
         ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
 
         my int $s = nqp::istype($size,Callable)
@@ -420,9 +420,9 @@ my class List does Positional { # declared in BOOTSTRAP
              ?? $elems - ($o min $elems)
              !! $size.Int;
         X::OutOfRange.new(
-            :what<Size argument to List.splice>,
-            :got($size),
-            :range("0..^{$elems - $o}"),
+          :what<Size argument to List.splice>,
+          :got($s),
+          :range("0..^{$elems - $o}"),
         ).fail if $s < 0;
 
         # need to enforce type checking

@@ -438,11 +438,17 @@ my class List does Positional { # declared in BOOTSTRAP
 
         if $SINK {
             nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+            Nil;
         }
         else {
             my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
-            @ret = self[$o..($o + $s - 1)] if $s;
-            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+            if @v || $o < $elems {
+                @ret = self[$o..($o + $s - 1)] if $s;
+                nqp::splice($!items,nqp::getattr(@v,List,'$!items'),$o,$s);
+            }
+            else {  # offset past end, and nothing to put in, don't vivify
+                @ret = ($expected =:= Mu ?? Any !! $expected) xx $s;
+            }
             @ret;
         }
     }

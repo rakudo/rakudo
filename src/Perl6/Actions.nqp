@@ -1983,6 +1983,15 @@ Compilation unit '$file' contained the following violations:
                 $past := $*W.add_string_constant($*W.current_file);
             }
         }
+        elsif $past.name() eq '&?BLOCK' {
+            if $*IN_DECL eq 'variable' {
+                $*W.throw($/, 'X::Syntax::Variable::Twigil',
+                        twigil  => '?',
+                        scope   => $*SCOPE,
+                );
+            }
+            $past := QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) );
+        }
         elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {
             $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
         }

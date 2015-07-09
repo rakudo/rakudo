@@ -393,7 +393,8 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method splice(|) is nodal { * }
     multi method splice(List:D:) {
-        my @ret = self;
+        my @ret := self.of =:= Mu ?? Array.new !! Array[self.of].new;
+        @ret = self;
         nqp::setelems(nqp::getattr(self,List,'$!items'),0);
         @ret;
     }
@@ -402,7 +403,11 @@ my class List does Positional { # declared in BOOTSTRAP
 
         self.gimme(*);
         my $elems = self.elems;
-        my int $o = nqp::istype($offset,Callable) ?? $offset($elems) !! $offset;
+        my int $o = nqp::istype($offset,Callable)
+          ?? $offset($elems)
+          !! nqp::istype($offset,Whatever)
+            ?? $elems
+            !! $offset;
         X::OutOfRange.new(
             :what<Offset argument to List.splice>,
             :got($offset),
@@ -421,9 +426,9 @@ my class List does Positional { # declared in BOOTSTRAP
         ).fail if $s < 0;
 
         # need to enforce type checking
+        my $expected := self.of;
         my @v := @values.eager;
         if self.of !=:= Mu && @v {
-            my $expected := self.of;
             X::TypeCheck::Splice.new(
               :action<splice>,
               :got($_.WHAT),
@@ -435,7 +440,7 @@ my class List does Positional { # declared in BOOTSTRAP
             nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
         }
         else {
-            my @ret := Array[self.of].new;
+            my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
             @ret = self[$o..($o + $s - 1)] if $s;
             nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
             @ret;

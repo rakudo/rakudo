@@ -409,7 +409,7 @@ my class List does Positional { # declared in BOOTSTRAP
             ?? $elems
             !! $offset.Int;
         X::OutOfRange.new(
-          :what<Offset argument to List.splice>,
+          :what<Offset argument to splice>,
           :got($o),
           :range("0..$elems"),
         ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
@@ -420,7 +420,7 @@ my class List does Positional { # declared in BOOTSTRAP
              ?? $elems - ($o min $elems)
              !! $size.Int;
         X::OutOfRange.new(
-          :what<Size argument to List.splice>,
+          :what<Size argument to splice>,
           :got($s),
           :range("0..^{$elems - $o}"),
         ).fail if $s < 0;
@@ -765,7 +765,7 @@ multi sub push(\a, *@elems) { a.push: @elems }
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
-sub splice(@arr, $offset = 0, $size?, *@values) {
+sub splice(@arr, $offset = 0, $size = Whatever, *@values) {
     @arr.splice($offset, $size, @values)
 }
 

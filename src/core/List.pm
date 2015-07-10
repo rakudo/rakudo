@@ -178,14 +178,14 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method pick(|) is nodal { * }
     multi method pick() {
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
     }
     multi method pick(Whatever, :$eager!) {
         return self.pick(*) if !$eager;
 
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -204,7 +204,7 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6parcel($picked,Any);
     }
     multi method pick(Whatever) {
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -220,7 +220,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
     multi method pick(\number) {
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
@@ -244,7 +244,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method pop() is parcel is nodal {
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.pop from>) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action('.pop from')) if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
           !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
@@ -260,7 +260,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method push(List:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
-            fail X::Cannot::Infinite.new(:action<.push to>)
+            fail X::Cannot::Infinite.new(:action('.push to'))
               if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
             nqp::push( $!items, my $ = value);
@@ -276,7 +276,7 @@ my class List does Positional { # declared in BOOTSTRAP
           if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.push to>) if $!nextiter.DEFINITE;
+        fail X::Cannot::Infinite.new(:action('.push to')) if $!nextiter.DEFINITE;
 
         # push is always eager
         @values.gimme(*);
@@ -310,7 +310,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method plan(List:D: |args) is nodal {
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.plan to>) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action('.plan to')) if $!nextiter.defined;
 
 #        # need type checks?
 #        my $of := self.of;
@@ -329,12 +329,12 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method roll(|) is nodal { * }
     multi method roll() {
-        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
     }
     multi method roll(Whatever) {
-        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
         my $elems = self.elems;
         return () unless $elems;
 
@@ -347,7 +347,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method roll(\number) {
         return self.roll(*) if number == Inf;
 
-        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
         my $elems = self.elems;
         return () unless $elems;
 
@@ -399,7 +399,7 @@ my class List does Positional { # declared in BOOTSTRAP
         @ret;
     }
     multi method splice(List:D: $offset=0, $size=Whatever, *@values, :$SINK) {
-        fail X::Cannot::Infinite.new(:action<splice in>) if @values.infinite;
+        fail X::Cannot::Infinite.new(:action('splice in')) if @values.infinite;
 
         self.gimme(*);
         my $elems = self.elems;
@@ -409,7 +409,7 @@ my class List does Positional { # declared in BOOTSTRAP
             ?? $elems
             !! $offset.Int;
         X::OutOfRange.new(
-          :what<Offset argument to splice>,
+          :what('Offset argument to splice'),
           :got($o),
           :range("0..$elems"),
         ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
@@ -420,7 +420,7 @@ my class List does Positional { # declared in BOOTSTRAP
              ?? $elems - ($o min $elems)
              !! $size.Int;
         X::OutOfRange.new(
-          :what<Size argument to splice>,
+          :what('Size argument to splice'),
           :got($s),
           :range("0..^{$elems - $o}"),
         ).fail if $s < 0;

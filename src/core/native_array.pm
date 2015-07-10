@@ -105,7 +105,7 @@ class array is Iterable is repr('VMArray') {
         }
 
         multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
-            fail X::Cannot::Infinite.new(:action<splice in>)
+            fail X::Cannot::Infinite.new(:action('splice in'))
               if @values.infinite;
 
             my $elems = self.elems;
@@ -115,7 +115,7 @@ class array is Iterable is repr('VMArray') {
                 ?? $elems
                 !! $offset.Int;
             X::OutOfRange.new(
-              :what<Offset argument to splice>,
+              :what('Offset argument to splice'),
               :got($o),
               :range("0..$elems"),
             ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
@@ -126,7 +126,7 @@ class array is Iterable is repr('VMArray') {
                  ?? $elems - ($o min $elems)
                  !! $size.Int;
             X::OutOfRange.new(
-              :what<Size argument to splice>,
+              :what('Size argument to splice'),
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
@@ -311,7 +311,7 @@ class array is Iterable is repr('VMArray') {
         }
 
         multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
-            fail X::Cannot::Infinite.new(:action<splice in>)
+            fail X::Cannot::Infinite.new(:action('splice in'))
               if @values.infinite;
 
             my $elems = self.elems;
@@ -321,7 +321,7 @@ class array is Iterable is repr('VMArray') {
                 ?? $elems
                 !! $offset.Int;
             X::OutOfRange.new(
-              :what<Offset argument to splice>,
+              :what('Offset argument to splice'),
               :got($o),
               :range("0..$elems"),
             ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
@@ -332,7 +332,7 @@ class array is Iterable is repr('VMArray') {
                  ?? $elems - ($o min $elems)
                  !! $size.Int;
             X::OutOfRange.new(
-              :what<Size argument to splice>,
+              :what('Size argument to splice'),
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;

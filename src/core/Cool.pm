@@ -280,7 +280,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method UInt()  {
         my $got := self.Int;
         fail X::OutOfRange.new(
-          :what<Coercion to UInt>,
+          :what('Coercion to UInt'),
           :$got,
           :range("0..Inf")
         ) if $got < 0;

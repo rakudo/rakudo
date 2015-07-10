@@ -3520,7 +3520,7 @@ Compilation unit '$file' contained the following violations:
 
         # Bind original source to $!source
         my $Regex := $*W.find_symbol(['Regex']);
-        nqp::bindattr($code, $Regex, '$!source', ~$/);
+        nqp::bindattr($code, $Regex, '$!source', ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/);
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);

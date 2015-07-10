@@ -407,7 +407,7 @@ my class List does Positional { # declared in BOOTSTRAP
           ?? $offset($elems)
           !! nqp::istype($offset,Whatever)
             ?? $elems
-            !! $offset;
+            !! $offset.Int;
         X::OutOfRange.new(
           :what<Offset argument to List.splice>,
           :got($o),

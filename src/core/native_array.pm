@@ -104,36 +104,66 @@ class array is Iterable is repr('VMArray') {
             self
         }
 
-        method splice($offset = 0, $size?, *@values) {
-            my $o = $offset;
-            my $s = $size;
+        multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+            fail X::Cannot::Infinite.new(:action<splice in>)
+              if @values.infinite;
+
             my $elems = self.elems;
-            $o = $o($elems) if nqp::istype($o, Callable);
+            my int $o = nqp::istype($offset,Callable)
+              ?? $offset($elems)
+              !! nqp::istype($offset,Whatever)
+                ?? $elems
+                !! $offset.Int;
             X::OutOfRange.new(
-                what => 'offset argument to array.splice',
-                got  => $offset,
-                range => (0..^$elems),
-            ).fail if $o < 0;
-            $s //= $elems - ($o min $elems);
-            $s = $s($elems - $o) if nqp::istype($s, Callable);
+              :what<Offset argument to splice>,
+              :got($o),
+              :range("0..$elems"),
+            ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
+
+            my int $s = nqp::istype($size,Callable)
+              ?? $size($elems - $o)
+              !! !defined($size) || nqp::istype($size,Whatever)
+                 ?? $elems - ($o min $elems)
+                 !! $size.Int;
             X::OutOfRange.new(
-                what => 'size argument to array.splice',
-                got  => $size,
-                range => (0..^($elems - $o)),
+              :what<Size argument to splice>,
+              :got($s),
+              :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
 
-            my @ret := nqp::create(self);
-            my int $i = $o;
-            my int $n = $o + $s - 1;
-            while $i <= $n {
-                nqp::push_i(@ret, nqp::atpos_i(self, $i));
-                $i = $i + 1;
+            my @v := @values.eager;
+            if @v {
+# Typechecking on setting values in a native int array, is fraught with
+# gotcha's.  Since we're not doing any overflow/underflow checks with
+# natives anyway, we just going to typecheck with Int
+                X::TypeCheck::Splice.new(
+                  :action<splice>,
+                  :got($_.WHAT),
+                  :expected(T),
+                ).fail unless nqp::istype($_,Int) for @v;
+            }
+ 
+            if $SINK {
+                my @splicees := nqp::create(self);
+                nqp::push_i(@splicees, @values.shift) while @values;
+                nqp::splice(self, @splicees, $o, $s);
+                Nil;
             }
 
-            my @splicees := nqp::create(self);
-            nqp::push_i(@splicees, @values.shift) while @values;
-            nqp::splice(self, @splicees, $o.Int, $s.Int);
-            @ret;
+            else {
+                my @ret := nqp::create(self);
+                my int $i = $o;
+                my int $n = ($elems min $o + $s) - 1;
+                while $i <= $n {
+                    nqp::push_i(@ret, nqp::atpos_i(self, $i));
+                    $i = $i + 1;
+                }
+
+                my @splicees := nqp::create(self);
+                nqp::push_i(@splicees, @values.shift) while @values;
+                nqp::splice(self, @splicees, $o, $s);
+                @ret;
+            }
         }
 
         my class NativeIntArrayIter is Iterator {
@@ -192,6 +222,7 @@ class array is Iterable is repr('VMArray') {
         }
     }
 
+# please note that this role is mostly same as intarray but s/_i$/_n/
     my role numarray[::T] does Positional[T] is array_type(T) {
         multi method AT-POS(array:D: int $idx) is rw {
             nqp::atposref_n(self, $idx)
@@ -291,36 +322,66 @@ class array is Iterable is repr('VMArray') {
             self
         }
 
-        method splice($offset = 0, $size?, *@values) {
-            my $o = $offset;
-            my $s = $size;
+        multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+            fail X::Cannot::Infinite.new(:action<splice in>)
+              if @values.infinite;
+
             my $elems = self.elems;
-            $o = $o($elems) if nqp::istype($o, Callable);
+            my int $o = nqp::istype($offset,Callable)
+              ?? $offset($elems)
+              !! nqp::istype($offset,Whatever)
+                ?? $elems
+                !! $offset.Int;
             X::OutOfRange.new(
-                what => 'offset argument to array.splice',
-                got  => $offset,
-                range => (0..^$elems),
-            ).fail if $o < 0;
-            $s //= $elems - ($o min $elems);
-            $s = $s($elems - $o) if nqp::istype($s, Callable);
+              :what<Offset argument to splice>,
+              :got($o),
+              :range("0..$elems"),
+            ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
+
+            my int $s = nqp::istype($size,Callable)
+              ?? $size($elems - $o)
+              !! !defined($size) || nqp::istype($size,Whatever)
+                 ?? $elems - ($o min $elems)
+                 !! $size.Int;
             X::OutOfRange.new(
-                what => 'size argument to array.splice',
-                got  => $size,
-                range => (0..^($elems - $o)),
+              :what<Size argument to splice>,
+              :got($s),
+              :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
 
-            my @ret := nqp::create(self);
-            my int $i = $o;
-            my int $n = $o + $s - 1;
-            while $i <= $n {
-                nqp::push_n(@ret, nqp::atpos_n(self, $i));
-                $i = $i + 1;
+            my @v := @values.eager;
+            if @v {
+# Typechecking on setting values in a native num array, is fraught with
+# gotcha's.  Since we're not doing any overflow/underflow checks with
+# natives anyway, we just going to typecheck with Num
+                X::TypeCheck::Splice.new(
+                  :action<splice>,
+                  :got($_.WHAT),
+                  :expected(T),
+                ).fail unless nqp::istype($_,Num) for @v;
+            }
+ 
+            if $SINK {
+                my @splicees := nqp::create(self);
+                nqp::push_n(@splicees, @values.shift) while @values;
+                nqp::splice(self, @splicees, $o, $s);
+                Nil;
             }
 
-            my @splicees := nqp::create(self);
-            nqp::push_n(@splicees, @values.shift) while @values;
-            nqp::splice(self, @splicees, $o.Int, $s.Int);
-            @ret;
+            else {
+                my @ret := nqp::create(self);
+                my int $i = $o;
+                my int $n = ($elems min $o + $s) - 1;
+                while $i <= $n {
+                    nqp::push_n(@ret, nqp::atpos_n(self, $i));
+                    $i = $i + 1;
+                }
+
+                my @splicees := nqp::create(self);
+                nqp::push_n(@splicees, @values.shift) while @values;
+                nqp::splice(self, @splicees, $o, $s);
+                @ret;
+            }
         }
 
         my class NativeNumArrayIter is Iterator {

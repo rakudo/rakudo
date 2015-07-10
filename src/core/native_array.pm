@@ -130,18 +130,6 @@ class array is Iterable is repr('VMArray') {
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
-
-            my @v := @values.eager;
-            if @v {
-# Typechecking on setting values in a native int array, is fraught with
-# gotcha's.  Since we're not doing any overflow/underflow checks with
-# natives anyway, we just going to typecheck with Int
-                X::TypeCheck::Splice.new(
-                  :action<splice>,
-                  :got($_.WHAT),
-                  :expected(T),
-                ).fail unless nqp::istype($_,Int) for @v;
-            }
  
             if $SINK {
                 my @splicees := nqp::create(self);
@@ -348,18 +336,6 @@ class array is Iterable is repr('VMArray') {
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
-
-            my @v := @values.eager;
-            if @v {
-# Typechecking on setting values in a native num array, is fraught with
-# gotcha's.  Since we're not doing any overflow/underflow checks with
-# natives anyway, we just going to typecheck with Num
-                X::TypeCheck::Splice.new(
-                  :action<splice>,
-                  :got($_.WHAT),
-                  :expected(T),
-                ).fail unless nqp::istype($_,Num) for @v;
-            }
  
             if $SINK {
                 my @splicees := nqp::create(self);

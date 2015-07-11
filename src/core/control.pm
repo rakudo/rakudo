@@ -153,8 +153,8 @@ multi sub die(Exception $e) { $e.throw }
 multi sub die($payload = "Died") {
     X::AdHoc.new(:$payload).throw
 }
-multi sub die(*@msg) {
-    X::AdHoc.new(:payload(@msg.Parcel)).throw
+multi sub die(|cap ( *@msg )) {
+    X::AdHoc.from-slurpy(|cap).throw
 }
 
 multi sub warn(*@msg) {

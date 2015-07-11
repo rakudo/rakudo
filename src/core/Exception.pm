@@ -69,11 +69,14 @@ my class Exception {
 
 my class X::AdHoc is Exception {
     has $.payload = "Unexplained error";
+
+    my role SlurpySentry { }
+
     method message() {
         # Remove spaces for die(*@msg)/fail(*@msg) forms
         given $.payload {
-            when Parcel {
-                $_.join;
+            when SlurpySentry {
+                $_.list.join;
             }
             default {
                 .Str;
@@ -81,6 +84,9 @@ my class X::AdHoc is Exception {
         }
     }
     method Numeric() { $.payload.Numeric }
+    method from-slurpy (|cap) {
+        self.new(:payload(cap does SlurpySentry))
+    }
 }
 
 my class X::Dynamic::NotFound is Exception {

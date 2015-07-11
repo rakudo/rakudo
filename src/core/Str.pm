@@ -1699,8 +1699,8 @@ sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }
-multi sub UNBASE(Int:D $base, Cool:D $num) {
-    X::Numeric::Confused.new(:what($num)).throw;
+multi sub UNBASE(Int:D $base, Any:D $num) {
+    X::Numeric::Confused.new(:$num, :$base).throw;
 }
 multi sub UNBASE(Int:D $base, Str:D $str) {
     my Str $prefix = substr($str,0, 2);

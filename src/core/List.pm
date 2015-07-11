@@ -392,11 +392,18 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     proto method splice(|) is nodal { * }
-    multi method splice(List:D:) {
-        my @ret := self.of =:= Mu ?? Array.new !! Array[self.of].new;
-        @ret = self;
-        nqp::setelems(nqp::getattr(self,List,'$!items'),0);
-        @ret;
+    multi method splice(List:D \SELF: :$SINK) {
+
+        if $SINK {
+            SELF = ();
+            Nil;
+        }
+        else {
+            my @ret := SELF.of =:= Mu ?? Array.new !! Array[SELF.of].new;
+            @ret = SELF;
+            SELF = ();
+            @ret;
+        }
     }
     multi method splice(List:D: $offset=0, $size=Whatever, *@values, :$SINK) {
         fail X::Cannot::Infinite.new(:action('splice in')) if @values.infinite;
@@ -443,7 +450,7 @@ my class List does Positional { # declared in BOOTSTRAP
         else {
             my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
             @ret = self[$o..($o + $s - 1)] if $s;
-            nqp::splice($!items,nqp::getattr(@v,List,'$!items'),$o,$s);
+            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
             @ret;
         }
     }
@@ -765,9 +772,7 @@ multi sub push(\a, *@elems) { a.push: @elems }
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
-sub splice(@arr, $offset = 0, $size = Whatever, *@values) {
-    @arr.splice($offset, $size, @values)
-}
+sub splice(@arr, |c)        { @arr.splice(|c) }
 
 multi sub infix:<cmp>(@a, @b) { (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b }
 

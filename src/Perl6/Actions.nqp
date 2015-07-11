@@ -2377,11 +2377,8 @@ Compilation unit '$file' contained the following violations:
             elsif $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
                 $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
             }
-            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
         }
-        else {
-            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
-        }
+        make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
     }
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {

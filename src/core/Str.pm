@@ -1703,12 +1703,18 @@ multi sub UNBASE(Int:D $base, Any:D $num) {
     X::Numeric::Confused.new(:$num, :$base).throw;
 }
 multi sub UNBASE(Int:D $base, Str:D $str) {
-    my Str $prefix = substr($str,0, 2);
-    if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
-       or $base <= 24 && $prefix eq any <0o 0x>
-       or $base <= 33 && $prefix eq '0x' {
+    my Str $ch = substr($str, 0, 1);
+    if $ch eq '0' {
+        $ch = substr($str, 1, 1);
+        if    $base <= 11 && $ch eq any(<x d o b>)
+           or $base <= 24 && $ch eq any <o x>
+           or $base <= 33 && $ch eq 'x' {
+            $str.Numeric;
+        } else {
+            ":{$base}<$str>".Numeric;
+        }
+    } elsif $ch eq ':' && substr($str, 1, 1) ~~ '1'..'9' {
         $str.Numeric;
-
     } else {
         ":{$base}<$str>".Numeric;
     }

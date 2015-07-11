@@ -69,7 +69,17 @@ my class Exception {
 
 my class X::AdHoc is Exception {
     has $.payload = "Unexplained error";
-    method message() { $.payload.Str     }
+    method message() {
+        # Remove spaces for die(*@msg)/fail(*@msg) forms
+        given $.payload {
+            when Parcel {
+                $_.join;
+            }
+            default {
+                .Str;
+            }
+        }
+    }
     method Numeric() { $.payload.Numeric }
 }
 

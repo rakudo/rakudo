@@ -3,7 +3,7 @@
 # turn Supply-like things into something else and convenience forms of calls
 # to SupplyOperations.
 
-my class SupplyOperations { ... }
+my class SupplyOperations is repr('Uninstantiable') { ... }
 my class X::Supply::Combinator is Exception {
     has $.combinator;
     method message() { "Can only use $!combinator to combine defined Supply objects" }

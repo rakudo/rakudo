@@ -9,6 +9,7 @@ New in 2015.07
    + Issues with regexen throwing an exception (RT #62086 & #72440)
    + samewith() now also works in subs
    + Calling the .clone method with alternate values, no longer changes original
+   + Various fixes and optimizations on List.splice
  + Incompatible changes:
    + my Type $a is default(Foo) is now compile-time checked
    + my $a is default(Nil) only works on untyped (Mu) variables

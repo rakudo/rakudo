@@ -134,7 +134,7 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
         my $test = $got eq $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            if [eq] ($got, $expected)>>.Str>>.subst(/\s/, '', :g) {
+            if try [eq] ($got, $expected)>>.Str>>.subst(/\s/, '', :g) {
                 # only white space differs, so better show it to the user
                 diag "expected: {$expected.perl}";
                 diag "     got: {$got.perl}";
@@ -338,6 +338,13 @@ multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ok = proclaim($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.^name);
+    $time_before = nqp::time_n;
+    $ok;
+}
+
+multi sub can-ok(Mu $var, Str $meth, $msg = ( ($var.defined ?? "An object of type '" !! "The type '" ) ~ $var.WHAT.perl ~ "' can do the method '$meth'") ) is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    my $ok = proclaim($var.^can($meth), $msg);
     $time_before = nqp::time_n;
     $ok;
 }

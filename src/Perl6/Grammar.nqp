@@ -236,7 +236,9 @@ role STD {
         self
     }
     method typed_worry($type_str, *%opts) {
-        @*WORRIES.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+        unless %*PRAGMAS<no-worries> {
+            @*WORRIES.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+        }
         self
     }
 
@@ -2062,6 +2064,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 symbol => $longname.name(),
                             );
                         }
+                        if nqp::defined($*REPR) {
+                            $*W.throw($/, ['X', 'TooLateForREPR'], type => $*PACKAGE);
+                        }
                     }
 
                     # If it's not a role, or it is a role but one with no name,
@@ -2575,6 +2580,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '\\'
         [
         | '(' <semiarglist> ')'
+        | <?before '$' | '@' | '%' | '&'> <.typed_worry('X::Worry::P5::Reference')> <termish>
+        | <?before \d> <.typed_worry('X::Worry::P5::BackReference')> <termish>
         | <?before \S> <termish>
         | {} <.panic: "You can't backslash that">
         ]
@@ -3190,7 +3197,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | x '_'? <VALUE=hexint>
             | d '_'? <VALUE=decint>
             | <VALUE=decint>
-                <!!{ $/.CURSOR.worry("Leading 0 does not indicate octal in Perl 6; please use 0o" ~ $<VALUE>.Str ~ " if you mean that") }>
+                <!!{ $/.CURSOR.typed_worry('X::Worry::P5::LeadingZero', value => ~$<VALUE>) }>
             ]
         | <VALUE=decint>
         ]

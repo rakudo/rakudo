@@ -577,6 +577,28 @@ my class X::NYI::Available is X::NYI {
     }
 }
 
+my class X::Worry is Exception { }
+my class X::Worry::P5 is X::Worry { }
+my class X::Worry::P5::Reference is X::Worry::P5 {
+    method message {
+q/To pass an array, hash or sub to a function in Perl 6, just pass it as is.
+For other uses of Perl 5's ref operator consider binding with ::= instead.
+Parenthesize as \\(...) if you intended a capture of a single variable./
+    }
+}
+my class X::Worry::P5::BackReference is X::Worry::P5 {
+    method message {
+q/To refer to a positional match capture, just use $0 (numbering starts at 0).
+Parenthesize as \\(...) if you intended a capture of a single numeric value./
+    }
+}
+my class X::Worry::P5::LeadingZero is X::Worry::P5 {
+    has $.value;
+    method message {
+qq/Leading 0 does not indicate octal in Perl 6.
+Please use 0o$!value if you mean that./
+    }
+}
 
 my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.
@@ -931,6 +953,25 @@ my class X::Method::Private::Unqualified does X::Comp {
     has $.method;
     method message() {
         "Private method call to $.method must be fully qualified with the package containing the method";
+    }
+}
+
+my class X::Adverb::Slice is Exception {
+    has $.what;
+    has @.unexpected;
+    has @.nogo;
+    method message {
+        my $text = '';
+        if @!unexpected.elems -> $elems {
+            $text = $elems > 1
+              ?? "$elems unexpected adverbs (@!unexpected[])"
+              !! "Unexpected adverb '@!unexpected[0]'"
+        }
+        if @!nogo {
+            $text ~= $text ?? " and u" !! "U";
+            $text ~= "nsupported combination of adverbs (@!nogo[])";
+        }
+        $text ~ " passed to slice on $!what";
     }
 }
 
@@ -1770,10 +1811,11 @@ my class X::Numeric::DivideByZero is Exception {
 }
 
 my class X::Numeric::Confused is Exception {
-    has $.what;
+    has $.num;
+    has $.base;
     method message() {
-        "You have confused the number $.what with the textual representation \"$.what\";\n"
-            ~ "if you wanted to render the number in the given base, use \$number.base(\$radix)";
+        "This call only converts base-$.base strings to numbers; value {$.num.perl} is of type {$.num.WHAT.^name}, so cannot be converted!\n"
+            ~ "(If you really wanted to convert {$.num.perl} to a base-$.base string, use {$.num.perl}.base($.base) instead.)";
     }
 }
 
@@ -1975,6 +2017,13 @@ my class X::PairMap::NotAllowed is Exception {
 
 my class X::StubCode is Exception {
     has $.message = 'Stub code executed';
+}
+
+my class X::TooLateForREPR is X::Comp  {
+    has $.type;
+    method message() {
+        "Cannot change REPR of $!type.^name() now (must be set at initial declaration)";
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

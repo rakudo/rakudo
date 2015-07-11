@@ -44,19 +44,19 @@ my class Parameter { # declared in BOOTSTRAP
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $sigil = '|';
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $sigil = '\\' unless $sigil eq '@' or $sigil eq '$';
+                $sigil = '\\' unless '@$%&'.index($sigil).defined;
             }
         } else {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $sigil = '|';
-            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $sigil = '\\';
             } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
                 $sigil = '@';
             } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
                 $sigil = '%';
             } elsif $!nominal_type.^name ~~ /^^ Callable >> / {
                 $sigil = '&';
+            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+                $sigil = '\\';
             } else {
                 $sigil = '$';
             }
@@ -217,13 +217,12 @@ my class Parameter { # declared in BOOTSTRAP
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $name = '|' ~ $name;
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $name = '\\' ~ $name unless $name ~~ /^^ <[@$]>/;
+                $name = '\\' ~ $name
+                    unless '@$%&'.index(substr($name,0,1)).defined;
             }
         } else {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $name = '|';
-            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $name = '\\';
             } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
                 $name = '@';
             } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
@@ -253,8 +252,20 @@ my class Parameter { # declared in BOOTSTRAP
         } elsif $!flags +& $SIG_ELEM_IS_COPY {
             $rest ~= ' is copy';
         }
-        if $!flags +& $SIG_ELEM_IS_PARCEL and $name ~~ /^^ <[@$]>/ {
-            $rest ~= ' is parcel';
+        if $!flags +& $SIG_ELEM_IS_PARCEL {
+            # Do not emit cases of anonymous '\' which we cannot reparse
+            # This is all due to unspace.
+            if     not $.name
+               and $name eq '$'
+               and not $rest
+               and nqp::isnull($!post_constraints) 
+               and not $default
+               and nqp::isnull($!sub_signature) {
+                    $name = '\\';
+            }
+            if $name.substr(0,1) ne '\\' {
+                $rest ~= ' is parcel';
+            }
         }
         $rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
         $rest ~= ' = { ... }' if $default;

@@ -1699,16 +1699,22 @@ sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }
-multi sub UNBASE(Int:D $base, Cool:D $num) {
-    X::Numeric::Confused.new(:what($num)).throw;
+multi sub UNBASE(Int:D $base, Any:D $num) {
+    X::Numeric::Confused.new(:$num, :$base).throw;
 }
 multi sub UNBASE(Int:D $base, Str:D $str) {
-    my Str $prefix = substr($str,0, 2);
-    if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
-       or $base <= 24 && $prefix eq any <0o 0x>
-       or $base <= 33 && $prefix eq '0x' {
+    my Str $ch = substr($str, 0, 1);
+    if $ch eq '0' {
+        $ch = substr($str, 1, 1);
+        if    $base <= 11 && $ch eq any(<x d o b>)
+           or $base <= 24 && $ch eq any <o x>
+           or $base <= 33 && $ch eq 'x' {
+            $str.Numeric;
+        } else {
+            ":{$base}<$str>".Numeric;
+        }
+    } elsif $ch eq ':' && substr($str, 1, 1) ~~ '1'..'9' {
         $str.Numeric;
-
     } else {
         ":{$base}<$str>".Numeric;
     }
@@ -1741,7 +1747,7 @@ sub chrs(*@c) returns Str:D {
 
 sub SUBSTR-START-OOR(\from,\max) {
     X::OutOfRange.new(
-      :what<Start argument to substr>,
+      :what('Start argument to substr'),
       :got(from.gist),
       :range("0.." ~ max),
       :comment( nqp::istype(from, Callable) || -from > max
@@ -1751,7 +1757,7 @@ sub SUBSTR-START-OOR(\from,\max) {
 }
 sub SUBSTR-CHARS-OOR(\chars) {
     X::OutOfRange.new(
-      :what<Number of characters argument to substr>,
+      :what('Number of characters argument to substr'),
       :got(chars.gist),
       :range("0..Inf"),
       :comment("use *{chars} if you want to index relative to the end"),

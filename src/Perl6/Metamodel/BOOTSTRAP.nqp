@@ -572,7 +572,7 @@ my class Binder {
         else {
             if $flags +& $SIG_ELEM_ARRAY_SIGIL {
                 my $result := nqp::create(Array);
-                nqp::bindattr($result, List, '$!flattens', nqp::p6bool(1));
+                nqp::bindattr($result, List, '$!flattens', nqp::p6bool(0));
                 $result
             }
             elsif $flags +& $SIG_ELEM_HASH_SIGIL {

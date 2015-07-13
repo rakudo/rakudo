@@ -105,7 +105,7 @@ class Array { # declared in BOOTSTRAP
         $value;
     }
 
-    method flattens() { 1 }
+    method flattens() { 0 }
 
     # introspection
     method name() {
@@ -146,19 +146,39 @@ class Array { # declared in BOOTSTRAP
         nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)
     }
 
-    method STORE(|) {
-        # get arguments, shift off invocant
-        my $args := nqp::p6argvmarray();
-        nqp::shift($args);
+    method STORE(|args) {
         # make an array from them (we can't just use ourself for this,
         # or @a = @a will go terribly wrong); make it eager
-        my $list := nqp::p6list($args, Array, Mu);
-        nqp::bindattr($list, List, '$!flattens', True);
-        $list.eager;
+        my $list := args.list.eager;
+#        nqp::printfh(nqp::getstderr(), "STORE " ~ $list.perl ~ "\n");
+        # XXX fake up single arg semantics for now
+        if $list.elems == 1 {
+#            nqp::printfh(nqp::getstderr(), "Unpacking " ~ $list.^name ~ ' ' ~ $list.elems ~ "\n");
+            $list := $list[0];
+            $list := $list.list.eager unless nqp::istype($list,Iterable);
+#            nqp::printfh(nqp::getstderr(), "Unpacked " ~ $list.^name ~ ' ' ~ $list.elems ~ "\n");
+#            nqp::printfh(nqp::getstderr(), "\t" ~ $list[0].elems ~ "\n");
+        }
+        else {
+#            nqp::printfh(nqp::getstderr(), "Is " ~ $list.^name ~ ' ' ~ $list.elems ~ "\n");
+        }
         # clear our items and set our next iterator to be one over
         # the array we just created
-        nqp::bindattr(self, List, '$!items', Mu);
-        nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list($list), self));
+        if $list.elems and $list.elems < Inf {
+            my $items := nqp::list();
+            my int $i = 0;
+            my int $e = $list.elems;
+            while $i < $e {
+                nqp::bindpos($items,$i, my $ = $list[$i]);
+                $i++;
+            }
+            nqp::bindattr(self, List, '$!items', $items);
+        }
+        else {
+            nqp::bindattr(self, List, '$!items', Mu);
+            nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list($list), self));
+        }
+        nqp::bindattr(self, List, '$!flattens', Mu);
         self
     }
 
@@ -286,7 +306,7 @@ class Array { # declared in BOOTSTRAP
         }
     }
 
-    multi method push(Array:D: *@values) {
+    multi method push(Array:D: **@values) {
         fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
@@ -323,7 +343,7 @@ class Array { # declared in BOOTSTRAP
         }
     }
 
-    multi method unshift(Array:D: *@values) {
+    multi method unshift(Array:D: **@values) {
         fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
@@ -346,6 +366,6 @@ class Array { # declared in BOOTSTRAP
     }
 }
 
-sub circumfix:<[ ]>(*@elems) is rw { my $ = @elems.eager }
+sub circumfix:<[ ]>(*@elems) is rw { my @ = @elems.eager }
 
 # vim: ft=perl6 expandtab sw=4

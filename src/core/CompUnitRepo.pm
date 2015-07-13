@@ -111,7 +111,7 @@ sub INCLUDE-SPEC2CUR(Str:D $spec) {
     die "No class loaded for short-id '$short-id': $spec -> $path"
       if $class === Any;
 
-    my $abspath = $class.?absolutify($path) // $path;
+    my $abspath = !$path ?? $*CWD !! ?$path.IO.is-absolute ?? $path !! $path.IO.abspath;
     my $id      = "$short-id#$abspath";
     $lock.protect( {
         %INCLUDE-SPEC2CUR{$id}:exists

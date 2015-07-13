@@ -247,6 +247,8 @@ my $/;
 my $_;
 
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
+#    note("EXPORT_SYMBOL");
+#    note(@tags.perl);
     my @export_packages = $*EXPORT;
     for flat nqp::hllize(@*PACKAGES) {
         unless .WHO.EXISTS-KEY('EXPORT') {
@@ -279,14 +281,14 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
 multi sub trait_mod:<is>(Routine:D \r, :$export!) {
     my $to_export := r.multi ?? r.dispatcher !! r;
     my $exp_name  := '&' ~ r.name;
-    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
+    my @tags = flat 'ALL', nqp::istype($export,Pair) ?? $export.key !!
                        nqp::istype($export,Positional) ?? @($export)>>.key !!
-                       'DEFAULT');
+                       'DEFAULT';
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^name;
-    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
+    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                        nqp::istype($export,Positional) ?? @($export)>>.key !!
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, type);
@@ -300,7 +302,7 @@ multi sub trait_mod:<is>(Mu:U \type, :$export!) {
 }
 # for constants
 multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
-    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
+    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                     nqp::istype($export,Positional) ?? @($export)>>.key !!
                     'DEFAULT');
     EXPORT_SYMBOL($SYMBOL, @tags, sym);

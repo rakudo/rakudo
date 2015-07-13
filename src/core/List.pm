@@ -609,7 +609,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method values(List:D:) {
         my Mu $rpa := nqp::clone(nqp::p6listitems(self));
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
-        nqp::p6list($rpa, List, self.flattens);
+        nqp::p6list($rpa, List, Mu);
     }
     multi method pairs(List:D:) {
         self.values.map: { (state $)++ => $_ }

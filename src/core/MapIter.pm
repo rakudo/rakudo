@@ -56,6 +56,7 @@ my class MapIter is Iterator {
             my Mu $items := $!items;
             my Mu $args := nqp::list();
             my Mu $arg;
+            my Mu $parcel; # return value for handling CONTROL_RETURN
 
             # Pre-size (set to count we want, then back to zero, which leaves
             # the backing array at $count).
@@ -82,6 +83,11 @@ my class MapIter is Iterator {
                         ))
                     ),
                     'LABELED', nqp::decont($label),
+                    'RETURN', nqp::stmts(
+                        ($parcel := nqp::getpayload(nqp::exception())),
+                        (nqp::p6routinereturn(nqp::p6recont_ro(nqp::decont($parcel)))),
+                        ($parcel)
+                    ),
                     'LAST', nqp::stmts(
                         ($!items := Any),
                         ($!listiter := Any),
@@ -141,6 +147,11 @@ my class MapIter is Iterator {
                         ))
                     ),
                     'LABELED', nqp::decont($label),
+                    'RETURN', nqp::stmts(
+                        ($parcel := nqp::getpayload(nqp::exception())),
+                        (nqp::p6routinereturn(nqp::p6recont_ro(nqp::decont($parcel)))),
+                        ($parcel)
+                    ),
                     'LAST', nqp::stmts(
                         ($!items := Any),
                         ($!listiter := Any),

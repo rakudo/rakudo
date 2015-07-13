@@ -21,7 +21,6 @@ my class Label {
     }
 
     method goto(*@)  { X::NYI.new(:feature("{self.^name}.goto()")).throw }
-    method leave(*@) { X::NYI.new(:feature("{self.^name}.leave()")).throw }
 
     multi method gist(Label:D:) {
         my $is-win := $*DISTRO.is-win;
@@ -38,20 +37,35 @@ my class Label {
 
     method next() {
         my Mu $ex := nqp::newexception();
-        nqp::setpayload($ex, nqp::decont(self));
+        nqp::setlabel($ex, nqp::decont(self));
         nqp::setextype($ex, nqp::const::CONTROL_NEXT + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
     method redo() {
         my Mu $ex := nqp::newexception();
-        nqp::setpayload($ex, nqp::decont(self));
+        nqp::setlabel($ex, nqp::decont(self));
         nqp::setextype($ex, nqp::const::CONTROL_REDO + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
     method last() {
         my Mu $ex := nqp::newexception();
-        nqp::setpayload($ex, nqp::decont(self));
+        nqp::setlabel($ex, nqp::decont(self));
         nqp::setextype($ex, nqp::const::CONTROL_LAST + nqp::const::CONTROL_LABELED);
+        nqp::throw($ex);
+    }
+
+    proto method leave(|) { * }
+    multi method leave() {
+        my Mu $ex := nqp::newexception();
+        nqp::setlabel($ex, nqp::decont(self));
+        nqp::setextype($ex, nqp::const::CONTROL_RETURN + nqp::const::CONTROL_LABELED);
+        nqp::throw($ex);
+    }
+    multi method leave(*@list) {
+        my Mu $ex := nqp::newexception();
+        nqp::setpayload($ex, nqp::decont(@list.Parcel));
+        nqp::setlabel($ex, nqp::decont(self));
+        nqp::setextype($ex, nqp::const::CONTROL_RETURN + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
 }

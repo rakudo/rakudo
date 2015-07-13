@@ -516,10 +516,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $result;
     }
 
-    my %esc = (
+    my %esc =
         '$' => '\$',  '@' => '\@',  '%' => '\%',  '&' => '\&',  '{' => '\{',
         "\b" => '\b', "\n" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
-        '\\' => '\\\\' );
+        '\\' => '\\\\';
 
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {

@@ -93,12 +93,25 @@ multi sub fail(|cap (*@msg)) {
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-
-multi sub die(Failure:D $failure) {
-    $failure.exception.throw
+multi sub fail(Failure:U $f) {
+    my $fail := Failure.new(
+        X::AdHoc.new(:payload("Failed with undefined " ~ $f.^name))
+    );
+    my Mu $return := nqp::getlexcaller('RETURN');
+    $return($fail) unless nqp::isnull($return);
+    $fail
 }
-multi sub die(Failure:U) {
-    X::AdHoc('Failure').throw
+multi sub fail(Failure:D $fail) {
+    my Mu $return := nqp::getlexcaller('RETURN');
+    $return($fail) unless nqp::isnull($return);
+    $fail
+}
+
+multi sub die(Failure:D $f) {
+    $f.exception.throw
+}
+multi sub die(Failure:U $f) {
+    X::AdHoc.new(:payload("Died with undefined " ~ $f.^name)).throw;
 }
 
 # vim: ft=perl6 expandtab sw=4

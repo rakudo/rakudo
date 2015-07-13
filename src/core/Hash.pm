@@ -445,10 +445,10 @@ my class Hash { # declared in BOOTSTRAP
 }
 
 
-sub circumfix:<{ }>(*@elems) { (my % = @elems).item }
-sub hash(*@a, *%h) { my % = @a, %h }
+sub circumfix:<{ }>(*@elems) { my % = flat @elems }
+sub hash(*@a, *%h) { my % = flat @a, %h }
 
 # XXX parse hangs with ordinary sub declaration
-BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.^parameterize(Mu,Any).new(@elems) }
+BEGIN my &circumfix:<:{ }> = sub (*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

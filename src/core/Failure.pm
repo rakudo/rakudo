@@ -3,8 +3,21 @@ my class Failure {
     has $.backtrace;
     has $!handled;
 
-    method new(Exception $exception) {
+    multi method new(Exception $exception) {
         self.bless(:$exception);
+    }
+    multi method new($payload =
+        (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
+         ?? CALLER::CALLER::('$!') !! 'Failed') {
+        if ($payload ~~ Exception) {
+            self.bless(:exception($payload));
+        }
+        else {
+            self.bless(:exception(X::AdHoc.new(:$payload)));
+        }
+    }
+    multi method new(|cap (*@msg)) {
+         self.bless(:exception(X::AdHoc.from-slurpy(|cap)));
     }
 
     submethod BUILD (:$!exception) {

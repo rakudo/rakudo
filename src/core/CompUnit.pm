@@ -145,16 +145,16 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
 
 # TEMPORARY ACCESS TO COMPUNIT INTERNALS UNTIL WE CAN LOAD DIRECTLY
 multi sub postcircumfix:<{ }> (CompUnit:D \c, "provides" ) {
-    my % = (
-      c.name => {
-        pm => {
+    my % =
+      c.name => hash(
+        pm => hash(
           file => c.path
-        },
-        c.key => {
+        ),
+        c.key => hash(
           file => c.has-precomp ?? c.precomp-path !! c.path
-        }
-      }
-    );
+        )
+      )
+    ;
 }
 multi sub postcircumfix:<{ }> (CompUnit:D \c, "key" ) {
     c.key;

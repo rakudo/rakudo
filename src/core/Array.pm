@@ -291,7 +291,7 @@ class Array { # declared in BOOTSTRAP
 
     multi method push(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
-            fail X::Cannot::Infinite.new(:action<.push to>)
+            fail X::Cannot::Infinite.new(:action('.push to'))
               if self.infinite;
             self.gimme(*);
             nqp::p6listitems(self);
@@ -311,7 +311,7 @@ class Array { # declared in BOOTSTRAP
           if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.push to>)
+        fail X::Cannot::Infinite.new(:action('.push to'))
           if self.infinite;
 
         # push is always eager
@@ -348,7 +348,7 @@ class Array { # declared in BOOTSTRAP
           if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.push to>)
+        fail X::Cannot::Infinite.new(:action('.push to'))
           if self.infinite;
 
         # push is always eager

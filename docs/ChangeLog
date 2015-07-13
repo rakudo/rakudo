@@ -7,9 +7,13 @@ New in 2015.07
    + Allow %{Type} as a way to say Hash[Any,Type].new
    + Several issues with the use of ';;' in signatures
    + Issues with regexen throwing an exception (RT #62086 & #72440)
+   + samewith() now also works in subs
+   + Calling the .clone method with alternate values, no longer changes original
+   + Various fixes and optimizations on List.splice
  + Incompatible changes:
    + my Type $a is default(Foo) is now compile-time checked
    + my $a is default(Nil) only works on untyped (Mu) variables
+   + Can no longer (roulette) assign to Whatever slice of a hash
  + Deprecations:
    + $*PROGRAM_NAME in favour of $PROGRAM-NAME
    + $*EXECUTABLE_NAME in favour of $EXECUTABLE-NAME

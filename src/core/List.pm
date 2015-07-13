@@ -1,5 +1,6 @@
 # for our tantrums
 my class X::TypeCheck { ... }
+my class X::TypeCheck::Splice { ... }
 my class X::Cannot::Infinite { ... }
 my class X::Cannot::Empty { ... }
 my role Supply { ... }
@@ -177,14 +178,14 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method pick(|) is nodal { * }
     multi method pick() {
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
     }
     multi method pick(Whatever, :$eager!) {
         return self.pick(*) if !$eager;
 
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -203,7 +204,7 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6parcel($picked,Any);
     }
     multi method pick(Whatever) {
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -219,7 +220,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
     multi method pick(\number) {
-        fail X::Cannot::Infinite.new(:action<.pick from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
@@ -243,7 +244,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method pop() is parcel is nodal {
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.pop from>) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action('.pop from')) if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
           !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
@@ -259,7 +260,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method push(List:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
-            fail X::Cannot::Infinite.new(:action<.push to>)
+            fail X::Cannot::Infinite.new(:action('.push to'))
               if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
             nqp::push( $!items, my $ = value);
@@ -275,7 +276,7 @@ my class List does Positional { # declared in BOOTSTRAP
           if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.push to>) if $!nextiter.DEFINITE;
+        fail X::Cannot::Infinite.new(:action('.push to')) if $!nextiter.DEFINITE;
 
         # push is always eager
         @values.gimme(*);
@@ -309,7 +310,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method plan(List:D: |args) is nodal {
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.plan to>) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action('.plan to')) if $!nextiter.defined;
 
 #        # need type checks?
 #        my $of := self.of;
@@ -328,12 +329,12 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method roll(|) is nodal { * }
     multi method roll() {
-        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
     }
     multi method roll(Whatever) {
-        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
         my $elems = self.elems;
         return () unless $elems;
 
@@ -346,7 +347,7 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method roll(\number) {
         return self.roll(*) if number == Inf;
 
-        fail X::Cannot::Infinite.new(:action<.roll from>) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
         my $elems = self.elems;
         return () unless $elems;
 
@@ -390,30 +391,68 @@ my class List does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    method splice($offset = 0, $size?, *@values) is nodal {
+    proto method splice(|) is nodal { * }
+    multi method splice(List:D \SELF: :$SINK) {
+
+        if $SINK {
+            SELF = ();
+            Nil;
+        }
+        else {
+            my @ret := SELF.of =:= Mu ?? Array.new !! Array[SELF.of].new;
+            @ret = SELF;
+            SELF = ();
+            @ret;
+        }
+    }
+    multi method splice(List:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+        fail X::Cannot::Infinite.new(:action('splice in')) if @values.infinite;
+
         self.gimme(*);
-        my $o = $offset;
-        my $s = $size;
         my $elems = self.elems;
-        $o = $o($elems) if nqp::istype($o, Callable);
+        my int $o = nqp::istype($offset,Callable)
+          ?? $offset($elems)
+          !! nqp::istype($offset,Whatever)
+            ?? $elems
+            !! $offset.Int;
         X::OutOfRange.new(
-            what => 'offset argument to List.splice',
-            got  => $offset,
-            range => (0..^self.elems),
-        ).fail if $o < 0;
-        $s //= self.elems - ($o min $elems);
-        $s = $s(self.elems - $o) if nqp::istype($s, Callable);
+          :what('Offset argument to splice'),
+          :got($o),
+          :range("0..$elems"),
+        ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
+
+        my int $s = nqp::istype($size,Callable)
+          ?? $size($elems - $o)
+          !! !defined($size) || nqp::istype($size,Whatever)
+             ?? $elems - ($o min $elems)
+             !! $size.Int;
         X::OutOfRange.new(
-            what => 'size argument to List.splice',
-            got  => $size,
-            range => (0..^(self.elems - $o)),
+          :what('Size argument to splice'),
+          :got($s),
+          :range("0..^{$elems - $o}"),
         ).fail if $s < 0;
 
-        my @ret = self[$o..($o + $s - 1)];
-        nqp::splice($!items,
-                    nqp::getattr(@values.eager, List, '$!items'),
-                    $o.Int, $s.Int);
-        @ret;
+        # need to enforce type checking
+        my $expected := self.of;
+        my @v := @values.eager;
+        if self.of !=:= Mu && @v {
+            X::TypeCheck::Splice.new(
+              :action<splice>,
+              :got($_.WHAT),
+              :$expected,
+            ).fail unless nqp::istype($_,$expected) for @v;
+        }
+
+        if $SINK {
+            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+            Nil;
+        }
+        else {
+            my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
+            @ret = self[$o..($o + $s - 1)] if $s;
+            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+            @ret;
+        }
     }
 
     method sort($by = &infix:<cmp>) is nodal {
@@ -733,9 +772,7 @@ multi sub push(\a, *@elems) { a.push: @elems }
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
-sub splice(@arr, $offset = 0, $size?, *@values) {
-    @arr.splice($offset, $size, @values)
-}
+sub splice(@arr, |c)        { @arr.splice(|c) }
 
 multi sub infix:<cmp>(@a, @b) { (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b }
 

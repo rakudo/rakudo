@@ -87,10 +87,10 @@ my class Proc {
         }
     }
 
-    method spawn(*@args ($, *@)) {
+    method spawn(*@args ($, *@), :$cwd = $*CWD) {
         self.status(nqp::p6box_i(nqp::spawn(
             CLONE-LIST-DECONTAINERIZED(@args),
-            nqp::unbox_s($*CWD.Str),
+            nqp::unbox_s($cwd.Str),
             CLONE-HASH-DECONTAINERIZED(%*ENV),
             $!in_fh, $!out_fh, $!err_fh,
             $!flags
@@ -98,10 +98,10 @@ my class Proc {
         self.Bool
     }
 
-    method shell($cmd) {
+    method shell($cmd, :$cwd = $*CWD) {
         self.status(nqp::p6box_i(nqp::shell(
             nqp::unbox_s($cmd),
-            nqp::unbox_s($*CWD.Str),
+            nqp::unbox_s($cwd.Str),
             CLONE-HASH-DECONTAINERIZED(%*ENV),
             $!in_fh, $!out_fh, $!err_fh,
             $!flags
@@ -121,25 +121,25 @@ my class Proc {
 
 sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n") {
+        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    $proc.spawn(@args);
+    $proc.spawn(@args, :$cwd);
     $proc
 }
 
 sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n") {
+        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    $proc.shell($cmd);
+    $proc.shell($cmd, :$cwd);
     $proc
 }
 
-sub QX($cmd) {
+sub QX($cmd, :$cwd = $*CWD) {
     my Mu $pio := nqp::syncpipe();
     my $status := nqp::shell(
         nqp::unbox_s($cmd),
-        nqp::unbox_s($*CWD.Str),
+        nqp::unbox_s($cwd.Str),
         CLONE-HASH-DECONTAINERIZED(%*ENV),
         nqp::null(), $pio, nqp::null(),
         nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR

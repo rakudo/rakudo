@@ -56,6 +56,14 @@ my class Failure {
 
 proto sub fail(|) {*};
 # Why do we need two levels of CALLER:: here?  Is this stable?
+multi sub fail(Exception:U $e) {
+    my $fail := Failure.new(
+        X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
+    );
+    my Mu $return := nqp::getlexcaller('RETURN');
+    $return($fail) unless nqp::isnull($return);
+    $fail
+}
 multi sub fail($payload =
     (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
      ?? CALLER::CALLER::('$!') !! 'Failed') {

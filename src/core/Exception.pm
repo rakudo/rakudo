@@ -5,7 +5,7 @@ my class Exception {
     has $!ex;
     has $!bt;
 
-    method backtrace() {
+    method backtrace(Exception:D:) {
         if $!bt { $!bt }
         elsif nqp::isconcrete($!ex) { Backtrace.new($!ex); }
         else { '' }
@@ -31,7 +31,7 @@ my class Exception {
         $str;
     }
 
-    method throw($bt?) {
+    method throw(Exception:D: $bt?) {
         nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
@@ -41,16 +41,16 @@ my class Exception {
         nqp::setmessage($!ex, nqp::unbox_s($msg.Str));
         nqp::throw($!ex)
     }
-    method rethrow() {
+    method rethrow(Exception:D:) {
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
 
-    method resumable() {
+    method resumable(Exception:D:) {
         nqp::p6bool(nqp::istrue(nqp::atkey($!ex, 'resume')));
     }
 
-    method resume() {
+    method resume(Exception:D:) {
         nqp::resume($!ex);
         True
     }

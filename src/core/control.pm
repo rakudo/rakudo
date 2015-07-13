@@ -150,6 +150,9 @@ sub samewith(|c) {
 
 proto sub die(|) {*};
 # Why two levels of CALLER:: here?  Is this stable?
+multi sub die(Exception:U $e) {
+    X::AdHoc.new(:payload("Died with undefined " ~ $e.^name)).throw;
+}
 multi sub die($payload = 
     (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
      ?? CALLER::CALLER::('$!') !! "Died") {

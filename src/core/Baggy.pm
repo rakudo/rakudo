@@ -1,7 +1,7 @@
 my role Baggy does QuantHash {
     has %!elems; # key.WHICH => (key,value)
 
-    method BUILD (:%!elems) { self }
+    submethod BUILD (:%!elems) { self }
     method default(--> Int) { 0 }
 
     multi method keys(Baggy:D:)     { %!elems.values.map( {.key} ) }
@@ -22,7 +22,7 @@ my role Baggy does QuantHash {
         my %e;
         # need explicit signature because of #119609
         -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
-        nqp::create(self).BUILD(:elems(%e));
+        self.bless(:elems(%e));
     }
     method new-from-pairs(*@pairs) {
         my %e;

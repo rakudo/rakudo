@@ -1,7 +1,7 @@
 my role Baggy does QuantHash {
     has %!elems; # key.WHICH => (key,value)
 
-    submethod BUILD (:%!elems) { self }
+    method BUILD (:%!elems) { self }
     method default(--> Int) { 0 }
 
     multi method keys(Baggy:D:)     { %!elems.values.map( {.key} ) }

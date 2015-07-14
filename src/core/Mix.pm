@@ -34,10 +34,10 @@ my class Mix does Mixy {
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
     multi method ASSIGN-KEY(Mix:D: \k,\v) {
-        fail X::Assignment::RO.new(typename => self.^name);
+        X::Assignment::RO.new(typename => self.^name).throw;
     }
     multi method DELETE-KEY(Mix:D: \k) {
-        fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
+        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 }
 

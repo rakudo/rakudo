@@ -7,10 +7,6 @@ my class Set does Setty {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
         $!WHICH
     }
-    method BUILD (:%elems) {
-        nqp::bindattr(self, Set, '%!elems', %elems);
-        self;
-    }
 
     method grab ($count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;

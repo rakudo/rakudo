@@ -7,7 +7,7 @@ my class Set does Setty {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
         $!WHICH
     }
-    method BUILD (:%elems) {
+    submethod BUILD (:%elems) {
         nqp::bindattr(self, Set, '%!elems', %elems);
         self;
     }

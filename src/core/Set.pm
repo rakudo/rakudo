@@ -33,10 +33,10 @@ my class Set does Setty {
         %!elems.EXISTS-KEY(k.WHICH);
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
-        fail X::Assignment::RO.new(typename => self.^name);
+        X::Assignment::RO.new(typename => self.^name).throw;
     }
     multi method DELETE-KEY(Set:D: \k) {
-        fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
+        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 }
 

@@ -33,10 +33,10 @@ my class Bag does Baggy {
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
     multi method ASSIGN-KEY(Bag:D: \k,\v) {
-        fail X::Assignment::RO.new(typename => self.^name);
+        X::Assignment::RO.new(typename => self.^name).throw;
     }
     multi method DELETE-KEY(Bag:D: \k) {
-        fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
+        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 }
 

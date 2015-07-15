@@ -1,14 +1,19 @@
 my class DateTime { ... }
 my class Date     { ... }
 
-my %UNITS = (<second minute hour day week month year> X~ "","s").map: {$_ => 1};
-
 my role Dateish {
     has Int $.year;
     has Int $.month = 1;
     has Int $.day = 1;
 
     method IO(|c) { IO::Path.new(self) }
+
+    method !VALID-UNIT($unit) {
+        state %UNITS =  # core setting doesn't build if it is a my at role level
+          (<second minute hour day week month year> X~ "","s").map: {$_ => 1};
+        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+          unless %UNITS.EXISTS-KEY($unit);
+    }
 
     method is-leap-year($y = $!year) {
         $y %% 4 and not $y %% 100 or $y %% 400
@@ -108,8 +113,7 @@ my role Dateish {
 
     method truncate-parts(Cool:D $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
-        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless %UNITS.EXISTS-KEY($unit);
+        self!VALID-UNIT($unit);
         if $unit eq 'week' | 'weeks' {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
@@ -326,9 +330,7 @@ my class DateTime does Dateish {
             unless %unit.keys;
 
         my ($unit, $amount) = %unit.kv;
-
-        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless %UNITS.EXISTS-KEY($unit);
+        self!VALID-UNIT($unit);
 
         my ($hour, $minute) = $!hour, $!minute;
         my $date;
@@ -542,9 +544,7 @@ my class Date does Dateish {
             if %unit.keys > 1;
 
         my ($unit, $amount) = %unit.kv;
-
-        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless %UNITS.EXISTS-KEY($unit);
+        self!VALID-UNIT($unit);
 
         my $date;
 

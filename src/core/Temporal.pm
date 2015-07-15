@@ -15,15 +15,18 @@ my role Dateish {
           unless %UNITS.EXISTS-KEY($unit);
     }
 
-    method is-leap-year($y = $!year) {
-        $y %% 4 and not $y %% 100 or $y %% 400
-    }
+    sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }
+    proto method is-leap-year(|) { * }
+    multi method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
+    multi method is-leap-year(Dateish: $y) { IS-LEAP-YEAR($y) }
 
-    method days-in-month($year = $!year, $month = $!month) {
-           $month == 2        ?? self.is-leap-year($year) ?? 29 !! 28
-        !! $month == 4|6|9|11 ?? 30
-        !! 31
+    sub DAYS-IN-MONTH($year, $month) {
+        state @l = 0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31;
+        $month == 2 ?? 28 + IS-LEAP-YEAR($year) !! @l.AT-POS($month);
     }
+    proto method days-in-month(|) { * }
+    multi method days-in-month(Dateish:D:) { DAYS-IN-MONTH($!year,$!month) }
+    multi method days-in-month(Dateish: $y, $m) { DAYS-IN-MONTH($y,$m) }
 
     method daycount-from-ymd(Int() $y is copy, Int() $m is copy, $d) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>

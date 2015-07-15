@@ -4011,7 +4011,10 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             elsif $twigil eq '!' {
-                %*PARAM_INFO<bind_attr>    := 1;
+                if !$*HAS_SELF && $*SURROUNDING_DECL ne 'variable' {
+                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => ~$/);
+                }
+                %*PARAM_INFO<bind_attr> := 1;
                 my int $succ := 1;
                 try {
                     %*PARAM_INFO<attr_package> := $*W.find_symbol(['$?CLASS']);
@@ -4024,6 +4027,14 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             elsif $twigil eq '.' {
+                if $*SURROUNDING_DECL ne 'variable' {
+                    if !$*HAS_SELF {
+                        $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => ~$/);
+                    }
+                    elsif $*HAS_SELF eq 'partial' {
+                        $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => ~$/);
+                    }
+                }
                 %*PARAM_INFO<bind_accessor> := 1;
                 if $<name> {
                     %*PARAM_INFO<variable_name> := ~$<name>;

@@ -37,20 +37,16 @@ my class JSONPrettyActions {
 
     method str($/)               { make ~$/ }
 
+    my %esc = '\\' => "\\",
+              '/'  => "/",
+              'b'  => "\b",
+              'n'  => "\n",
+              't'  => "\t",
+              'f'  => "\f",
+              'r'  => "\r",
+              '"'  => "\"";
     method str_escape($/) {
-        if $<xdigit> {
-            make chr(:16($<xdigit>.join));
-        } else {
-            my %h = '\\' => "\\",
-                    '/'  => "/",
-                    'b'  => "\b",
-                    'n'  => "\n",
-                    't'  => "\t",
-                    'f'  => "\f",
-                    'r'  => "\r",
-                    '"'  => "\"";
-            make %h{~$/};
-        }
+        make $<xdigit> ?? chr(:16($<xdigit>.join)) !! %esc.AT-KEY(~$/);
     }
 }
 

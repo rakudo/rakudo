@@ -1376,9 +1376,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.kok>
         :s''
         [ '('
-            <e1=.EXPR>? ';'
-            <e2=.EXPR>? ';'
-            <e3=.EXPR>?
+            [
+            <e1=.EXPR>? ';' <e2=.EXPR>? ';' <e3=.EXPR>?
+            || <.malformed('loop spec')>
+            ]
         ')' ]?
         <block>
     }

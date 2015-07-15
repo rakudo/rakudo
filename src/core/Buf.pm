@@ -60,9 +60,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method bytes(Blob:D:) {
         ceiling(self.elems * ::T.^nativesize / 8);
     }
-    method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
-    multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
-    multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
+    method chars(Blob:D:)         { X::Buf::AsStr.new(:method<chars>  ).throw }
+    multi method Str(Blob:D:)     { X::Buf::AsStr.new(:method<Str>    ).throw }
+    multi method Stringy(Blob:D:) { X::Buf::AsStr.new(:method<Stringy>).throw }
 
     method Numeric(Blob:D:) { self.elems }
     method Int(Blob:D:)     { self.elems }
@@ -91,13 +91,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method subbuf(Blob:D: $from = 0, $len is copy = self.elems - $from) {
 
-        if ($len < 0) {
+        if $len < 0 {
             X::OutOfRange.new(
-                what => "Len element to subbuf",
-                got  => $len,
-                range => (0..self.elems)).fail;
+              :what('Length element to subbuf'),
+              :got($len),
+              :range("0..{self.elems}"),
+            ).fail;
         }
-
 
         my $ret := nqp::create(self);
 
@@ -106,20 +106,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 ?? $from(nqp::p6box_i(self.elems))
                 !! $from.Int);
 
-        if ($ifrom < 0) {
+        if $ifrom < 0 {
             X::OutOfRange.new(
-                what    => 'From argument to subbuf',
-                got     => $from.gist,
-                range   => (0..self.elems),
-                comment => "use *{$ifrom} if you want to index relative to the end"
+              :what('From argument to subbuf'),
+              :got($from.gist),
+              :range("0..{self.elems}"),
+              :comment("use *$ifrom if you want to index relative to the end"),
             ).fail;
         }
 
-        if ($ifrom > self.elems) {
+        if $ifrom > self.elems {
             X::OutOfRange.new(
-                what => 'From argument to subbuf',
-                got  => $from.gist,
-                range => (0..self.elems),
+              :what('From argument to subbuf'),
+              :got($from.gist),
+              :range("0..{self.elems}"),
             ).fail;
         }
 
@@ -317,7 +317,8 @@ multi sub pack(Str $template, *@items) {
                     $amount = 1;
                 }
                 for (@$data, 0x20 xx *).flat[^$amount] -> $byte {
-                    X::Buf::Pack::NonASCII.new(:char($byte.chr)).throw if $byte > 0x7f;
+                    X::Buf::Pack::NonASCII.new(:char($byte.chr)).throw
+                      if $byte > 0x7f;
                     @bytes.push: $byte;
                 }
             }

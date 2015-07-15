@@ -17,10 +17,10 @@ my class Bag does Baggy {
         %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
     }
     multi method grab(Bag:D: $count?) {
-        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
+        X::Immutable.new(:method<grab>, :typename(self.^name)).throw;
     }
     multi method grabpairs(Bag:D: $count?) {
-        X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
+        X::Immutable.new(:method<grabpairs>, :typename(self.^name)).throw;
     }
 
     method Bag     { self }
@@ -33,10 +33,10 @@ my class Bag does Baggy {
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
     multi method ASSIGN-KEY(Bag:D: \k,\v) {
-        X::Assignment::RO.new(typename => self.^name).throw;
+        X::Assignment::RO.new(:typename(self.^name)).throw;
     }
     multi method DELETE-KEY(Bag:D: \k) {
-        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
+        X::Immutable.new(:method<DELETE-KEY>, :typename(self.^name)).throw;
     }
 }
 

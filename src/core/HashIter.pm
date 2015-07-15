@@ -42,16 +42,18 @@ my class HashIter is Iterator {
                     while $it {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, Pair.new(
-                            :key(nqp::atkey($!keystore, nqp::iterkey_s($pairish))),
-                            :value(nqp::hllize(nqp::iterval($pairish)))));
+                          :key(nqp::atkey($!keystore,nqp::iterkey_s($pairish))),
+                          :value(nqp::hllize(nqp::iterval($pairish))),
+                        ));
                     }
                 }
                 else {
                     while $it {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, Pair.new(
-                            :key(nqp::p6box_s(nqp::iterkey_s($pairish))),
-                            :value(nqp::hllize(nqp::iterval($pairish)))));
+                          :key(nqp::p6box_s(nqp::iterkey_s($pairish))),
+                          :value(nqp::hllize(nqp::iterval($pairish))),
+                        ));
                     }
                 }
             }
@@ -96,16 +98,18 @@ my class HashIter is Iterator {
                     while $it {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, Pair.new(
-                            :value(nqp::atkey($!keystore, nqp::iterkey_s($pairish))),
-                            :key(nqp::hllize(nqp::iterval($pairish)))));
+                          :key(nqp::hllize(nqp::iterval($pairish))),
+                          :value(nqp::atkey($!keystore, nqp::iterkey_s($pairish))),
+                        ));
                     }
                 }
                 else {
                     while $it {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, Pair.new(
-                            :value(nqp::p6box_s(nqp::iterkey_s($pairish))),
-                            :key(nqp::hllize(nqp::iterval($pairish)))));
+                          :key(nqp::hllize(nqp::iterval($pairish))),
+                          :value(nqp::p6box_s(nqp::iterkey_s($pairish))),
+                        ));
                     }
                 }
             }
@@ -114,20 +118,16 @@ my class HashIter is Iterator {
                     while $it {
                         $pairish := nqp::shift($it);
                         my $k := nqp::atkey($!keystore, nqp::iterkey_s($pairish));
-                        nqp::push($rpa, Pair.new(
-                            :value($k),
-                            :key($_)))
-                                for flat nqp::hllize(nqp::iterval($pairish)).list;
+                        nqp::push($rpa, Pair.new(:value($k), :key($_)))
+                          for flat nqp::hllize(nqp::iterval($pairish)).list;
                     }
                 }
                 else {
                     while $it {
                         $pairish := nqp::shift($it);
                         my $k := nqp::p6box_s(nqp::iterkey_s($pairish));
-                        nqp::push($rpa, Pair.new(
-                            :value($k),
-                            :key($_)))
-                                for flat nqp::hllize(nqp::iterval($pairish)).list;
+                        nqp::push($rpa, Pair.new(:value($k), :key($_)))
+                          for flat nqp::hllize(nqp::iterval($pairish)).list;
                     }
                 }
             }

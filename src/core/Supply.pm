@@ -724,9 +724,8 @@ my role Supply {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
 
-        X::Supply::Combinator.new(
-           combinator => 'merge'
-        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+        X::Supply::Combinator.new(:combinator<merge>).throw
+          if NOT_ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
@@ -743,9 +742,8 @@ my role Supply {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
 
-        X::Supply::Combinator.new(
-           combinator => 'zip'
-        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+        X::Supply::Combinator.new(:combinator<zip>).throw
+          if NOT_ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
@@ -764,9 +762,8 @@ my role Supply {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to do.
 
-        X::Supply::Combinator.new(
-           combinator => 'zip-latest'
-        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+        X::Supply::Combinator.new(:combinator<zip-latest>).throw
+          if NOT_ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0] if +@s == 1;           # nothing to do.
 

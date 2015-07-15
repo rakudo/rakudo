@@ -28,17 +28,15 @@ my class Variable {
 
 # "is" traits
 multi sub trait_mod:<is>(Variable:D $v, |c ) {
-    $v.throw( 'X::Comp::Trait::Unknown',
-      type      => 'is',
-      subtype   => c.hash.keys[0],
-      declaring => ' variable',
-      expected  => <TypeObject default dynamic>,
+    $v.throw('X::Comp::Trait::Unknown',
+      :type<is>,
+      :subtype(c.hash.keys[0]),
+      :declaring(' variable'),
+      :expected('TypeObject default dynamic'),
     );
 }
 multi sub trait_mod:<is>(Variable:D $v, Mu:U $is ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'is TypeObject'",
-    );
+    $v.throw('X::Comp::NYI', :feature("Variable trait 'is TypeObject'"));
 }
 multi sub trait_mod:<is>(Variable:D $v, :$default!) {
     my $var  := $v.var;
@@ -50,7 +48,7 @@ multi sub trait_mod:<is>(Variable:D $v, :$default!) {
         CATCH {
             nqp::istype($default,Whatever)
               ?? $v.throw( 'X::Comp::NYI',
-                :feature<is default(*) on natives> )
+                :feature('is default(*) on natives'))
               !! $v.throw( 'X::Comp::Trait::NotOnNative',
                 :type<is>, :subtype<default> ); # can't find out native type yet
         }
@@ -81,12 +79,12 @@ multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
 }
 multi sub trait_mod:<is>(Variable:D $v, :$export!) {
     if $v.scope ne 'our' {
-        $v.throw( 'X::Comp::Trait::Scope',
-          type      => 'is',
-          subtype   => 'export',
-          declaring => 'variable',
-          scope     => $v.scope,
-          supported => ['our'],
+        $v.throw('X::Comp::Trait::Scope',
+          :type<is>,
+          :subtype<export>,
+          :declaring<variable>,
+          :scope($v.scope),
+          :supported(['our']),
         );
     }
     my $var  := $v.var;
@@ -98,11 +96,11 @@ multi sub trait_mod:<is>(Variable:D $v, :$export!) {
 
 # "of" traits
 multi sub trait_mod:<of>(Variable:D $v, |c ) {
-    $v.throw( 'X::Comp::Trait::Unknown',
-      type      => 'of',
-      subtype   => c.hash.keys[0],
-      declaring => ' variable',
-      expected  => <TypeObject>,
+    $v.throw('X::Comp::Trait::Unknown',
+      :type<of>,
+      :subtype(c.hash.keys[0]),
+      :declaring(' variable'),
+      :expected('TypeObject'),
     );
 }
 multi sub trait_mod:<of>(Variable:D $v, Mu:U $of ) {
@@ -125,14 +123,14 @@ multi sub trait_mod:<of>(Variable:D $v, Mu:U $of ) {
 
 # phaser traits
 multi sub trait_mod:<will>(Variable:D $v, $block, |c ) {
-    $v.throw( 'X::Comp::Trait::Unknown',
-      type      => 'will',
-      subtype   => c.hash.keys[0],
-      declaring => ' variable',
-      expected  => ('begin check final init end',
-                    'enter leave keep undo',
-                    'first next last pre post',
-                    'compose'),
+    $v.throw('X::Comp::Trait::Unknown',
+      :type<will>,
+      :subtype(c.hash.keys[0]),
+      :declaring(' variable'),
+      :expected('begin check final init end',
+                'enter leave keep undo',
+                'first next last pre post',
+                'compose'),
     );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
@@ -142,14 +140,10 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$check! ) {
     $*W.add_phaser($v.slash, 'CHECK', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$final! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will final {...}'",
-    );
+    $v.throw('X::Comp::NYI', :feature("Variable trait 'will final {...}'"));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$init! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will init {...}'",
-    );
+    $v.throw('X::Comp::NYI', :feature("Variable trait 'will init {...}'"));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
     $*W.add_object($block);
@@ -180,14 +174,10 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
     $v.block.add_phaser('PRE', $v.willdo($block, 1));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$post! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will post {...}'",
-    );
+    $v.throw('X::Comp::NYI', :feature("Variable trait 'will post {...}'"));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will compose {...}'",
-    );
+    $v.throw('X::Comp::NYI', :feature("Variable trait 'will compose {...}'"));
 }
 
 # vim: ft=perl6 expandtab sw=4

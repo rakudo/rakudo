@@ -46,8 +46,8 @@ sub DYNAMIC(\name) is rw {
 
 # prime the automagic dynamic variable initializers
 proto sub INITIALIZE_DYNAMIC(|) { * }
-multi sub INITIALIZE_DYNAMIC(\name) {
-    X::Dynamic::NotFound.new(:name(name));
+multi sub INITIALIZE_DYNAMIC($name) {
+    X::Dynamic::NotFound.new(:$name);
 }
 #multi sub INITIALIZE_DYNAMIC('$*FOO') {   # example stub
 #    PROCESS::<$FOO> := "foo";

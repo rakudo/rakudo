@@ -2039,4 +2039,11 @@ my class X::TooLateForREPR is X::Comp  {
     }
 }
 
+my class X::NotParametric is Exception {
+    has $.type;
+    method message() {
+        "$!type.^name() cannot be parameterized";
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

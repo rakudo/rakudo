@@ -130,7 +130,7 @@ class array is Iterable is repr('VMArray') {
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
- 
+
             if $SINK {
                 my @splicees := nqp::create(self);
                 nqp::push_i(@splicees, @values.shift) while @values;
@@ -336,7 +336,7 @@ class array is Iterable is repr('VMArray') {
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
- 
+
             if $SINK {
                 my @splicees := nqp::create(self);
                 nqp::push_n(@splicees, @values.shift) while @values;

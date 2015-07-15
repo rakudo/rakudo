@@ -258,7 +258,7 @@ my class Parameter { # declared in BOOTSTRAP
             if     not $.name
                and $name eq '$'
                and not $rest
-               and nqp::isnull($!post_constraints) 
+               and nqp::isnull($!post_constraints)
                and not $default
                and nqp::isnull($!sub_signature) {
                     $name = '\\';

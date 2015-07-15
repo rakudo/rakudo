@@ -3988,7 +3988,7 @@ Compilation unit '$file' contained the following violations:
             }
             if $need_role {
                 if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                    %*PARAM_INFO<nominal_type> := $*W.parameterize_type_with_args(
+                    %*PARAM_INFO<nominal_type> := $*W.parameterize_type_with_args($/,
                         $role_type, [%*PARAM_INFO<nominal_type>], nqp::hash());
                 }
                 else {
@@ -6191,7 +6191,7 @@ Compilation unit '$file' contained the following violations:
                         $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
                 }
                 elsif $<typename> {
-                    $type := $*W.parameterize_type_with_args($type,
+                    $type := $*W.parameterize_type_with_args($/, $type,
                         [$<typename>.ast], hash());
                 }
                 make $type;

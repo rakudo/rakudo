@@ -34,7 +34,7 @@ my class Channel {
     }
 
     method send(Channel:D: \item) {
-        X::Channel::SendOnClosed.new(channel => self).throw if $!closed;
+        X::Channel::SendOnClosed.new(:channel(self)).throw if $!closed;
         nqp::push($!queue, nqp::decont(item));
     }
 
@@ -43,7 +43,7 @@ my class Channel {
         if nqp::istype(msg, CHANNEL_CLOSE) {
             nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.keep(Nil);
-            X::Channel::ReceiveOnClosed.new(channel => self).throw
+            X::Channel::ReceiveOnClosed.new(:channel(self)).throw
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
             nqp::push($!queue, msg);  # make sure other readers see it
@@ -124,7 +124,8 @@ my class Channel {
 
     method fail($error is copy) {
         $!closed = 1;
-        $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
+        $error = X::AdHoc.new(:payload($error))
+          unless nqp::istype($error, Exception);
         nqp::push($!queue, CHANNEL_FAIL.new(:$error));
         Nil
     }

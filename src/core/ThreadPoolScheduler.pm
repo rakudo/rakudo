@@ -114,7 +114,7 @@ my class ThreadPoolScheduler does Scheduler {
                     TimerCancellation);
                 self!maybe_new_thread();
                 return
-                  $cancellation = Cancellation.new(async_handles => [$handle]);
+                  $cancellation = Cancellation.new(:async_handles([$handle]));
             }
 
             # no stopper
@@ -126,7 +126,7 @@ my class ThreadPoolScheduler does Scheduler {
                     ($delay * 1000).Int, ($every * 1000).Int,
                     TimerCancellation);
                 self!maybe_new_thread();
-                return Cancellation.new(async_handles => [$handle]);
+                return Cancellation.new(:async_handles([$handle]));
             }
         }
 

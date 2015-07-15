@@ -48,7 +48,7 @@ my class Promise {
         nqp::lock($!lock);
         if $!vow_taken {
             nqp::unlock($!lock);
-            X::Promise::Vowed.new(promise => self).throw
+            X::Promise::Vowed.new(:promise(self)).throw;
         }
         my $vow := nqp::create(Vow);
         nqp::bindattr($vow, Vow, '$!promise', self);
@@ -87,7 +87,7 @@ my class Promise {
         $!lock.protect({
             $!result = nqp::istype(result, Exception)
                 ?? result
-                !! X::AdHoc.new(payload => result);
+                !! X::AdHoc.new(:payload(result));
             $!status = Broken;
             self!schedule_thens();
             $!cond.signal_all;
@@ -127,10 +127,7 @@ my class Promise {
         if $status == Broken {
             $!result
         } else {
-            X::Promise::CauseOnlyValidOnBroken.new(
-                promise => self,
-                status  => $status,
-            ).throw
+            X::Promise::CauseOnlyValidOnBroken.new(:promise(self), :$status).throw;
         }
     }
 
@@ -175,7 +172,8 @@ my class Promise {
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
     method !until_n_kept(@promises, Int $N, Str $combinator) {
-        X::Promise::Combinator.new(:$combinator).throw if NOT_ALL_DEFINED_TYPE(@promises, Promise);
+        X::Promise::Combinator.new(:$combinator).throw
+          if NOT_ALL_DEFINED_TYPE(@promises, Promise);
 
         my int $n  = $N;
         my int $c  = $n;

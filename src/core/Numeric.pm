@@ -208,9 +208,8 @@ proto sub infix:<%%>(Mu $?, Mu $?) is pure  { * }
 multi sub infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
 multi sub infix:<%%>($)         { Bool::True }
 multi sub infix:<%%>(\a, \b)   {
-    fail X::Numeric::DivideByZero.new(
-      using => 'infix:<%%>', numerator => a
-    ) unless b;
+    fail X::Numeric::DivideByZero.new(:using('infix:<%%>'), :numerator(a))
+      unless b;
     a.Real % b.Real == 0;
 }
 

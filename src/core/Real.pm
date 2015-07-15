@@ -66,13 +66,16 @@ my role Real does Numeric {
         my $more = self;
         my $inf = @mods.elems == Inf;
         fail X::OutOfRange.new(
-          what => 'invocant to polymod', got => $more, range => "0..*"
+          :what('Invocant to polymod'),
+          :got($more),
+          :range("0..*"),
         ) if $more < 0;
         gather {
             for @mods -> $mod {
                 last if $inf and not $more;
                 fail X::Numeric::DivideByZero.new(
-                  using => 'polymod', numerator => $more
+                  :using<polymod>,
+                  :numerator($more),
                 ) unless $mod;
                 take my $rem = $more % $mod;
                 $more -= $rem;

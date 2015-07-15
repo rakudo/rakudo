@@ -76,10 +76,10 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
         :from($vfrom),
         :removed($vremoved) )
       !! Deprecation.new(
-        file    => $deprecated.file,
-        type    => $deprecated.subtype.tc,
-        package => try { $deprecated.package.^name } // 'unknown',
-        name    => $deprecated.subname,
+        :file($deprecated.file),
+        :type($deprecated.subtype.tc),
+        :package(try { $deprecated.package.^name } // 'unknown'),
+        :name($deprecated.subname),
         :$alternative,
         :from($vfrom),
         :removed($vremoved),

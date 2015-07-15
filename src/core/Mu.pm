@@ -69,7 +69,7 @@ my class Mu { # declared in BOOTSTRAP
         nqp::invokewithcapture(nqp::findmethod(self, 'bless'), nqp::usecapture())
     }
     multi method new($, *@) {
-        X::Constructor::Positional.new(:type( self )).throw();
+        X::Constructor::Positional.new(:type(self)).throw();
     }
 
     proto method infinite (|) { * }
@@ -181,9 +181,9 @@ my class Mu { # declared in BOOTSTRAP
                 }
             }
             elsif nqp::iseq_i($code, 11) {
-                my $attr_name = nqp::p6box_s(nqp::atpos($task, 2));
-                unless nqp::attrinited(self, nqp::atpos($task, 1), $attr_name)  {
-                    X::Attribute::Required.new(name => $attr_name).throw;
+                my $name = nqp::p6box_s(nqp::atpos($task, 2));
+                unless nqp::attrinited(self, nqp::atpos($task, 1), $name)  {
+                    X::Attribute::Required.new(:$name).throw;
                 }
             }
             else {
@@ -467,10 +467,9 @@ my class Mu { # declared in BOOTSTRAP
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is rw {
         unless nqp::istype(SELF, $type) {
             X::Method::InvalidQualifier.new(
-                    method          => $name,
-                    invocant        => SELF,
-                    qualifier-type  => $type,
-
+              :method($name),
+              :invocant(SELF),
+              :qualifier-type($type),
             ).throw;
         }
         self.^find_method_qualified($type, $name)(SELF, |c)
@@ -481,9 +480,9 @@ my class Mu { # declared in BOOTSTRAP
         $meth ??
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
-              invocant => SELF,
-              method   => '!' ~ $name,
-              typename => $type.^name,
+              :method("!$name"),
+              :invocant(SELF),
+              :typename($type.^name),
               :private,
             ).throw;
     }
@@ -507,9 +506,9 @@ my class Mu { # declared in BOOTSTRAP
         my @result := SELF.dispatch:<.*>($name, |c);
         if @result.elems == 0 {
             X::Method::NotFound.new(
-              invocant => SELF,
-              method   => $name,
-              typename => SELF.^name,
+              :method($name),
+              :invocant(SELF),
+              :typename(SELF.^name),
             ).throw;
         }
         @result

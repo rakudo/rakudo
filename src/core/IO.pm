@@ -164,7 +164,7 @@ sub RENAME-PATH(Str $from, Str $to, :$createonly) {
 
     nqp::rename(nqp::unbox_s($from), nqp::unbox_s($to));
     CATCH { default {
-        fail X::IO::Rename.new( :$from, :$to, :os-error(.Str) );
+        fail X::IO::Rename.new(:$from, :$to, :os-error(.Str));
     } }
     True;
 }
@@ -172,7 +172,7 @@ sub RENAME-PATH(Str $from, Str $to, :$createonly) {
 sub CHMOD-PATH(Str $path, Int $mode) {
     nqp::chmod(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {
-        fail X::IO::Chmod.new( :$path, :$mode, :os-error(.Str) );
+        fail X::IO::Chmod.new(:$path, :$mode, :os-error(.Str));
     } }
     True;
 }
@@ -180,7 +180,7 @@ sub CHMOD-PATH(Str $path, Int $mode) {
 sub UNLINK-PATH(Str $path) {
     nqp::unlink(nqp::unbox_s($path));
     CATCH { default {
-        fail X::IO::Unlink.new( :$path, :os-error(.Str) );
+        fail X::IO::Unlink.new(:$path, :os-error(.Str));
     } }
     True;
 }
@@ -188,7 +188,7 @@ sub UNLINK-PATH(Str $path) {
 sub SYMLINK-PATH(Str $target, Str $name) {
     nqp::symlink(nqp::unbox_s($name), nqp::unbox_s($target));
     CATCH { default {
-        fail X::IO::Symlink.new( :$target, :$name, :os-error(.Str) );
+        fail X::IO::Symlink.new(:$target, :$name, :os-error(.Str));
     } }
     True;
 }
@@ -196,7 +196,7 @@ sub SYMLINK-PATH(Str $target, Str $name) {
 sub LINK-FILE(Str $target, Str $name) {
     nqp::link(nqp::unbox_s($name), nqp::unbox_s($target));
     CATCH { default {
-        fail X::IO::Link.new( :$target, :$name, :os-error(.Str) );
+        fail X::IO::Link.new(:$target, :$name, :os-error(.Str));
     } }
     True;
 }
@@ -204,7 +204,7 @@ sub LINK-FILE(Str $target, Str $name) {
 sub MAKE-DIR(Str $path, Int $mode) {
     nqp::mkdir(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {
-        fail X::IO::Mkdir.new(:$path, :$mode, os-error => .Str);
+        fail X::IO::Mkdir.new(:$path, :$mode, :os-error(.Str));
     } }
     True;
 }
@@ -212,7 +212,7 @@ sub MAKE-DIR(Str $path, Int $mode) {
 sub REMOVE-DIR(Str $path) {
     nqp::rmdir(nqp::unbox_s($path));
     CATCH { default {
-        fail X::IO::Rmdir.new(:$path, os-error => .Str);
+        fail X::IO::Rmdir.new(:$path, :os-error(.Str));
     } }
     True;
 }
@@ -340,8 +340,7 @@ sub DIR-GATHER-STR(Str $abspath,Mu $test) {
 sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
 
     CATCH { default {
-        fail X::IO::Dir.new(
-          :path(nqp::box_s($abspath,Str)), :os-error(.Str) );
+        fail X::IO::Dir.new(:path(nqp::box_s($abspath,Str)), :os-error(.Str));
     } }
 
     my str $cwd = nqp::cwd();
@@ -379,8 +378,7 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
 sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
 
     CATCH { default {
-        fail X::IO::Dir.new(
-          :path(nqp::box_s($abspath,Str)), :os-error(.Str) );
+        fail X::IO::Dir.new(:path(nqp::box_s($abspath,Str)), :os-error(.Str));
     } }
 
     my Mu $dirh := nqp::opendir(nqp::unbox_s($abspath.chop));

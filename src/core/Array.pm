@@ -13,7 +13,7 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method AT-POS(Array:D: int \pos) is rw {
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
           if nqp::islt_i(pos,0);
         my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
@@ -33,7 +33,7 @@ class Array { # declared in BOOTSTRAP
     }
     multi method AT-POS(Array:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos.Int);
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
           if nqp::islt_i($pos,0);
         my Mu \items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
@@ -53,7 +53,7 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-POS(Array:D: int \pos, Mu \assignee) is rw {
-        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+        X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf')).throw
           if nqp::islt_i(pos,0);
         my \items := nqp::p6listitems(self);
         nqp::existspos(items,pos)
@@ -64,7 +64,7 @@ class Array { # declared in BOOTSTRAP
     }
     multi method ASSIGN-POS(Array:D: Int:D \pos, Mu \assignee) is rw {
         my int $pos = nqp::unbox_i(pos);
-        X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
+        X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf')).throw
           if nqp::islt_i($pos,0);
         my \items := nqp::p6listitems(self);
         nqp::existspos(items,$pos)
@@ -85,7 +85,8 @@ class Array { # declared in BOOTSTRAP
     }
 
     method DELETE-POS(\pos, :$SINK) {
-        fail X::Subscript::Negative.new(index => pos, type => self.WHAT) if pos < 0;
+        fail X::Subscript::Negative.new(:index(pos),:type(self.WHAT))
+          if pos < 0;
 
         my $value := self.AT-POS(pos); # needed for reification
         my $items := nqp::getattr(self,List,'$!items');
@@ -194,9 +195,9 @@ class Array { # declared in BOOTSTRAP
                 for @$list {
                     if $_ !~~ $of {
                         X::TypeCheck.new(
-                          operation => '.new',
-                          expected  => $of,
-                          got       => $_,
+                          :operation<new>,
+                          :expected($of),
+                          :got($_),
                         ).throw;
                     }
                 }
@@ -291,7 +292,7 @@ class Array { # declared in BOOTSTRAP
 
     multi method push(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
-            fail X::Cannot::Infinite.new(:action('.push to'))
+            fail X::Cannot::Infinite.new(:action('push to'))
               if self.infinite;
             self.gimme(*);
             nqp::p6listitems(self);
@@ -307,11 +308,11 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method push(Array:D: **@values) {
-        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+        fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action('.push to'))
+        fail X::Cannot::Infinite.new(:action('push to'))
           if self.infinite;
 
         # push is always eager
@@ -328,7 +329,7 @@ class Array { # declared in BOOTSTRAP
 
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
-            fail X::Cannot::Infinite.new(:action<.push to>)
+            fail X::Cannot::Infinite.new(:action('push to'))
               if self.infinite;
             self.gimme(*);
             nqp::p6listitems(self);

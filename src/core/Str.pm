@@ -240,12 +240,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $eos = nqp::add_i($end, 1);
 
         # Fail all the way out when parse failures occur
-        my &parse_fail := -> $msg {
-            fail X::Str::Numeric.new(
-                    source => self,
-                    reason => $msg,
-                    :$pos,
-            );
+        my &parse_fail := -> $reason {
+            fail X::Str::Numeric.new(:source(self), :$reason, :$pos);
         };
 
         my sub parse-simple-number () {
@@ -634,7 +630,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             elsif nqp::istype($x, Whatever) { }
             else {
-                X::Str::Match::x.new(got => $x).fail;
+                X::Str::Match::x.new(:got($x)).fail;
             }
         }
 
@@ -874,7 +870,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.match($pat, :x(1..$limit-1), :g);
 
         # add dummy for last
-        push @matches, Match.new( :from(self.chars) );
+        push @matches, Match.new(:from(self.chars));
         my $prev-pos = 0;
 
         if ($all) {
@@ -1189,8 +1185,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             True
         }
 
-        multi method triage_substitution($_) {
-            X::Str::Trans::IllegalKey.new(key => $_).throw;
+        multi method triage_substitution($key) {
+            X::Str::Trans::IllegalKey.new(:$key).throw;
         }
 
         proto method increment_index(|) {*}
@@ -1368,7 +1364,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $/ := CALLERS::('$/');
         my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
         for @changes -> $p {
-            X::Str::Trans::InvalidArg.new(got => $p).throw
+            X::Str::Trans::InvalidArg.new(:got($p)).throw
               unless nqp::istype($p,Pair);
             if nqp::istype($p.key,Regex) {
                 $lsm.add_substitution($p.key, $p.value);
@@ -1674,16 +1670,16 @@ multi sub prefix:<~^>(Str \a) {
 
 # XXX: String-wise shifts NYI
 multi sub infix:«~>»(Str:D \a, Int:D \b) returns Str:D {
-    X::NYI.new(feature => "infix:«~>»").throw;
+    X::NYI.new(:feature('infix:«~>»')).throw;
 }
 multi sub infix:«~>»(str $a, int $b) {
-    X::NYI.new(feature => "infix:«~>»").throw;
+    X::NYI.new(:feature('infix:«~>»')).throw;
 }
 multi sub infix:«~<»(Str:D \a, Int:D \b) returns Str:D {
-    X::NYI.new(feature => "infix:«~<»").throw;
+    X::NYI.new(:feature('infix:«~<»')).throw;
 }
 multi sub infix:«~<»(str $a, int $b) {
-    X::NYI.new(feature => "infix:«~<»").throw;
+    X::NYI.new(:feature('infix:«~<»')).throw;
 }
 
 multi sub ords(Str $s) returns List:D {

@@ -124,7 +124,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     }
 
     multi method AT-POS(Parcel:D: int \pos) is rw is nodal {
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
           if nqp::islt_i(pos,0);
         nqp::isge_i(pos,nqp::elems($!storage))
           ?? Nil
@@ -132,7 +132,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     }
     multi method AT-POS(Parcel:D: Int:D \pos) is rw is nodal {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
           if nqp::islt_i($pos,0);
         nqp::isge_i($pos,nqp::elems($!storage))
           ?? Nil

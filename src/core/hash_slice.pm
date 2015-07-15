@@ -46,7 +46,7 @@ multi sub postcircumfix:<{ }>(\SELF, Positional \key, Mu \ASSIGN) is rw {
       !! key.flatmap({ SELF{$_} }).eager.Parcel) = ASSIGN
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw;
+    X::Bind::Slice.new(:type(SELF.WHAT)).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$SINK!,*%other) is rw {
     SLICE_MORE_HASH( SELF, \key, :$SINK, |%other );
@@ -78,7 +78,7 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, Mu \ASSIGN) is rw {
     die "Cannot assign to *, as the order of keys is non-deterministic";
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw;
+    X::Bind::Slice.new(:type(SELF.WHAT)).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is rw {
     SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
@@ -112,7 +112,7 @@ multi sub postcircumfix:<{ }>( \SELF ) is rw {
     nqp::decont(SELF);
 }
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {
-    X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
+    X::Bind::ZenSlice.new(:type(SELF.WHAT)).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is rw {
     SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
@@ -144,8 +144,8 @@ multi sub postcircumfix:<{ }>(\SELF, :$v!, *%other) is rw {
 # %h{;}
 multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
     if keys > 1 {
-        X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
-            if keys[0].isa(HyperWhatever);
+        X::NYI.new(:feature('Accessing dimensions after HyperWhatever')).throw
+          if keys[0].isa(HyperWhatever);
 
         if [||] %adv<kv p k> {
             postcircumfix:<{ }>(SELF, keys[0], :kv).flatmap(-> \key, \value {

@@ -97,11 +97,7 @@ my role Dateish {
     method check-value($val is copy, $name, $range, :$allow-nonint) {
         $val = $allow-nonint ?? +$val !! $val.Int;
         $val ~~ $range
-            or X::OutOfRange.new(
-                        what    => $name,
-                        got     => $val,
-                        range   => $range,
-               ).throw;
+          or X::OutOfRange.new(:what($name), :got($val), :$range).throw;
     }
 
     method check-date {
@@ -191,34 +187,33 @@ my class DateTime does Dateish {
             # Ensure this is an actual leap second.
             self.second < 61
                 or X::OutOfRange.new(
-                        what  => 'second',
-                        range => (0..^60),
-                        got   => self.second,
-                        comment => 'No second 61 has yet been defined',
+                  :what<second>,
+                  :got(self.second),
+                  :range('0..^60'),
+                  :comment('No second 61 has yet been defined'),
                 ).throw;
             my $dt = self.utc;
             $dt.hour == 23 && $dt.minute == 59
                 or X::OutOfRange.new(
-                        what  => 'second',
-                        range => (0..^60),
-                        got   => self.second,
-                        comment => 'a leap second can occur only at hour 23 and minute 59 UTC',
+                  :what<second>,
+                  :got(self.second),
+                  :range('0..^60'),
+                  :comment('a leap second can occur only at hour 23 and minute 59 UTC'),
                 ).throw;
             my $date = sprintf '%04d-%02d-%02d',
                 $dt.year, $dt.month, $dt.day;
             $date eq any(tai-utc::leap-second-dates)
                 or X::OutOfRange.new(
-                        what  => 'second',
-                        range => (0..^60),
-                        got   => self.second,
-                        comment => "There is no leap second on UTC $date",
+                  :what<second>,
+                  :got(self.second),
+                  :range('0..^60'),
+                  :comment("There is no leap second on UTC $date"),
                 ).throw;
         }
     }
 
     multi method new(Date:D :$date!, *%_) {
-        self.new(year => $date.year, month => $date.month,
-            day => $date.day, |%_)
+        self.new(:year($date.year), :month($date.month), :day($date.day), |%_);
     }
 
     multi method new(Instant:D $i, :$timezone=0, :&formatter=&default-formatter) {
@@ -245,18 +240,18 @@ my class DateTime does Dateish {
         my $day   = $e - (153 * $m + 2) div 5 + 1;
         my $month = $m + 3 - 12 * ($m div 10);
         my $year  = $b * 100 + $d - 4800 + $m div 10;
-        self.bless(:$year, :$month, :$day,
-            :$hour, :$minute, :$second,
-            :&formatter).in-timezone($timezone);
+        self.bless(
+          :$year, :$month, :$day, :$hour, :$minute, :$second, :&formatter
+        ).in-timezone($timezone);
     }
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
         $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
             or X::Temporal::InvalidFormat.new(
-                    invalid-str => $format,
-                    target      => 'DateTime',
-                    format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
-                ).throw;
+              :invalid-str($format),
+              :target<DateTime>,
+              :format('an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)'),
+            ).throw;
         my $year   = (+$0).Int;
         my $month  = (+$1).Int;
         my $day    = (+$2).Int;
@@ -274,8 +269,8 @@ my class DateTime does Dateish {
                 $6[0] eq '-' and $timezone = -$timezone;
             }
         }
-        self.new(:$year, :$month, :$day, :$hour, :$minute,
-            :$second, :$timezone, :&formatter);
+        self.new(:$year, :$month, :$day,
+          :$hour, :$minute, :$second, :$timezone, :&formatter);
     }
 
     method now(:$timezone=$*TZ, :&formatter=&default-formatter) returns DateTime:D {
@@ -459,7 +454,7 @@ my class DateTime does Dateish {
     multi method perl(DateTime:D:) {
         sprintf '%s.new(%s)', self.^name, join ', ', map { "{.key} => {.value}" }, do
             :$!year, :$!month, :$!day, :$!hour, :$!minute,
-            second => $!second.perl,
+            :second($!second.perl),
             (timezone => $!timezone.perl
                 unless $!timezone === 0),
             (formatter => $.formatter.perl
@@ -492,8 +487,8 @@ my class Date does Dateish {
     multi method new(Str $date) {
         $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
             or X::Temporal::InvalidFormat.new(
-                    invalid-str => $date,
-                    format      => 'yyyy-mm-dd',
+              :invalid-str($date),
+              :format<yyyy-mm-dd>,
             ).throw;
         self.new(|$date.split('-').map({.Int}));
     }

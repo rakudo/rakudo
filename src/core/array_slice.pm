@@ -151,7 +151,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \val ) is rw {
         !! (POSITIONS(SELF,pos.list).flatmap({SELF[$_]}).eager.Parcel = val);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {
-    X::Bind::Slice.new(:type(SELF.WHAT)).throw;
+    X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$SINK!, *%other) is rw {
    SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$SINK, |%other );
@@ -183,7 +183,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is rw {
     SELF[$block(|(SELF.elems xx $block.count))] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is rw {
-    X::Bind::Slice.new(:type(SELF.WHAT)).throw;
+    X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$SINK!, *%other) is rw {
     SLICE_MORE_LIST( SELF, POSITIONS(SELF,$block), :$SINK, |%other );
@@ -233,7 +233,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is rw {
     SELF[^SELF.elems] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is rw {
-    X::Bind::Slice.new(:type(SELF.WHAT)).throw;
+    X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$SINK!, *%other) is rw {
     SLICE_MORE_LIST( SELF, ^SELF.elems, :$SINK, |%other );
@@ -261,10 +261,10 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$v!, *%other) is rw {
 
 # @a[**]
 multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, *%adv) is rw {
-    X::NYI.new(:feature('HyperWhatever in array index')).throw;
+    X::NYI.new(feature => 'HyperWhatever in array index').throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is rw {
-    X::NYI.new(:feature('HyperWhatever in array index')).throw;
+    X::NYI.new(feature => 'HyperWhatever in array index').throw;
 }
 
 # @a[]
@@ -272,7 +272,7 @@ multi sub postcircumfix:<[ ]>( \SELF ) is rw {
     nqp::decont(SELF);
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is rw {
-    X::Bind::ZenSlice.new(:type(SELF.WHAT)).throw;
+    X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$SINK!, *%other) is rw {
     SLICE_MORE_LIST( SELF, ^SELF.elems, :$SINK, |%other );
@@ -301,7 +301,7 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 # @a[;]
 multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, *%adv) is rw {
     if keys > 1 {
-        X::NYI.new(:feature('Accessing dimensions after HyperWhatever')).throw
+        X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
             if keys[0].isa(HyperWhatever);
 
         if [||] %adv<kv p k> {

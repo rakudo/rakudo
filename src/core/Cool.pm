@@ -268,7 +268,7 @@ my class Cool { # declared in BOOTSTRAP
     method trim-trailing() { self.Stringy.trim-trailing };
 
     method EVAL(*%opts) {
-        EVAL(self, :context(CALLER::), |%opts);
+        EVAL(self, context => CALLER::, |%opts);
     }
 
     multi method Real() { self.Numeric.Real }

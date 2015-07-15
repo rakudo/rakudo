@@ -216,12 +216,10 @@ my class Cursor does NQPCursorRole {
                         }
                         else {
                             # The pattern is a string.
-                            my Mu $lit  := QAST::Regex.new(
-                              :rxtype<literal>, $topic,
-                              :subtype($im ?? 'ignorecase+ignoremark' !!
-                                       $i  ?? 'ignorecase' !!
-                                       $m  ?? 'ignoremark' !! ''),
-                            );
+                            my Mu $lit  := QAST::Regex.new( :rxtype<literal>, $topic,
+                                                            :subtype( $im ?? 'ignorecase+ignoremark' !!
+                                                                      $i  ?? 'ignorecase' !!
+                                                                      $m  ?? 'ignoremark' !! '') );
                             my Mu $nfa2 := QRegex::NFA.new;
                             my Mu $node := nqp::findmethod($nfa2, 'addnode')($nfa2, $lit);
                             my Mu $save := nqp::findmethod($node, 'save')($node, :non_empty(1));

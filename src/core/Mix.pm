@@ -17,10 +17,10 @@ my class Mix does Mixy {
     method total (--> Real) { $!total //= [+] self.values }
 
     multi method grab($count? --> Real) {
-        X::Immutable.new(:method<grab>, :typename(self.^name)).throw;
+        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
     multi method grabpairs($count? --> Real) {
-        X::Immutable.new(:method<grabpairs>, :typename(self.^name)).throw;
+        X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
     method Mix { self }
@@ -34,10 +34,10 @@ my class Mix does Mixy {
         nqp::istype(v,Pair) ?? v.value !! 0;
     }
     multi method ASSIGN-KEY(Mix:D: \k,\v) {
-        X::Assignment::RO.new(:typename(self.^name)).throw;
+        X::Assignment::RO.new(typename => self.^name).throw;
     }
     multi method DELETE-KEY(Mix:D: \k) {
-        X::Immutable.new(:method<DELETE-KEY>, :typename(self.^name)).throw;
+        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 }
 

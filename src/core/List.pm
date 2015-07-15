@@ -93,13 +93,13 @@ my class List does Positional { # declared in BOOTSTRAP
     method Supply(List:D:) { Supply.from-list(self) }
 
     multi method AT-POS(List:D: int \pos) is rw {
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         self.EXISTS-POS(pos) ?? nqp::atpos($!items,pos) !! Nil;
     }
     multi method AT-POS(List:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
         self.EXISTS-POS($pos) ?? nqp::atpos($!items,$pos) !! Nil;
     }
@@ -178,14 +178,14 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method pick(|) is nodal { * }
     multi method pick() {
-        fail X::Cannot::Infinite.new(:action('pick from')) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
     }
     multi method pick(Whatever, :$eager!) {
         return self.pick(*) if !$eager;
 
-        fail X::Cannot::Infinite.new(:action('pick from')) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -204,7 +204,7 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6parcel($picked,Any);
     }
     multi method pick(Whatever) {
-        fail X::Cannot::Infinite.new(:action('pick from')) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -220,7 +220,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
     multi method pick(\number) {
-        fail X::Cannot::Infinite.new(:action('pick from')) if self.infinite;
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
@@ -244,23 +244,23 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method pop() is parcel is nodal {
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action('pop from')) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action('.pop from')) if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
-          !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+          !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
     }
 
     method shift() is parcel is nodal {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items)
-          !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+          !! fail X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
     }
 
     multi method push(List:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
             $!nextiter.DEFINITE && self.gimme(*);
-            fail X::Cannot::Infinite.new(:action('push to'))
+            fail X::Cannot::Infinite.new(:action('.push to'))
               if $!nextiter.DEFINITE;
             nqp::p6listitems(self);
             nqp::push( $!items, my $ = value);
@@ -272,11 +272,11 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method push(List:D: *@values) {
-        fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
+        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action('push to')) if $!nextiter.DEFINITE;
+        fail X::Cannot::Infinite.new(:action('.push to')) if $!nextiter.DEFINITE;
 
         # push is always eager
         @values.gimme(*);
@@ -299,7 +299,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method unshift(List:D: *@values) {
-        fail X::Cannot::Infinite.new(:action<unshift>, :what(self.^name))
+        fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
         nqp::unshift($!items, @values.pop) while @values;
@@ -310,16 +310,16 @@ my class List does Positional { # declared in BOOTSTRAP
     method plan(List:D: |args) is nodal {
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
-        fail X::Cannot::Infinite.new(:action('plan to')) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action('.plan to')) if $!nextiter.defined;
 
 #        # need type checks?
 #        my $of := self.of;
 #
 #        unless $of =:= Mu {
 #            X::TypeCheck.new(
-#              :operation<plan>,
-#              :expected($of),
-#              :got($_),
+#              operation => '.push',
+#              expected  => $of,
+#              got       => $_,
 #            ).throw unless nqp::istype($_, $of) for @values;
 #        }
 

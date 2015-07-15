@@ -250,7 +250,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method grep(|) is nodal { * }
     multi method grep(Bool:D $t) is rw {
-        fail X::Match::Bool.new(:type<grep>);
+        fail X::Match::Bool.new( type => '.grep' );
     }
     multi method grep(Regex:D $test) is rw {
         self.map({ next unless .match($test); $_ });
@@ -264,7 +264,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method grep-index(|) is nodal { * }
     multi method grep-index(Bool:D $t) is rw {
-        fail X::Match::Bool.new(:type<grep-index>);
+        fail X::Match::Bool.new( type => '.grep-index' );
     }
     multi method grep-index(Regex:D $test) {
         my int $index = -1;
@@ -293,7 +293,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method first(|) is nodal { * }
     multi method first(Bool:D $t) is rw {
-        fail X::Match::Bool.new(:type<first>);
+        fail X::Match::Bool.new( type => '.first' );
     }
     multi method first(Regex:D $test) is rw {
         self.map({ return-rw $_ if .match($test) });
@@ -310,7 +310,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method first-index(|) is nodal { * }
     multi method first-index(Bool:D $t) is rw {
-        fail X::Match::Bool.new(:type<first-index>);
+        fail X::Match::Bool.new( type => '.first-index' );
     }
     multi method first-index(Regex:D $test) {
         my int $index = -1;
@@ -339,7 +339,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method last-index(|) is nodal { * }
     multi method last-index(Bool:D $t) is rw {
-        fail X::Match::Bool.new(:type<last-index>);
+        fail X::Match::Bool.new( type => '.last-index' );
     }
     multi method last-index(Regex:D $test) {
         my $elems = self.elems;
@@ -469,7 +469,10 @@ my class Any { # declared in BOOTSTRAP
                 }
             }
         }
-        Range.new($min // Inf, $max // -Inf, :$excludes-min, :$excludes-max);
+        Range.new($min // Inf,
+                  $max // -Inf,
+                  :excludes-min($excludes-min),
+                  :excludes-max($excludes-max));
     }
 
     method exists_pos(|c) is nodal {
@@ -490,7 +493,7 @@ my class Any { # declared in BOOTSTRAP
         pos == 0;
     }
     multi method EXISTS-POS(Any:D: Num:D \pos) {
-        X::Item.new(:aggregate(self), :index(pos)).throw
+        X::Item.new(aggregate => self, index => pos).throw
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
         pos == 0;
@@ -521,7 +524,7 @@ my class Any { # declared in BOOTSTRAP
         $v
     }
     multi method AT-POS(Any:U: Num:D \pos) is rw {
-        fail X::Item.new(:aggregate(self), :index(pos))
+        fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
@@ -540,7 +543,7 @@ my class Any { # declared in BOOTSTRAP
         self;
     }
     multi method AT-POS(Any:D: Num:D \pos) is rw {
-        fail X::Item.new(:aggregate(self), :index(pos))
+        fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
@@ -574,7 +577,7 @@ my class Any { # declared in BOOTSTRAP
         self.AT-POS(pos) = assignee;                    # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
-        fail X::Item.new(:aggregate(self), :index(pos))
+        fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
@@ -585,9 +588,9 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
 
-    method all() is nodal  { Junction.new(self.list, :type<all>)  }
-    method any() is nodal  { Junction.new(self.list, :type<any>)  }
-    method one() is nodal  { Junction.new(self.list, :type<one>)  }
+    method all() is nodal { Junction.new(self.list, :type<all>) }
+    method any() is nodal { Junction.new(self.list, :type<any>) }
+    method one() is nodal { Junction.new(self.list, :type<one>) }
     method none() is nodal { Junction.new(self.list, :type<none>) }
 
     method at_key(|c) is rw is nodal {
@@ -614,7 +617,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method BIND-KEY(|) is nodal { * }
     multi method BIND-KEY(Any:D: \k, \v) is rw {
-        fail X::Bind.new(:target(self.^name));
+        fail X::Bind.new(target => self.^name);
     }
     multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw {
         SELF = Hash.new;
@@ -721,32 +724,32 @@ multi sub map(&code, Whatever) { (1..Inf).map(&code) }
 proto sub grep(|) {*}
 multi sub grep(Mu $test, @values) { @values.grep($test) }
 multi sub grep(Mu $test, *@values) { @values.grep($test) }
-multi sub grep(Bool:D $t, *@v) { fail X::Match::Bool.new(:type<grep> ) }
+multi sub grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
 
 proto sub grep-index(|) {*}
 multi sub grep-index(Mu $test, @values) { @values.grep-index($test) }
 multi sub grep-index(Mu $test, *@values) { @values.grep-index($test) }
 multi sub grep-index(Bool:D $t, *@v) {
-    fail X::Match::Bool.new(:type<grep-index>);
+    fail X::Match::Bool.new(type => 'grep-index');
 }
 
 proto sub first(|) {*}
 multi sub first(Mu $test, @values) { @values.first($test) }
 multi sub first(Mu $test, *@values) { @values.first($test) }
-multi sub first(Bool:D $t, *@v) { fail X::Match::Bool.new(:type<first>) }
+multi sub first(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
 
 proto sub first-index(|) {*}
 multi sub first-index(Mu $test, @values) { @values.first-index($test) }
 multi sub first-index(Mu $test, *@values) { @values.first-index($test) }
 multi sub first-index(Bool:D $t,*@v) {
-    fail X::Match::Bool.new(:type<first-index>);
+    fail X::Match::Bool.new(type => 'first-index');
 }
 
 proto sub last-index(|) {*}
 multi sub last-index(Mu $test, @values) { @values.last-index($test) }
 multi sub last-index(Mu $test, *@values) { @values.last-index($test) }
 multi sub last-index(Bool:D $t, *@v) {
-    fail X::Match::Bool.new(:type<last-index>);
+    fail X::Match::Bool.new(type => 'last-index');
 }
 
 proto sub join(|) { * }

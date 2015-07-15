@@ -95,12 +95,12 @@ multi sub trait_mod:<is>(Mu:U $type, *%fail) {
 
 multi sub trait_mod:<is>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
-      :file($?FILE),
-      :line($?LINE),
-      :type<is>,
-      :subtype(c.hash.keys[0]),
-      :declaring('n attribute'),
-      :highexpect('rw readonly box_target leading_docs trailing_docs'),
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => 'n attribute',
+      highexpect => <rw readonly box_target leading_docs trailing_docs>,
     ).throw;
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$rw!) {
@@ -131,14 +131,14 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
 
 multi sub trait_mod:<is>(Routine:D $r, |c ) {
     X::Comp::Trait::Unknown.new(
-      :file($?FILE),
-      :line($?LINE),
-      :type<is>,
-      :subtype(c.hash.keys[0]),
-      :declaring(" {lc $r.^name}"),
-      :highexpect('rw parcel hidden-from-backtrace hidden-from-USAGE',
-                  'pure default DEPRECATED inlinable nodal',
-                  'prec equiv tighter looser assoc leading_docs trailing_docs'),
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => ' ' ~ lc( $r.^name ),
+      highexpect => ('rw parcel hidden-from-backtrace hidden-from-USAGE',
+                     'pure default DEPRECATED inlinable nodal',
+                     'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
 }
 multi sub trait_mod:<is>(Routine:D $r, :$rw!) {
@@ -210,12 +210,12 @@ BEGIN &trait_mod:<is>.set_onlystar();
 
 multi sub trait_mod:<is>(Parameter:D $param, |c ) {
     X::Comp::Trait::Unknown.new(
-      :file($?FILE),
-      :line($?LINE),
-      :type<is>,
-      :subtype(c.hash.keys[0]),
-      :declaring(' parameter'),
-      :highexpect('rw readonly copy required parcel leading_docs trailing_docs'),
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => ' parameter',
+      highexpect => <rw readonly copy required parcel leading_docs trailing_docs>,
     ).throw;
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$readonly!) {
@@ -270,7 +270,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
             }
             if $install_in.WHO.EXISTS-KEY(exp_name) {
                 unless ($install_in.WHO){exp_name} =:= sym {
-                    X::Export::NameClash.new(:symbol(exp_name)).throw;
+                    X::Export::NameClash.new(symbol => exp_name).throw;
                 }
             }
             $install_in.WHO{exp_name} := sym;
@@ -335,8 +335,8 @@ multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     }
     else {
         X::Composition::NotComposable.new(
-          :target-name($doee.^name),
-          :composer($role),
+            target-name => $doee.^name,
+            composer    => $role,
         ).throw;
     }
 }
@@ -348,11 +348,9 @@ multi sub trait_mod:<of>(Mu:U $target, Mu:U $type) {
 }
 multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
-    X::Redeclaration.new(
-      :what('return type for'),
-      :symbol($target),
-      :postfix(" (previous return type was {$sig.returns.^name})"),
-    ).throw if $sig.has_returns;
+    X::Redeclaration.new(what => 'return type for', symbol => $target,
+        postfix => " (previous return type was {$sig.returns.^name})").throw
+        if $sig.has_returns;
     $sig.set_returns($type)
 }
 
@@ -397,11 +395,9 @@ multi sub trait_mod:<is>(Routine:D $r, :$nodal!) {
 proto sub trait_mod:<returns>(|) { * }
 multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
-    X::Redeclaration.new(
-      :what('return type for'),
-      :symbol($target),
-      :postfix(" (previous return type was {$sig.returns.^name})"),
-    ).throw if $sig.has_returns;
+    X::Redeclaration.new(what => 'return type for', symbol => $target,
+        postfix => " (previous return type was {$sig.returns.^name})").throw
+        if $sig.has_returns;
     $sig.set_returns($type)
 }
 
@@ -509,12 +505,12 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
 proto sub trait_mod:<will>(|) { * }
 multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
-      :file($?FILE),
-      :line($?LINE),
-      :type<will>,
-      :subtype(c.hash.keys[0]),
-      :declaring('n attribute'),
-      :highexpect('lazy'),
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'will',
+      subtype    => c.hash.keys[0],
+      declaring  => 'n attribute',
+      highexpect => <lazy>,
     ).throw;
 }
 multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {  # internal usage

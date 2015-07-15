@@ -31,12 +31,12 @@ my class CallFrame {
     }
 
     method callframe(Int $level = 0) {
-        X::NYI.new(:feature<Callframe.callframe>).throw;
+        X::NYI.new(feature => 'Callframe.callframe').throw;
     }
 }
 
 sub callframe(Int $level = 0) {
-    CallFrame.new(:level($level + 1));
+    CallFrame.new(level => ($level + 1));
 }
 
 # vim: ft=perl6 expandtab sw=4

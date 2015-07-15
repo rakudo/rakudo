@@ -60,7 +60,7 @@ my sub MAIN_HELPER($retval = 0) {
                 last;
             }
         }
-        $PROCESS::ARGFILES = IO::ArgFiles.new(:@args);
+        $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@args));
         @positional-arguments, %named-arguments;
     }
 
@@ -147,7 +147,7 @@ my sub MAIN_HELPER($retval = 0) {
     );
 
     # Get a list of candidates that match according to the dispatcher
-    my @matching_candidates = $m.cando(Capture.new(:list($p), :hash($n)));
+    my @matching_candidates = $m.cando(Capture.new(list => $p, hash => $n));
     # Sort out all that would fail due to binding
     @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
     # If there are still some candidates left, try to dispatch to MAIN

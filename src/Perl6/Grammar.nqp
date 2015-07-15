@@ -2237,7 +2237,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           || <?{ $*SCOPE eq 'has' }> <.newpad> [ <.ws> <initializer> ]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
           || [ <.ws> <initializer> ]?
           ]
-        | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+        | '(' ~ ')' <signature('variable')> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
@@ -2615,8 +2615,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <signature>
     }
 
-    token signature {
-        :my $*IN_DECL := 'sig';
+    token signature($*IN_DECL = 'sig') {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();
@@ -2713,6 +2712,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('formal parameter')
         :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
         :my $*POD_BLOCK;
+        :my $*SURROUNDING_DECL := nqp::getlexdyn('$*IN_DECL');
         <.attach_leading_docs>
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));

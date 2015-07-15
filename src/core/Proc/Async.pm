@@ -62,9 +62,9 @@ my class Proc::Async {
     }
 
     method !supply(\what,\supply,\type,\value) {
-        X::Proc::Async::TapBeforeSpawn.new(:handle(what), :proc(self)).throw
+        X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
           if $!started;
-        X::Proc::Async::CharsOrBytes.new(:handle(what), :proc(self)).throw
+        X::Proc::Async::CharsOrBytes.new(handle => what, proc => self).throw
           if supply and type != value;
 
         type     = value;
@@ -164,7 +164,7 @@ my class Proc::Async {
     }
 
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
-        X::Proc::Async::AlreadyStarted.new(:proc(self)).throw if $!started;
+        X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
         $!started = True;
 
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
@@ -172,11 +172,11 @@ my class Proc::Async {
         $!exit_promise = Promise.new;
 
         my Mu $callbacks := nqp::hash();
-        nqp::bindkey($callbacks, 'done', -> Mu $exitcode {
-            $!exit_promise.keep(Proc.new(:$exitcode));
+        nqp::bindkey($callbacks, 'done', -> Mu \status {
+            $!exit_promise.keep(Proc.new(:exitcode(status)))
         });
-        nqp::bindkey($callbacks, 'error', -> Mu $os-error {
-            $!exit_promise.break(X::OS.new(:$os-error));
+        nqp::bindkey($callbacks, 'error', -> Mu \err {
+            $!exit_promise.break(X::OS.new(os-error => err));
         });
 
         @!promises.push(
@@ -208,10 +208,8 @@ my class Proc::Async {
     }
 
     method print(Proc::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting.new(:method<print>, :proc(self)).throw
-          if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<print>, :proc(self)).throw
-          if !$!started;
+        X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
 
         my $p = Promise.new;
         my $v = $p.vow;
@@ -231,19 +229,15 @@ my class Proc::Async {
     }
 
     method say(Proc::Async:D: \x, |c) {
-        X::Proc::Async::OpenForWriting.new(:method<say>, :proc(self)).throw
-          if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<say>, :proc(self)).throw
-          if !$!started;
+        X::Proc::Async::OpenForWriting.new(:method<say>, proc => self).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<say>, proc => self).throw  if !$!started;
 
         self.print( x.gist ~ "\n", |c );
     }
 
     method write(Proc::Async:D: Blob:D $b, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting.new(:method<write>, :proc(self)).throw
-          if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<write>, :proc(self)).throw
-          if !$!started;
+        X::Proc::Async::OpenForWriting.new(:method<write>, proc => self).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<write>, proc => self).throw  if !$!started;
 
         my $p = Promise.new;
         my $v = $p.vow;
@@ -267,9 +261,9 @@ my class Proc::Async {
         self.close-stdin;
     }
     method close-stdin(Proc::Async:D:) {
-        X::Proc::Async::OpenForWriting.new(:method<close-stdin>, :proc(self)).throw
+        X::Proc::Async::OpenForWriting.new(:method<close-stdin>, proc => self).throw
           if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<close-stdin>, :proc(self)).throw
+        X::Proc::Async::MustBeStarted.new(:method<close-stdin>, proc => self).throw
           if !$!started;
 
         nqp::closefh($!process_handle);
@@ -277,8 +271,7 @@ my class Proc::Async {
     }
 
     method kill(Proc::Async:D: $signal = "HUP") {
-        X::Proc::Async::MustBeStarted.new(:method<kill>, :proc(self)).throw
-          if !$!started;
+        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
         nqp::killprocasync($!process_handle, $*KERNEL.signal($signal));
     }
 }

@@ -140,7 +140,10 @@ multi sub spurt(Cool $path, $contents, :$enc = 'utf8', |c) {
         return True;
         CATCH {
             default {
-                X::IO::Chdir.new( :$path, :os-error(.Str)).throw;
+                X::IO::Chdir.new(
+                    :$path,
+                    os-error => .Str,
+                ).throw;
             }
         }
     }

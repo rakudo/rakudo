@@ -154,7 +154,7 @@ multi sub die($payload = "Died") {
     X::AdHoc.new(:$payload).throw
 }
 multi sub die(*@msg) {
-    X::AdHoc.new(:payload(@msg.join)).throw
+    X::AdHoc.new(payload => @msg.join).throw
 }
 
 multi sub warn(*@msg) {

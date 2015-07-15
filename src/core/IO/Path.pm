@@ -272,7 +272,9 @@ my class IO::Path is Cool {
         unless $dir.d {
             fail X::IO::Chdir.new(
               :$path,
-              :os-error($dir.e ?? "is not a directory" !! "does not exist"),
+              :os-error( $dir.e
+                ?? "is not a directory"
+                !! "does not exist"),
             );
         }
 
@@ -286,7 +288,10 @@ my class IO::Path is Cool {
             return $dir if $dir.r and $dir.w and $dir.x;
         }
 
-        fail X::IO::Chdir.new(:$path, :os-error("did not pass 'd $test' test"));
+        fail X::IO::Chdir.new(
+          :$path,
+          :os-error("did not pass 'd $test' test"),
+        );
     }
 
     proto method rename(|) { * }
@@ -301,10 +306,7 @@ my class IO::Path is Cool {
         nqp::rename($.abspath, nqp::unbox_s($to.abspath));
         CATCH { default {
             fail X::IO::Rename.new(
-              :from($!abspath),
-              :to($to.abspath),
-              :os-error(.Str),
-            );
+              :from($!abspath), :to($to.abspath), :os-error(.Str) );
         } }
         True;
     }
@@ -323,7 +325,8 @@ my class IO::Path is Cool {
         }
         nqp::copy($.abspath, nqp::unbox_s($to.abspath));
         CATCH { default {
-            fail X::IO::Copy.new(:from($!abspath), :$to, :os-error(.Str));
+            fail X::IO::Copy.new(
+              :from($!abspath), :$to, :os-error(.Str) );
         } }
         True;
     }
@@ -334,14 +337,15 @@ my class IO::Path is Cool {
     method chmod(IO::Path:D: Int() $mode) {
         nqp::chmod($.abspath, nqp::unbox_i($mode));
         CATCH { default {
-            fail X::IO::Chmod.new(:path($!abspath), :$mode, :os-error(.Str));
+            fail X::IO::Chmod.new(
+              :path($!abspath), :$mode, :os-error(.Str) );
         } }
         True;
     }
     method unlink(IO::Path:D:) {
         nqp::unlink($.abspath);
         CATCH { default {
-            fail X::IO::Unlink.new(:path($!abspath), :os-error(.Str));
+            fail X::IO::Unlink.new( :path($!abspath), os-error => .Str );
         } }
         True;
     }
@@ -350,7 +354,7 @@ my class IO::Path is Cool {
         $name = $name.IO(:$!SPEC,:$CWD).path;
         nqp::symlink(nqp::unbox_s($name), $.abspath);
         CATCH { default {
-            fail X::IO::Symlink.new(:target($!abspath),:$name,:os-error(.Str));
+            fail X::IO::Symlink.new(:target($!abspath), :$name, os-error => .Str);
         } }
         True;
     }
@@ -359,7 +363,7 @@ my class IO::Path is Cool {
         $name = $name.IO(:$!SPEC,:$CWD).path;
         nqp::link(nqp::unbox_s($name), $.abspath);
         CATCH { default {
-            fail X::IO::Link.new(:target($!abspath), :$name, :os-error(.Str));
+            fail X::IO::Link.new(:target($!abspath), :$name, os-error => .Str);
         } }
         True;
     }
@@ -367,7 +371,7 @@ my class IO::Path is Cool {
     method mkdir(IO::Path:D: $mode = 0o777) {
         nqp::mkdir($.abspath, $mode);
         CATCH { default {
-            fail X::IO::Mkdir.new(:path($!abspath), :$mode, :os-error(.Str));
+            fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
         } }
         True;
     }
@@ -375,7 +379,7 @@ my class IO::Path is Cool {
     method rmdir(IO::Path:D:) {
         nqp::rmdir($.abspath);
         CATCH { default {
-            fail X::IO::Rmdir.new(:path($!abspath), :os-error(.Str));
+            fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
         } }
         True;
     }
@@ -394,9 +398,7 @@ my class IO::Path is Cool {
 
         CATCH { default {
             fail X::IO::Dir.new(
-              :path(nqp::box_s($.abspath,Str)),
-              :os-error(.Str),
-            );
+              :path(nqp::box_s($.abspath,Str)), :os-error(.Str) );
         } }
         my $cwd_chars = $CWD.chars;
 

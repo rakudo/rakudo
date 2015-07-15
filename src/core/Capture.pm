@@ -42,13 +42,13 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method AT-POS(Capture:D: int \pos) is rw {
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::existspos($!list,pos) ?? nqp::atpos($!list,pos) !! Nil;
     }
     multi method AT-POS(Capture:D: Int:D \pos) is rw {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range('0..Inf'))
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);
         nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Nil;
     }

@@ -179,7 +179,10 @@ sub EXCEPTION(|) {
         }
         elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
                 nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
-            $ex := X::Method::NotFound.new(:method(~$0), :typename(~$1));
+            $ex := X::Method::NotFound.new(
+                method   => ~$0,
+                typename => ~$1,
+            );
         }
         else {
             $ex := nqp::create(X::AdHoc);
@@ -261,48 +264,24 @@ do {
             nqp::printfh($err, $backtrace.first-none-setting-line);
             nqp::resume($ex)
         }
-        if $type == nqp::const::CONTROL_LAST {
-            X::ControlFlow.new(
-              :illegal<last>,
-              :enclosing('loop construct'),
-              :$backtrace,
-            ).throw;
+        if ($type == nqp::const::CONTROL_LAST) {
+            X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct', :$backtrace).throw;
         }
-        if $type == nqp::const::CONTROL_NEXT {
-            X::ControlFlow.new(
-              :illegal<next>,
-              :enclosing('loop construct'),
-              :$backtrace,
-            ).throw;
+        if ($type == nqp::const::CONTROL_NEXT) {
+            X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct', :$backtrace).throw;
         }
-        if $type == nqp::const::CONTROL_REDO {
-            X::ControlFlow.new(
-              :illegal<redo>,
-              :enclosing('loop construct'),
-              :$backtrace,
-            ).throw;
+        if ($type == nqp::const::CONTROL_REDO) {
+            X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct', :$backtrace).throw;
         }
-        if $type == nqp::const::CONTROL_PROCEED {
-            X::ControlFlow.new(
-              :illegal<proceed>,
-              :enclosing('when clause'),
-              :$backtrace,
-            ).throw;
+        if ($type == nqp::const::CONTROL_PROCEED) {
+            X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause', :$backtrace).throw;
         }
-        if $type == nqp::const::CONTROL_SUCCEED {
+        if ($type == nqp::const::CONTROL_SUCCEED) {
             # XXX: should work like leave() ?
-            X::ControlFlow.new(
-              :illegal<succeed>,
-              :enclosing('when clause'),
-              :$backtrace,
-            ).throw;
+            X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause', :$backtrace).throw;
         }
-        if $type == nqp::const::CONTROL_TAKE {
-            X::ControlFlow.new(
-              :illegal<take>,
-              :enclosing<gather>,
-              :$backtrace,
-            ).throw;
+        if ($type == nqp::const::CONTROL_TAKE) {
+            X::ControlFlow.new(illegal => 'take', enclosing => 'gather', :$backtrace).throw;
         }
     }
 

@@ -165,7 +165,9 @@ my class PseudoStash is EnumMap {
                             Any;
             if !($res =:= Any) && nqp::bitand_i($!mode, REQUIRE_DYNAMIC) {
                 if try !$res.VAR.dynamic {
-                    X::Caller::NotDynamic.new(:symbol($key)).throw;
+                    X::Caller::NotDynamic.new(
+                        symbol => $key,
+                    ).throw;
                 }
             }
             $res;
@@ -186,7 +188,7 @@ my class PseudoStash is EnumMap {
 
     method BIND-KEY(Str() $key, \value) is rw {
         if %pseudoers.EXISTS-KEY($key) {
-            X::Bind.new(:target("pseudo-package $key")).throw;
+            X::Bind.new(target => "pseudo-package $key").throw;
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');

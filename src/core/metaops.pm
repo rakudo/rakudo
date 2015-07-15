@@ -262,7 +262,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
 }
 
 sub METAOP_REDUCE_XOR(\op, $triangle?) {
-    X::NYI.new(:feature('xor reduce')).throw;
+    X::NYI.new(feature => 'xor reduce').throw;
 }
 
 sub METAOP_HYPER(\op, *%opt) {

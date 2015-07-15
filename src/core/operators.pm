@@ -17,39 +17,39 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.^mixin($role).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     my \mixedin = obj.^mixin($role, :need-mixin-attribute);
     mixedin.BUILD_LEAST_DERIVED({ substr(mixedin.^mixin_attribute.Str,2) => $value });
 }
 multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
-    X::Does::TypeObject.new(:type(obj)).throw
+    X::Does::TypeObject.new(type => obj).throw
 }
 multi sub infix:<does>(Mu:D \obj, @roles) is rw {
     # XXX Mutability check.
     obj.^mixin(|@roles).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<does>(Mu:U \obj, @roles) is rw {
-    X::Does::TypeObject.new(:type(obj)).throw
+    X::Does::TypeObject.new(type => obj).throw
 }
 
 proto sub infix:<but>(Mu, Mu, *%) { * }
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.clone.^mixin($role).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     my \mixedin = obj.clone.^mixin($role, :need-mixin-attribute);
     my \attr = mixedin.^mixin_attribute;
     my $mixin-value := $value;
@@ -63,7 +63,7 @@ multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
 multi sub infix:<but>(Mu:U \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.^mixin($role);
 }
 multi sub infix:<but>(Mu \obj, Mu:D $val) is rw {
@@ -85,10 +85,8 @@ multi sub infix:<but>(Mu:U \obj, @roles) {
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     my @right := nqp::iscont(right) ?? [right] !! (right,).list.flat;
-    X::Cannot::Empty.new(
-      :action('get sequence endpoint'),
-      :what('list (use * or :!elems instead?)'),
-    ).throw unless @right;
+    X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)')).throw
+      unless @right;
     my $endpoint = @right.shift;
     $endpoint.sink if $endpoint ~~ Failure;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
@@ -144,10 +142,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
 
     (GATHER({
         my @left := nqp::iscont(left) ?? [left] !! (left,).list.flat;
-        X::Cannot::Empty.new(
-          :action('get sequence start value'),
-          :what<list>,
-        ).throw unless @left;
+        X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
+          unless @left;
         my $value;
         my $code;
         my $stop;
@@ -480,7 +476,7 @@ sub prefix:<temp>(\cont) is rw {
         nqp::push($temp_restore, my %h = cont);
     }
     else {
-        X::Localizer::NoContainer.new(:localizer<temp>).throw;
+        X::Localizer::NoContainer.new(localizer => 'temp').throw;
     }
     cont
 }
@@ -505,7 +501,7 @@ sub prefix:<let>(\cont) is rw {
         nqp::push($let_restore, my %h = cont);
     }
     else {
-        X::Localizer::NoContainer.new(:localizer<let>).throw;
+        X::Localizer::NoContainer.new(localizer => 'let').throw;
     }
     cont
 }
@@ -532,10 +528,9 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
     }
     my Mu $thing := $root.EXISTS-KEY($first) ?? $root{$first} !!
                     GLOBAL::.EXISTS-KEY($first) ?? GLOBAL::{$first} !!
-                    X::NoSuchSymbol.new(:symbol($name)).fail;
+                    X::NoSuchSymbol.new(symbol => $name).fail;
     for @parts {
-        X::NoSuchSymbol.new(:symbol($name)).fail
-          unless $thing.WHO.EXISTS-KEY($_);
+        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.EXISTS-KEY($_);
         $thing := $thing.WHO{$_};
     }
     $thing;

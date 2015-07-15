@@ -200,7 +200,7 @@ my class Backtrace {
                     my ($target_idx) = @outer_callers.keys.grep({self.AT-POS($i).code.^isa(Routine)});
                     $target_idx    ||= @outer_callers[0] || $i;
                     my $current = self.AT-POS($target_idx);
-                    @frames.push: $current.clone(:line($prev.line));
+                    @frames.push: $current.clone(line => $prev.line);
                     $i = $target_idx;
                 }
                 last if $oneline;

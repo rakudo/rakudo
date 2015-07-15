@@ -21,9 +21,9 @@ my class AST {
         for @unquote_asts {
             # TODO: find and report macro name
             X::TypeCheck::Splice.new(
-              :got($_),
-              :expected(AST),
-              :action('unquote evaluation'),
+                got      => $_,
+                expected => AST,
+                action   => 'unquote evaluation',
             ).throw unless nqp::istype($_,AST);
             nqp::push($pasts, nqp::getattr(nqp::decont($_), AST, '$!past'))
         }

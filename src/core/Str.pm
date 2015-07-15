@@ -1509,7 +1509,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method chars(Str:D:) returns Int:D {
         nqp::p6box_i(nqp::chars($!value))
     }
-	multi method chars(Str:U:) returns Int:D {
+    multi method chars(Str:U:) returns Int:D {
         self.Str;  # generate undefined warning
         0
     }

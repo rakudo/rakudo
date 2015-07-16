@@ -166,4 +166,4 @@ sub CREATE-INCLUDE-SPECS(*@INC) { @INC.join(',') }
 
 sub RAKUDO_MODULE_DEBUG(*@str) { note "MODULE_DEBUG: @str[]" }
 
-# vim: ft=perl6 expy andtab sw=4
+# vim: ft=perl6 expandtab sw=4

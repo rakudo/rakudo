@@ -3001,6 +3001,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    token term:sym<leave> { <sym> <args>? }
+
     token term:sym<now> { <sym> <.end_keyword> }
 
     token term:sym<time> { <sym> <.end_keyword> }

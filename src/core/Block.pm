@@ -343,6 +343,22 @@ my class Block { # declared in BOOTSTRAP
         $error ~~ Exception ?? $f but Failure.new($error) !! $f;
     }
 
+    proto method leave(|) { * }
+    multi method leave() { nqp::say('Block.leave() ' ~ nqp::where(nqp::getattr(nqp::decont(self), Code, "\$!do")).fmt("%#x"));
+        my Mu $ex := nqp::newexception();
+        #~ nqp::setpayload($ex, nqp::decont(Empty));
+        nqp::setlabel($ex, nqp::getattr(nqp::decont(self), Code, '$!do'));
+        nqp::setextype($ex, nqp::const::CONTROL_LEAVE + nqp::const::CONTROL_LABELED);
+        nqp::throw($ex);
+    }
+    multi method leave(*@list) { nqp::say('Block.leave(...) ' ~ nqp::where(nqp::getattr(nqp::decont(self), Code, "\$!do")).fmt("%#x"));
+        my Mu $ex := nqp::newexception();
+        nqp::setpayload($ex, nqp::decont(@list.Parcel));
+        nqp::setlabel($ex, nqp::getattr(nqp::decont(self), Code, '$!do'));
+        nqp::setextype($ex, nqp::const::CONTROL_LEAVE + nqp::const::CONTROL_LABELED);
+        nqp::throw($ex);
+    }
+
     multi method perl(Block:D:) {
         my $perl = '-> ';
         $perl ~= substr(self.signature().perl,1); # lose colon prefix

@@ -4498,6 +4498,22 @@ Compilation unit '$file' contained the following violations:
         make QAST::Var.new( :name('self'), :scope('lexical'), :returns($*PACKAGE), :node($/) );
     }
 
+    method term:sym<leave>($/) {
+        if !$<args> || !$<args>.ast.list { nqp::say('4502');
+            make QAST::Op.new( :op('leave'), :node($/),
+                QAST::WVal.new( :value($*W.find_symbol(['Empty'])) ) );
+        }
+        elsif $<args>.ast.list > 1 { nqp::say('4506');
+            my $parcel := $<args>.ast;
+            $parcel.name('&infix:<,>');
+            make QAST::Op.new( :op('leave'), $parcel, :node($/) );
+        }
+        else { nqp::say('4511');
+            my $arg := $<args>.ast.list[0];
+            make QAST::Op.new( :op('leave'), $arg, :node($/) );
+        }
+    }
+
     method term:sym<now>($/) {
         make QAST::Op.new( :op('call'), :name('&term:<now>'), :node($/) );
     }

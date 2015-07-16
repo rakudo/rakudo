@@ -83,7 +83,7 @@ my class MapIter is Iterator {
                         ))
                     ),
                     'LABELED', nqp::decont($label),
-                    'RETURN', nqp::stmts(
+                    'LEAVE', nqp::stmts(
                         ($parcel := nqp::getpayload(nqp::exception())),
                         (nqp::p6routinereturn(nqp::p6recont_ro(nqp::decont($parcel)))),
                         ($parcel)
@@ -147,7 +147,7 @@ my class MapIter is Iterator {
                         ))
                     ),
                     'LABELED', nqp::decont($label),
-                    'RETURN', nqp::stmts(
+                    'LEAVE', nqp::stmts(
                         ($parcel := nqp::getpayload(nqp::exception())),
                         (nqp::p6routinereturn(nqp::p6recont_ro(nqp::decont($parcel)))),
                         ($parcel)

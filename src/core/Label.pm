@@ -55,17 +55,18 @@ my class Label {
     }
 
     proto method leave(|) { * }
-    multi method leave() {
+    multi method leave() { nqp::say('Label.leave()');
         my Mu $ex := nqp::newexception();
+        #~ nqp::setpayload($ex, nqp::decont(Parcel.new()));
         nqp::setlabel($ex, nqp::decont(self));
-        nqp::setextype($ex, nqp::const::CONTROL_RETURN + nqp::const::CONTROL_LABELED);
+        nqp::setextype($ex, nqp::const::CONTROL_LEAVE + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
-    multi method leave(*@list) {
+    multi method leave(*@list) { nqp::say('Label.leave(...)');
         my Mu $ex := nqp::newexception();
         nqp::setpayload($ex, nqp::decont(@list.Parcel));
         nqp::setlabel($ex, nqp::decont(self));
-        nqp::setextype($ex, nqp::const::CONTROL_RETURN + nqp::const::CONTROL_LABELED);
+        nqp::setextype($ex, nqp::const::CONTROL_LEAVE + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
 }

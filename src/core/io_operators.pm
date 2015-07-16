@@ -92,6 +92,13 @@ multi sub lines($what = $*ARGFILES, $limit = Inf, *%named) {
       !! $what.lines($limit, |%named);
 }
 
+proto sub words(|) { * }
+multi sub words($what, $limit = Inf, *%named) {
+    $limit == Inf || nqp::istype($limit,Whatever)
+      ?? $what.words(|%named)
+      !! $what.words($limit, |%named);
+}
+
 proto sub get(|) { * }
 multi sub get($fh = $*ARGFILES) {
     $fh.get()

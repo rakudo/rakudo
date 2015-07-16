@@ -337,7 +337,7 @@ my class IO::Handle does IO {
     }
     multi method words(IO::Handle:D: $limit, :$eager, :$close) {
         return self.words(:$eager,:$close)
-          if $limit == Inf or nqp::istype($limit,Whatever);
+          if nqp::istype($limit,Whatever) or $limit == Inf;
 
         my str $str;
         my int $chars;
@@ -432,7 +432,7 @@ my class IO::Handle does IO {
     }
     multi method lines(IO::Handle:D: $limit, :$eager, :$close) {
         return self.lines(:$eager, :$close)
-          if $limit == Inf or nqp::istype($limit,Whatever);
+          if nqp::istype($limit,Whatever) or $limit == Inf;
 
         my Mu $rpa := nqp::list();
         my int $count = $limit + 1;

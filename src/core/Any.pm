@@ -717,7 +717,7 @@ sub minmax(**@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13
 #multi sub map(&code, @values) { @values.map(&code) }
-multi sub map(&code, *@values) { @values.map(&code) }
+multi sub map(&code, *@values is rw) { @values.map(&code) }
 multi sub map(Whatever, \a)    { a }
 multi sub map(&code, Whatever) { (1..Inf).map(&code) }
 

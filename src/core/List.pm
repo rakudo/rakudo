@@ -727,17 +727,24 @@ sub list(|) {
     nqp::p6list(nqp::p6argvmarray(), List, Mu)
 }
 
-proto sub infix:<xx>(|)       { * }
-multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
-multi sub infix:<xx>(Mu \x)   { x }
-multi sub infix:<xx>(Mu \x, Int() $n is copy, :$thunked!) {
-    GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
+proto sub infix:<xx>(|)     { * }
+multi sub infix:<xx>()      { fail "No zero-arg meaning for infix:<xx>" }
+multi sub infix:<xx>(Mu \x) { x }
+multi sub infix:<xx>(Mu \x, Num $n, :$thunked!) {
+    infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int, :$thunked);
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
-    GatherIter.new({ loop { take x.() } }, :infinite(True)).list
+    GatherIter.new({ loop { take x.() } }, :infinite).list
+}
+multi sub infix:<xx>(Mu \x, Int() $n, :$thunked!) {
+    my int $todo = $n;
+    GatherIter.new({ take x.() while ($todo = $todo - 1) >= 0 }).list
+}
+multi sub infix:<xx>(Mu \x, Num $n) {
+    infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    GatherIter.new({ loop { take x } }, :infinite(True)).list
+    GatherIter.new({ loop { take x } }, :infinite).list
 }
 multi sub infix:<xx>(Mu \x, Int() $n) {
     my int $size = $n;

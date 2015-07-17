@@ -5,21 +5,22 @@ my class Exception {
     has $!ex;
     has $!bt;
 
-    method backtrace() {
+    method backtrace(Exception:D:) {
         if $!bt { $!bt }
         elsif nqp::isconcrete($!ex) { Backtrace.new($!ex); }
         else { '' }
     }
 
     multi method Str(Exception:D:) {
-        self.?message.Str // 'Something went wrong in ' ~ self.WHAT.gist;
+        my $msg = self.?message // '';
+        $msg.Str || 'Inchoate error of class ' ~ self.WHAT.^name;
     }
 
     multi method gist(Exception:D:) {
         my $str = nqp::isconcrete($!ex)
           ?? nqp::p6box_s(nqp::getmessage($!ex))
           !! try self.?message;
-        $str //= "Internal error";
+        $str //= "Unspecified error " ~ self.WHAT.gist;
 
         if nqp::isconcrete($!ex) {
             $str ~= "\n";
@@ -30,26 +31,26 @@ my class Exception {
         $str;
     }
 
-    method throw($bt?) {
+    method throw(Exception:D: $bt?) {
         nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
         my $msg := self.?message;
-        nqp::setmessage($!ex, nqp::unbox_s($msg.Str))
-            if $msg.defined;
+        $msg := $msg // self.WHAT.gist;
+        nqp::setmessage($!ex, nqp::unbox_s($msg.Str));
         nqp::throw($!ex)
     }
-    method rethrow() {
+    method rethrow(Exception:D:) {
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
 
-    method resumable() {
+    method resumable(Exception:D:) {
         nqp::p6bool(nqp::istrue(nqp::atkey($!ex, 'resume')));
     }
 
-    method resume() {
+    method resume(Exception:D:) {
         nqp::resume($!ex);
         True
     }
@@ -67,9 +68,25 @@ my class Exception {
 }
 
 my class X::AdHoc is Exception {
-    has $.payload;
-    method message() { $.payload.Str     }
+    has $.payload = "Unexplained error";
+
+    my role SlurpySentry { }
+
+    method message() {
+        # Remove spaces for die(*@msg)/fail(*@msg) forms
+        given $.payload {
+            when SlurpySentry {
+                $_.list.join;
+            }
+            default {
+                .Str;
+            }
+        }
+    }
     method Numeric() { $.payload.Numeric }
+    method from-slurpy (|cap) {
+        self.new(:payload(cap does SlurpySentry))
+    }
 }
 
 my class X::Dynamic::NotFound is Exception {

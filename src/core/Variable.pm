@@ -96,6 +96,22 @@ multi sub trait_mod:<is>(Variable:D $v, :$export!) {
     EXPORT_SYMBOL($var.VAR.name, @tags, $var);
 }
 
+# does trait
+multi sub trait_mod:<does>(Variable:D $v, Mu:U $role) {
+    if $role.HOW.archetypes.composable() {
+        $v.var.VAR does $role;
+    }
+    elsif $role.HOW.archetypes.composalizable() {
+        $v.var.VAR does $role.HOW.composalize($role);
+    }
+    else {
+        X::Composition::NotComposable.new(
+            target-name => 'a variable',
+            composer    => $role,
+        ).throw;
+    }
+}
+
 # "of" traits
 multi sub trait_mod:<of>(Variable:D $v, |c ) {
     $v.throw( 'X::Comp::Trait::Unknown',

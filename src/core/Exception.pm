@@ -16,16 +16,19 @@ my class Exception {
     }
 
     multi method gist(Exception:D:) {
-        my $str = nqp::isconcrete($!ex)
-          ?? nqp::p6box_s(nqp::getmessage($!ex))
-          !! try self.?message;
-        $str //= "Internal error";
-
+        my $str;
         if nqp::isconcrete($!ex) {
+            my str $message = nqp::getmessage($!ex);
+            $str = nqp::isnull_s($message)
+                ?? "Died with {self.^name}"
+                !! nqp::p6box_s($message);
             $str ~= "\n";
             try $str ~= self.backtrace
               || Backtrace.new()
               || '  (no backtrace available)';
+        }
+        else {
+            $str = (try self.?message) // "Internal error";
         }
         $str;
     }

@@ -2563,7 +2563,7 @@ Compilation unit '$file' contained the following violations:
             :method, :$invocant_type);
         my $code := methodize_block($/, $*W.stub_code_object('Method'),
             $a_past, $signature, %sig_info);
-        install_method($/, $meth_name, 'has', $code, $install_in);
+        install_method($/, $meth_name, 'has', $code, $install_in, :gen-accessor);
     }
 
     sub install_routine_symbol($block, $code) {
@@ -3252,7 +3252,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     # Installs a method into the various places it needs to go.
-    sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta) {
+    sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta, :$gen-accessor) {
         my $meta_meth;
         if $private {
             if $*MULTINESS { $/.PRECURSOR.panic("Private multi-methods are not supported"); }
@@ -3270,6 +3270,10 @@ Compilation unit '$file' contained the following violations:
             # add the method.
             if nqp::can($*PACKAGE.HOW, $meta_meth) {
                 $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
+            }
+            elsif $gen-accessor {
+                $/.PRECURSOR.worry("Useless generation of accessor method in " ~
+                    ($*PKGDECL || "mainline"));
             }
             else {
                 my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';

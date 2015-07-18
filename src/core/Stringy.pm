@@ -1,3 +1,5 @@
+my class X::NYI { ... }
+
 my role Stringy { }
 
 multi sub infix:<eqv>(Stringy:D $a, Stringy:D $b) {
@@ -16,6 +18,11 @@ multi sub infix:<~>(\a, \b)      { a.Stringy ~ b.Stringy }
 proto sub infix:<x>(Mu $?, Mu $?)        { * }
 multi sub infix:<x>()              { fail "No zero-arg meaning for infix:<x>" }
 multi sub infix:<x>($x)            { $x.Stringy }
+multi sub infix:<x>($s, Num:D $n) {
+    $n == Inf
+      ?? fail X::NYI.new(:feature('Cat object'))
+      !! $s.Stringy x $n.Int;
+}
 multi sub infix:<x>($s, $n)        { $s.Stringy x ($n.Int // 0) }
 
 proto sub infix:<leg>(Mu $?, Mu $?) is pure { * }

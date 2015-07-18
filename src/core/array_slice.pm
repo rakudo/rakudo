@@ -31,8 +31,6 @@ sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
     }
 }
 
-my class X::NYI { ... }
-
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is rw {

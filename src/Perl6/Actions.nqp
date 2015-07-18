@@ -5677,6 +5677,12 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
+        elsif $rhs.isa(QAST::Stmts) && +@($rhs) == 1 &&
+                $rhs[0].isa(QAST::Op) && $rhs[0].name eq '&infix:<,>' {
+            for @($rhs[0]) {
+                $past.push($_);
+            }
+        }
         else {
             $past.push($rhs);
         }

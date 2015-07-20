@@ -29,6 +29,10 @@ my class CallFrame {
     method file() {
         %.annotations<file>;
     }
+    method gist() {
+        my %annotations := %.annotations;
+        "%annotations<file> at line %annotations<line>";
+    }
 
     method callframe(Int $level = 0) {
         X::NYI.new(feature => 'Callframe.callframe').throw;

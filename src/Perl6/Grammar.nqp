@@ -4838,6 +4838,9 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     method throw_null_pattern() {
         self.typed_sorry('X::Syntax::Regex::NullRegex');
     }
+    method throw_unrecognized_regex_modifier($modifier) {
+        self.typed_panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
+    }
 
     method throw_malformed_range() { self.typed_sorry('X::Syntax::Regex::MalformedRange') }
     method throw_confused() { self.typed_sorry('X::Syntax::Confused') }

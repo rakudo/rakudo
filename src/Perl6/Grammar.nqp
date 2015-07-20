@@ -2986,13 +2986,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'> ]
         <.explain_mystery> <.cry_sorrows>
     }
-    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
-    rule trait_mod:sym<does>    { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock(1)> }
-    rule trait_mod:sym<of>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
-    rule trait_mod:sym<as>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
-    rule trait_mod:sym<returns> { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<as>      { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
+
+    token bad_trait_typename {
+        || <longname> {
+                my $name := $*W.dissect_longname($<longname>);
+                $*W.throw($/, ['X', 'InvalidType'],
+                    :typename($name.name),
+                    :suggestions($*W.suggest_typename($name.name)));
+            }
+        || <.malformed: 'trait'>
+    }
 
     ## Terms
 

@@ -2028,4 +2028,16 @@ my class X::NotParametric is Exception {
     }
 }
 
+my class X::InvalidType does X::Comp {
+    has $.typename;
+    has @.suggestions;
+    method message() {
+        my $msg := "Invalid typename '$.typename'";
+        if +@.suggestions > 0 {
+            $msg := $msg ~ ". Did you mean '" ~ @.suggestions.join("', '") ~ "'?";
+        }
+        $msg;
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

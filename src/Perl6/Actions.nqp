@@ -2375,7 +2375,12 @@ Compilation unit '$file' contained the following violations:
                 $/.CURSOR.typed_worry('X::Redeclaration', symbol => $name);
             }
             elsif $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
-                $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
+                if ~$twigil eq '*' {
+                    $/.CURSOR.typed_sorry('X::Dynamic::Postdeclaration', symbol => $name);
+                }
+                else {
+                    $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
+                }
             }
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);

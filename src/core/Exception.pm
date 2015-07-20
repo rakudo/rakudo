@@ -804,6 +804,15 @@ my class X::Redeclaration::Outer does X::Comp {
     }
 }
 
+my class X::Dynamic::Postdeclaration does X::Comp {
+    has $.symbol;
+    method message() {
+        "Illegal post-declaration of dynamic variable '$.symbol';\n" ~
+        "earlier access must be written as CALLER::<$.symbol>\n" ~
+        "if that's what you meant"
+    }
+}
+
 my class X::Import::Redeclaration does X::Comp {
     has @.symbols;
     has $.source-package-name;

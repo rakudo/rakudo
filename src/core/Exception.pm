@@ -1288,6 +1288,11 @@ my class X::Syntax::Regex::UnrecognizedMetachar does X::Syntax {
     method message() { "Unrecognized regex metacharacter $.metachar (must be quoted to match literally)" }
 }
 
+my class X::Syntax::Regex::UnrecognizedModifier does X::Syntax {
+    has $.modifier;
+    method message() { "Unrecognized regex modifier :$.modifier" }
+}
+
 my class X::Syntax::Regex::NullRegex does X::Syntax {
     method message() { 'Null regex not allowed' }
 }

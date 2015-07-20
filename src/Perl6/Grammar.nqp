@@ -338,6 +338,14 @@ role STD {
                 }
             }
         }
+        if !$*IN_DECL && nqp::istype($varast, QAST::Op) && $varast.name eq '&DYNAMIC' {
+            my $lex := $*W.cur_lexpad();
+            if nqp::istype($varast[0], QAST::Want) && nqp::istype($varast[0][2], QAST::SVal) {
+                my $au := $lex.ann('also_uses');
+                $lex.annotate('also_uses', $au := {}) unless $au;
+                $au{$varast[0][2].value} := 1;
+            }
+        }
         self
     }
 }

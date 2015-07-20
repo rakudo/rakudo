@@ -145,11 +145,15 @@ my class Backtrace {
 
         while self.AT-POS($idx++) -> $cand {
             next if $cand.is-hidden;          # hidden is never interesting
-            next if $named && !$cand.subname; # only want named ones
             next if $noproto                  # no proto's please
               && $cand.code.?is_dispatcher;   #  if a dispatcher
             next if !$setting                 # no settings please
               && $cand.is-setting;            #  and in setting
+
+            my $n := $cand.subname;
+            next if $named && !$n;            # only want named ones and no name
+            next if $n eq '<unit-outer>';     # outer calling context
+
             return $idx - 1;
         }
         Int;

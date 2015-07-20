@@ -237,7 +237,10 @@ role STD {
     }
     method typed_worry($type_str, *%opts) {
         unless %*PRAGMAS<no-worries> {
-            @*WORRIES.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+            %*PRAGMAS<fatal>
+              ?? self.typed_sorry($type_str, |%opts)
+              !! @*WORRIES.push($*W.typed_exception(
+                   self.MATCH(), nqp::split('::', $type_str), |%opts));
         }
         self
     }

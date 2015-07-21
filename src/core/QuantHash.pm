@@ -50,6 +50,8 @@ my role QuantHash does Associative {
             self.pairs.fmt($format, $sep);
         }
     }
+
+    multi method grep(QuantHash:D: Mu $test) { self.pairs.grep($test) }
 }
 
 # vim: ft=perl6 expandtab sw=4

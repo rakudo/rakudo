@@ -12,7 +12,14 @@ my class Exception {
     }
 
     multi method Str(Exception:D:) {
-        self.?message.Str // 'Something went wrong in ' ~ self.WHAT.gist;
+        my $str;
+        if nqp::isconcrete($!ex) {
+            my str $message = nqp::getmessage($!ex);
+            $str = nqp::isnull_s($message) ?? '' !! nqp::p6box_s($message);
+        }
+        $str ||= (try self.?message);
+        $str = ~$str if defined $str;
+        $str // "Something went wrong in {self.WHAT.gist}";
     }
 
     multi method gist(Exception:D:) {

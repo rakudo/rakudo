@@ -84,7 +84,7 @@ class Array { # declared in BOOTSTRAP
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
 
-    method DELETE-POS(\pos, :$SINK) {
+    multi method DELETE-POS(\pos, :$SINK) {
         fail X::Subscript::Negative.new(index => pos, type => self.WHAT) if pos < 0;
 
         my $value := self.AT-POS(pos); # needed for reification

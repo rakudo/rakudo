@@ -55,6 +55,14 @@ my class Any { # declared in BOOTSTRAP
     multi method DELETE-POS(Any:D: $pos) {
         fail "Can not remove elements from a {self.^name}";
     }
+    multi method DELETE-POS(**@indices) {
+        my $final := @indices.pop;
+        my $target := self;
+        for @indices {
+            $target := $target.AT-POS($_);
+        }
+        $target.DELETE-POS($final);
+    }
 
     proto method list(|) is nodal { * }
     multi method list(Any:U:) { nqp::p6list(nqp::list(),     List, Mu) }
@@ -504,6 +512,14 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
+    multi method EXISTS-POS(**@indices) {
+        my $final := @indices.pop;
+        my $target := self;
+        for @indices {
+            $target := $target.AT-POS($_);
+        }
+        $target.EXISTS-POS($final);
+    }
 
     method at_pos(|c) is rw is nodal {
         DEPRECATED('AT-POS',|<2015.03 2015.09>);
@@ -550,9 +566,15 @@ my class Any { # declared in BOOTSTRAP
     multi method AT-POS(Any:D: Any:D \pos) is rw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-
     multi method AT-POS(Any:   Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
+    }
+    multi method AT-POS(**@indices) {
+        my $result := self;
+        for @indices {
+            $result := $result.AT-POS($_);
+        }
+        $result
     }
 
     method bind_pos(|c) is rw is nodal {
@@ -586,6 +608,15 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
+    }
+    multi method ASSIGN-POS(**@indices) {
+        my \value := @indices.pop;
+        my $final := @indices.pop;
+        my $target := self;
+        for @indices {
+            $target := $target.AT-POS($_);
+        }
+        $target.ASSIGN-POS($final, value)
     }
 
     method all() is nodal { Junction.new(self.list, :type<all>) }

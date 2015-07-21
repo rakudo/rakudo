@@ -424,7 +424,10 @@ S06-advanced/recurse.t
 S06-advanced/return.t
 S06-advanced/wrap.t
 S06-currying/assuming-and-mmd.t
+S06-currying/misc.t
 S06-currying/named.t
+S06-currying/positional.t
+S06-currying/slurpy.t
 S06-macros/errors.t
 S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
@@ -858,6 +861,7 @@ S32-hash/pairs.t
 S32-hash/perl.t
 S32-hash/push.t
 S32-hash/slice.t
+S32-io/IO-Socket-Async.t
 S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t

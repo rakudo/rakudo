@@ -569,7 +569,7 @@ my class Any { # declared in BOOTSTRAP
     multi method AT-POS(Any:   Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method AT-POS(**@indices) {
+    multi method AT-POS(**@indices) is rw {
         my $result := self;
         for @indices {
             $result := $result.AT-POS($_);

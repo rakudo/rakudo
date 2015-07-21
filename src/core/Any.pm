@@ -256,7 +256,32 @@ my class Any { # declared in BOOTSTRAP
         self.map({ next unless .match($test); $_ });
     }
     multi method grep(Callable:D $test) is rw {
-        self.map({ next unless $test($_); $_ });
+        if ($test.count == 1) {
+            self.map({next unless $test($_); $_});
+        } else {
+            my role CheatArity {
+                has $!arity;
+                has $!count;
+
+                method set-cheat($new-arity, $new-count) {
+                    $!arity = $new-arity;
+                    $!count = $new-count;
+                }
+
+                method arity(Code:D:) { $!arity }
+                method count(Code:D:) { $!count }
+            }
+
+            my &tester = -> |c {
+                #note "*cough* {c.perl} -> {$test(|c).perl}";
+                next unless $test(|c);
+                c.list
+            } but CheatArity;
+
+            &tester.set-cheat($test.arity, $test.count);
+
+            self.map(&tester);
+        }
     }
     multi method grep(Mu $test) is rw {
         self.map({ next unless $_ ~~ $test; $_ });

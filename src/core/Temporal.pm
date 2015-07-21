@@ -476,6 +476,29 @@ my class DateTime does Dateish {
     }
 }
 
+multi sub infix:«<»(DateTime:D \a, DateTime:D \b) {
+    a.Instant < b.Instant
+}
+multi sub infix:«>»(DateTime:D \a, DateTime:D \b) {
+    a.Instant > b.Instant
+}
+multi sub infix:«<=»(DateTime:D \a, DateTime:D \b) {
+    a.Instant <= b.Instant
+}
+multi sub infix:«>=»(DateTime:D \a, DateTime:D \b) {
+    a.Instant >= b.Instant
+}
+multi sub infix:«==»(DateTime:D \a, DateTime:D \b) {
+    a.Instant == b.Instant
+}
+multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
+    a.Instant <=> b.Instant
+}
+multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
+    a.Instant cmp b.Instant
+}
+
+
 my class Date does Dateish {
     has Int $.daycount;
 

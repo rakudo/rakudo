@@ -2054,4 +2054,19 @@ my class X::InvalidType does X::Comp {
     }
 }
 
+my class X::IllegalOnFixedDimensionArray is Exception {
+    has $.operation;
+    method message() {
+        "Cannot $.operation a fixed-dimension array"
+    }
+}
+my class X::NotEnoughDimensions is Exception {
+    has $.operation;
+    has $.got-dimensions;
+    has $.needed-dimensions;
+    method message() {
+        "Cannot $.operation a $.needed-dimensions dimension array with only $.got-dimensions dimensions"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

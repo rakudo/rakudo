@@ -43,9 +43,9 @@ my class Exception {
     }
 
     method throw($bt?) {
-        nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
-            unless nqp::isconcrete($!ex);
+            unless nqp::isconcrete($!ex) and $bt;
+        nqp::bindattr(self, Exception, '$!bt', $bt); # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
         my $msg := try self.?message;
         $msg := try ~$msg if defined($msg);
@@ -179,6 +179,7 @@ sub EXCEPTION(|) {
     my Mu $payload := nqp::getpayload($vm_ex);
     if nqp::p6bool(nqp::istype($payload, Exception)) {
         nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
+        $payload.backtrace;
         $payload;
     } else {
         my int $type = nqp::getextype($vm_ex);
@@ -239,24 +240,6 @@ sub COMP_EXCEPTION(|) {
 
 
 do {
-    sub is_runtime($bt) {
-        for $bt.keys {
-            my $p6sub := $bt[$_]<sub>;
-            if nqp::istype($p6sub, Sub) {
-                return True if $p6sub.name eq 'THREAD-ENTRY';
-            }
-            elsif nqp::istype($p6sub, ForeignCode) {
-                try {
-                    my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
-                    return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
-                    return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
-                    return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');
-                }
-            }
-        }
-        False;
-    }
-
 
     sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
@@ -264,7 +247,7 @@ do {
             my $e := EXCEPTION($ex);
             my Mu $err := nqp::getstderr();
 
-            if $e.is-compile-time || is_runtime(nqp::backtrace($ex)) {
+            if $e.is-compile-time || $e.backtrace.is-runtime {
                 nqp::printfh($err, $e.gist);
                 nqp::printfh($err, "\n");
             }

@@ -16,7 +16,7 @@ my class Failure {
     submethod DESTROY () { if not $!handled { note "WARNING: unhandled Failure detected in DESTROY:\n" ~ self.mess } }
 
     # Marks the Failure has handled (since we're now fatalizing it) and throws.
-    method !throw() {
+    method !throw(Failure:D:) {
         $!handled = 1;
         $!exception.throw($!backtrace);
     }
@@ -44,18 +44,26 @@ my class Failure {
         self.exception.message ~ "\n" ~ self.backtrace;
     }
 
-    method sink() {
+    method sink(Failure:D:) {
         self!throw() unless $!handled
     }
-    method CALL-ME(|) {
+    method CALL-ME(Failure:D: |) {
         self!throw()
     }
-    method FALLBACK(*@) {
+    method FALLBACK(Failure:D: *@) {
         self!throw()
     }
 }
 
 proto sub fail(|) {*};
+multi sub fail(Exception:U $e) {
+    my $fail := Failure.new(
+        X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
+    );
+    my Mu $return := nqp::getlexcaller('RETURN');
+    $return($fail) unless nqp::isnull($return);
+    $fail
+}
 multi sub fail($payload =
     (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
      ?? CALLER::CALLER::('$!') !! 'Failed') {

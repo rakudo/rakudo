@@ -261,6 +261,26 @@ my class Backtrace {
     method summary(Backtrace:D:) {
         (self.grep({ !.is-hidden && (.is-routine || !.is-setting)}) // "\n").join;
     }
+
+    method is-runtime (Backtrace:D:) {
+        my $bt = $!bt;
+        for $bt.keys {
+            my $p6sub := $bt[$_]<sub>;
+            if nqp::istype($p6sub, Sub) {
+                return True if $p6sub.name eq 'THREAD-ENTRY';
+            }
+            elsif nqp::istype($p6sub, ForeignCode) {
+                try {
+                    my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
+                    return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');
+                }
+            }
+        }
+        False;
+    }
+
 }
 
 # vim: ft=perl6 expandtab sw=4

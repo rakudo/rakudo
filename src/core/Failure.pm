@@ -9,6 +9,7 @@ my class Failure {
 
     submethod BUILD (:$!exception) {
         $!backtrace = $!exception.backtrace() || Backtrace.new(9);
+        $!exception.reset-backtrace;
     }
 
     # "Shouldn't happen."  We use note here because the dynamic scope in GC is likely meaningless.

@@ -13,6 +13,14 @@ my class Exception {
         else { '' }
     }
 
+    # Only valid if .backtrace has not been called yet
+    method vault-backtrace(Exception:D:) {
+	nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
+    }
+    method reset-backtrace(Exception:D is rw:) {
+        nqp::bindattr(self, Exception, '$!ex', Nil)
+    }
+
     multi method Str(Exception:D:) {
         my $str;
         if nqp::isconcrete($!ex) {
@@ -179,7 +187,6 @@ sub EXCEPTION(|) {
     my Mu $payload := nqp::getpayload($vm_ex);
     if nqp::p6bool(nqp::istype($payload, Exception)) {
         nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
-        $payload.backtrace;
         $payload;
     } else {
         my int $type = nqp::getextype($vm_ex);
@@ -245,11 +252,18 @@ do {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         try {
             my $e := EXCEPTION($ex);
+            my $v := $e.vault-backtrace;
             my Mu $err := nqp::getstderr();
 
+            $e.backtrace;  # This is where most backtraces actually happen
             if $e.is-compile-time || $e.backtrace.is-runtime {
                 nqp::printfh($err, $e.gist);
                 nqp::printfh($err, "\n");
+                if $v {
+                   nqp::printfh($err, "Actually thrown at:\n");
+                   nqp::printfh($err, $v.Str);
+                   nqp::printfh($err, "\n");
+                }
             }
             else {
                 nqp::printfh($err, "===SORRY!===\n");

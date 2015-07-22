@@ -5,14 +5,31 @@ my class Exception {
     has $!ex;
     has $!bt;
 
-    method backtrace() {
+    method backtrace(Exception:D:) {
         if $!bt { $!bt }
-        elsif nqp::isconcrete($!ex) { Backtrace.new($!ex); }
+        elsif nqp::isconcrete($!ex) {
+            nqp::bindattr(self, Exception, '$!bt', Backtrace.new($!ex));
+        }
         else { '' }
     }
 
+    # Only valid if .backtrace has not been called yet
+    method vault-backtrace(Exception:D:) {
+	nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
+    }
+    method reset-backtrace(Exception:D:) {
+        nqp::bindattr(self, Exception, '$!ex', Nil)
+    }
+
     multi method Str(Exception:D:) {
-        self.?message.Str // 'Something went wrong in ' ~ self.WHAT.gist;
+        my $str;
+        if nqp::isconcrete($!ex) {
+            my str $message = nqp::getmessage($!ex);
+            $str = nqp::isnull_s($message) ?? '' !! nqp::p6box_s($message);
+        }
+        $str ||= (try self.?message);
+        $str = ~$str if defined $str;
+        $str // "Something went wrong in {self.WHAT.gist}";
     }
 
     multi method gist(Exception:D:) {
@@ -28,31 +45,32 @@ my class Exception {
               || '  (no backtrace available)';
         }
         else {
-            $str = (try self.?message) // "Internal error";
+            $str = (try self.?message) // "Unthrown {self.^name} with no message";
         }
         $str;
     }
 
-    method throw($bt?) {
-        nqp::bindattr(self, Exception, '$!bt', $bt) if $bt;
+    method throw(Exception:D: $bt?) {
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
-            unless nqp::isconcrete($!ex);
+            unless nqp::isconcrete($!ex) and $bt;
+        nqp::bindattr(self, Exception, '$!bt', $bt); # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
-        my $msg := self.?message;
-        nqp::setmessage($!ex, nqp::unbox_s($msg.Str))
-            if $msg.defined;
+        my $msg := try self.?message;
+        $msg := try ~$msg if defined($msg);
+        $msg := $msg // "{self.^name} exception produced no message";
+        nqp::setmessage($!ex, nqp::unbox_s($msg));
         nqp::throw($!ex)
     }
-    method rethrow() {
+    method rethrow(Exception:D:) {
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
 
-    method resumable() {
+    method resumable(Exception:D:) {
         nqp::p6bool(nqp::istrue(nqp::atkey($!ex, 'resume')));
     }
 
-    method resume() {
+    method resume(Exception:D:) {
         nqp::resume($!ex);
         True
     }
@@ -70,9 +88,25 @@ my class Exception {
 }
 
 my class X::AdHoc is Exception {
-    has $.payload;
-    method message() { $.payload.Str     }
+    has $.payload = "Unexplained error";
+
+    my role SlurpySentry { }
+
+    method message() {
+        # Remove spaces for die(*@msg)/fail(*@msg) forms
+        given $.payload {
+            when SlurpySentry {
+                $_.list.join;
+            }
+            default {
+                .Str;
+            }
+        }
+    }
     method Numeric() { $.payload.Numeric }
+    method from-slurpy (|cap) {
+        self.new(:payload(cap does SlurpySentry))
+    }
 }
 
 my class X::Dynamic::NotFound is Exception {
@@ -213,34 +247,23 @@ sub COMP_EXCEPTION(|) {
 
 
 do {
-    sub is_runtime($bt) {
-        for $bt.keys {
-            my $p6sub := $bt[$_]<sub>;
-            if nqp::istype($p6sub, Sub) {
-                return True if $p6sub.name eq 'THREAD-ENTRY';
-            }
-            elsif nqp::istype($p6sub, ForeignCode) {
-                try {
-                    my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
-                    return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
-                    return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
-                    return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');
-                }
-            }
-        }
-        False;
-    }
-
 
     sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         try {
             my $e := EXCEPTION($ex);
+            my $v := $e.vault-backtrace;
             my Mu $err := nqp::getstderr();
 
-            if $e.is-compile-time || is_runtime(nqp::backtrace($ex)) {
+            $e.backtrace;  # This is where most backtraces actually happen
+            if $e.is-compile-time || $e.backtrace.is-runtime {
                 nqp::printfh($err, $e.gist);
                 nqp::printfh($err, "\n");
+                if $v {
+                   nqp::printfh($err, "Actually thrown at:\n");
+                   nqp::printfh($err, $v.Str);
+                   nqp::printfh($err, "\n");
+                }
             }
             else {
                 nqp::printfh($err, "===SORRY!===\n");

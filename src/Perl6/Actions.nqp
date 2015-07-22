@@ -1075,7 +1075,7 @@ Compilation unit '$file' contained the following violations:
                         $ast.name('&die');
                     }
                     else {
-                        my $new-node := QAST::Op.new( :$op, :name($ast.name), :returns($ast.returns) );
+                        my $new-node := QAST::Op.new( :node($ast.node), :$op, :name($ast.name), :returns($ast.returns) );
                         $new-node.push($ast.shift) while @($ast);
                         $ast.op('p6fatalize');
                         $ast.push($new-node);

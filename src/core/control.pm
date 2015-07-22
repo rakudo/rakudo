@@ -149,9 +149,15 @@ sub samewith(|c) {
 }
 
 proto sub die(|) {*};
-multi sub die(Exception $e) { $e.throw }
-multi sub die($payload = "Died") {
-    X::AdHoc.new(:$payload).throw
+multi sub die($payload =
+    (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
+     ?? CALLER::CALLER::('$!') !! "Died") {
+    if $payload ~~ Exception {
+        $payload.throw;
+    }
+    else {
+        X::AdHoc.new(:$payload).throw
+    }
 }
 multi sub die(|cap ( *@msg )) {
     X::AdHoc.from-slurpy(|cap).throw

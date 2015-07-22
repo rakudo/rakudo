@@ -55,17 +55,28 @@ my class Failure {
 }
 
 proto sub fail(|) {*};
-multi sub fail(Exception $e) {
-    my $fail := Failure.new($e);
+multi sub fail($payload =
+    (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
+     ?? CALLER::CALLER::('$!') !! 'Failed') {
+
     my Mu $return := nqp::getlexcaller('RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail
-}
-multi sub fail($payload = 'Failed') {
-    my $fail := Failure.new(X::AdHoc.new(:$payload));
-    my Mu $return := nqp::getlexcaller('RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail
+
+    # Strange behavior alert:
+    # If you try to if(...) { $fail := ... } else { $fail := ... }
+    # here it behaves sort of as if "use fatal" were in effect even
+    # when it is not, except that's not what is going on because
+    # "die" does not get hit AFAICT.  That took me 4 hours of
+    # fumbling around to figure out what was wrong.
+    if ($payload ~~ Exception) {
+        my $fail := Failure.new($payload);
+        $return($fail) unless nqp::isnull($return);
+        $fail
+    }
+    else {
+        my $fail := Failure.new(X::AdHoc.new(:$payload));
+        $return($fail) unless nqp::isnull($return);
+        $fail
+    }
 }
 multi sub fail(|cap (*@msg)) {
     my $fail := Failure.new(X::AdHoc.from-slurpy(|cap));

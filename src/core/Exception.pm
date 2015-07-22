@@ -78,7 +78,7 @@ my class Exception {
 }
 
 my class X::AdHoc is Exception {
-    has $.payload;
+    has $.payload = "Unexplained error";
     method message() { $.payload.Str     }
     method Numeric() { $.payload.Numeric }
 }

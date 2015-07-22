@@ -35,7 +35,7 @@ my class Exception {
               || '  (no backtrace available)';
         }
         else {
-            $str = (try self.?message) // "Internal error";
+            $str = (try self.?message) // "Unthrown {self.^name} with no message";
         }
         $str;
     }
@@ -45,9 +45,10 @@ my class Exception {
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
-        my $msg := self.?message;
-        nqp::setmessage($!ex, nqp::unbox_s($msg.Str))
-            if $msg.defined;
+        my $msg := try self.?message;
+        $msg := try ~$msg if defined($msg);
+        $msg := $msg // "{self.^name} exception produced no message";
+        nqp::setmessage($!ex, nqp::unbox_s($msg));
         nqp::throw($!ex)
     }
     method rethrow() {

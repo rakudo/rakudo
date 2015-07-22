@@ -61,7 +61,7 @@ multi sub fail(Exception $e) {
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail($payload) {
+multi sub fail($payload = 'Failed') {
     my $fail := Failure.new(X::AdHoc.new(:$payload));
     my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);

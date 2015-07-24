@@ -370,7 +370,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    method rotate(Int $n is copy = 1) is nodal {
+    method rotate(Cool $n is copy = 1) is nodal {
         self.gimme(*);
         fail X::Cannot::Infinite.new(:action<rotate>) if $!nextiter.defined;
         my $items = nqp::p6box_i(nqp::elems($!items));

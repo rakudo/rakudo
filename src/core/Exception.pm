@@ -256,7 +256,7 @@ do {
             my Mu $err := nqp::getstderr();
 
             $e.backtrace;  # This is where most backtraces actually happen
-            if $e.is-compile-time || $e.backtrace.is-runtime {
+            if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 nqp::printfh($err, $e.gist);
                 nqp::printfh($err, "\n");
                 if $v {

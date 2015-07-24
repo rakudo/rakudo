@@ -69,14 +69,13 @@ my class IO::Handle does IO {
         }
 
         if $!path eq '-' {
-            $!path = IO::Special.new:
-                what => do given $mode {
-                    when 'ro' { '<STDIN>'  }
-                    when 'wo' { '<STDOUT>' }
-                    default {
-                        die "Cannot open standard stream in mode '$_'";
-                    }
+            given $mode {
+                when 'ro' { return $*IN;  }
+                when 'wo' { return $*OUT; }
+                default {
+                    die "Cannot open standard stream in mode '$_'";
                 }
+            }
         }
 
         if nqp::istype($!path, IO::Special) {

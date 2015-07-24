@@ -1581,6 +1581,10 @@ my class X::ControlFlow is Exception {
     has $.enclosing; # ....  outside a loop
     has $.backtrace; # where the bougs control flow op was
 
+    method backtrace() {
+        $!backtrace || nextsame();
+    }
+
     method message() { "$.illegal without $.enclosing" }
 }
 my class X::ControlFlow::Return is X::ControlFlow {

@@ -190,22 +190,26 @@ my class Cool { # declared in BOOTSTRAP
                 nqp::unbox_s($needle.Str),
                 nqp::unbox_i($pos.Int)
         );
-        $result < 0 ?? Pos !! nqp::box_i($result,Pos);
+        # TODO: fail() instead of returning Int
+        $result < 0 ?? Int !! nqp::p6box_i($result);
     }
 
     proto method rindex(|) {*}
     multi method rindex(Cool $needle, Cool $pos?) {
         my $result = $pos.defined
-            ?? nqp::rindex(
-                 nqp::unbox_s(self.Str),
-                 nqp::unbox_s($needle.Str),
-                 nqp::unbox_i($pos.Int)
-               )
-            !! nqp::rindex(
-                 nqp::unbox_s(self.Str),
-                 nqp::unbox_s($needle.Str),
-               );
-        $result < 0 ?? Pos !! nqp::box_i($result,Pos);
+            ?? nqp::p6box_i(
+                nqp::rindex(
+                    nqp::unbox_s(self.Str),
+                    nqp::unbox_s($needle.Str),
+                    nqp::unbox_i($pos.Int)
+                ))
+            !! nqp::p6box_i(
+                nqp::rindex(
+                    nqp::unbox_s(self.Str),
+                    nqp::unbox_s($needle.Str),
+                ));
+        fail "substring not found" if $result < 0;
+        $result;
     }
 
     proto method split(|) {*}

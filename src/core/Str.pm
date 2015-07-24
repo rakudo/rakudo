@@ -1719,7 +1719,7 @@ multi sub UNBASE(Int:D $base, Str:D $str) {
         } else {
             ":{$base}<$str>".Numeric;
         }
-    } elsif $ch eq ':' && substr($str, 1, 1) ~~ '1'..'9' {
+    } elsif $ch eq ':' && substr($str, 1, 1) ~~ ('1'..'9') {
         $str.Numeric;
     } else {
         ":{$base}<$str>".Numeric;

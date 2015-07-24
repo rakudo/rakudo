@@ -9,8 +9,6 @@ my class SprintfHandler {
 
 my $sprintfHandlerInitialized = False;
 
-my class Pos { ... }
-
 my class Cool { # declared in BOOTSTRAP
     # class Cool is Any {
 

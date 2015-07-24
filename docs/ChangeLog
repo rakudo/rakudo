@@ -1,6 +1,6 @@
 New in 2015.07
  + Features:
-   + Cool.substr(-rw) and substr-(rw) now also accept a Range
+   + Cool.substr(-rw) and &substr(-rw) now also accept a Range
    + Added trait "is required" on class attributes
  + Fixes:
    + ENTER phaser now can be used as an r-value
@@ -10,14 +10,15 @@ New in 2015.07
    + samewith() now also works in subs
    + Calling the .clone method with alternate values, no longer changes original
    + Various fixes and optimizations on List.splice
+   + .grep and &grep now consumes multiple elements for many-param blocks
  + Incompatible changes:
-   + my Type $a is default(Foo) is now compile-time checked
+   + my Type $a is default($value) is now compile-time checked
    + my $a is default(Nil) only works on untyped (Mu) variables
    + Can no longer (roulette) assign to Whatever slice of a hash
  + Deprecations:
-   + $*PROGRAM_NAME in favour of $PROGRAM-NAME
-   + $*EXECUTABLE_NAME in favour of $EXECUTABLE-NAME
-   + pipe() in favour of shell() or run() with :in, :out or :err
+   + $*PROGRAM_NAME in favor of $PROGRAM-NAME
+   + $*EXECUTABLE_NAME in favor of $EXECUTABLE-NAME
+   + pipe() in favor of shell() or run() with :in, :out or :err
 
 New in 2015.06
  + Features:

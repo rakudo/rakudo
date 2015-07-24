@@ -23,8 +23,8 @@ say
 sub get-committers($repo, $since) {
     return Empty unless $repo.IO.d && "$repo/.git".IO.d;
 
-    gather for shell(:out,
-      "cd $repo; git log --since=$since --pretty='format:%an|%cn|%H|%s'"
+    gather for shell(:out, :cwd($repo),
+      "git log --since=$since --pretty='format:%an|%cn|%H|%s'"
     ).out.lines.grep(?*) -> $line {  # grep needed because of (Str) on empty pipe
 
         my ($author,$committer,$id,$msg) = $line.split('|',4);

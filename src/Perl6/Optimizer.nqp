@@ -1257,7 +1257,9 @@ class Perl6::Optimizer {
                         # if it's an Int, Num or Str, we can create a Want
                         # from it with an int, num or str value.
                         my $want;
-                        if nqp::istype($ret_value, $!symbols.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
+                        if !nqp::isconcrete($ret_value) {
+# can we create a Want with a type object???  XXX
+                        } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
                             $want := QAST::Want.new($wval,
                                 "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
                         } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Num")) {

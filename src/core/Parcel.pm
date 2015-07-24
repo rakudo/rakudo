@@ -95,7 +95,7 @@ my class Parcel does Positional { # declared in BOOTSTRAP
         $parcel;
     }
 
-    method rotate (Int $n is copy = 1) is nodal {
+    method rotate (Int(Cool) $n is copy = 1) is nodal {
         my $elems := nqp::p6box_i(nqp::elems($!storage));
         return self if !$elems;
 

@@ -9,6 +9,8 @@ my class SprintfHandler {
 
 my $sprintfHandlerInitialized = False;
 
+my class Pos { ... }
+
 my class Cool { # declared in BOOTSTRAP
     # class Cool is Any {
 
@@ -190,26 +192,22 @@ my class Cool { # declared in BOOTSTRAP
                 nqp::unbox_s($needle.Str),
                 nqp::unbox_i($pos.Int)
         );
-        # TODO: fail() instead of returning Int
-        $result < 0 ?? Int !! nqp::p6box_i($result);
+        $result < 0 ?? Pos !! nqp::box_i($result,Pos);
     }
 
     proto method rindex(|) {*}
     multi method rindex(Cool $needle, Cool $pos?) {
         my $result = $pos.defined
-            ?? nqp::p6box_i(
-                nqp::rindex(
-                    nqp::unbox_s(self.Str),
-                    nqp::unbox_s($needle.Str),
-                    nqp::unbox_i($pos.Int)
-                ))
-            !! nqp::p6box_i(
-                nqp::rindex(
-                    nqp::unbox_s(self.Str),
-                    nqp::unbox_s($needle.Str),
-                ));
-        fail "substring not found" if $result < 0;
-        $result;
+            ?? nqp::rindex(
+                 nqp::unbox_s(self.Str),
+                 nqp::unbox_s($needle.Str),
+                 nqp::unbox_i($pos.Int)
+               )
+            !! nqp::rindex(
+                 nqp::unbox_s(self.Str),
+                 nqp::unbox_s($needle.Str),
+               );
+        $result < 0 ?? Pos !! nqp::box_i($result,Pos);
     }
 
     proto method split(|) {*}

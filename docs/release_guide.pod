@@ -333,7 +333,8 @@ You're done!  Celebrate with the appropriate amount of fun.
   2015-04-23   Rakudo #87 "Vladivostok"        (masak)
   2015-05-21   Rakudo #88 "Dresden"            (FROGGS)
   2015-06-18   Rakudo #89 "Salt Lake"          (hoelzro)
-  2015-07-23   Rakudo #90 "Prague"             (masak)
+  2015-07-24   Rakudo #90 "Prague"             (masak)
+  2015-07-24   2015.07.1                       (masak)
 
 =head1 COPYRIGHT
 

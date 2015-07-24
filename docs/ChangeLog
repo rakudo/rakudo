@@ -3,19 +3,19 @@ New in 2015.07
    + Cool.substr(-rw) and &substr(-rw) now also accept a Range
    + Added trait "is required" on class attributes (and "!" sugar)
    + Parameters like :n($n) are presented as :$n in .gist
-   + $?ROUTINE and $?BLOCK
+   + &?ROUTINE and &?BLOCK
    + Conversion forms now understand :16(':8<377>') and such
    + &words implemented (to completement .words)
-   + Numeric conversion ops (== > etc) for DateTimes
+   + Numeric comparison ops (== > etc) for DateTimes
  + Fixes:
    + ENTER phaser now can be used as an r-value
    + Allow %{Type} as a way to say Hash[Any,Type].new
    + Several issues with the use of ';;' in signatures
    + Issues with regexen throwing an exception (RT #62086 & #72440)
    + samewith() now also works in subs
-   + Calling the .clone method with alternate values, no longer changes original
+   + Calling the .clone method with alternate values no longer changes original
    + Various fixes and optimizations on List.splice
-   + .grep and &grep now consumes multiple elements for many-param blocks
+   + .grep and &grep now consume multiple elements for many-param blocks
    + Issues with precedence limit checking in EXPR fixed
    + EVAL now pays attention to languages in the compiler registry
  + Incompatible changes:

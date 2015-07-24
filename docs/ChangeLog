@@ -24,6 +24,7 @@ New in 2015.07
    + Can no longer (roulette) assign to Whatever slice of a hash
    + Emit warning when \$ \@ \% \& are used to create a Capture
    + Now illegal to use a contextual ($*c) before declaring it in a block
+   + EVAL :lang<Perl5> instead of <perl5> for consistency with use :from<Perl5>
  + Deprecations:
    + $*PROGRAM_NAME in favor of $PROGRAM-NAME
    + $*EXECUTABLE_NAME in favor of $EXECUTABLE-NAME

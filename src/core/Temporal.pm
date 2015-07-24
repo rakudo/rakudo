@@ -577,6 +577,9 @@ my class Date does Dateish {
         die "More than one time unit supplied"
             if %unit.keys > 1;
 
+        die "No time unit supplied"
+            unless %unit.keys;
+
         my ($unit, $amount) = %unit.kv;
         self!VALID-UNIT($unit);
 

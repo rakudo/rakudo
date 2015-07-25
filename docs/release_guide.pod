@@ -335,6 +335,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2015-06-18   Rakudo #89 "Salt Lake"          (hoelzro)
   2015-07-24   Rakudo #90 "Prague"             (masak)
   2015-07-24   2015.07.1                       (masak)
+  2015-07-25   2015.07.2                       (moritz)
 
 =head1 COPYRIGHT
 

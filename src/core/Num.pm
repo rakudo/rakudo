@@ -27,14 +27,10 @@ my class Num does Real { # declared in BOOTSTRAP
     multi method new($n) { nqp::box_n($n.Num, self) }
 
     multi method perl(Num:D:) {
-        my $res = self.Str;
-        if nqp::isnanorinf(nqp::unbox_n(self))
-           || $res.index('e').defined
-           || $res.index('E').defined {
-            $res;
-        } else {
-            $res ~ 'e0';
-        }
+        my $p = self.Str;
+        nqp::isnanorinf(nqp::unbox_n(self)) || $p.index('e') || $p.index('E')
+          ?? $p
+          !! $p ~ 'e0';
     }
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {

@@ -208,7 +208,9 @@ my class Parameter { # declared in BOOTSTRAP
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $perl = $/ ~ $modifier if $/;
         }
-        elsif $!nominal_type.WHICH !=== $elide-type.WHICH or $modifier {
+        elsif $modifier or !($!nominal_type.HOW.archetypes.nominal &&
+                             $elide-type.HOW.archetypes.nominal &&
+                             $!nominal_type.WHICH === $elide-type.WHICH) {
             $perl = $type ~ $modifier;
         }
         $perl ~= " ::$_" for @($.type_captures);

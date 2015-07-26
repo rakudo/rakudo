@@ -162,6 +162,11 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 }
 
+my class Pos is Int {
+    multi method Bool(Pos:U:) { False };
+    multi method Bool(Pos:D:) { True };
+}
+
 multi sub prefix:<++>(Int:D $a is rw) {
     $a = nqp::add_I(nqp::decont($a), 1, Int);
 }

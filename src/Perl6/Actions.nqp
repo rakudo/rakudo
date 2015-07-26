@@ -1075,7 +1075,7 @@ Compilation unit '$file' contained the following violations:
                         $ast.name('&die');
                     }
                     else {
-                        my $new-node := QAST::Op.new( :$op, :name($ast.name), :returns($ast.returns) );
+                        my $new-node := QAST::Op.new( :node($ast.node), :$op, :name($ast.name), :returns($ast.returns) );
                         $new-node.push($ast.shift) while @($ast);
                         $ast.op('p6fatalize');
                         $ast.push($new-node);
@@ -2375,7 +2375,12 @@ Compilation unit '$file' contained the following violations:
                 $/.CURSOR.typed_worry('X::Redeclaration', symbol => $name);
             }
             elsif $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
-                $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
+                if ~$twigil eq '*' {
+                    $/.CURSOR.typed_sorry('X::Dynamic::Postdeclaration', symbol => $name);
+                }
+                else {
+                    $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
+                }
             }
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
@@ -2563,7 +2568,7 @@ Compilation unit '$file' contained the following violations:
             :method, :$invocant_type);
         my $code := methodize_block($/, $*W.stub_code_object('Method'),
             $a_past, $signature, %sig_info);
-        install_method($/, $meth_name, 'has', $code, $install_in);
+        install_method($/, $meth_name, 'has', $code, $install_in, :gen-accessor);
     }
 
     sub install_routine_symbol($block, $code) {
@@ -3252,7 +3257,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     # Installs a method into the various places it needs to go.
-    sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta) {
+    sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta, :$gen-accessor) {
         my $meta_meth;
         if $private {
             if $*MULTINESS { $/.PRECURSOR.panic("Private multi-methods are not supported"); }
@@ -3270,6 +3275,10 @@ Compilation unit '$file' contained the following violations:
             # add the method.
             if nqp::can($*PACKAGE.HOW, $meta_meth) {
                 $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
+            }
+            elsif $gen-accessor {
+                $/.PRECURSOR.worry("Useless generation of accessor method in " ~
+                    ($*PKGDECL || "mainline"));
             }
             else {
                 my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
@@ -3988,7 +3997,7 @@ Compilation unit '$file' contained the following violations:
             }
             if $need_role {
                 if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                    %*PARAM_INFO<nominal_type> := $*W.parameterize_type_with_args(
+                    %*PARAM_INFO<nominal_type> := $*W.parameterize_type_with_args($/,
                         $role_type, [%*PARAM_INFO<nominal_type>], nqp::hash());
                 }
                 else {
@@ -4011,7 +4020,10 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             elsif $twigil eq '!' {
-                %*PARAM_INFO<bind_attr>    := 1;
+                if !$*HAS_SELF && $*SURROUNDING_DECL ne 'variable' {
+                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => ~$/);
+                }
+                %*PARAM_INFO<bind_attr> := 1;
                 my int $succ := 1;
                 try {
                     %*PARAM_INFO<attr_package> := $*W.find_symbol(['$?CLASS']);
@@ -4024,6 +4036,14 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             elsif $twigil eq '.' {
+                if $*SURROUNDING_DECL ne 'variable' {
+                    if !$*HAS_SELF {
+                        $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => ~$/);
+                    }
+                    elsif $*HAS_SELF eq 'partial' {
+                        $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => ~$/);
+                    }
+                }
                 %*PARAM_INFO<bind_accessor> := 1;
                 if $<name> {
                     %*PARAM_INFO<variable_name> := ~$<name>;
@@ -5662,6 +5682,12 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
+        elsif $rhs.isa(QAST::Stmts) && +@($rhs) == 1 &&
+                $rhs[0].isa(QAST::Op) && $rhs[0].name eq '&infix:<,>' {
+            for @($rhs[0]) {
+                $past.push($_);
+            }
+        }
         else {
             $past.push($rhs);
         }
@@ -6180,7 +6206,7 @@ Compilation unit '$file' contained the following violations:
                         $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
                 }
                 elsif $<typename> {
-                    $type := $*W.parameterize_type_with_args($type,
+                    $type := $*W.parameterize_type_with_args($/, $type,
                         [$<typename>.ast], hash());
                 }
                 make $type;

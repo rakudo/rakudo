@@ -6,6 +6,9 @@ my class IO::Notification {
     class Change {
         has $.path;
         has $.event;
+        multi method gist(Change:D:) {
+            "$.path: $.event";
+        }
     }
 
     method watch_path(Str() $path, :$scheduler = $*SCHEDULER) {

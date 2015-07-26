@@ -926,11 +926,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
             }, 1 .. $l;
         } else {
+            # Add one more to the limit to get the trailing empty string
+            $l = $l + 1 if nqp::istype($limit, Whatever) || $limit == Inf;
             my int $chars = nqp::chars($self-string);
             map {
                 last if $done;
 
-                if ($chars = $chars - 1) and ($l = $l - 1) {
+                if $_ == 1 {
+                    $l = $l - 1;
+                    ""
+                } elsif $chars > 0 && $l > 1 {
+                    $chars = $chars - 1; $l = $l - 1;
                     my \value = nqp::p6box_s(nqp::substr($self-string, $c, 1));
                     $c = $c + 1;
                     value
@@ -1513,7 +1519,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method chars(Str:D:) returns Int:D {
         nqp::p6box_i(nqp::chars($!value))
     }
-	multi method chars(Str:U:) returns Int:D {
+    multi method chars(Str:U:) returns Int:D {
         self.Str;  # generate undefined warning
         0
     }
@@ -1713,7 +1719,7 @@ multi sub UNBASE(Int:D $base, Str:D $str) {
         } else {
             ":{$base}<$str>".Numeric;
         }
-    } elsif $ch eq ':' && substr($str, 1, 1) ~~ '1'..'9' {
+    } elsif $ch eq ':' && substr($str, 1, 1) ~~ ('1'..'9') {
         $str.Numeric;
     } else {
         ":{$base}<$str>".Numeric;

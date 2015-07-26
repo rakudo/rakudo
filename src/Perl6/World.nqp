@@ -1180,9 +1180,9 @@ class Perl6::World is HLL::World {
                 my $vtype              := @value_type[0];
                 my $base_type_name     := nqp::objprimspec($vtype) ?? 'array' !! 'Array';
                 %info<container_base>  := self.find_symbol([$base_type_name]);
-                %info<container_type>  := self.parameterize_type_with_args(
+                %info<container_type>  := self.parameterize_type_with_args($/,
                     %info<container_base>, [$vtype], nqp::hash());
-                %info<bind_constraint> := self.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args($/,
                     %info<bind_constraint>, [$vtype], nqp::hash());
                 %info<value_type>      := $vtype;
                 %info<default_value>   := $vtype;
@@ -1232,9 +1232,9 @@ class Perl6::World is HLL::World {
                     self.throw($/, 'X::Comp::NYI',
                       feature => "native value types for hashes");
                 }
-                %info<container_type>  := self.parameterize_type_with_args(
+                %info<container_type>  := self.parameterize_type_with_args($/,
                     %info<container_base>, @value_type, nqp::hash());
-                %info<bind_constraint> := self.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args($/,
                     %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
                 %info<default_value>   := @value_type[0];
@@ -1250,7 +1250,7 @@ class Perl6::World is HLL::World {
             %info<container_type>  := %info<container_base>;
             %info<bind_constraint> := self.find_symbol(['Callable']);
             if @value_type {
-                %info<bind_constraint> := self.parameterize_type_with_args(
+                %info<bind_constraint> := self.parameterize_type_with_args($/,
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
             }
             %info<value_type>     := %info<bind_constraint>;
@@ -2457,13 +2457,16 @@ class Perl6::World is HLL::World {
             }
         }
 
-        self.parameterize_type_with_args($role, @pos_args, %named_args);
+        self.parameterize_type_with_args($/, $role, @pos_args, %named_args);
     }
 
     # Curries a role with the specified arguments.
-    method parameterize_type_with_args($role, @pos_args, %named_args) {
+    method parameterize_type_with_args($/, $role, @pos_args, %named_args) {
         # Make the curry right away and add it to the SC.
         if @pos_args || %named_args {
+            unless nqp::can($role.HOW, 'parameterize') {
+                self.throw($/, 'X::NotParametric', type => $role);
+            }
             my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
             self.add_object($curried);
             return $curried;

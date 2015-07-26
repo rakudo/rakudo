@@ -1,8 +1,6 @@
 my class DateTime { ... }
 my class Date     { ... }
 
-my %UNITS = (<second minute hour day week month year> X~ "","s").map: {$_ => 1};
-
 my role Dateish {
     has Int $.year;
     has Int $.month = 1;
@@ -10,15 +8,25 @@ my role Dateish {
 
     method IO(|c) { CREATE-IO-OBJECT(self,|c) }
 
-    method is-leap-year($y = $!year) {
-        $y %% 4 and not $y %% 100 or $y %% 400
+    method !VALID-UNIT($unit) {
+        state %UNITS =  # core setting doesn't build if it is a my at role level
+          (<second minute hour day week month year> X~ "","s").map: {$_ => 1};
+        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+          unless %UNITS.EXISTS-KEY($unit);
     }
 
-    method days-in-month($year = $!year, $month = $!month) {
-           $month == 2        ?? self.is-leap-year($year) ?? 29 !! 28
-        !! $month == 4|6|9|11 ?? 30
-        !! 31
+    sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }
+    proto method is-leap-year(|) { * }
+    multi method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
+    multi method is-leap-year(Dateish: $y) { IS-LEAP-YEAR($y) }
+
+    sub DAYS-IN-MONTH($year, $month) {
+        state @l = 0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31;
+        $month == 2 ?? 28 + IS-LEAP-YEAR($year) !! @l.AT-POS($month);
     }
+    proto method days-in-month(|) { * }
+    multi method days-in-month(Dateish:D:) { DAYS-IN-MONTH($!year,$!month) }
+    multi method days-in-month(Dateish: $y, $m) { DAYS-IN-MONTH($y,$m) }
 
     method daycount-from-ymd(Int() $y is copy, Int() $m is copy, $d) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
@@ -112,8 +120,7 @@ my role Dateish {
 
     method truncate-parts(Cool:D $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
-        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless %UNITS.EXISTS-KEY($unit);
+        self!VALID-UNIT($unit);
         if $unit eq 'week' | 'weeks' {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
@@ -331,9 +338,7 @@ my class DateTime does Dateish {
             unless %unit.keys;
 
         my ($unit, $amount) = %unit.kv;
-
-        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless %UNITS.EXISTS-KEY($unit);
+        self!VALID-UNIT($unit);
 
         my ($hour, $minute) = $!hour, $!minute;
         my $date;
@@ -471,6 +476,32 @@ my class DateTime does Dateish {
     }
 }
 
+multi sub infix:«<»(DateTime:D \a, DateTime:D \b) {
+    a.Instant < b.Instant
+}
+multi sub infix:«>»(DateTime:D \a, DateTime:D \b) {
+    a.Instant > b.Instant
+}
+multi sub infix:«<=»(DateTime:D \a, DateTime:D \b) {
+    a.Instant <= b.Instant
+}
+multi sub infix:«>=»(DateTime:D \a, DateTime:D \b) {
+    a.Instant >= b.Instant
+}
+multi sub infix:«==»(DateTime:D \a, DateTime:D \b) {
+    a.Instant == b.Instant
+}
+multi sub infix:«!=»(DateTime:D \a, DateTime:D \b) {
+    a.Instant != b.Instant
+}
+multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
+    a.Instant <=> b.Instant
+}
+multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
+    a.Instant cmp b.Instant
+}
+
+
 my class Date does Dateish {
     has Int $.daycount;
 
@@ -546,10 +577,11 @@ my class Date does Dateish {
         die "More than one time unit supplied"
             if %unit.keys > 1;
 
-        my ($unit, $amount) = %unit.kv;
+        die "No time unit supplied"
+            unless %unit.keys;
 
-        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-            unless %UNITS.EXISTS-KEY($unit);
+        my ($unit, $amount) = %unit.kv;
+        self!VALID-UNIT($unit);
 
         my $date;
 

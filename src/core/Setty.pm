@@ -23,7 +23,7 @@ my role Setty does QuantHash {
     method new(*@args --> Setty) {
         my %e;
         %e{$_.WHICH} = $_ for @args;
-        nqp::create(self).BUILD(:elems(%e));
+        self.bless(:elems(%e))
     }
     method new-from-pairs(*@pairs --> Setty) {
         my %e;

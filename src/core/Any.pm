@@ -256,7 +256,32 @@ my class Any { # declared in BOOTSTRAP
         self.map({ next unless .match($test); $_ });
     }
     multi method grep(Callable:D $test) is rw {
-        self.map({ next unless $test($_); $_ });
+        if ($test.count == 1) {
+            self.map({next unless $test($_); $_});
+        } else {
+            my role CheatArity {
+                has $!arity;
+                has $!count;
+
+                method set-cheat($new-arity, $new-count) {
+                    $!arity = $new-arity;
+                    $!count = $new-count;
+                }
+
+                method arity(Code:D:) { $!arity }
+                method count(Code:D:) { $!count }
+            }
+
+            my &tester = -> |c {
+                #note "*cough* {c.perl} -> {$test(|c).perl}";
+                next unless $test(|c);
+                c.list
+            } but CheatArity;
+
+            &tester.set-cheat($test.arity, $test.count);
+
+            self.map(&tester);
+        }
     }
     multi method grep(Mu $test) is rw {
         self.map({ next unless $_ ~~ $test; $_ });
@@ -717,7 +742,7 @@ sub minmax(**@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13
 #multi sub map(&code, @values) { @values.map(&code) }
-multi sub map(&code, *@values) { @values.map(&code) }
+multi sub map(&code, *@values is rw) { @values.map(&code) }
 multi sub map(Whatever, \a)    { a }
 multi sub map(&code, Whatever) { (1..Inf).map(&code) }
 

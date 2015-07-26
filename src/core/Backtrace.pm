@@ -80,11 +80,11 @@ my class Backtrace {
         return nqp::atpos($!frames,$pos) if nqp::existspos($!frames,$pos);
 
         my int $elems = $!bt.elems;
-        return Nil if $!bt-next == $elems;
+        return Nil if $!bt-next >= $elems; # bt-next can init > elems
 
         my int $todo = $pos - nqp::elems($!frames) + 1;
+        return Nil if $todo < 1; # in case absurd $pos passed
         while $!bt-next < $elems {
-
             my $frame := $!bt.AT-POS($!bt-next++);
             my $sub := $frame<sub>;
             next unless defined $sub;
@@ -102,13 +102,19 @@ my class Backtrace {
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp')
                  || $file.ends-with('Perl6/Ops.nqp');
-            last if $file.ends-with('NQPHLL.nqp');
+            if $file.ends-with('NQPHLL.nqp') {
+                $!bt-next = $elems;
+                last;
+            }
 
             my $line := $annotations<line>;
             next unless $line;
 
             my $name := nqp::p6box_s(nqp::getcodename($do));
-            last if $name eq 'handle-begin-time-exceptions';
+            if $name eq 'handle-begin-time-exceptions' {
+                $!bt-next = $elems;
+                last;
+            }
 
             my $code;
             try {
@@ -145,11 +151,15 @@ my class Backtrace {
 
         while self.AT-POS($idx++) -> $cand {
             next if $cand.is-hidden;          # hidden is never interesting
-            next if $named && !$cand.subname; # only want named ones
             next if $noproto                  # no proto's please
               && $cand.code.?is_dispatcher;   #  if a dispatcher
             next if !$setting                 # no settings please
               && $cand.is-setting;            #  and in setting
+
+            my $n := $cand.subname;
+            next if $named && !$n;            # only want named ones and no name
+            next if $n eq '<unit-outer>';     # outer calling context
+
             return $idx - 1;
         }
         Int;
@@ -251,6 +261,26 @@ my class Backtrace {
     method summary(Backtrace:D:) {
         (self.grep({ !.is-hidden && (.is-routine || !.is-setting)}) // "\n").join;
     }
+
+    method is-runtime (Backtrace:D:) {
+        my $bt = $!bt;
+        for $bt.keys {
+            my $p6sub := $bt[$_]<sub>;
+            if nqp::istype($p6sub, Sub) {
+                return True if $p6sub.name eq 'THREAD-ENTRY';
+            }
+            elsif nqp::istype($p6sub, ForeignCode) {
+                try {
+                    my Mu $sub := nqp::getattr(nqp::decont($p6sub), ForeignCode, '$!do');
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'eval');
+                    return True if nqp::iseq_s(nqp::getcodename($sub), 'print_control');
+                    return False if nqp::iseq_s(nqp::getcodename($sub), 'compile');
+                }
+            }
+        }
+        False;
+    }
+
 }
 
 # vim: ft=perl6 expandtab sw=4

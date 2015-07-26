@@ -149,12 +149,21 @@ sub samewith(|c) {
 }
 
 proto sub die(|) {*};
-multi sub die(Exception $e) { $e.throw }
-multi sub die($payload = "Died") {
-    X::AdHoc.new(:$payload).throw
+multi sub die(Exception:U $e) {
+    X::AdHoc.new(:payload("Died with undefined " ~ $e.^name)).throw;
 }
-multi sub die(*@msg) {
-    X::AdHoc.new(payload => @msg.join).throw
+multi sub die($payload =
+    (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
+     ?? CALLER::CALLER::('$!') !! "Died") {
+    if $payload ~~ Exception {
+        $payload.throw;
+    }
+    else {
+        X::AdHoc.new(:$payload).throw
+    }
+}
+multi sub die(|cap ( *@msg )) {
+    X::AdHoc.from-slurpy(|cap).throw
 }
 
 multi sub warn(*@msg) {
@@ -185,7 +194,7 @@ proto sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
     nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
     $compiled();
 }
-multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'perl5' }, PseudoStash :$context) {
+multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
     state $p5;

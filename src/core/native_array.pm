@@ -71,7 +71,7 @@ class array is Iterable is repr('VMArray') {
             self
         }
         multi method push(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+            fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
               if @values.infinite;
             nqp::push_i(self, $_) for flat @values;
             self
@@ -80,13 +80,13 @@ class array is Iterable is repr('VMArray') {
         method pop(array:D:) returns int {
             nqp::elems(self) > 0
               ?? nqp::pop_i(self)
-              !! die X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
+              !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
         method shift() returns int {
             nqp::elems(self) > 0
               ?? nqp::shift_i(self)
-              !! die X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
+              !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
         multi method unshift(array:D: int $value) {
@@ -98,7 +98,7 @@ class array is Iterable is repr('VMArray') {
             self
         }
         multi method unshift(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
+            fail X::Cannot::Infinite.new(:action<unshift>, :what(self.^name))
               if @values.infinite;
             nqp::unshift_i(self, @values.pop) while @values;
             self
@@ -130,7 +130,7 @@ class array is Iterable is repr('VMArray') {
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
- 
+
             if $SINK {
                 my @splicees := nqp::create(self);
                 nqp::push_i(@splicees, @values.shift) while @values;
@@ -277,7 +277,7 @@ class array is Iterable is repr('VMArray') {
             self
         }
         multi method push(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+            fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
               if @values.infinite;
             nqp::push_n(self, $_) for flat @values;
             self
@@ -286,13 +286,13 @@ class array is Iterable is repr('VMArray') {
         method pop(array:D:) returns num {
             nqp::elems(self) > 0
               ?? nqp::pop_n(self)
-              !! die X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
+              !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
         method shift() returns num {
             nqp::elems(self) > 0
               ?? nqp::shift_n(self)
-              !! die X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
+              !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
         multi method unshift(array:D: num $value) {
@@ -304,7 +304,7 @@ class array is Iterable is repr('VMArray') {
             self
         }
         multi method unshift(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
+            fail X::Cannot::Infinite.new(:action<unshift>, :what(self.^name))
               if @values.infinite;
             nqp::unshift_n(self, @values.pop) while @values;
             self
@@ -336,7 +336,7 @@ class array is Iterable is repr('VMArray') {
               :got($s),
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
- 
+
             if $SINK {
                 my @splicees := nqp::create(self);
                 nqp::push_n(@splicees, @values.shift) while @values;

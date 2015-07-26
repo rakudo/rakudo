@@ -281,7 +281,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method push(Buf:D: @values is copy) {
-        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+        fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
           if @values.infinite;
 
         my int $length = nqp::elems(self);

@@ -116,19 +116,19 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method base-repeating($base = 10) {
-	return ~self, '' if self.narrow ~~ Int;
-	my (@quotients, @remainders, %remainders);
-	push @quotients, [div] my ($nu, $de) = self.nude;
-	loop {
-	    push @remainders, $nu %= $de;
-	    last if %remainders{$nu}++ or $nu == 0;
-	    $nu *= $base;
-	    push @quotients, $nu div $de;
-	}
-	@quotients.=map(*.base($base));
-	my @cycle = $nu ?? splice(@quotients, @remainders.first-index($nu) + 1) !! ();
-	splice @quotients, 1, 0, '.';
-	@quotients.join, @cycle.join;
+        return ~self, '' if self.narrow ~~ Int;
+        my (@quotients, @remainders, %remainders);
+        push @quotients, [div] my ($nu, $de) = self.nude;
+        loop {
+            push @remainders, $nu %= $de;
+            last if %remainders{$nu}++ or $nu == 0;
+            $nu *= $base;
+            push @quotients, $nu div $de;
+        }
+        @quotients.=map(*.base($base));
+        my @cycle = $nu ?? splice(@quotients, @remainders.first-index($nu) + 1) !! ();
+        splice @quotients, 1, 0, '.';
+        @quotients.join, @cycle.join;
     }
 
     method succ {

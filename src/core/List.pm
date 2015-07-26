@@ -247,14 +247,14 @@ my class List does Positional { # declared in BOOTSTRAP
         fail X::Cannot::Infinite.new(:action('.pop from')) if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
-          !! fail X::Cannot::Empty.new(:action<.pop>, :what(self.^name));
+          !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
     }
 
     method shift() is parcel is nodal {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items)
-          !! fail X::Cannot::Empty.new(:action<.shift>, :what(self.^name));
+          !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
     }
 
     multi method push(List:D: \value) {
@@ -272,7 +272,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method push(List:D: *@values) {
-        fail X::Cannot::Infinite.new(:action<.push>, :what(self.^name))
+        fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
         my $elems = self.gimme(*);
@@ -299,7 +299,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     multi method unshift(List:D: *@values) {
-        fail X::Cannot::Infinite.new(:action<.unshift>, :what(self.^name))
+        fail X::Cannot::Infinite.new(:action<unshift>, :what(self.^name))
           if @values.infinite;
         nqp::p6listitems(self);
         nqp::unshift($!items, @values.pop) while @values;
@@ -361,7 +361,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     method reverse() is nodal {
         self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.reverse>) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<reverse>) if $!nextiter.defined;
         my Mu $rev  := nqp::list();
         my Mu $orig := nqp::clone($!items);
         nqp::push($rev, nqp::pop($orig)) while $orig;
@@ -370,9 +370,9 @@ my class List does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    method rotate(Int $n is copy = 1) is nodal {
+    method rotate(Int(Cool) $n is copy = 1) is nodal {
         self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<.rotate>) if $!nextiter.defined;
+        fail X::Cannot::Infinite.new(:action<rotate>) if $!nextiter.defined;
         my $items = nqp::p6box_i(nqp::elems($!items));
         return self if !$items;
 
@@ -456,7 +456,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method sort($by = &infix:<cmp>) is nodal {
-        fail X::Cannot::Infinite.new(:action<.sort>) if self.infinite; #MMD?
+        fail X::Cannot::Infinite.new(:action<sort>) if self.infinite; #MMD?
 
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as
@@ -727,17 +727,24 @@ sub list(|) {
     nqp::p6list(nqp::p6argvmarray(), List, Mu)
 }
 
-proto sub infix:<xx>(|)       { * }
-multi sub infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
-multi sub infix:<xx>(Mu \x)   { x }
-multi sub infix:<xx>(Mu \x, Int() $n is copy, :$thunked!) {
-    GatherIter.new({ take x.() while --$n >= 0; }, :infinite($n == Inf)).list
+proto sub infix:<xx>(|)     { * }
+multi sub infix:<xx>()      { fail "No zero-arg meaning for infix:<xx>" }
+multi sub infix:<xx>(Mu \x) { x }
+multi sub infix:<xx>(Mu \x, Num $n, :$thunked!) {
+    infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int, :$thunked);
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
-    GatherIter.new({ loop { take x.() } }, :infinite(True)).list
+    GatherIter.new({ loop { take x.() } }, :infinite).list
+}
+multi sub infix:<xx>(Mu \x, Int() $n, :$thunked!) {
+    my int $todo = $n;
+    GatherIter.new({ take x.() while ($todo = $todo - 1) >= 0 }).list
+}
+multi sub infix:<xx>(Mu \x, Num $n) {
+    infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    GatherIter.new({ loop { take x } }, :infinite(True)).list
+    GatherIter.new({ loop { take x } }, :infinite).list
 }
 multi sub infix:<xx>(Mu \x, Int() $n) {
     my int $size = $n;

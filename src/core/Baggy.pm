@@ -22,7 +22,7 @@ my role Baggy does QuantHash {
         my %e;
         # need explicit signature because of #119609
         -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
-        nqp::create(self).BUILD(:elems(%e));
+        self.bless(:elems(%e));
     }
     method new-from-pairs(*@pairs) {
         my %e;
@@ -229,7 +229,7 @@ my role Baggy does QuantHash {
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
-        fail X::Cannot::Infinite.new(:action<.classify>) if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
         if @list {
 
             # multi-level classify
@@ -259,7 +259,7 @@ my role Baggy does QuantHash {
 
     proto method categorize-list(|) { * }
     multi method categorize-list( &test, *@list ) {
-        fail X::Cannot::Infinite.new(:action<.categorize>) if @list.infinite;
+        fail X::Cannot::Infinite.new(:action<categorize>) if @list.infinite;
         if @list {
 
             # multi-level categorize

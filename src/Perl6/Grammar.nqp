@@ -237,7 +237,10 @@ role STD {
     }
     method typed_worry($type_str, *%opts) {
         unless %*PRAGMAS<no-worries> {
-            @*WORRIES.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+            %*PRAGMAS<fatal>
+              ?? self.typed_sorry($type_str, |%opts)
+              !! @*WORRIES.push($*W.typed_exception(
+                   self.MATCH(), nqp::split('::', $type_str), |%opts));
         }
         self
     }
@@ -333,6 +336,14 @@ role STD {
                     $lex.annotate('also_uses', $au := {}) unless $au;
                     $au{$name} := 1;
                 }
+            }
+        }
+        if !$*IN_DECL && nqp::istype($varast, QAST::Op) && $varast.name eq '&DYNAMIC' {
+            my $lex := $*W.cur_lexpad();
+            if nqp::istype($varast[0], QAST::Want) && nqp::istype($varast[0][2], QAST::SVal) {
+                my $au := $lex.ann('also_uses');
+                $lex.annotate('also_uses', $au := {}) unless $au;
+                $au{$varast[0][2].value} := 1;
             }
         }
         self
@@ -1376,9 +1387,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.kok>
         :s''
         [ '('
-            <e1=.EXPR>? ';'
-            <e2=.EXPR>? ';'
-            <e3=.EXPR>?
+            [
+            <e1=.EXPR>? ';' <e2=.EXPR>? ';' <e3=.EXPR>?
+            || <.malformed('loop spec')>
+            ]
         ')' ]?
         <block>
     }
@@ -2236,7 +2248,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           || <?{ $*SCOPE eq 'has' }> <.newpad> [ <.ws> <initializer> ]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
           || [ <.ws> <initializer> ]?
           ]
-        | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+        | '(' ~ ')' <signature('variable')> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
@@ -2614,8 +2626,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <signature>
     }
 
-    token signature {
-        :my $*IN_DECL := 'sig';
+    token signature($*IN_DECL = 'sig') {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();
@@ -2712,6 +2723,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('formal parameter')
         :my $*DOC := $*DECLARATOR_DOCS; # these get cleared later
         :my $*POD_BLOCK;
+        :my $*SURROUNDING_DECL := nqp::getlexdyn('$*IN_DECL');
         <.attach_leading_docs>
         {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
@@ -2982,13 +2994,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'> ]
         <.explain_mystery> <.cry_sorrows>
     }
-    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
-    rule trait_mod:sym<does>    { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock(1)> }
-    rule trait_mod:sym<of>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
-    rule trait_mod:sym<as>      { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
-    rule trait_mod:sym<returns> { <sym> [ <typename> || <.panic: 'Invalid typename'>] }
+    rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<as>      { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
+
+    token bad_trait_typename {
+        || <longname> {
+                my $name := $*W.dissect_longname($<longname>);
+                $*W.throw($/, ['X', 'InvalidType'],
+                    :typename($name.name),
+                    :suggestions($*W.suggest_typename($name.name)));
+            }
+        || <.malformed: 'trait'>
+    }
 
     ## Terms
 
@@ -3979,8 +4001,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<eqv>    { <sym> >> <O('%chaining')> }
     token infix:sym<before> { <sym> >> <O('%chaining')> }
     token infix:sym<after>  { <sym> >> <O('%chaining')> }
-    token infix:sym<~~>   { <sym> <O('%chaining')> <!dumbsmart> }
-    token infix:sym<!~~>  { <sym> <O('%chaining')> <!dumbsmart> }
     token infix:sym<(elem)> { <sym> <O('%chaining')> }
     token infix:sym«∈»      { <sym> <O('%chaining')> }
     token infix:sym«∉»      { <sym> <O('%chaining')> }
@@ -4178,8 +4198,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<but>  { <sym> >> <O('%structural')> }
     token infix:sym<does> { <sym> >> <O('%structural')> }
 
-    token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%chaining')> }
-    token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }
+    token infix:sym<~~>   { <sym> <O('%structural')> <!dumbsmart> }
+    token infix:sym<!~~>  { <sym> <O('%structural')> <!dumbsmart> }
+    token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%structural')> }
+    token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%structural')> }
 
     method add_mystery($token, $pos, $ctx) {
         my $name := ~$token;
@@ -4815,6 +4837,9 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
     method throw_null_pattern() {
         self.typed_sorry('X::Syntax::Regex::NullRegex');
+    }
+    method throw_unrecognized_regex_modifier($modifier) {
+        self.typed_panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
     }
 
     method throw_malformed_range() { self.typed_sorry('X::Syntax::Regex::MalformedRange') }

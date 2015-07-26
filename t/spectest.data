@@ -424,7 +424,10 @@ S06-advanced/recurse.t
 S06-advanced/return.t
 S06-advanced/wrap.t
 S06-currying/assuming-and-mmd.t
+S06-currying/misc.t
 S06-currying/named.t
+S06-currying/positional.t
+S06-currying/slurpy.t
 S06-macros/errors.t
 S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
@@ -722,6 +725,7 @@ S17-lowlevel/thread.t
 S17-procasync/basic.t    # moar
 S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress
+S17-procasync/no-runaway-file-limit.t # moar
 S17-promise/allof.t
 S17-promise/anyof.t
 S17-promise/basic.t
@@ -857,6 +861,7 @@ S32-hash/pairs.t
 S32-hash/perl.t
 S32-hash/push.t
 S32-hash/slice.t
+S32-io/IO-Socket-Async.t
 S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t
@@ -1072,7 +1077,7 @@ integration/advent2013-day20.t
 integration/advent2013-day21.t
 integration/advent2013-day22.t
 integration/advent2013-day23.t
-integration/advent2014-day05.t
+integration/advent2014-day05.t #stress
 integration/advent2014-day13.t
 integration/advent2014-day16.t
 integration/code-blocks-as-sub-args.t

@@ -137,9 +137,16 @@ multi sub pipe(Str() $command,:$enc,:$nodepr,|c) {
 
 proto sub lines(|) { * }
 multi sub lines($what = $*ARGFILES, $limit = Inf, *%named) {
-    $limit == Inf || nqp::istype($limit,Whatever)
+    nqp::istype($limit,Whatever) || $limit == Inf
       ?? $what.lines(|%named)
       !! $what.lines($limit, |%named);
+}
+
+proto sub words(|) { * }
+multi sub words($what, $limit = Inf, *%named) {
+    nqp::istype($limit,Whatever) || $limit == Inf
+      ?? $what.words(|%named)
+      !! $what.words($limit, |%named);
 }
 
 proto sub get(|) { * }

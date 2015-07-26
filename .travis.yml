@@ -1,6 +1,9 @@
 language: "perl"
 perl:
     - "5.10"
+
+sudo: false
+
 install: "echo"
 
 script: "perl Configure.pl --backends=moar $RAKUDO_OPTIONS; make test"

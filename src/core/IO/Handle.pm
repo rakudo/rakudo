@@ -76,14 +76,13 @@ my class IO::Handle does IO {
         }
 
         if $!path eq '-' {
-            $!path = IO::Special.new:
-                what => do given $mode {
-                    when 'ro' { '<STDIN>'  }
-                    when 'wo' { '<STDOUT>' }
-                    default {
-                        die "Cannot open standard stream in mode '$_'";
-                    }
+            given $mode {
+                when 'ro' { return $*IN;  }
+                when 'wo' { return $*OUT; }
+                default {
+                    die "Cannot open standard stream in mode '$_'";
                 }
+            }
         }
 
         if nqp::istype($!path, IO::Special) {
@@ -261,6 +260,211 @@ my class IO::Handle does IO {
         }
         self.close if $close;
         nqp::p6parcel($rpa, Nil);
+<<<<<<< HEAD
+>>>>>>> nom
+=======
+    }
+    multi method words(IO::Handle:D: :$count!, :$close) {
+        return self.words(:$close) if !$count;
+
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+        my int $found;
+
+        until nqp::eoffh($!PIO) {
+
+#?if moar
+            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+#?endif
+#?if !moar
+            my Buf $buf := Buf.new;
+            nqp::readfh($!PIO, $buf, 65536);
+            $str   = $str ~ nqp::unbox_s($buf.decode);
+#?endif
+            $chars = nqp::chars($str);
+            $pos   = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+            while ($left = $chars - $pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                last unless $left = $chars - $nextpos; # broken word
+
+                $found = $found + 1;
+
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+            }
+
+            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+        }
+        self.close if $close;
+        nqp::box_i($found, Int);
+    }
+    multi method words(IO::Handle:D: :$close) {
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+
+        gather {
+            until nqp::eoffh($!PIO) {
+
+#?if moar
+                # optimize for ASCII
+                $str   = $str ~ nqp::readcharsfh($!PIO, 65536);
+#?endif
+#?if !moar
+                my Buf $buf := Buf.new;
+                nqp::readfh($!PIO, $buf, 65536);
+                $str = $str ~ nqp::unbox_s($buf.decode);
+#?endif
+                $chars = nqp::chars($str);
+                $pos   = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+                while ($left = $chars - $pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                    last unless $left = $chars - $nextpos; # broken word
+
+                    take
+                      nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str);
+
+                    $pos = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+                }
+
+                $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+            }
+            self.close if $close;
+        }
+    }
+    multi method words(IO::Handle:D: $limit, :$eager, :$close) {
+        return self.words(:$eager,:$close)
+          if nqp::istype($limit,Whatever) or $limit == Inf;
+
+        my str $str;
+        my int $chars;
+        my int $pos;
+        my int $left;
+        my int $nextpos;
+        my int $count = $limit;
+        my Mu $rpa := nqp::list();
+
+        until nqp::eoffh($!PIO) {
+
+#?if moar
+            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
+#?endif
+#?if !moar
+            my Buf $buf := Buf.new;
+            nqp::readfh($!PIO, $buf, 65536);
+            $str   = $str ~ nqp::unbox_s($buf.decode);
+#?endif
+            $chars = nqp::chars($str);
+            $pos   = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+
+            while $count and ($left = $chars - $pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                last unless $left = $chars - $nextpos; # broken word
+
+                nqp::push($rpa,
+                  nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str) );
+                $count = $count - 1;
+
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+            }
+
+            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+        }
+        self.close if $close;
+        nqp::p6parcel($rpa, Nil);
+    }
+
+    proto method lines (|) { * }
+    # can probably go after GLR
+    multi method lines(IO::Handle:D: :$eager!, :$close) {
+        return self.lines if !$eager;
+
+        my Mu $rpa := nqp::list();
+        if $.chomp {
+            until nqp::eoffh($!PIO) {
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
+            }
+        }
+        else {
+            until nqp::eoffh($!PIO) {
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
+            }
+        }
+        $!ins = nqp::elems($rpa);
+        self.close if $close;
+        nqp::p6parcel($rpa, Nil);
+    }
+    multi method lines(IO::Handle:D: :$count!, :$close) {
+        return self.lines(:$close) if !$count;
+
+        until nqp::eoffh($!PIO) {
+            nqp::readlinefh($!PIO);
+            $!ins = $!ins + 1;
+        }
+        nqp::box_i($!ins, Int);
+    }
+    multi method lines(IO::Handle:D: :$close) {
+
+        if $.chomp {
+            gather {
+                until nqp::eoffh($!PIO) {
+                    $!ins = $!ins + 1;
+                    take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
+                }
+                self.close if $close;
+            }
+        }
+        else {
+            gather {
+                until nqp::eoffh($!PIO) {
+                    $!ins = $!ins + 1;
+                    take nqp::p6box_s(nqp::readlinefh($!PIO));
+                }
+                self.close if $close;
+            }
+        }
+    }
+    multi method lines(IO::Handle:D: $limit, :$eager, :$close) {
+        return self.lines(:$eager, :$close)
+          if nqp::istype($limit,Whatever) or $limit == Inf;
+
+        my Mu $rpa := nqp::list();
+        my int $count = $limit + 1;
+        if $.chomp {
+            while $count = $count - 1 {
+                last if nqp::eoffh($!PIO);
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
+            }
+        }
+        else {
+            while $count = $count - 1 {
+                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
+            }
+        }
+        $!ins = nqp::elems($rpa);
+        self.close if $close;
+        nqp::p6parcel($rpa, Nil);
+    }
+
+    method read(IO::Handle:D: Int(Cool:D) $bytes) {
+        my $buf := buf8.new();
+        nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
+        $buf;
 >>>>>>> nom
     }
 

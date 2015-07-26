@@ -14,7 +14,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-07-23   Rakudo #90
   2015-08-20   Rakudo #91 duff
   2015-09-17   Rakudo #92
   2015-10-22   Rakudo #93
@@ -334,6 +333,9 @@ You're done!  Celebrate with the appropriate amount of fun.
   2015-04-23   Rakudo #87 "Vladivostok"        (masak)
   2015-05-21   Rakudo #88 "Dresden"            (FROGGS)
   2015-06-18   Rakudo #89 "Salt Lake"          (hoelzro)
+  2015-07-24   Rakudo #90 "Prague"             (masak)
+  2015-07-24   2015.07.1                       (masak)
+  2015-07-25   2015.07.2                       (moritz)
 
 =head1 COPYRIGHT
 

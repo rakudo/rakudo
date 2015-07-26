@@ -7,10 +7,6 @@ my class Set does Setty {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
         $!WHICH
     }
-    submethod BUILD (:%elems) {
-        nqp::bindattr(self, Set, '%!elems', %elems);
-        self;
-    }
 
     method grab ($count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
@@ -33,10 +29,10 @@ my class Set does Setty {
         %!elems.EXISTS-KEY(k.WHICH);
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
-        fail X::Assignment::RO.new(typename => self.^name);
+        X::Assignment::RO.new(typename => self.^name).throw;
     }
     multi method DELETE-KEY(Set:D: \k) {
-        fail X::Immutable.new(method => 'DELETE-KEY', typename => self.^name);
+        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 }
 

@@ -1,23 +1,34 @@
 New in 2015.07
  + Features:
-   + Cool.substr(-rw) and substr-(rw) now also accept a Range
+   + Cool.substr(-rw) and &substr(-rw) now also accept a Range
    + Added trait "is required" on class attributes
+   + Parameters like :n($n) are presented as :$n in .gist
+   + &?ROUTINE and &?BLOCK
+   + Conversion forms now understand :16(':8<377>') and such
+   + &words implemented (to completement .words)
+   + Numeric comparison ops (== > etc) for DateTimes
  + Fixes:
    + ENTER phaser now can be used as an r-value
    + Allow %{Type} as a way to say Hash[Any,Type].new
    + Several issues with the use of ';;' in signatures
    + Issues with regexen throwing an exception (RT #62086 & #72440)
    + samewith() now also works in subs
-   + Calling the .clone method with alternate values, no longer changes original
+   + Calling the .clone method with alternate values no longer changes original
    + Various fixes and optimizations on List.splice
+   + .grep and &grep now consume multiple elements for many-param blocks
+   + Issues with precedence limit checking in EXPR fixed
+   + EVAL now pays attention to languages in the compiler registry
  + Incompatible changes:
-   + my Type $a is default(Foo) is now compile-time checked
+   + my Type $a is default($value) is now compile-time checked
    + my $a is default(Nil) only works on untyped (Mu) variables
    + Can no longer (roulette) assign to Whatever slice of a hash
+   + Emit warning when \$ \@ \% \& are used to create a Capture
+   + Now illegal to use a contextual ($*c) before declaring it in a block
+   + EVAL :lang<Perl5> instead of <perl5> for consistency with use :from<Perl5>
  + Deprecations:
-   + $*PROGRAM_NAME in favour of $PROGRAM-NAME
-   + $*EXECUTABLE_NAME in favour of $EXECUTABLE-NAME
-   + pipe() in favour of shell() or run() with :in, :out or :err
+   + $*PROGRAM_NAME in favor of $PROGRAM-NAME
+   + $*EXECUTABLE_NAME in favor of $EXECUTABLE-NAME
+   + pipe() in favor of shell() or run() with :in, :out or :err
 
 New in 2015.06
  + Features:

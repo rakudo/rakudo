@@ -4001,6 +4001,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<eqv>    { <sym> >> <O('%chaining')> }
     token infix:sym<before> { <sym> >> <O('%chaining')> }
     token infix:sym<after>  { <sym> >> <O('%chaining')> }
+    token infix:sym<~~>   { <sym> <O('%chaining')> <!dumbsmart> }
+    token infix:sym<!~~>  { <sym> <O('%chaining')> <!dumbsmart> }
     token infix:sym<(elem)> { <sym> <O('%chaining')> }
     token infix:sym«∈»      { <sym> <O('%chaining')> }
     token infix:sym«∉»      { <sym> <O('%chaining')> }
@@ -4198,10 +4200,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<but>  { <sym> >> <O('%structural')> }
     token infix:sym<does> { <sym> >> <O('%structural')> }
 
-    token infix:sym<~~>   { <sym> <O('%structural')> <!dumbsmart> }
-    token infix:sym<!~~>  { <sym> <O('%structural')> <!dumbsmart> }
-    token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%structural')> }
-    token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%structural')> }
+    token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%chaining')> }
+    token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }
 
     method add_mystery($token, $pos, $ctx) {
         my $name := ~$token;

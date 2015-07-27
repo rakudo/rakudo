@@ -201,19 +201,19 @@ my class Parameter { # declared in BOOTSTRAP
           ?? ':D' !! $!flags +& $SIG_ELEM_UNDEFINED_ONLY
             ?? ':U' !! '';
 
+        $perl ~= " ::$_" for @($.type_captures);
         # XXX Need a CODE_SIGIL too?
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $type ~~ /^^ Callable >> / {
             $type ~~ / .*? \[ <( .* )> \] $$/;
-            $perl = $/ ~ $modifier if $/;
+            $perl ~= $/ ~ $modifier if $/;
         }
         elsif $modifier or !($!nominal_type.HOW.archetypes.nominal &&
                              $elide-type.HOW.archetypes.nominal &&
                              $!nominal_type.WHICH === $elide-type.WHICH) {
-            $perl = $type ~ $modifier;
+            $perl ~= $type ~ $modifier;
         }
-        $perl ~= " ::$_" for @($.type_captures);
         my $name = $.name;
         if $name {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {

@@ -272,6 +272,9 @@ my class Cool { # declared in BOOTSTRAP
     proto method Int(|) { * }
     multi method Int()  { self.Numeric.Int }
 
+    proto method Pos(|) { * }
+    multi method Pos()  { self.Numeric.Int.Pos }
+
     proto method UInt(|) { * }
     multi method UInt()  {
         my $got := self.Int;

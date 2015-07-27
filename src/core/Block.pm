@@ -283,56 +283,20 @@ my class Block { # declared in BOOTSTRAP
             @phash.push(strip_parm($slurp_n));
         }
         my $error = False;
-#            say(
-#                 sprintf('anon sub trybind (%s) { }(|@alist, |%%ahash);',
-#                         (flat @tlist.map(&strip_parm),
-#                               @thash.map(&strip_parm)).join(", "))
-#                 );
-        try {
-            EVAL(sprintf('anon sub trybind (%s) { }(|@alist, |%%ahash);',
-                         (flat @tlist.map(&strip_parm),
-                               @thash.map(&strip_parm)).join(", "))
-                 );
-            # Turn certain failures soft, for now, let them happen at closure invoke
-            CATCH {
-                # These do not seem to be available while we are compiling
-                when ::("X::TypeCheck::Binding") {
-                    $error = $_;
-                }
-                # Deal with some yet-to-be-typed exceptions
-                when X::AdHoc {
-                    proceed unless $_.payload ~~ rx:s[Too many positionals];
-                    $error = $_;
-                }
-                when X::AdHoc {
-                    proceed unless $_.payload ~~ rx:s[Unexpected named param];
-                    $error = $_;
-                }
-            }
-        }
+        EVAL(sprintf('anon sub trybind (%s) { }(|@alist, |%%ahash);',
+                     (flat @tlist.map(&strip_parm),
+                           @thash.map(&strip_parm)).join(", "))
+             );
 
         my $f;
         my $primed_sig = (flat @plist.map(&strip_parm), @phash,
                           ($slurp_p ?? strip_parm($slurp_p) !! ())).join(", ");
 
-
-#        say sprintf(
-#            '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });
-#               my multi __PRIMED_ANON (|%s(%s)) {
-#                   my %%chash := %s.hash;
-#                   $self(%s%s |{ %%ahash, %%chash });
-#               };
-#               $res }()',
-#            $primed_sig, $capwrap, $primed_sig, $capwrap,
-#            (flat @clist).join(", "),
-#            (@clist ?? ',' !! '')
-#        );
-        # The { } after the | is a workaround for RT#77788
         $f = EVAL sprintf(
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });
                my multi __PRIMED_ANON (|%s(%s)) {
                    my %%chash := %s.hash;
-                   $self(%s%s |{ %%ahash, %%chash });
+                   $self(%s%s |{ %%ahash, %%chash }); # |{} workaround RT#77788
                };
                $res }()',
             $primed_sig, $capwrap, $primed_sig, $capwrap,

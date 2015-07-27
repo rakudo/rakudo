@@ -276,6 +276,13 @@ my class DateTime does Dateish {
             if $6 eq 'Z' {
                 $timezone = 0;
             } else {
+                if $6[2] && $6[2][0] > 59 {
+                    X::OutOfRange.new(
+                        what    => "minutes of timezone",
+                        got     => +$6[2][0],
+                        range   => 0..59,
+                   ).throw;
+                }
                 $timezone = (($6[1]*60 + ($6[2][0] // 0)) * 60).Int;
                   # RAKUDO: .Int is needed to avoid to avoid the nasty '-0'.
                 $6[0] eq '-' and $timezone = -$timezone;

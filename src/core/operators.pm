@@ -534,7 +534,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
     my Str $name = @chunks.join('::');
     my @parts    = $name.split('::');
     my $first    = @parts.shift;
-    if @parts && '$@%&'.index(substr($first,0, 1)).defined {
+    if @parts && '$@%&'.index(substr($first,0, 1)) {
         # move sigil from first to last chunk, because
         # $Foo::Bar::baz is actually stored as Foo::Bar::$baz
         my $last_idx      = @parts.end;

@@ -240,10 +240,11 @@ my class Parameter { # declared in BOOTSTRAP
             $name = '*' ~ $name;
         } elsif self.named {
             my $name1 := substr($name,1);
-            for @(self.named_names) {
-                $name = $_ && $_ eq $name1
-                  ?? ':' ~ $name
-                  !! ':' ~ $_ ~ '(' ~ $name ~ ')';
+            if @(self.named_names).first({$_ && $_ eq $name1}) {
+                $name = ':' ~ $name;
+            }
+            for @(self.named_names).grep({$_ && $_ ne $name1}) {
+                $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
             }
             $name ~= '!' unless self.optional;
         } elsif self.optional && !$default {

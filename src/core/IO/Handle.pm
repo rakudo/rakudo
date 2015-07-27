@@ -512,21 +512,20 @@ my class IO::Handle does IO {
         self.slurp-rest(|c);
     }
 
-    method slurp-rest(IO::Handle:D: :$bin, :$enc) {
-        if $bin {
-            my $Buf := buf8.new();
-            loop {
-                my $buf := buf8.new();
-                nqp::readfh($!PIO,$buf,65536);
-                last if $buf.bytes == 0;
-                $Buf := $Buf ~ $buf;
-            }
-            $Buf;
+    proto method slurp-rest(|) { * }
+    multi method slurp-rest(IO::Handle:D: :$bin!) returns Buf {
+        my $Buf := buf8.new();
+        loop {
+            my $buf := buf8.new();
+            nqp::readfh($!PIO,$buf,65536);
+            last if $buf.bytes == 0;
+            $Buf := $Buf ~ $buf;
         }
-        else {
-            self.encoding($enc) if $enc.defined;
-            nqp::p6box_s(nqp::readallfh($!PIO));
-        }
+        $Buf;
+    }
+    multi method slurp-rest(IO::Handle:D: :$enc) returns Str {
+        self.encoding($enc) if $enc.defined;
+        nqp::p6box_s(nqp::readallfh($!PIO));
     }
 
     proto method spurt(|) { * }

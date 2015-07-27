@@ -345,7 +345,8 @@ my class Block { # declared in BOOTSTRAP
 
     multi method perl(Block:D:) {
         my $perl = '-> ';
-        $perl ~= substr(self.signature().perl,1); # lose colon prefix
+        # lose colon prefix and parens
+        $perl ~= substr(self.signature().perl,2,*-1);
         $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
         $perl
     }

@@ -629,17 +629,19 @@ my class BlockVarOptimizer {
                                 nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
                 }
 
-                # Also must not lexicalref it.
-                my int $ref'd := 0;
-                if %!usages_flat{$name} {
-                    for %!usages_flat{$name} {
-                        if $_.scope eq 'lexicalref' {
-                            $ref'd := 1;
-                            last;
+                # Also must not lexicalref it - except if it's a native var.
+                if nqp::objprimspec($qast.returns) == 0 {
+                    my int $ref'd := 0;
+                    if %!usages_flat{$name} {
+                        for %!usages_flat{$name} {
+                            if $_.scope eq 'lexicalref' {
+                                $ref'd := 1;
+                                last;
+                            }
                         }
                     }
+                    next if $ref'd;
                 }
-                next if $ref'd;
 
                 # Seems good; lower it. Note we need to retain a lexical in
                 # case of binder failover to generate errors.
@@ -650,8 +652,13 @@ my class BlockVarOptimizer {
                 $qast.scope('local');
                 if %!usages_flat{$name} {
                     for %!usages_flat{$name} {
-                        $_.scope('local');
+                        if $_.scope eq 'lexical' {
+                            $_.scope('local');
+                        } else {
+                            $_.scope('localref');
+                        }
                         $_.name($new_name);
+                        $_.returns($qast.returns);
                     }
                 }
             }

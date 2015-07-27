@@ -269,13 +269,13 @@ my class Parameter { # declared in BOOTSTRAP
                 $rest ~= ' is parcel';
             }
         }
-        $rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
-        $rest ~= ' = { ... }' if $default;
         unless nqp::isnull($!sub_signature) {
             my $sig = $!sub_signature.perl();
             $sig ~~ s/^^ ':'//;
             $rest ~= ' ' ~ $sig;
         }
+        $rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
+        $rest ~= ' = { ... }' if $default;
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
         }

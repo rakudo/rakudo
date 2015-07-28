@@ -87,22 +87,24 @@ my class Proc {
         }
     }
 
-    method spawn(*@args ($, *@), :$cwd = $*CWD) {
+    method spawn(*@args ($, *@), :$cwd = $*CWD, :$env) {
+        my %env := $env ?? $env.hash !! %*ENV;
         self.status(nqp::p6box_i(nqp::spawn(
             CLONE-LIST-DECONTAINERIZED(@args),
             nqp::unbox_s($cwd.Str),
-            CLONE-HASH-DECONTAINERIZED(%*ENV),
+            CLONE-HASH-DECONTAINERIZED(%env),
             $!in_fh, $!out_fh, $!err_fh,
             $!flags
         )));
         self.Bool
     }
 
-    method shell($cmd, :$cwd = $*CWD) {
+    method shell($cmd, :$cwd = $*CWD, :$env) {
+        my %env := $env ?? $env.hash !! %*ENV;
         self.status(nqp::p6box_i(nqp::shell(
             nqp::unbox_s($cmd),
             nqp::unbox_s($cwd.Str),
-            CLONE-HASH-DECONTAINERIZED(%*ENV),
+            CLONE-HASH-DECONTAINERIZED(%env),
             $!in_fh, $!out_fh, $!err_fh,
             $!flags
         )));
@@ -121,26 +123,27 @@ my class Proc {
 
 sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD) {
+        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    $proc.spawn(@args, :$cwd);
+    $proc.spawn(@args, :$cwd, :$env);
     $proc
 }
 
 sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD) {
+        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    $proc.shell($cmd, :$cwd);
+    $proc.shell($cmd, :$cwd, :$env);
     $proc
 }
 
-sub QX($cmd, :$cwd = $*CWD) {
+sub QX($cmd, :$cwd = $*CWD, :$env) {
+    my %env := $env ?? $env.hash !! %*ENV;
     my Mu $pio := nqp::syncpipe();
     my $status := nqp::shell(
         nqp::unbox_s($cmd),
         nqp::unbox_s($cwd.Str),
-        CLONE-HASH-DECONTAINERIZED(%*ENV),
+        CLONE-HASH-DECONTAINERIZED(%env),
         nqp::null(), $pio, nqp::null(),
         nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
     );

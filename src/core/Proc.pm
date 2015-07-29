@@ -13,7 +13,7 @@ my class Proc {
 
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
                     Bool :$bin, Bool :$chomp = True, Bool :$merge,
-                    Str:D :$enc = 'utf8', Str:D :$nl = "\n") {
+                    Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$signal) {
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
             $!in_fh := nqp::getattr(nqp::decont($in), IO::Handle, '$!PIO');
             $!flags += nqp::const::PIPE_INHERIT_IN;
@@ -84,6 +84,9 @@ my class Proc {
 
         if nqp::istype($exitcode, Int) && $exitcode.DEFINITE {
             $!exitcode = $exitcode;
+        }
+        if nqp::istype($signal, Int) && $signal.DEFINITE {
+            $!signal = $signal;
         }
     }
 

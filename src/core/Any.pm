@@ -1,6 +1,6 @@
 my class MapIter                { ... }
 my class Pair                   { ... }
-my class Pos                    { ... }
+my class Index                  { ... }
 my class Range                  { ... }
 my class X::Adverb::Slice       { ... }
 my class X::Bind                { ... }
@@ -297,7 +297,7 @@ my class Any { # declared in BOOTSTRAP
         self.map: {
             $index = $index+1;
             next unless .match($test);
-            nqp::box_i($index,Pos);
+            nqp::box_i($index,Index);
         };
     }
     multi method grep-index(Callable:D $test) {
@@ -305,7 +305,7 @@ my class Any { # declared in BOOTSTRAP
         self.map: {
             $index = $index + 1;
             next unless $test($_);
-            nqp::box_i($index,Pos);
+            nqp::box_i($index,Index);
         };
     }
     multi method grep-index(Mu $test) {
@@ -313,7 +313,7 @@ my class Any { # declared in BOOTSTRAP
         self.map: {
             $index = $index + 1;
             next unless $_ ~~ $test;
-            nqp::box_i($index,Pos);
+            nqp::box_i($index,Index);
         };
     }
 
@@ -342,7 +342,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = -1;
         self.map: {
             $index = $index + 1;
-            return nqp::box_i($index,Pos) if .match($test);
+            return nqp::box_i($index,Index) if .match($test);
         };
         Nil;
     }
@@ -350,7 +350,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = -1;
         self.map: {
             $index = $index + 1;
-            return nqp::box_i($index,Pos) if $test($_);
+            return nqp::box_i($index,Index) if $test($_);
         };
         Nil;
     }
@@ -358,7 +358,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = -1;
         self.map: {
             $index = $index + 1;
-            return nqp::box_i($index,Pos) if $_ ~~ $test;
+            return nqp::box_i($index,Index) if $_ ~~ $test;
         };
         Nil;
     }
@@ -374,7 +374,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = $elems;
         while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Pos) if self.AT-POS($index).match($test);
+            return nqp::box_i($index,Index) if self.AT-POS($index).match($test);
         }
         Nil;
     }
@@ -385,7 +385,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = $elems;
         while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Pos) if $test(self.AT-POS($index));
+            return nqp::box_i($index,Index) if $test(self.AT-POS($index));
         }
         Nil;
     }
@@ -396,7 +396,7 @@ my class Any { # declared in BOOTSTRAP
         my int $index = $elems;
         while $index {
             $index = $index - 1;
-            return nqp::box_i($index,Pos) if self.AT-POS($index) ~~ $test;
+            return nqp::box_i($index,Index) if self.AT-POS($index) ~~ $test;
         }
         Nil;
     }

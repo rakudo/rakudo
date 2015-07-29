@@ -190,7 +190,7 @@ my class Cool { # declared in BOOTSTRAP
                 nqp::unbox_s($needle.Str),
                 nqp::unbox_i($pos.Int)
         );
-        $result < 0 ?? Pos !! nqp::box_i($result,Pos);
+        $result < 0 ?? Nil !! nqp::box_i($result,Index);
     }
 
     proto method rindex(|) {*}
@@ -205,7 +205,7 @@ my class Cool { # declared in BOOTSTRAP
                  nqp::unbox_s(self.Str),
                  nqp::unbox_s($needle.Str),
                );
-        $result < 0 ?? Pos !! nqp::box_i($result,Pos);
+        $result < 0 ?? Nil !! nqp::box_i($result,Index);
     }
 
     proto method split(|) {*}
@@ -272,8 +272,8 @@ my class Cool { # declared in BOOTSTRAP
     proto method Int(|) { * }
     multi method Int()  { self.Numeric.Int }
 
-    proto method Pos(|) { * }
-    multi method Pos()  { self.Numeric.Int.Pos }
+    proto method Index(|) { * }
+    multi method Index()  { self.Numeric.Int.Index }
 
     proto method UInt(|) { * }
     multi method UInt()  {

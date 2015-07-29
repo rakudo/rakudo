@@ -15,7 +15,7 @@ my role Mixy does Baggy  {
         for %e -> $p {
             %e.DELETE-KEY($p.key) if $p.value.value == 0;
         }
-        nqp::create(self).BUILD(:elems(%e));
+        self.bless(:elems(%e));
     }
 
     multi method gist(Mixy:D $ : --> Str) {

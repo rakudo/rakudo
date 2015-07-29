@@ -2,9 +2,7 @@ my class SetHash does Setty {
 
     method Set (:$view) {
         if $view {
-            my $set := nqp::create(Set);
-            $set.BUILD( :elems(%!elems) );
-            $set;
+            Set.bless( :elems(%!elems) );
         }
         else {
             Set.new(self.keys);

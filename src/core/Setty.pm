@@ -1,7 +1,7 @@
 my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
-    submethod BUILD (:%!elems)  { self }
+    submethod BUILD (:%!elems)  { }
     method default(--> Bool) { False }
 
     multi method keys(Setty:D:)   { %!elems.values }

@@ -159,15 +159,8 @@ class array is Iterable is repr('VMArray') {
             has $!reified;  # Parcel of native array refs we return after reifying
             has int $!idx;  # Starting index of this iterator
 
-            method new($array) {
-                my \iter = nqp::create(self);
-                iter.BUILD(:$array);
-                iter
-            }
-
-            submethod BUILD(:$array) {
-                $!array := nqp::decont($array);
-            }
+            method new($array) { self.bless(:$array) }
+            submethod BUILD(:$array) { $!array := nqp::decont($array) }
 
             method reify($n) {   # :$sink is not needed here
                 unless nqp::isconcrete($!reified) {
@@ -365,15 +358,8 @@ class array is Iterable is repr('VMArray') {
             has $!reified;  # Parcel of native array refs we return after reifying
             has int $!idx;  # Starting index of this iterator
 
-            method new($array) {
-                my \iter = nqp::create(self);
-                iter.BUILD(:$array);
-                iter
-            }
-
-            submethod BUILD(:$array) {
-                $!array := nqp::decont($array);
-            }
+            method new($array) { self.bless(:$array) }
+            submethod BUILD(:$array) { $!array := nqp::decont($array) }
 
             method reify($n, :$sink) {
                 unless nqp::isconcrete($!reified) {

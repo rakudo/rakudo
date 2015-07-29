@@ -437,7 +437,6 @@ class array is Iterable is repr('VMArray') {
         }
     }
 
-    proto method new(|) {*}
     multi method new() {
         self!validate-parameterized();
         nqp::create(self)

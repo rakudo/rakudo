@@ -55,7 +55,6 @@ my class Backtrace {
         self;
     }
 
-    proto method new(|) {*}
     multi method new(Mu $e, Int $offset = 0) {
         $e.^name eq 'BOOTException'
             ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)

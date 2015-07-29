@@ -54,7 +54,6 @@ my class Proc::Async {
     has $!exit_promise;
     has @!promises;
 
-    proto method new(|) { * }
     multi method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
     multi method new(:$path!, :@args, :$w) {
         DEPRECATED( 'new($path,@args)', :what('new(:path(),:args()) (from Proc::Async)') );

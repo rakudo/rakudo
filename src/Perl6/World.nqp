@@ -1169,6 +1169,7 @@ class Perl6::World is HLL::World {
     method container_type_info($/, $sigil, @value_type, $shape?, :@post) {
         my %info;
         %info<sigil> := $sigil;
+        @value_type[0] := nqp::decont(@value_type[0]) if @value_type;
         for @post -> $con {
             @value_type[0] := self.create_subset(self.resolve_mo($/, 'subset'),
                 @value_type ?? @value_type[0] !! self.find_symbol(['Mu']),

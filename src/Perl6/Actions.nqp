@@ -4394,8 +4394,6 @@ Compilation unit '$file' contained the following violations:
         # in any way qualified, we need to ensure that the current package
         # is trusted by the target class. Otherwise we assume that the call
         # is to a private method in the current (non-virtual) package.
-        # XXX Optimize the case where the method is declared up front - but
-        # maybe this is for the optimizer, not for here.
         # XXX Attribute accesses? Again, maybe for the optimizer, since it
         # runs after CHECK time.
         my $past := $<methodop>.ast;

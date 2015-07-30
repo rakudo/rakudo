@@ -455,7 +455,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    method sort($by = &infix:<cmp>) is nodal {
+    method sort(&by = &infix:<cmp>) is nodal {
         fail X::Cannot::Infinite.new(:action<sort>) if self.infinite; #MMD?
 
         # Instead of sorting elements directly, we sort a Parcel of
@@ -473,15 +473,15 @@ my class List does Positional { # declared in BOOTSTRAP
         my $index := Range.new(0, $elems, :excludes-max).reify(*);
         my Mu $index_rpa := nqp::getattr($index, Parcel, '$!storage');
 
-        # if $by.arity < 2, then we apply the block to the elements
+        # if &by.arity < 2, then we apply the block to the elements
         # for sorting.
-        if ($by.?count // 2) < 2 {
-            my $list = self.map($by).eager;
+        if (&by.?count // 2) < 2 {
+            my $list = self.map(&by).eager;
             nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
         }
         else {
             my $list = self.eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { &by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
         }
         self[$index];
     }

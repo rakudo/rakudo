@@ -140,7 +140,7 @@ my class Any { # declared in BOOTSTRAP
     method squish(|c) is nodal { self.list.squish(|c) }
     method rotor(|c) is nodal { self.list.rotor(|c) }
     method reverse() is nodal { self.list.reverse }
-    method sort($by = &infix:<cmp>) is nodal { self.list.sort($by) }
+    method sort(&by = &infix:<cmp>) is nodal { self.list.sort(&by) }
     method reduce(&with) is nodal { self.list.reduce(&with) }
     method combinations(|c) is nodal { self.list.combinations(|c) }
     method permutations(|c) is nodal { self.list.permutations(|c) }
@@ -193,13 +193,13 @@ my class Any { # declared in BOOTSTRAP
     }
     proto method map (|) is nodal { * }
     multi method map(Whatever) is rw { self }
-    multi method map($block, :$label) is rw {
-        MapIter.new(self, $block, Bool::False, :$label).list
+    multi method map(&block, :$label) is rw {
+        MapIter.new(self, &block, Bool::False, :$label).list
     }
     proto method FOR (|) { * }
     multi method FOR(Whatever) is rw { self }
-    multi method FOR($block, :$label) is rw {
-        MapIter.new(self, $block, Bool::False, :$label).list;
+    multi method FOR(&block, :$label) is rw {
+        MapIter.new(self, &block, Bool::False, :$label).list;
     }
     method for(|c) is nodal {
         DEPRECATED('flatmap',|<2015.05 2015.09>);
@@ -207,12 +207,12 @@ my class Any { # declared in BOOTSTRAP
     }
     proto method flatmap (|) is nodal { * }
     multi method flatmap(Whatever) is rw { self }
-    multi method flatmap($block, :$label) is rw {
-        MapIter.new(self, $block, Bool::True, :$label).list
+    multi method flatmap(&block, :$label) is rw {
+        MapIter.new(self, &block, Bool::True, :$label).list
     }
-    method nodemap($block) is rw is nodal { nodemap($block, self) }
-    method duckmap($block) is rw is nodal { duckmap($block, self) }
-    method deepmap($block) is rw is nodal { deepmap($block, self) }
+    method nodemap(&block) is rw is nodal { nodemap(&block, self) }
+    method duckmap(&block) is rw is nodal { duckmap(&block, self) }
+    method deepmap(&block) is rw is nodal { deepmap(&block, self) }
 
     proto method tree(|) is nodal { * }
     multi method tree(Any:U:) { self }
@@ -427,8 +427,8 @@ my class Any { # declared in BOOTSTRAP
         }
         $min // Inf;
     }
-    multi method min(Any:D: $by) {
-        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
+    multi method min(Any:D: &by) {
+        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
         my $min;
         self.map: {
             $min = $_ if .defined and !$min.defined || $cmp($_, $min) < 0;
@@ -444,8 +444,8 @@ my class Any { # declared in BOOTSTRAP
         }
         $max // -Inf;
     }
-    multi method max(Any:D: $by) {
-        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
+    multi method max(Any:D: &by) {
+        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
         my $max;
         self.map: {
             $max = $_ if .defined and !$max.defined || $cmp($_, $max) > 0;
@@ -454,8 +454,8 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method minmax (|) is nodal { * }
-    multi method minmax(Any:D: $by = &infix:<cmp>) {
-        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
+    multi method minmax(Any:D: &by = &infix:<cmp>) {
+        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) };
 
         my $min;
         my $max;
@@ -475,7 +475,7 @@ my class Any { # declared in BOOTSTRAP
                     $excludes-max = $_.excludes-max;
                 }
             } elsif Positional.ACCEPTS($_) {
-                my $mm = .minmax($by);
+                my $mm = .minmax(&by);
                 if !$min.defined || $cmp($mm.min, $min) < 0 {
                     $min = $mm.min;
                     $excludes-min = $mm.excludes-min;

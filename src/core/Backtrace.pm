@@ -50,12 +50,8 @@ my class Backtrace {
     has Mu $!frames;
     has Int $!bt-next;   # next bt index to vivify
 
-    submethod BUILD(:$!bt, :$!bt-next) {
-        $!frames := nqp::list;
-        self;
-    }
+    submethod BUILD(:$!bt, :$!bt-next) { $!frames := nqp::list }
 
-    proto method new(|) {*}
     multi method new(Mu $e, Int $offset = 0) {
         $e.^name eq 'BOOTException'
             ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)
@@ -73,7 +69,7 @@ my class Backtrace {
         # only check for verbose stack frames once
         $RAKUDO-VERBOSE-STACKFRAME = +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
 
-        nqp::create(self).BUILD(:$bt, :$bt-next);
+        self.bless(:$bt, :$bt-next);
     }
 
     method AT-POS($pos) {

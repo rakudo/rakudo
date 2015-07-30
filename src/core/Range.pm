@@ -7,7 +7,6 @@ my class Range is Iterable is Cool does Positional {
     has $.excludes-max;
     has $.infinite;
 
-    proto method new(|) { * }
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
     # are present (e.g., Range,Whatever or Real,Range).

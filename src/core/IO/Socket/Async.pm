@@ -8,7 +8,12 @@ my class IO::Socket::Async {
             "IO::Socket::Async.connect or IO::Socket::Async.listen.";
     }
 
-    method send(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
+    method send(|c) {
+        DEPRECATED('print', |<2015.07 2015.09>);
+        self.print(|c)
+    }
+
+    method print(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
         nqp::asyncwritestr(

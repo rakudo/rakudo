@@ -201,17 +201,19 @@ my class Parameter { # declared in BOOTSTRAP
           ?? ':D' !! $!flags +& $SIG_ELEM_UNDEFINED_ONLY
             ?? ':U' !! '';
 
+        $perl ~= "::$_ " for @($.type_captures);
         # XXX Need a CODE_SIGIL too?
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $type ~~ /^^ Callable >> / {
             $type ~~ / .*? \[ <( .* )> \] $$/;
-            $perl = $/ ~ $modifier if $/;
+            $perl ~= $/ ~ $modifier if $/;
         }
-        elsif $!nominal_type.WHICH !=== $elide-type.WHICH or $modifier {
-            $perl = $type ~ $modifier;
+        elsif $modifier or !($!nominal_type.HOW.archetypes.nominal &&
+                             $elide-type.HOW.archetypes.nominal &&
+                             $!nominal_type.WHICH === $elide-type.WHICH) {
+            $perl ~= $type ~ $modifier;
         }
-        $perl ~= " ::$_" for @($.type_captures);
         my $name = $.name;
         if $name {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
@@ -238,10 +240,11 @@ my class Parameter { # declared in BOOTSTRAP
             $name = '*' ~ $name;
         } elsif self.named {
             my $name1 := substr($name,1);
-            for @(self.named_names) {
-                $name = $_ && $_ eq $name1
-                  ?? ':' ~ $name
-                  !! ':' ~ $_ ~ '(' ~ $name ~ ')';
+            if @(self.named_names).first({$_ && $_ eq $name1}) {
+                $name = ':' ~ $name;
+            }
+            for @(self.named_names).grep({$_ && $_ ne $name1}) {
+                $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
             }
             $name ~= '!' unless self.optional;
         } elsif self.optional && !$default {
@@ -267,13 +270,13 @@ my class Parameter { # declared in BOOTSTRAP
                 $rest ~= ' is parcel';
             }
         }
-        $rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
-        $rest ~= ' = { ... }' if $default;
         unless nqp::isnull($!sub_signature) {
             my $sig = $!sub_signature.perl();
             $sig ~~ s/^^ ':'//;
             $rest ~= ' ' ~ $sig;
         }
+        $rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
+        $rest ~= ' = { ... }' if $default;
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
         }

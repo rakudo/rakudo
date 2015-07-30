@@ -4,7 +4,6 @@ my class X::Buf::Pack::NonASCII { ... }
 my class X::Cannot::Infinite    { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    proto method new(|) { * }
     multi method new() {
         nqp::create(self)
     }

@@ -2,9 +2,7 @@ my class BagHash does Baggy {
 
     method Bag (:$view) {
         if $view {
-            my $bag := nqp::create(Bag);
-            $bag.BUILD( :elems(%!elems) );
-            $bag;
+            Bag.bless( :elems(%!elems) );
         }
         else {
             Bag.new-from-pairs(%!elems.values);

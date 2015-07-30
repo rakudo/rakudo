@@ -2,9 +2,7 @@ my class MixHash does Mixy {
 
     method Mix (:$view) {
         if $view {
-            my $mix := nqp::create(Mix);
-            $mix.BUILD( :elems(%!elems) );
-            $mix;
+            Mix.bless(:elems(%!elems));
         }
         else {
             Mix.new-from-pairs(%!elems.values);

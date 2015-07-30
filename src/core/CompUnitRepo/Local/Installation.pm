@@ -37,7 +37,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $name;
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
-    my @installations = @*INC.grep( { .starts-with("inst#") } );
+    my @installations = @*INC.grep( { .starts-with("inst#") } )\
+        .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
     my @binaries = @installations>>.files(\'bin/#name#\', :$name, :$auth, :$ver);
     unless +@binaries {
         @binaries = @installations>>.files(\'bin/#name#\');
@@ -64,7 +65,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
-    exit run($*EXECUTABLE_NAME, @binaries[0]<files><bin/#name#>, @*ARGS).exitcode
+    exit run($*EXECUTABLE-NAME, @binaries[0]<files><bin/#name#>, @*ARGS).exitcode
 }';
 
     method install(:$dist!, *@files) {

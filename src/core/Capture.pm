@@ -3,9 +3,7 @@ my class Capture { # declared in BOOTSTRAP
     #     has Mu $!list;   # positional parameters
     #     has Mu $!hash;   # named parameters
 
-    method new(:@list,:%hash) {
-        nqp::create(self).BUILD(:@list,:%hash);
-    }
+    method new(:@list,:%hash) { self.bless(:@list,:%hash) }
 
     method from-args(|c) { c }
 
@@ -15,7 +13,6 @@ my class Capture { # declared in BOOTSTRAP
         );
         my Mu $hs := nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage');
         nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
-        self;
     }
     multi method WHICH (Capture:D:) {
         my $WHICH = self.^name;

@@ -3,7 +3,6 @@ my class Junction { # declared in BOOTSTRAP
     #     has Mu $!storage;             # elements of Junction
     #     has str $!type;                # type of Junction
 
-    proto method new(|) { * }
     multi method new(\values, Str :$type!) {
         my $junc := nqp::create(Junction);
         nqp::bindattr($junc, Junction, '$!storage', values.eager);

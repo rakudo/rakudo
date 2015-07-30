@@ -3913,8 +3913,9 @@ Compilation unit '$file' contained the following violations:
                 %*PARAM_INFO<default_is_literal> := 1;
             }
             else {
-                if $val.ann('code_object') -> $co {
-                    check_param_default_type($/, $co);
+                my $maybe_code_obj := $val.ann('code_object');
+                if nqp::isconcrete($maybe_code_obj) {
+                    check_param_default_type($/, $maybe_code_obj);
                 }
                 %*PARAM_INFO<default_value> :=
                     $*W.create_thunk($<default_value>[0], $val);

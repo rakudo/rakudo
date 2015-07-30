@@ -998,7 +998,6 @@ class Perl6::World is HLL::World {
         if $create_scope eq 'our' {
             if nqp::can($cur_pkg.HOW, 'archetypes') && $cur_pkg.HOW.archetypes.parametric {
                 self.throw($/, 'X::Declaration::OurScopeInRole',
-                    scope       => $*SCOPE,
                     declaration => $pkgdecl,
                 );
             }
@@ -1028,7 +1027,7 @@ class Perl6::World is HLL::World {
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
                 }
                 if $create_scope eq 'our' {
-                    self.install_package_symbol($cur_pkg, $part, $new_pkg);
+                    self.install_package_symbol_unchecked($cur_pkg, $part, $new_pkg);
                 }
                 $cur_pkg := $new_pkg;
                 $create_scope := 'our';
@@ -1044,7 +1043,7 @@ class Perl6::World is HLL::World {
             if nqp::existskey($cur_pkg.WHO, $name) {
                 self.steal_WHO($symbol, ($cur_pkg.WHO){$name});
             }
-            self.install_package_symbol($cur_pkg, $name, $symbol);
+            self.install_package_symbol_unchecked($cur_pkg, $name, $symbol);
         }
 
         1;
@@ -1153,7 +1152,7 @@ class Perl6::World is HLL::World {
         }
         self.add_object($cont);
         $block.symbol($name, :value($cont));
-        self.install_package_symbol($package, $name, $cont) if $scope eq 'our';
+        self.install_package_symbol_unchecked($package, $name, $cont) if $scope eq 'our';
 
         # Tweak var to have container.
         $var.value($cont);
@@ -1381,7 +1380,13 @@ class Perl6::World is HLL::World {
     }
 
     # Installs a symbol into the package.
-    method install_package_symbol($package, $name, $obj) {
+    method install_package_symbol($/, $package, $name, $obj, $declaration) {
+        if nqp::can($package.HOW, 'archetypes') && $package.HOW.archetypes.parametric {
+            self.throw($/, 'X::Declaration::OurScopeInRole', :$declaration);
+        }
+        self.install_package_symbol_unchecked($package, $name, $obj);
+    }
+    method install_package_symbol_unchecked($package, $name, $obj) {
         ($package.WHO){$name} := $obj;
         1;
     }

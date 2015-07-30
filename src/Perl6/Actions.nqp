@@ -2780,7 +2780,7 @@ Compilation unit '$file' contained the following violations:
                             postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
                         );
                     }
-                    $*W.install_package_symbol($package, $name, $code);
+                    $*W.install_package_symbol($/, $package, $name, $code, 'sub');
                     $outer[0].push(QAST::Op.new(
                         :op('bindkey'),
                         QAST::Op.new( :op('who'), QAST::WVal.new( :value($package) ) ),
@@ -3212,7 +3212,7 @@ Compilation unit '$file' contained the following violations:
                 # Install in lexpad and in package, and set up code to
                 # re-bind it per invocation of its outer.
                 $*W.install_lexical_symbol($outer, $name, $code);
-                $*W.install_package_symbol($*PACKAGE, $name, $code);
+                $*W.install_package_symbol($/, $*PACKAGE, $name, $code, 'macro');
                 $outer[0].push(QAST::Op.new(
                     :op('bind'),
                     $*W.symbol_lookup([$name], $/, :package_only(1)),
@@ -3313,7 +3313,7 @@ Compilation unit '$file' contained the following violations:
                     postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
                 );
             }
-            $*W.install_package_symbol($package, '&' ~ $name, $code);
+            $*W.install_package_symbol($/, $package, '&' ~ $name, $code, 'method');
         }
     }
 
@@ -3670,7 +3670,7 @@ Compilation unit '$file' contained the following violations:
             # Create and install value.
             my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value);
             $cur_key    := nqp::unbox_s($cur_key);
-            $*W.install_package_symbol($type_obj, $cur_key, $val_obj);
+            $*W.install_package_symbol_unchecked($type_obj, $cur_key, $val_obj);
             if $*SCOPE ne 'anon' {
                 if $block.symbol($cur_key) {
                     nqp::push(@redecl, $cur_key);
@@ -3687,7 +3687,7 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*W.install_package_symbol($*PACKAGE, $cur_key, $val_obj);
+                $*W.install_package_symbol_unchecked($*PACKAGE, $cur_key, $val_obj);
             }
         }
 

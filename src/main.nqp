@@ -43,15 +43,12 @@ sub MAIN(*@ARGS) {
 sub MAIN(@ARGS) {
 #?endif
     # Enter the compiler.
-    my $result := $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
-    if !nqp::isnull($result) && nqp::isconcrete($result) && nqp::can($result, 'sink') {
-        $result.sink();
-    }
+    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
 
     # Run any END blocks before exiting.
     my @END := nqp::gethllsym('perl6', '@END_PHASERS');
     while +@END {
-        $result := (@END.shift)();
+        my $result := (@END.shift)();
         nqp::can($result, 'sink') && $result.sink();
         CATCH { $comp.handle-exception($_); }
         CONTROL { $comp.handle-control($_); }

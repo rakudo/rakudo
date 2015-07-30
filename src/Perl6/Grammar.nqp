@@ -379,6 +379,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*HOW<knowhow> := nqp::knowhow();
         %*HOW<package> := nqp::knowhow();
 
+        # Will we use the result of this? (Yes for EVAL and REPL).
+        my $*NEED_RESULT := nqp::existskey(%*COMPILING<%?OPTIONS>, 'outer_ctx');
+
         # Symbol table and serialization context builder - keeps track of
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.

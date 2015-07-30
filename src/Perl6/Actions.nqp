@@ -294,6 +294,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*POD_PAST,
             statementlist_with_handlers($/)
         );
+        unless $*NEED_RESULT {
+            # Evaluate last statement in sink context, by pushing another
+            # statement after it, unless we need the result.
+            $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+        }
         fatalize($mainline) if %*PRAGMAS<fatal>;
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5

@@ -994,6 +994,16 @@ class Perl6::World is HLL::World {
             );
         }
 
+        # Can't install our-scoped packages inside parametric types.
+        if $create_scope eq 'our' {
+            if nqp::can($cur_pkg.HOW, 'archetypes') && $cur_pkg.HOW.archetypes.parametric {
+                self.throw($/, 'X::Declaration::OurScopeInRole',
+                    scope       => $*SCOPE,
+                    declaration => $pkgdecl,
+                );
+            }
+        }
+
         # If we have a multi-part name, see if we know the opening
         # chunk already. If so, use it for that part of the name.
         if +@parts {

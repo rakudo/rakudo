@@ -1437,6 +1437,15 @@ my class X::Declaration::Scope::Multi is X::Declaration::Scope {
     }
 }
 
+my class X::Declaration::OurScopeInRole does X::Comp {
+    has $.declaration;
+    method message() {
+        "Cannot declare our-scoped $.declaration inside of a role\n" ~
+        "(the scope inside of a role is generic, so there is no unambiguous\n" ~
+        "package to install the symbol in)"
+    }
+}
+
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
     has $.routine-type = 'routine';

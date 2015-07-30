@@ -2474,6 +2474,11 @@ Compilation unit '$file' contained the following violations:
                 elsif $desigilname eq '' {
                     $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
                 }
+                if nqp::can($*PACKAGE.HOW, 'archetypes') && $*PACKAGE.HOW.archetypes.parametric {
+                    $*W.throw($/, 'X::Declaration::OurScopeInRole',
+                        declaration => 'variable'
+                    );
+                }
             }
             elsif $desigilname eq '' {
                 if $twigil {

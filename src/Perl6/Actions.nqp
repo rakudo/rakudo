@@ -4412,20 +4412,32 @@ Compilation unit '$file' contained the following violations:
                 $past[1].returns($methpkg);
             }
             else {
-                unless nqp::can($*PACKAGE.HOW, 'find_private_method') {
+                my $pkg := $*PACKAGE;
+                unless nqp::can($pkg.HOW, 'find_private_method') {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Unqualified'],
                         :method($name),
                     );
                 }
-                $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
-                $past[0].returns($*PACKAGE);
+                if $pkg.HOW.archetypes.parametric {
+                    $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
+                }
+                else {
+                    $past.unshift(QAST::WVal.new( :value($pkg) ));
+                    $past[0].returns($pkg);
+                }
                 $past.unshift($*W.add_string_constant($name));
             }
             $past.name('dispatch:<!>');
         }
         elsif $<methodop><quote> {
             my $name := $past.shift;
-            $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
+            my $pkg  := $*PACKAGE;
+            if $pkg.HOW.archetypes.parametric {
+                $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
+            }
+            else {
+                $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
+            }
             $past.unshift($name);
             $past.name('dispatch:<!>');
         }

@@ -1446,9 +1446,10 @@ class Perl6::Optimizer {
     }
 
     method optimize_private_method_call($op) {
-        if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
+        if $op[1].has_compile_time_value && $op[2].has_compile_time_value &&
+                nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
             my str $name := $op[1][2].value; # get raw string name
-            my $pkg  := $op[2].returns;  # actions always sets this
+            my $pkg  := $op[2].returns;      # actions sets this unless in role
             my $meth := $pkg.HOW.find_private_method($pkg, $name);
             if nqp::defined($meth) && $meth {
                 unless nqp::isnull(nqp::getobjsc($meth)) {

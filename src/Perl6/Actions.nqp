@@ -1881,10 +1881,9 @@ Compilation unit '$file' contained the following violations:
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
         my $past := QAST::Var.new( :name(@name[+@name - 1]), :node($/));
+        my $name := $past.name();
 
         if $twigil eq '*' {
-            my $name := $past.name;
-
             # DEPRECATIONS
             if $name eq '$*OS' {
                 $*W.DEPRECATED($/,
@@ -1915,9 +1914,9 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
             if !$*HAS_SELF {
-                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
+                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
             } elsif $*HAS_SELF eq 'partial' {
-                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $past.name());
+                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $name);
             }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>.ast !! QAST::Op.new();
@@ -1934,7 +1933,7 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $twigil eq '^' || $twigil eq ':' {
             $past := add_placeholder_parameter($/, $sigil, $desigilname,
-                                :named($twigil eq ':'), :full_name($past.name()));
+                                :named($twigil eq ':'), :full_name($name));
         }
         elsif $twigil eq '~' {
             my $actionsname := $desigilname ~ '-actions';
@@ -1954,41 +1953,41 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $twigil eq '=' && $desigilname ne 'pod' && $desigilname ne 'finish' {
             $*W.throw($/,
-              'X::Comp::NYI', feature => 'Pod variable ' ~ $past.name);
+              'X::Comp::NYI', feature => 'Pod variable ' ~ $name);
         }
-        elsif $past.name() eq '@_' {
+        elsif $name eq '@_' {
             if $*W.nearest_signatured_block_declares('@_') {
                 $past.scope('lexical');
             }
             else {
                 $past := add_placeholder_parameter($/, '@', '_',
-                                :pos_slurpy(1), :full_name($past.name()));
+                                :pos_slurpy(1), :full_name($name));
             }
         }
-        elsif $past.name() eq '%_' {
+        elsif $name eq '%_' {
             if $*W.nearest_signatured_block_declares('%_') || $*METHODTYPE {
                 $past.scope('lexical');
             }
             else {
                 $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1),
-                                :full_name($past.name()));
+                                :full_name($name));
             }
         }
-        elsif $past.name() eq '$?LINE' || $past.name eq '$?FILE' {
+        elsif $name eq '$?LINE' || $name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
                         twigil  => '?',
                         scope   => $*SCOPE,
                 );
             }
-            if $past.name() eq '$?LINE' {
+            if $name eq '$?LINE' {
                 $past := $*W.add_constant('Int', 'int', $*W.current_line($/));
             }
             else {
                 $past := $*W.add_string_constant($*W.current_file);
             }
         }
-        elsif $past.name() eq '&?BLOCK' {
+        elsif $name eq '&?BLOCK' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
                         twigil  => '?',
@@ -1997,13 +1996,13 @@ Compilation unit '$file' contained the following violations:
             }
             $past := QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) );
         }
-        elsif $past.name() eq '$?RAKUDO_MODULE_DEBUG' {
+        elsif $name eq '$?RAKUDO_MODULE_DEBUG' {
             $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
         }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
         }
-        elsif $*IN_DECL ne 'variable' && (my $attr_alias := $*W.is_attr_alias($past.name)) {
+        elsif $*IN_DECL ne 'variable' && (my $attr_alias := $*W.is_attr_alias($name)) {
             $past.name($attr_alias);
             setup_attr_var($/, $past);
         }
@@ -2012,7 +2011,7 @@ Compilation unit '$file' contained the following violations:
             # Locate descriptor and thus type.
             $past.scope('lexical');
             try {
-                my $type := $*W.find_lexical_container_type($past.name);
+                my $type := $*W.find_lexical_container_type($name);
                 $past.returns($type);
                 if nqp::objprimspec($type) && !$*W.is_lexical_marked_ro($past.name) {
                     $past.scope('lexicalref');

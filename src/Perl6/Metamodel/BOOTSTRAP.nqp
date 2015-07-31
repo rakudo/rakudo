@@ -302,7 +302,7 @@ my class Binder {
                             my $what  := $flags +& $SIG_ELEM_INVOCANT
                               ?? "Invocant"
                               !! "Parameter '$varname'";
-                            $error[0] := "$what requires a '$class' type object, but an object instance was passed";
+                            $error[0] := "$what requires a type object of type $class, but an object instance was passed";
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION
@@ -314,7 +314,7 @@ my class Binder {
                             my $what  := $flags +& $SIG_ELEM_INVOCANT
                               ?? "Invocant"
                               !! "Parameter '$varname'";
-                            $error[0] := "$what requires a '$class' instance, but a type object was passed.  Did you forget a .new?";
+                            $error[0] := "$what requires an instance of type $class, but a type object was passed.  Did you forget a .new?";
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION

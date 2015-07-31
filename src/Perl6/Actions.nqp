@@ -1987,14 +1987,44 @@ Compilation unit '$file' contained the following violations:
                 $past := $*W.add_string_constant($*W.current_file);
             }
         }
-        elsif $name eq '&?BLOCK' {
+        elsif $name eq '&?BLOCK' || $name eq '&?ROUTINE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
                         twigil  => '?',
                         scope   => $*SCOPE,
                 );
             }
-            $past := QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) );
+            my $Routine := $*W.find_symbol(['Routine']);
+            if $name eq '&?BLOCK' || nqp::istype($*CODE_OBJECT, $Routine) {
+                # Just need current code object.
+                $past := QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) );
+            }
+            else {
+                my int $scopes := 0;
+                my int $done := 0;
+                $past := QAST::Op.new( :op('ctx') );
+                until $done {
+                    my $co := $*W.get_code_object(:$scopes);
+                    if nqp::istype($co, $Routine) {
+                        $past := QAST::Op.new(
+                            :op('getcodeobj'),
+                            QAST::Op.new( :op('ctxcode'), $past )
+                        );
+                        $done := 1;
+                    }
+                    elsif !nqp::isconcrete($co) {
+                        # Spit out a lexical that we'll fail to look up. Can't just
+                        # go and throw because if we're in an interpolated string
+                        # we should not complain about this.
+                        $past := QAST::Var.new( :name('&?ROUTINE'), :scope('lexical') );
+                        $done := 1;
+                    }
+                    else {
+                        $past := QAST::Op.new( :op('ctxouterskipthunks'), $past );
+                    }
+                    $scopes++;
+                }
+            }
         }
         elsif $name eq '$?RAKUDO_MODULE_DEBUG' {
             $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
@@ -2580,15 +2610,6 @@ Compilation unit '$file' contained the following violations:
         install_method($/, $meth_name, 'has', $code, $install_in, :gen-accessor);
     }
 
-    sub install_routine_symbol($block, $code) {
-        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
-        $block[0].unshift(QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :scope('lexical'), :name('&?ROUTINE') ),
-            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
-        ));
-    }
-
     method routine_declarator:sym<sub>($/) { make $<routine_def>.ast; }
     method routine_declarator:sym<method>($/) { make $<method_def>.ast; }
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
@@ -2711,8 +2732,6 @@ Compilation unit '$file' contained the following violations:
         my $clone := !($outer =:= $*UNIT);
 #?endif
         $outer[0].push(QAST::Stmt.new($block));
-
-        install_routine_symbol($block, $code);
 
         if $<deflongname> {
             # If it's a multi, need to associate it with the surrounding
@@ -2879,7 +2898,6 @@ Compilation unit '$file' contained the following violations:
         my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
         $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
         $*W.add_proto_to_sort($code);
-        install_routine_symbol($p_past, $code);
         $code
     }
 
@@ -2915,7 +2933,7 @@ Compilation unit '$file' contained the following violations:
             if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
                 return 0 if $name ne '$*DISPATCHER' && $name ne '$_' &&
-                    $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
+                    $name ne '$/' && $name ne '$!' &&
                     !nqp::existskey(%arg_placeholders, $name);
             }
             elsif nqp::istype($_, QAST::Block) {
@@ -3118,8 +3136,6 @@ Compilation unit '$file' contained the following violations:
             $*POD_BLOCK.set_docee($code);
         }
 
-        install_routine_symbol($past, $code);
-
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*W.cur_lexpad();
         $outer[0].push($past);
@@ -3199,8 +3215,6 @@ Compilation unit '$file' contained the following violations:
         # install it in the lexpad.
         my $outer := $*W.cur_lexpad();
         $outer[0].push(QAST::Stmt.new($block));
-
-        install_routine_symbol($block, $code);
 
         if $<deflongname> {
             my $name := '&' ~ ~$<deflongname>.ast;
@@ -3462,8 +3476,6 @@ Compilation unit '$file' contained the following violations:
         if ~$*POD_BLOCK ne '' {
             $*POD_BLOCK.set_docee($*DECLARAND);
         }
-
-        install_routine_symbol($*CURPAD, $*DECLARAND);
 
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);

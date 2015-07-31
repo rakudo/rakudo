@@ -462,6 +462,14 @@ class Perl6::World is HLL::World {
         }
     }
 
+    # Gets top code object in the code objects stack, or optionally the
+    # one the specified number of scopes down.
+    method get_code_object(int :$scopes = 0) {
+        $scopes < nqp::elems(@!CODES)
+            ?? @!CODES[nqp::elems(@!CODES) - ($scopes + 1)]
+            !! NQPMu
+    }
+
     # Pushes a stub on the "stubs to check" list.
     method add_stub_to_check($stub) {
         nqp::push(@!stub_check, $stub);

@@ -140,12 +140,18 @@ my &lastcall := -> {
 };
 
 sub samewith(|c) {
-    my $my         := callframe(1).my;
-    my $caller     := $my<&?ROUTINE>;
-    my $dispatcher := $caller.dispatcher || die "Could not find dispatcher";
-    nqp::istype($caller,Method)
-      ?? $dispatcher($my<self> // $caller.package, |c)
-      !! $dispatcher(|c);
+    my Mu $ctx := nqp::ctxcaller(nqp::ctx());
+    until nqp::isnull($ctx) {
+        my $caller := nqp::getcodeobj(nqp::ctxcode($ctx));
+        if nqp::istype($caller, Routine) {
+            my $dispatcher := $caller.?dispatcher || die "Could not find dispatcher";
+            return nqp::istype($caller, Method)
+              ?? $dispatcher(nqp::atkey($ctx, 'self') // $caller.package, |c)
+              !! $dispatcher(|c);
+        }
+        $ctx := nqp::ctxouter($ctx);
+    }
+    die "Cannot use samewith outside of a routine";
 }
 
 proto sub die(|) {*};

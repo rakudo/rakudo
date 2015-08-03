@@ -33,6 +33,10 @@ my class CallFrame {
         my %annotations := %.annotations;
         "%annotations<file> at line %annotations<line>";
     }
+    method code() {
+        my $ctx := nqp::getattr(%!my, EnumMap, '$!storage');
+        nqp::getcodeobj(nqp::ctxcode($ctx));
+    }
 
     method callframe(Int $level = 0) {
         X::NYI.new(feature => 'Callframe.callframe').throw;

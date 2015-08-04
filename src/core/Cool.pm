@@ -184,10 +184,11 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method indices(|) {*}
-    multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0) {
-        my int $pos = $start;
+    multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0, :$overlap) {
+        my int $pos  = $start;
         my str $str  = nqp::unbox_s(self.Str);
         my str $need = nqp::unbox_s($needle);
+        my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
 
         my $rpa := nqp::list();
         my int $i;
@@ -195,7 +196,7 @@ my class Cool { # declared in BOOTSTRAP
             $i = nqp::index($str, $need, $pos);
             last if $i == -1;
             nqp::push($rpa,nqp::box_i($i,Index));
-            $pos = $i + 1;
+            $pos = $i + $add;
         }
         nqp::p6parcel($rpa, nqp::null());
     }

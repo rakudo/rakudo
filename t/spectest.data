@@ -436,6 +436,7 @@ S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
 S06-multi/redispatch.t
+S06-multi/subsignature.t
 S06-multi/syntax.t
 S06-multi/type-based.t
 S06-multi/unpackability.t

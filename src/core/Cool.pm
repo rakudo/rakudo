@@ -183,6 +183,23 @@ my class Cool { # declared in BOOTSTRAP
         ));
     }
 
+    proto method indices(|) {*}
+    multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0) {
+        my int $pos = $start;
+        my str $str  = nqp::unbox_s(self.Str);
+        my str $need = nqp::unbox_s($needle);
+
+        my $rpa := nqp::list();
+        my int $i;
+        loop {
+            $i = nqp::index($str, $need, $pos);
+            last if $i == -1;
+            nqp::push($rpa,nqp::box_i($i,Index));
+            $pos = $i + 1;
+        }
+        nqp::p6parcel($rpa, nqp::null());
+    }
+
     proto method index(|) {*}
     multi method index(Cool:D: Str(Cool) $needle) {
         my int $i = nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle));

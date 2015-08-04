@@ -322,6 +322,10 @@ sub uc(Cool $s)                    { $s.uc }
 sub tc(Cool $s)                    { $s.tc }
 sub tclc(Cool $s)                  { $s.tclc }
 
+sub indices(Cool $s,$needle,$pos=0,:$overlap) {
+    $s.indices($needle,$pos,:$overlap);
+}
+
 proto sub rindex($, $, $?) is pure { * };
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
 multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };

@@ -941,6 +941,7 @@ S32-str/ends-with.t
 S32-str/flip.t
 S32-str/indent.t
 S32-str/index.t
+S32-str/indices.t
 S32-str/lc.t
 S32-str/length.t
 S32-str/lines.t

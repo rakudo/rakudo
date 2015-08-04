@@ -4867,8 +4867,8 @@ Compilation unit '$file' contained the following violations:
     }
 
     method term:sym<nqp::op>($/) {
-        my @args := $<args> ?? $<args>.ast.list !! [];
-        my $op   := ~$<op>;
+        my @args   := $<args> ?? $<args>.ast.list !! [];
+        my str $op := ~$<op>;
 
         # using nqp::op outside of setting
         unless %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
@@ -4878,7 +4878,7 @@ Compilation unit '$file' contained the following violations:
         }
 
         my $past := QAST::Op.new( :$op, |@args );
-        if $past.op eq 'want' || $past.op eq 'handle' {
+        if $op eq 'want' || $op eq 'handle' {
             my int $i := 1;
             my int $n := nqp::elems($past.list);
             while $i < $n {

@@ -1,6 +1,7 @@
 my class X::ControlFlow::Return { ... }
 my class X::Eval::NoSuchLang { ... }
 my class X::Multi::NoMatch { ... }
+my class X::NYI { ... }
 my class PseudoStash { ... }
 my class Label { ... }
 
@@ -153,6 +154,8 @@ sub samewith(|c) {
     }
     die "Cannot use samewith outside of a routine";
 }
+
+sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
 proto sub die(|) {*};
 multi sub die(Exception:U $e) {

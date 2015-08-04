@@ -355,7 +355,7 @@ static MVMuint8 s_p6scalarfromdesc[] = {
 static void p6scalarfromdesc(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *new_scalar = MVM_repr_alloc_init(tc, Scalar);
     MVMObject *descriptor = GET_REG(tc, 2).o;
-    if (MVM_is_null(tc, descriptor)) {
+    if (MVM_is_null(tc, descriptor) || !IS_CONCRETE(descriptor)) {
         descriptor = default_cont_desc;
     }
     MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);

@@ -4305,6 +4305,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'infix:sym<=>', nqp::null(),
         'infix:sym<:=>', nqp::null(),
         'infix:sym<::=>', nqp::null(),
+        'infix:sym<~~>', nqp::null(),
         'prefix:sym<|>', nqp::null());
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;

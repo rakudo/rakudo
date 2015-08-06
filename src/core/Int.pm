@@ -28,7 +28,6 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     method Int() { self }
-    multi method Index(Int:D:) { nqp::box_i(nqp::unbox_i(self),Index) }
 
     multi method Str(Int:D:) {
         nqp::p6box_s(nqp::tostr_I(self));
@@ -161,12 +160,6 @@ my class Int does Real { # declared in BOOTSTRAP
             }
         }
     }
-}
-
-my class Index is Int {
-    multi method Bool(Index:U:) { False };
-    multi method Bool(Index:D:) { True };
-    multi method Int(Index:D:)  { nqp::box_i(nqp::unbox_i(self),Int) }
 }
 
 multi sub prefix:<++>(Int:D $a is rw) {

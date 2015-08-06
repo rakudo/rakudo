@@ -195,7 +195,7 @@ my class Cool { # declared in BOOTSTRAP
         loop {
             $i = nqp::index($str, $need, $pos);
             last if $i == -1;
-            nqp::push($rpa,nqp::box_i($i,Index));
+            nqp::push($rpa,nqp::box_i($i,Int));
             $pos = $i + $add;
         }
         nqp::p6parcel($rpa, nqp::null());
@@ -204,7 +204,7 @@ my class Cool { # declared in BOOTSTRAP
     proto method index(|) {*}
     multi method index(Cool:D: Str(Cool) $needle) {
         my int $i = nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle));
-        $i < 0 ?? Nil !! nqp::box_i($i,Index);
+        $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
         my int $i = nqp::index(
@@ -212,13 +212,13 @@ my class Cool { # declared in BOOTSTRAP
           nqp::unbox_s($needle),
           nqp::unbox_i($pos)
         );
-        $i < 0 ?? Nil !! nqp::box_i($i,Index);
+        $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 
     proto method rindex(|) {*}
     multi method rindex(Cool:D: Str(Cool) $needle) {
         my int $i = nqp::rindex(nqp::unbox_s(self.Str), nqp::unbox_s($needle));
-        $i < 0 ?? Nil !! nqp::box_i($i,Index);
+        $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
         my int $i = nqp::rindex(
@@ -226,7 +226,7 @@ my class Cool { # declared in BOOTSTRAP
           nqp::unbox_s($needle),
           nqp::unbox_i($pos)
         );
-        $i < 0 ?? Nil !! nqp::box_i($i,Index);
+        $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 
     proto method split(|) {*}
@@ -292,9 +292,6 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method Int(|) { * }
     multi method Int()  { self.Numeric.Int }
-
-    proto method Index(|) { * }
-    multi method Index()  { self.Numeric.Int.Index }
 
     proto method UInt(|) { * }
     multi method UInt()  {

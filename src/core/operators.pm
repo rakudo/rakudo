@@ -580,7 +580,10 @@ sub infix:<andthen>(*@a) {
     my Mu $current := @a.shift;
     for @a {
         return $current unless $current.defined;
-        $current := .count ?? $_(|$current) !! $_();
+        when Callable {
+            $current := .count ?? $_(|$current) !! $_();
+        }
+        $current := $_;
     }
     $current;
 }
@@ -589,7 +592,10 @@ sub infix:<orelse>(*@a) {
     my Mu $current := @a.shift;
     for @a {
         return $current if $current.defined;
-        $current := .count ?? $_(|$current) !! $_();
+        when Callable {
+            $current := .count ?? $_(|$current) !! $_();
+        }
+        $current := $_;
     }
     $current;
 }

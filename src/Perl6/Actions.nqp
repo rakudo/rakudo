@@ -5979,7 +5979,7 @@ Compilation unit '$file' contained the following violations:
             else {
                 $basesym := '';
             }
-            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' {
+            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' || $basesym eq 'orelse' || $basesym eq 'andthen' {
                 $ast := QAST::Op.new( :op<call>,
                         :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
             }

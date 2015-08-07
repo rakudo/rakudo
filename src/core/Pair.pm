@@ -17,4 +17,6 @@ sub infix:«=>»($key, Mu $value) {
     Pair.new(:$key, :$value)
 }
 
+sub pair($key,$value) { Pair.new(:$key,:$value) }
+
 # vim: ft=perl6 expandtab sw=4

@@ -1340,22 +1340,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto rule statement_control { <...> }
 
     rule statement_control:sym<if> {
-        <sym><.kok>
+        $<sym>=[if|with]<.kok>
         <xblock>
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elif' { $/.CURSOR.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
-            | 'elsif' <xblock>
+            | $<sym>='elsif' <xblock>
+            | $<sym>='orwith' <xblock>
             ]
         ]*
         [ 'else' <else=.pblock> ]?
     }
 
     rule statement_control:sym<unless> {
-        <sym><.kok> {}
+        $<sym>=[unless|without]<.kok> {}
         <xblock>
-        [ <!before els[e|if]» > || <.typed_panic: 'X::Syntax::UnlessElse'> ]
+        [ <!before [els[e|if]|orwith]» > || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
     rule statement_control:sym<while> {
@@ -1585,6 +1586,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_mod_cond:sym<if>     { <sym><.kok> <modifier_expr> }
     rule statement_mod_cond:sym<unless> { <sym><.kok> <modifier_expr> }
     rule statement_mod_cond:sym<when>   { <sym><.kok> <modifier_expr> }
+    rule statement_mod_cond:sym<with>   { <sym><.kok> <modifier_expr> }
+    rule statement_mod_cond:sym<without>{ <sym><.kok> <modifier_expr> }
 
     proto rule statement_mod_loop { <...> }
 

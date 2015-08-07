@@ -5765,14 +5765,12 @@ Compilation unit '$file' contained the following violations:
         );
         my int $i := 1;
         my int $e := +@clause;
-        while ($i < $e) {
+        while $i < $e {
             my $ast := @clause[$i].ast;
-            if $ast.ann('past_block') {
-                $past.push($ast);
+            unless $ast.ann('bare_block') || $ast.ann('past_block') {
+                $ast := block_closure(make_topic_block_ref(@clause[$i], $ast, migrate_stmt_id => $*STATEMENT_ID));
             }
-            else {
-                $past.push(block_closure(make_thunk_ref($ast, @clause[$i]))),
-            }
+            $past.push($ast);
             $i++;
         }
         $past;

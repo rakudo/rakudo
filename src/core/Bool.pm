@@ -110,8 +110,4 @@ multi sub infix:<xor>(Mu $x = Bool::False) { $x }
 multi sub infix:<xor>(Mu \a, Mu \b)        { a ^^ b }
 multi sub infix:<xor>(*@a)                 { &infix:<^^>(|@a); }
 
-proto sub infix:<orelse>(|)               { * }
-multi sub infix:<orelse>(Mu $x = Any)     { $x }
-multi sub infix:<orelse>(Mu \a, Mu \b)    { a // b }
-
 # vim: ft=perl6 expandtab sw=4

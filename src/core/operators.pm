@@ -576,9 +576,19 @@ sub REQUIRE_IMPORT($package-name, *@syms) {
     $package
 }
 sub infix:<andthen>(*@a) {
+    return Bool::True unless @a;
     my Mu $current := @a.shift;
     for @a {
         return $current unless $current.defined;
+        $current := .count ?? $_(|$current) !! $_();
+    }
+    $current;
+}
+sub infix:<orelse>(*@a) {
+    return Nil unless @a;
+    my Mu $current := @a.shift;
+    for @a {
+        return $current if $current.defined;
         $current := .count ?? $_(|$current) !! $_();
     }
     $current;

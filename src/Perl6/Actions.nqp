@@ -823,6 +823,14 @@ Compilation unit '$file' contained the following violations:
             my $ml := $<statement_mod_loop>;
             $past := $<EXPR>.ast;
             if $mc {
+                if ~$mc<sym> eq 'with' {
+                    make tailthunk_op('&infix:<andthen>',[$mc,$<EXPR>]);
+                    return;
+                }
+                elsif ~$mc<sym> eq 'without' {
+                    make tailthunk_op('&infix:<orelse>',[$mc,$<EXPR>]);
+                    return;
+                }
                 my $mc_ast := $mc.ast;
                 if $past.ann('bare_block') {
                     my $cond_block := $past.ann('past_block');
@@ -1649,6 +1657,9 @@ Compilation unit '$file' contained the following violations:
             :node($/)
         );
     }
+
+    method statement_mod_cond:sym<with>($/)    { make $<modifier_expr>.ast; }
+    method statement_mod_cond:sym<without>($/) { make $<modifier_expr>.ast; }
 
     method statement_mod_loop:sym<while>($/)  { make $<smexpr>.ast; }
     method statement_mod_loop:sym<until>($/)  { make $<smexpr>.ast; }
@@ -5346,7 +5357,11 @@ Compilation unit '$file' contained the following violations:
             return 1;
         }
         elsif !$past && $sym eq 'andthen' {
-            make andthen_op($/);
+            make tailthunk_op('&infix:<andthen>',$/.list);
+            return 1;
+        }
+        elsif !$past && $sym eq 'orelse' {
+            make tailthunk_op('&infix:<orelse>',$/.list);
             return 1;
         }
         unless $past {
@@ -5741,22 +5756,22 @@ Compilation unit '$file' contained the following violations:
         }
     }
 
-    sub andthen_op($/) {
+    sub tailthunk_op($name,@clause) {
         my $past := QAST::Op.new(
             :op('call'),
-            :name('&infix:<andthen>'),
+            :name($name),
             # don't need to thunk the first operand
-            $/[0].ast,
+            @clause[0].ast,
         );
         my int $i := 1;
-        my int $e := +@($/);
+        my int $e := +@clause;
         while ($i < $e) {
-            my $ast := $/[$i].ast;
+            my $ast := @clause[$i].ast;
             if $ast.ann('past_block') {
                 $past.push($ast);
             }
             else {
-                $past.push(block_closure(make_thunk_ref($ast, $/[$i]))),
+                $past.push(block_closure(make_thunk_ref($ast, @clause[$i]))),
             }
             $i++;
         }

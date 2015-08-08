@@ -2601,14 +2601,11 @@ BEGIN {
     Nil.HOW.compose_repr(Nil);
     
     # class List is Cool {
-    #     has Mu $!items;
-    #     has Mu $!flattens;
-    #     has Mu $!nextiter;
+    #     has Mu $!reified;
+    #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!infinite', Any, List));
+    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
+    List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
     List.HOW.compose_repr(List);
 
     # class Array is List {

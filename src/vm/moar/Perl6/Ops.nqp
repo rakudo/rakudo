@@ -33,14 +33,6 @@ MAST::ExtOpRegistry.register_extop('p6box_n',
 MAST::ExtOpRegistry.register_extop('p6box_s',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_str   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6list',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6listitems',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
@@ -52,14 +44,6 @@ MAST::ExtOpRegistry.register_extop('p6var',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6reprname',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6parcel',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6listiter',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6recont_ro',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
@@ -95,17 +79,6 @@ MAST::ExtOpRegistry.register_extop('p6finddispatcher',
 MAST::ExtOpRegistry.register_extop('p6argsfordispatcher',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6shiftpush',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_int64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6arrfindtypes',
-    $MVM_operand_int64 +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_int64 +| $MVM_operand_read_reg,
-    $MVM_operand_int64 +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6decodelocaltime',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
@@ -139,10 +112,6 @@ my $ops := nqp::getcomp('QAST').operations;
 $ops.add_hll_moarop_mapping('perl6', 'p6box_i', 'p6box_i');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_n', 'p6box_n');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
-$ops.add_hll_moarop_mapping('perl6', 'p6parcel', 'p6parcel');
-$ops.add_hll_moarop_mapping('perl6', 'p6listiter', 'p6listiter');
-$ops.add_hll_moarop_mapping('perl6', 'p6list', 'p6list');
-$ops.add_hll_moarop_mapping('perl6', 'p6listitems', 'p6listitems');
 $ops.add_hll_moarop_mapping('perl6', 'p6recont_ro', 'p6recont_ro');
 $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my @ops;
@@ -304,8 +273,6 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher');
-$ops.add_hll_moarop_mapping('perl6', 'p6shiftpush', 'p6shiftpush');
-$ops.add_hll_moarop_mapping('perl6', 'p6arrfindtypes', 'p6arrfindtypes');
 $ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
 #$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 proto sub p6sort(@input_data, &comparator) {
@@ -481,7 +448,6 @@ $ops.add_hll_moarop_mapping('nqp', 'p6init', 'p6init');
 $ops.add_hll_moarop_mapping('nqp', 'p6settypes', 'p6settypes', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6var', 'p6var');
 $ops.add_hll_moarop_mapping('nqp', 'p6reprname', 'p6reprname');
-$ops.add_hll_moarop_mapping('nqp', 'p6parcel', 'p6parcel');
 $ops.add_hll_moarop_mapping('nqp', 'p6inpre', 'p6inpre');
 $ops.add_hll_moarop_mapping('nqp', 'p6capturelexwhere', 'p6capturelexwhere');
 $ops.add_hll_moarop_mapping('nqp', 'p6invokeunder', 'p6invokeunder');

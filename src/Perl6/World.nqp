@@ -693,7 +693,7 @@ class Perl6::World is HLL::World {
             $DEBUG("  $arg") if $DEBUG;
         }
 
-        # XXXGLR
+        # XXX GLR
         # $INC := nqp::p6parcel($INC, self.find_symbol(['Any']));
         nqp::die('replace this p6parcel');
         self.add_object($INC);

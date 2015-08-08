@@ -396,9 +396,11 @@ my class Binder {
                 # and a normal bind is a straightforward binding.
                 if $flags +& $SIG_ELEM_ARRAY_SIGIL {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        my $bindee := nqp::create(Array);
-                        $bindee.STORE(nqp::decont($oval));
-                        nqp::bindkey($lexpad, $varname, $bindee);
+                        # XXX GLR
+                        nqp::die('replace this Array is copy logic');
+                        # my $bindee := nqp::create(Array);
+                        # $bindee.STORE(nqp::decont($oval));
+                        # nqp::bindkey($lexpad, $varname, $bindee);
                     }
                     else {
                         nqp::bindkey($lexpad, $varname, nqp::decont($oval));
@@ -571,9 +573,11 @@ my class Binder {
         # Otherwise, go by sigil to pick the correct default type of value.
         else {
             if $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                my $result := nqp::create(Array);
-                nqp::bindattr($result, List, '$!flattens', nqp::p6bool(1));
-                $result
+                # XXX GLR
+                nqp::die('replace this @ sigil default logic');
+                #my $result := nqp::create(Array);
+                #nqp::bindattr($result, List, '$!flattens', nqp::p6bool(1));
+                #$result
             }
             elsif $flags +& $SIG_ELEM_HASH_SIGIL {
                 nqp::create(Hash)
@@ -712,17 +716,19 @@ my class Binder {
                         $cur_pos_arg++;
                     }
                     my int $flatten := $flags +& $SIG_ELEM_SLURPY_POS;
-                    my $bindee := nqp::create($flatten
-                        ?? ($flags +& $SIG_ELEM_IS_RW ?? List !! Array)
-                        !! LoL);
-                    my $listiter := nqp::create(ListIter);
-                    nqp::bindattr($listiter, ListIter, '$!rest', $temp);
-                    nqp::bindattr($listiter, ListIter, '$!list', $bindee);
-                    nqp::bindattr($bindee, List, '$!nextiter', $listiter);
-                    nqp::bindattr($bindee, List, '$!flattens', nqp::p6bool($flatten));
-                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
-                        0, $bindee, 0, 0.0, '');
-                    return $bind_fail if $bind_fail;
+                    # XXX GLR replace this logic
+                    nqp::die('slurpy needs re-implementing post-GLR');
+                    # my $bindee := nqp::create($flatten
+                    #     ?? ($flags +& $SIG_ELEM_IS_RW ?? List !! Array)
+                    #     !! LoL);
+                    # my $listiter := nqp::create(ListIter);
+                    # nqp::bindattr($listiter, ListIter, '$!rest', $temp);
+                    # nqp::bindattr($listiter, ListIter, '$!list', $bindee);
+                    # nqp::bindattr($bindee, List, '$!nextiter', $listiter);
+                    # nqp::bindattr($bindee, List, '$!flattens', nqp::p6bool($flatten));
+                    # $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                    #     0, $bindee, 0, 0.0, '');
+                    # return $bind_fail if $bind_fail;
                 }
 
                 # Otherwise, a positional.
@@ -2758,9 +2764,11 @@ BEGIN {
                     @pos[0]."$coercer_name"()
                 }
                 else {
-                    my $parcel := nqp::create(Parcel);
-                    nqp::bindattr($parcel, Parcel, '$!storage', @pos);
-                    $parcel."$coercer_name"()
+                    # XXX GLR
+                    nqp::die('Replace this use of Parcel');
+                    # my $parcel := nqp::create(Parcel);
+                    # nqp::bindattr($parcel, Parcel, '$!storage', @pos);
+                    # $parcel."$coercer_name"()
                 }
             }
             else {
@@ -2922,7 +2930,9 @@ nqp::sethllconfig('perl6', nqp::hash(
     'foreign_type_num', Num,
     'foreign_type_str', Str,
     'foreign_transform_array', -> $array {
-        nqp::p6parcel($array, Mu)
+        # XXX GLR 
+        nqp::die('replace this p6parcel');
+        # nqp::p6parcel($array, Mu)
     },
     'foreign_transform_hash', -> $hash {
         my $result := nqp::create(Hash);

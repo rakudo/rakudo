@@ -828,7 +828,7 @@ Compilation unit '$file' contained the following violations:
                     return;
                 }
                 elsif ~$mc<sym> eq 'without' {
-                    make tailthunk_op('&infix:<orelse>',[$mc,$<EXPR>]);
+                    make tailthunk_op('&infix:<notandthen>',[$mc,$<EXPR>]);
                     return;
                 }
                 my $mc_ast := $mc.ast;

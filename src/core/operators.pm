@@ -579,7 +579,19 @@ sub infix:<andthen>(*@a) {
     return Bool::True unless @a;
     my Mu $current := @a.shift;
     for @a {
-        return $current unless $current.defined;
+        return Empty unless $current.defined;
+        # Have to check Callable till we get tailthunky lists
+        $current := $_ ~~ Callable
+            ?? (.count ?? $_($current) !! $_())
+            !! $_;
+    }
+    $current;
+}
+sub infix:<notandthen>(*@a) {
+    return Bool::True unless @a;
+    my Mu $current := @a.shift;
+    for @a {
+        return Empty if $current.defined;
         # Have to check Callable till we get tailthunky lists
         $current := $_ ~~ Callable
             ?? (.count ?? $_($current) !! $_())

@@ -46,7 +46,7 @@ my sub MAIN_HELPER($retval = 0) {
             if $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {
                 my ($switch, $negate, $arg) = (~$0, ?((~$1).chars), ~$2);
 
-                if $arg.index('=') {
+                with $arg.index('=') {
                     my ($name, $value) = $arg.split('=', 2);
                     $value = hack-val($value);
                     $value = $value but False if $negate;

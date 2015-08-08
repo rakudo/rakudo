@@ -44,7 +44,7 @@ my class Parameter { # declared in BOOTSTRAP
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $sigil = '|';
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $sigil = '\\' unless '@$%&'.index($sigil);
+                $sigil = '\\' without '@$%&'.index($sigil);
             }
         } else {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
@@ -219,8 +219,7 @@ my class Parameter { # declared in BOOTSTRAP
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $name = '|' ~ $name;
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $name = '\\' ~ $name
-                    unless '@$%&'.index(substr($name,0,1));
+                $name = '\\' ~ $name without '@$%&'.index(substr($name,0,1));
             }
         } else {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {

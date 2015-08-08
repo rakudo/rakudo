@@ -44,7 +44,6 @@ my class BOOTSTRAPATTR {
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Empty metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -62,13 +61,8 @@ my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
 my knowhow bigint is repr('P6bigint') { }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Parcel metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Iterable metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Iterator metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub LoL metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -2603,45 +2597,13 @@ BEGIN {
     Num.HOW.publish_boolification_spec(Num);
     Num.HOW.compose_repr(Num);
 
-    # class Parcel is Cool {
-    #     has Mu $!storage;    # VM's array of Parcel's elements
-    Parcel.HOW.add_parent(Parcel, Cool);
-    Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
-    Parcel.HOW.add_attribute(Parcel, scalar_attr('$!WHICH', Str, Parcel));
-    Parcel.HOW.compose_repr(Parcel);
-
-    # class Iterable is Any {
-    Iterable.HOW.add_parent(Iterable, Any);
-    Iterable.HOW.compose_repr(Iterable);
-
-    # class Iterator is Iterable {
-    Iterator.HOW.add_parent(Iterator, Iterable);
-    Iterator.HOW.compose_repr(Iterator);
-
     # class Nil is Cool {
     Nil.HOW.compose_repr(Nil);
     
-    # class Empty is Iterator {
-    Empty.HOW.add_parent(Empty, Iterator);
-    Empty.HOW.compose_repr(Empty);
-
-    # class ListIter is Iterator {
-    #     has Mu $!reified;
-    #     has Mu $!nextiter;
-    #     has Mu $!rest;
-    #     has Mu $!list;
-    ListIter.HOW.add_parent(ListIter, Iterator);
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu, ListIter));
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu, ListIter));
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu, ListIter));
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu, ListIter));
-    ListIter.HOW.compose_repr(ListIter);
-    
-    # class List is Iterable is Cool {
+    # class List is Cool {
     #     has Mu $!items;
     #     has Mu $!flattens;
     #     has Mu $!nextiter;
-    List.HOW.add_parent(List, Iterable);
     List.HOW.add_parent(List, Cool);
     List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
@@ -2655,15 +2617,8 @@ BEGIN {
     Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
     Array.HOW.compose_repr(Array);
 
-    # class LoL is List {
-    #     has Mu $!descriptor;
-    LoL.HOW.add_parent(LoL, List);
-    LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(LoL)));
-    LoL.HOW.compose_repr(LoL);
-
-    # my class EnumMap is Iterable is Cool {
+    # my class EnumMap is Cool {
     #     has Mu $!storage;
-    EnumMap.HOW.add_parent(EnumMap, Iterable);
     EnumMap.HOW.add_parent(EnumMap, Cool);
     EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap, :associative_delegate));
     EnumMap.HOW.compose_repr(EnumMap);
@@ -2811,7 +2766,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Any>        := Any;
     EXPORT::DEFAULT.WHO<Cool>       := Cool;
     EXPORT::DEFAULT.WHO<Nil>        := Nil;
-    EXPORT::DEFAULT.WHO<Empty>      := Empty;
     EXPORT::DEFAULT.WHO<Attribute>  := Attribute;
     EXPORT::DEFAULT.WHO<Signature>  := Signature;
     EXPORT::DEFAULT.WHO<Parameter>  := Parameter;
@@ -2825,13 +2779,8 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Str>        := Str;
     EXPORT::DEFAULT.WHO<Int>        := Int;
     EXPORT::DEFAULT.WHO<Num>        := Num;
-    EXPORT::DEFAULT.WHO<Parcel>     := Parcel;  
-    EXPORT::DEFAULT.WHO<Iterable>   := Iterable;
-    EXPORT::DEFAULT.WHO<Iterator>   := Iterator;
-    EXPORT::DEFAULT.WHO<ListIter>   := ListIter;
     EXPORT::DEFAULT.WHO<List>       := List;
     EXPORT::DEFAULT.WHO<Array>      := Array;
-    EXPORT::DEFAULT.WHO<LoL>        := LoL;
     EXPORT::DEFAULT.WHO<EnumMap>    := EnumMap;
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;

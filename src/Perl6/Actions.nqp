@@ -1161,6 +1161,7 @@ Compilation unit '$file' contained the following violations:
     method statement_control:sym<if>($/) {
         my $count := +$<xblock> - 1;
         my $past := xblock_immediate( $<xblock>[$count].ast );
+        $past.op(~$<sym>[$count] ~~ /with/ ?? 'with' !! 'if');
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
                     ?? pblock_immediate( $<else>.ast )
@@ -1171,6 +1172,7 @@ Compilation unit '$file' contained the following violations:
             $count--;
             my $else := $past;
             $past := xblock_immediate( $<xblock>[$count].ast );
+            $past.op(~$<sym>[$count] ~~ /with/ ?? 'with' !! 'if');
             $past.push($else);
         }
         make $past;
@@ -1178,7 +1180,7 @@ Compilation unit '$file' contained the following violations:
 
     method statement_control:sym<unless>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
-        $past.op('unless');
+        $past.op(~$<sym>);
         make $past;
     }
 

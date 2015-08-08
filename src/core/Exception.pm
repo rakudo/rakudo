@@ -831,7 +831,7 @@ my class X::Dynamic::Postdeclaration does X::Comp {
     has $.symbol;
     method message() {
         "Illegal post-declaration of dynamic variable '$.symbol';\n" ~
-        "earlier access must be written as CALLER::<$.symbol>\n" ~
+        "earlier access must be written as CALLERS::<$.symbol>\n" ~
         "if that's what you meant"
     }
 }

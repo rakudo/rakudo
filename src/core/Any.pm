@@ -1,4 +1,3 @@
-my class MapIter                { ... }
 my class Pair                   { ... }
 my class Range                  { ... }
 my class X::Adverb::Slice       { ... }

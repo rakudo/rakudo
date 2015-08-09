@@ -186,9 +186,6 @@ my class Any { # declared in BOOTSTRAP
     }
 
     # derived from MapIter/list
-    method lol()  is nodal {
-        MapIter.new(self.list, { .item }, Mu).list
-    }
     proto method map (|) is nodal { * }
     multi method map(Whatever) is rw { self }
     multi method map(&block, :$label) is rw {
@@ -212,27 +209,26 @@ my class Any { # declared in BOOTSTRAP
     method duckmap(&block) is rw is nodal { duckmap(&block, self) }
     method deepmap(&block) is rw is nodal { deepmap(&block, self) }
 
-    proto method tree(|) is nodal { * }
-    multi method tree(Any:U:) { self }
-    multi method tree(Any:D:) {
-        nqp::istype(self,Positional)
-            ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
-            !! self
-    }
-    multi method tree(Any:D: Whatever ) { self.tree }
-    multi method tree(Any:D: Int(Cool) $count) {
-        nqp::istype(self,Positional) && $count > 0
-            ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
-            !! self
-    }
-    multi method tree(Any:D: *@ [&first, *@rest]) {
-        nqp::istype(self,Positional)
-            ?? @rest ?? first(MapIter.new(self.list, { .tree(|@rest) }, Mu).list)
-                     !! first(self.list)
-            !! self
-    }
-
-    method Array() is nodal { Array.new(self.flat) }
+    # XXX GLR Do we need tree post-GLR?
+    #proto method tree(|) is nodal { * }
+    #multi method tree(Any:U:) { self }
+    #multi method tree(Any:D:) {
+    #    nqp::istype(self,Positional)
+    #        ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
+    #        !! self
+    #}
+    #multi method tree(Any:D: Whatever ) { self.tree }
+    #multi method tree(Any:D: Int(Cool) $count) {
+    #    nqp::istype(self,Positional) && $count > 0
+    #        ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
+    #        !! self
+    #}
+    #multi method tree(Any:D: *@ [&first, *@rest]) {
+    #    nqp::istype(self,Positional)
+    #        ?? @rest ?? first(MapIter.new(self.list, { .tree(|@rest) }, Mu).list)
+    #                 !! first(self.list)
+    #        !! self
+    #}
 
     # auto-vivifying
     proto method push(|) is nodal { * }

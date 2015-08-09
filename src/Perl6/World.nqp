@@ -2859,7 +2859,9 @@ class Perl6::World is HLL::World {
             for @!components {
                 @result.push($_);
             }
-            @result[+@result - 1] := $sigil ~ $twigil ~ @result[+@result - 1];
+            @result
+              ?? (@result[+@result-1] := $sigil ~ $twigil ~ @result[+@result-1])
+              !! (@result[0]          := $sigil ~ $twigil);
             @result
         }
 

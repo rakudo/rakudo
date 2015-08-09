@@ -722,17 +722,11 @@ multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
 multi sub infix:<max>(*@args) { @args.max }
-#proto sub max(|) { * }
-#multi sub max(*@args) { @args.max() }
-#multi sub max(*@args, :&by!) { @args.max(&by) }
 sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
 
 proto sub infix:<minmax>(|) is pure { * }
-multi sub infix:<minmax>(**@args) { @args.minmax }
-#proto sub minmax(|) { * }
-#multi sub minmax(*@args) { @args.minmax() }
-#multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
-sub minmax(**@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
+multi sub infix:<minmax>(*@args) { @args.minmax }
+sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13

@@ -72,6 +72,7 @@ my class Mu { # declared in BOOTSTRAP
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
+    # XXX GLR does this survive?
     proto method infinite (|) { * }
     multi method infinite(Mu:) { Nil }
 

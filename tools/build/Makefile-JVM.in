@@ -94,16 +94,12 @@ J_CORE_SOURCES = \
   src/core/Iterator.pm \
   src/core/Nil.pm \
   src/core/Range.pm \
-  src/core/ListIter.pm \
-  src/core/MapIter.pm \
-  src/core/GatherIter.pm \
   src/core/List.pm \
   src/core/LoL.pm \
   src/core/Array.pm \
   src/core/native_array.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \
-  src/core/HashIter.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Stash.pm \

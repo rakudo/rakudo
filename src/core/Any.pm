@@ -116,7 +116,7 @@ my class Any { # declared in BOOTSTRAP
     multi method pairup(Any:D:) {
         my $list := self.list;
         my int $i;
-        my int $elems = self.elems;
+        my int $elems = $list.elems;
 
         gather while $i < $elems {
             my Mu $it := $list.AT-POS($i++);

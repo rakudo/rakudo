@@ -89,13 +89,11 @@ J_CORE_SOURCES = \
   src/core/Buf.pm \
   src/core/Str.pm \
   src/core/Capture.pm \
-  src/core/Parcel.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \
   src/core/Nil.pm \
   src/core/Range.pm \
   src/core/List.pm \
-  src/core/LoL.pm \
   src/core/Array.pm \
   src/core/native_array.pm \
   src/core/Enum.pm \

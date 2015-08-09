@@ -307,13 +307,12 @@ static MVMuint8 s_p6decontrv[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
 };
+static MVMObject *Iterable = NULL;
 static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *retval;
-    static MVMObject *Iterable = NULL;
     if (!Iterable)
         Iterable = MVM_frame_find_lexical_by_name(tc,
-            MVM_string_utf8_decode(tc, tc->instance->VMString,
-                "Iterable", strlen(Iterable)),
+            MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "Iterable"),
             MVM_reg_obj);
     retval = GET_REG(tc, 2).o;
     if (MVM_is_null(tc, retval)) {

@@ -62,6 +62,7 @@ my knowhow bigint is repr('P6bigint') { }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Slip metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -2608,6 +2609,10 @@ BEGIN {
     List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
     List.HOW.compose_repr(List);
 
+    # class Slip is Cool {
+    Slip.HOW.add_parent(Slip, List);
+    Slip.HOW.compose_repr(Slip);
+
     # class Array is List {
     #     has Mu $!descriptor;
     Array.HOW.add_parent(Array, List);
@@ -2700,6 +2705,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(List);
+    Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
@@ -2777,6 +2783,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Int>        := Int;
     EXPORT::DEFAULT.WHO<Num>        := Num;
     EXPORT::DEFAULT.WHO<List>       := List;
+    EXPORT::DEFAULT.WHO<Slip>       := Slip;
     EXPORT::DEFAULT.WHO<Array>      := Array;
     EXPORT::DEFAULT.WHO<EnumMap>    := EnumMap;
     EXPORT::DEFAULT.WHO<Hash>       := Hash;

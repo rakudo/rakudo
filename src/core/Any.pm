@@ -56,29 +56,30 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method list(|) is nodal { * }
-    multi method list(Any:U:) { nqp::p6list(nqp::list(),     List, Mu) }
-    multi method list(Any:D:) { nqp::p6list(nqp::list(self), List, Mu) }
+    multi method list(Any:U:) { infix:<,>() }
+    multi method list(Any:D:) { infix:<,>(self) }
 
     proto method flat(|) is nodal { * }
-    multi method flat(Any:U:) { nqp::p6list(nqp::list(),     List, Bool::True) }
-    multi method flat(Any:D:) { nqp::p6list(nqp::list(self), List, Bool::True) }
+    multi method flat() { self.list.flat }
 
     proto method eager(|) is nodal { * }
-    multi method eager(Any:U:) {
-        nqp::p6list(nqp::list(),     List, Mu).eager;
-    }
-    multi method eager(Any:D:) {
-        nqp::p6list(nqp::list(self), List, Mu).eager;
-    }
+    multi method eager() { self.list.eager }
+
+    # derived from .list
+    proto method List(|) is nodal { * }
+    multi method List() { self.list.List }
+    proto method Slip(|) is nodal { * }
+    multi method Slip() { self.list.Slip }
+    proto method Array(|) is nodal { * }
+    multi method Array() { self.list.Array }
 
     proto method hash(|) is nodal { * }
     multi method hash(Any:U:) { my % = () }
     multi method hash(Any:D:) { my % = self }
-    method Hash() is nodal { self.hash }
 
-    # derived from .list
-    method Parcel() is nodal { self.list.Parcel }
-    method List() is nodal { self.list }
+    # derived from .hash
+    proto method Hash(|) is nodal { * }
+    multi method Hash() { self.hash.Hash }
 
     proto method elems(|) is nodal { * }
     multi method elems(Any:U:) { 0 }

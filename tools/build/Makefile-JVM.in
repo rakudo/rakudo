@@ -97,6 +97,8 @@ J_CORE_SOURCES = \
   src/core/HyperIterator.pm \
   src/core/HyperIterable.pm \
   src/core/Iterable.pm \
+  src/core/Seq.pm \
+  src/core/HyperSeq.pm \
   src/core/Nil.pm \
   src/core/Range.pm \
   src/core/List.pm \

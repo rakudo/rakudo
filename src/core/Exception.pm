@@ -2090,4 +2090,16 @@ my class X::InvalidType does X::Comp {
     }
 }
 
+my class X::Seq::Consumed is Exception {
+    method message() {
+        "This Seq has already been iterated, and its values consumed"
+    }
+}
+
+my class X::Seq::NotIndexable is Exception {
+    method message() {
+        "Cannot index a Seq; coerce it to a list or assign it to an array first"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

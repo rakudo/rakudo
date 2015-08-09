@@ -46,6 +46,8 @@ src/core/HyperWorkBuffer.pm
 src/core/HyperIterator.pm
 src/core/Iterable.pm
 src/core/HyperIterable.pm
+src/core/Seq.pm
+src/core/HyperSeq.pm
 src/core/Nil.pm
 src/core/Range.pm
 src/core/List.pm

@@ -38,6 +38,7 @@ src/core/Buf.pm
 src/core/Uni.pm
 src/core/Str.pm
 src/core/Capture.pm
+src/core/IterationBuffer.pm
 src/core/Iterable.pm
 src/core/Iterator.pm
 src/core/Nil.pm

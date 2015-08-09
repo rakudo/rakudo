@@ -90,31 +90,30 @@ my class Any { # declared in BOOTSTRAP
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal { * }
-    multi method keys(Any:U:) { ().list }
+    multi method keys(Any:U:) { () }
     multi method keys(Any:D:) { self.list.keys }
 
     proto method kv(|) is nodal { * }
-    multi method kv(Any:U:) { ().list }
+    multi method kv(Any:U:) { () }
     multi method kv(Any:D:) { self.list.kv }
 
     proto method values(|) is nodal { * }
-    multi method values(Any:U:) { ().list }
+    multi method values(Any:U:) { () }
     multi method values(Any:D:) { self.list }
 
     proto method pairs(|) is nodal { * }
-    multi method pairs(Any:U:) { ().list }
+    multi method pairs(Any:U:) { () }
     multi method pairs(Any:D:) { self.list.pairs }
 
     proto method antipairs(|) is nodal { * }
-    multi method antipairs(Any:U:) { ().list }
+    multi method antipairs(Any:U:) { () }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal { * }
 
     proto method pairup(|) is nodal { * }
-    multi method pairup(Any:U:) { ().list }
+    multi method pairup(Any:U:) { () }
     multi method pairup(Any:D:) {
-
         my $list := self.list;
         my int $i;
         my int $elems = self.elems;

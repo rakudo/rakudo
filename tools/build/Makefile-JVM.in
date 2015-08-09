@@ -90,8 +90,13 @@ J_CORE_SOURCES = \
   src/core/Str.pm \
   src/core/Capture.pm \
   src/core/IterationBuffer.pm \
-  src/core/Iterable.pm \
   src/core/Iterator.pm \
+  src/core/SlippyIterator.pm \
+  src/core/HyperConfiguration.pm \
+  src/core/HyperWorkBuffer.pm \
+  src/core/HyperIterator.pm \
+  src/core/HyperIterable.pm \
+  src/core/Iterable.pm \
   src/core/Nil.pm \
   src/core/Range.pm \
   src/core/List.pm \

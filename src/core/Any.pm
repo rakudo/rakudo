@@ -833,9 +833,9 @@ multi sub sort(*@values)      {
         !! @values.sort;
 }
 
-proto sub item(|) is pure   { * }
+proto sub item(|) is pure { * }
 multi sub item(\x)    { my $ = x }
-multi sub item(*@a)   { my $ = nqp::p6parcel(nqp::p6argvmarray(), nqp::null()) }
+multi sub item(|c)    { my $ = infix:<,>(|c) }
 multi sub item(Mu $a) { $a }
 
 sub RWPAIR(\k, \v) {   # internal fast pair creation

@@ -252,7 +252,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method grep(Callable:D $test) is rw {
         if ($test.count == 1) {
-            self.map({next unless $test($_); $_});
+            self.map({ next unless $test($_); $_ });
         } else {
             my role CheatArity {
                 has $!arity;
@@ -873,7 +873,6 @@ sub DELETEKEY(Mu \d, str $key) {
     }
 } #DELETEKEY
 
-
 sub dd(|) {
     my Mu $args := nqp::p6argvmarray();
     while $args {
@@ -886,4 +885,5 @@ sub dd(|) {
     }
     return
 }
+
 # vim: ft=perl6 expandtab sw=4

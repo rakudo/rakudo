@@ -4,7 +4,7 @@ my class X::Lock::ConditionVariable::New is Exception {
         "Cannot directly create a ConditionVariable; use the 'condition' method on a lock"
     }
 }
-my class Lock is repr('ReentrantMutex') {
+my class Lock {
     class ConditionVariable is repr('ConditionVariable') {
         method new() {
             X::Lock::ConditionVariable::New.new.throw

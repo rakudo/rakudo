@@ -234,8 +234,9 @@ sub exit($status = 0) {
 }
 
 sub THE_END {
-    my @END := nqp::p6list(nqp::getcurhllsym("@END_PHASERS"), Array, Mu);
-    while @END.shift -> $end { $end() };
+    my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
+        nqp::getcurhllsym("@END_PHASERS"));
+    for @END -> $end { $end() };
 }
 
 constant Inf = nqp::p6box_n(nqp::inf());

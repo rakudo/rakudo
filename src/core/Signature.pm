@@ -85,7 +85,8 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     method params() {
-        nqp::p6list(nqp::clone($!params), List, Mu);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
+            nqp::clone($!params));
     }
 
     method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {

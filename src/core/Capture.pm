@@ -66,7 +66,9 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method list(Capture:D:) {
-        nqp::isnull($!list) ?? nqp::p6list(nqp::null, List, Mu) !! nqp::p6list(nqp::clone($!list), List, Mu);
+        nqp::isnull($!list)
+            ?? ()
+            !! nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $!list)
     }
 
     method elems(Capture:D:) {

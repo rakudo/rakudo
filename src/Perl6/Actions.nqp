@@ -1566,7 +1566,7 @@ Compilation unit '$file' contained the following violations:
 
     method statement_prefix:sym<eager>($/) {
         make QAST::Op.new(
-            :op('callmethod'), :name('lazy'),
+            :op('callmethod'), :name('eager'),
             QAST::Op.new( :op('call'), $<blorst>.ast )
         );
     }
@@ -1574,7 +1574,7 @@ Compilation unit '$file' contained the following violations:
     method statement_prefix:sym<sink>($/) {
         make QAST::Stmts.new(
             QAST::Op.new(
-                :op('callmethod'), :name('lazy'),
+                :op('callmethod'), :name('eager'),
                 QAST::Op.new( :op('call'), $<blorst>.ast )
             ),
             QAST::Var.new( :name('Nil'), :scope('lexical')),

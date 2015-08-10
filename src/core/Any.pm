@@ -185,16 +185,6 @@ my class Any { # declared in BOOTSTRAP
         Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
     }
 
-    # derived from MapIter/list
-    proto method map (|) is nodal { * }
-    multi method map(Iterable:D: &block, :$label) is rw {
-        # XXX GLR
-        nqp::die('map todo in GLR');
-    }
-    multi method map(&block, :$label) is rw {
-        self.list.map(&block, :$label)
-    }
-
     proto method flatmap (|) is nodal { * }
     multi method flatmap(&block, :$label) is rw {
         self.map(&block, :$label).flat

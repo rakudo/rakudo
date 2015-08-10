@@ -9,6 +9,13 @@ src/core/control.pm
 src/core/Mu.pm
 src/core/Stringy.pm
 src/core/Any.pm
+src/core/Attribute.pm
+src/core/Iterator.pm
+src/core/SlippyIterator.pm
+src/core/HyperIterator.pm
+src/core/Iterable.pm
+src/core/HyperIterable.pm
+src/core/Any-list-methods.pm
 src/core/SLICE.pm
 src/core/Whatever.pm
 src/core/array_slice.pm
@@ -17,7 +24,6 @@ src/core/Scalar.pm
 src/core/Code.pm
 src/core/WhateverCode.pm
 src/core/Block.pm
-src/core/Attribute.pm
 src/core/Variable.pm
 src/core/Routine.pm
 src/core/Sub.pm
@@ -39,13 +45,8 @@ src/core/Uni.pm
 src/core/Str.pm
 src/core/Capture.pm
 src/core/IterationBuffer.pm
-src/core/Iterator.pm
-src/core/SlippyIterator.pm
 src/core/HyperConfiguration.pm
 src/core/HyperWorkBuffer.pm
-src/core/HyperIterator.pm
-src/core/Iterable.pm
-src/core/HyperIterable.pm
 src/core/Seq.pm
 src/core/HyperSeq.pm
 src/core/Nil.pm

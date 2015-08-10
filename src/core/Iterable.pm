@@ -9,7 +9,7 @@
 my class Seq { ... }
 my class HyperSeq { ... }
 my role Iterable {
-    method iterator() returns Iterator { ... }
+    method iterator() { ... }
 
     method item() {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)

@@ -187,24 +187,24 @@ my class Any { # declared in BOOTSTRAP
 
     # derived from MapIter/list
     proto method map (|) is nodal { * }
-    multi method map(Whatever) is rw { self }
+    multi method map(Iterable:D: &block, :$label) is rw {
+        # XXX GLR
+        nqp::die('map todo in GLR');
+    }
     multi method map(&block, :$label) is rw {
-        MapIter.new(self, &block, Bool::False, :$label).list
+        self.list.map(&block, :$label)
     }
-    proto method FOR (|) { * }
-    multi method FOR(Whatever) is rw { self }
-    multi method FOR(&block, :$label) is rw {
-        MapIter.new(self, &block, Bool::False, :$label).list;
+
+    proto method flatmap (|) is nodal { * }
+    multi method flatmap(&block, :$label) is rw {
+        self.map(&block, :$label).flat
     }
+
     method for(|c) is nodal {
         DEPRECATED('flatmap',|<2015.05 2015.09>);
         self.flatmap(|c);
     }
-    proto method flatmap (|) is nodal { * }
-    multi method flatmap(Whatever) is rw { self }
-    multi method flatmap(&block, :$label) is rw {
-        MapIter.new(self, &block, Bool::True, :$label).list
-    }
+
     method nodemap(&block) is rw is nodal { nodemap(&block, self) }
     method duckmap(&block) is rw is nodal { duckmap(&block, self) }
     method deepmap(&block) is rw is nodal { deepmap(&block, self) }
@@ -396,21 +396,23 @@ my class Any { # declared in BOOTSTRAP
     }
 
     method join($separator = '') is nodal {
-        my $list = (self,).eager;
-        my Mu $rsa := nqp::list_s();
-        $list.gimme(4);        # force reification of at least 4 elements
-        unless $list.infinite {  # presize array
-            nqp::setelems($rsa, nqp::unbox_i($list.elems));
-            nqp::setelems($rsa, 0);
-        }
-        my $tmp;
-        while $list.gimme(0) {
-            $tmp := $list.shift;
-            nqp::push_s($rsa,
-              nqp::unbox_s(nqp::istype($tmp, Str) && nqp::isconcrete($tmp) ?? $tmp !! $tmp.Str));
-        }
-        nqp::push_s($rsa, '...') if $list.infinite;
-        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
+        # XXX GLR
+        nqp::die('join needs re-implementing after GLR');
+        #my $list = (self,).eager;
+        #my Mu $rsa := nqp::list_s();
+        #$list.gimme(4);        # force reification of at least 4 elements
+        #unless $list.infinite {  # presize array
+        #    nqp::setelems($rsa, nqp::unbox_i($list.elems));
+        #    nqp::setelems($rsa, 0);
+        #}
+        #my $tmp;
+        #while $list.gimme(0) {
+        #    $tmp := $list.shift;
+        #    nqp::push_s($rsa,
+        #      nqp::unbox_s(nqp::istype($tmp, Str) && nqp::isconcrete($tmp) ?? $tmp !! $tmp.Str));
+        #}
+        #nqp::push_s($rsa, '...') if $list.infinite;
+        #nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
     }
 
     proto method min (|) is nodal { * }

@@ -1,5 +1,7 @@
 # HyperIterator is done by things that know how to get a batch of values
 # filled up, and maybe to process it.
+my class HyperWorkBuffer { ... }
+my class HyperConfiguration { ... }
 my role HyperIterator {
     # Called in order to fill up a work buffer with items. For things that
     # can be part of a pipeline of operations, this simply defers to the
@@ -21,7 +23,7 @@ my role HyperIterator {
 
     # Gets HyperConfiguration information for this parallelized operation.
     # Processing stages should ask their source.
-    method configuration() returns HyperConfiguration { ... }
+    method configuration() { ... }
 }
 
 # vim: ft=perl6 expandtab sw=4

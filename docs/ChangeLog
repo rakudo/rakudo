@@ -1,11 +1,15 @@
 New in 2015.08
  + Features
    + with/orwith/without conditionals allow you to check for .defined but
-     topicalize to the actual value returned.
+     topicalize to the actual value returned
+   + Mu.return implemented: allows for ".return with $foo"
    + Cool.indices/indices() expands on Cool.index/index() functionality
+   + Callgframes now allow easy introspection of associated Code object
  + Fixes:
+   + Using a Range with an infinite .max now works on substr()/.substr
  + Incompatible changes:
-   + Illegality of ? twigil in defiitions is now enforced
+   + Illegality of ? twigil in definitions is now enforced
+   + No longer allowed to create dynamic constants with "my constant $*FOO"
  + Deprecations:
 
 New in 2015.07

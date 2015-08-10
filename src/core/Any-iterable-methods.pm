@@ -83,7 +83,7 @@ augment class Any {
             # case fast.
             # XXX Support labels
             Seq.new(class :: does MapIterCommon {
-                method pull-one() {
+                method pull-one() is rw {
                     my int $redo = 1;
                     my $value;
                     my $result;

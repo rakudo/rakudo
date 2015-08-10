@@ -306,14 +306,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 $iter
             }
 
-            method pull-one() {
+            method pull-one() is rw {
                 my int $i = $!i;
                 $i < nqp::elems($!reified)
                     ?? nqp::atpos($!reified, ($!i = $i + 1) - 1)
                     !! self!reify-and-pull-one()
             }
 
-            method !reify-and-pull-one() {
+            method !reify-and-pull-one() is rw {
                 my int $i = $!i;
                 $!todo.DEFINITE && $i < $!todo.reify-at-least($i + 1)
                     ?? nqp::atpos($!reified, ($!i = $i + 1) - 1)

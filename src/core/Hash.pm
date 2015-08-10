@@ -45,7 +45,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method gist(Hash:D:) {
-        SELF.pairs.sort.map( -> $elem {
+        self.pairs.sort.map( -> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }

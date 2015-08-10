@@ -252,7 +252,7 @@ my class IO::Handle does IO {
             $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
         self.close if $close;
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
     multi method words(IO::Handle:D: :$count!, :$close) {
         return self.words(:$close) if !$count;
@@ -376,7 +376,7 @@ my class IO::Handle does IO {
             $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
         }
         self.close if $close;
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     proto method lines (|) { * }
@@ -397,7 +397,7 @@ my class IO::Handle does IO {
         }
         $!ins = nqp::elems($rpa);
         self.close if $close;
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
     multi method lines(IO::Handle:D: :$count!, :$close) {
         return self.lines(:$close) if !$count;
@@ -448,7 +448,7 @@ my class IO::Handle does IO {
         }
         $!ins = nqp::elems($rpa);
         self.close if $close;
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {

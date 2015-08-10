@@ -81,7 +81,8 @@ my class Junction { # declared in BOOTSTRAP
                 Nil;
             }
             my $res_junc := nqp::clone(nqp::decont($arg));
-            nqp::bindattr($res_junc, Junction, '$!storage', nqp::p6parcel($res, Nil));
+            nqp::bindattr($res_junc, Junction, '$!storage',
+                nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $res));
             return $res_junc;
         }
 
@@ -123,7 +124,8 @@ my class Junction { # declared in BOOTSTRAP
                     Nil;
                 }
                 my $res_junc := nqp::clone(nqp::decont($v));
-                nqp::bindattr($res_junc, Junction, '$!storage', nqp::p6parcel($res, Nil));
+                nqp::bindattr($res_junc, Junction, '$!storage',
+                    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $res));
                 return $res_junc;
             }
         }

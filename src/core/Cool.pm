@@ -198,7 +198,7 @@ my class Cool { # declared in BOOTSTRAP
             nqp::push($rpa,nqp::box_i($i,Int));
             $pos = $i + $add;
         }
-        nqp::p6parcel($rpa, nqp::null());
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     proto method index(|) {*}

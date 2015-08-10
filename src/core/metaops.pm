@@ -457,7 +457,7 @@ multi sub deepmap(\op, \obj) {
             $i = nqp::sub_i($i, 2)
         )
     );
-    nqp::p6parcel($rpa, Nil);
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
 }
 
 multi sub deepmap(\op, Associative \h) {
@@ -497,7 +497,7 @@ multi sub nodemap(\op, \obj) {
             $i = nqp::sub_i($i, 2)
         )
     );
-    nqp::p6parcel($rpa, Nil);
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
 }
 
 multi sub nodemap(\op, Associative \h) {

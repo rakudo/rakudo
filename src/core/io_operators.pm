@@ -50,7 +50,8 @@ multi sub note(|) {
 }
 
 sub gist(|) {
-    nqp::p6parcel(nqp::p6argvmarray(), Mu).gist
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
+        nqp::p6argvmarray()).gist
 }
 
 sub prompt($msg) {

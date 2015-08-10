@@ -701,7 +701,7 @@ multi sub infix:<xx>(Mu \x, Int() $n) {
         }
     }
 
-    nqp::p6parcel($rpa, Any);
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
 }
 
 sub reverse(*@a)            { @a.reverse }

@@ -241,7 +241,7 @@ my class Backtrace {
     }
     multi method list(Backtrace:D:) {
         self.AT-POS(100);  # will stop when done, do we need more than 100???
-        nqp::p6parcel($!frames,Mu);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $!frames)
     }
 
     method first-none-setting-line(Backtrace:D:) {

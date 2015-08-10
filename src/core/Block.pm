@@ -29,7 +29,8 @@ my class Block { # declared in BOOTSTRAP
     method phasers(Str $name) {
         unless nqp::isnull($!phasers) {
             if nqp::existskey($!phasers, nqp::unbox_s($name)) {
-                return nqp::p6parcel(nqp::atkey($!phasers, nqp::unbox_s($name)), Mu);
+                return nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
+                    nqp::atkey($!phasers, nqp::unbox_s($name)));
             }
         }
         ()

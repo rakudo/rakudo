@@ -819,7 +819,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             );
             $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
     multi method lines(Str:D: :$count!) {
         return self.lines if !$count;
@@ -863,7 +863,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             );
             $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
@@ -1055,7 +1055,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $pos = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
     multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
         my @list := self.words(:eager);
@@ -1108,7 +1108,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $pos = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;

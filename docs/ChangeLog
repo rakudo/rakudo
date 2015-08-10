@@ -1,3 +1,13 @@
+New in 2015.08
+ + Features
+   + with/orwith/without conditionals allow you to check for .defined but
+     topicalize to the actual value returned.
+   + Cool.indices/indices() expands on Cool.index/index() functionality
+ + Fixes:
+ + Incompatible changes:
+   + Illegality of ? twigil in defiitions is now enforced
+ + Deprecations:
+
 New in 2015.07
  + Features:
    + Cool.substr(-rw) and &substr(-rw) now also accept a Range

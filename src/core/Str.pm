@@ -586,7 +586,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         %opts<ov> = $ov if $ov;
         %opts<ex> = $ex if $ex;
 
-        my @matches := gather {
+        my $matches := gather {
             while $cur.pos >= 0 {
                 take $cur.MATCH_SAVE;
                 $cur := $cur.'!cursor_more'(|%opts);
@@ -597,8 +597,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         if $nth.defined {
             $multi = Positional.ACCEPTS($nth);
             my @nlist := $nth.list;
-            my @src   := @matches;
-            @matches  := gather {
+            my @src   := $matches.list;
+            $matches  := gather {
                 my $max = 0;
                 while @nlist {
                     my $n = shift @nlist;
@@ -609,35 +609,37 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
-        if $x.defined {
-            $multi = True;
-            if nqp::istype($x, Int) {
-                @matches := @matches.gimme($x) >= $x
-                            ?? @matches[^$x].list
-                            !! ().list
-            }
-            elsif nqp::istype($x, Range) {
-                my $min = $x.min.ceiling;
-                my $max = $x.max;
-                $min++ while $min <= $max && $min !~~ $x;
-                if @matches.gimme($min) >= $min && $min ~~ $x {
-                    my @src := @matches;
-                    @matches := gather {
-                        my $n = 0;
-                        while @src && ($n < $min || $n+1 ~~ $x) {
-                            take @src.shift;
-                            $n++;
-                        }
-                    }
-                }
-                else { @matches := ().list }
-            }
-            elsif nqp::istype($x, Whatever) { }
-            else {
-                X::Str::Match::x.new(got => $x).fail;
-            }
-        }
+        # XXX GLR sort out list/seq stuff with @matches
+        #if $x.defined {
+        #    $multi = True;
+        #    if nqp::istype($x, Int) {
+        #        @matches := @matches.gimme($x) >= $x
+        #                    ?? @matches[^$x].list
+        #                    !! ().list
+        #    }
+        #    elsif nqp::istype($x, Range) {
+        #        my $min = $x.min.ceiling;
+        #        my $max = $x.max;
+        #        $min++ while $min <= $max && $min !~~ $x;
+        #        if @matches.gimme($min) >= $min && $min ~~ $x {
+        #            my @src := @matches;
+        #            @matches := gather {
+        #                my $n = 0;
+        #                while @src && ($n < $min || $n+1 ~~ $x) {
+        #                    take @src.shift;
+        #                    $n++;
+        #                }
+        #            }
+        #        }
+        #        else { @matches := ().list }
+        #    }
+        #    elsif nqp::istype($x, Whatever) { }
+        #    else {
+        #        X::Str::Match::x.new(got => $x).fail;
+        #    }
+        #}
 
+        my @matches := $matches.list;
         if $multi {
             if nqp::istype($pat, Regex) {
                 try $caller_dollar_slash = +@matches

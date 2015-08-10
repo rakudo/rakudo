@@ -589,17 +589,44 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #}
 }
 
-# internal, caps to not hide 'eager' keyword
-sub EAGER(|) {
-    nqp::p6list(nqp::p6argvmarray(), List, Bool::True).eager
+# The , operator produces a List.
+proto infix:<,>(|) is assoc('list') {*}
+multi infix:<,>() {
+    my \result = List.CREATE;
+    nqp::bindattr(result, List, '$!reified', BEGIN IterationBuffer.CREATE);
+    result
+}
+multi infix:<,>(|) {
+    my \result  = List.CREATE;
+    my \in      = nqp::p6argvmarray();
+    my \reified = IterationBuffer.CREATE;
+    nqp::bindattr(result, List, '$!reified', reified);
+    while nqp::elems(in) {
+        if nqp::istype(nqp::atpos(in, 0), Slip) {
+            # We saw a Slip, so we'll lazily deal with the rest of the things
+            # (as the Slip may expand to something lazy).
+            my \todo := List::Reifier.CREATE;
+            nqp::bindattr(result, List, '$!todo', todo);
+            nqp::bindattr(todo, List::Reifier, '$!reified', reified);
+            nqp::bindattr(todo, List::Reifier, '$!future', in);
+            nqp::bindattr(todo, List::Reifier, '$!reification-target',
+                result.reification-target());
+            last;
+        }
+        else {
+            nqp::push(reified, nqp::shift(in));
+            Nil # don't Sink the thing above
+        }
+    }
+    result
 }
 
-sub flat(|) {
-    nqp::p6list(nqp::p6argvmarray(), List, Bool::True)
+# These two we'll get out of "is rw" on slurpy making List, not Array.
+sub list(**@list is rw) {
+    @list
 }
-
-sub list(|) {
-    nqp::p6list(nqp::p6argvmarray(), List, Mu)
+sub flat(*@flat-list is rw) {
+    @flat-list
 }
 
 proto sub infix:<xx>(|)     { * }

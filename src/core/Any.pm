@@ -448,7 +448,7 @@ sub categorize( $test, *@items, *%named ) {
 
 proto sub item(|) is pure { * }
 multi sub item(\x)    { my $ = x }
-multi sub item(|c)    { my $ = infix:<,>(|c) }
+multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
 sub RWPAIR(\k, \v) {   # internal fast pair creation

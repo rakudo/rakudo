@@ -501,7 +501,44 @@ my class Array { # declared in BOOTSTRAP
     #}
 }
 
-sub circumfix:<[ ]>(*@elems) is rw { my $ = @elems.eager }
+# The [...] term creates an Array.
+proto circumfix:<[ ]>(|) { * }
+multi circumfix:<[ ]>() {
+    my \result = Array.CREATE;
+    nqp::bindattr(result, List, '$!reified', IterationBuffer.CREATE);
+    result
+}
+multi circumfix:<[ ]>(Iterable:D \iterable) {
+    Array.from-iterator(iterable.iterator)
+}
+multi circumfix:<[ ]>(|) {
+    my \in      = nqp::p6argvmarray();
+    my \result  = Array.CREATE;
+    my \reified = IterationBuffer.CREATE;
+    nqp::bindattr(result, List, '$!reified', reified);
+    while nqp::elems(in) {
+        if nqp::istype(nqp::atpos(in, 0), Slip) {
+            # We saw a Slip, which may expand to something lazy. Put all that
+            # remains in the future, and let normal reification take care of
+            # it.
+            my \todo := List::Reifier.CREATE;
+            nqp::bindattr(result, List, '$!todo', todo);
+            nqp::bindattr(todo, List::Reifier, '$!reified', reified);
+            nqp::bindattr(todo, List::Reifier, '$!future', in);
+            nqp::bindattr(todo, List::Reifier, '$!reification-target',
+                result.reification-target());
+            todo.reify-until-lazy();
+            last;
+        }
+        else {
+            # Just an item, no need to go through the whole maybe-lazy
+            # business.
+            nqp::push(reified,
+                nqp::assign(nqp::p6scalarfromdesc(nqp::null()), nqp::shift(in)));
+        }
+    }
+    result
+}
 
 proto sub pop(@) {*}
 multi sub pop(@a) { @a.pop }

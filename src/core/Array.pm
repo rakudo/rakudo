@@ -25,15 +25,15 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
-    method from-iterator(GLRArray:U: GLRIterator $iter) {
+    method from-iterator(Array:U: Iterator $iter) {
         my \result := self.CREATE;
-        my \buffer := GLRIterationBuffer.CREATE;
-        my \todo := GLRList::Reifier.CREATE;
-        nqp::bindattr(result, GLRList, '$!reified', buffer);
-        nqp::bindattr(result, GLRList, '$!todo', todo);
-        nqp::bindattr(todo, GLRList::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, GLRList::Reifier, '$!current-iter', $iter);
-        nqp::bindattr(todo, GLRList::Reifier, '$!reification-target',
+        my \buffer := IterationBuffer.CREATE;
+        my \todo := List::Reifier.CREATE;
+        nqp::bindattr(result, List, '$!reified', buffer);
+        nqp::bindattr(result, List, '$!todo', todo);
+        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
+        nqp::bindattr(todo, List::Reifier, '$!current-iter', $iter);
+        nqp::bindattr(todo, List::Reifier, '$!reification-target',
             result.reification-target());
         todo.reify-until-lazy();
         result
@@ -47,43 +47,43 @@ my class Array { # declared in BOOTSTRAP
     #}
 
     proto method STORE(|) { * }
-    multi method STORE(GLRArray:D: GLRIterable:D \iterable) {
+    multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::iscont(iterable)
             ?? self!STORE-ONE(iterable)
             !! self!STORE-ITERABLE(iterable)
     }
-    multi method STORE(GLRArray:D: \item) {
+    multi method STORE(Array:D: \item) {
         self!STORE-ONE(item)
     }
     method !STORE-ITERABLE(\iterable) {
-        my \new-storage = GLRIterationBuffer.CREATE;
+        my \new-storage = IterationBuffer.CREATE;
         my \iter = iterable.iterator;
         my \target = ArrayReificationTarget.new(new-storage,
             nqp::decont($!descriptor));
-        if iter.push-until-lazy(target) =:= GLRIterationEnd {
-            nqp::bindattr(self, GLRList, '$!todo', Mu);
+        if iter.push-until-lazy(target) =:= IterationEnd {
+            nqp::bindattr(self, List, '$!todo', Mu);
         }
         else {
-            my \new-todo = GLRList::Reifier.CREATE;
-            nqp::bindattr(new-todo, GLRList::Reifier, '$!reified', new-storage);
-            nqp::bindattr(new-todo, GLRList::Reifier, '$!current-iter', iter);
-            nqp::bindattr(new-todo, GLRList::Reifier, '$!reification-target', target);
-            nqp::bindattr(self, GLRList, '$!todo', new-todo);
+            my \new-todo = List::Reifier.CREATE;
+            nqp::bindattr(new-todo, List::Reifier, '$!reified', new-storage);
+            nqp::bindattr(new-todo, List::Reifier, '$!current-iter', iter);
+            nqp::bindattr(new-todo, List::Reifier, '$!reification-target', target);
+            nqp::bindattr(self, List, '$!todo', new-todo);
         }
-        nqp::bindattr(self, GLRList, '$!reified', new-storage);
+        nqp::bindattr(self, List, '$!reified', new-storage);
         self
     }
     method !STORE-ONE(\item) {
-        my \new-storage = GLRIterationBuffer.CREATE;
+        my \new-storage = IterationBuffer.CREATE;
         nqp::push(new-storage, item);
-        nqp::bindattr(self, GLRList, '$!reified', new-storage);
-        nqp::bindattr(self, GLRList, '$!todo', Mu);
+        nqp::bindattr(self, List, '$!reified', new-storage);
+        nqp::bindattr(self, List, '$!todo', Mu);
         self
     }
 
     method reification-target() {
         ArrayReificationTarget.new(
-            nqp::getattr(self, GLRList, '$!reified'),
+            nqp::getattr(self, List, '$!reified'),
             nqp::decont($!descriptor))
     }
 

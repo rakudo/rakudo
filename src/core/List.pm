@@ -630,6 +630,30 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #    # need block on Moar because of RT#121830
     #    permutations(self.elems).eager.map: { self[@$_] }
     #}
+
+    method join($separator = '') is nodal {
+        my $infinite = False;
+        if $!todo.DEFINITE {
+            $!todo.reify-until-lazy();
+            $infinite = !$!todo.fully-reified()
+        }
+        my Mu $rsa := nqp::list_s();
+        unless $infinite {
+            nqp::setelems($rsa, nqp::unbox_i(self.elems));
+            nqp::setelems($rsa, 0);
+        }
+        my $tmp;
+        my int $i = 0;
+        my int $n = nqp::elems($!reified);
+        while $i < $n {
+            $tmp := nqp::atpos($!reified, $i);
+            nqp::push_s($rsa,
+                nqp::unbox_s(nqp::istype($tmp, Str) && nqp::isconcrete($tmp) ?? $tmp !! $tmp.Str));
+            $i = $i + 1;
+        }
+        nqp::push_s($rsa, '...') if $infinite;
+        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
+    }
 }
 
 # The , operator produces a List.

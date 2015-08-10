@@ -6842,6 +6842,22 @@ Compilation unit '$file' contained the following violations:
                         return 0 unless %info<is_invocant>;
                     }
                     else {
+                        if $nomtype =:= $*W.find_symbol(['Positional']) {
+                            $var.push(QAST::Op.new(
+                                :op('if'),
+                                QAST::Op.new(
+                                    :op('istype'),
+                                    QAST::Var.new( :name($name), :scope('local') ),
+                                    QAST::WVal.new( :value($*W.find_symbol(['PositionalBindFailover'])) )
+                                ),
+                                QAST::Op.new(
+                                    :op('bind'),
+                                    QAST::Var.new( :name($name), :scope('local') ),
+                                    QAST::Op.new(
+                                        :op('callmethod'), :name('list'),
+                                        QAST::Var.new( :name($name), :scope('local') )
+                                    ))));
+                        }
                         $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                             :op('istype'),
                             QAST::Var.new( :name($name), :scope('local') ),

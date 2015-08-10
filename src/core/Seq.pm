@@ -7,7 +7,7 @@
 # .iterator method the first time also). The memoization can be avoided by
 # asking very specifically for the Seq to be coerced to a List (.List), a
 # Slip (.Slip) or an Array (.Array). The actual memoization functionality is
-# factored out into a role, MemoizeAsPositional, which is used by the binder
+# factored out into a role, PositionalBindFailover, which is used by the binder
 # to identify types that, on failure to bind to an @-sigilled thing, can have
 # .list called on them and expect memoization semantics. This not only makes
 # it easy for HyperSeq to also have this functionality, but makes it available
@@ -24,6 +24,7 @@ my role PositionalBindFailover {
             !! ($!list := List.from-iterator(self.iterator))
     }
 }
+nqp::p6configposbindfailover(Positional, PositionalBindFailover);
 my class Seq does Iterable does PositionalBindFailover {
     # The underlying iterator that iterating this sequence will work its
     # way through. Can only be obtained once.

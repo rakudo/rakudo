@@ -123,6 +123,8 @@ my class Binder {
     my int $BIND_RESULT_JUNCTION := 2;
 
     my $autothreader;
+    my $Positional;
+    my $PositionalBindFailover;
 
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
@@ -165,6 +167,11 @@ my class Binder {
 
     method set_autothreader($callable) {
         $autothreader := $callable;
+    }
+
+    method set_pos_bind_failover($pos, $pos_bind_failover) {
+        $Positional := $pos;
+        $PositionalBindFailover := $pos_bind_failover;
     }
 
     # Binds a single parameter.
@@ -266,6 +273,12 @@ my class Binder {
                 $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
                 if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
                     $nom_type := $nom_type.HOW.instantiate_generic($nom_type, $lexpad);
+                }
+
+                # If the expected type is Positional, see if we need to do the
+                # positional bind failover.
+                if nqp::istype($nom_type, $Positional) && nqp::istype($oval, $PositionalBindFailover) {
+                    $oval := $oval.list;
                 }
 
                 # If not, do the check. If the wanted nominal type is Mu, then

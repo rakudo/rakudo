@@ -667,6 +667,12 @@ $ops.add_hll_op('perl6', 'p6setautothreader', :inlinable, -> $qastcomp, $op {
             QAST::WVal.new( :value($Binder) ),
             $op[0]), :want($MVM_reg_obj));
 });
+$ops.add_hll_op('perl6', 'p6configposbindfailover', :inlinable, -> $qastcomp, $op {
+    $qastcomp.as_mast(
+        QAST::Op.new( :op('callmethod'), :name('set_pos_bind_failover'),
+            QAST::WVal.new( :value($Binder) ),
+            $op[0], $op[1]), :want($MVM_reg_obj));
+});
 
 sub push_ilist(@dest, $src) {
     nqp::splice(@dest, $src.instructions, +@dest, 0);

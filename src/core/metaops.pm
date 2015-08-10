@@ -444,8 +444,8 @@ multi sub deepmap(\op, \obj) {
                         nqp::stmts(
                             ($o := op.($o)),
                             nqp::if(nqp::istype($o, List),
-                                    $o.eager,
-                                    $o)))),
+                                    $o.gimme(*)),
+                                    $o))),
             $i = nqp::sub_i($i, 2)
         )
     );
@@ -460,8 +460,8 @@ multi sub deepmap(\op, \obj) {
                         nqp::stmts(
                             ($o := op.($o)),
                             nqp::if(nqp::istype($o, List),
-                                    $o.eager,
-                                    $o)))),
+                                    $o.gimme(*)),
+                                    $o))),
             $i = nqp::sub_i($i, 2)
         )
     );

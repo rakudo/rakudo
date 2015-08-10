@@ -25,17 +25,19 @@ my class Nil is Cool { # declared in BOOTSTRAP
 # case of a list operation is naturally (), use () as a normal defined
 # value.  Empty is primarily intended for use in list comprehensions,
 # which need to weed out unselected values with an implicit "else".)
-my class Empty is Nil {
-    # class Empty is Iterator
-    method new(*@) { Empty }
-    multi method Bool() { False }
-    multi method Int() { 0 }
-    multi method end() { -1 }
-    multi method Numeric() { 0 }
-    method Str() { '' }
-    method gist(*@) { 'Empty' }
-    method iterator(*@) { self }
-    method reify($n) { () }
-}
+# XXX GLR can we just have Empty as an empty Slip? Must it be a kind of
+# Nil too?
+#my class Empty is Nil {
+#    # class Empty is Iterator
+#    method new(*@) { Empty }
+#    multi method Bool() { False }
+#    multi method Int() { 0 }
+#    multi method end() { -1 }
+#    multi method Numeric() { 0 }
+#    method Str() { '' }
+#    method gist(*@) { 'Empty' }
+#    method iterator(*@) { self }
+#    method reify($n) { () }
+#}
 
 # vim: ft=perl6 expandtab sw=4

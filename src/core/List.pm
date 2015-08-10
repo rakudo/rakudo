@@ -309,7 +309,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #}
 
     multi method values(List:D:) {
-        GLRSeq.new(self.iterator)
+        Seq.new(self.iterator)
     }
     multi method keys(List:D:) {
         self.values.map: { (state $)++ }

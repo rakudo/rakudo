@@ -590,7 +590,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 }
 
 # The , operator produces a List.
-proto infix:<,>(|) is assoc('list') {*}
+proto infix:<,>(|) {*}
 multi infix:<,>() {
     my \result = List.CREATE;
     nqp::bindattr(result, List, '$!reified', BEGIN IterationBuffer.CREATE);

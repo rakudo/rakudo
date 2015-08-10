@@ -1889,7 +1889,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     sub make_variable($/, @name) {
-        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>, ~$<desigilname>);
+        make_variable_from_parts($/, @name, ~$<sigil>, ~$<twigil>, ~$<desigilname>);
     }
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
@@ -1918,6 +1918,13 @@ Compilation unit '$file' contained the following violations:
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
                 $*W.add_string_constant($name));
+        }
+        elsif $twigil eq '?' && $*IN_DECL eq 'variable' && !$*COMPILING_CORE_SETTING {
+            $*W.throw($/, 'X::Syntax::Variable::Twigil',
+              twigil     => $twigil,
+              scope      => $*SCOPE,
+              additional => ' because it is reserved'
+            );
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
@@ -1989,8 +1996,8 @@ Compilation unit '$file' contained the following violations:
         elsif $name eq '$?LINE' || $name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                        twigil  => '?',
-                        scope   => $*SCOPE,
+                  twigil => '?',
+                  scope  => $*SCOPE,
                 );
             }
             if $name eq '$?LINE' {
@@ -2003,8 +2010,8 @@ Compilation unit '$file' contained the following violations:
         elsif $name eq '&?BLOCK' || $name eq '&?ROUTINE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                        twigil  => '?',
-                        scope   => $*SCOPE,
+                  twigil => '?',
+                  scope  => $*SCOPE,
                 );
             }
             my $Routine := $*W.find_symbol(['Routine']);
@@ -3820,11 +3827,23 @@ Compilation unit '$file' contained the following violations:
             $name := $<defterm>.ast;
         }
         elsif $<variable> {
-            # Don't handle twigil'd case yet.
-            if $<variable><twigil> && $<variable><twigil> ne '?' {
-                $*W.throw($/, 'X::Comp::NYI',
-                    feature => "Twigil-Variable constants"
-                );
+            if $<variable><twigil> {
+                if $<variable><twigil> eq '?' {
+                    unless $*COMPILING_CORE_SETTING {
+                        $*W.throw($/, 'X::Syntax::Variable::Twigil',
+                          what       => 'constant',
+                          twigil     => '?',
+                          scope      => $*SCOPE,
+                          additional => ' because it is reserved'
+                        );
+                    }
+                }
+
+                # Don't handle other twigil'd case yet.
+                else {
+                    $*W.throw($/, 'X::Comp::NYI',
+                      feature => "Twigil-Variable constants");
+                }
             }
             $name := ~$<variable>;
         }

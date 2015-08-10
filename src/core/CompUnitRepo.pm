@@ -99,8 +99,9 @@ sub SHORT-ID2CLASS(Str:D $short-id) {
 }
 
 # prime the short-id -> class lookup
-SHORT-ID2CLASS('file') = 'CompUnitRepo::Local::File';
-SHORT-ID2CLASS('inst') = 'CompUnitRepo::Local::Installation';
+# XXX GLR this busts startup at the moment
+#SHORT-ID2CLASS('file') = 'CompUnitRepo::Local::File';
+#SHORT-ID2CLASS('inst') = 'CompUnitRepo::Local::Installation';
 
 sub INCLUDE-SPEC2CUR(Str:D $spec) {
     state %INCLUDE-SPEC2CUR;

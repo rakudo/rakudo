@@ -25,7 +25,8 @@ class Perl does Systemic {
 }
 
 #multi sub INITIALIZE_DYNAMIC('$*PERL') {
-    PROCESS::<$PERL> := Perl.new;
+# XXX GLR this leads to bustage in Version
+#    PROCESS::<$PERL> := Perl.new;
 #}
 multi sub postcircumfix:<{ }> (Perl $d, "name" )   {
     DEPRECATED('$*PERL.name', |<2014.06 2015.06>, :what('$*PERL<name>') );

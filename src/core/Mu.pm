@@ -33,6 +33,12 @@ my class Mu { # declared in BOOTSTRAP
     method take {
         take self;
     }
+    method return(|) {
+        my $parcel :=
+          &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
+        nqp::p6routinereturn(nqp::p6recont_ro($parcel));
+        $parcel
+    }
 
     proto method WHY(|) { * }
     multi method WHY(Mu:) {

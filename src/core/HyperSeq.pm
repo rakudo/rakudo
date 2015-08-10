@@ -218,3 +218,5 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
         X::Seq::NotIndexable.new.throw
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

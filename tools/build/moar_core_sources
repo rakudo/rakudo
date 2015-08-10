@@ -15,7 +15,7 @@ src/core/SlippyIterator.pm
 src/core/HyperIterator.pm
 src/core/Iterable.pm
 src/core/HyperIterable.pm
-src/core/Any-list-methods.pm
+src/core/Any-iterable-methods.pm
 src/core/SLICE.pm
 src/core/Whatever.pm
 src/core/array_slice.pm

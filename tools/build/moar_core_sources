@@ -52,6 +52,7 @@ src/core/HyperSeq.pm
 src/core/Nil.pm
 src/core/Range.pm
 src/core/List.pm
+src/core/Slip.pm
 src/core/Array.pm
 src/core/native_array.pm
 src/core/Enum.pm

@@ -344,6 +344,105 @@ class Array { # declared in BOOTSTRAP
 
         self;
     }
+
+    method pop(Array:D:) is parcel is nodal {
+        my $elems = self.gimme(*);
+        fail X::Cannot::Infinite.new(:action('.pop from')) if $!nextiter.defined;
+        $elems > 0
+          ?? nqp::pop($!items)
+          !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+    }
+
+    method shift(Array:D:) is parcel is nodal {
+        # make sure we have at least one item, then shift+return it
+        nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
+          ?? nqp::shift($!items)
+          !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+    }
+
+    method plan(Array:D: |args) is nodal {
+        nqp::p6listitems(self);
+        my $elems = self.gimme(*);
+        fail X::Cannot::Infinite.new(:action('.plan to')) if $!nextiter.defined;
+
+#        # need type checks?
+#        my $of := self.of;
+#
+#        unless $of =:= Mu {
+#            X::TypeCheck.new(
+#              operation => '.push',
+#              expected  => $of,
+#              got       => $_,
+#            ).throw unless nqp::istype($_, $of) for @values;
+#        }
+
+        nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list(args.list), self));
+        Nil;
+    }
+
+    proto method splice(|) is nodal { * }
+    multi method splice(Array:D \SELF: :$SINK) {
+
+        if $SINK {
+            SELF = ();
+            Nil;
+        }
+        else {
+            my @ret := SELF.of =:= Mu ?? Array.new !! Array[SELF.of].new;
+            @ret = SELF;
+            SELF = ();
+            @ret;
+        }
+    }
+    multi method splice(Array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+        fail X::Cannot::Infinite.new(:action('splice in')) if @values.infinite;
+
+        self.gimme(*);
+        my $elems = self.elems;
+        my int $o = nqp::istype($offset,Callable)
+          ?? $offset($elems)
+          !! nqp::istype($offset,Whatever)
+            ?? $elems
+            !! $offset.Int;
+        X::OutOfRange.new(
+          :what('Offset argument to splice'),
+          :got($o),
+          :range("0..$elems"),
+        ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
+
+        my int $s = nqp::istype($size,Callable)
+          ?? $size($elems - $o)
+          !! !defined($size) || nqp::istype($size,Whatever)
+             ?? $elems - ($o min $elems)
+             !! $size.Int;
+        X::OutOfRange.new(
+          :what('Size argument to splice'),
+          :got($s),
+          :range("0..^{$elems - $o}"),
+        ).fail if $s < 0;
+
+        # need to enforce type checking
+        my $expected := self.of;
+        my @v := @values.eager;
+        if self.of !=:= Mu && @v {
+            X::TypeCheck::Splice.new(
+              :action<splice>,
+              :got($_.WHAT),
+              :$expected,
+            ).fail unless nqp::istype($_,$expected) for @v;
+        }
+
+        if $SINK {
+            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+            Nil;
+        }
+        else {
+            my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
+            @ret = self[$o..($o + $s - 1)] if $s;
+            nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
+            @ret;
+        }
+    }
 }
 
 sub circumfix:<[ ]>(*@elems) is rw { my $ = @elems.eager }

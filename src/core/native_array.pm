@@ -1,4 +1,4 @@
-class array is Iterable is repr('VMArray') {
+class array does Iterable is repr('VMArray') {
 
     proto method STORE(|) { * }
     multi method STORE(array:D: *@values) { self.STORE(@values) }
@@ -154,53 +154,55 @@ class array is Iterable is repr('VMArray') {
             }
         }
 
-        my class NativeIntArrayIter is Iterator {
-            has $!array;    # Native array we're iterating
-            has $!reified;  # Parcel of native array refs we return after reifying
-            has int $!idx;  # Starting index of this iterator
-
-            method new($array) { self.bless(:$array) }
-            submethod BUILD(:$array) { $!array := nqp::decont($array) }
-
-            method reify($n) {   # :$sink is not needed here
-                unless nqp::isconcrete($!reified) {
-                    my $rpa := nqp::list();
-                    my int $i = $!idx;
-                    my int $stop = $i + nqp::unbox_i(
-                        nqp::istype($n, Whatever) ?? 1000 !! $n);
-                    $stop = nqp::elems($!array)
-                        if $stop > nqp::elems($!array);
-                    while $i < $stop {
-                        nqp::push($rpa, nqp::atposref_i($!array, $i));
-                        $i = $i + 1;
-                    }
-                    if $stop != nqp::elems($!array) {
-                        my $next := nqp::create(self);
-                        nqp::bindattr($next, NativeIntArrayIter, '$!array', $!array);
-                        nqp::bindattr_i($next, NativeIntArrayIter, '$!idx', $i);
-                        nqp::push($rpa, $next);
-                    }
-                    $!reified := nqp::p6parcel($rpa, nqp::null());
-                    $!array := Any;
-                }
-                $!reified;
-            }
-
-            multi method infinite(NativeIntArrayIter:D:) { False }
-
-            multi method DUMP(NativeIntArrayIter:D: :$indent-step = 4, :%ctx?) {
-                return DUMP(self, :$indent-step) unless %ctx;
-                my Mu $attrs := nqp::list();
-                nqp::push($attrs, '$!array');
-                nqp::push($attrs,  $!array);
-                nqp::push($attrs, '$!reified');
-                nqp::push($attrs,  $!reified);
-                self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
-            }
-        }
-        method iterator() {
-            NativeIntArrayIter.new(self)
-        }
+        # XXX GLR
+        #my class NativeIntArrayIter is Iterator {
+        #    has $!array;    # Native array we're iterating
+        #    has $!reified;  # Parcel of native array refs we return after reifying
+        #    has int $!idx;  # Starting index of this iterator
+        #
+        #    method new($array) { self.bless(:$array) }
+        #    submethod BUILD(:$array) { $!array := nqp::decont($array) }
+        #
+        #    method reify($n) {   # :$sink is not needed here
+        #        unless nqp::isconcrete($!reified) {
+        #            my $rpa := nqp::list();
+        #            my int $i = $!idx;
+        #            my int $stop = $i + nqp::unbox_i(
+        #                nqp::istype($n, Whatever) ?? 1000 !! $n);
+        #            $stop = nqp::elems($!array)
+        #                if $stop > nqp::elems($!array);
+        #            while $i < $stop {
+        #                nqp::push($rpa, nqp::atposref_i($!array, $i));
+        #                $i = $i + 1;
+        #            }
+        #            if $stop != nqp::elems($!array) {
+        #                my $next := nqp::create(self);
+        #                nqp::bindattr($next, NativeIntArrayIter, '$!array', $!array);
+        #                nqp::bindattr_i($next, NativeIntArrayIter, '$!idx', $i);
+        #                nqp::push($rpa, $next);
+        #            }
+        #            $!reified := nqp::p6parcel($rpa, nqp::null());
+        #            $!array := Any;
+        #        }
+        #        $!reified;
+        #    }
+        #
+        #    multi method infinite(NativeIntArrayIter:D:) { False }
+        #
+        #    multi method DUMP(NativeIntArrayIter:D: :$indent-step = 4, :%ctx?) {
+        #        return DUMP(self, :$indent-step) unless %ctx;
+        #        my Mu $attrs := nqp::list();
+        #        nqp::push($attrs, '$!array');
+        #        nqp::push($attrs,  $!array);
+        #        nqp::push($attrs, '$!reified');
+        #        nqp::push($attrs,  $!reified);
+        #        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
+        #    }
+        #}
+        #method iterator() {
+        #    NativeIntArrayIter.new(self)
+        #}
+        method iterator() { nqp::die('XXX native array iterators need re-implementing') }
     }
 
 # please note that this role is mostly same as intarray but s/_i$/_n/
@@ -353,53 +355,55 @@ class array is Iterable is repr('VMArray') {
             }
         }
 
-        my class NativeNumArrayIter is Iterator {
-            has $!array;    # Native array we're iterating
-            has $!reified;  # Parcel of native array refs we return after reifying
-            has int $!idx;  # Starting index of this iterator
-
-            method new($array) { self.bless(:$array) }
-            submethod BUILD(:$array) { $!array := nqp::decont($array) }
-
-            method reify($n, :$sink) {
-                unless nqp::isconcrete($!reified) {
-                    my $rpa := nqp::list();
-                    my int $i = $!idx;
-                    my int $stop = $i + nqp::unbox_i(
-                        nqp::istype($n, Whatever) ?? 1000 !! $n);
-                    $stop = nqp::elems($!array)
-                        if $stop > nqp::elems($!array);
-                    while $i < $stop {
-                        nqp::push($rpa, nqp::atposref_n($!array, $i));
-                        $i = $i + 1;
-                    }
-                    if $stop != nqp::elems($!array) {
-                        my $next := nqp::create(self);
-                        nqp::bindattr($next, NativeNumArrayIter, '$!array', $!array);
-                        nqp::bindattr_i($next, NativeNumArrayIter, '$!idx', $i);
-                        nqp::push($rpa, $next);
-                    }
-                    $!reified := nqp::p6parcel($rpa, nqp::null());
-                    $!array := Any;
-                }
-                $!reified;
-            }
-
-            multi method infinite(NativeNumArrayIter:D:) { False }
-
-            multi method DUMP(NativeNumArrayIter:D: :$indent-step = 4, :%ctx?) {
-                return DUMP(self, :$indent-step) unless %ctx;
-                my Mu $attrs := nqp::list();
-                nqp::push($attrs, '$!array');
-                nqp::push($attrs,  $!array);
-                nqp::push($attrs, '$!reified');
-                nqp::push($attrs,  $!reified);
-                self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
-            }
-        }
-        method iterator() {
-            NativeNumArrayIter.new(self)
-        }
+        # XXX GLR
+        #my class NativeNumArrayIter is Iterator {
+        #    has $!array;    # Native array we're iterating
+        #    has $!reified;  # Parcel of native array refs we return after reifying
+        #    has int $!idx;  # Starting index of this iterator
+        #
+        #    method new($array) { self.bless(:$array) }
+        #    submethod BUILD(:$array) { $!array := nqp::decont($array) }
+        #
+        #    method reify($n, :$sink) {
+        #        unless nqp::isconcrete($!reified) {
+        #            my $rpa := nqp::list();
+        #            my int $i = $!idx;
+        #            my int $stop = $i + nqp::unbox_i(
+        #                nqp::istype($n, Whatever) ?? 1000 !! $n);
+        #            $stop = nqp::elems($!array)
+        #                if $stop > nqp::elems($!array);
+        #            while $i < $stop {
+        #                nqp::push($rpa, nqp::atposref_n($!array, $i));
+        #                $i = $i + 1;
+        #            }
+        #            if $stop != nqp::elems($!array) {
+        #                my $next := nqp::create(self);
+        #                nqp::bindattr($next, NativeNumArrayIter, '$!array', $!array);
+        #                nqp::bindattr_i($next, NativeNumArrayIter, '$!idx', $i);
+        #                nqp::push($rpa, $next);
+        #            }
+        #            $!reified := nqp::p6parcel($rpa, nqp::null());
+        #            $!array := Any;
+        #        }
+        #        $!reified;
+        #    }
+        #
+        #    multi method infinite(NativeNumArrayIter:D:) { False }
+        #
+        #    multi method DUMP(NativeNumArrayIter:D: :$indent-step = 4, :%ctx?) {
+        #        return DUMP(self, :$indent-step) unless %ctx;
+        #        my Mu $attrs := nqp::list();
+        #        nqp::push($attrs, '$!array');
+        #        nqp::push($attrs,  $!array);
+        #        nqp::push($attrs, '$!reified');
+        #        nqp::push($attrs,  $!reified);
+        #        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
+        #    }
+        #}
+        #method iterator() {
+        #    NativeNumArrayIter.new(self)
+        #}
+        method iterator() { nqp::die('XXX native array iterators need re-implementing') }
     }
 
     method ^parameterize(Mu:U \arr, Mu:U \t) {
@@ -469,6 +473,7 @@ class array is Iterable is repr('VMArray') {
 
     multi method elems(array:D:)    { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
+    # XXX GLR will infinite survive?
     multi method infinite(array:D:) { False }
 
     method eager() { self }
@@ -490,11 +495,10 @@ class array is Iterable is repr('VMArray') {
             self.map(*.perl).join(', ') ~ ')'
     }
 
-    method gimme($) {
-        # Native arrays aren't lazy, so nothing to do.
-        nqp::elems(self)
-    }
-
     method FLATTENABLE_LIST() { self }
     method FLATTENABLE_HASH() { nqp::hash() }
+
+    method iterator() {
+        nqp::die('iterator must be provided by native array parameterization role')
+    }
 }

@@ -128,48 +128,49 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
-    # XXX GLR possibly more efficient taking an Iterable, not a @list
     proto method classify-list(|) { * }
-    multi method classify-list( &test, @list, :&as ) {
-        fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
-        if @list {
-
-            # multi-level classify
-            if nqp::istype(test(@list[0]),List) {
-                @list.map: -> $l {
-                    my @keys  = test($l);
-                    my $last := @keys.pop;
-                    my $hash  = self;
-                    $hash = $hash{$_} //= self.new for @keys;
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont($hash{$last} //= [])),
-                      &as ?? as($l) !! $l
-                    );
-                }
-            }
-
-            # simple classify to store a specific value
-            elsif &as {
-                @list.map: {
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
-                      as($_)
-                    )
-                }
-            }
-
-            # just a simple classify
-            else {
-                @list.map: {
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
-                      $_
-                    )
-                }
-            }
-        }
-        self;
-    }
+    # XXX GLR possibly more efficient taking an Iterable, not a @list
+    # XXX GLR replace p6listitems op use
+    #multi method classify-list( &test, @list, :&as ) {
+    #    fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
+    #    if @list {
+    #
+    #        # multi-level classify
+    #        if nqp::istype(test(@list[0]),List) {
+    #            @list.map: -> $l {
+    #                my @keys  = test($l);
+    #                my $last := @keys.pop;
+    #                my $hash  = self;
+    #                $hash = $hash{$_} //= self.new for @keys;
+    #                nqp::push(
+    #                  nqp::p6listitems(nqp::decont($hash{$last} //= [])),
+    #                  &as ?? as($l) !! $l
+    #                );
+    #            }
+    #        }
+    #
+    #        # simple classify to store a specific value
+    #        elsif &as {
+    #            @list.map: {
+    #                nqp::push(
+    #                  nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+    #                  as($_)
+    #                )
+    #            }
+    #        }
+    #
+    #        # just a simple classify
+    #        else {
+    #            @list.map: {
+    #                nqp::push(
+    #                  nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+    #                  $_
+    #                )
+    #            }
+    #        }
+    #    }
+    #    self;
+    #}
     multi method classify-list( %test, $list, |c ) {
         self.classify-list( { %test{$^a} }, $list, |c );
     }
@@ -177,41 +178,42 @@ my class Hash { # declared in BOOTSTRAP
         self.classify-list( { @test[$^a] }, $list, |c );
     }
 
-    # XXX GLR possibly more efficient taking an Iterable, not a @list
     proto method categorize-list(|) { * }
-    multi method categorize-list( &test, @list, :&as ) {
-        fail X::Cannot::Infinite.new(:action<categorize>) if @list.infinite;
-        if @list {
-
-            # multi-level categorize
-            if nqp::istype(test(@list[0])[0],List) {
-                @list.map: -> $l {
-                    my $value := &as ?? as($l) !! $l;
-                    for test($l) -> $k {
-                        my @keys = @($k);
-                        my $last := @keys.pop;
-                        my $hash  = self;
-                        $hash = $hash{$_} //= self.new for @keys;
-                        nqp::push(
-                          nqp::p6listitems(nqp::decont($hash{$last} //= [])),
-                          $value
-                        );
-                    }
-                }
-            }
-
-            # just a simple categorize
-            else {
-                @list.map: -> $l {
-                    my $value := &as ?? as($l) !! $l;
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
-                      for test($l);
-                }
-            }
-        }
-        self;
-    }
+    # XXX GLR possibly more efficient taking an Iterable, not a @list
+    # XXX GLR replace p6listitems op use
+    #multi method categorize-list( &test, @list, :&as ) {
+    #    fail X::Cannot::Infinite.new(:action<categorize>) if @list.infinite;
+    #    if @list {
+    #
+    #        # multi-level categorize
+    #        if nqp::istype(test(@list[0])[0],List) {
+    #            @list.map: -> $l {
+    #                my $value := &as ?? as($l) !! $l;
+    #                for test($l) -> $k {
+    #                    my @keys = @($k);
+    #                    my $last := @keys.pop;
+    #                    my $hash  = self;
+    #                    $hash = $hash{$_} //= self.new for @keys;
+    #                    nqp::push(
+    #                      nqp::p6listitems(nqp::decont($hash{$last} //= [])),
+    #                      $value
+    #                    );
+    #                }
+    #            }
+    #        }
+    #
+    #        # just a simple categorize
+    #        else {
+    #            @list.map: -> $l {
+    #                my $value := &as ?? as($l) !! $l;
+    #                nqp::push(
+    #                  nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
+    #                  for test($l);
+    #            }
+    #        }
+    #    }
+    #    self;
+    #}
     multi method categorize-list( %test, $list ) {
         self.categorize-list( { %test{$^a} }, $list );
     }

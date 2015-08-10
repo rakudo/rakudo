@@ -20,6 +20,7 @@ my sub combinations($n, $k) {
             @result[$index++] = $value++;
             @stack.push($value);
             if $index == $k {
+                # XXX GLR why .Parcel here?
                 take [@result].Parcel;
                 $value = $n;  # fake a last
             }
@@ -33,6 +34,15 @@ my sub permutations(Int $n) {
         my @i = 0 ..^ $i, $i ^..^ $n;
         sink permutations($n - 1).map: { take [$i, @i[@$_]].Parcel }
     }
+}
+
+sub find-reducer-for-op($op) {
+    try my %prec := $op.prec;
+    return &METAOP_REDUCE_LEFT if (nqp::isnull(%prec) or ! %prec);
+    my $reducer = %prec<prec> eq 'f='
+        ?? 'listinfix'
+        !! %prec<assoc> // 'left';
+    ::('&METAOP_REDUCE_' ~ $reducer.uc);
 }
 
 my class List does Positional { # declared in BOOTSTRAP
@@ -455,113 +465,11 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    method sort(&by = &infix:<cmp>) is nodal {
-        fail X::Cannot::Infinite.new(:action<sort>) if self.infinite; #MMD?
-
-        # Instead of sorting elements directly, we sort a Parcel of
-        # indices from 0..^$list.elems, then use that Parcel as
-        # a slice into self. This is for historical reasons: on
-        # Parrot we delegate to RPA.sort. The JVM implementation
-        # uses a Java collection sort. MoarVM has its sort algorithm
-        # implemented in NQP.
-
-        # nothing to do here
-        my $elems := self.elems;
-        return self if $elems < 2;
-
-        # Range is currently optimized for fast Parcel construction.
-        my $index := Range.new(0, $elems, :excludes-max).reify(*);
-        my Mu $index_rpa := nqp::getattr($index, Parcel, '$!storage');
-
-        # if &by.arity < 2, then we apply the block to the elements
-        # for sorting.
-        if (&by.?count // 2) < 2 {
-            my $list = self.map(&by).eager;
-            nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
-        }
-        else {
-            my $list = self.eager;
-            nqp::p6sort($index_rpa, -> $a, $b { &by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
-        }
-        self[$index];
-    }
-
     multi method ACCEPTS(List:D: $topic) { self }
 
     method uniq(|c) is nodal {
         DEPRECATED('unique', |<2014.11 2015.09>);
         self.unique(|c);
-    }
-
-    proto method unique(|) is nodal {*}
-    multi method unique() {
-        my $seen := nqp::hash();
-        my str $target;
-        gather @.list.map: {
-            $target = nqp::unbox_s($_.WHICH);
-            unless nqp::existskey($seen, $target) {
-                nqp::bindkey($seen, $target, 1);
-                take $_;
-            }
-        }
-    }
-    multi method unique( :&as!, :&with! ) {
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather @.list.map: {
-            $target = &as($_);
-            if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target);
-                take $_;
-            }
-        };
-    }
-    multi method unique( :&as! ) {
-        my $seen := nqp::hash();
-        my str $target;
-        gather @.list.map: {
-            $target = &as($_).WHICH;
-            unless nqp::existskey($seen, $target) {
-                nqp::bindkey($seen, $target, 1);
-                take $_;
-            }
-        }
-    }
-    multi method unique( :&with! ) {
-        nextwith() if &with === &[===]; # use optimized version
-
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather @.list.map: {
-            $target := $_;
-            if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target);
-                take $_;
-            }
-        }
-    }
-
-    my @secret;
-    proto method squish(|) is nodal {*}
-    multi method squish( :&as!, :&with = &[===] ) {
-        my $last = @secret;
-        my str $which;
-        gather @.list.map: {
-            $which = &as($_).Str;
-            unless with($which,$last) {
-                $last = $which;
-                take $_;
-            }
-        }
-    }
-    multi method squish( :&with = &[===] ) {
-        my $last = @secret;
-        gather @.list.map: {
-            unless with($_,$last) {
-                $last = $_;
-                take $_;
-            }
-        }
     }
 
     method rotor(List:D: *@cycle, :$partial) is nodal {
@@ -659,27 +567,6 @@ my class List does Positional { # declared in BOOTSTRAP
 
     multi method invert(List:D:) {
         self.map({ nqp::decont(.value) »=>» .key }).flat
-    }
-
-    method reduce(List: &with) is nodal {
-        return unless self.DEFINITE;
-        return self.values if self.elems < 2;
-        if &with.count > 2 and &with.count < Inf {
-            my $moar = &with.count - 1;
-            my \vals = self.values;
-            if try &with.prec<assoc> eq 'right' {
-                my Mu $val = vals.pop;
-                $val = with(|vals.splice(*-$moar,$moar), $val) while vals >= $moar;
-                return $val;
-            }
-            else {
-                my Mu $val = vals.shift;
-                $val = with($val, |vals.splice(0,$moar)) while vals >= $moar;
-                return $val;
-            }
-        }
-        my $reducer = find-reducer-for-op(&with);
-        $reducer(&with)(self) if $reducer;
     }
 
     method sink() {

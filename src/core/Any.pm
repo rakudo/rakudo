@@ -111,20 +111,6 @@ my class Any { # declared in BOOTSTRAP
 
     proto method invert(|) is nodal { * }
 
-    method squish(|c) is nodal { self.list.squish(|c) }
-    method rotor(|c) is nodal { self.list.rotor(|c) }
-    method reverse() is nodal { self.list.reverse }
-    method sort(&by = &infix:<cmp>) is nodal { self.list.sort(&by) }
-    method reduce(&with) is nodal { self.list.reduce(&with) }
-    method combinations(|c) is nodal { self.list.combinations(|c) }
-    method permutations(|c) is nodal { self.list.permutations(|c) }
-
-    method unique(|c) is nodal { self.list.unique(|c) }
-    method uniq(|c) is nodal {
-        DEPRECATED('unique', |<2014.11 2015.09>);
-        self.unique(|c);
-    }
-
     proto method pick(|) is nodal { * }
     multi method pick()   { self.list.pick     }
     multi method pick($n) { self.list.pick($n) }
@@ -160,6 +146,11 @@ my class Any { # declared in BOOTSTRAP
     multi method categorize($test, :&as) {
         Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
     }
+
+    method rotor(|c) is nodal { self.list.rotor(|c) }
+    method reverse() is nodal { self.list.reverse }
+    method combinations(|c) is nodal { self.list.combinations(|c) }
+    method permutations(|c) is nodal { self.list.permutations(|c) }
 
     # XXX GLR should move these
     method nodemap(&block) is rw is nodal { nodemap(&block, self) }

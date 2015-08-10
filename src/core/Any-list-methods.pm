@@ -23,10 +23,7 @@ augment class Any {
         # For now we only know how to parallelize when we've only one input
         # value needed per block. For the rest, fall back to sequential.
         if &block.count != 1 {
-            my $source = self.DEFINITE && nqp::istype(self, Iterable)
-                ?? self.iterator
-                !! self.list.iterator;
-            sequential-map($source, &block)
+            sequential-map(as-iterable(self).iterator, &block)
         }
         else {
             HyperSeq.new(class :: does HyperIterator {
@@ -297,14 +294,14 @@ augment class Any {
     }
 
     proto method min (|) is nodal { * }
-    multi method min(Any:D:) {
+    multi method min() {
         my $min;
         self.map: {
             $min = $_ if .defined and !$min.defined || $_ cmp $min < 0;
         }
         $min // Inf;
     }
-    multi method min(Any:D: &by) {
+    multi method min(&by) {
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
         my $min;
         self.map: {
@@ -314,14 +311,14 @@ augment class Any {
     }
 
     proto method max (|) is nodal { * }
-    multi method max(Any:D:) {
+    multi method max() {
         my $max;
         self.map: {
             $max = $_ if .defined and !$max.defined || $_ cmp $max > 0;
         }
         $max // -Inf;
     }
-    multi method max(Any:D: &by) {
+    multi method max(&by) {
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
         my $max;
         self.map: {
@@ -331,7 +328,7 @@ augment class Any {
     }
 
     proto method minmax (|) is nodal { * }
-    multi method minmax(Any:D: &by = &infix:<cmp>) {
+    multi method minmax(&by = &infix:<cmp>) {
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) };
 
         my $min;
@@ -376,6 +373,141 @@ augment class Any {
                   $max // -Inf,
                   :excludes-min($excludes-min),
                   :excludes-max($excludes-max));
+    }
+
+    method sort(&by = &infix:<cmp>) is nodal {
+        # XXX GLR sort out sort
+        nqp::die('sort needs re-working after GLR');
+        #fail X::Cannot::Infinite.new(:action<sort>) if self.infinite; #MMD?
+        #
+        ## Instead of sorting elements directly, we sort a Parcel of
+        ## indices from 0..^$list.elems, then use that Parcel as
+        ## a slice into self. This is for historical reasons: on
+        ## Parrot we delegate to RPA.sort. The JVM implementation
+        ## uses a Java collection sort. MoarVM has its sort algorithm
+        ## implemented in NQP.
+        #
+        ## nothing to do here
+        #my $elems := self.elems;
+        #return self if $elems < 2;
+        #
+        ## Range is currently optimized for fast Parcel construction.
+        #my $index := Range.new(0, $elems, :excludes-max).reify(*);
+        #my Mu $index_rpa := nqp::getattr($index, Parcel, '$!storage');
+        #
+        ## if &by.arity < 2, then we apply the block to the elements
+        ## for sorting.
+        #if (&by.?count // 2) < 2 {
+        #    my $list = self.map(&by).eager;
+        #    nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
+        #}
+        #else {
+        #    my $list = self.eager;
+        #    nqp::p6sort($index_rpa, -> $a, $b { &by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
+        #}
+        #self[$index];
+    }
+
+    proto method reduce(|) { * }
+    multi method reduce(&with) is nodal {
+        # XXX GLR we really, really should be able to do reduce on the
+        # iterable in left-associative cases without having to make a
+        # list in memory.
+        nqp::die('reduce needs re-working after GLR');
+        #return unless self.DEFINITE;
+        #return self.values if self.elems < 2;
+        #if &with.count > 2 and &with.count < Inf {
+        #    my $moar = &with.count - 1;
+        #    my \vals = self.values;
+        #    if try &with.prec<assoc> eq 'right' {
+        #        my Mu $val = vals.pop;
+        #        $val = with(|vals.splice(*-$moar,$moar), $val) while vals >= $moar;
+        #        return $val;
+        #    }
+        #    else {
+        #        my Mu $val = vals.shift;
+        #        $val = with($val, |vals.splice(0,$moar)) while vals >= $moar;
+        #        return $val;
+        #    }
+        #}
+        #my $reducer = find-reducer-for-op(&with);
+        #$reducer(&with)(self) if $reducer;
+    }
+
+    proto method unique(|) is nodal {*}
+    multi method unique() {
+        my $seen := nqp::hash();
+        my str $target;
+        gather self.map: {
+            $target = nqp::unbox_s($_.WHICH);
+            unless nqp::existskey($seen, $target) {
+                nqp::bindkey($seen, $target, 1);
+                take $_;
+            }
+        }
+    }
+    multi method unique( :&as!, :&with! ) {
+        my @seen;  # should be Mu, but doesn't work in settings :-(
+        my Mu $target;
+        gather self.map: {
+            $target = &as($_);
+            if first( { with($target,$_) }, @seen ) =:= Nil {
+                @seen.push($target);
+                take $_;
+            }
+        };
+    }
+    multi method unique( :&as! ) {
+        my $seen := nqp::hash();
+        my str $target;
+        gather self.map: {
+            $target = &as($_).WHICH;
+            unless nqp::existskey($seen, $target) {
+                nqp::bindkey($seen, $target, 1);
+                take $_;
+            }
+        }
+    }
+    multi method unique( :&with! ) {
+        nextwith() if &with === &[===]; # use optimized version
+
+        my @seen;  # should be Mu, but doesn't work in settings :-(
+        my Mu $target;
+        gather self.map: {
+            $target := $_;
+            if first( { with($target,$_) }, @seen ) =:= Nil {
+                @seen.push($target);
+                take $_;
+            }
+        }
+    }
+
+    method uniq(|c) is nodal {
+        DEPRECATED('unique', |<2014.11 2015.09>);
+        self.unique(|c);
+    }
+
+    my @secret;
+    proto method squish(|) is nodal {*}
+    multi method squish( :&as!, :&with = &[===] ) {
+        my $last = @secret;
+        my str $which;
+        gather self.map: {
+            $which = &as($_).Str;
+            unless with($which,$last) {
+                $last = $which;
+                take $_;
+            }
+        }
+    }
+    multi method squish( :&with = &[===] ) {
+        my $last = @secret;
+        gather self.map: {
+            unless with($_,$last) {
+                $last = $_;
+                take $_;
+            }
+        }
     }
 
     # XXX GLR fix this to work on an Iterable rather than forcing a List

@@ -6760,17 +6760,16 @@ Compilation unit '$file' contained the following violations:
             }
             elsif %info<pos_slurpy> || %info<pos_lol> {
                 $var.slurpy(1);
-                my $type := $*W.find_symbol([ %info<pos_lol> ?? 'LoL' !!
-                    $flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
-                my $flat := %info<pos_lol> ?? 'False' !! 'True';
+                my $type := $*W.find_symbol(
+                    [$flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
                 $var.push(QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name($name), :scope('local') ),
                     QAST::Op.new(
-                        :op('p6list'),
+                        :op('callmethod'),
+                        :name(%info<pos_lol> ?? 'from-slurpy' !! 'from-slurpy-flat'),
                         QAST::Var.new( :name($name), :scope('local') ),
-                        QAST::WVal.new( :value($type) ),
-                        QAST::WVal.new( :value($*W.find_symbol([$flat])) )
+                        QAST::WVal.new( :value($type) )
                     )));
                 $saw_slurpy := 1;
             }

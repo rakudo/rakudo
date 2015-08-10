@@ -1558,18 +1558,25 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_prefix:sym<lazy>($/) {
-        make QAST::Op.new( :op('call'), $<blorst>.ast );
+        make QAST::Op.new(
+            :op('callmethod'), :name('lazy'),
+            QAST::Op.new( :op('call'), $<blorst>.ast )
+        );
     }
 
     method statement_prefix:sym<eager>($/) {
-        my $blast := QAST::Op.new( :op('call'), $<blorst>.ast );
-        make QAST::Op.new( :name('&EAGER'), :op('call'), :node($/), $blast );
+        make QAST::Op.new(
+            :op('callmethod'), :name('lazy'),
+            QAST::Op.new( :op('call'), $<blorst>.ast )
+        );
     }
 
     method statement_prefix:sym<sink>($/) {
-        my $blast := QAST::Op.new( :op('call'), $<blorst>.ast );
         make QAST::Stmts.new(
-            QAST::Op.new( :name('&EAGER'), :op('call'), $blast ),
+            QAST::Op.new(
+                :op('callmethod'), :name('lazy'),
+                QAST::Op.new( :op('call'), $<blorst>.ast )
+            ),
             QAST::Var.new( :name('Nil'), :scope('lexical')),
             :node($/)
         );

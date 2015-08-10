@@ -226,7 +226,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                 Nil;
             }
             elsif nqp::elems($d) == 0 {       # :delete
-                $more.list.flatmap( { SELF.@DELETE[]$_) } ).eager.Parcel;
+                $more.list.flatmap( { SELF.@DELETE[]$_) } ).eager.List;
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
                 my $exists := DELETEKEY($d,'exists');
@@ -235,7 +235,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                     $more.list.flatmap( {
                         SELF.@DELETE[]$_) if $wasthere = SELF.@EXISTS[]$_);
                         !( $wasthere ?^ $exists );
-                    } ).eager.Parcel;
+                    } ).eager.List;
                 }
                 elsif nqp::existskey($d,'kv') { # :delete:exists(0|1):kv(0|1):*
                     my $kv := DELETEKEY($d,'kv');
@@ -244,7 +244,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                             SELF.@DELETE[]$_) if $wasthere = SELF.@EXISTS[]$_);
                             next unless !$kv || $wasthere;
                             ($_, !( $wasthere ?^ $exists ));
-                        } ).flat.eager.Parcel;
+                        } ).flat.eager.List;
                     }
                     else {
                         @nogo = <delete exists kv>;
@@ -257,7 +257,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                             SELF.@DELETE[]$_) if $wasthere = SELF.@EXISTS[]$_);
                             next unless !$p || $wasthere;
                             RWPAIR($_,!($wasthere ?^ $exists));
-                        } ).eager.Parcel;
+                        } ).eager.List;
                     }
                     else {
                         @nogo = <delete exists p>;
@@ -274,10 +274,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.@EXISTS[]$_);
                              ( $_, SELF.@DELETE[]$_) );
-                         } ).flat.eager.Parcel
+                         } ).flat.eager.List
                       !! $more.list.flatmap( {
                              ( $_, SELF.@DELETE[]$_) )
-                         } ).flat.eager.Parcel;
+                         } ).flat.eager.List;
                 }
                 else {
                     @nogo = <delete kv>;
@@ -290,10 +290,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.@EXISTS[]$_);
                              RWPAIR($_, SELF.@DELETE[]$_));
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              RWPAIR($_, SELF.@DELETE[]$_))
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <delete p>;
@@ -306,10 +306,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.@EXISTS[]$_);
                              SEQ( SELF.@DELETE[]$_); $_ );
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              SELF.@DELETE[]$_); $_
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <delete k>;
@@ -322,10 +322,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.@EXISTS[]$_);
                              SELF.@DELETE[]$_);
-                     } ).eager.Parcel
+                     } ).eager.List
                       !! $more.list.flatmap( {
                              SELF.@DELETE[]$_)
-                     } ).eager.Parcel;
+                     } ).eager.List;
                 }
                 else {
                     @nogo = <delete v>;
@@ -338,7 +338,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
         elsif nqp::existskey($d,'exists') { # :!delete?:exists(0|1):*
             my $exists := DELETEKEY($d,'exists');
             if nqp::elems($d) == 0 {          # :!delete?:exists(0|1)
-                $more.list.flatmap({ !( SELF.@EXISTS[]$_) ?^ $exists ) }).eager.Parcel;
+                $more.list.flatmap({ !( SELF.@EXISTS[]$_) ?^ $exists ) }).eager.List;
             }
             elsif nqp::existskey($d,'kv') {   # :!delete?:exists(0|1):kv(0|1):*
                 my $kv := DELETEKEY($d,'kv');
@@ -347,10 +347,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.@EXISTS[]$_);
                              ( $_, $exists );
-                         } ).flat.eager.Parcel
+                         } ).flat.eager.List
                       !! $more.list.flatmap( {
                              ( $_, !( SELF.@EXISTS[]$_) ?^ $exists ) )
-                         } ).flat.eager.Parcel;
+                         } ).flat.eager.List;
                 }
                 else {
                     @nogo = <exists kv>;
@@ -363,10 +363,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.@EXISTS[]$_);
                              RWPAIR( $_, $exists );
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              RWPAIR( $_, !( SELF.@EXISTS[]$_) ?^ $exists ) )
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <exists p>;
@@ -383,10 +383,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.@EXISTS[]$_);
                          $_, SELF.@AT[]$_);
-                     } ).flat.eager.Parcel
+                     } ).flat.eager.List
                   !! $more.list.flatmap( {
                          $_, SELF.@AT[]$_)
-                     } ).flat.eager.Parcel;
+                     } ).flat.eager.List;
             }
             else {
                 @nogo = <kv>;
@@ -399,10 +399,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.@EXISTS[]$_);
                          RWPAIR($_, SELF.@AT[]$_));
-                     } ).eager.Parcel
+                     } ).eager.List
                   !! $more.list.flatmap( {
                          RWPAIR( $_, SELF.@AT[]$_) )
-                     } ).eager.Parcel;
+                     } ).eager.List;
             }
             else {
                 @nogo = <p>
@@ -415,8 +415,8 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.@EXISTS[]$_);
                          $_;
-                     } ).eager.Parcel
-                  !! $more.list.flat.eager.Parcel;
+                     } ).eager.List
+                  !! $more.list.flat.eager.List;
             }
             else {
                 @nogo = <k>;
@@ -429,17 +429,17 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                   ??  $more.list.flatmap( {
                           next unless SELF.@EXISTS[]$_);
                           SELF.@AT[]$_);
-                      } ).eager.Parcel
+                      } ).eager.List
                   !!  $more.list.flatmap( {
                           SELF.@AT[]$_)
-                      } ).eager.Parcel;
+                      } ).eager.List;
             }
             else {
                 @nogo = <v>;
             }
         }
         elsif nqp::elems($d) == 0 {         # :!delete
-            $more.list.flatmap( { SELF.@AT[]$_) } ).eager.Parcel;
+            $more.list.flatmap( { SELF.@AT[]$_) } ).eager.List;
         }
     }
 

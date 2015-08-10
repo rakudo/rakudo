@@ -1,6 +1,6 @@
 my class X::Hash::Store::OddNumber { ... }
 
-my class EnumMap does Associative { # declared in BOOTSTRAP
+my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     # my class EnumMap is Iterable is Cool {
     #   has Mu $!storage;
 
@@ -54,25 +54,26 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     method iterator(EnumMap:) { self.pairs.iterator }
-    method list(EnumMap:) { self.pairs }
+    method list(EnumMap:) { self.pairs.list }
 
+    # XXX GLR implement these iterators
     multi method keys(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.keys(self)     !! ()).list;
+        nqp::die('Hash keys iterator NYI in GLR')
     }
     multi method kv(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.kv(self)       !! ()).list;
+        nqp::die('Hash kv iterator NYI in GLR')
     }
     multi method values(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.values(self)   !! ()).list;
+        nqp::die('Hash values iterator NYI in GLR')
     }
     multi method pairs(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.pairs(self)    !! ()).list;
+        nqp::die('Hash pairs iterator NYI in GLR')
     }
     multi method antipairs(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.antipairs(self) !! ()).list;
+        nqp::die('Hash antipairs iterator NYI in GLR')
     }
     multi method invert(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.invert(self)   !! ()).list;
+        nqp::die('Hash invert iterator NYI in GLR')
     }
 
     multi method AT-KEY(EnumMap:D: \key) is rw {
@@ -82,24 +83,26 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
           !! Any
     }
 
+    # XXX GLR
     method STORE(\to_store) {
-        my $items = (to_store,).flat.eager;
-        $!storage := nqp::hash();
-
-        while $items {
-            my Mu $x := $items.shift;
-            if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
-            elsif nqp::istype($x,EnumMap) and !nqp::iscont($x) {
-                for $x.list { self.STORE_AT_KEY(.key, .value) }
-            }
-            elsif $items { self.STORE_AT_KEY($x, $items.shift) }
-            else {
-                nqp::istype($x,Failure)
-                  ?? $x.throw
-                  !! X::Hash::Store::OddNumber.new.throw;
-            }
-        }
-        self
+        nqp::die('hash store NYI after GLR');
+        #my $items = (to_store,).flat.eager;
+        #$!storage := nqp::hash();
+        #
+        #while $items {
+        #    my Mu $x := $items.shift;
+        #    if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
+        #    elsif nqp::istype($x,EnumMap) and !nqp::iscont($x) {
+        #        for $x.list { self.STORE_AT_KEY(.key, .value) }
+        #    }
+        #    elsif $items { self.STORE_AT_KEY($x, $items.shift) }
+        #    else {
+        #        nqp::istype($x,Failure)
+        #          ?? $x.throw
+        #          !! X::Hash::Store::OddNumber.new.throw;
+        #    }
+        #}
+        #self
     }
 
     proto method STORE_AT_KEY(|) is rw { * }
@@ -148,6 +151,5 @@ multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {
     }
     Bool::True;
 }
-
 
 # vim: ft=perl6 expandtab sw=4

@@ -44,7 +44,7 @@ my class Hash { # declared in BOOTSTRAP
         ~ '<>' x !nqp::iscont(SELF)
     }
 
-    multi method gist(Hash:D \SELF:) {
+    multi method gist(Hash:D:) {
         SELF.pairs.sort.map( -> $elem {
             given ++$ {
                 when 101 { '...' }
@@ -128,6 +128,7 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
+    # XXX GLR possibly more efficient taking an Iterable, not a @list
     proto method classify-list(|) { * }
     multi method classify-list( &test, @list, :&as ) {
         fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
@@ -176,6 +177,7 @@ my class Hash { # declared in BOOTSTRAP
         self.classify-list( { @test[$^a] }, $list, |c );
     }
 
+    # XXX GLR possibly more efficient taking an Iterable, not a @list
     proto method categorize-list(|) { * }
     multi method categorize-list( &test, @list, :&as ) {
         fail X::Cannot::Infinite.new(:action<categorize>) if @list.infinite;
@@ -360,29 +362,30 @@ my class Hash { # declared in BOOTSTRAP
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False
         }
+        # XXX GLR
         method keys(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.keys(self,$!keys).list
+            nqp::die('Typed hash keys iterator NYI in GLR')
         }
         method kv(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.kv(self,$!keys).list
+            nqp::die('Typed hash kv iterator NYI in GLR')
         }
         method values(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.values(self,$!keys).list
+            nqp::die('Typed hash values iterator NYI in GLR')
         }
         method pairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.pairs(self,$!keys).list
+            nqp::die('Typed hash pairs iterator NYI in GLR')
         }
         method antipairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.antipairs(self,$!keys).list
+            nqp::die('Typed hash antipairs iterator NYI in GLR')
         }
         method invert(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.invert(self,$!keys).list
+            nqp::die('Typed hash invert iterator NYI in GLR')
         }
         multi method perl(::?CLASS:D \SELF:) {
             my $TKey-perl   := TKey.perl;
@@ -445,10 +448,10 @@ my class Hash { # declared in BOOTSTRAP
 }
 
 
-sub circumfix:<{ }>(*@elems) { (my % = @elems).item }
+sub circumfix:<{ }>(*@elems) { my % = @elems }
 sub hash(*@a, *%h) { my % = @a, %h }
 
 # XXX parse hangs with ordinary sub declaration
-BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.^parameterize(Mu,Any).new(@elems) }
+BEGIN my &circumfix:<:{ }> = sub (*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

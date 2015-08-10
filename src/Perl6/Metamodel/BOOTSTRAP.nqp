@@ -2882,10 +2882,10 @@ nqp::sethllconfig('perl6', nqp::hash(
     'foreign_type_int', Int,
     'foreign_type_num', Num,
     'foreign_type_str', Str,
-    'foreign_transform_array', -> $array {
-        # XXX GLR 
-        nqp::die('replace this p6parcel');
-        # nqp::p6parcel($array, Mu)
+    'foreign_transform_array', -> $farray {
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', $farray);
+        $list
     },
     'foreign_transform_hash', -> $hash {
         my $result := nqp::create(Hash);

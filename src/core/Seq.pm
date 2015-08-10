@@ -244,4 +244,104 @@ my class Seq does Iterable does PositionalBindFailover {
     }
 }
 
+sub GATHER(&block) {
+    Seq.new(class :: does SlippyIterator {
+        has &!resumption;
+        has $!push-target;
+        has int $!wanted;
+
+        my constant PROMPT = Mu.CREATE;
+
+        method new(&block) {
+            my \iter = self.CREATE;
+            my int $wanted;
+            my $taken;
+            nqp::bindattr(iter, self, '&!resumption', {
+                nqp::handle(&block(),
+                    'TAKE', nqp::stmts(
+                        ($taken := nqp::getpayload(nqp::exception())),
+                        nqp::if(nqp::istype($taken, Slip),
+                            nqp::stmts(
+                                iter!start-slip-wanted($taken),
+                                ($wanted = nqp::getattr_i(iter, self, '$!wanted'))),
+                            nqp::stmts(
+                                nqp::getattr(iter, self, '$!push-target').push($taken),
+                                ($wanted = nqp::bindattr_i(iter, self, '$!wanted',
+                                    nqp::sub_i(nqp::getattr_i(iter, self, '$!wanted'), 1))))),
+                        nqp::if(nqp::iseq_i($wanted, 0),
+                            nqp::continuationcontrol(0, PROMPT, -> Mu \c {
+                                nqp::bindattr(iter, self, '&!resumption', c);
+                            })),
+                        nqp::resume(nqp::exception())
+                    ));
+                nqp::continuationcontrol(0, PROMPT, -> | {
+                    nqp::bindattr(iter, self, '&!resumption', Callable)
+                });
+            });
+            iter
+        }
+
+        method pull-one() {
+            if $!slipping && (my \result = self.slip-one()) !=:= IterationEnd {
+                result
+            }
+            else {
+                $!push-target := IterationBuffer.CREATE
+                    unless $!push-target.DEFINITE;
+                $!wanted = 1;
+                nqp::continuationreset(PROMPT, &!resumption);
+                &!resumption.DEFINITE
+                    ?? nqp::shift($!push-target)
+                    !! IterationEnd
+            }
+        }
+
+        method push-exactly($target, int $n) {
+            $!wanted = $n;
+            $!push-target := $target;
+            if $!slipping && self!slip-wanted() !=:= IterationEnd {
+                $!push-target := Mu;
+                $n
+            }
+            else {
+                nqp::continuationreset(PROMPT, &!resumption);
+                $!push-target := Mu;
+                &!resumption.DEFINITE
+                    ?? $n - $!wanted
+                    !! IterationEnd
+            }
+        }
+
+        method !start-slip-wanted(\slip) {
+            my $value := self.start-slip(slip);
+            unless $value =:= IterationEnd {
+                $!push-target.push($value);
+                my int $i = 1;
+                my int $n = $!wanted;
+                while $i < $n {
+                    last if ($value := self.slip-one()) =:= IterationEnd;
+                    $!push-target.push($value);
+                    $i = $i + 1;
+                }
+                $!wanted = $!wanted - $i;
+            }
+        }
+
+        method !slip-wanted() {
+            my int $i = 0;
+            my int $n = $!wanted;
+            my $value;
+            while $i < $n {
+                last if ($value := self.slip-one()) =:= IterationEnd;
+                $!push-target.push($value);
+                $i = $i + 1;
+            }
+            $!wanted = $!wanted - $i;
+            $value =:= IterationEnd
+                ?? IterationEnd
+                !! $n
+        }
+    }.new(&block))
+}
+
 # vim: ft=perl6 expandtab sw=4

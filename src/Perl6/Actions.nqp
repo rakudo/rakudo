@@ -3828,21 +3828,31 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $<variable> {
             if $<variable><twigil> {
-                if $<variable><twigil> eq '?' {
+                my $twigil := ~$<variable><twigil>;
+                if $twigil eq '?' {
                     unless $*COMPILING_CORE_SETTING {
                         $*W.throw($/, 'X::Syntax::Variable::Twigil',
                           what       => 'constant',
-                          twigil     => '?',
+                          twigil     => $twigil,
                           scope      => $*SCOPE,
                           additional => ' because it is reserved'
                         );
                     }
                 }
 
+                elsif $twigil eq '*' {
+                    $*W.throw($/, 'X::Syntax::Variable::Twigil',
+                      what       => 'constant',
+                      twigil     => $twigil,
+                      scope      => $*SCOPE,
+                      additional => ' because dynamic constants are an oxymoron'
+                    );
+                }
+
                 # Don't handle other twigil'd case yet.
                 else {
                     $*W.throw($/, 'X::Comp::NYI',
-                      feature => "Twigil-Variable constants");
+                      feature => "Constants with a '$twigil' twigil");
                 }
             }
             $name := ~$<variable>;

@@ -434,7 +434,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #    nqp::bindattr($cap, Capture, '$!list', $!items);
     #    $cap
     #}
-    #method FLATTENABLE_LIST() { self.gimme(*); $!items }
+    method FLATTENABLE_LIST() {
+        $!todo.reify-all() if $!todo.DEFINITE;
+        $!reified
+    }
     method FLATTENABLE_HASH() { nqp::hash() }
 
     method Supply(List:D:) { Supply.from-list(self) }

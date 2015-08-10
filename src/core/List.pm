@@ -20,7 +20,7 @@ my sub combinations($n, $k) {
             @result[$index++] = $value++;
             @stack.push($value);
             if $index == $k {
-                # XXX GLR why .Parcel here?
+                # XXX  why .Parcel here?
                 take [@result].Parcel;
                 $value = $n;  # fake a last
             }
@@ -45,21 +45,147 @@ sub find-reducer-for-op($op) {
     ::('&METAOP_REDUCE_' ~ $reducer.uc);
 }
 
-my class List does Positional { # declared in BOOTSTRAP
-    # class List is Iterable is Cool
-    #   has Mu $!items;        # VM's array of our reified elements
-    #   has Mu $!flattens;     # true if this list flattens its parcels
-    #   has Mu $!nextiter;     # iterator for generating remaining elements
-    #   has Any $!infinite;    # is this list infinite or not
+# A List is a (potentially infite) immutable list. The immutability is not
+# deep; a List may contain Scalar containers that can be assigned to. However,
+# it is not possible to shift/unshift/push/pop/splice/bind. A List is also
+# Positional, and so may be indexed.
+my class List does Iterable does Positional { # declared in BOOTSTRAP
+    # class List is Cool {
+    #   The reified elements in the list so far (that is, those that we already
+    #   have produced the values for).
+    #   has $!reified;
+    # 
+    #   Object that reifies the rest of the list. We don't just inline it into
+    #   the List class itself, because a STORE on Array can clear things and
+    #   upset an ongoing iteration. (An easy way to create such a case is to
+    #   assign an array with lazy parts into itself.)
+    #   has $!todo;
 
-    method new(|) {
-        my Mu $args := nqp::p6argvmarray();
-        nqp::shift($args);
+    # The object that goes into $!todo.
+    class Reifier {
+        # Our copy of the reified elements in the list so far.
+        has $!reified;
 
-        nqp::p6list($args, self.WHAT, Mu);
+        # The current iterator, if any, that we're working our way through in
+        # order to lazily reify values. Must be depleted before $!future is
+        # considered.
+        has Iterator $!current-iter;
+
+        # The (possibly lazy) values we've not yet incorporated into the list. The
+        # only thing we can't simply copy from $!future into $!reified is a Slip
+        # (and so the only reason to have a $!future is that there is at least one
+        # Slip).
+        has $!future;
+
+        # The reification target (what .reify-* will .push to). Exists so we can
+        # share the reification code between List/Array. List just uses its own
+        # $!reified buffer; the Array one shoves stuff into Scalar containers
+        # first.
+        has $!reification-target;
+
+        method reify-at-least(int $elems) {
+            if $!current-iter.DEFINITE {
+                if $!current-iter.push-at-least($!reification-target,
+                        $elems - nqp::elems($!reified)) =:= IterationEnd {
+                    $!current-iter := Iterator;
+                }
+            }
+            if nqp::elems($!reified) < $elems && $!future.DEFINITE {
+                repeat while nqp::elems($!reified) < $elems && nqp::elems($!future) {
+                    my \current = nqp::shift($!future);
+                    $!future := Mu unless nqp::elems($!future);
+                    if nqp::istype(current, Slip) && nqp::isconcrete(current) {
+                        my \iter = current.iterator;
+                        my int $deficit = $elems - nqp::elems($!reified);
+                        unless iter.push-at-least($!reification-target, $deficit) =:= IterationEnd {
+                            # The iterator produced enough values to fill the need,
+                            # but did not reach its end. We save it for next time. We
+                            # know we'll exit the loop, since the < $elems check must
+                            # come out False (unless the iterator broke contract).
+                            $!current-iter := iter;
+                        }
+                    }
+                    else {
+                        $!reification-target.push(current);
+                    }
+                }
+            }
+            nqp::elems($!reified);
+        }
+
+        method reify-until-lazy() {
+            if $!current-iter.DEFINITE {
+                if $!current-iter.push-until-lazy($!reification-target) =:= IterationEnd {
+                    $!current-iter := Iterator;
+                }
+            }
+            if $!future.DEFINITE && !$!current-iter.DEFINITE {
+                while nqp::elems($!future) {
+                    my \current = nqp::shift($!future);
+                    if nqp::istype(current, Slip) && nqp::isconcrete(current) {
+                        my \iter = current.iterator;
+                        unless iter.push-until-lazy($!reification-target) =:= IterationEnd {
+                            $!current-iter := iter;
+                            last;
+                        }
+                    }
+                    else {
+                        $!reification-target.push(current);
+                    }
+                }
+                $!future := Mu unless nqp::elems($!future);
+            }
+            nqp::elems($!reified);
+        }
+
+        method reify-all() {
+            if $!current-iter.DEFINITE {
+                $!current-iter.push-all($!reification-target);
+                $!current-iter := Iterator;
+            }
+            if $!future.DEFINITE {
+                while nqp::elems($!future) {
+                    my \current = nqp::shift($!future);
+                    nqp::istype(current, Slip) && nqp::isconcrete(current)
+                        ?? current.iterator.push-all($!reification-target)
+                        !! $!reification-target.push(current);
+                }
+                $!future := Mu;
+            }
+            nqp::elems($!reified);
+        }
+
+        method fully-reified() {
+            !$!current-iter.DEFINITE && !$!future.DEFINITE
+        }
+
+        method lazy() {
+            $!current-iter.DEFINITE ?? $!current-iter.lazy !! False
+        }
     }
 
-    multi method Bool(List:D:)    { self.gimme(1).Bool }
+    method from-iterator(List:U: Iterator $iter) {
+        my \result := self.CREATE;
+        my \buffer := IterationBuffer.CREATE;
+        my \todo := Reifier.CREATE;
+        nqp::bindattr(result, List, '$!reified', buffer);
+        nqp::bindattr(result, List, '$!todo', todo);
+        nqp::bindattr(todo, Reifier, '$!reified', buffer);
+        nqp::bindattr(todo, Reifier, '$!current-iter', $iter);
+        nqp::bindattr(todo, Reifier, '$!reification-target',
+            result.reification-target());
+        result
+    }
+
+    # XXX GLR
+    #method new(|) {
+    #    my Mu $args := nqp::p6argvmarray();
+    #    nqp::shift($args);
+    #    nqp::p6list($args, self.WHAT, Mu);
+    #}
+
+    # XXX GLR
+    #multi method Bool(List:D:)    { self.gimme(1).Bool }
     multi method Int(List:D:)     { self.elems }
     multi method end(List:D:)     { self.elems - 1 }
     multi method Numeric(List:D:) { self.elems }
@@ -73,324 +199,119 @@ my class List does Positional { # declared in BOOTSTRAP
         self.map({ .fmt($format) }).join($separator);
     }
 
-    method flat() { self.flattens
-                    ?? self
-                    !! nqp::p6list(nqp::list(self), List, Bool::True)
-    }
-    method list() { self }
-    method lol() {
-        self.gimme(0);
-        my Mu $rpa := nqp::clone($!items);
-        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
-        nqp::p6list($rpa, LoL, Mu);
+    multi method elems(List:D:) is nodal {
+        $!todo.DEFINITE
+            ?? $!todo.reify-all()
+            !! nqp::elems($!reified)
     }
 
-    method flattens() { $!flattens }
-
-    method Capture() {
-        self.gimme(*);
-        my $cap := nqp::create(Capture);
-        nqp::bindattr($cap, Capture, '$!list', $!items);
-        $cap
+    multi method AT-POS(List:D: Int $pos) is rw {
+        my int $ipos = nqp::unbox_i($pos);
+        $ipos < nqp::elems($!reified) && $ipos >= 0
+            ?? nqp::atpos($!reified, $ipos)
+            !! self!AT-POS-SLOWPATH($ipos);
     }
 
-    method Parcel() {
-        my Mu $rpa := nqp::clone(nqp::p6listitems(self));
-        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
-        nqp::p6parcel($rpa, Any);
+    multi method AT-POS(List:D: int $pos) is rw {
+        $pos < nqp::elems($!reified) && $pos >= 0
+            ?? nqp::atpos($!reified, $pos)
+            !! self!AT-POS-SLOWPATH($pos);
     }
 
-    method Supply(List:D:) { Supply.from-list(self) }
-
-    multi method AT-POS(List:D: int \pos) is rw {
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
-          if nqp::islt_i(pos,0);
-        self.EXISTS-POS(pos) ?? nqp::atpos($!items,pos) !! Nil;
-    }
-    multi method AT-POS(List:D: Int:D \pos) is rw {
-        my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
-          if nqp::islt_i($pos,0);
-        self.EXISTS-POS($pos) ?? nqp::atpos($!items,$pos) !! Nil;
+    method !AT-POS-SLOWPATH(int $pos) is rw {
+        fail X::OutOfRange.new(:what<Index>, :got($pos), :range<0..Inf>)
+            if $pos < 0;
+        $!todo.DEFINITE && $!todo.reify-at-least($pos + 1) > $pos
+            ?? nqp::atpos($!reified, $pos)
+            !! Nil
     }
 
-    method eager() { self.gimme(*); self }
+    # XXX GLR
+    #multi method EXISTS-POS(List:D: int $pos) {
+    #    return False if nqp::islt_i($pos,0);
+    #    self.gimme($pos + 1);
+    #    nqp::p6bool(
+    #      nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
+    #    );
+    #}
+    #multi method EXISTS-POS(List:D: Int:D $pos) {
+    #    return False if $pos < 0;
+    #    self.gimme($pos + 1);
+    #    nqp::p6bool(
+    #      nqp::not_i(nqp::isnull(nqp::atpos($!items,nqp::unbox_i($pos))))
+    #    );
+    #}
 
-    method elems() is nodal {
-        return 0 unless self.DEFINITE;
-        return nqp::elems(nqp::p6listitems(self)) unless nqp::defined($!nextiter);
-        # Get as many elements as we can.  If gimme stops before
-        # reaching the end of the list, assume the list is infinite.
-        my $n := self.gimme(*);
-        nqp::defined($!nextiter) ?? Inf !! $n
+    # XXX GLR does this survive?
+    #multi method infinite(List:D:) {
+    #    $!infinite ||= ?$!nextiter.infinite;
+    #}
+
+    method reification-target(List:D:) {
+        $!reified
     }
 
-    multi method EXISTS-POS(List:D: int $pos) {
-        return False if nqp::islt_i($pos,0);
-        self.gimme($pos + 1);
-        nqp::p6bool(
-          nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
-        );
-    }
-    multi method EXISTS-POS(List:D: Int:D $pos) {
-        return False if $pos < 0;
-        self.gimme($pos + 1);
-        nqp::p6bool(
-          nqp::not_i(nqp::isnull(nqp::atpos($!items,nqp::unbox_i($pos))))
-        );
-    }
+    method iterator(List:D:) {
+        class :: does Iterator {
+            has int $!i;
+            has $!reified;
+            has $!todo;
 
-    method gimme($n, :$sink) {
-        return unless self.DEFINITE;
-        # loop through iterators until we have at least $n elements
-        my int $count = nqp::elems(nqp::p6listitems(self));
-        if nqp::istype($n, Whatever) || nqp::istype($n, Num) && nqp::istrue($n == Inf) {
-            while $!nextiter.DEFINITE && !$!nextiter.infinite {
-                $!nextiter.reify(*, :$sink);
-                $count = nqp::elems($!items);
+            method new(\list) {
+                my $iter := self.CREATE;
+                nqp::bindattr($iter, self, '$!reified',
+                    nqp::getattr(list, List, '$!reified'));
+                nqp::bindattr($iter, self, '$!todo',
+                    nqp::getattr(list, List, '$!todo'));
+                $iter
             }
-        }
-        else {
-            my int $target = $n.Int;
-            while nqp::isconcrete($!nextiter) && $count < $target {
-                $!nextiter.reify($target - $count, :$sink);
-                $count = nqp::elems($!items);
+
+            method pull-one() {
+                my int $i = $!i;
+                $i < nqp::elems($!reified)
+                    ?? nqp::atpos($!reified, ($!i = $i + 1) - 1)
+                    !! self!reify-and-pull-one()
             }
-        }
 
-        # return the number of elements we have now
-        $count
-    }
+            method !reify-and-pull-one() {
+                my int $i = $!i;
+                $!todo.DEFINITE && $i < $!todo.reify-at-least($i + 1)
+                    ?? nqp::atpos($!reified, ($!i = $i + 1) - 1)
+                    !! IterationEnd
+            }
 
-    multi method infinite(List:D:) {
-        $!infinite ||= ?$!nextiter.infinite;
-    }
+            method push-until-lazy($target) {
+                my int $n = $!todo.DEFINITE
+                    ?? $!todo.reify-until-lazy()
+                    !! nqp::elems($!reified);
+                my int $i = $!i;
+                while $i < $n {
+                    $target.push(nqp::atpos($!reified, $i));
+                    $i = $i + 1;
+                }
+                $!i = $n;
+                !$!todo.DEFINITE || $!todo.fully-reified ?? IterationEnd !! Mu
+            }
 
-    method iterator() {
-        # Return a reified ListIter containing our currently reified elements
-        # and any subsequent iterator.
-        my $iter := nqp::create(ListIter);
-        nqp::bindattr($iter, ListIter, '$!nextiter', $!nextiter);
-        nqp::bindattr($iter, ListIter, '$!reified', self.Parcel());
-        $iter;
-    }
-
-    method munch($n is copy) {
-        $n = 0 if $n < 0;
-        $n = self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
-                               || nqp::not_i(nqp::islist($!items))
-                               || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
-        nqp::p6parcel(
-            nqp::p6shiftpush(nqp::list(), $!items, nqp::unbox_i($n)),
-            Any
-        )
-    }
-
-    proto method pick(|) is nodal { * }
-    multi method pick() {
-        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-        my $elems = self.elems;
-        $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
-    }
-    multi method pick(Whatever, :$eager!) {
-        return self.pick(*) if !$eager;
-
-        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-
-        my Int $elems = self.elems;
-        return () unless $elems;
-
-        my Mu $picked := nqp::clone($!items);
-        my int $i;
-        my Mu $val;
-        while $elems {
-            $i     = $elems.rand.floor;
-            $elems = $elems - 1;
-            # switch them
-            $val  := nqp::atpos($picked,$i);
-            nqp::bindpos($picked,$i,nqp::atpos($picked,nqp::unbox_i($elems)));
-            nqp::bindpos($picked,nqp::unbox_i($elems),$val);
-        }
-        nqp::p6parcel($picked,Any);
-    }
-    multi method pick(Whatever) {
-        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-
-        my Int $elems = self.elems;
-        return () unless $elems;
-
-        my Mu $rpa := nqp::clone($!items);
-        my int $i;
-        gather while $elems {
-            $i     = $elems.rand.floor;
-            $elems = $elems - 1;
-            take-rw nqp::atpos($rpa,$i);
-            # replace selected element with last unpicked one
-            nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
-        }
-    }
-    multi method pick(\number) {
-        fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-        ## We use a version of Fisher-Yates shuffle here to
-        ## replace picked elements with elements from the end
-        ## of the list, resulting in an O(n) algorithm.
-
-        my Int $elems = self.elems;
-        return () unless $elems;
-
-        my int $n = number > $elems ?? $elems !! number.Int;
-
-        my Mu $rpa := nqp::clone($!items);
-        my int $i;
-        gather while $n {
-            $i     = $elems.rand.floor;
-            $elems = $elems - 1;
-            $n     = $n - 1;
-            take-rw nqp::atpos($rpa,$i);
-            # replace selected element with last unpicked one
-            nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
-        }
-    }
-
-    proto method roll(|) is nodal { * }
-    multi method roll() {
-        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
-        my $elems = self.elems;
-        $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
-    }
-    multi method roll(Whatever) {
-        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
-        my $elems = self.elems;
-        return () unless $elems;
-
-        my $list := gather loop {
-            take nqp::atpos($!items,$elems.rand.floor);
-        }
-        nqp::bindattr($list,List,'$!infinite',True);
-        $list;
-    }
-    multi method roll(\number) {
-        return self.roll(*) if number == Inf;
-
-        fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
-        my $elems = self.elems;
-        return () unless $elems;
-
-        my int $n = number.Int;
-
-        gather while $n > 0 {
-            take nqp::atpos($!items,$elems.rand.floor);
-            $n = $n - 1;
-        }
-    }
-
-    method reverse() is nodal {
-        self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<reverse>) if $!nextiter.defined;
-        my Mu $rev  := nqp::list();
-        my Mu $orig := nqp::clone($!items);
-        nqp::push($rev, nqp::pop($orig)) while $orig;
-        my $rlist := nqp::create(self.WHAT);
-        nqp::bindattr($rlist, List, '$!items', $rev);
-        $rlist;
-    }
-
-    method rotate(Int(Cool) $n is copy = 1) is nodal {
-        self.gimme(*);
-        fail X::Cannot::Infinite.new(:action<rotate>) if $!nextiter.defined;
-        my $items = nqp::p6box_i(nqp::elems($!items));
-        return self if !$items;
-
-        $n %= $items;
-        return self if $n == 0;
-
-        my Mu $res := nqp::clone($!items);
-        if $n > 0 {
-            nqp::push($res, nqp::shift($res)) while $n--;
-        }
-        elsif $n < 0 {
-            nqp::unshift($res, nqp::pop($res)) while $n++;
-        }
-        my $rlist := nqp::create(self.WHAT);
-        nqp::bindattr($rlist, List, '$!items', $res);
-        $rlist;
+            method lazy() {
+                $!todo.DEFINITE ?? $!todo.lazy !! False
+            }
+        }.new(self)
     }
 
     multi method ACCEPTS(List:D: $topic) { self }
 
-    method rotor(List:D: *@cycle, :$partial) is nodal {
-        die "Must specify *how* to rotor a List"
-          unless @cycle.infinite || @cycle;
+    multi method list(List:D:) { self }
 
-        my $finished = 0;
-        # (Note, the xx should be harmless if the cycle is already infinite by accident.)
-        my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
-        gather for @c -> $s {
-            my $elems;
-            my $gap;
-            if $s ~~ Pair {
-                $elems = +$s.key;
-                $gap   = +$s.value;
-            }
-            elsif $s < 1 {
-                die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
-            }
-            else {
-                $elems = +$s;
-                $gap   = 0;
-            }
+    # XXX GLR
+    #method sink() {
+    #    self.gimme(*, :sink) if self.DEFINITE && $!nextiter.DEFINITE;
+    #    Nil;
+    #}
 
-            if $finished + $elems <= self.gimme($finished + $elems) {
-                take self[$finished ..^ $finished + $elems];
-                $finished += $elems + $gap;
-            }
-            else {
-                take self[$finished .. *]
-                  if $partial and $finished < self.elems;
-                last;
-            }
-        }
+    multi method values(List:D:) {
+        GLRSeq.new(self.iterator)
     }
-
-    multi method gist(List:D:) {
-        @(self).map( -> $elem {
-            given ++$ {
-                when 101 { '...' }
-                when 102 { last }
-                default  { $elem.gist }
-            }
-        } ).join: ' ';
-    }
-
-    multi method perl(List:D \SELF:) {
-        self.gimme(*);
-        (nqp::iscont(SELF) ?? '$' !! '') ~ self.Parcel.perl;
-    }
-
-    method REIFY(Parcel \parcel, Mu \nextiter) {
-        nqp::splice($!items, nqp::getattr(parcel, Parcel, '$!storage'),
-                    nqp::elems($!items), 0);
-        nqp::bindattr(self, List, '$!nextiter', nextiter);
-        parcel
-    }
-
-    method FLATTENABLE_LIST() { self.gimme(*); $!items }
-    method FLATTENABLE_HASH() { nqp::hash() }
-
-    multi method DUMP(List:D: :$indent-step = 4, :%ctx?) {
-        return DUMP(self, :$indent-step) unless %ctx;
-
-        my $flags    := ("\x221e" if self.infinite);
-        my Mu $attrs := nqp::list();
-        nqp::push($attrs, '$!flattens');
-        nqp::push($attrs,  $!flattens );
-        nqp::push($attrs, '$!items'   );
-        nqp::push($attrs,  $!items    );
-        nqp::push($attrs, '$!nextiter');
-        nqp::push($attrs,  $!nextiter );
-        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
-    }
-
     multi method keys(List:D:) {
         self.values.map: { (state $)++ }
     }
@@ -400,52 +321,272 @@ my class List does Positional { # declared in BOOTSTRAP
             take-rw $_;
         }
     }
-    multi method values(List:D:) {
-        my Mu $rpa := nqp::clone(nqp::p6listitems(self));
-        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
-        nqp::p6list($rpa, List, self.flattens);
-    }
     multi method pairs(List:D:) {
         self.values.map: { (state $)++ => $_ }
     }
     multi method antipairs(List:D:) {
         self.values.map: { $_ => (state $)++ }
     }
-
     multi method invert(List:D:) {
         self.map({ nqp::decont(.value) »=>» .key }).flat
     }
 
-    method sink() {
-        self.gimme(*, :sink) if self.DEFINITE && $!nextiter.DEFINITE;
-        Nil;
+    multi method gist(List:D:) {
+        self.map( -> $elem {
+            given ++$ {
+                when 101 { '...' }
+                when 102 { last }
+                default  { $elem.gist }
+            }
+        }).join: ' ';
     }
 
-    # this is a remnant of a previous implementation of .push(), which
-    # apparently is used by LoL.  Please remove when no longer necessary.
-    method STORE_AT_POS(Int \pos, Mu \v) is rw is nodal {
-        nqp::bindpos($!items, nqp::unbox_i(pos), v)
-    }
+    # XXX GLR
+    #multi method perl(List:D \SELF:) {
+    #    self.gimme(*);
+    #    (nqp::iscont(SELF) ?? '$' !! '') ~ self.Parcel.perl;
+    #}
 
-    proto method combinations($?) is nodal {*}
-    multi method combinations( Int $of ) {
-        combinations(self.elems, $of).eager.map: { self[@$_] }
-    }
-    multi method combinations( Range $ofrange = 0 .. * ) {
-        gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
-            # XXX inside of gather should already sink
-            sink combinations(self.elems, $of).eager.map: { take self[@$_] }
+    # XXX GLR
+    #multi method DUMP(List:D: :$indent-step = 4, :%ctx?) {
+    #    return DUMP(self, :$indent-step) unless %ctx;
+    #
+    #    my $flags    := ("\x221e" if self.infinite);
+    #    my Mu $attrs := nqp::list();
+    #    nqp::push($attrs, '$!flattens');
+    #    nqp::push($attrs,  $!flattens );
+    #    nqp::push($attrs, '$!items'   );
+    #    nqp::push($attrs,  $!items    );
+    #    nqp::push($attrs, '$!nextiter');
+    #    nqp::push($attrs,  $!nextiter );
+    #    self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
+    #}
+
+    multi method List(List:D:) { self }
+
+    multi method Slip(List:D:) {
+        if $!todo.DEFINITE {
+            # We're not fully reified, and so have internal mutability still.
+            # The safe thing to do is to take an iterator of ourself and build
+            # the Slip out of that.
+            Slip.from-iterator(self.iterator)
+        }
+        else {
+            # We're fully reified - and so immutable inside and out! Just make
+            # a Slip that shares our reified buffer.
+            my \result := Slip.CREATE;
+            nqp::bindattr(result, List, '$!reified', $!reified);
+            result
         }
     }
 
-    method permutations() is nodal {
-        # need block on Moar because of RT#121830
-        permutations(self.elems).eager.map: { self[@$_] }
+    multi method Array(List:D:) {
+        # We need to populate the Array slots with Scalar containers, so no
+        # shortcuts (and no special casing is likely worth it; iterators can
+        # batch up the work too).
+        Array.from-iterator(self.iterator)
     }
+
+    # XXX GLR
+    #method Capture() {
+    #    self.gimme(*);
+    #    my $cap := nqp::create(Capture);
+    #    nqp::bindattr($cap, Capture, '$!list', $!items);
+    #    $cap
+    #}
+    #method FLATTENABLE_LIST() { self.gimme(*); $!items }
+    method FLATTENABLE_HASH() { nqp::hash() }
+
+    method Supply(List:D:) { Supply.from-list(self) }
 
     method CALL-ME(List:U: |c) {
         self.new(|c);
     }
+
+    # XXX GLR
+    #proto method pick(|) is nodal { * }
+    #multi method pick() {
+    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
+    #    my $elems = self.elems;
+    #    $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
+    #}
+    #multi method pick(Whatever, :$eager!) {
+    #    return self.pick(*) if !$eager;
+    #
+    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
+    #
+    #    my Int $elems = self.elems;
+    #    return () unless $elems;
+    #
+    #    my Mu $picked := nqp::clone($!items);
+    #    my int $i;
+    #    my Mu $val;
+    #    while $elems {
+    #        $i     = $elems.rand.floor;
+    #        $elems = $elems - 1;
+    #        # switch them
+    #        $val  := nqp::atpos($picked,$i);
+    #        nqp::bindpos($picked,$i,nqp::atpos($picked,nqp::unbox_i($elems)));
+    #        nqp::bindpos($picked,nqp::unbox_i($elems),$val);
+    #    }
+    #    nqp::p6parcel($picked,Any);
+    #}
+    #multi method pick(Whatever) {
+    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
+    #
+    #    my Int $elems = self.elems;
+    #    return () unless $elems;
+    #
+    #    my Mu $rpa := nqp::clone($!items);
+    #    my int $i;
+    #    gather while $elems {
+    #        $i     = $elems.rand.floor;
+    #        $elems = $elems - 1;
+    #        take-rw nqp::atpos($rpa,$i);
+    #        # replace selected element with last unpicked one
+    #        nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
+    #    }
+    #}
+    #multi method pick(\number) {
+    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
+    #    ## We use a version of Fisher-Yates shuffle here to
+    #    ## replace picked elements with elements from the end
+    #    ## of the list, resulting in an O(n) algorithm.
+    #
+    #    my Int $elems = self.elems;
+    #    return () unless $elems;
+    #
+    #    my int $n = number > $elems ?? $elems !! number.Int;
+    #
+    #    my Mu $rpa := nqp::clone($!items);
+    #    my int $i;
+    #    gather while $n {
+    #        $i     = $elems.rand.floor;
+    #        $elems = $elems - 1;
+    #        $n     = $n - 1;
+    #        take-rw nqp::atpos($rpa,$i);
+    #        # replace selected element with last unpicked one
+    #        nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
+    #    }
+    #}
+
+    # XXX GLR
+    #proto method roll(|) is nodal { * }
+    #multi method roll() {
+    #    fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
+    #    my $elems = self.elems;
+    #    $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
+    #}
+    #multi method roll(Whatever) {
+    #    fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
+    #    my $elems = self.elems;
+    #    return () unless $elems;
+    #
+    #    my $list := gather loop {
+    #        take nqp::atpos($!items,$elems.rand.floor);
+    #    }
+    #    nqp::bindattr($list,List,'$!infinite',True);
+    #    $list;
+    #}
+    #multi method roll(\number) {
+    #    return self.roll(*) if number == Inf;
+    #
+    #    fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
+    #    my $elems = self.elems;
+    #    return () unless $elems;
+    #
+    #    my int $n = number.Int;
+    #
+    #    gather while $n > 0 {
+    #        take nqp::atpos($!items,$elems.rand.floor);
+    #        $n = $n - 1;
+    #    }
+    #}
+    #
+    #method reverse() is nodal {
+    #    self.gimme(*);
+    #    fail X::Cannot::Infinite.new(:action<reverse>) if $!nextiter.defined;
+    #    my Mu $rev  := nqp::list();
+    #    my Mu $orig := nqp::clone($!items);
+    #    nqp::push($rev, nqp::pop($orig)) while $orig;
+    #    my $rlist := nqp::create(self.WHAT);
+    #    nqp::bindattr($rlist, List, '$!items', $rev);
+    #    $rlist;
+    #}
+    #
+    #method rotate(Int(Cool) $n is copy = 1) is nodal {
+    #    self.gimme(*);
+    #    fail X::Cannot::Infinite.new(:action<rotate>) if $!nextiter.defined;
+    #    my $items = nqp::p6box_i(nqp::elems($!items));
+    #    return self if !$items;
+    #
+    #    $n %= $items;
+    #    return self if $n == 0;
+    #
+    #    my Mu $res := nqp::clone($!items);
+    #    if $n > 0 {
+    #        nqp::push($res, nqp::shift($res)) while $n--;
+    #    }
+    #    elsif $n < 0 {
+    #        nqp::unshift($res, nqp::pop($res)) while $n++;
+    #    }
+    #    my $rlist := nqp::create(self.WHAT);
+    #    nqp::bindattr($rlist, List, '$!items', $res);
+    #    $rlist;
+    #}
+
+    # XXX GLR
+    #method rotor(List:D: *@cycle, :$partial) is nodal {
+    #    die "Must specify *how* to rotor a List"
+    #      unless @cycle.infinite || @cycle;
+    #
+    #    my $finished = 0;
+    #    # (Note, the xx should be harmless if the cycle is already infinite by accident.)
+    #    my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
+    #    gather for @c -> $s {
+    #        my $elems;
+    #        my $gap;
+    #        if $s ~~ Pair {
+    #            $elems = +$s.key;
+    #            $gap   = +$s.value;
+    #        }
+    #        elsif $s < 1 {
+    #            die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
+    #        }
+    #        else {
+    #            $elems = +$s;
+    #            $gap   = 0;
+    #        }
+    #
+    #        if $finished + $elems <= self.gimme($finished + $elems) {
+    #            take self[$finished ..^ $finished + $elems];
+    #            $finished += $elems + $gap;
+    #        }
+    #        else {
+    #            take self[$finished .. *]
+    #              if $partial and $finished < self.elems;
+    #            last;
+    #        }
+    #    }
+    #}
+
+    # XXX GLR review rather dubious use of .eager
+    #proto method combinations($?) is nodal {*}
+    #multi method combinations( Int $of ) {
+    #    combinations(self.elems, $of).eager.map: { self[@$_] }
+    #}
+    #multi method combinations( Range $ofrange = 0 .. * ) {
+    #    gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
+    #        # XXX inside of gather should already sink
+    #        sink combinations(self.elems, $of).eager.map: { take self[@$_] }
+    #    }
+    #}
+
+    # XXX GLR why is this not multi like combinations?
+    #method permutations() is nodal {
+    #    # need block on Moar because of RT#121830
+    #    permutations(self.elems).eager.map: { self[@$_] }
+    #}
 }
 
 # internal, caps to not hide 'eager' keyword

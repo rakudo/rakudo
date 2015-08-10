@@ -447,4 +447,19 @@ class Array { # declared in BOOTSTRAP
 
 sub circumfix:<[ ]>(*@elems) is rw { my $ = @elems.eager }
 
+proto sub pop(@) {*}
+multi sub pop(@a) { @a.pop }
+
+proto sub shift(@) {*}
+multi sub shift(@a) { @a.shift }
+
+proto sub unshift(|) {*}
+multi sub unshift(\a, \elem) { a.unshift: elem }
+multi sub unshift(\a, *@elems) { a.unshift: @elems }
+
+proto sub push(|) {*}
+multi sub push(\a, \elem) { a.push: elem }
+multi sub push(\a, *@elems) { a.push: @elems }
+sub splice(@arr, |c)        { @arr.splice(|c) }
+
 # vim: ft=perl6 expandtab sw=4

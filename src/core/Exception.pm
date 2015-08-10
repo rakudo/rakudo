@@ -1093,7 +1093,7 @@ my class X::Syntax::Variable::Twigil does X::Syntax {
     has $.twigil;
     has $.scope;
     has $.additional;
-    method message() { "Cannot use $.twigil twigil on '$.scope $.what'$.additional" }
+    method message() { "Cannot use $.twigil twigil on '$.scope' $.what$.additional" }
 }
 
 my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {

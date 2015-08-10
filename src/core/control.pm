@@ -26,7 +26,7 @@ sub RETURN-PARCEL(Mu \list) is rw {
       ?? Nil
       !! (nqp::iseq_i(nqp::elems($storage), 1)
             ?? nqp::shift($storage)
-            !! parcel)
+            !! list)
 }
 
 my &return-rw := -> | {

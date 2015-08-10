@@ -855,8 +855,8 @@ Compilation unit '$file' contained the following violations:
                         $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
                     $past := QAST::Op.new(
-                            :op<callmethod>, :name<FOR>, :node($/),
-                            QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
+                            :op<callmethod>, :name<map>, :node($/),
+                            $cond,
                             block_closure($past)
                         );
                     $past := QAST::Want.new(
@@ -1207,9 +1207,9 @@ Compilation unit '$file' contained the following violations:
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
         my $past := QAST::Op.new(
-                        :op<callmethod>, :name<FOR>, :node($/),
-                        QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
-                        block_closure($xblock[1])
+            :op<callmethod>, :name<map>, :node($/),
+            $xblock[0],
+            block_closure($xblock[1])
         );
         if $*LABEL {
             $past.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));

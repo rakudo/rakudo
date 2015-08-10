@@ -199,7 +199,7 @@ my class Proc::Async {
             for @!promises -> $promise {
                 given $promise.result {
                     when Supply { .done }
-                    when Parcel { $_[0].quit( $_[1] ) }
+                    when List   { $_[0].quit( $_[1] ) }
                 }
             }
             $!exit_promise.result;

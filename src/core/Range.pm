@@ -36,7 +36,7 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method new($min is copy, $max, :$excludes-min, :$excludes-max) {
         $min = +$min
-          if nqp::istype($min,List) || nqp::istype($min,Match) || nqp::istype($min,Parcel);
+          if nqp::istype($min,List) || nqp::istype($min,Match);
         nqp::create(self).BUILD($min, $max, $excludes-min, $excludes-max);
     }
 

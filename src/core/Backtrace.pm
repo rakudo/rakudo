@@ -63,8 +63,8 @@ my class Backtrace {
         self.new($!, 2 + $offset);
     }
 
-    # note that backtraces are nqp::list()s, marshalled to us as Parcel
-    multi method new(Parcel $bt, Int $bt-next = 0) {
+    # note that backtraces are nqp::list()s, marshalled to us as a List
+    multi method new(List $bt, Int $bt-next = 0) {
 
         # only check for verbose stack frames once
         $RAKUDO-VERBOSE-STACKFRAME = +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);

@@ -199,7 +199,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             my \consider = nqp::atpos(vm-tuple, $i);
             nqp::push(future, nqp::iscont(consider)
                 ?? consider
-                !! nqp::istype(consider, Iterable) || nqp::istype(consider, Seq)
+                !! nqp::istype(consider, Iterable)
                     ?? consider.flat.Slip
                     !! consider);
             $i = $i + 1;

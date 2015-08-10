@@ -1087,10 +1087,13 @@ my class X::Syntax::Variable::Match does X::Syntax {
     method message() { 'Cannot declare a match variable' }
 }
 
+
 my class X::Syntax::Variable::Twigil does X::Syntax {
+    has $.what = 'variable';
     has $.twigil;
     has $.scope;
-    method message() { "Cannot use $.twigil twigil on $.scope variable" }
+    has $.additional;
+    method message() { "Cannot use $.twigil twigil on '$.scope $.what'$.additional" }
 }
 
 my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {

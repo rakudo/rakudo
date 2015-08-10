@@ -10,7 +10,7 @@
 # performance over friendliness, and should not be encountered in normal use
 # of Perl 6. Do NOT add any checks and validation to methods in here. They
 # need to remain trivially inlineable for performance reasons.
-my class IterationBuffer is repr('VMArray') {
+my class IterationBuffer {
     method clear(IterationBuffer:D:) {
         nqp::setelems(self, 0)
     }
@@ -26,15 +26,14 @@ my class IterationBuffer is repr('VMArray') {
     multi method AT-POS(IterationBuffer:D: int $pos) {
         nqp::atpos(self, $pos)
     }
-
     multi method AT-POS(IterationBuffer:D: Int $pos) {
         nqp::atpos(self, $pos)
     }
 
+    proto method BIND-POS(|) { * }
     multi method BIND-POS(IterationBuffer:D: int $pos, Mu \value) {
         nqp::bindpos(self, $pos, value)
     }
-
     multi method BIND-POS(IterationBuffer:D: Int $pos, Mu \value) {
         nqp::bindpos(self, $pos, value)
     }

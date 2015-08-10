@@ -223,7 +223,7 @@ multi sub METAOP_REDUCE_LISTINFIX(\op) {
     sub (|values) {
         my \p = values[0];
         nqp::iscont(p[0])
-          ?? op.(|p.map({nqp::decont($_).list.Parcel}))
+          ?? op.(|p.map({nqp::decont($_).List}))
           !! op.(|p);
     }
 }

@@ -20,8 +20,7 @@ my sub combinations($n, $k) {
             @result[$index++] = $value++;
             @stack.push($value);
             if $index == $k {
-                # XXX  why .Parcel here?
-                take [@result].Parcel;
+                take infix:<,>(@result);
                 $value = $n;  # fake a last
             }
         }
@@ -32,7 +31,7 @@ my sub permutations(Int $n) {
     $n == 1 ?? ( (0,) ) !!
     gather for ^$n -> $i {
         my @i = 0 ..^ $i, $i ^..^ $n;
-        sink permutations($n - 1).map: { take [$i, @i[@$_]].Parcel }
+        sink permutations($n - 1).map: { take ($i, @i[@$_]) }
     }
 }
 

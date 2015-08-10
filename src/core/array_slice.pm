@@ -22,12 +22,12 @@ sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
         $positions.flatmap( {
             last if $_ >= $list.gimme( $_ + 1 );
             $_;
-        } ).eager.Parcel;
+        } ).eager.List;
     }
     else {
         $positions.flatmap( {
             nqp::istype($_,Callable) ?? $_(|(SELF.elems xx $_.count)) !! $_
-        } ).eager.Parcel;
+        } ).eager.List;
     }
 }
 
@@ -137,7 +137,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is rw {
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos ) is rw {
     nqp::iscont(pos)
       ?? SELF.AT-POS(pos.Int)
-      !! POSITIONS(SELF,pos).flatmap({ SELF[$_] }).eager.Parcel;
+      !! POSITIONS(SELF,pos).flatmap({ SELF[$_] }).eager.List;
 }
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \val ) is rw {
     nqp::iscont(pos)
@@ -146,7 +146,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \val ) is rw {
         ?? val.?infinite
           ?? ()
           !! (SELF[NPOSITIONS(pos,val.elems)] = val)
-        !! (POSITIONS(SELF,pos.list).flatmap({SELF[$_]}).eager.Parcel = val);
+        !! (POSITIONS(SELF,pos.list).flatmap({SELF[$_]}).eager.List = val);
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
@@ -310,14 +310,14 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 #                    %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
 #                    { LoL.new(key, |$_).item },
 #                    postcircumfix:<[ ]>(value, LoL.new(|keys[1..*]), |%adv);
-#            }).eager.Parcel;
+#            }).eager.List;
 #        } else {
 #            (keys[0].isa(Whatever)
 #                ?? SELF[^SELF.elems].Parcel
 #                !! SELF[keys[0].list].Parcel
 #            ).flatmap(-> \elem {
 #                postcircumfix:<[ ]>(elem, LoL.new(|keys[1..*]), |%adv);
-#            }).eager.Parcel;
+#            }).eager.List;
 #        }
 #    } else {
 #        postcircumfix:<[ ]>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);

@@ -2722,11 +2722,9 @@ BEGIN {
                     @pos[0]."$coercer_name"()
                 }
                 else {
-                    # XXX GLR
-                    nqp::die('Replace this use of Parcel');
-                    # my $parcel := nqp::create(Parcel);
-                    # nqp::bindattr($parcel, Parcel, '$!storage', @pos);
-                    # $parcel."$coercer_name"()
+                    my $list := nqp::create(List);
+                    nqp::bindattr($list, List, '$!reified', @pos);
+                    $list."$coercer_name"()
                 }
             }
             else {

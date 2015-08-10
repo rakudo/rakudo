@@ -3564,22 +3564,22 @@ class Perl6::World is HLL::World {
 
         my $Str;
         my $Int;
-        my $Parcel;
+        my $List;
         my int $has_str;
         my int $has_int;
-        my int $has_parcel;
+        my int $has_list;
 
         try { $Str := self.find_symbol(["Str"]); $has_str := 1 }
         try { $Int := self.find_symbol(["Int"]); $has_int := 1 }
-        try { $Parcel := self.find_symbol(["Parcel"]); $has_parcel := 1 }
+        try { $List := self.find_symbol(["List"]); $has_list := 1 }
 
         sub safely_stringify($target) {
             if $has_str && nqp::istype($target, $Str) {
                 return ~nqp::unbox_s($target);
             } elsif $has_int && nqp::istype($target, $Int) {
                 return ~nqp::unbox_i($target);
-            } elsif $has_parcel && nqp::istype($target, $Parcel) {
-                my $storage := nqp::getattr($target, $Parcel, '$!storage');
+            } elsif $has_list && nqp::istype($target, $List) {
+                my $storage := nqp::getattr($target, $List, '$!reified');
                 my @result;
                 for $storage {
                     nqp::push(@result, safely_stringify($_));

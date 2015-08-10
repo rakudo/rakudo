@@ -85,24 +85,27 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
 
     # XXX GLR
     method STORE(\to_store) {
-        nqp::die('hash store NYI after GLR');
-        #my $items = (to_store,).flat.eager;
-        #$!storage := nqp::hash();
-        #
-        #while $items {
-        #    my Mu $x := $items.shift;
-        #    if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
-        #    elsif nqp::istype($x,EnumMap) and !nqp::iscont($x) {
-        #        for $x.list { self.STORE_AT_KEY(.key, .value) }
-        #    }
-        #    elsif $items { self.STORE_AT_KEY($x, $items.shift) }
-        #    else {
-        #        nqp::istype($x,Failure)
-        #          ?? $x.throw
-        #          !! X::Hash::Store::OddNumber.new.throw;
-        #    }
-        #}
-        #self
+        my \iter = nqp::istype(to_store, Iterable)
+            ?? to_store.iterator
+            !! to_store.list.iterator;
+        $!storage := nqp::hash();
+        until (my Mu $x := iter.pull-one) =:= IterationEnd {
+            if nqp::istype($x,Enum) {
+                self.STORE_AT_KEY($x.key, $x.value)
+            }
+            elsif nqp::istype($x, EnumMap) and !nqp::iscont($x) {
+                for $x.list { self.STORE_AT_KEY(.key, .value) }
+            }
+            elsif (my Mu $y := iter.pull-one) !=:= IterationEnd {
+                self.STORE_AT_KEY($x, $y)
+            }
+            else {
+                nqp::istype($x,Failure)
+                  ?? $x.throw
+                  !! X::Hash::Store::OddNumber.new.throw;
+            }
+        }
+        self
     }
 
     proto method STORE_AT_KEY(|) is rw { * }

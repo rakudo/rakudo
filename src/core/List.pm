@@ -176,6 +176,47 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         result
     }
 
+    method from-slurpy(|) {
+        my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
+        my \result := self.CREATE;
+        my \buffer := IterationBuffer.CREATE;
+        my \todo := List::Reifier.CREATE;
+        nqp::bindattr(result, List, '$!reified', buffer);
+        nqp::bindattr(result, List, '$!todo', todo);
+        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
+        nqp::bindattr(todo, List::Reifier, '$!future', vm-tuple);
+        nqp::bindattr(todo, List::Reifier, '$!reification-target',
+            result.reification-target());
+        result
+    }
+
+    method from-slurpy-flat(|) {
+        my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
+        my \future = IterationBuffer.CREATE;
+        my int $i = 0;
+        my int $n = nqp::elems(vm-tuple);
+        while $i < $n {
+            my \consider = nqp::atpos(vm-tuple, $i);
+            nqp::push(future, nqp::iscont(consider)
+                ?? consider
+                !! nqp::istype(consider, Iterable) || nqp::istype(consider, Seq)
+                    ?? consider.flat.Slip
+                    !! consider);
+            $i = $i + 1;
+        }
+
+        my \result := self.CREATE;
+        my \buffer := IterationBuffer.CREATE;
+        my \todo := List::Reifier.CREATE;
+        nqp::bindattr(result, List, '$!reified', buffer);
+        nqp::bindattr(result, List, '$!todo', todo);
+        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
+        nqp::bindattr(todo, List::Reifier, '$!future', future);
+        nqp::bindattr(todo, List::Reifier, '$!reification-target',
+            result.reification-target());
+        result
+    }
+
     # XXX GLR
     #method new(|) {
     #    my Mu $args := nqp::p6argvmarray();

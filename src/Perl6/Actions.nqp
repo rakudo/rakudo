@@ -6768,8 +6768,8 @@ Compilation unit '$file' contained the following violations:
                     QAST::Op.new(
                         :op('callmethod'),
                         :name(%info<pos_lol> ?? 'from-slurpy' !! 'from-slurpy-flat'),
-                        QAST::Var.new( :name($name), :scope('local') ),
-                        QAST::WVal.new( :value($type) )
+                        QAST::WVal.new( :value($type) ),
+                        QAST::Var.new( :name($name), :scope('local') )
                     )));
                 $saw_slurpy := 1;
             }

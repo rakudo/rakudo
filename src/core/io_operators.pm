@@ -1,9 +1,12 @@
 my class IO::ArgFiles { ... }
 
-sub print(|) {
-    my $args := nqp::p6argvmarray();
+proto sub print(|) { * }
+multi sub print(\x) {
+    $*OUT.print(x);
+}
+multi sub print(**@args is rw) {
     my $out := $*OUT;
-    $out.print(nqp::shift($args)) while $args;
+    $out.print($_) for @args;
     Bool::True
 }
 
@@ -19,10 +22,9 @@ multi sub say(\x) {
     $out.print: x.gist;
     $out.print-nl;
 }
-multi sub say(|) {
-    my $args := nqp::p6argvmarray();
+multi sub say(**@args) {
     my $out := $*OUT;
-    $out.print(nqp::shift($args).gist) while $args;
+    $out.print(.gist) for @args;
     $out.print-nl;
 }
 
@@ -42,10 +44,9 @@ multi sub note(\x) {
     $err.print: x.gist;
     $err.print-nl;
 }
-multi sub note(|) {
-    my $args := nqp::p6argvmarray();
+multi sub note(**@args) {
     my $err := $*ERR;
-    $err.print(nqp::shift($args).gist) while $args;
+    $err.print(.gist) for @args;
     $err.print-nl;
 }
 

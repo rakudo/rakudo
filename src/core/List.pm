@@ -635,17 +635,17 @@ multi sub infix:<xx>(Mu \x, Num $n, :$thunked!) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int, :$thunked);
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
-    GatherIter.new({ loop { take x.() } }, :infinite).list
+    GATHER({ loop { take x.() } }).lazy
 }
 multi sub infix:<xx>(Mu \x, Int() $n, :$thunked!) {
     my int $todo = $n;
-    GatherIter.new({ take x.() while ($todo = $todo - 1) >= 0 }).list
+    GATHER({ take x.() while ($todo = $todo - 1) >= 0 })
 }
 multi sub infix:<xx>(Mu \x, Num $n) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    GatherIter.new({ loop { take x } }, :infinite).list
+    GATHER({ loop { take x } }).lazy
 }
 multi sub infix:<xx>(Mu \x, Int() $n) {
     my int $size = $n;

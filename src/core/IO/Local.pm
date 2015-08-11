@@ -67,7 +67,7 @@ my role IO::Local {
 
 #?if moar
     method watch(IO::Local:D:) {
-        IO::Notification.watch_path($!abspath);
+        IO::Notification.watch-path($!abspath);
     }
 #?endif
 }

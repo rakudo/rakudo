@@ -11,7 +11,7 @@ my class IO::Notification {
         }
     }
 
-    method watch_path(Str() $path, :$scheduler = $*SCHEDULER) {
+    method watch-path(Str() $path, :$scheduler = $*SCHEDULER) {
         my $s = Supply.new;
         nqp::watchfile(
             $scheduler.queue,
@@ -26,5 +26,10 @@ my class IO::Notification {
             },
             $path, FileWatchCancellation);
         $s
+    }
+
+    method watch_path(|c) {
+        DEPRECATED('watch-path', |<2015.08 2015.09> );
+        self.watch-path(|c);
     }
 }

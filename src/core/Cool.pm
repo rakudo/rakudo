@@ -207,11 +207,10 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i = nqp::index(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          nqp::unbox_i($pos)
-        );
+        my str $str = nqp::unbox_s(self.Str);
+        my int $i = $pos < 0 || $pos > nqp::chars($str)
+          ?? -1
+          !! nqp::index($str, nqp::unbox_s($needle), nqp::unbox_i($pos));
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 
@@ -221,11 +220,10 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i = nqp::rindex(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          nqp::unbox_i($pos)
-        );
+        my str $str = nqp::unbox_s(self.Str);
+        my int $i = $pos < 0 || $pos > nqp::chars($str)
+          ?? -1
+          !! nqp::rindex($str, nqp::unbox_s($needle), nqp::unbox_i($pos));
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 

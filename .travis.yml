@@ -24,9 +24,12 @@ notifications:
       - "%{build_url} %{compare_url}"
 
 env:
-  matrix:
     - RAKUDO_OPTIONS="--backends=moar --gen-nqp        --gen-moar"
     - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar"
     - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar=master"
     - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
     - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"
+matrix:
+  allow_failures:
+    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
+    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"

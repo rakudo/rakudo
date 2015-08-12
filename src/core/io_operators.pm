@@ -2,11 +2,11 @@ my class IO::ArgFiles { ... }
 
 proto sub print(|) { * }
 multi sub print(\x) {
-    $*OUT.print(x);
+    $*OUT.print(x.Str);
 }
-multi sub print(**@args is rw) {
+multi sub print(*@args is rw) {
     my $out := $*OUT;
-    $out.print($_) for @args;
+    $out.print(.Str) for @args;
     Bool::True
 }
 

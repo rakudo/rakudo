@@ -6208,12 +6208,36 @@ Compilation unit '$file' contained the following violations:
     }
 
     method dec_number($/) {
-#        say("dec_number: $/");
-        if $<escale> {
-#            say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($<escale>.ast), :num);
+        my $Int := $*W.find_symbol(['Int']);
+        my $parti;
+        my $partf;
+
+        # we build up the number in parts
+        if nqp::chars($<int>) {
+            $parti := $<int>.ast;
         } else {
-            make radcalc($/, 10, $<coeff>);
+            $parti := nqp::box_i(0, $Int);
+        }
+
+        if nqp::chars($<frac>) && $<frac>.ast > 0 {
+            $partf := nqp::div_n(nqp::log_n(nqp::tonum_I($<frac>.ast)), nqp::log_n(10));
+            $partf := nqp::pow_n(10, nqp::floor_n($partf + 1));
+
+            $parti := nqp::mul_I($parti, nqp::fromnum_I($partf, $Int), $Int);
+            $parti := nqp::add_I($parti, $<frac>.ast, $Int);
+        } else {
+            $partf := 1.0;
+        }
+
+        if $<escale> {
+            $parti := nqp::tonum_I($parti);
+
+            $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
+            $parti := nqp::div_n($parti, $partf);
+
+            make $*W.add_numeric_constant($/, 'Num', $parti);
+        } else {
+            make $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
         }
     }
 

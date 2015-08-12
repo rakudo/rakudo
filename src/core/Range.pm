@@ -141,7 +141,8 @@ my class Range is Cool does Iterable does Positional {
             nqp::die('Range iterator NYI')
         }
     }
-    method list()     { List.from-iterator(self.iterator) }
+    multi method list(Range:D:) { List.from-iterator(self.iterator) }
+    method flat(Range:D:) { Seq.new(self.iterator) }
 
     method bounds()   { ($!min, $!max) }
 

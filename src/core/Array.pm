@@ -87,6 +87,8 @@ my class Array { # declared in BOOTSTRAP
             nqp::decont($!descriptor))
     }
 
+    multi method flat(Array:D:) { Seq.new(self.iterator) }
+
     # XXX GLR
     #multi method AT-POS(Array:D: int \pos) is rw {
     #    fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)

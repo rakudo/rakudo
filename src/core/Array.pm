@@ -113,26 +113,34 @@ my class Array { # declared in BOOTSTRAP
     #        );
     #    }
     #}
-    #multi method AT-POS(Array:D: Int:D \pos) is rw {
-    #    my int $pos = nqp::unbox_i(pos.Int);
-    #    fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
-    #      if nqp::islt_i($pos,0);
-    #    my Mu \items := nqp::p6listitems(self);
-    #    # hotpath check for element existence (RT #111848)
-    #    if nqp::existspos(items,$pos)
-    #      || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-    #      && nqp::istrue(self.EXISTS-POS($pos)) {
-    #        nqp::atpos(items,$pos);
-    #    }
-    #    else {
-    #        nqp::p6bindattrinvres(
-    #            (my \v := nqp::p6scalarfromdesc($!descriptor)),
-    #            Scalar,
-    #            '$!whence',
-    #            -> { nqp::bindpos(items,$pos,v) }
-    #        );
-    #    }
-    #}
+    multi method AT-POS(Array:D: Int:D \pos) is rw {
+        my int $pos = nqp::unbox_i(pos.Int);
+        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
+          if nqp::islt_i($pos,0);
+        self!ensure-allocated();
+        my $todo := nqp::getattr(self, List, '$!todo');
+        if $todo.DEFINITE {
+            $todo.reify-until-lazy();
+            fail X::Cannot::Infinite.new(action => '.unshift to')
+                unless $todo.fully-reified;
+            nqp::bindattr(self, List, '$!todo', Mu);
+        }
+        my Mu \reified := nqp::getattr(self, List, '$!reified');
+        # hotpath check for element existence (RT #111848)
+        if nqp::existspos(reified,$pos)
+          || $todo.DEFINITE
+          && nqp::istrue(self.EXISTS-POS($pos)) {
+            nqp::atpos(reified,$pos);
+        }
+        else {
+            nqp::p6bindattrinvres(
+                (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                Scalar,
+                '$!whence',
+                -> { nqp::bindpos(reified,$pos,v) }
+            );
+        }
+    }
 
     # XXX GLR
     #multi method ASSIGN-POS(Array:D: int \pos, Mu \assignee) is rw {

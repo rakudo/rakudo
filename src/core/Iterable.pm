@@ -26,7 +26,7 @@ my role Iterable {
                 iter
             }
 
-            method pull-one() {
+            method pull-one() is rw {
                 my $result;
                 loop {
                     if $!nested-iter {
@@ -60,7 +60,7 @@ my role Iterable {
                 iter
             }
 
-            method pull-one() {
+            method pull-one() is rw {
                 unless $!iterator.DEFINITE {
                     $!iterator := $!iterable.iterator;
                 }
@@ -89,7 +89,7 @@ my role Iterable {
                 iter
             }
 
-            method pull-one() {
+            method pull-one() is rw {
                 self!fill-cache() unless $!cache.DEFINITE;
                 nqp::elems($!cache)
                     ?? nqp::shift($!cache)

@@ -185,8 +185,10 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method indices(|) {*}
     multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0, :$overlap) {
-        my int $pos  = $start;
         my str $str  = nqp::unbox_s(self.Str);
+        return () if $start < 0 || $start > nqp::chars($str);
+
+        my int $pos  = $start;
         my str $need = nqp::unbox_s($needle);
         my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
 

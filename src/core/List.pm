@@ -495,13 +495,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Array.from-iterator(self.iterator)
     }
 
-    # XXX GLR
-    #method Capture() {
-    #    self.gimme(*);
-    #    my $cap := nqp::create(Capture);
-    #    nqp::bindattr($cap, Capture, '$!list', $!items);
-    #    $cap
-    #}
+    method Capture() {
+        $!todo.reify-all() if $!todo.DEFINITE;
+        my $cap := nqp::create(Capture);
+        nqp::bindattr($cap, Capture, '$!list', $!reified);
+        $cap
+    }
     method FLATTENABLE_LIST() {
         $!todo.reify-all() if $!todo.DEFINITE;
         $!reified

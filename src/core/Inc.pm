@@ -1,10 +1,10 @@
 # XXX GLR this busts startup
-#{
-#    my @INC;
-#    my %CUSTOM_LIB;
-#    my %ENV := %*ENV; # only look up environment once
-#
-#    # starting up for creating precomp
+{
+    my @INC;
+    my %CUSTOM_LIB;
+    my %ENV := %*ENV; # only look up environment once
+
+    # starting up for creating precomp
 #    if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
 #
 #RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
@@ -93,11 +93,11 @@
 #            %CUSTOM_LIB<site>   = "$prefix/site";
 #        }
 #    }
-#
-#    PROCESS::<@INC>        := @INC;
-#    PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
-#
-#    nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
-#}
+
+    PROCESS::<@INC>        := @INC;
+    PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
+
+    nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
+}
 
 # vim: ft=perl6 expandtab sw=4

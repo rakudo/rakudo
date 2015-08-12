@@ -39,12 +39,11 @@ my class Array { # declared in BOOTSTRAP
         result
     }
 
-    # XXX GLR
-    #method new(|) {
-    #    my Mu $args := nqp::p6argvmarray();
-    #    nqp::shift($args);
-    #    nqp::p6list($args, self.WHAT, Bool::True);
-    #}
+    method new(**@values is rw) {
+        my \arr = nqp::create(self);
+        arr.STORE(@values);
+        arr
+    }
 
     method !ensure-allocated() {
         nqp::bindattr(self, List, '$!reified', IterationBuffer.CREATE)
@@ -191,23 +190,28 @@ my class Array { # declared in BOOTSTRAP
     #    $value;
     #}
 
+    method !ensure-not-lazy($action) {
+        my $todo := nqp::getattr(self, List, '$!todo');
+        unless $todo.reify-until-lazy() =:= IterationEnd {
+            fail X::Cannot::Infinite.new(:$action);
+        }
+    }
+
+    multi method push(Array:D: \value) {
+        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+            self!ensure-not-lazy('.push to')
+                if nqp::getattr(self, List, '$!todo').DEFINITE;
+            nqp::push(
+                nqp::getattr(self, List, '$!reified'),
+                nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
+            );
+            self
+        }
+        else {
+            callsame();
+        }
+    }
     # XXX GLR
-    #multi method push(Array:D: \value) {
-    #    if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
-    #        fail X::Cannot::Infinite.new(:action('.push to'))
-    #          if self.infinite;
-    #        self.gimme(*);
-    #        nqp::p6listitems(self);
-    #        nqp::push(
-    #          nqp::getattr(self,List,'$!items'),
-    #          nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
-    #        );
-    #        self
-    #    }
-    #    else {
-    #        callsame();
-    #    }
-    #}
     #multi method push(Array:D: *@values) {
     #    fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
     #      if @values.infinite;
@@ -228,23 +232,21 @@ my class Array { # declared in BOOTSTRAP
     #    self;
     #}
 
+    multi method unshift(Array:D: \value) {
+        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+            self!ensure-not-lazy('.unshift to')
+                if nqp::getattr(self, List, '$!todo').DEFINITE;
+            nqp::unshift(
+                nqp::getattr(self, List, '$!reified'),
+                nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
+            );
+            self
+        }
+        else {
+            callsame();
+        }
+    }
     # XXX GLR
-    #multi method unshift(Array:D: \value) {
-    #    if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) && nqp::not_i(nqp::istype(value, Parcel)) {
-    #        fail X::Cannot::Infinite.new(:action<push to>)
-    #          if self.infinite;
-    #        self.gimme(*);
-    #        nqp::p6listitems(self);
-    #        nqp::unshift(
-    #          nqp::getattr(self,List,'$!items'),
-    #          nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
-    #        );
-    #        self
-    #    }
-    #    else {
-    #        callsame();
-    #    }
-    #}
     #multi method unshift(Array:D: *@values) {
     #    fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
     #      if @values.infinite;

@@ -210,26 +210,22 @@ my class Array { # declared in BOOTSTRAP
             callsame();
         }
     }
-    # XXX GLR
-    #multi method push(Array:D: *@values) {
-    #    fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
-    #      if @values.infinite;
-    #    nqp::p6listitems(self);
-    #    my $elems = self.gimme(*);
-    #    fail X::Cannot::Infinite.new(:action('.push to'))
-    #      if self.infinite;
-    #
-    #    # push is always eager
-    #    @values.gimme(*);
-    #
-    #    self.gimme(*);
-    #    nqp::push(
-    #      nqp::getattr(self,List,'$!items'),
-    #      nqp::assign(nqp::p6scalarfromdesc($!descriptor), $_)
-    #    ) for @values;
-    #
-    #    self;
-    #}
+    multi method push(Array:D: **@values) {
+        self!ensure-allocated();
+        my $todo := nqp::getattr(self, List, '$!todo');
+        if $todo.DEFINITE {
+            $todo.reify-until-lazy();
+            fail X::Cannot::Infinite.new(action => '.push to')
+                unless $todo.fully-reified;
+            nqp::bindattr(self, List, '$!todo', Mu);
+        }
+        my \values-iter = @values.iterator;
+        my $reified := nqp::getattr(self, List, '$!reified');
+        unless values-iter.push-until-lazy($reified) =:= IterationEnd {
+            fail X::Cannot::Infinite.new(:action<push>, :what(self.^name));
+        }
+        self
+    }
 
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {

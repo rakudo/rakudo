@@ -75,16 +75,16 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
                   // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
                     my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
                     my $path := "$home/.perl6/$ver";
-#                    @INC.push: "file#$path/lib", "inst#$path";
+                    @INC.push: "file#$path/lib", "inst#$path";
                     %CUSTOM_LIB<home> = $path;
                 }
             }
             @INC.push:
-#              "file#$prefix/lib",
-#              "file#$prefix/vendor/lib",
-#              "file#$prefix/site/lib",
-#              "inst#$prefix",
-#              "inst#$prefix/vendor",
+              "file#$prefix/lib",
+              "file#$prefix/vendor/lib",
+              "file#$prefix/site/lib",
+              "inst#$prefix",
+              "inst#$prefix/vendor",
               "inst#$prefix/site";
 
             %CUSTOM_LIB<perl>   =  $prefix;

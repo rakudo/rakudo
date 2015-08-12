@@ -183,6 +183,17 @@ my class Cool { # declared in BOOTSTRAP
         ));
     }
 
+    proto method contains(|) {*}
+    multi method contains(Cool:D: Str(Cool) $needle) {
+        nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle)) != -1;
+    }
+    multi method contains(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
+        my str $str = nqp::unbox_s(self.Str);
+        $pos >= 0
+          && $pos <= nqp::chars($str)
+          && nqp::index($str, nqp::unbox_s($needle), nqp::unbox_i($pos)) != -1;
+    }
+
     proto method indices(|) {*}
     multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0, :$overlap) {
         my str $str  = nqp::unbox_s(self.Str);

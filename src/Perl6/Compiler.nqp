@@ -91,7 +91,7 @@ class Perl6::Compiler is HLL::Compiler {
 
     method interactive(*%adverbs) {
         try {
-            my @symbols := self.eval("use nqp; use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback, &linenoiseAddCompletion)");
+            my @symbols := self.eval("use nqp; use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback, &linenoiseAddCompletion)", :outer_ctx(nqp::null()));
 
             $!linenoise := @symbols[0];
             $!linenoise_add_history := @symbols[1];
@@ -100,7 +100,7 @@ class Perl6::Compiler is HLL::Compiler {
 
             $!completions := nqp::list();
 
-            my $core_keys := self.eval('CORE::.keys');
+            my $core_keys := self.eval('CORE::.keys', :outer_ctx(nqp::null()));
 
             my int $i := 0;
             my $core_elems := $core_keys.elems();
@@ -219,7 +219,7 @@ class Perl6::Compiler is HLL::Compiler {
                 }
 
                 my $our := nqp::getlexrel($ctx, '$?PACKAGE').WHO;
-                my $EnumMap := self.eval('EnumMap');
+                my $EnumMap := self.eval('EnumMap', :outer_ctx(nqp::null()));
                 my $storage := nqp::getattr($our, $EnumMap, '$!storage');
 
                 $it := nqp::iterator($storage);

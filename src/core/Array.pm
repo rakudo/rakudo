@@ -19,7 +19,7 @@ my class Array { # declared in BOOTSTRAP
             rt
         }
 
-        method push(\value) {
+        method push(Mu \value) {
             nqp::push($!target,
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value));
         }

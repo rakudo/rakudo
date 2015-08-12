@@ -1,34 +1,44 @@
 # all sub postcircumfix [] candidates here please
 
-sub NPOSITIONS(\pos, \elems) { # generate N positions
-    my Mu $indexes := nqp::list();
-    nqp::setelems($indexes,elems);
-    my int $i;
-    my int $end = elems;
-    while $i < $end {
-        nqp::bindpos($indexes,$i,pos.AT-POS($i));
-        $i = $i + 1;
-    }
-    $indexes;
+# Generate up to N positions
+sub NPOSITIONS(\pos, \elems) {
+    my \indexes = IterationBuffer.CREATE;
+    pos.flat.iterator.push-exactly(indexes, elems);
+    nqp::p6bindattrinvres(List.CREATE, List, '$!reified', indexes)
 }
-sub POSITIONS(\SELF, \pos) { # handle possible infinite slices
-    my $positions := pos.flat;
 
-    if nqp::istype(pos,Range)                         # a Range
-      || $positions.infinite                          # an infinite list
-      || ($positions.gimme(*) && $positions.infinite) # an infinite list now
-    {
-        my $list = SELF.list;
-        $positions.flatmap( {
-            last if $_ >= $list.gimme( $_ + 1 );
-            $_;
-        } ).eager.List;
+# Generates list of positions to index into the array at. Takes all those
+# before something lazy is encountered and eagerly reifies them. If there
+# are any lazy things in the slice, then we lazily consider those, but will
+# truncate at the first one that is out of range. We have a special case for
+# Range, which will auto-truncate even though not lazy.
+proto sub POSITIONS(|) { * }
+multi sub POSITIONS(\SELF, \pos) {
+    my \pos-iter = pos.flat.iterator;
+    my \pos-list = List.CREATE;
+    my \eager-indices = IterationBuffer.CREATE;
+    nqp::bindattr(pos-list, List, '$!reified', eager-indices);
+    unless pos-iter.push-until-lazy(eager-indices) =:= IterationEnd {
+        # There are lazy positions to care about too. We truncate at the first
+        # one that fails to exists.
+        my \rest-seq = Seq.new(pos-iter).map: -> Int() $i {
+            last unless SELF.EXISTS-KEY($i);
+            $i
+        };
+        my \todo := LIST::Reifier.CREATE;
+        nqp::bindattr(todo, List::Reifier, '$!reified', eager-indices);
+        nqp::bindattr(todo, List::Reifier, '$!current-iter', rest-seq.iterator);
+        nqp::bindattr(todo, List::Reifier, '$!reification-target', eager-indices);
+        nqp::bindattr(pos-list, List, '$!todo', todo);
     }
-    else {
-        $positions.flatmap( {
-            nqp::istype($_,Callable) ?? $_(|(SELF.elems xx $_.count)) !! $_
-        } ).eager.List;
-    }
+    pos-list
+}
+multi sub POSITIONS(\SELF, Range \pos) {
+    # Can be more clever here and look at range endpoints, as an optimization.
+    pos.map(-> Int() $i {
+        last unless SELF.EXISTS-POS($i);
+        $i
+    })
 }
 
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
@@ -134,43 +144,39 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is rw {
 }
 
 # @a[@i]
-multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is rw {
     nqp::iscont(pos)
       ?? SELF.AT-POS(pos.Int)
-      !! POSITIONS(SELF,pos).flatmap({ SELF[$_] }).eager.List;
+      !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.List;
 }
 multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \val ) is rw {
     nqp::iscont(pos)
-      ?? SELF.ASSIGN-POS(pos.Int,val)
-      !! pos.?infinite
-        ?? val.?infinite
-          ?? ()
-          !! (SELF[NPOSITIONS(pos,val.elems)] = val)
-        !! (POSITIONS(SELF,pos.list).flatmap({SELF[$_]}).eager.List = val);
+      ?? SELF.ASSIGN-POS(pos.Int, val)
+      !! SELF[NPOSITIONS(pos, val.elems)] = val
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$BIND!) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$SINK!, *%other) is rw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$SINK, |%other );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$SINK!, *%other) is rw {
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$SINK, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF,Positional:D \pos,:$delete!,*%other) is rw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$delete, |%other );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$delete!,*%other) is rw {
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF,Positional:D \pos,:$exists!,*%other) is rw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$exists, |%other );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$exists!,*%other) is rw {
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$kv!, *%other) is rw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$kv, |%other );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$kv!, *%other) is rw {
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$p!, *%other) is rw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$p, |%other );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$p!, *%other) is rw {
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$k!, *%other) is rw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$k, |%other );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$k!, *%other) is rw {
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(\SELF, Positional:D \pos, :$v!, *%other) is rw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF,pos), :$v, |%other );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$v!, *%other) is rw {
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$v, |%other );
 }
 
 # @a[->{}]

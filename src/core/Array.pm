@@ -432,17 +432,10 @@ my class Array { # declared in BOOTSTRAP
         my $d := $!descriptor;
         nqp::isnull($d) ?? Bool !! so $d.dynamic;
     }
-    # XXX GLR
-    #multi method perl(Array:D \SELF:) {
-    #    '['
-    #    ~ (  # simplify arrays that look 2D (in first 3 elems anyway)
-    #        nqp::istype(self[0],Parcel) || nqp::istype(self[1],Parcel) || nqp::istype(self[2],Parcel)
-    #            ?? self.map({.list.map({.perl}).join(', ')}).join('; ')
-    #            !! self.map({.perl}).join(', ')
-    #    )
-    #    ~ ']'
-    #    ~ '<>' x !nqp::iscont(SELF);
-    #}
+    multi method perl(Array:D \SELF:) {
+        '$' x nqp::iscont(SELF) ~
+        '[' ~ self.map({.perl}).join(', ') ~ ']';
+    }
 
     # XXX GLR
     #my role TypedArray[::TValue] does Positional[TValue] {

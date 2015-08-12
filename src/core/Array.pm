@@ -190,18 +190,16 @@ my class Array { # declared in BOOTSTRAP
     #    $value;
     #}
 
-    method !ensure-not-lazy($action) {
-        my $todo := nqp::getattr(self, List, '$!todo');
-        unless $todo.reify-until-lazy() =:= IterationEnd {
-            fail X::Cannot::Infinite.new(:$action);
-        }
-    }
-
     multi method push(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
-            self!ensure-not-lazy('.push to')
-                if nqp::getattr(self, List, '$!todo').DEFINITE;
+            my $todo := nqp::getattr(self, List, '$!todo');
+            if $todo.DEFINITE {
+                $todo.reify-until-lazy();
+                fail X::Cannot::Infinite.new(action => '.push to')
+                    unless $todo.fully-reified;
+                nqp::bindattr(self, List, '$!todo', Mu);
+            }
             nqp::push(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -236,8 +234,13 @@ my class Array { # declared in BOOTSTRAP
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
-            self!ensure-not-lazy('.unshift to')
-                if nqp::getattr(self, List, '$!todo').DEFINITE;
+            my $todo := nqp::getattr(self, List, '$!todo');
+            if $todo.DEFINITE {
+                $todo.reify-until-lazy();
+                fail X::Cannot::Infinite.new(action => '.unshift to')
+                    unless $todo.fully-reified;
+                nqp::bindattr(self, List, '$!todo', Mu);
+            }
             nqp::unshift(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)

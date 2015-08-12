@@ -108,7 +108,7 @@ augment class Any {
                                                 nqp::if(
                                                     nqp::eqaddr($result, IterationEnd),
                                                     nqp::stmts(
-                                                        ($value = $!source.pull-one()),
+                                                        ($value := $!source.pull-one()),
                                                         ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
                                                 ))
                                             ))

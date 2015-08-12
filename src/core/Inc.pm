@@ -1,4 +1,3 @@
-# XXX GLR this busts startup
 {
     my @INC;
     my %CUSTOM_LIB;
@@ -69,17 +68,17 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
         }
         # There is no config file, so pick sane defaults.
         else {
-#            # XXX Various issues with this stuff on JVM
-#            my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
-#            try {
-#                if %ENV<HOME>
-#                  // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
-#                    my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-#                    my $path := "$home/.perl6/$ver";
+            # XXX Various issues with this stuff on JVM
+            my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
+            try {
+                if %ENV<HOME>
+                  // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
+                    my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+                    my $path := "$home/.perl6/$ver";
 #                    @INC.push: "file#$path/lib", "inst#$path";
-#                    %CUSTOM_LIB<home> = $path;
-#                }
-#            }
+                    %CUSTOM_LIB<home> = $path;
+                }
+            }
             @INC.push:
 #              "file#$prefix/lib",
 #              "file#$prefix/vendor/lib",

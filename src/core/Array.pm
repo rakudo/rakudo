@@ -93,53 +93,38 @@ my class Array { # declared in BOOTSTRAP
 
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 
-    # XXX GLR
-    #multi method AT-POS(Array:D: int \pos) is rw {
-    #    fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
-    #      if nqp::islt_i(pos,0);
-    #    my Mu \items := nqp::p6listitems(self);
-    #    # hotpath check for element existence (RT #111848)
-    #    if nqp::existspos(items,pos)
-    #      || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-    #      && nqp::istrue(self.EXISTS-POS(pos)) {
-    #        nqp::atpos(items,pos);
-    #    }
-    #    else {
-    #        nqp::p6bindattrinvres(
-    #            (my \v := nqp::p6scalarfromdesc($!descriptor)),
-    #            Scalar,
-    #            '$!whence',
-    #            -> { nqp::bindpos(items,pos,v) }
-    #        );
-    #    }
-    #}
-    multi method AT-POS(Array:D: Int:D \pos) is rw {
-        my int $pos = nqp::unbox_i(pos.Int);
-        fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
-          if nqp::islt_i($pos,0);
+    multi method AT-POS(Array:D: int $ipos) is rw {
+        my Mu \reified := nqp::getattr(self, List, '$!reified');
+        reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0
+            ?? nqp::ifnull(nqp::atpos(reified, $ipos),
+                    self!AT-POS-SLOWPATH($ipos))
+            !! self!AT-POS-SLOWPATH($ipos)
+    }
+    multi method AT-POS(Array:D: Int:D $pos) is rw {
+        my int $ipos = nqp::unbox_i($pos);
+        my Mu \reified := nqp::getattr(self, List, '$!reified');
+        reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0
+            ?? nqp::ifnull(nqp::atpos(reified, $ipos),
+                    self!AT-POS-SLOWPATH($ipos))
+            !! self!AT-POS-SLOWPATH($ipos)
+    }
+    method !AT-POS-SLOWPATH(int $ipos) is rw {
+        fail X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>)
+          if nqp::islt_i($ipos, 0);
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {
-            $todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(action => '.AT-POS')
-                unless $todo.fully-reified;
-            nqp::bindattr(self, List, '$!todo', Mu);
+            $todo.reify-at-least($ipos + 1);
         }
         my Mu \reified := nqp::getattr(self, List, '$!reified');
-        # hotpath check for element existence (RT #111848)
-        if nqp::existspos(reified,$pos)
-          || $todo.DEFINITE
-          && nqp::istrue(self.EXISTS-POS($pos)) {
-            nqp::atpos(reified,$pos);
-        }
-        else {
-            nqp::p6bindattrinvres(
-                (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                Scalar,
-                '$!whence',
-                -> { nqp::bindpos(reified,$pos,v) }
-            );
-        }
+        $ipos >= nqp::elems(reified) || nqp::isnull(my \value = nqp::atpos(reified, $ipos))
+            ?? nqp::p6bindattrinvres(
+                    (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                    Scalar,
+                    '$!whence',
+                    -> { nqp::bindpos(reified, $ipos, v) }
+                )
+            !! value
     }
 
     # XXX GLR

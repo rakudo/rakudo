@@ -151,7 +151,7 @@ my class Any { # declared in BOOTSTRAP
     method reverse() is nodal { self.list.reverse }
     method combinations(|c) is nodal { self.list.combinations(|c) }
     method permutations(|c) is nodal { self.list.permutations(|c) }
-    method join($separator) is nodal { self.list.join($separator) }
+    method join($separator = '') is nodal { self.list.join($separator) }
 
     # XXX GLR should move these
     method nodemap(&block) is rw is nodal { nodemap(&block, self) }

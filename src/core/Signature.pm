@@ -94,7 +94,7 @@ my class Signature { # declared in BOOTSTRAP
         my $text = $perl ?? ':(' !! '(';
 
         # Parameters.
-        if self.params -> @params {
+        if self.params.Array -> @params {
             $text ~= @params.shift.perl(:$elide-type) ~ ': '
                 if @params[0].invocant;
             $text ~= ';; '

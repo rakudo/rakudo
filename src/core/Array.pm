@@ -274,22 +274,30 @@ my class Array { # declared in BOOTSTRAP
     #    self;
     #}
 
-    # XXX GLR
-    #method pop(Array:D:) is parcel is nodal {
-    #    my $elems = self.gimme(*);
-    #    fail X::Cannot::Infinite.new(:action('.pop from')) if $!nextiter.defined;
-    #    $elems > 0
-    #      ?? nqp::pop($!items)
-    #      !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
-    #}
+    method pop(Array:D:) is parcel is nodal {
+        self!ensure-allocated();
+        my $todo := nqp::getattr(self, List, '$!todo');
+        my $reified := nqp::getattr(self, List, '$!reified');
+        if $todo.DEFINITE {
+            $todo.reify-until-lazy();
+            fail X::Cannot::Infinite.new(action => '.pop from')
+                unless $todo.fully-reified;
+            nqp::bindattr(self, List, '$!todo', Mu);
+        }
+        nqp::elems($reified)
+            ?? nqp::pop($reified)
+            !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+    }
 
-    # XXX GLR
-    #method shift(Array:D:) is parcel is nodal {
-    #    # make sure we have at least one item, then shift+return it
-    #    nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
-    #      ?? nqp::shift($!items)
-    #      !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
-    #}
+    method shift(Array:D:) is parcel is nodal {
+        # make sure we have at least one item, then shift+return it
+        self!ensure-allocated();
+        my $todo := nqp::getattr(self, List, '$!todo');
+        my $reified := nqp::getattr(self, List, '$!reified');
+        nqp::existspos($reified, 0) || $todo.DEFINITE && $todo.reify-at-least(1)
+            ?? nqp::shift($reified)
+            !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+    }
 
     # XXX GLR
     #method plan(Array:D: |args) is nodal {

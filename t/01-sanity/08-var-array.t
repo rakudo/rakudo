@@ -21,5 +21,4 @@ my @c = <ok 8>; say ~@c;
 
 2 == (1, 2).elems and say 'ok 9';
 3 == <a b c>.elems and say 'ok 10';
-3 == ['a', <2 three>].elems and say 'ok 11';
-
+3 == [flat 'a', <2 three>].elems and say 'ok 11';

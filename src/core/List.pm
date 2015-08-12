@@ -266,21 +266,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! Nil
     }
 
-    # XXX GLR
-    #multi method EXISTS-POS(List:D: int $pos) {
-    #    return False if nqp::islt_i($pos,0);
-    #    self.gimme($pos + 1);
-    #    nqp::p6bool(
-    #      nqp::not_i(nqp::isnull(nqp::atpos($!items,$pos)))
-    #    );
-    #}
-    #multi method EXISTS-POS(List:D: Int:D $pos) {
-    #    return False if $pos < 0;
-    #    self.gimme($pos + 1);
-    #    nqp::p6bool(
-    #      nqp::not_i(nqp::isnull(nqp::atpos($!items,nqp::unbox_i($pos))))
-    #    );
-    #}
+    multi method EXISTS-POS(List:D: int $pos) {
+        $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
+        nqp::islt_i($pos, 0) || nqp::isnull(nqp::atpos($!reified, $pos))
+            ?? False
+            !! True
+    }
+    multi method EXISTS-POS(List:D: Int:D $pos) {
+        $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
+        $pos < 0 || nqp::isnull(nqp::atpos($!reified, $pos))
+            ?? False
+            !! True
+    }
 
     # XXX GLR does this survive?
     #multi method infinite(List:D:) {

@@ -371,6 +371,61 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.map({ nqp::decont(.value) »=>» .key }).flat
     }
 
+    # Store in List targets containers with in the list. This handles list
+    # assignemnts, like ($a, $b) = foo().
+    proto method STORE(|) { * }
+    multi method STORE(List:D: Iterable:D \iterable) {
+        # First pass -- scan lhs containers and pick out scalar versus list
+        # assignment. This also reifies the RHS values we need, and deconts
+        # them. The decont is needed so that we can do ($a, $b) = ($b, $a).
+        my \cv = nqp::list();
+        my \lhs-iter = self.iterator;
+        my \rhs-iter = iterable.iterator;
+        my int $rhs-done = 0;
+        loop {
+            my Mu \c := lhs-iter.pull-one;
+            last if c =:= IterationEnd;
+            if nqp::iscont(c) {
+                # Container: scalar assignment
+                nqp::push(cv, c);
+                if $rhs-done {
+                    nqp::push(cv, Nil);
+                }
+                elsif (my \v = rhs-iter.pull-one) =:= IterationEnd {
+                    nqp::push(cv, Nil);
+                    $rhs-done = 1;
+                }
+                else {
+                    nqp::push(cv, v);
+                }
+            }
+            elsif nqp::istype(c, Whatever) {
+                # Whatever: skip assigning value
+                unless $rhs-done {
+                    my \v = rhs-iter.pull-one;
+                    $rhs-done = 1 if v =:= IterationEnd;
+                }
+            }
+            else {
+                # Non-container: store entire remaining rhs
+                nqp::push(cv, c);
+                nqp::push(cv, List.from-iterator(rhs-iter));
+                $rhs-done = 1;
+            }
+        }
+
+        # Second pass, perform the assignments.
+        while nqp::elems(cv) {
+            my \c := nqp::shift(cv);
+            c = nqp::shift(cv);
+        }
+
+        self
+    }
+    multi method STORE(List:D: \item) {
+        self.STORE((item,));
+    }
+
     multi method gist(List:D:) {
         self.map( -> $elem {
             given ++$ {

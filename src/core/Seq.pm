@@ -59,7 +59,7 @@ my class Seq does Iterable does PositionalBindFailover {
 
     method sink() {
         self.iterator.sink-all;
-        self
+        Nil
     }
 
     multi method AT-POS(Seq:D: $) {

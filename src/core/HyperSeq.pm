@@ -204,7 +204,7 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
         # any special handling, nor does it warrant a warning since this is
         # what 'hyper for @xs -> $x { }' will end up calling.
         self.iterator.sink-all;
-        self
+        Nil
     }
 
     # Not indexable.

@@ -5,48 +5,48 @@
     my %ENV := %*ENV; # only look up environment once
 
     # starting up for creating precomp
-#    if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
-#
-#RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
-#  if $?RAKUDO_MODULE_DEBUG;
-#
-#        @INC = specs.split(','); # assume well formed strings
-#    }
-#
-#    # normal start up
-#    else {
-#        my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
-#        if nqp::defined($I) {
-#            if nqp::islist($I) {
-#                my Mu $iter := nqp::iterator($I);
-#                while $iter {
-#                    @INC.push: PARSE-INCLUDE-SPECS(nqp::shift($iter));
-#                }
-#            }
-#            else {
-#                @INC.push: PARSE-INCLUDE-SPECS($I);
-#            }
-#        }
-#
-#        if %ENV<RAKUDOLIB> -> $rakudolib {
-#            @INC.push: PARSE-INCLUDE-SPECS($rakudolib);
-#        }
-#        if %ENV<PERL6LIB> -> $perl6lib {
-#            @INC.push: PARSE-INCLUDE-SPECS($perl6lib);
-#        }
-#
-##?if jvm
-#        for nqp::jvmclasspaths() -> $path {
-#            @INC.push: PARSE-INCLUDE-SPECS($path);
-#        }
-##?endif
-#
-#        my $prefix := nqp::p6box_s(
-#          nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
-#        );
-#
-#        my $abspath := "$prefix/share/libraries.json";
-#        if IO::Path.new-from-absolute-path($abspath).e {
+    if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
+
+RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
+  if $?RAKUDO_MODULE_DEBUG;
+
+        @INC = specs.split(','); # assume well formed strings
+    }
+
+    # normal start up
+    else {
+        my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
+        if nqp::defined($I) {
+            if nqp::islist($I) {
+                my Mu $iter := nqp::iterator($I);
+                while $iter {
+                    @INC.push: PARSE-INCLUDE-SPECS(nqp::shift($iter));
+                }
+           }
+            else {
+                @INC.push: PARSE-INCLUDE-SPECS($I);
+            }
+        }
+
+        if %ENV<RAKUDOLIB> -> $rakudolib {
+            @INC.push: PARSE-INCLUDE-SPECS($rakudolib);
+        }
+        if %ENV<PERL6LIB> -> $perl6lib {
+            @INC.push: PARSE-INCLUDE-SPECS($perl6lib);
+        }
+
+#?if jvm
+        for nqp::jvmclasspaths() -> $path {
+            @INC.push: PARSE-INCLUDE-SPECS($path);
+        }
+#?endif
+
+        my $prefix := nqp::p6box_s(
+          nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
+        );
+
+        my $abspath := "$prefix/share/libraries.json";
+        if IO::Path.new-from-absolute-path($abspath).e {
 #            my $config = from-json( slurp $abspath );
 #
 #            for $config.list -> @group {
@@ -66,9 +66,9 @@
 #                    }
 #                }
 #            }
-#        }
-#        # There is no config file, so pick sane defaults.
-#        else {
+        }
+        # There is no config file, so pick sane defaults.
+        else {
 #            # XXX Various issues with this stuff on JVM
 #            my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
 #            try {
@@ -80,19 +80,19 @@
 #                    %CUSTOM_LIB<home> = $path;
 #                }
 #            }
-#            @INC.push:
+            @INC.push:
 #              "file#$prefix/lib",
 #              "file#$prefix/vendor/lib",
 #              "file#$prefix/site/lib",
 #              "inst#$prefix",
 #              "inst#$prefix/vendor",
-#              "inst#$prefix/site";
-#
-#            %CUSTOM_LIB<perl>   =  $prefix;
-#            %CUSTOM_LIB<vendor> = "$prefix/vendor";
-#            %CUSTOM_LIB<site>   = "$prefix/site";
-#        }
-#    }
+              "inst#$prefix/site";
+
+            %CUSTOM_LIB<perl>   =  $prefix;
+            %CUSTOM_LIB<vendor> = "$prefix/vendor";
+            %CUSTOM_LIB<site>   = "$prefix/site";
+        }
+    }
 
     PROCESS::<@INC>        := @INC;
     PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;

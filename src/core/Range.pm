@@ -59,8 +59,88 @@ my class Range is Cool does Iterable does Positional {
           ~ $!max;
     }
 
-    # XXX GLR
-    method iterator() { nqp::die('Range iterator NYI') }
+    # XXX GLR steal this logic into the (to be written) iterator for ranges.
+    #method reify($n) {
+    #    my $count;
+    #    my $cmpstop = $!excludes-max ?? 0 !! 1;
+    #    my $realmax = nqp::istype($!min, Numeric) && !nqp::istype($!max, Callable) && !nqp::istype($!max, Whatever)
+    #                  ?? $!max.Numeric
+    #                  !! $!max;
+    #
+    #    if nqp::istype($value, Num) {
+    #        # optimized for num ranges
+    #        $value = $value.Num;
+    #        my $max = $!max.Num;
+    #        my $box_int = nqp::p6bool(nqp::istype($!min, Int));
+    #        my num $nvalue = $value;
+    #        my num $ncount = $count;
+    #        my num $nmax = $max;
+    #        my int $icmpstop = $cmpstop;
+    #        my int $ibox_int = $box_int;
+    #        nqp::while(
+    #            (nqp::isgt_n($ncount, 0e0) && nqp::islt_i(nqp::cmp_n($nvalue, $nmax), $icmpstop)),
+    #            nqp::stmts(
+    #                nqp::push($rpa, $ibox_int
+    #                    ?? nqp::p6box_i($nvalue)
+    #                    !! nqp::p6box_n($nvalue)),
+    #                ($nvalue = nqp::add_n($nvalue, 1e0)),
+    #                ($ncount = nqp::sub_n($ncount, 1e0))
+    #            ));
+    #        $value = nqp::p6box_i($nvalue);
+    #    }
+    #    else {
+    #      SEQ(nqp::push($rpa, $value++); $count--)
+    #          while $count > 0 && ($value cmp $realmax) < $cmpstop;
+    #    }
+    #    if ($value cmp $!max) < $cmpstop {
+    #        nqp::push($rpa,
+    #            ($value.succ cmp $!max < $cmpstop)
+    #               ?? nqp::create(self).BUILD($value, $!max, 0, $!excludes-max)
+    #               !! $value);
+    #    }
+    #}
+    method iterator() {
+        # Obtain starting value.
+        my $value = $!excludes-min ?? $!min.succ !! $!min;
+
+        # Iterating a Str range delegates to iterating a sequence.
+        if nqp::istype($value, Str) {
+            $value after $!max
+                ?? ().iterator
+                !! SEQUENCE($value, $!max, :exclude_end($!excludes-max)).iterator
+        }
+
+        # If the value and the maximum are both integers and fit in a native
+        # int, we have a really cheap approach.
+        elsif nqp::istype($value, Int) && nqp::istype($!max, Int) &&
+              !nqp::isbig_I(nqp::decont($value)) && !nqp::isbig_I(nqp::decont($!max)) {
+            class :: does Iterator {
+                has int $!i;
+                has int $!n;
+
+                method new(int $i, int $n) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr_i(iter, self, '$!i', $i);
+                    nqp::bindattr_i(iter, self, '$!n', $n);
+                    iter
+                }
+
+                method pull-one() {
+                    my int $i = $!i;
+                    $!i = $i + 1;
+                    $i <= $!n ?? $i !! IterationEnd
+                }
+
+                # XXX GLR implement push-exactly and push-at-least for the
+                # performance win!
+            }.new($value, $!excludes-max ?? $!max - 1 !! $!max)
+        }
+
+        # XXX do other cases here
+        else {
+            nqp::die('Range iterator NYI')
+        }
+    }
     method list()     { List.from-iterator(self.iterator) }
 
     method bounds()   { ($!min, $!max) }

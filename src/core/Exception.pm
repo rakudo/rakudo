@@ -56,7 +56,9 @@ my class Exception {
         nqp::bindattr(self, Exception, '$!bt', $bt); # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
         my $msg := try self.?message;
-        $msg := try ~$msg if defined($msg);
+        if defined($msg) {
+            $msg := try ~$msg;
+        }
         $msg := $msg // "{self.^name} exception produced no message";
         nqp::setmessage($!ex, nqp::unbox_s($msg));
         nqp::throw($!ex)

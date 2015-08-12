@@ -449,11 +449,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }).join: ' ';
     }
 
-    # XXX GLR
-    #multi method perl(List:D \SELF:) {
-    #    self.gimme(*);
-    #    (nqp::iscont(SELF) ?? '$' !! '') ~ self.Parcel.perl;
-    #}
+    multi method perl(List:D \SELF:) {
+        '$' x nqp::iscont(SELF) ~ '(' ~ self.map({.perl}).join(', ') ~ ')';
+    }
 
     # XXX GLR
     #multi method DUMP(List:D: :$indent-step = 4, :%ctx?) {

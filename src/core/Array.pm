@@ -121,7 +121,7 @@ my class Array { # declared in BOOTSTRAP
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {
             $todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(action => '.unshift to')
+            fail X::Cannot::Infinite.new(action => '.AT-POS')
                 unless $todo.fully-reified;
             nqp::bindattr(self, List, '$!todo', Mu);
         }

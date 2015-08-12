@@ -223,8 +223,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #    nqp::p6list($args, self.WHAT, Mu);
     #}
 
-    # XXX GLR
-    #multi method Bool(List:D:)    { self.gimme(1).Bool }
+    method !ensure-allocated() {
+        $!reified := IterationBuffer.CREATE unless $!reified.DEFINITE;
+    }
+
+    multi method Bool(List:D:) {
+        self!ensure-allocated;
+        nqp::elems($!reified) ||
+            $!todo.DEFINITE && $!todo.reify-at-least(1)
+    }
     multi method Int(List:D:)     { self.elems }
     multi method end(List:D:)     { self.elems - 1 }
     multi method Numeric(List:D:) { self.elems }
@@ -239,12 +246,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method elems(List:D:) is nodal {
+        self!ensure-allocated;
         $!todo.DEFINITE
             ?? $!todo.reify-all()
             !! nqp::elems($!reified)
     }
 
     multi method AT-POS(List:D: Int $pos) is rw {
+        self!ensure-allocated;
         my int $ipos = nqp::unbox_i($pos);
         $ipos < nqp::elems($!reified) && $ipos >= 0
             ?? nqp::atpos($!reified, $ipos)
@@ -252,6 +261,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method AT-POS(List:D: int $pos) is rw {
+        self!ensure-allocated;
         $pos < nqp::elems($!reified) && $pos >= 0
             ?? nqp::atpos($!reified, $pos)
             !! self!AT-POS-SLOWPATH($pos);
@@ -266,12 +276,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-POS(List:D: int $pos) {
+        self!ensure-allocated;
         $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
         nqp::islt_i($pos, 0) || nqp::isnull(nqp::atpos($!reified, $pos))
             ?? False
             !! True
     }
     multi method EXISTS-POS(List:D: Int:D $pos) {
+        self!ensure-allocated;
         $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
         $pos < 0 || nqp::isnull(nqp::atpos($!reified, $pos))
             ?? False
@@ -284,10 +296,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #}
 
     method reification-target(List:D:) {
+        self!ensure-allocated;
         $!reified
     }
 
     method iterator(List:D:) {
+        self!ensure-allocated;
         class :: does Iterator {
             has int $!i;
             has $!reified;
@@ -683,6 +697,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #}
 
     method join($separator = '') is nodal {
+        self!ensure-allocated;
         my $infinite = False;
         if $!todo.DEFINITE {
             $!todo.reify-until-lazy();

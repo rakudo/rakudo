@@ -46,6 +46,11 @@ my class Array { # declared in BOOTSTRAP
     #    nqp::p6list($args, self.WHAT, Bool::True);
     #}
 
+    method !ensure-allocated() {
+        nqp::bindattr(self, List, '$!reified', IterationBuffer.CREATE)
+            unless nqp::getattr(self, List, '$!reified').DEFINITE;
+    }
+
     proto method STORE(|) { * }
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::iscont(iterable)

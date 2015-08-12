@@ -199,6 +199,7 @@ my class Array { # declared in BOOTSTRAP
 
     multi method push(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+            self!ensure-allocated();
             self!ensure-not-lazy('.push to')
                 if nqp::getattr(self, List, '$!todo').DEFINITE;
             nqp::push(
@@ -234,6 +235,7 @@ my class Array { # declared in BOOTSTRAP
 
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+            self!ensure-allocated();
             self!ensure-not-lazy('.unshift to')
                 if nqp::getattr(self, List, '$!todo').DEFINITE;
             nqp::unshift(

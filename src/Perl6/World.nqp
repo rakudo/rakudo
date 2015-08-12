@@ -371,14 +371,13 @@ class Perl6::World is HLL::World {
 
             # initialize %?INC if not in an eval
             unless $in_eval {
-                # XXX GLR can come back when Inc.pm runs again
-                #my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
-                #unless nqp::isnull($PROCESS) {
-                #    my $INC := $PROCESS.WHO<@INC>;
-                #    unless nqp::isnull($INC) {
-                #        self.use_lib( $INC.FLATTENABLE_LIST, :push );
-                #    }
-                #}
+                my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+                unless nqp::isnull($PROCESS) {
+                    my $INC := $PROCESS.WHO<@INC>;
+                    unless nqp::isnull($INC) {
+                        self.use_lib( $INC.FLATTENABLE_LIST, :push );
+                    }
+                }
 
                 self.install_lexical_symbol(
                   $*UNIT,'$=finish',self.find_symbol(['Mu']));
@@ -694,9 +693,9 @@ class Perl6::World is HLL::World {
             $DEBUG("  $arg") if $DEBUG;
         }
 
-        # XXX GLR
-        # $INC := nqp::p6parcel($INC, self.find_symbol(['Any']));
-        nqp::die('replace this p6parcel');
+        my $INC-list := nqp::create(self.find_symbol(['List']));
+        nqp::bindattr($INC-list, self.find_symbol(['List']), '$!reified', $INC);
+        $INC := $INC-list;
         self.add_object($INC);
         self.install_lexical_symbol(self.cur_lexpad,'@?INC',$INC);
     }

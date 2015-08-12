@@ -4928,6 +4928,7 @@ Compilation unit '$file' contained the following violations:
                 $i := $i + 2;
             }
         }
+        $past.node($/);
         nqp::getcomp('QAST').operations.attach_result_type('perl6', $past);
         make $past;
     }

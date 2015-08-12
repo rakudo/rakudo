@@ -56,19 +56,97 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     method iterator(EnumMap:) { self.pairs.iterator }
     method list(EnumMap:) { self.pairs.list }
 
-    # XXX GLR implement these iterators
+    multi method pairs(EnumMap:D:) {
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() {
+                if $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    Pair.new(key => nqp::iterkey_s(tmp), value => nqp::iterval(tmp))
+                }
+                else {
+                    IterationEnd
+                }
+            }
+        }.new(self))
+    }
     multi method keys(EnumMap:D:) {
-        nqp::die('Hash keys iterator NYI in GLR')
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() {
+                $!hash-iter
+                    ?? nqp::iterkey_s(nqp::shift($!hash-iter))
+                    !! IterationEnd
+            }
+        }.new(self))
     }
     multi method kv(EnumMap:D:) {
-        nqp::die('Hash kv iterator NYI in GLR')
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+            has int $!on-value;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() {
+                if $!on-value {
+                    $!on-value = 0;
+                    nqp::iterval($!hash-iter)
+                }
+                elsif $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    $!on-value = 1;
+                    nqp::iterkey_s(tmp)
+                }
+                else {
+                    IterationEnd
+                }
+            }
+        }.new(self))
     }
     multi method values(EnumMap:D:) {
-        nqp::die('Hash values iterator NYI in GLR')
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() {
+                $!hash-iter
+                    ?? nqp::iterval(nqp::shift($!hash-iter))
+                    !! IterationEnd
+            }
+        }.new(self))
     }
-    multi method pairs(EnumMap:D:) {
-        nqp::die('Hash pairs iterator NYI in GLR')
-    }
+    # XXX GLR implement these iterators
     multi method antipairs(EnumMap:D:) {
         nqp::die('Hash antipairs iterator NYI in GLR')
     }
@@ -83,7 +161,6 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
           !! Any
     }
 
-    # XXX GLR
     method STORE(\to_store) {
         my \iter = nqp::istype(to_store, Iterable)
             ?? to_store.iterator

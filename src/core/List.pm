@@ -216,12 +216,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         result
     }
 
-    # XXX GLR
-    #method new(|) {
-    #    my Mu $args := nqp::p6argvmarray();
-    #    nqp::shift($args);
-    #    nqp::p6list($args, self.WHAT, Mu);
-    #}
+    method new(**@things) {
+        my \list = self.CREATE;
+        my \iterbuffer = IterationBuffer.CREATE;
+        nqp::bindattr(list, List, '$!reified', iterbuffer);
+        for @things {
+            iterbuffer.push($_);
+        }
+        list
+    }
 
     method !ensure-allocated() {
         $!reified := IterationBuffer.CREATE unless $!reified.DEFINITE;

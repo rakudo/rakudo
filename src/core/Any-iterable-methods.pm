@@ -421,36 +421,41 @@ augment class Any {
     }
 
     method sort(&by = &infix:<cmp>) is nodal {
-        # XXX GLR sort out sort
-        nqp::die('sort needs re-working after GLR');
-        #fail X::Cannot::Infinite.new(:action<sort>) if self.infinite; #MMD?
-        #
-        ## Instead of sorting elements directly, we sort a Parcel of
-        ## indices from 0..^$list.elems, then use that Parcel as
-        ## a slice into self. This is for historical reasons: on
-        ## Parrot we delegate to RPA.sort. The JVM implementation
-        ## uses a Java collection sort. MoarVM has its sort algorithm
-        ## implemented in NQP.
-        #
-        ## nothing to do here
-        #my $elems := self.elems;
-        #return self if $elems < 2;
-        #
-        ## Range is currently optimized for fast Parcel construction.
-        #my $index := Range.new(0, $elems, :excludes-max).reify(*);
-        #my Mu $index_rpa := nqp::getattr($index, Parcel, '$!storage');
-        #
-        ## if &by.arity < 2, then we apply the block to the elements
-        ## for sorting.
-        #if (&by.?count // 2) < 2 {
-        #    my $list = self.map(&by).eager;
-        #    nqp::p6sort($index_rpa, -> $a, $b { $list.AT-POS($a) cmp $list.AT-POS($b) || $a <=> $b });
-        #}
-        #else {
-        #    my $list = self.eager;
-        #    nqp::p6sort($index_rpa, -> $a, $b { &by($list.AT-POS($a), $list.AT-POS($b)) || $a <=> $b });
-        #}
-        #self[$index];
+        # Obtain all the things to sort, applying any transform first.
+        my $transform = (&by.?count // 2) < 2;
+        my \iter = $transform
+            ?? self.map(&by).iterator
+            !! as-iterable(self).iterator;
+        my \sort-buffer = IterationBuffer.new;
+        unless iter.push-until-lazy(sort-buffer) =:= IterationEnd {
+            fail X::Cannot::Infinite.new(:action<sort>);
+        }
+
+        # Instead of sorting elements directly, we sort a Parcel of
+        # indices from 0..^$list.elems, then use that Parcel as
+        # a slice into self. The JVM implementation uses a Java
+        # collection sort. MoarVM has its sort algorithm implemented
+        # in NQP.
+        my int $i = 0;
+        my int $n = sort-buffer.elems;
+        my \indices = IterationBuffer.new;
+        while $i < $n {
+            nqp::push(indices, nqp::decont($i));
+            $i = $i + 1;
+        }
+
+        nqp::p6sort(indices, $transform
+            ?? (-> int $a, int $b {
+                    nqp::atpos(sort-buffer, $a) cmp nqp::atpos(sort-buffer, $b)
+                        || $a <=> $b
+                })
+            !! (-> int $a, int $b {
+                    &by(nqp::atpos(sort-buffer, $a), nqp::atpos(sort-buffer, $b))
+                        || $a <=> $b
+                }));
+
+        my \indices-list = nqp::p6bindattrinvres(List.CREATE, List, '$!reified', indices);
+        indices-list.map(-> int $i { nqp::atpos(sort-buffer, $i) })
     }
 
     proto method reduce(|) { * }

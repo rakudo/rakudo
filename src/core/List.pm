@@ -329,14 +329,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             method pull-one() is rw {
                 my int $i = $!i;
                 $i < nqp::elems($!reified)
-                    ?? nqp::atpos($!reified, ($!i = $i + 1) - 1)
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), Any)
                     !! self!reify-and-pull-one()
             }
 
             method !reify-and-pull-one() is rw {
                 my int $i = $!i;
                 $!todo.DEFINITE && $i < $!todo.reify-at-least($i + 1)
-                    ?? nqp::atpos($!reified, ($!i = $i + 1) - 1)
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), Any)
                     !! IterationEnd
             }
 
@@ -346,7 +346,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     !! nqp::elems($!reified);
                 my int $i = $!i;
                 while $i < $n {
-                    $target.push(nqp::atpos($!reified, $i));
+                    $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
                     $i = $i + 1;
                 }
                 $!i = $n;

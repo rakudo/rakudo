@@ -611,17 +611,27 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #    }
     #}
     #
-    #method reverse() is nodal {
-    #    self.gimme(*);
-    #    fail X::Cannot::Infinite.new(:action<reverse>) if $!nextiter.defined;
-    #    my Mu $rev  := nqp::list();
-    #    my Mu $orig := nqp::clone($!items);
-    #    nqp::push($rev, nqp::pop($orig)) while $orig;
-    #    my $rlist := nqp::create(self.WHAT);
-    #    nqp::bindattr($rlist, List, '$!items', $rev);
-    #    $rlist;
-    #}
-    #
+
+    method reverse() is nodal {
+        self!ensure-allocated;
+        if $!todo.DEFINITE {
+            $!todo.reify-until-lazy();
+            fail X::Cannot::Infinite.new(:action<reverse>)
+                unless $!todo.fully-reified;
+        }
+        my $reversed := IterationBuffer.new;
+        my $reified  := $!reified;
+        my int $i    = 0;
+        my int $n    = nqp::elems($reified);
+        while $i < $n {
+            nqp::bindpos($reversed, $n - ($i + 1), nqp::atpos($reified, $i));
+            $i = $i + 1;
+        }
+        my $rlist := nqp::create(self.WHAT);
+        nqp::bindattr($rlist, List, '$!reified', $reversed);
+        $rlist;
+    }
+
     #method rotate(Int(Cool) $n is copy = 1) is nodal {
     #    self.gimme(*);
     #    fail X::Cannot::Infinite.new(:action<rotate>) if $!nextiter.defined;

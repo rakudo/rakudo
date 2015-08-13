@@ -770,7 +770,8 @@ my class X::Undeclared::Symbols does X::Comp {
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
         sub s(@s) {
-            "Did you mean '{ @s.join("', '") }'?";
+            # XXX GLR this dies when trying to stringify, even though @s is just the List ("sec")
+            #"Did you mean '{ @s.join("', '") }'?";
         }
         my $r = "";
         if %.post_types {
@@ -801,8 +802,8 @@ my class X::Undeclared::Symbols does X::Comp {
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
                 $r ~= " (in Perl 6 please use " ~ $obs{$_.key()} ~ " instead)" if $obs{$_.key()};
-                if +%.routine_suggestion{$_.key()} {
-                    $r ~= ". " ~ s(%.routine_suggestion{$_.key()});
+                if +%.routine_suggestion{$_.key()}.list {
+                    $r ~= ". " ~ s(%.routine_suggestion{$_.key()}.list);
                 }
                 $r ~= "\n";
             }

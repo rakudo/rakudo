@@ -227,13 +227,6 @@ my class Array { # declared in BOOTSTRAP
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
-            my $todo := nqp::getattr(self, List, '$!todo');
-            if $todo.DEFINITE {
-                $todo.reify-until-lazy();
-                fail X::Cannot::Lazy.new(action => '.unshift to')
-                    unless $todo.fully-reified;
-                nqp::bindattr(self, List, '$!todo', Mu);
-            }
             nqp::unshift(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -249,13 +242,6 @@ my class Array { # declared in BOOTSTRAP
     }
     method !unshift-list(@values) {
         self!ensure-allocated();
-        my $todo := nqp::getattr(self, List, '$!todo');
-        if $todo.DEFINITE {
-            $todo.reify-until-lazy();
-            fail X::Cannot::Lazy.new(action => '.unshift to')
-                unless $todo.fully-reified;
-            nqp::bindattr(self, List, '$!todo', Mu);
-        }
         # unshift is always eager
         @values.elems;
         nqp::unshift(

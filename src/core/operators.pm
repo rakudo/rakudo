@@ -110,9 +110,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     $endpoint.sink if $endpoint ~~ Failure;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
     $endpoint = Bool::False if $infinite;
-    my $tail := ().list;
+    my @tail;
     my $end_code_arity = 0;
-    my $end_tail := ().list;
+    my @end_tail;
     if nqp::istype($endpoint,Code) && !nqp::istype($endpoint,Regex) {
         $end_code_arity = $endpoint.arity;
         $end_code_arity = $endpoint.count if $end_code_arity == 0;
@@ -159,7 +159,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 !! { $^x }
     }
 
-    (GATHER({
+    my \gathered = GATHER({
         my @left := nqp::iscont(left) ?? [left] !! (left,).list.flat;
         X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
           unless @left;
@@ -170,43 +170,43 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             my \value = $v;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
-                $end_tail.push(value);
-                if +@$end_tail >= $end_code_arity {
-                    $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
-                    if $endpoint(|@$end_tail) {
+                @end_tail.push(value);
+                if +@end_tail >= $end_code_arity {
+                    @end_tail.pop xx (@end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
+                    if $endpoint(|@end_tail) {
                         $stop = 1;
-                        $tail.push(value) unless $exclude_end;
+                        @tail.push(value) unless $exclude_end;
                         last;
                     }
                 }
             }
             elsif value ~~ $endpoint {
                 $stop = 1;
-                $tail.push(value) unless $exclude_end;
+                @tail.push(value) unless $exclude_end;
                 last;
             }
-            $tail.push(value);
+            @tail.push(value);
         }
         if $stop {
-            take $_ for @$tail;
+            take $_ for @tail;
         }
         else {
             my $badseq;
             my ($a, $b, $c);
             unless $code.defined {
-                take $tail.shift while $tail.elems > 3;
-                $a = $tail[0];
-                $b = $tail[1];
-                $c = $tail[2];
+                take @tail.shift while @tail.elems > 3;
+                $a = @tail[0];
+                $b = @tail[1];
+                $c = @tail[2];
             }
             if $code.defined { }
-            elsif $tail.grep(Real).elems != $tail.elems {
-                if $tail.elems > 1 {
-                    if $tail[*-1].WHAT === $endpoint.WHAT {
-                        $code = succpred($tail[*-1], $endpoint);
+            elsif @tail.grep(Real).elems != @tail.elems {
+                if @tail.elems > 1 {
+                    if @tail[*-1].WHAT === $endpoint.WHAT {
+                        $code = succpred(@tail[*-1], $endpoint);
                     }
                     else {
-                        $code = succpred($tail[*-2], $tail[*-1]);
+                        $code = succpred(@tail[*-2], @tail[*-1]);
                     }
                 }
                 elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {
@@ -247,7 +247,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     $code = succpred($a,$endpoint);
                 }
             }
-            elsif $tail.elems == 3 {
+            elsif @tail.elems == 3 {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
                     if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) && nqp::istype($c,Real) {
@@ -315,14 +315,14 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     }
                 }
                 if $code {
-                    $tail.pop;
-                    $tail.pop;
+                    @tail.pop;
+                    @tail.pop;
                 }
                 else {
                     $badseq = "$a,$b,$c" unless $code;
                 }
             }
-            elsif $tail.elems == 2 {
+            elsif @tail.elems == 2 {
                 my $ab = $b - $a;
                 if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
                     if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
@@ -350,9 +350,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 else {
                     $code = succpred($a, $b)
                 }
-                $tail.pop;
+                @tail.pop;
             }
-            elsif $tail.elems == 1 {
+            elsif @tail.elems == 1 {
                 if nqp::istype($endpoint,Code) or not nqp::isconcrete($endpoint) {
                     $code = { $^x.succ }
                 }
@@ -376,23 +376,23 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     $code = { $^x.succ }
                 }
             }
-            elsif $tail.elems == 0 {
+            elsif @tail.elems == 0 {
                 $code = {()}
             }
 
             if $stop { }
             elsif $code.defined {
-                take $_ for @$tail;
+                take $_ for @tail;
                 my $count = $code.count;
 
                 until $stop {
-                    $tail.shift while $tail.elems > $count;
-                    my \value = $code(|$tail);
+                    @tail.shift while @tail.elems > $count;
+                    my \value = $code(|@tail);
                     if $end_code_arity != 0 {
-                        $end_tail.push(|value);
-                        if $end_tail.elems >= $end_code_arity {
-                            $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
-                            if $endpoint(|@$end_tail) {
+                        @end_tail.push(|value);
+                        if @end_tail.elems >= $end_code_arity {
+                            @end_tail.pop xx (@end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
+                            if $endpoint(|@end_tail) {
                                 (.take for value) unless $exclude_end;
                                 $stop = 1;
                             }
@@ -405,15 +405,15 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
 
                     if $stop { }
                     elsif nqp::iscont(value) {
-                        $tail.push(value);
+                        @tail.push(value);
                         take value;
                     }
                     elsif value {
-                        $tail.push(|value);
+                        @tail.push(|value);
                         .take for value;
                     }
                     else {
-                        $tail.push(value.item);
+                        @tail.push(value.item);
                         take value;
                     }
                 }
@@ -425,7 +425,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 take (sub { fail X::Sequence::Deduction.new() })();
             }
         }
-    }, :$infinite), @right).list;
+    });
+    $infinite
+        ?? (gathered.lazy.Slip, @right.Slip)
+        !! (gathered.Slip, @right.Slip)
 }
 
 # XXX Wants to be macros when we have them.

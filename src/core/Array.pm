@@ -223,13 +223,15 @@ my class Array { # declared in BOOTSTRAP
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
-            my $todo := nqp::getattr(self, List, '$!todo');
-            if $todo.DEFINITE {
-                $todo.reify-until-lazy();
-                fail X::Cannot::Infinite.new(action => '.unshift to')
-                    unless $todo.fully-reified;
-                nqp::bindattr(self, List, '$!todo', Mu);
-            }
+# GLR XXX just delete this?  It is not specced, and not tested for.
+# Any good reason for this restriction?
+#            my $todo := nqp::getattr(self, List, '$!todo');
+#            if $todo.DEFINITE {
+#                $todo.reify-until-lazy();
+#                fail X::Cannot::Infinite.new(action => '.unshift to')
+#                    unless $todo.fully-reified;
+#                nqp::bindattr(self, List, '$!todo', Mu);
+#            }
             nqp::unshift(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -240,28 +242,43 @@ my class Array { # declared in BOOTSTRAP
             callsame();
         }
     }
-    # XXX GLR
-    #multi method unshift(Array:D: *@values) {
-    #    fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
-    #      if @values.infinite;
-    #    nqp::p6listitems(self);
-    #    my $elems = self.gimme(*);
-    #    fail X::Cannot::Infinite.new(:action('.push to'))
-    #      if self.infinite;
-    #
-    #    # push is always eager
-    #    @values.gimme(*);
-    #
-    #    self.gimme(*);
-    #    while @values {
-    #        nqp::unshift(
-    #          nqp::getattr(self,List,'$!items'),
-    #          nqp::assign(nqp::p6scalarfromdesc($!descriptor), @values.pop)
-    #        );
-    #    }
-    #
-    #    self;
-    #}
+
+    multi method unshift(Array:D: **@values) {
+        # Fast path when we do not need to recontainerize
+        # (this works only because a slurpy makes new containers.)
+        #
+        # GLR XXX This criteria will not handle :D/:U correctly
+        # until they are real types
+        if nqp::istype(@values, Array) and self.of =:= @values.of {
+            my \todo := nqp::getattr(@values, List, '$!todo');
+            if todo.DEFINITE {
+                todo.reify-until-lazy();
+                fail X::Cannot::Infinite.new(action => '.unshift from')
+                    unless todo.fully-reified;
+            }
+            self!ensure-allocated();
+	    nqp::splice(nqp::getattr(self, List, '$!reified'),
+                        nqp::getattr(@values, List, '$!reified'),
+                        0, 0);
+        }
+        else {
+            my $seq = @values.values;
+
+            # Get an iterator that containerizes to our descriptor
+            my \iter := self.WHAT.from-iterator(@values.values.iterator);
+            my \todo := nqp::getattr(iter, List, '$!todo');
+            if todo.DEFINITE {
+                todo.reify-until-lazy();
+                fail X::Cannot::Infinite.new(action => '.unshift from')
+                    unless todo.fully-reified;
+            }
+            self!ensure-allocated();
+	    nqp::splice(nqp::getattr(self, List, '$!reified'),
+                        nqp::getattr(iter, List, '$!reified'),
+                        0, 0);
+        }
+        self;
+    }
 
     method pop(Array:D:) is parcel is nodal {
         self!ensure-allocated();

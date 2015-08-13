@@ -581,11 +581,7 @@ my class Binder {
         # Otherwise, go by sigil to pick the correct default type of value.
         else {
             if $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                # XXX GLR
-                nqp::die('replace this @ sigil default logic');
-                #my $result := nqp::create(Array);
-                #nqp::bindattr($result, List, '$!flattens', nqp::p6bool(1));
-                #$result
+                nqp::create(Array)
             }
             elsif $flags +& $SIG_ELEM_HASH_SIGIL {
                 nqp::create(Hash)

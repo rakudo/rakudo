@@ -6926,20 +6926,8 @@ Compilation unit '$file' contained the following violations:
                 else {
                     if %info<sigil> eq '@' {
                         $var.default(
-                            QAST::Stmts.new(
-                                QAST::Op.new( :op<bind>,
-                                    QAST::Var.new( :name(my str $defname := $block.unique("array_default_val")),
-                                                   :scope<local>, :decl<var> ),
-                                    QAST::Op.new( :op<create>,
-                                                  QAST::WVal.new( :value( $*W.find_symbol(['Array']) ) )) ),
-
-                                QAST::Op.new( :op<bindattr>,
-                                    (my $varobj := QAST::Var.new( :name($defname), :scope<local> )),
-                                    QAST::WVal.new( :value( $*W.find_symbol(['List']) ) ),
-                                    QAST::SVal.new( :value<$!flattens> ),
-                                    QAST::Op.new( :op<p6bool>,
-                                                  QAST::IVal.new( :value(1) ) ) ),
-                                $varobj
+                                QAST::Op.new( :op<create>,
+                                              QAST::WVal.new( :value($*W.find_symbol(['Array'])) )
                             ));
                     }
                     elsif %info<sigil> eq '%' {

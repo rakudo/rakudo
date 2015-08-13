@@ -73,6 +73,10 @@ my class Seq does Iterable does PositionalBindFailover {
         self.list.Stringy
     }
 
+    method fmt(|c) {
+        self.list.fmt(|c)
+    }
+
     multi method gist(Seq:D:) {
         self.list.gist
     }

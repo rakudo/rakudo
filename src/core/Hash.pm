@@ -380,27 +380,28 @@ my class Hash { # declared in BOOTSTRAP
             return ().list unless self.DEFINITE && nqp::defined($!keys);
 
             my $storage := nqp::getattr(self, EnumMap, '$!storage');
-            my $class := $?CLASS;
             Seq.new(class :: does Iterator {
                 has $!hash-iter;
+                has $!storage;
 
-                method new(\hash) {
+                method new(\hash, $class, $storage) {
                     my \iter = self.CREATE;
                     nqp::bindattr(iter, self, '$!hash-iter',
                         nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
+                    nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
                     iter
                 }
 
                 method pull-one() {
                     if $!hash-iter {
                         my \tmp = nqp::shift($!hash-iter);
-                        Pair.new(key => nqp::iterval(tmp), value => nqp::atkey($storage, nqp::iterkey_s(tmp)));
+                        Pair.new(key => nqp::iterval(tmp), value => nqp::atkey($!storage, nqp::iterkey_s(tmp)));
                     }
                     else {
                         IterationEnd
                     }
                 }
-            }.new(self))
+            }.new(self, $?CLASS, nqp::getattr(self, EnumMap, '$!storage')))
         }
         method antipairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);

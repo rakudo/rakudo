@@ -18,6 +18,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     }
     multi method Int(EnumMap:D:)     { self.elems }
     multi method Numeric(EnumMap:D:) { self.elems }
+    multi method Str(EnumMap:D:)     { self.list.Str }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
         self.EXISTS-KEY($topic.any);

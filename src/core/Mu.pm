@@ -33,13 +33,15 @@ my class Mu { # declared in BOOTSTRAP
     method take {
         take self;
     }
-    method return(|) {
-        # XXX GLR
-        nqp::die('return method needs fixing after GLR');
-        #my $parcel :=
-        #  &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-        #nqp::p6routinereturn(nqp::p6recont_ro($parcel));
-        #$parcel
+    method return-rw(|) {  # same code as control.pm's return-rw
+        my $parcel := RETURN-PARCEL(nqp::p6argvmarray());
+        nqp::p6routinereturn($parcel);
+        $parcel
+    }
+    method return(|) {  # same code as control.pm's return
+        my $parcel := RETURN-PARCEL(nqp::p6argvmarray());
+        nqp::p6routinereturn(nqp::p6recont_ro($parcel));
+        $parcel
     }
 
     proto method WHY(|) { * }

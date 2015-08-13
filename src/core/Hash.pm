@@ -107,7 +107,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method push(*@values) {
-        fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
+        fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
           if @values.infinite;
         my $previous;
         my $has_previous;
@@ -181,7 +181,7 @@ my class Hash { # declared in BOOTSTRAP
     # XXX GLR possibly more efficient taking an Iterable, not a @list
     # XXX GLR replace p6listitems op use
     #multi method categorize-list( &test, @list, :&as ) {
-    #    fail X::Cannot::Infinite.new(:action<categorize>) if @list.infinite;
+    #    fail X::Cannot::Lazy.new(:action<categorize>) if @list.infinite;
     #    if @list {
     #
     #        # multi-level categorize

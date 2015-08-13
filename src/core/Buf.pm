@@ -1,7 +1,7 @@
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
-my class X::Cannot::Infinite    { ... }
+my class X::Cannot::Lazy    { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     multi method new() {
@@ -280,7 +280,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method push(Buf:D: @values is copy) {
-        fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
+        fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
           if @values.infinite;
 
         my int $length = nqp::elems(self);

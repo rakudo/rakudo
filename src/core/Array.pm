@@ -189,7 +189,7 @@ my class Array { # declared in BOOTSTRAP
             my $todo := nqp::getattr(self, List, '$!todo');
             if $todo.DEFINITE {
                 $todo.reify-until-lazy();
-                fail X::Cannot::Infinite.new(action => '.push to')
+                fail X::Cannot::Lazy.new(action => '.push to')
                     unless $todo.fully-reified;
                 nqp::bindattr(self, List, '$!todo', Mu);
             }
@@ -211,14 +211,14 @@ my class Array { # declared in BOOTSTRAP
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {
             $todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(action => '.push to')
+            fail X::Cannot::Lazy.new(action => '.push to')
                 unless $todo.fully-reified;
             nqp::bindattr(self, List, '$!todo', Mu);
         }
         my \values-iter = @values.iterator;
         my $reified := nqp::getattr(self, List, '$!reified');
         unless values-iter.push-until-lazy($reified) =:= IterationEnd {
-            fail X::Cannot::Infinite.new(:action<push>, :what(self.^name));
+            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name));
         }
         self
     }
@@ -229,7 +229,7 @@ my class Array { # declared in BOOTSTRAP
             my $todo := nqp::getattr(self, List, '$!todo');
             if $todo.DEFINITE {
                 $todo.reify-until-lazy();
-                fail X::Cannot::Infinite.new(action => '.unshift to')
+                fail X::Cannot::Lazy.new(action => '.unshift to')
                     unless $todo.fully-reified;
                 nqp::bindattr(self, List, '$!todo', Mu);
             }
@@ -251,7 +251,7 @@ my class Array { # declared in BOOTSTRAP
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {
             $todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(action => '.unshift to')
+            fail X::Cannot::Lazy.new(action => '.unshift to')
                 unless $todo.fully-reified;
             nqp::bindattr(self, List, '$!todo', Mu);
         }
@@ -270,7 +270,7 @@ my class Array { # declared in BOOTSTRAP
         my $reified := nqp::getattr(self, List, '$!reified');
         if $todo.DEFINITE {
             $todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(action => '.pop from')
+            fail X::Cannot::Lazy.new(action => '.pop from')
                 unless $todo.fully-reified;
             nqp::bindattr(self, List, '$!todo', Mu);
         }
@@ -293,7 +293,7 @@ my class Array { # declared in BOOTSTRAP
     #method plan(Array:D: |args) is nodal {
     #    nqp::p6listitems(self);
     #    my $elems = self.gimme(*);
-    #    fail X::Cannot::Infinite.new(:action('.plan to')) if $!nextiter.defined;
+    #    fail X::Cannot::Lazy.new(:action('.plan to')) if $!nextiter.defined;
     #
 #   #     # need type checks?
 #   #     my $of := self.of;
@@ -333,7 +333,7 @@ my class Array { # declared in BOOTSTRAP
     method !splice-list($offset, $size, @values, :$SINK) {
         my \splice-buffer = IterationBuffer.new;
         unless @values.iterator.push-until-lazy(splice-buffer) =:= IterationEnd {
-            fail X::Cannot::Infinite.new(:action('splice in'));
+            fail X::Cannot::Lazy.new(:action('splice in'));
         }
 
         my $todo = nqp::getattr(self, List, '$!todo');

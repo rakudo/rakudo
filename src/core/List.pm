@@ -1,7 +1,7 @@
 # for our tantrums
 my class X::TypeCheck { ... }
 my class X::TypeCheck::Splice { ... }
-my class X::Cannot::Infinite { ... }
+my class X::Cannot::Lazy { ... }
 my class X::Cannot::Empty { ... }
 my role Supply { ... }
 
@@ -256,7 +256,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 $!todo := Mu;
             }
             else {
-                fail X::Cannot::Infinite.new(:action('.elems'));
+                fail X::Cannot::Lazy.new(:action('.elems'));
             }
         }
         nqp::elems($!reified)
@@ -531,7 +531,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # XXX GLR
     proto method pick(|) is nodal { * }
     multi method pick() {
-        fail X::Cannot::Infinite.new(:action('.pick from'))
+        fail X::Cannot::Lazy.new(:action('.pick from'))
             if self.is-lazy;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
@@ -539,7 +539,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method pick(Whatever, :$eager!) {
         return self.pick(*) if !$eager;
 
-        fail X::Cannot::Infinite.new(:action('.pick from')) if self.is-lazy;
+        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -558,7 +558,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $picked;
     }
     multi method pick(Whatever) {
-        fail X::Cannot::Infinite.new(:action('.pick from')) if self.is-lazy;
+        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
 
         my Int $elems = self.elems;
         return () unless $elems;
@@ -574,7 +574,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
     multi method pick(\number) {
-        fail X::Cannot::Infinite.new(:action('.pick from')) if self.is-lazy;
+        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
 
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
@@ -600,13 +600,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # XXX GLR
     proto method roll(|) is nodal { * }
     multi method roll() {
-        fail X::Cannot::Infinite.new(:action('.roll from'))
+        fail X::Cannot::Lazy.new(:action('.roll from'))
             if self.is-lazy;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
     }
     multi method roll(Whatever) {
-        fail X::Cannot::Infinite.new(:action('.roll from')) if self.is-lazy;
+        fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
         my $elems = self.elems;
         return () unless $elems;
 
@@ -617,7 +617,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method roll(\number) {
         return self.roll(*) if number == Inf;
 
-        fail X::Cannot::Infinite.new(:action('.roll from')) if self.is-lazy;
+        fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
         my $elems = self.elems;
         return () unless $elems;
 
@@ -633,7 +633,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self!ensure-allocated;
         if $!todo.DEFINITE {
             $!todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(:action<reverse>)
+            fail X::Cannot::Lazy.new(:action<reverse>)
                 unless $!todo.fully-reified;
         }
         my $reversed := IterationBuffer.new;
@@ -651,7 +651,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     #method rotate(Int(Cool) $n is copy = 1) is nodal {
     #    self.gimme(*);
-    #    fail X::Cannot::Infinite.new(:action<rotate>) if $!nextiter.defined;
+    #    fail X::Cannot::Lazy.new(:action<rotate>) if $!nextiter.defined;
     #    my $items = nqp::p6box_i(nqp::elems($!items));
     #    return self if !$items;
     #

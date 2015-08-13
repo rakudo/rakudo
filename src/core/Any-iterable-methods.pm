@@ -428,7 +428,7 @@ augment class Any {
         my \iter = as-iterable(self).iterator;
         my \sort-buffer = IterationBuffer.new;
         unless iter.push-until-lazy(sort-buffer) =:= IterationEnd {
-            fail X::Cannot::Infinite.new(:action<sort>);
+            fail X::Cannot::Lazy.new(:action<sort>);
         }
 
         # Apply any transform.

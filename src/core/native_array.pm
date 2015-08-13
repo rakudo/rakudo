@@ -71,7 +71,7 @@ class array does Iterable is repr('VMArray') {
             self
         }
         multi method push(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
+            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.infinite;
             nqp::push_i(self, $_) for flat @values;
             self
@@ -98,14 +98,14 @@ class array does Iterable is repr('VMArray') {
             self
         }
         multi method unshift(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<unshift>, :what(self.^name))
+            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values.infinite;
             nqp::unshift_i(self, @values.pop) while @values;
             self
         }
 
         multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
-            fail X::Cannot::Infinite.new(:action('splice in'))
+            fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.infinite;
 
             my $elems = self.elems;
@@ -250,7 +250,7 @@ class array does Iterable is repr('VMArray') {
             $val = $val + 1 if $range.excludes-min;
             my num $max = $range.max;
             $max = $max - 1 if $range.excludes-max;
-            fail X::Cannot::Infinite.new(:action<initialize>,:what(self.^name))
+            fail X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
               if $val == -Inf || $max == Inf;
 
             nqp::setelems(self, ($max - $val + 1).Int );
@@ -272,7 +272,7 @@ class array does Iterable is repr('VMArray') {
             self
         }
         multi method push(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
+            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.infinite;
             nqp::push_n(self, $_) for flat @values;
             self
@@ -299,14 +299,14 @@ class array does Iterable is repr('VMArray') {
             self
         }
         multi method unshift(array:D: @values) {
-            fail X::Cannot::Infinite.new(:action<unshift>, :what(self.^name))
+            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values.infinite;
             nqp::unshift_n(self, @values.pop) while @values;
             self
         }
 
         multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
-            fail X::Cannot::Infinite.new(:action('splice in'))
+            fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.infinite;
 
             my $elems = self.elems;

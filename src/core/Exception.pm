@@ -1565,13 +1565,13 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
-my class X::Cannot::Infinite is Exception {
+my class X::Cannot::Lazy is Exception {
     has $.action;
     has $.what;
     method message() {
         $.what
-          ?? "Cannot $.action an infinite list onto a $.what"
-          !! "Cannot $.action an infinite list";
+          ?? "Cannot $.action a lazy list onto a $.what"
+          !! "Cannot $.action a lazy list";
     }
 }
 my class X::Cannot::Empty is Exception {

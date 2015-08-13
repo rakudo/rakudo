@@ -511,14 +511,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.new(|c);
     }
 
+    method !is-lazy() {
+        if $!todo.DEFINITE {
+            $!todo.reify-until-lazy();
+            !$!todo.fully-reified
+        }
+        else {
+            False
+        }
+    }
+
     # XXX GLR
     proto method pick(|) is nodal { * }
     multi method pick() {
-        if $!todo.DEFINITE {
-            $!todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(:action('.pick from'))
-                unless $!todo.fully-reified;
-        }
+        fail X::Cannot::Infinite.new(:action('.pick from'))
+            if self!is-lazy;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
     }
@@ -585,11 +592,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # XXX GLR
     proto method roll(|) is nodal { * }
     multi method roll() {
-        if $!todo.DEFINITE {
-            $!todo.reify-until-lazy();
-            fail X::Cannot::Infinite.new(:action('.roll from'))
-                unless $!todo.fully-reified;
-        }
+        fail X::Cannot::Infinite.new(:action('.roll from'))
+            if self!is-lazy;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
     }

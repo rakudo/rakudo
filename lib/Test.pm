@@ -604,7 +604,7 @@ sub _init_vars {
 }
 
 sub _push_vars {
-    @vars.push: [
+    @vars.push: item [
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,

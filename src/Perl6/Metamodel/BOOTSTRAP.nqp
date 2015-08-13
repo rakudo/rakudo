@@ -723,20 +723,13 @@ my class Binder {
                         }
                         $cur_pos_arg++;
                     }
-                    my int $flatten := $flags +& $SIG_ELEM_SLURPY_POS;
-                    # XXX GLR replace this logic
-                    nqp::die('slurpy needs re-implementing post-GLR');
-                    # my $bindee := nqp::create($flatten
-                    #     ?? ($flags +& $SIG_ELEM_IS_RW ?? List !! Array)
-                    #     !! LoL);
-                    # my $listiter := nqp::create(ListIter);
-                    # nqp::bindattr($listiter, ListIter, '$!rest', $temp);
-                    # nqp::bindattr($listiter, ListIter, '$!list', $bindee);
-                    # nqp::bindattr($bindee, List, '$!nextiter', $listiter);
-                    # nqp::bindattr($bindee, List, '$!flattens', nqp::p6bool($flatten));
-                    # $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
-                    #     0, $bindee, 0, 0.0, '');
-                    # return $bind_fail if $bind_fail;
+                    my $slurpy_type := $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
+                    my $bindee := $flags +& $SIG_ELEM_SLURPY_POS
+                        ?? $slurpy_type.from-slurpy-flat($temp)
+                        !! $slurpy_type.from-slurpy($temp);
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        0, $bindee, 0, 0.0, '');
+                    return $bind_fail if $bind_fail;
                 }
 
                 # Otherwise, a positional.

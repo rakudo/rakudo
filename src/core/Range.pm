@@ -63,7 +63,7 @@ my class Range is Iterable is Cool does Positional {
     method iterator() { self }
     method list()     { self.flat }
 
-    method bounds()   { ($!min, $!max) }
+    method bounds()   { (nqp::decont($!min), nqp::decont($!max)) }
 
     multi method ACCEPTS(Range:D: Mu \topic) {
         (topic cmp $!min) > -(!$!excludes-min)

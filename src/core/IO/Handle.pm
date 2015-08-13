@@ -593,7 +593,7 @@ my class IO::Handle does IO {
 
 #?if moar
     method watch(IO::Handle:D:) {
-        IO::Notification.watch_path($!path);
+        IO::Notification.watch-path($!path);
     }
 #?endif
 }

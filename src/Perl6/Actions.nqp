@@ -984,6 +984,7 @@ Compilation unit '$file' contained the following violations:
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
             ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
+            Perl6::Pod::document($/, $*DECLARAND, $*POD_BLOCK, :leading);
             $*W.attach_signature($*DECLARAND, $signature);
             $*W.finish_code_object($*DECLARAND, $block);
             $*W.add_phasers_handling_code($*DECLARAND, $block);
@@ -4928,6 +4929,7 @@ Compilation unit '$file' contained the following violations:
                 $i := $i + 2;
             }
         }
+        $past.node($/);
         nqp::getcomp('QAST').operations.attach_result_type('perl6', $past);
         make $past;
     }
@@ -7747,8 +7749,6 @@ Compilation unit '$file' contained the following violations:
                 $i++;
             }
             my %sig_info := hash(parameters => @params);
-            my $*PRECEDING_DECL; # prevent parameter(s) created in create_signature_and_params
-                                 # from clobbering routine declaration for trailing comments
             my $signature := $*W.create_signature_and_params($/, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);

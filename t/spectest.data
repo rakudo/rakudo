@@ -780,7 +780,7 @@ S17-supply/stable.t
 S17-supply/start.t
 S17-supply/unique.t
 S17-supply/wait.t
-S17-supply/watch_path.t
+S17-supply/watch-path.t
 S17-supply/words.t
 S17-supply/zip.t
 S17-supply/zip-latest.t
@@ -942,6 +942,7 @@ S32-str/capitalize.t
 S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t
+S32-str/contains.t
 S32-str/encode.t
 S32-str/ends-with.t
 S32-str/flip.t

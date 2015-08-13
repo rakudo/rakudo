@@ -4,8 +4,8 @@ my class X::Numeric::DivideByZero { ... }
 my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
-    multi method ACCEPTS(Numeric:D: $a) {
-        self.isNaN ?? $a.defined && $a.isNaN !! $a == self;
+    multi method ACCEPTS(Numeric:D: \a) {
+        self.isNaN ?? a.defined && a.isNaN !! a == self;
     }
 
     proto method log(|) {*}

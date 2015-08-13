@@ -6014,8 +6014,13 @@ Compilation unit '$file' contained the following violations:
             $metapast.push($*W.add_constant('Int', 'int', 1));
         }
         my $args := $<args>.ast;
-        $args.name('&infix:<,>');
-        make QAST::Op.new(:node($/), :op<call>, $metapast, $args);
+        if +$args.list == 1 && !$args[0].flat && !$args[0].named {
+            make QAST::Op.new(:node($/), :op<call>, $metapast, $args[0]);
+        }
+        else {
+            $args.name('&infix:<,>');
+            make QAST::Op.new(:node($/), :op<call>, $metapast, $args);
+        }
     }
 
     method infix_circumfix_meta_operator:sym«<< >>»($/) {

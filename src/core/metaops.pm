@@ -118,16 +118,20 @@ multi sub METAOP_REDUCE_LEFT(\op) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
-        return op.() unless @values.gimme(1);
+    sub (\iterablish) {
+        my \source = nqp::istype(iterablish, Iterable)
+            ?? iterablish.iterator
+            !! iterablish.list.iterator;
 
-        my $result := @values.shift;
-        return op.($result) unless @values.gimme(1);
+        my \first = source.pull-one;
+        return op.() if first =:= IterationEnd;
 
-        while my int $c = @values.gimme(1000) {
-            my int $i;
-            $result := op.($result, @values.shift)
-                while ($i = $i + 1) <= $c;
+        my \second = source.pull-one;
+        return op.(first) if second =:= IterationEnd;
+
+        my $result := op.(first, second);
+        until (my \value = source.pull-one) =:= IterationEnd {
+            $result := op.($result, value);
         }
         $result;
     }

@@ -951,16 +951,20 @@ sub infix:<Z>(|lol) {
     return if $arity == 0;
     my @l = eager for ^$arity -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
-
-            if nqp::iscont(elem) { (elem,).list.item }
-            else                 { (elem,).flat.item }
+            if nqp::iscont(elem) { (elem,).iterator }
+            else                 { elem.iterator }
         }
 
     gather {
         loop {
-            my \p = @l.map: { last unless .gimme(1); .shift }
-            last if p.elems < $arity;
-            take-rw p.List;
+            my \p = @l.map: {
+                my \val = .pull-one;
+                last if val =:= IterationEnd;
+                val
+            }
+            my \l = p.List;
+            last if l.elems < $arity;
+            take-rw l;
         }
     }
 }

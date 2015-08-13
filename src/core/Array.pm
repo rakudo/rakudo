@@ -311,68 +311,90 @@ my class Array { # declared in BOOTSTRAP
     #}
 
     # XXX GLR
-    #proto method splice(|) is nodal { * }
-    #multi method splice(Array:D \SELF: :$SINK) {
-    #    if $SINK {
-    #        SELF = ();
-    #        Nil;
-    #    }
-    #    else {
-    #        my @ret := SELF.of =:= Mu ?? Array.new !! Array[SELF.of].new;
-    #        @ret = SELF;
-    #        SELF = ();
-    #        @ret;
-    #    }
-    #}
-    #multi method splice(Array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
-    #    fail X::Cannot::Infinite.new(:action('splice in')) if @values.infinite;
-    #
-    #    self.gimme(*);
-    #    my $elems = self.elems;
-    #    my int $o = nqp::istype($offset,Callable)
-    #      ?? $offset($elems)
-    #      !! nqp::istype($offset,Whatever)
-    #        ?? $elems
-    #        !! $offset.Int;
-    #    X::OutOfRange.new(
-    #      :what('Offset argument to splice'),
-    #      :got($o),
-    #      :range("0..$elems"),
-    #    ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
-    #
-    #    my int $s = nqp::istype($size,Callable)
-    #      ?? $size($elems - $o)
-    #      !! !defined($size) || nqp::istype($size,Whatever)
-    #         ?? $elems - ($o min $elems)
-    #         !! $size.Int;
-    #    X::OutOfRange.new(
-    #      :what('Size argument to splice'),
-    #      :got($s),
-    #      :range("0..^{$elems - $o}"),
-    #    ).fail if $s < 0;
-    #
-    #    # need to enforce type checking
-    #    my $expected := self.of;
-    #    my @v := @values.eager;
-    #    if self.of !=:= Mu && @v {
-    #        X::TypeCheck::Splice.new(
-    #          :action<splice>,
-    #          :got($_.WHAT),
-    #          :$expected,
-    #        ).fail unless nqp::istype($_,$expected) for @v;
-    #    }
-    #
-    #    if $SINK {
-    #        nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
-    #        Nil;
-    #    }
-    #    else {
-    #        my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
-    #        @ret = self[$o..($o + $s - 1)] if $s;
-    #        nqp::splice($!items, nqp::getattr(@v, List, '$!items'), $o, $s);
-    #        @ret;
-    #    }
-    #}
+    proto method splice(|) is nodal { * }
+    multi method splice(Array:D \SELF: :$SINK) {
+        if $SINK {
+            SELF.STORE(());
+            Nil
+        }
+        else {
+            my @ret := SELF.of =:= Mu ?? Array.new !! Array[SELF.of].new;
+            @ret.STORE(SELF);
+            SELF.STORE(());
+            @ret
+        }
+    }
+    multi method splice(Array:D: $offset=0, $size=Whatever, @values?, :$SINK) {
+        self!splice-list($offset, $size, @values, :$SINK)
+    }
+    multi method splice(Array:D: $offset=0, $size=Whatever, **@values, :$SINK) {
+        self!splice-list($offset, $size, @values, :$SINK)
+    }
+    method !splice-list($offset, $size, @values, :$SINK) {
+        my \splice-buffer = IterationBuffer.new;
+        unless @values.iterator.push-until-lazy(splice-buffer) =:= IterationEnd {
+            fail X::Cannot::Infinite.new(:action('splice in'));
+        }
+
+        my $todo = nqp::getattr(self, List, '$!todo');
+        my $lazy;
+        if $todo.DEFINITE {
+            $lazy = $todo.reify-until-lazy() !=:= IterationEnd;
+        }
+
+        my int $o = nqp::istype($offset,Callable)
+          ?? $offset(self.elems)
+          !! nqp::istype($offset,Whatever)
+            ?? self.elems
+            !! $offset.Int;
+        X::OutOfRange.new(
+          :what('Offset argument to splice'),
+          :got($o),
+          :range("0..{self.elems}"),
+        ).fail if $o < 0 || (!$lazy && $o > self.elems); # one after list allowed for "push"
+    
+        my int $s = nqp::istype($size, Callable)
+          ?? $size(self.elems - $o)
+          !! !defined($size) || nqp::istype($size,Whatever)
+             ?? self.elems - ($o min self.elems)
+             !! $size.Int;
+        X::OutOfRange.new(
+          :what('Size argument to splice'),
+          :got($s),
+          :range("0..^{self.elems - $o}"),
+        ).fail if $s < 0;
+
+        # need to enforce type checking
+        my $expected := self.of;
+        if self.of !=:= Mu {
+            my int $i = 0;
+            my int $n = nqp::elems(splice-buffer);
+            while $i < $n {
+                unless nqp::istype(nqp::atpos(splice-buffer, $i), $expected) {
+                    X::TypeCheck::Splice.new(
+                        :action<splice>,
+                        :got($_.WHAT),
+                        :$expected,
+                    ).fail;
+                }
+                $i = $i + 1;
+            }
+        }
+
+        $todo.reify-at-least($o + $s) if $lazy;
+        if $SINK {
+            nqp::splice(nqp::getattr(self, List, '$!reified'),
+                splice-buffer, $o, $s);
+            Nil;
+        }
+        else {
+            my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
+            @ret = self[$o..($o + $s - 1)] if $s;
+            nqp::splice(nqp::getattr(self, List, '$!reified'),
+                splice-buffer, $o, $s);
+            @ret;
+        }
+    }
 
     multi method ACCEPTS(Array:D: $topic) {
         my $sseq = self;

@@ -150,16 +150,18 @@ my class Array { # declared in BOOTSTRAP
     #        !! (nqp::bindpos(items,$pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
     #}
 
-    # XXX GLR
-    #proto method BIND-POS(|) { * }
-    #multi method BIND-POS(Int() $pos, Mu \bindval) is rw {
-    #    self.gimme($pos + 1);
-    #    nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval);
-    #}
-    #multi method BIND-POS(int $pos, Mu \bindval) is rw {
-    #    self.gimme($pos + 1);
-    #    nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
-    #}
+    proto method BIND-POS(|) { * }
+    multi method BIND-POS(Int $pos, Mu \bindval) is rw {
+        my int $ipos = $pos;
+        my $todo := nqp::getattr(self, List, '$!todo');
+        $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
+        nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval);
+    }
+    multi method BIND-POS(int $pos, Mu \bindval) is rw {
+        my $todo := nqp::getattr(self, List, '$!todo');
+        $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
+        nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval);
+    }
 
     # XXX GLR
     #method DELETE-POS(\pos, :$SINK) {

@@ -61,11 +61,13 @@ augment class Any {
         my role MapIterCommon does SlippyIterator {
             has &!block;
             has $!source;
+            has $!count;
 
-            method new(&block, $source) {
+            method new(&block, $source, $count) {
                 my $iter := self.CREATE;
                 nqp::bindattr($iter, self, '&!block', &block);
                 nqp::bindattr($iter, self, '$!source', $source);
+                nqp::bindattr($iter, self, '$!count', $count);
                 $iter
             }
 
@@ -124,7 +126,7 @@ augment class Any {
                         $result
                     }
                 }
-            }.new(&block, source));
+            }.new(&block, source, 1));
         }
         else {
             # XXX GLR please rewrite this.
@@ -137,8 +139,8 @@ augment class Any {
                     if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
                         $result
                     }
-                    elsif ($!source.push-exactly($value, $count)) =:= IterationEnd {
-                        # XXX GLR does'nt handle $value.elems < $count yet!
+                    elsif ($!source.push-exactly($value, $!count)) =:= IterationEnd {
+                        # XXX GLR does'nt handle $value.elems < $!count yet!
                         IterationEnd
                     }
                     else {
@@ -156,13 +158,14 @@ augment class Any {
                                                 nqp::if(
                                                     nqp::eqaddr($result, IterationEnd),
                                                     nqp::stmts(
-                                                        ($results := $!source.push-exactly($value, $count)),
+                                                        ($results := $!source.push-exactly($value, $!count)),
                                                         ($redo = 1 unless nqp::eqaddr($results, IterationEnd))
                                                 ))
                                             ))
                                     ),
                                     'NEXT', nqp::stmts(
-                                        ($results := $!source.push-exactly($value, $count)),
+                                        ($value.STORE(())),
+                                        ($results := $!source.push-exactly($value, $!count)),
                                         nqp::eqaddr($results, IterationEnd)
                                             ?? ($result := IterationEnd)
                                             !! ($redo = 1)),
@@ -172,7 +175,7 @@ augment class Any {
                         $result
                     }
                 }
-            }.new(&block, source));
+            }.new(&block, source, $count));
         }
     }
 

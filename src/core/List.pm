@@ -712,7 +712,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my int $i = 0;
         my int $n = nqp::elems($!reified);
         while $i < $n {
-            $tmp := nqp::atpos($!reified, $i);
+            $tmp := nqp::ifnull(nqp::atpos($!reified, $i), Any);
             nqp::push_s($rsa,
                 nqp::unbox_s(nqp::istype($tmp, Str) && nqp::isconcrete($tmp) ?? $tmp !! $tmp.Str));
             $i = $i + 1;

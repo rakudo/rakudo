@@ -188,6 +188,7 @@ BEGIN {
 
     trait_mod:<is>(&infix:<and>,     :prec($loose_and));
     trait_mod:<is>(&infix:<andthen>, :prec($loose_and));
+    trait_mod:<is>(&infix:<notandthen>, :prec($loose_and));
 
     trait_mod:<is>(&infix:<or>,     :prec($loose_or));
     trait_mod:<is>(&infix:<xor>,    :prec($loose_or));

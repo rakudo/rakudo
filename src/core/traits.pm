@@ -306,9 +306,16 @@ multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
     EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
 
+multi sub trait_mod:<is>(Block:D $r, :$leading_docs!) {
+    SET_LEADING_DOCS($r, $leading_docs);
+}
+multi sub trait_mod:<is>(Block:D $r, :$trailing_docs!) {
+    SET_TRAILING_DOCS($r, $trailing_docs);
+}
 
-# this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
-# will catch it and declare "docs" to be an unknown trait
+# this should be identical to Mu:D, :leading_docs, otherwise the fallback Block:D, |c
+# will catch it and declare "leading_docs" to be an unknown trait.  This is why
+# we need this redundant form in spite of having a Block:D candidate above
 multi sub trait_mod:<is>(Routine:D $r, :$leading_docs!) {
     SET_LEADING_DOCS($r, $leading_docs);
 }

@@ -1226,6 +1226,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*CODE_OBJECT := $*DECLARAND;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
+        :my $*POD_BLOCK;
+        :my $*DOC := $*DECLARATOR_DOCS;
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        { $*DECLARATOR_DOCS := '' }
+        {
+            if $*PRECEDING_DECL_LINE < $*LINE_NO {
+                $*PRECEDING_DECL_LINE := $*LINE_NO;
+                $*PRECEDING_DECL := $*DECLARAND;
+            }
+        }
+        <.attach_leading_docs>
         :dba('block or pointy block')
         [
         | <lambda>
@@ -2446,8 +2457,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             '(' <multisig> ')' {
                 %*SIG_INFO := $<multisig>.ast;
-                my $*PRECEDING_DECL_LINE;
-                my $*PRECEDING_DECL;
                 $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,
                     %*SIG_INFO, $*W.cur_lexpad(), 'Any');
             }
@@ -2521,8 +2530,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $<longname> && $*W.is_lexical('$?CLASS') && !$meta
                         ?? '$?CLASS'
                         !! 'Mu']);
-                my $*PRECEDING_DECL_LINE;
-                my $*PRECEDING_DECL;
                 if $<multisig> {
                     %*SIG_INFO := $<multisig>.ast;
                     $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,

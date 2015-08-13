@@ -1557,6 +1557,9 @@ class Perl6::World is HLL::World {
     method create_signature_and_params($/, %signature_info, $lexpad, $default_type_name,
             :$no_attr_check, :$rw, :$method, :$invocant_type) {
         # If it's a method, add auto-slurpy.
+        my $*PRECEDING_DECL;      # prevent parameter(s) created here from
+        my $*PRECEDING_DECL_LINE; # clobbering code declaration for trailing comments
+
         my @params := %signature_info<parameters>;
         if $method {
             unless @params[0]<is_invocant> {
@@ -2857,7 +2860,9 @@ class Perl6::World is HLL::World {
             for @!components {
                 @result.push($_);
             }
-            @result[+@result - 1] := $sigil ~ $twigil ~ @result[+@result - 1];
+            @result
+              ?? (@result[+@result-1] := $sigil ~ $twigil ~ @result[+@result-1])
+              !! (@result[0]          := $sigil ~ $twigil);
             @result
         }
 

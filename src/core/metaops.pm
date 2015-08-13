@@ -445,7 +445,11 @@ multi sub deepmap(\op, \obj) {
             nqp::bindpos($rpa, $i,
                 nqp::if(nqp::istype($o, Iterable),
                         $o.new(deepmap(op, $o)).item,
-                        op.($o))),
+                        nqp::stmts(
+                            ($o := op.($o)),
+                            nqp::if(nqp::istype($o, List),
+                                    $o.gimme(*)),
+                                    $o))),
             $i = nqp::sub_i($i, 2)
         )
     );
@@ -457,7 +461,11 @@ multi sub deepmap(\op, \obj) {
             nqp::bindpos($rpa, $i,
                 nqp::if(nqp::istype($o, Iterable),
                         $o.new(deepmap(op, $o)).item,
-                        op.($o))),
+                        nqp::stmts(
+                            ($o := op.($o)),
+                            nqp::if(nqp::istype($o, List),
+                                    $o.gimme(*)),
+                                    $o))),
             $i = nqp::sub_i($i, 2)
         )
     );

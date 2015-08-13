@@ -1,6 +1,7 @@
 my class Block { # declared in BOOTSTRAP
     # class Block is Code {
     #     has Mu $!phasers;
+    #     has Mu $!why;
 
     method add_phaser(Str $name, &block) {
         nqp::isnull($!phasers) &&
@@ -314,6 +315,19 @@ my class Block { # declared in BOOTSTRAP
         $perl ~= substr(self.signature().perl,2,*-1);
         $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
         $perl
+    }
+
+    method WHY() {
+        if nqp::isnull($!why) {
+            Any
+        } else {
+            $!why.set_docee(self);
+            $!why
+        }
+    }
+
+    method set_why($why) {
+        $!why := $why;
     }
 }
 

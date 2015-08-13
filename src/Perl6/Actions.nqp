@@ -984,6 +984,7 @@ Compilation unit '$file' contained the following violations:
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
             ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
+            Perl6::Pod::document($/, $*DECLARAND, $*POD_BLOCK, :leading);
             $*W.attach_signature($*DECLARAND, $signature);
             $*W.finish_code_object($*DECLARAND, $block);
             $*W.add_phasers_handling_code($*DECLARAND, $block);
@@ -1896,7 +1897,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     sub make_variable($/, @name) {
-        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>, ~$<desigilname>);
+        make_variable_from_parts($/, @name, ~$<sigil>, ~$<twigil>, ~$<desigilname>);
     }
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
@@ -1925,6 +1926,13 @@ Compilation unit '$file' contained the following violations:
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
                 $*W.add_string_constant($name));
+        }
+        elsif $twigil eq '?' && $*IN_DECL eq 'variable' && !$*COMPILING_CORE_SETTING {
+            $*W.throw($/, 'X::Syntax::Variable::Twigil',
+              twigil     => $twigil,
+              scope      => $*SCOPE,
+              additional => ' because it is reserved'
+            );
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
@@ -1996,8 +2004,8 @@ Compilation unit '$file' contained the following violations:
         elsif $name eq '$?LINE' || $name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                        twigil  => '?',
-                        scope   => $*SCOPE,
+                  twigil => '?',
+                  scope  => $*SCOPE,
                 );
             }
             if $name eq '$?LINE' {
@@ -2010,8 +2018,8 @@ Compilation unit '$file' contained the following violations:
         elsif $name eq '&?BLOCK' || $name eq '&?ROUTINE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                        twigil  => '?',
-                        scope   => $*SCOPE,
+                  twigil => '?',
+                  scope  => $*SCOPE,
                 );
             }
             my $Routine := $*W.find_symbol(['Routine']);
@@ -3827,11 +3835,33 @@ Compilation unit '$file' contained the following violations:
             $name := $<defterm>.ast;
         }
         elsif $<variable> {
-            # Don't handle twigil'd case yet.
-            if $<variable><twigil> && $<variable><twigil> ne '?' {
-                $*W.throw($/, 'X::Comp::NYI',
-                    feature => "Twigil-Variable constants"
-                );
+            if $<variable><twigil> {
+                my $twigil := ~$<variable><twigil>;
+                if $twigil eq '?' {
+                    unless $*COMPILING_CORE_SETTING {
+                        $*W.throw($/, 'X::Syntax::Variable::Twigil',
+                          what       => 'constant',
+                          twigil     => $twigil,
+                          scope      => $*SCOPE,
+                          additional => ' because it is reserved'
+                        );
+                    }
+                }
+
+                elsif $twigil eq '*' {
+                    $*W.throw($/, 'X::Syntax::Variable::Twigil',
+                      what       => 'constant',
+                      twigil     => $twigil,
+                      scope      => $*SCOPE,
+                      additional => ' because dynamic constants are an oxymoron'
+                    );
+                }
+
+                # Don't handle other twigil'd case yet.
+                else {
+                    $*W.throw($/, 'X::Comp::NYI',
+                      feature => "Constants with a '$twigil' twigil");
+                }
             }
             $name := ~$<variable>;
         }
@@ -7676,8 +7706,6 @@ Compilation unit '$file' contained the following violations:
                 $i++;
             }
             my %sig_info := hash(parameters => @params);
-            my $*PRECEDING_DECL; # prevent parameter(s) created in create_signature_and_params
-                                 # from clobbering routine declaration for trailing comments
             my $signature := $*W.create_signature_and_params($/, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);

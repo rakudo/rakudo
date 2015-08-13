@@ -183,10 +183,23 @@ my class Cool { # declared in BOOTSTRAP
         ));
     }
 
+    proto method contains(|) {*}
+    multi method contains(Cool:D: Str(Cool) $needle) {
+        nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle)) != -1;
+    }
+    multi method contains(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
+        my str $str = nqp::unbox_s(self.Str);
+        $pos >= 0
+          && $pos <= nqp::chars($str)
+          && nqp::index($str, nqp::unbox_s($needle), nqp::unbox_i($pos)) != -1;
+    }
+
     proto method indices(|) {*}
     multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0, :$overlap) {
-        my int $pos  = $start;
         my str $str  = nqp::unbox_s(self.Str);
+        return () if $start < 0 || $start > nqp::chars($str);
+
+        my int $pos  = $start;
         my str $need = nqp::unbox_s($needle);
         my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
 
@@ -207,11 +220,10 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i = nqp::index(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          nqp::unbox_i($pos)
-        );
+        my str $str = nqp::unbox_s(self.Str);
+        my int $i = $pos < 0 || $pos > nqp::chars($str)
+          ?? -1
+          !! nqp::index($str, nqp::unbox_s($needle), nqp::unbox_i($pos));
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 
@@ -221,11 +233,10 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i = nqp::rindex(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          nqp::unbox_i($pos)
-        );
+        my str $str = nqp::unbox_s(self.Str);
+        my int $i = $pos < 0 || $pos > nqp::chars($str)
+          ?? -1
+          !! nqp::rindex($str, nqp::unbox_s($needle), nqp::unbox_i($pos));
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 

@@ -162,7 +162,7 @@ my class Range is Cool does Iterable does Positional {
     multi method list(Range:D:) { List.from-iterator(self.iterator) }
     method flat(Range:D:) { Seq.new(self.iterator) }
 
-    method bounds()   { ($!min, $!max) }
+    method bounds()   { (nqp::decont($!min), nqp::decont($!max)) }
 
     multi method ACCEPTS(Range:D: Mu \topic) {
         (topic cmp $!min) > -(!$!excludes-min)

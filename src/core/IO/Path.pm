@@ -124,7 +124,7 @@ my class IO::Path is Cool {
 
 #?if moar
     method watch(IO::Path:D:) {
-        IO::Notification.watch_path($.abspath);
+        IO::Notification.watch-path($.abspath);
     }
 #?endif
 

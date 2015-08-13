@@ -379,7 +379,29 @@ my class Hash { # declared in BOOTSTRAP
         }
         method pairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            nqp::die('Typed hash pairs iterator NYI in GLR')
+
+            my $storage := nqp::getattr(self, EnumMap, '$!storage');
+            my $class := $?CLASS;
+            Seq.new(class :: does Iterator {
+                has $!hash-iter;
+
+                method new(\hash) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!hash-iter',
+                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
+                    iter
+                }
+
+                method pull-one() {
+                    if $!hash-iter {
+                        my \tmp = nqp::shift($!hash-iter);
+                        Pair.new(key => nqp::iterval(tmp), value => nqp::atkey($storage, nqp::iterkey_s(tmp)));
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+            }.new(self))
         }
         method antipairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);

@@ -6221,24 +6221,27 @@ Compilation unit '$file' contained the following violations:
             $parti := nqp::box_i(0, $Int);
         }
 
-        if nqp::chars($<frac>) && $<frac>.ast > 0 {
-            $partf := nqp::div_n(nqp::log_n(nqp::tonum_I($<frac>.ast)), nqp::log_n(10));
-            $partf := nqp::pow_n(10, nqp::floor_n($partf + 1));
+        if nqp::chars($<frac>) {
+            $partf := nqp::radix_I(10, $<frac>.Str, 0, 4, $Int);
 
-            $parti := nqp::mul_I($parti, nqp::fromnum_I($partf, $Int), $Int);
-            $parti := nqp::add_I($parti, $<frac>.ast, $Int);
+            $parti := nqp::mul_I($parti, $partf[1], $Int);
+            $parti := nqp::add_I($parti, $partf[0], $Int);
+
+            $partf := nqp::tonum_I($partf[1]);
         } else {
             $partf := 1.0;
         }
 
-        if $<escale> {
+        if $<escale> { # wants a Num
             $parti := nqp::tonum_I($parti);
 
-            $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
+            if $parti != 0.0 {
+                $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
+            }
             $parti := nqp::div_n($parti, $partf);
 
             make $*W.add_numeric_constant($/, 'Num', $parti);
-        } else {
+        } else { # wants a Rat
             make $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
         }
     }
@@ -6255,6 +6258,8 @@ Compilation unit '$file' contained the following violations:
                 $*W.add_numeric_constant($/, 'Int', $radix), $<circumfix>.ast);
         } else { # the "string literal" case
             my $Int := $*W.find_symbol(['Int']);
+
+            $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix) unless (2 <= $radix) && ($radix <= 36);
 
             # override $radix if necessary
             if nqp::chars($<ohradix>) {
@@ -6273,19 +6278,19 @@ Compilation unit '$file' contained the following violations:
             }
 
             my $ipart := nqp::radix_I($radix, $<intpart>.Str, 0, 0, $Int);
-            my $fpart := nqp::radix_I($radix, nqp::chars($<fracpart>) ?? $<fracpart>.Str !! "0", 0, 4, $Int);
-            my $base := $<base> ?? nqp::tonum_I($<base>.ast) !! $radix;
-            my $exp := $<exp> ?? nqp::tonum_I($<exp>.ast) !! 0;
+            my $fpart := nqp::radix_I($radix, nqp::chars($<fracpart>) ?? $<fracpart>.Str !! ".0", 1, 4, $Int);
+            my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
+            my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
 
             if $ipart[2] < nqp::chars($<intpart>.Str) || $fpart[2] < nqp::chars($<fracpart>.Str) {
-                $/.CURSOR.panic("Couldn't process entire number: {$ipart[2]}/{nqp::chars($<intpart>.Str)} int chars, {$fpart[2]}/{nqp::chars($<fracpart>.Str)} fractional chars");
+                $/.CURSOR.panic("Couldn't process entire number: {$ipart[2]}/{nqp::chars($<intpart>.Str)} int chars, {$fpart[2]}/{nqp::chars($<fracpart>.Str) - 1} fractional chars");
             }
 
             $ipart := nqp::mul_I($ipart[0], $fpart[1], $Int);
             $ipart := nqp::add_I($ipart, $fpart[0], $Int);
             $fpart := $fpart[1];
 
-            my $scientific := nqp::pow_n($base, $exp);
+            my $scientific := nqp::pow_n($bpart, $epart);
             $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
 
             if $fpart != 1 { # non-unit fractional part, wants Rat

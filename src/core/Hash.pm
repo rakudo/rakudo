@@ -387,10 +387,6 @@ my class Hash { # declared in BOOTSTRAP
             return ().list unless self.DEFINITE && nqp::defined($!keys);
             nqp::die('Typed hash kv iterator NYI in GLR')
         }
-        method values(EnumMap:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-            nqp::die('Typed hash values iterator NYI in GLR')
-        }
         method pairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
 

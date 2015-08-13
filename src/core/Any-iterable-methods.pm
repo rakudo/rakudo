@@ -79,7 +79,7 @@ augment class Any {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
         my $count = &block.count;
-        if $count == 1 {
+        if $count <= 1 {
             # XXX We need a funkier iterator to care about phasers. Will
             # put that on a different code-path to keep the commonest
             # case fast.

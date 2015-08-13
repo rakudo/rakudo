@@ -170,6 +170,8 @@ my class Range is Cool does Iterable does Positional {
         self.list.fmt(|c)
     }
 
+    multi method Str(Range:D:) { self.list.Str }
+
     multi method ACCEPTS(Range:D: Mu \topic) {
         (topic cmp $!min) > -(!$!excludes-min)
             and (topic cmp $!max) < +(!$!excludes-max)
@@ -262,7 +264,7 @@ my class Range is Cool does Iterable does Positional {
         }
     }
 
-    multi method Numeric (Range:D:) {
+    multi method Numeric(Range:D:) {
         nextsame unless nqp::istype($.max,Numeric) && nqp::istype($.min,Numeric);
 
         my $diff := $.max - $.min - $.excludes-min;

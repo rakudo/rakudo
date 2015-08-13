@@ -151,6 +151,8 @@ my class Range is Cool does Iterable does Positional {
                 method pull-one() {
                     $!i++
                 }
+
+                method lazy() { True }
             }.new($value)
         }
 

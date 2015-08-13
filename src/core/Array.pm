@@ -163,27 +163,26 @@ my class Array { # declared in BOOTSTRAP
         nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval);
     }
 
-    # XXX GLR
-    #method DELETE-POS(\pos, :$SINK) {
-    #    fail X::Subscript::Negative.new(index => pos, type => self.WHAT) if pos < 0;
-    #
-    #    my $value := self.AT-POS(pos); # needed for reification
-    #    my $items := nqp::getattr(self,List,'$!items');
-    #    my $end   := self.end;
-    #
-    #    pos <= $end
-    #      ?? nqp::bindpos($items, pos, nqp::null())
-    #      !! return self.default;
-    #
-    #    if pos == $end {
-    #        my int $pos = pos;
-    #        nqp::pop($items);
-    #        nqp::pop($items)
-    #          while ($pos = $pos - 1) >= 0
-    #            && nqp::isnull(nqp::atpos($items,$pos));
-    #    }
-    #    $value;
-    #}
+    method DELETE-POS(\pos, :$SINK) {
+        fail X::Subscript::Negative.new(index => pos, type => self.WHAT) if pos < 0;
+
+        my $value := self.AT-POS(pos); # needed for reification
+        my $items := nqp::getattr(self, List, '$!reified');
+        my $end   := self.end;
+
+        pos <= $end
+          ?? nqp::bindpos($items, pos, nqp::null())
+          !! return self.default;
+
+        if pos == $end {
+            my int $pos = pos;
+            nqp::pop($items);
+            nqp::pop($items)
+              while ($pos = $pos - 1) >= 0
+                && nqp::isnull(nqp::atpos($items,$pos));
+        }
+        $value;
+    }
 
     multi method push(Array:D: \value) {
         self!ensure-allocated();

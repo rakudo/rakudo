@@ -803,11 +803,7 @@ class Perl6::World is HLL::World {
     method arglist($/) {
         my $arglist;
         if $<arglist><EXPR> -> $expr {
-            $arglist := nqp::getattr(
-              self.compile_time_evaluate($/,$expr.ast).eager.list,
-              self.find_symbol(['List']),
-              '$!reified',
-            );
+            $arglist := self.compile_time_evaluate($/,$expr.ast).List.FLATTENABLE_LIST;
         }
         $arglist;
     }

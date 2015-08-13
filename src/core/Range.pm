@@ -136,6 +136,24 @@ my class Range is Cool does Iterable does Positional {
             }.new($value, $!excludes-max ?? $!max - 1 !! $!max)
         }
 
+        # Also something quick and easy for 1..* style things.
+        elsif nqp::istype($value, Numeric) &&
+            (nqp::istype($!max, Whatever) || $!max === Inf) {
+            class :: does Iterator {
+                has $!i;
+
+                method new($i is copy) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!i', $i);
+                    iter
+                }
+
+                method pull-one() {
+                    $!i++
+                }
+            }.new($value)
+        }
+
         # XXX do other cases here
         else {
             nqp::die('Range iterator NYI')

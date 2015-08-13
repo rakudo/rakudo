@@ -984,6 +984,7 @@ Compilation unit '$file' contained the following violations:
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
             ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
+            Perl6::Pod::document($/, $*DECLARAND, $*POD_BLOCK, :leading);
             $*W.attach_signature($*DECLARAND, $signature);
             $*W.finish_code_object($*DECLARAND, $block);
             $*W.add_phasers_handling_code($*DECLARAND, $block);

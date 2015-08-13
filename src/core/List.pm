@@ -512,12 +512,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     # XXX GLR
-    #proto method pick(|) is nodal { * }
-    #multi method pick() {
-    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-    #    my $elems = self.elems;
-    #    $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
-    #}
+    proto method pick(|) is nodal { * }
+    multi method pick() {
+        if $!todo.DEFINITE {
+            $!todo.reify-until-lazy();
+            fail X::Cannot::Infinite.new(:action('.pick from'))
+                unless $!todo.fully-reified;
+        }
+        my $elems = self.elems;
+        $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
+    }
     #multi method pick(Whatever, :$eager!) {
     #    return self.pick(*) if !$eager;
     #
@@ -579,12 +583,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #}
 
     # XXX GLR
-    #proto method roll(|) is nodal { * }
-    #multi method roll() {
-    #    fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
-    #    my $elems = self.elems;
-    #    $elems ?? nqp::atpos($!items,$elems.rand.floor) !! Nil;
-    #}
+    proto method roll(|) is nodal { * }
+    multi method roll() {
+        if $!todo.DEFINITE {
+            $!todo.reify-until-lazy();
+            fail X::Cannot::Infinite.new(:action('.roll from'))
+                unless $!todo.fully-reified;
+        }
+        my $elems = self.elems;
+        $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
+    }
     #multi method roll(Whatever) {
     #    fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
     #    my $elems = self.elems;

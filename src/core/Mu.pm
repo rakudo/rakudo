@@ -34,14 +34,14 @@ my class Mu { # declared in BOOTSTRAP
         take self;
     }
     method return-rw(|) {  # same code as control.pm's return-rw
-        my $parcel := RETURN-PARCEL(nqp::p6argvmarray());
-        nqp::p6routinereturn($parcel);
-        $parcel
+        my $list := RETURN-LIST(nqp::p6argvmarray());
+        nqp::p6routinereturn($list);
+        $list;
     }
     method return(|) {  # same code as control.pm's return
-        my $parcel := RETURN-PARCEL(nqp::p6argvmarray());
-        nqp::p6routinereturn(nqp::p6recont_ro($parcel));
-        $parcel
+        my $list := RETURN-LIST(nqp::p6argvmarray());
+        nqp::p6routinereturn(nqp::p6recont_ro($list));
+        $list;
     }
 
     proto method WHY(|) { * }

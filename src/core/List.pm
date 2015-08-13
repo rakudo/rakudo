@@ -20,7 +20,7 @@ my sub combinations($n, $k) {
             @result[$index++] = $value++;
             @stack.push($value);
             if $index == $k {
-                take infix:<,>(@result);
+                take infix:<,>(|@result);
                 $value = $n;  # fake a last
             }
         }
@@ -705,23 +705,22 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #    }
     #}
 
-    # XXX GLR review rather dubious use of .eager
-    #proto method combinations($?) is nodal {*}
-    #multi method combinations( Int $of ) {
-    #    combinations(self.elems, $of).eager.map: { self[@$_] }
-    #}
-    #multi method combinations( Range $ofrange = 0 .. * ) {
-    #    gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
-    #        # XXX inside of gather should already sink
-    #        sink combinations(self.elems, $of).eager.map: { take self[@$_] }
-    #    }
-    #}
+    proto method combinations($?) is nodal {*}
+    multi method combinations( Int $of ) {
+        combinations(self.elems, $of).map: { self[@$_] }
+    }
+    multi method combinations( Range $ofrange = 0 .. * ) {
+        gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
+            # XXX inside of gather should already sink
+            sink combinations(self.elems, $of).map: { take self[@$_] }
+        }
+    }
 
-    # XXX GLR why is this not multi like combinations?
-    #method permutations() is nodal {
-    #    # need block on Moar because of RT#121830
-    #    permutations(self.elems).eager.map: { self[@$_] }
-    #}
+    proto method permutations(|) is nodal {*}
+    multi method permutations() is nodal {
+        # need block on Moar because of RT#121830
+        permutations(self.elems).map: { self[@$_] }
+    }
 
     method join($separator = '') is nodal {
         self!ensure-allocated;

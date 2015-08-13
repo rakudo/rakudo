@@ -16,6 +16,8 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     method elems(EnumMap:D:) {
         nqp::p6box_i(nqp::defined($!storage) && nqp::elems($!storage));
     }
+    multi method Int(EnumMap:D:)     { self.elems }
+    multi method Numeric(EnumMap:D:) { self.elems }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
         self.EXISTS-KEY($topic.any);

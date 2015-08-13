@@ -385,7 +385,40 @@ my class Hash { # declared in BOOTSTRAP
         }
         method kv(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            nqp::die('Typed hash kv iterator NYI in GLR')
+
+            my $storage := nqp::getattr(self, EnumMap, '$!storage');
+            Seq.new(class :: does Iterator {
+                has $!hash-iter;
+                has $!storage;
+                has int $!on-value;
+                has $!current-value;
+
+                method new(\hash, $class, $storage) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!hash-iter',
+                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
+                    nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
+                    iter
+                }
+
+                method pull-one() {
+                    if $!hash-iter {
+                    }
+                    if $!on-value {
+                        $!on-value = 0;
+                        $!current-value
+                    }
+                    elsif $!hash-iter {
+                        my \tmp = nqp::shift($!hash-iter);
+                        $!on-value = 1;
+                        $!current-value := nqp::atkey($!storage, nqp::iterkey_s(tmp));
+                        nqp::iterval(tmp)
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+            }.new(self, $?CLASS, nqp::getattr(self, EnumMap, '$!storage')))
         }
         method pairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);

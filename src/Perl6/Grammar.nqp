@@ -3239,6 +3239,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('number in radix notation')
         [
         || '<'
+                $<ohradix> = [ '0x' <?{ +$<radix> < 34 }> | '0o' <?{ +$<radix> < 25 }> | '0d' <?{ +$<radix> < 14 }> | '0b' <?{ +$<radix> < 12 }> ]**0..1
                 $<intpart> = [ [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ [ _ [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ ]* ]
                 $<fracpart> = [ '.' [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ [ _ [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ ]* ]**0..1
                 [ '*' <base=.radint> '**' <exp=.radint> ]**0..1

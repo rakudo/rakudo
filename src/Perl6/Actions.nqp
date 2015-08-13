@@ -6243,26 +6243,60 @@ Compilation unit '$file' contained the following violations:
 
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
-        if $<bracket>   {
+
+        if $<bracket> { # the "list of place values" case
             make QAST::Op.new(:name('&UNBASE_BRACKET'), :op('call'),
                 $*W.add_numeric_constant($/, 'Int', $radix), $<bracket>.ast);
         }
-        elsif $<circumfix> {
+        elsif $<circumfix> { # the "conversion function" case
             make QAST::Op.new(:name('&UNBASE'), :op('call'),
                 $*W.add_numeric_constant($/, 'Int', $radix), $<circumfix>.ast);
-        } else {
-            my $intpart  := $<intpart>.Str;
-            my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
-            my $intfrac  := $intpart ~ $fracpart; #the dot is a part of $fracpart, so no need for ~ "." ~
+        } else { # the "string literal" case
+            my $Int := $*W.find_symbol(['Int']);
 
-            my $base;
-            my $exp;
-            $base   := +($<base>[0].Str) if $<base>;
-            $exp    := +($<exp>[0].Str)  if $<exp>;
+            # override $radix if necessary
+            if nqp::chars($<ohradix>) {
+                my $ohradstr := $<ohradix>.Str;
+                if $ohradstr eq "0x" {
+                    $radix := 16;
+                } elsif $ohradstr eq "0o" {
+                    $radix := 8;
+                } elsif $ohradstr eq "0d" {
+                    $radix := 10;
+                } elsif $ohradstr eq "0b" {
+                    $radix := 2;
+                } else {
+                    $/.CURSOR.panic("Unknown radix prefix '$ohradstr'.");
+                }
+            }
 
-            my $error;
-            make radcalc($/, $radix, $intfrac, $base, $exp);
+            my $ipart := nqp::radix_I($radix, $<intpart>.Str, 0, 0, $Int);
+            my $fpart := nqp::radix_I($radix, nqp::chars($<fracpart>) ?? $<fracpart>.Str !! "0", 0, 4, $Int);
+            my $base := $<base> ?? nqp::tonum_I($<base>.ast) !! $radix;
+            my $exp := $<exp> ?? nqp::tonum_I($<exp>.ast) !! 0;
+
+            if $ipart[2] < nqp::chars($<intpart>.Str) || $fpart[2] < nqp::chars($<fracpart>.Str) {
+                $/.CURSOR.panic("Couldn't process entire number: {$ipart[2]}/{nqp::chars($<intpart>.Str)} int chars, {$fpart[2]}/{nqp::chars($<fracpart>.Str)} fractional chars");
+            }
+
+            $ipart := nqp::mul_I($ipart[0], $fpart[1], $Int);
+            $ipart := nqp::add_I($ipart, $fpart[0], $Int);
+            $fpart := $fpart[1];
+
+            my $scientific := nqp::pow_n($base, $exp);
+            $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
+
+            if $fpart != 1 { # non-unit fractional part, wants Rat
+                make $*W.add_constant('Rat', 'type_new', $ipart, $fpart, :nocache(1));
+            } else { # wants Int
+                make $*W.add_numeric_constant($/, 'Int', $ipart);
+            }
         }
+    }
+
+    method radint($/) {
+        # XXX fix this when fixing its grammar side
+        make $<integer>.ast;
     }
 
     method complex_number($/) { make $<bare_complex_number>.ast }

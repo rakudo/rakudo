@@ -804,9 +804,9 @@ class Perl6::World is HLL::World {
         my $arglist;
         if $<arglist><EXPR> -> $expr {
             $arglist := nqp::getattr(
-              self.compile_time_evaluate($/,$expr.ast).list.eager,
+              self.compile_time_evaluate($/,$expr.ast).eager.list,
               self.find_symbol(['List']),
-              '$!items',
+              '$!reified',
             );
         }
         $arglist;

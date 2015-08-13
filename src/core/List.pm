@@ -511,7 +511,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.new(|c);
     }
 
-    method !is-lazy() {
+    method is-lazy() {
         if $!todo.DEFINITE {
             $!todo.reify-until-lazy();
             !$!todo.fully-reified
@@ -525,104 +525,102 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     proto method pick(|) is nodal { * }
     multi method pick() {
         fail X::Cannot::Infinite.new(:action('.pick from'))
-            if self!is-lazy;
+            if self.is-lazy;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
     }
-    #multi method pick(Whatever, :$eager!) {
-    #    return self.pick(*) if !$eager;
-    #
-    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-    #
-    #    my Int $elems = self.elems;
-    #    return () unless $elems;
-    #
-    #    my Mu $picked := nqp::clone($!items);
-    #    my int $i;
-    #    my Mu $val;
-    #    while $elems {
-    #        $i     = $elems.rand.floor;
-    #        $elems = $elems - 1;
-    #        # switch them
-    #        $val  := nqp::atpos($picked,$i);
-    #        nqp::bindpos($picked,$i,nqp::atpos($picked,nqp::unbox_i($elems)));
-    #        nqp::bindpos($picked,nqp::unbox_i($elems),$val);
-    #    }
-    #    nqp::p6parcel($picked,Any);
-    #}
-    #multi method pick(Whatever) {
-    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-    #
-    #    my Int $elems = self.elems;
-    #    return () unless $elems;
-    #
-    #    my Mu $rpa := nqp::clone($!items);
-    #    my int $i;
-    #    gather while $elems {
-    #        $i     = $elems.rand.floor;
-    #        $elems = $elems - 1;
-    #        take-rw nqp::atpos($rpa,$i);
-    #        # replace selected element with last unpicked one
-    #        nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
-    #    }
-    #}
-    #multi method pick(\number) {
-    #    fail X::Cannot::Infinite.new(:action('.pick from')) if self.infinite;
-    #    ## We use a version of Fisher-Yates shuffle here to
-    #    ## replace picked elements with elements from the end
-    #    ## of the list, resulting in an O(n) algorithm.
-    #
-    #    my Int $elems = self.elems;
-    #    return () unless $elems;
-    #
-    #    my int $n = number > $elems ?? $elems !! number.Int;
-    #
-    #    my Mu $rpa := nqp::clone($!items);
-    #    my int $i;
-    #    gather while $n {
-    #        $i     = $elems.rand.floor;
-    #        $elems = $elems - 1;
-    #        $n     = $n - 1;
-    #        take-rw nqp::atpos($rpa,$i);
-    #        # replace selected element with last unpicked one
-    #        nqp::bindpos($rpa,$i,nqp::atpos($rpa,nqp::unbox_i($elems)));
-    #    }
-    #}
+    multi method pick(Whatever, :$eager!) {
+        return self.pick(*) if !$eager;
+
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.is-lazy;
+
+        my Int $elems = self.elems;
+        return () unless $elems;
+
+        my Mu $picked := nqp::clone($!reified);
+        my int $i;
+        my Mu $val;
+        while $elems {
+            $i     = $elems.rand.floor;
+            $elems = $elems - 1;
+            # switch them
+            $val  := nqp::atpos($picked,$i);
+            nqp::bindpos($picked,$i,nqp::atpos($picked,nqp::unbox_i($elems)));
+            nqp::bindpos($picked,nqp::unbox_i($elems),$val);
+        }
+        $picked;
+    }
+    multi method pick(Whatever) {
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.is-lazy;
+
+        my Int $elems = self.elems;
+        return () unless $elems;
+
+        my Mu $clone := nqp::clone($!reified);
+        my int $i;
+        gather while $elems {
+            $i     = $elems.rand.floor;
+            $elems = $elems - 1;
+            take-rw nqp::atpos($clone,$i);
+            # replace selected element with last unpicked one
+            nqp::bindpos($clone,$i,nqp::atpos($clone,nqp::unbox_i($elems)));
+        }
+    }
+    multi method pick(\number) {
+        fail X::Cannot::Infinite.new(:action('.pick from')) if self.is-lazy;
+
+        ## We use a version of Fisher-Yates shuffle here to
+        ## replace picked elements with elements from the end
+        ## of the list, resulting in an O(n) algorithm.
+
+        my Int $elems = self.elems;
+        return () unless $elems;
+
+        my int $n = number > $elems ?? $elems !! number.Int;
+
+        my Mu $clone := nqp::clone($!reified);
+        my int $i;
+        gather while $n {
+            $i     = $elems.rand.floor;
+            $elems = $elems - 1;
+            $n     = $n - 1;
+            take-rw nqp::atpos($clone,$i);
+            # replace selected element with last unpicked one
+            nqp::bindpos($clone,$i,nqp::atpos($clone,nqp::unbox_i($elems)));
+        }
+    }
 
     # XXX GLR
     proto method roll(|) is nodal { * }
     multi method roll() {
         fail X::Cannot::Infinite.new(:action('.roll from'))
-            if self!is-lazy;
+            if self.is-lazy;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
     }
-    #multi method roll(Whatever) {
-    #    fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
-    #    my $elems = self.elems;
-    #    return () unless $elems;
-    #
-    #    my $list := gather loop {
-    #        take nqp::atpos($!items,$elems.rand.floor);
-    #    }
-    #    nqp::bindattr($list,List,'$!infinite',True);
-    #    $list;
-    #}
-    #multi method roll(\number) {
-    #    return self.roll(*) if number == Inf;
-    #
-    #    fail X::Cannot::Infinite.new(:action('.roll from')) if self.infinite;
-    #    my $elems = self.elems;
-    #    return () unless $elems;
-    #
-    #    my int $n = number.Int;
-    #
-    #    gather while $n > 0 {
-    #        take nqp::atpos($!items,$elems.rand.floor);
-    #        $n = $n - 1;
-    #    }
-    #}
-    #
+    multi method roll(Whatever) {
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.is-lazy;
+        my $elems = self.elems;
+        return () unless $elems;
+
+        gather loop {
+            take nqp::atpos($!reified,$elems.rand.floor);
+        }
+    }
+    multi method roll(\number) {
+        return self.roll(*) if number == Inf;
+
+        fail X::Cannot::Infinite.new(:action('.roll from')) if self.is-lazy;
+        my $elems = self.elems;
+        return () unless $elems;
+
+        my int $n = number.Int;
+
+        gather while $n > 0 {
+            take nqp::atpos($!reified,$elems.rand.floor);
+            $n = $n - 1;
+        }
+    }
 
     method reverse() is nodal {
         self!ensure-allocated;

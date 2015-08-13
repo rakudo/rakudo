@@ -130,47 +130,46 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method classify-list(|) { * }
     # XXX GLR possibly more efficient taking an Iterable, not a @list
-    # XXX GLR replace p6listitems op use
-    #multi method classify-list( &test, @list, :&as ) {
-    #    fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
-    #    if @list {
-    #
-    #        # multi-level classify
-    #        if nqp::istype(test(@list[0]),List) {
-    #            @list.map: -> $l {
-    #                my @keys  = test($l);
-    #                my $last := @keys.pop;
-    #                my $hash  = self;
-    #                $hash = $hash{$_} //= self.new for @keys;
-    #                nqp::push(
-    #                  nqp::p6listitems(nqp::decont($hash{$last} //= [])),
-    #                  &as ?? as($l) !! $l
-    #                );
-    #            }
-    #        }
-    #
-    #        # simple classify to store a specific value
-    #        elsif &as {
-    #            @list.map: {
-    #                nqp::push(
-    #                  nqp::p6listitems(nqp::decont(self{test $_} //= [])),
-    #                  as($_)
-    #                )
-    #            }
-    #        }
-    #
-    #        # just a simple classify
-    #        else {
-    #            @list.map: {
-    #                nqp::push(
-    #                  nqp::p6listitems(nqp::decont(self{test $_} //= [])),
-    #                  $_
-    #                )
-    #            }
-    #        }
-    #    }
-    #    self;
-    #}
+    multi method classify-list( &test, @list, :&as ) {
+        fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
+        if @list {
+
+            # multi-level classify
+            if nqp::istype(test(@list[0]),List) {
+                @list.map: -> $l {
+                    my @keys  = test($l);
+                    my $last := @keys.pop;
+                    my $hash  = self;
+                    $hash = $hash{$_} //= self.new for @keys;
+                    nqp::push(
+                      nqp::getattr(nqp::decont($hash{$last} //= []), List, '$!reified'),
+                      &as ?? as($l) !! $l
+                    );
+                }
+            }
+
+            # simple classify to store a specific value
+            elsif &as {
+                @list.map: {
+                    nqp::push(
+                      nqp::getattr(nqp::decont(self{test $_} //= []), List, '$!reified'),
+                      as($_)
+                    )
+                }
+            }
+
+            # just a simple classify
+            else {
+                @list.map: {
+                    nqp::push(
+                      nqp::getattr(nqp::decont(self{test $_} //= []), List, '$!reified'),
+                      $_
+                    )
+                }
+            }
+        }
+        self;
+    }
     multi method classify-list( %test, $list, |c ) {
         self.classify-list( { %test{$^a} }, $list, |c );
     }

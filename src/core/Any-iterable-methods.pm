@@ -433,6 +433,11 @@ augment class Any {
         unless iter.push-until-lazy(sort-buffer) =:= IterationEnd {
             fail X::Cannot::Infinite.new(:action<sort>);
         }
+        my $iteration-buffer;
+        if $transform {
+            $iteration-buffer := IterationBuffer.new;
+            as-iterable(self).iterator.push-until-lazy($iteration-buffer)
+        }
 
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as
@@ -458,7 +463,9 @@ augment class Any {
                 }));
 
         my \indices-list = nqp::p6bindattrinvres(List.CREATE, List, '$!reified', indices);
-        indices-list.map(-> int $i { nqp::atpos(sort-buffer, $i) })
+        $transform
+            ?? indices-list.map(-> int $i { nqp::atpos($iteration-buffer, $i) })
+            !! indices-list.map(-> int $i { nqp::atpos(sort-buffer,       $i) })
     }
 
     proto method reduce(|) { * }

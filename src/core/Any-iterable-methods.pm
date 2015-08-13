@@ -127,7 +127,52 @@ augment class Any {
             }.new(&block, source));
         }
         else {
-            die "map with .count > 1 NYI";
+            # XXX GLR please rewrite this.
+            Seq.new(class :: does MapIterCommon {
+                method pull-one() is rw {
+                    my int $redo = 1;
+                    my $value := Array.new;
+                    my $result;
+                    my $results;
+                    if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+                        $result
+                    }
+                    elsif ($!source.push-exactly($value, $count)) =:= IterationEnd {
+                        # XXX GLR does'nt handle $value.elems < $count yet!
+                        IterationEnd
+                    }
+                    else {
+                        nqp::while(
+                            $redo,
+                            nqp::stmts(
+                                $redo = 0,
+                                nqp::handle(
+                                    nqp::stmts(
+                                        ($result := &!block(|$value)),
+                                        nqp::if(
+                                            nqp::istype($result, Slip),
+                                            nqp::stmts(
+                                                ($result := self.start-slip($result)),
+                                                nqp::if(
+                                                    nqp::eqaddr($result, IterationEnd),
+                                                    nqp::stmts(
+                                                        ($results := $!source.push-exactly($value, $count)),
+                                                        ($redo = 1 unless nqp::eqaddr($results, IterationEnd))
+                                                ))
+                                            ))
+                                    ),
+                                    'NEXT', nqp::stmts(
+                                        ($results := $!source.push-exactly($value, $count)),
+                                        nqp::eqaddr($results, IterationEnd)
+                                            ?? ($result := IterationEnd)
+                                            !! ($redo = 1)),
+                                    'REDO', $redo = 1,
+                                    'LAST', ($result := IterationEnd))),
+                            :nohandler);
+                        $result
+                    }
+                }
+            }.new(&block, source));
         }
     }
 

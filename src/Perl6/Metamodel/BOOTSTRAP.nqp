@@ -1574,8 +1574,10 @@ BEGIN {
 
     # class Block is Code {
     #     has Mu $!phasers;                # phasers for this block
+    #     has Mu $!why;
     Block.HOW.add_parent(Block, Code);
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
+    Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Block)));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
             my $cloned    := nqp::clone($dcself);
@@ -1586,6 +1588,12 @@ BEGIN {
             my $compstuff := nqp::getattr($dcself, Code, '$!compstuff');
             unless nqp::isnull($compstuff) {
                 $compstuff[2]($do, $cloned);
+            }
+            # XXX this should probably be done after the clone that installs
+            #     the sub
+            my $why := nqp::getattr($dcself, Block, '$!why');
+            unless nqp::isnull($why) {
+                $why.set_docee($cloned);
             }
             $cloned
         }));
@@ -1603,7 +1611,6 @@ BEGIN {
     #     has int $!onlystar;
     #     has Mu $!dispatch_order;
     #     has Mu $!dispatch_cache;
-    #     has Mu $!why;
     Routine.HOW.add_parent(Routine, Block);
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
@@ -1615,7 +1622,6 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_order>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
@@ -2503,18 +2509,6 @@ BEGIN {
             my $dcself := nqp::decont($self);
             nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
             $dcself
-        }));
-    Routine.HOW.add_method(Routine, 'clone', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my $cloned := nqp::findmethod(Block, 'clone')($self);
-
-            # XXX this should probably be done after the clone that installs
-            #     the sub
-            my $why := nqp::getattr($dcself, Routine, '$!why');
-            unless nqp::isnull($why) {
-                $why.set_docee($cloned);
-            }
-            $cloned
         }));
     Routine.HOW.compose_repr(Routine);
     Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');

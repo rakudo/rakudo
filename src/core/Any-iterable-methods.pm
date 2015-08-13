@@ -424,19 +424,21 @@ augment class Any {
     }
 
     method sort(&by = &infix:<cmp>) is nodal {
-        # Obtain all the things to sort, applying any transform first.
-        my $transform = (&by.?count // 2) < 2;
-        my \iter = $transform
-            ?? self.map(&by).iterator
-            !! as-iterable(self).iterator;
+        # Obtain all the things to sort.
+        my \iter = as-iterable(self).iterator;
         my \sort-buffer = IterationBuffer.new;
         unless iter.push-until-lazy(sort-buffer) =:= IterationEnd {
             fail X::Cannot::Infinite.new(:action<sort>);
         }
-        my $iteration-buffer;
+
+        # Apply any transform.
+        my $transform = (&by.?count // 2) < 2;
+        my $transform-buffer;
         if $transform {
-            $iteration-buffer := IterationBuffer.new;
-            as-iterable(self).iterator.push-until-lazy($iteration-buffer)
+            $transform-buffer := IterationBuffer.new;
+            my \to-map = nqp::p6bindattrinvres(List.CREATE, List, '$!reified',
+                sort-buffer);
+            to-map.map(&by).iterator.push-all($transform-buffer);
         }
 
         # Instead of sorting elements directly, we sort a Parcel of
@@ -454,7 +456,7 @@ augment class Any {
 
         nqp::p6sort(indices, $transform
             ?? (-> int $a, int $b {
-                    nqp::atpos(sort-buffer, $a) cmp nqp::atpos(sort-buffer, $b)
+                    nqp::atpos($transform-buffer, $a) cmp nqp::atpos($transform-buffer, $b)
                         || $a <=> $b
                 })
             !! (-> int $a, int $b {
@@ -463,9 +465,7 @@ augment class Any {
                 }));
 
         my \indices-list = nqp::p6bindattrinvres(List.CREATE, List, '$!reified', indices);
-        $transform
-            ?? indices-list.map(-> int $i { nqp::atpos($iteration-buffer, $i) })
-            !! indices-list.map(-> int $i { nqp::atpos(sort-buffer,       $i) })
+        indices-list.map(-> int $i { nqp::atpos(sort-buffer,       $i) })
     }
 
     proto method reduce(|) { * }

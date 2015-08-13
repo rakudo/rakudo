@@ -57,6 +57,26 @@ my class Seq does Iterable does PositionalBindFailover {
         Array.from-iterator(self.iterator)
     }
 
+    method Numeric() {
+        self.list.Numeric
+    }
+
+    method Int() {
+        self.list.Int
+    }
+
+    multi method Str(Seq:D:) {
+        self.list.Str
+    }
+
+    multi method Stringy(Seq:D:) {
+        self.list.Stringy
+    }
+
+    multi method gist(Seq:D:) {
+        self.list.gist
+    }
+
     method sink() {
         self.iterator.sink-all;
         Nil

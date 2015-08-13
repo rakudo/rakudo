@@ -250,9 +250,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method elems(List:D:) is nodal {
         self!ensure-allocated;
-        $!todo.DEFINITE
-            ?? $!todo.reify-all()
-            !! nqp::elems($!reified)
+        if $!todo.DEFINITE {
+            $!todo.reify-until-lazy();
+            if $!todo.fully-reified {
+                $!todo := Mu;
+            }
+            else {
+                fail X::Cannot::Infinite.new(:action('.elems'));
+            }
+        }
+        nqp::elems($!reified)
     }
 
     multi method AT-POS(List:D: Int $pos) is rw {

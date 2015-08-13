@@ -1912,6 +1912,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sigil> '{' {} $<text>=[.*?] '}'
         <!{ $*IN_DECL }>
         <!{ $*QSIGIL }>
+        <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
         <?{
             my $sigil := $<sigil>.Str;
             my $text := $<text>.Str;
@@ -1950,7 +1951,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <special_variable>
         | <sigil> $<index>=[\d+]                              [<?{ $*IN_DECL }> <.typed_panic: "X::Syntax::Variable::Numeric">]?
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
-        | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
+        | <?before <sigil> <?[ ( [ { ]>> <contextualizer>
         | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
@@ -1958,6 +1959,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>
         ]?
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
+    }
+
+    token contextualizer {
+        :dba('contextualizer')
+        [ <?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer"> ]?
+        [
+        | <sigil> '(' ~ ')'    <coercee=sequence>
+        | <sigil> <?[ \[ \{ ]> <coercee=circumfix>
+        ]
     }
 
     token sigil { <[$@%&]> }

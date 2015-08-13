@@ -1800,48 +1800,8 @@ Compilation unit '$file' contained the following violations:
                 $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
             }
         }
-        elsif $<sequence> {
-            $past := $<sequence>.ast;
-            if $<sigil> eq '$' && ~$<sequence> eq '' { # for '$()'
-                my $result_var := $past.unique('sm_result');
-                $past := QAST::Stmt.new(
-                    # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
-                    # return value to a result variable.
-                    QAST::Op.new( :op('bind'),
-                        QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
-                        QAST::Op.new(
-                            :op('if'),
-                            # condition
-                            QAST::Op.new(
-                                :op('callmethod'), :name('ast'),
-                                QAST::Var.new( :name('$/'), :scope('lexical') )
-                            ),
-                            # when true
-                            QAST::Op.new(
-                                :op('callmethod'), :name('ast'),
-                                QAST::Var.new( :name('$/'), :scope('lexical') )
-                            ),
-                            # when false
-                            QAST::Op.new(
-                                :op('callmethod'), :name('Str'),
-                                QAST::Var.new( :name('$/'), :scope('lexical') )
-                            )
-                        )
-                    ),
-                    # And finally evaluate to the smart-match result.
-                    QAST::Var.new( :name($result_var), :scope('local') )
-                );
-                $past := QAST::Op.new( :op('locallifetime'), $past, $result_var );
-            }
-            else {
-                my $name := ~$<sigil> eq '@' ?? 'list' !!
-                            ~$<sigil> eq '%' ?? 'hash' !!
-                                                'item';
-                # @() and %()
-                $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if ~$<sequence> eq '';
-
-                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
-            }
+        elsif $<contextualizer> {
+            $past := $<contextualizer>.ast;
         }
         elsif $<infixish> {
             my $name := '&infix:<' ~ $<infixish>.Str ~ '>';
@@ -1892,6 +1852,51 @@ Compilation unit '$file' contained the following violations:
         }
         if $*IN_DECL eq 'variable' {
             $past.annotate('sink_ok', 1);
+        }
+        make $past;
+    }
+
+    method contextualizer($/) {
+        my $past := $<coercee>.ast;
+        if $<sigil> eq '$' && ~$<coercee> eq '' { # for '$()'
+            my $result_var := $past.unique('sm_result');
+            $past := QAST::Stmt.new(
+                # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
+                # return value to a result variable.
+                QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
+                    QAST::Op.new(
+                        :op('if'),
+                        # condition
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ast'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        ),
+                        # when true
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ast'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        ),
+                        # when false
+                        QAST::Op.new(
+                            :op('callmethod'), :name('Str'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        )
+                    )
+                ),
+                # And finally evaluate to the smart-match result.
+                QAST::Var.new( :name($result_var), :scope('local') )
+            );
+            $past := QAST::Op.new( :op('locallifetime'), $past, $result_var );
+        }
+        else {
+            my $name := ~$<sigil> eq '@' ?? 'list' !!
+                        ~$<sigil> eq '%' ?? 'hash' !!
+                                            'item';
+            # @() and %()
+            $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if ~$<coercee> eq '';
+
+            $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
         }
         make $past;
     }

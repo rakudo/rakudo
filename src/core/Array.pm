@@ -184,8 +184,8 @@ my class Array { # declared in BOOTSTRAP
     #}
 
     multi method push(Array:D: \value) {
+        self!ensure-allocated();
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
-            self!ensure-allocated();
             my $todo := nqp::getattr(self, List, '$!todo');
             if $todo.DEFINITE {
                 $todo.reify-until-lazy();
@@ -200,11 +200,14 @@ my class Array { # declared in BOOTSTRAP
             self
         }
         else {
-            callsame();
+            self!push-list(value.list)
         }
     }
-    multi method push(Array:D: **@values) {
+    multi method push(Array:D: **@values is rw) {
         self!ensure-allocated();
+        self!push-list(@values)
+   }
+   method !push-list(@values) {
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {
             $todo.reify-until-lazy();
@@ -237,19 +240,21 @@ my class Array { # declared in BOOTSTRAP
             self
         }
         else {
-            callsame();
+            self!unshift-list(value.list)
         }
     }
-    # XXX GLR
-    #multi method unshift(Array:D: *@values) {
+    multi method unshift(Array:D: **@values is rw) {
+        self!unshift-list(@values)
+    }
+    method !unshift-list(@values) {
+        # XXX GLR
+        nqp::die('multi-item unshift NYI');
     #    fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
     #      if @values.infinite;
     #    nqp::p6listitems(self);
     #    my $elems = self.gimme(*);
-    #    fail X::Cannot::Infinite.new(:action('.push to'))
-    #      if self.infinite;
     #
-    #    # push is always eager
+    #    # unshift is always eager
     #    @values.gimme(*);
     #
     #    self.gimme(*);
@@ -261,7 +266,7 @@ my class Array { # declared in BOOTSTRAP
     #    }
     #
     #    self;
-    #}
+    }
 
     method pop(Array:D:) is parcel is nodal {
         self!ensure-allocated();

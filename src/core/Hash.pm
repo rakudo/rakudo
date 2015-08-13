@@ -366,7 +366,22 @@ my class Hash { # declared in BOOTSTRAP
         # XXX GLR
         method keys(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            nqp::die('Typed hash keys iterator NYI in GLR')
+            Seq.new(class :: does Iterator {
+                has $!hash-iter;
+
+                method new(\hash, $class) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!hash-iter',
+                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
+                    iter
+                }
+
+                method pull-one() {
+                    $!hash-iter
+                        ?? nqp::iterval(nqp::shift($!hash-iter))
+                        !! IterationEnd
+                }
+            }.new(self, $?CLASS))
         }
         method kv(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);

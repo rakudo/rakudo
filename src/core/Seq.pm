@@ -281,24 +281,26 @@ sub GATHER(&block) {
             my \iter = self.CREATE;
             my int $wanted;
             my $taken;
+            my $taker := {
+                nqp::stmts(
+                    ($taken := nqp::getpayload(nqp::exception())),
+                    nqp::if(nqp::istype($taken, Slip),
+                        nqp::stmts(
+                            iter!start-slip-wanted($taken),
+                            ($wanted = nqp::getattr_i(iter, self, '$!wanted'))),
+                        nqp::stmts(
+                            nqp::getattr(iter, self, '$!push-target').push($taken),
+                            ($wanted = nqp::bindattr_i(iter, self, '$!wanted',
+                                nqp::sub_i(nqp::getattr_i(iter, self, '$!wanted'), 1))))),
+                    nqp::if(nqp::iseq_i($wanted, 0),
+                        nqp::continuationcontrol(0, PROMPT, -> Mu \c {
+                            nqp::bindattr(iter, self, '&!resumption', c);
+                        })),
+                    nqp::resume(nqp::exception())
+                )
+            }
             nqp::bindattr(iter, self, '&!resumption', {
-                nqp::handle(&block(),
-                    'TAKE', nqp::stmts(
-                        ($taken := nqp::getpayload(nqp::exception())),
-                        nqp::if(nqp::istype($taken, Slip),
-                            nqp::stmts(
-                                iter!start-slip-wanted($taken),
-                                ($wanted = nqp::getattr_i(iter, self, '$!wanted'))),
-                            nqp::stmts(
-                                nqp::getattr(iter, self, '$!push-target').push($taken),
-                                ($wanted = nqp::bindattr_i(iter, self, '$!wanted',
-                                    nqp::sub_i(nqp::getattr_i(iter, self, '$!wanted'), 1))))),
-                        nqp::if(nqp::iseq_i($wanted, 0),
-                            nqp::continuationcontrol(0, PROMPT, -> Mu \c {
-                                nqp::bindattr(iter, self, '&!resumption', c);
-                            })),
-                        nqp::resume(nqp::exception())
-                    ));
+                nqp::handle(&block(), 'TAKE', $taker());
                 nqp::continuationcontrol(0, PROMPT, -> | {
                     nqp::bindattr(iter, self, '&!resumption', Callable)
                 });

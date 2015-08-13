@@ -247,25 +247,21 @@ my class Array { # declared in BOOTSTRAP
         self!unshift-list(@values)
     }
     method !unshift-list(@values) {
-        # XXX GLR
-        nqp::die('multi-item unshift NYI');
-    #    fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
-    #      if @values.infinite;
-    #    nqp::p6listitems(self);
-    #    my $elems = self.gimme(*);
-    #
-    #    # unshift is always eager
-    #    @values.gimme(*);
-    #
-    #    self.gimme(*);
-    #    while @values {
-    #        nqp::unshift(
-    #          nqp::getattr(self,List,'$!items'),
-    #          nqp::assign(nqp::p6scalarfromdesc($!descriptor), @values.pop)
-    #        );
-    #    }
-    #
-    #    self;
+        self!ensure-allocated();
+        my $todo := nqp::getattr(self, List, '$!todo');
+        if $todo.DEFINITE {
+            $todo.reify-until-lazy();
+            fail X::Cannot::Infinite.new(action => '.unshift to')
+                unless $todo.fully-reified;
+            nqp::bindattr(self, List, '$!todo', Mu);
+        }
+        # unshift is always eager
+        @values.elems;
+        nqp::unshift(
+            nqp::getattr(self, List, '$!reified'),
+            nqp::assign(nqp::p6scalarfromdesc($!descriptor), @values.pop)
+        );
+        self;
     }
 
     method pop(Array:D:) is parcel is nodal {

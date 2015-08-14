@@ -6644,7 +6644,7 @@ Compilation unit '$file' contained the following violations:
             $use_vm_binder := nqp::getcomp('perl6').backend.name eq 'moar';
         }
         if $use_vm_binder {
-            # If there are zero parameters, then we can trvially leave it to
+            # If there are zero parameters, then we can trivially leave it to
             # the VM, with no extra work.
             if nqp::elems(@params) == 0 {
                 $need_full_binder := 0;

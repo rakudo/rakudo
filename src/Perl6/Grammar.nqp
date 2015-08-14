@@ -289,6 +289,22 @@ role STD {
         self.typed_panic('X::Syntax::DuplicatedPrefix', :$prefixes);
     }
 
+    method mark_variable_used($name) {
+        my $lex := $*W.cur_lexpad();
+        my %sym := $lex.symbol($name);
+        if %sym {
+            %sym<used> := 1;
+        }
+        else {
+            # Add mention-only record (used to poison outer
+            # usages and disambiguate hashes/blocks by use of
+            # $_ when $*IMPLICIT is in force).
+            my $au := $lex.ann('also_uses');
+            $lex.annotate('also_uses', $au := {}) unless $au;
+            $au{$name} := 1;
+        }
+    }
+
     method check_variable($var) {
         my $varast := $var.ast;
         if nqp::istype($varast, QAST::Op) && $varast.op eq 'ifnull' {
@@ -323,19 +339,7 @@ role STD {
                 }
             }
             else {
-                my $lex := $*W.cur_lexpad();
-                my %sym := $lex.symbol($name);
-                if %sym {
-                    %sym<used> := 1;
-                }
-                else {
-                    # Add mention-only record (used to poison outer
-                    # usages and disambiguate hashes/blocks by use of
-                    # $_ when $*IMPLICIT is in force).
-                    my $au := $lex.ann('also_uses');
-                    $lex.annotate('also_uses', $au := {}) unless $au;
-                    $au{$name} := 1;
-                }
+                self.mark_variable_used($name);
             }
         }
         if !$*IN_DECL && nqp::istype($varast, QAST::Op) && $varast.name eq '&DYNAMIC' {
@@ -3150,7 +3154,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token term:sym<dotty> { <dotty> }
+    token term:sym<dotty> { <dotty> { self.mark_variable_used('$_') } }
 
     token term:sym<capterm> { <capterm> }
 

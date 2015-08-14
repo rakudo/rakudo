@@ -108,7 +108,7 @@ my class Hash { # declared in BOOTSTRAP
 
     method push(*@values) {
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
-          if @values.infinite;
+          if @values.is-lazy;
         my $previous;
         my $has_previous;
         for @values -> $e {

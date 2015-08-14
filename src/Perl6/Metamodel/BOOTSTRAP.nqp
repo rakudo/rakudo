@@ -302,7 +302,7 @@ my class Binder {
                             my $what  := $flags +& $SIG_ELEM_INVOCANT
                               ?? "Invocant"
                               !! "Parameter '$varname'";
-                            $error[0] := "$what requires a type object of type $class, but an object instance was passed";
+                            $error[0] := "$what requires a type object of type $class, but an object instance was passed.  Did you forget a 'multi'?";
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION

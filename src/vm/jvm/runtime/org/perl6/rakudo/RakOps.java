@@ -66,7 +66,7 @@ public final class RakOps {
     private static final int HINT_PARCEL_STORAGE = 0;
     private static final int HINT_CODE_DO = 0;
     private static final int HINT_CODE_SIG = 1;
-    private static final int HINT_ROUTINE_RW = 7;
+    private static final int HINT_ROUTINE_RW = 8;
     private static final int HINT_SIG_PARAMS = 0;
     private static final int HINT_SIG_RETURNS = 1;
     private static final int HINT_SIG_CODE = 4;

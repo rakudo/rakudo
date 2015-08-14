@@ -241,13 +241,16 @@ my class Array { # declared in BOOTSTRAP
         self!unshift-list(@values)
     }
     method !unshift-list(@values) {
+        my \containers := IterationBuffer.CREATE;
+        my \target := ArrayReificationTarget.new(containers,
+            nqp::decont($!descriptor));
+
+        my \iter := @values.iterator;
+        iter.push-all(target);
+
         self!ensure-allocated();
-        # unshift is always eager
-        @values.elems;
-        nqp::unshift(
-            nqp::getattr(self, List, '$!reified'),
-            nqp::assign(nqp::p6scalarfromdesc($!descriptor), @values.pop)
-        );
+        nqp::splice(nqp::getattr(self, List, '$!reified'),
+                    containers, 0, 0);
         self;
     }
 

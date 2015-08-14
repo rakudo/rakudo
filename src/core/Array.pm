@@ -50,6 +50,23 @@ my class Array { # declared in BOOTSTRAP
             unless nqp::getattr(self, List, '$!reified').DEFINITE;
     }
 
+    method is-lazy() {
+        my $todo := nqp::getattr(self, List, '$!todo');
+        if $todo.DEFINITE {
+            $todo.reify-until-lazy();
+            if $todo.fully-reified {
+                nqp::bindattr(self, List, '$!todo', Mu);
+                False;
+            }
+            else {
+                True;
+            }
+        }
+        else {
+            False
+        }
+    }
+
     proto method STORE(|) { * }
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::iscont(iterable)
@@ -187,13 +204,8 @@ my class Array { # declared in BOOTSTRAP
     multi method push(Array:D: \value) {
         self!ensure-allocated();
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
-            my $todo := nqp::getattr(self, List, '$!todo');
-            if $todo.DEFINITE {
-                $todo.reify-until-lazy();
-                fail X::Cannot::Lazy.new(action => '.push to')
-                    unless $todo.fully-reified;
-                nqp::bindattr(self, List, '$!todo', Mu);
-            }
+            fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
+
             nqp::push(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -209,13 +221,8 @@ my class Array { # declared in BOOTSTRAP
         self!push-list(@values)
    }
    method !push-list(@values) {
-        my $todo := nqp::getattr(self, List, '$!todo');
-        if $todo.DEFINITE {
-            $todo.reify-until-lazy();
-            fail X::Cannot::Lazy.new(action => '.push to')
-                unless $todo.fully-reified;
-            nqp::bindattr(self, List, '$!todo', Mu);
-        }
+        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
+
         my \values-iter = @values.iterator;
         my $reified := nqp::getattr(self, List, '$!reified');
         unless values-iter.push-until-lazy($reified) =:= IterationEnd {
@@ -227,13 +234,8 @@ my class Array { # declared in BOOTSTRAP
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
-            my $todo := nqp::getattr(self, List, '$!todo');
-            if $todo.DEFINITE {
-                $todo.reify-until-lazy();
-                fail X::Cannot::Lazy.new(action => '.unshift to')
-                    unless $todo.fully-reified;
-                nqp::bindattr(self, List, '$!todo', Mu);
-            }
+            fail X::Cannot::Lazy.new(action => 'unshift to') if self.is-lazy;
+
             nqp::unshift(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -249,13 +251,8 @@ my class Array { # declared in BOOTSTRAP
     }
     method !unshift-list(@values) {
         self!ensure-allocated();
-        my $todo := nqp::getattr(self, List, '$!todo');
-        if $todo.DEFINITE {
-            $todo.reify-until-lazy();
-            fail X::Cannot::Lazy.new(action => '.unshift to')
-                unless $todo.fully-reified;
-            nqp::bindattr(self, List, '$!todo', Mu);
-        }
+        fail X::Cannot::Lazy.new(action => 'unshift to') if self.is-lazy;
+
         # unshift is always eager
         @values.elems;
         nqp::unshift(
@@ -267,14 +264,9 @@ my class Array { # declared in BOOTSTRAP
 
     method pop(Array:D:) is parcel is nodal {
         self!ensure-allocated();
-        my $todo := nqp::getattr(self, List, '$!todo');
+        fail X::Cannot::Lazy.new(action => 'pop from') if self.is-lazy;
+
         my $reified := nqp::getattr(self, List, '$!reified');
-        if $todo.DEFINITE {
-            $todo.reify-until-lazy();
-            fail X::Cannot::Lazy.new(action => '.pop from')
-                unless $todo.fully-reified;
-            nqp::bindattr(self, List, '$!todo', Mu);
-        }
         nqp::elems($reified)
             ?? nqp::pop($reified)
             !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));

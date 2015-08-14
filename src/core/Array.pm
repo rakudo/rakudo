@@ -234,7 +234,6 @@ my class Array { # declared in BOOTSTRAP
     multi method unshift(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
-            fail X::Cannot::Lazy.new(action => 'unshift to') if self.is-lazy;
 
             nqp::unshift(
                 nqp::getattr(self, List, '$!reified'),
@@ -251,7 +250,6 @@ my class Array { # declared in BOOTSTRAP
     }
     method !unshift-list(@values) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'unshift to') if self.is-lazy;
 
         # unshift is always eager
         @values.elems;

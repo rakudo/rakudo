@@ -229,7 +229,7 @@ my role Baggy does QuantHash {
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<classify>) if @list.infinite;
+        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
         if @list {
 
             # multi-level classify
@@ -259,7 +259,7 @@ my role Baggy does QuantHash {
 
     proto method categorize-list(|) { * }
     multi method categorize-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<categorize>) if @list.infinite;
+        fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
         if @list {
 
             # multi-level categorize

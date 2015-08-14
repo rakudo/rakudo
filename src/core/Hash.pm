@@ -131,7 +131,7 @@ my class Hash { # declared in BOOTSTRAP
     proto method classify-list(|) { * }
     # XXX GLR possibly more efficient taking an Iterable, not a @list
     multi method classify-list( &test, @list, :&as ) {
-        fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
+        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
         if @list {
 
             # multi-level classify
@@ -181,7 +181,7 @@ my class Hash { # declared in BOOTSTRAP
     # XXX GLR possibly more efficient taking an Iterable, not a @list
     # XXX GLR replace p6listitems op use
     #multi method categorize-list( &test, @list, :&as ) {
-    #    fail X::Cannot::Lazy.new(:action<categorize>) if @list.infinite;
+    #    fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
     #    if @list {
     #
     #        # multi-level categorize

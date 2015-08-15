@@ -6196,9 +6196,8 @@ Compilation unit '$file' contained the following violations:
     }
 
     method signed-integer($/) {
-        my $qast := $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
-        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast) if $<sign> eq '-';
-        make $qast;
+        make $*W.add_numeric_constant($/, 'Int',
+            $<sign> eq '-' ?? -$<integer>.ast !! $<integer>.ast);
     }
 
     method signed-number($/) {
@@ -6265,9 +6264,9 @@ Compilation unit '$file' contained the following violations:
     method rat_number($/) { make $<bare_rat_number>.ast }
 
     method bare_rat_number($/) {
-        my $nu := $*W.add_constant('Int', 'int', +~$<nu>);
-        my $de := $*W.add_constant('Int', 'int', +~$<de>);
-        make $*W.add_constant('Rat', 'type_new', $nu.compile_time_value, $de.compile_time_value, :nocache(1));
+        my $nu := @($<nu>.ast)[0].compile_time_value;
+        my $de := $<de>.ast;
+        make $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
     }
 
     method bare_complex_number($/) {

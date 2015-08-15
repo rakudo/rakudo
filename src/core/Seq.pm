@@ -86,16 +86,20 @@ my class Seq does Iterable does PositionalBindFailover {
         Nil
     }
 
-    multi method AT-POS(Seq:D: $) {
-        X::Seq::NotIndexable.new.throw
+    multi method AT-POS(Seq:D: Int $idx) {
+        self.list.AT-POS($idx)
     }
 
-    multi method EXISTS-POS(Seq:D: $) {
-        X::Seq::NotIndexable.new.throw
+    multi method AT-POS(Seq:D: int $idx) {
+        self.list.AT-POS($idx)
     }
 
-    multi method DELETE-POS(Seq:D: $) {
-        X::Seq::NotIndexable.new.throw
+    multi method EXISTS-POS(Seq:D: Int $idx) {
+        self.list.EXISTS-POS($idx)
+    }
+
+    multi method EXISTS-POS(Seq:D: int $idx) {
+        self.list.EXISTS-POS($idx)
     }
 
     # Lazy loops produce a Seq wrapping a loop iterator. We have a few

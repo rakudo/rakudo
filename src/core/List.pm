@@ -528,7 +528,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
 
-    # XXX GLR
     proto method pick(|) is nodal { * }
     multi method pick() {
         fail X::Cannot::Lazy.new(:action('.pick from'))
@@ -597,7 +596,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
 
-    # XXX GLR
     proto method roll(|) is nodal { * }
     multi method roll() {
         fail X::Cannot::Lazy.new(:action('.roll from'))

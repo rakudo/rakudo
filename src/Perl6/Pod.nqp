@@ -32,7 +32,14 @@ class Perl6::Pod {
         }
 
         for $<pod_content> {
-            @children.push($_.ast);
+            my $array := $_.ast;
+            my $i     := 0;
+            my $elems := $array.elems;
+
+            while $i < $elems {
+                @children.push($array.AT-POS($i));
+                $i++;
+            }
         }
 
         my $contents := serialize_array(@children);

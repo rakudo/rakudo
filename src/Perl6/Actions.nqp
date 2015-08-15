@@ -6210,37 +6210,100 @@ Compilation unit '$file' contained the following violations:
     }
 
     method dec_number($/) {
-#        say("dec_number: $/");
-        if $<escale> {
-#            say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($<escale>.ast), :num);
+        my $Int := $*W.find_symbol(['Int']);
+        my $parti;
+        my $partf;
+
+        # we build up the number in parts
+        if nqp::chars($<int>) {
+            $parti := $<int>.ast;
         } else {
-            make radcalc($/, 10, $<coeff>);
+            $parti := nqp::box_i(0, $Int);
+        }
+
+        if nqp::chars($<frac>) {
+            $partf := nqp::radix_I(10, $<frac>.Str, 0, 4, $Int);
+
+            $parti := nqp::mul_I($parti, $partf[1], $Int);
+            $parti := nqp::add_I($parti, $partf[0], $Int);
+
+            $partf := nqp::tonum_I($partf[1]);
+        } else {
+            $partf := 1.0;
+        }
+
+        if $<escale> { # wants a Num
+            $parti := nqp::tonum_I($parti);
+
+            if $parti != 0.0 {
+                $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
+            }
+            $parti := nqp::div_n($parti, $partf);
+
+            make $*W.add_numeric_constant($/, 'Num', $parti);
+        } else { # wants a Rat
+            make $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
         }
     }
 
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
-        if $<bracket>   {
+
+        if $<bracket> { # the "list of place values" case
             make QAST::Op.new(:name('&UNBASE_BRACKET'), :op('call'),
                 $*W.add_numeric_constant($/, 'Int', $radix), $<bracket>.ast);
         }
-        elsif $<circumfix> {
+        elsif $<circumfix> { # the "conversion function" case
             make QAST::Op.new(:name('&UNBASE'), :op('call'),
                 $*W.add_numeric_constant($/, 'Int', $radix), $<circumfix>.ast);
-        } else {
-            my $intpart  := $<intpart>.Str;
-            my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
-            my $intfrac  := $intpart ~ $fracpart; #the dot is a part of $fracpart, so no need for ~ "." ~
+        } else { # the "string literal" case
+            my $Int := $*W.find_symbol(['Int']);
 
-            my $base;
-            my $exp;
-            $base   := +($<base>[0].Str) if $<base>;
-            $exp    := +($<exp>[0].Str)  if $<exp>;
+            $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix) unless (2 <= $radix) && ($radix <= 36);
 
-            my $error;
-            make radcalc($/, $radix, $intfrac, $base, $exp);
+            # override $radix if necessary
+            if nqp::chars($<ohradix>) {
+                my $ohradstr := $<ohradix>.Str;
+                if $ohradstr eq "0x" {
+                    $radix := 16;
+                } elsif $ohradstr eq "0o" {
+                    $radix := 8;
+                } elsif $ohradstr eq "0d" {
+                    $radix := 10;
+                } elsif $ohradstr eq "0b" {
+                    $radix := 2;
+                } else {
+                    $/.CURSOR.panic("Unknown radix prefix '$ohradstr'.");
+                }
+            }
+
+            my $ipart := nqp::radix_I($radix, $<intpart>.Str, 0, 0, $Int);
+            my $fpart := nqp::radix_I($radix, nqp::chars($<fracpart>) ?? $<fracpart>.Str !! ".0", 1, 4, $Int);
+            my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
+            my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
+
+            if $ipart[2] < nqp::chars($<intpart>.Str) || $fpart[2] < nqp::chars($<fracpart>.Str) {
+                $/.CURSOR.panic("Couldn't process entire number: {$ipart[2]}/{nqp::chars($<intpart>.Str)} int chars, {$fpart[2]}/{nqp::chars($<fracpart>.Str) - 1} fractional chars");
+            }
+
+            $ipart := nqp::mul_I($ipart[0], $fpart[1], $Int);
+            $ipart := nqp::add_I($ipart, $fpart[0], $Int);
+            $fpart := $fpart[1];
+
+            my $scientific := nqp::pow_n($bpart, $epart);
+            $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
+
+            if $fpart != 1 { # non-unit fractional part, wants Rat
+                make $*W.add_constant('Rat', 'type_new', $ipart, $fpart, :nocache(1));
+            } else { # wants Int
+                make $*W.add_numeric_constant($/, 'Int', $ipart);
+            }
         }
+    }
+
+    method radint($/) {
+        # XXX fix this when fixing its grammar side
+        make $<integer>.ast;
     }
 
     method complex_number($/) { make $<bare_complex_number>.ast }
@@ -7790,107 +7853,6 @@ Compilation unit '$file' contained the following violations:
     sub istype($val, $type) {
         try { return nqp::istype($val, $type) }
         0
-    }
-
-    sub strip_trailing_zeros(str $n) {
-        return $n if nqp::index($n, '.') < 0;
-        while nqp::index('_0',nqp::substr($n, -1)) >= 0 {
-            $n := nqp::substr($n, 0, nqp::chars($n) - 1);
-        }
-        $n;
-    }
-
-    # radix, $base, $exponent: native numbers (Integer or Float)
-    # $number: native string
-    # return value: PAST for Int, Rat or Num
-    sub radcalc($/, $radix, $number, $base?, $exponent?, :$num) {
-        my int $sign := 1;
-        $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix)
-            if $radix < 2 || $radix > 36;
-        nqp::die("You gave us a base for the magnitude, but you forgot the exponent.")
-            if nqp::defined($base) && !nqp::defined($exponent);
-        nqp::die("You gave us an exponent for the magnitude, but you forgot the base.")
-            if !nqp::defined($base) && nqp::defined($exponent);
-
-        if nqp::eqat($number, '-', 0) {
-            $sign := -1;
-            $number := nqp::substr($number, 1);
-        }
-        if nqp::eqat($number, '0', 0) {
-            my $radix_name := nqp::uc(nqp::substr($number, 1, 1));
-            if nqp::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $radix_name) > $radix {
-                $number := nqp::substr($number, 2);
-
-                if      $radix_name eq 'B' {
-                    $radix := 2;
-                } elsif $radix_name eq 'O' {
-                    $radix := 8;
-                } elsif $radix_name eq 'D' {
-                    $radix := 10;
-                } elsif $radix_name eq 'X' {
-                    $radix := 16;
-                } else {
-                    nqp::die("Unkonwn radix character '$radix_name' (can be b, o, d, x)");
-                }
-            }
-        }
-
-        $number := strip_trailing_zeros(~$number);
-
-        my $Int := $*W.find_symbol(['Int']);
-
-        my $iresult      := nqp::box_i(0, $Int);
-        my $fdivide      := nqp::box_i(1, $Int);
-        my $radixInt     := nqp::box_i($radix, $Int);
-        my int $idx      := -1;
-        my int $seen_dot := 0;
-        my int $chars    := nqp::chars($number);
-        while $idx < $chars - 1 {
-            $idx++;
-            my $current := nqp::uc(nqp::substr($number, $idx, 1));
-            next if $current eq '_';
-            if $current eq '.' {
-                $seen_dot := 1;
-                next;
-            }
-            my $i := nqp::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
-            nqp::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
-            $iresult := nqp::add_I(nqp::mul_I($iresult, $radixInt, $Int), nqp::box_i($i, $Int), $Int);
-            $fdivide := nqp::mul_I($fdivide, $radixInt, $Int) if $seen_dot;
-        }
-
-        $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int), $Int);
-
-        if $num {
-            if nqp::bool_I($iresult) {
-                my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
-                return $*W.add_numeric_constant($/, 'Num', $result);
-            } else {
-                return $*W.add_numeric_constant($/, 'Num', 0e0);
-            }
-        } else {
-            if nqp::defined($exponent) {
-                $iresult := nqp::mul_I(
-                            $iresult,
-                            nqp::pow_I(
-                                nqp::box_i($base,     $iresult),
-                                nqp::box_i($exponent, $iresult),
-                                $*W.find_symbol(['Num']),
-                                $Int,
-                           ),
-                           $Int,
-                        );
-            }
-            if $seen_dot {
-                # add_constant special-cases Rat, so there is
-                # no need to add $iresult and $fdivide first
-                return $*W.add_constant('Rat', 'type_new',
-                    $iresult, $fdivide, :nocache(1)
-                );
-            } else {
-                return $*W.add_numeric_constant($/, 'Int', $iresult);
-            }
-        }
     }
 }
 

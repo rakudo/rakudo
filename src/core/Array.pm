@@ -304,7 +304,6 @@ my class Array { # declared in BOOTSTRAP
     #    Nil;
     #}
 
-    # XXX GLR
     proto method splice(|) is nodal { * }
     multi method splice(Array:D \SELF: :$SINK) {
         if $SINK {
@@ -443,8 +442,8 @@ my class Array { # declared in BOOTSTRAP
         '[' ~ self.map({.perl}).join(', ') ~ ']';
     }
 
+    my role TypedArray[::TValue] does Positional[TValue] {
     # XXX GLR
-    #my role TypedArray[::TValue] does Positional[TValue] {
     #    method new(|) {
     #        my Mu $args := nqp::p6argvmarray();
     #        nqp::shift($args);
@@ -466,60 +465,33 @@ my class Array { # declared in BOOTSTRAP
     #
     #        $list;
     #    }
-    #    multi method AT-POS(Int() $pos) is rw {
-    #        if self.EXISTS-POS($pos) {
-    #            nqp::atpos(
-    #              nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos)
-    #            );
-    #        }
-    #        else {
-    #            nqp::p6bindattrinvres(
-    #                (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
-    #                Scalar,
-    #                '$!whence',
-    #                -> { nqp::bindpos(
-    #                  nqp::getattr(self,List,'$!items'), nqp::unbox_i($pos), v) }
-    #            );
-    #        }
-    #    }
-    #    multi method AT-POS(int $pos) is rw {
-    #        if self.EXISTS-POS($pos) {
-    #            nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
-    #        }
-    #        else {
-    #            nqp::p6bindattrinvres(
-    #                (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
-    #                Scalar,
-    #                '$!whence',
-    #                -> { nqp::bindpos(nqp::getattr(self, List,'$!items'), $pos, v)}
-    #            );
-    #        }
-    #    }
-    #    multi method BIND-POS(Int() $pos, TValue \bindval) is rw {
-    #        self.gimme($pos + 1);
-    #        nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval)
-    #    }
-    #    multi method BIND-POS(int $pos, TValue \bindval) is rw {
-    #        self.gimme($pos + 1);
-    #        nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
-    #    }
-    #    multi method perl(::?CLASS:D \SELF:) {
-    #        my $args = self.map({ ($_ // TValue).perl(:arglist)}).join(', ');
-    #        'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
-    #    }
-    #    # XXX some methods to come here...
-    #}
-    #method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
-    #    if c.elems == 0 {
-    #        my $what := arr.^mixin(TypedArray[t]);
-    #        # needs to be done in COMPOSE phaser when that works
-    #        $what.^set_name("{arr.^name}[{t.^name}]");
-    #        $what;
-    #    }
-    #    else {
-    #        die "Can only type-constrain Array with [ValueType]"
-    #    }
-    #}
+        multi method BIND-POS(Int $pos, TValue \bindval) is rw {
+            my int $ipos = $pos;
+            my $todo := nqp::getattr(self, List, '$!todo');
+            $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
+            nqp::bindpos(nqp::getattr(self, List, '$!items'), $ipos, bindval)
+        }
+        multi method BIND-POS(int $pos, TValue \bindval) is rw {
+            my $todo := nqp::getattr(self, List, '$!todo');
+            $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
+            nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
+        }
+        multi method perl(::?CLASS:D \SELF:) {
+            my $args = self.map({ ($_ // TValue).perl(:arglist) }).join(', ');
+            'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
+        }
+    }
+    method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
+        if c.elems == 0 {
+            my $what := arr.^mixin(TypedArray[t]);
+            # needs to be done in COMPOSE phaser when that works
+            $what.^set_name("{arr.^name}[{t.^name}]");
+            $what;
+        }
+        else {
+            die "Can only type-constrain Array with [ValueType]"
+        }
+    }
 }
 
 # The [...] term creates an Array.

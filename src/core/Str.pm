@@ -1392,7 +1392,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my @to = expand $p.value;
                 if @to {
                     my $padding = $d ?? '' !! @to[@to - 1];
-                    @to = @to, $padding xx @from - @to;
+                    @to = flat @to, $padding xx @from - @to;
                 }
                 else {
                     @to = '' xx @from

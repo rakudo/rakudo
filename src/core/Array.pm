@@ -96,7 +96,8 @@ my class Array { # declared in BOOTSTRAP
     }
     method !STORE-ONE(\item) {
         my \new-storage = IterationBuffer.CREATE;
-        nqp::push(new-storage, item);
+        nqp::push(new-storage,
+            nqp::assign(nqp::p6scalarfromdesc($!descriptor), item));
         nqp::bindattr(self, List, '$!reified', new-storage);
         nqp::bindattr(self, List, '$!todo', Mu);
         self

@@ -476,9 +476,13 @@ class array does Iterable is repr('VMArray') {
     # XXX GLR will infinite survive?
     multi method infinite(array:D:) { False }
 
-    method eager() { self }
-    method flat()  { self }
-    method list()  { self }
+    # XXX GLR temporary backfill to prevent some loops
+    # method eager() { self }
+    # method flat()  { self }
+    # method list()  { self }
+    method eager() { nqp::die('XXX native array iterators need re-implementing') }
+    method flat() { nqp::die('XXX native array iterators need re-implementing') }
+    method list() { nqp::die('XXX native array iterators need re-implementing') }
 
     multi method gist(array:D:) {
         self.map(-> $elem {

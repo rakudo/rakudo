@@ -7,12 +7,6 @@ my class Pod::Block {
             DEPRECATED("Pod::Block.new(:contents)", |<2014.09 2015.09>, :up(5), :what('Pod::Block.new(:content)'));
             @!contents.push: $content.list;
         }
-        my @new-contents;
-
-        for @!contents {
-            @new-contents.push: flat @($_);
-        }
-        @!contents = @new-contents;
     }
 
     sub pod-gist(Pod::Block $pod, $level = 0) {

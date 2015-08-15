@@ -129,18 +129,20 @@ augment class Any {
             }.new(&block, source, 1));
         }
         else {
-            # XXX GLR please rewrite this.
             Seq.new(class :: does MapIterCommon {
+                has $!value-buffer;
+
                 method pull-one() is rw {
+                    $!value-buffer.DEFINITE
+                        ?? nqp::setelems($!value-buffer, 0)
+                        !! ($!value-buffer := IterationBuffer.new);
                     my int $redo = 1;
-                    my $value := Array.new;
                     my $result;
-                    my $results;
                     if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
                         $result
                     }
-                    elsif ($!source.push-exactly($value, $!count)) =:= IterationEnd {
-                        # XXX GLR does'nt handle $value.elems < $!count yet!
+                    elsif $!source.push-exactly($!value-buffer, $!count) =:= IterationEnd
+                            && nqp::elems($!value-buffer) == 0 {
                         IterationEnd
                     }
                     else {
@@ -150,7 +152,7 @@ augment class Any {
                                 $redo = 0,
                                 nqp::handle(
                                     nqp::stmts(
-                                        ($result := &!block(|$value)),
+                                        ($result := nqp::p6invokeflat(&!block, $!value-buffer)),
                                         nqp::if(
                                             nqp::istype($result, Slip),
                                             nqp::stmts(
@@ -158,15 +160,18 @@ augment class Any {
                                                 nqp::if(
                                                     nqp::eqaddr($result, IterationEnd),
                                                     nqp::stmts(
-                                                        ($results := $!source.push-exactly($value, $!count)),
-                                                        ($redo = 1 unless nqp::eqaddr($results, IterationEnd))
+                                                        (nqp::setelems($!value-buffer, 0)),
+                                                        ($redo = 1 unless nqp::eqaddr(
+                                                                $!source.push-exactly($!value-buffer, $!count),
+                                                                IterationEnd)
+                                                            && nqp::elems($!value-buffer) == 0)
                                                 ))
                                             ))
                                     ),
                                     'NEXT', nqp::stmts(
-                                        ($value.STORE(())),
-                                        ($results := $!source.push-exactly($value, $!count)),
-                                        nqp::eqaddr($results, IterationEnd)
+                                        (nqp::setelems($!value-buffer, 0)),
+                                        nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
+                                                && nqp::elems($!value-buffer) == 0
                                             ?? ($result := IterationEnd)
                                             !! ($redo = 1)),
                                     'REDO', $redo = 1,

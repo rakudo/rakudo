@@ -645,26 +645,26 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    #method rotate(Int(Cool) $n is copy = 1) is nodal {
-    #    self.gimme(*);
-    #    fail X::Cannot::Lazy.new(:action<rotate>) if $!nextiter.defined;
-    #    my $items = nqp::p6box_i(nqp::elems($!items));
-    #    return self if !$items;
-    #
-    #    $n %= $items;
-    #    return self if $n == 0;
-    #
-    #    my Mu $res := nqp::clone($!items);
-    #    if $n > 0 {
-    #        nqp::push($res, nqp::shift($res)) while $n--;
-    #    }
-    #    elsif $n < 0 {
-    #        nqp::unshift($res, nqp::pop($res)) while $n++;
-    #    }
-    #    my $rlist := nqp::create(self.WHAT);
-    #    nqp::bindattr($rlist, List, '$!items', $res);
-    #    $rlist;
-    #}
+    method rotate(Int(Cool) $n is copy = 1) is nodal {
+        self!ensure-allocated;
+        fail X::Cannot::Lazy.new(:action<rotate>) if self.is-lazy;
+        my $elems = self.elems;
+        return () unless $elems;
+
+        $n %= $elems;
+        return self if $n == 0;
+
+        my $rot := nqp::clone($!reified);
+        if $n > 0 {
+            nqp::push($rot, nqp::shift($rot)) while $n--;
+        }
+        elsif $n < 0 {
+            nqp::unshift($rot, nqp::pop($rot)) while $n++;
+        }
+        my $rlist := nqp::create(self.WHAT);
+        nqp::bindattr($rlist, List, '$!reified', $rot);
+        $rlist;
+    }
 
     # XXX GLR
     #method rotor(List:D: *@cycle, :$partial) is nodal {

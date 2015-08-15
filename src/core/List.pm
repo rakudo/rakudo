@@ -631,11 +631,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method reverse() is nodal {
         self!ensure-allocated;
-        if $!todo.DEFINITE {
-            $!todo.reify-until-lazy();
-            fail X::Cannot::Lazy.new(:action<reverse>)
-                unless $!todo.fully-reified;
-        }
+        fail X::Cannot::Lazy.new(:action<reverse>) if self.is-lazy;
         my $reversed := IterationBuffer.new;
         my $reified  := $!reified;
         my int $i    = 0;

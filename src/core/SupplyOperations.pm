@@ -36,7 +36,7 @@ my class SupplyOperations {
     }
 
     method on-demand(&producer, :&closing, :$scheduler = CurrentThreadScheduler) {
-        my class OnDemandSupply does Supply {
+        class :: does Supply {
             has &!producer;
             has &!closing;
             has $!scheduler;
@@ -65,12 +65,11 @@ my class SupplyOperations {
                 );
                 $sub
             }
-        }
-        OnDemandSupply.new(:&producer, :&closing, :$scheduler)
+        }.new(:&producer, :&closing, :$scheduler);
     }
 
     method from-list(*@values, :$scheduler = CurrentThreadScheduler) {
-        my class FromListSupply does Supply {
+        class :: does Supply {
             has @!values;
             has $!scheduler;
 
@@ -92,12 +91,11 @@ my class SupplyOperations {
                 );
                 $sub
             }
-        }
-        FromListSupply.new(:@values, :$scheduler)
+        }.new(:@values, :$scheduler);
     }
 
     method interval($interval, $delay = 0, :$scheduler = $*SCHEDULER) {
-        my class IntervalSupply does Supply {
+        class :: does Supply {
             has $!scheduler;
             has $!interval;
             has $!delay;
@@ -117,12 +115,11 @@ my class SupplyOperations {
                 );
                 $sub
             }
-        }
-        IntervalSupply.new(:$interval, :$delay, :$scheduler)
+        }.new(:$interval, :$delay, :$scheduler);
     }
 
     method flat(Supply $source) {
-        my class FlatSupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
 
             submethod BUILD(:$!source) { }
@@ -138,12 +135,11 @@ my class SupplyOperations {
                   quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
-        }
-        FlatSupply.new(:$source)
+        }.new(:$source);
     }
 
     method grep(Supply $source, Mu $test) {
-        my class GrepSupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
             has Mu $!test;
 
@@ -165,12 +161,11 @@ my class SupplyOperations {
                 );
                 $tap
             }
-        }
-        GrepSupply.new(:$source, :$test)
+        }.new(:$source, :$test);
     }
 
     method map(Supply $source, &mapper) {
-        my class MapSupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
             has &!mapper;
 
@@ -187,12 +182,11 @@ my class SupplyOperations {
                   quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
-        }
-        MapSupply.new(:$source, :&mapper)
+        }.new(:$source, :&mapper);
     }
 
     method schedule-on(Supply $source, Scheduler $scheduler) {
-        my class ScheduleSupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
             has $!scheduler;
 
@@ -209,42 +203,40 @@ my class SupplyOperations {
                   quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
-        }
-        ScheduleSupply.new(:$source, :$scheduler)
+        }.new(:$source, :$scheduler);
     }
 
     method start(Supply $s, &startee) {
-        my class StartSupply does Supply does PrivatePublishing {
-            has $!value;
-            has &!startee;
-
-            submethod BUILD(:$!value, :&!startee) { }
-
-            method live { $s.live }
-            method tap(|c) {
-                my $sub = self.Supply::tap(|c);
-                Promise.start({ &!startee($!value) }).then({
-                    if .status == Kept {
-                        self!emit(.result);
-                        self!done();
-                    }
-                    else {
-                        self!quit(.cause);
-                    }
-                });
-                $sub
-            }
-        }
         self.map($s, -> \value {
-            StartSupply.new(:value(value), :&startee)
-        })
+            class :: does Supply does PrivatePublishing {
+                has $!value;
+                has &!startee;
+
+                submethod BUILD(:$!value, :&!startee) { }
+
+                method live { $s.live }
+                method tap(|c) {
+                    my $sub = self.Supply::tap(|c);
+                    Promise.start({ &!startee($!value) }).then({
+                        if .status == Kept {
+                            self!emit(.result);
+                            self!done();
+                        }
+                        else {
+                            self!quit(.cause);
+                        }
+                    });
+                    $sub
+                }
+            }.new(:value(value), :&startee);
+        });
     }
 
     method stable(Supply $source, $time, :$scheduler = $*SCHEDULER) {
 
         return $source if !$time;  # nothing to do
 
-        my class StableSupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
             has $!time;
             has $!scheduler;
@@ -279,15 +271,14 @@ my class SupplyOperations {
                     quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
-        }
-        StableSupply.new(:$source, :$time, :$scheduler);
+        }.new(:$source, :$time, :$scheduler);
     }
 
     method delayed(Supply $source, $time, :$scheduler = $*SCHEDULER) {
 
         return $source if !$time;  # nothing to do
 
-        my class DelayedSupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
             has $!time;
             has $!scheduler;
@@ -310,12 +301,11 @@ my class SupplyOperations {
                     } );
                 $tap
             }
-        }
-        DelayedSupply.new(:$source, :$time, :$scheduler);
+        }.new(:$source, :$time, :$scheduler);
     }
 
     method migrate(Supply $source) {
-        my class MigrateSupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
             has $!current;
             has $!lock;
@@ -343,12 +333,11 @@ my class SupplyOperations {
                     quit => -> $ex { if $tap.quit { $tap.quit().($ex) } });
                 $tap
             }
-        }
-        MigrateSupply.new(:$source)
+        }.new(:$source);
     }
 
     method classify(Supply $source, &mapper, :$multi ) {
-        my class ClassifySupply does Supply does PrivatePublishing {
+        class :: does Supply does PrivatePublishing {
             has $!source;
             has %!mapping;
 
@@ -383,8 +372,7 @@ my class SupplyOperations {
                   quit => -> $ex { self!quit($ex) });
                 $tap
             }
-        }
-        ClassifySupply.new(:$source)
+        }.new(:$source);
     }
 }
 

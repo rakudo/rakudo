@@ -67,6 +67,17 @@ my role Iterator {
             !! self.push-all($target)
     }
 
+    # Does not push anything but consumes the iterator to find out the number
+    # items that were generated, and returns that number.  Intended to be used
+    # in situations such as "foo".IO.lines.elems, where we're only interested
+    # in the number of lines in the file, rather than the contents of the
+    # lines.
+    method count-only($) {
+        my int $i = 0;
+        $i = $i + 1 until self.pull-one() =:= IterationEnd;
+        $i
+    }
+
     # Consumes all of the values in the iterator for their side-effects only.
     # May be overridden by iterators to either warn about use of things in
     # sink context that should not be used that way, or to process things in

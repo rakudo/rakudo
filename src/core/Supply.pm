@@ -229,7 +229,7 @@ my role Supply {
                                   }
                               }
                               else {
-                                  @seen.push: [$target, $now+$expires];
+                                  @seen.push: $[$target, $now+$expires];
                                   $res.emit(val);
                               }
                           }
@@ -244,7 +244,7 @@ my role Supply {
                                   }
                               }
                               else {
-                                  @seen.push: [val, $now+$expires];
+                                  @seen.push: $[val, $now+$expires];
                                   $res.emit(val);
                               }
                           };

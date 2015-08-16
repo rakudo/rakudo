@@ -665,39 +665,40 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     # XXX GLR
-    #method rotor(List:D: *@cycle, :$partial) is nodal {
-    #    die "Must specify *how* to rotor a List"
-    #      unless @cycle.infinite || @cycle;
-    #
-    #    my $finished = 0;
-    #    # (Note, the xx should be harmless if the cycle is already infinite by accident.)
-    #    my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
-    #    gather for @c -> $s {
-    #        my $elems;
-    #        my $gap;
-    #        if $s ~~ Pair {
-    #            $elems = +$s.key;
-    #            $gap   = +$s.value;
-    #        }
-    #        elsif $s < 1 {
-    #            die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
-    #        }
-    #        else {
-    #            $elems = +$s;
-    #            $gap   = 0;
-    #        }
-    #
-    #        if $finished + $elems <= self.gimme($finished + $elems) {
-    #            take self[$finished ..^ $finished + $elems];
-    #            $finished += $elems + $gap;
-    #        }
-    #        else {
-    #            take self[$finished .. *]
-    #              if $partial and $finished < self.elems;
-    #            last;
-    #        }
-    #    }
-    #}
+    method rotor(List:D: *@cycle, :$partial) is nodal {
+        die "Must specify *how* to rotor a List"
+          unless @cycle.is-lazy || @cycle;
+
+        my $finished = 0;
+        # (Note, the xx should be harmless if the cycle is already infinite by accident.)
+        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).list;
+        gather for flat @c -> $s {
+            my $elems;
+            my $gap;
+            if $s ~~ Pair {
+                $elems = +$s.key;
+                $gap   = +$s.value;
+            }
+            elsif $s < 1 {
+                die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
+            }
+            else {
+                $elems = +$s;
+                $gap   = 0;
+            }
+
+            $!todo.reify-at-least($finished + $elems) if $!todo.DEFINITE;
+            if $finished + $elems <= nqp::elems($!reified) {
+                take self[$finished ..^ $finished + $elems];
+                $finished += $elems + $gap;
+            }
+            else {
+                take self[$finished .. *]
+                  if $partial and $finished < self.elems;
+                last;
+            }
+        }
+    }
 
     proto method combinations($?) is nodal {*}
     multi method combinations( Int $of ) {

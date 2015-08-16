@@ -1938,7 +1938,7 @@ my class X::Multi::NoMatch is Exception {
             @bits.unshift($invocant ~ ': ' ~ $first);
         }
         my $cap = '(' ~ @bits.join(", ") ~ ')';
-        @priors = "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
+        @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~
         join "\n    ",
             "Cannot call $.dispatcher.name()$cap; none of these signatures match:",

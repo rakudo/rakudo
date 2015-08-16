@@ -73,7 +73,8 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
         for @contestant {
             %channels-by-kind{$kind}{$_.WHICH} = $_;
-            @todo.push: [ +@todo, $kind, $_, &block ];
+            # XXX GLR .item necessary ??
+            @todo.push: [ +@todo, $kind, $_, &block ].item;
         }
     }
 
@@ -88,13 +89,15 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
             if $wild_more.defined {
                 if not %channels-by-kind{$EARLIEST_KIND_MORE}{$n}:exists {
-                    @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more ];
+                    # XXX GLR .item necessary ??
+                    @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more ].item;
                     %distinct-channels{$n} = $_;
                 }
             }
             if $wild_done.defined {
                 if not %channels-by-kind{$EARLIEST_KIND_DONE}{$n}:exists {
-                    @todo.push: [ +@todo, $EARLIEST_KIND_DONE, $_, $wild_done ];
+                    # XXX GLR .item necessary ??
+                    @todo.push: [ +@todo, $EARLIEST_KIND_DONE, $_, $wild_done ].item;
                     %distinct-channels{$n} = $_;
                 }
             }
@@ -112,7 +115,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
     CHECK:
     loop {  # until something to return
-        for @todo.pick(*,:eager) -> $todo {
+        for @todo.pick(*) -> $todo {
             my $kind       := $todo[1];
             my $contestant := $todo[2];
 

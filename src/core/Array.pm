@@ -470,12 +470,12 @@ my class Array { # declared in BOOTSTRAP
             my int $ipos = $pos;
             my $todo := nqp::getattr(self, List, '$!todo');
             $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
-            nqp::bindpos(nqp::getattr(self, List, '$!items'), $ipos, bindval)
+            nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval)
         }
         multi method BIND-POS(int $pos, TValue \bindval) is rw {
             my $todo := nqp::getattr(self, List, '$!todo');
             $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
-            nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
+            nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
             my $args = self.map({ ($_ // TValue).perl(:arglist) }).join(', ');

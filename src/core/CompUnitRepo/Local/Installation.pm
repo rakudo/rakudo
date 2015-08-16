@@ -94,10 +94,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # Initialize "provides" section.
-        for %($d.provides).kv -> $k, $v is rw {
-            # when we do not use .kv, we error out when trying to store into Pairs
-            $v = {};
-        }
+        # when we do not use .kv, we error out when trying to store into Pairs
+        $d.provides.kv.map: -> $k, $ { $d.provides.{$k} = {} }
 
         # Walk the to be installed files, decide whether we put them into
         # "provides" or just "files".

@@ -31,7 +31,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
                 $io = .IO;
                 $io.d && $io.r && $io.w && $io.x;
             }
-        },
+          },
           %ENV<TMPDIR>,
           "/tmp",
           %ENV<TMP>,

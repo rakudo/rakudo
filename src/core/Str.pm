@@ -572,10 +572,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method match($pat,
-                  :continue(:$c), :pos(:$p),
-                  :global(:$g), :overlap(:$ov), :exhaustive(:$ex),
-                  # :st(:nd(:rd(:th($nth)))) is cute, but slow
-                  :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
+                 :continue(:$c), :pos(:$p),
+                 :global(:$g), :overlap(:$ov), :exhaustive(:$ex),
+                 # :st(:nd(:rd(:th($nth)))) is cute, but slow
+                 :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }
@@ -592,54 +592,104 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $cur := $cur.'!cursor_more'(|%opts);
             }
         }
+
         my $multi = $g || $ov || $ex;
 
-        if $nth.defined {
-            $multi = Positional.ACCEPTS($nth);
-            my @nlist := $nth.list;
-            my @src   := $matches.list;
-            $matches  := gather {
-                my $max = 0;
-                while @nlist {
-                    my $n = shift @nlist;
-                    $n = $n(+@src) + 1 if nqp::istype($n, Callable);
-                    fail "Attempt to retrieve negative match :nth($n)" if $n < 1;
-                    if $n > $max { take @src[$n-1]; $max = $n; }
+        my @matches;
+
+        if $nth.defined or $x.defined {
+            my $clip;
+            my $idxs;
+
+            # Translate :nth lists to monotonic 0-based indices
+            my sub nthidx($n is copy) {
+
+                if nqp::istype($n, Callable) {
+                    # Whatevers force us to remember early
+                    once @matches := $matches.list;
+                    once $matches := Nil;
+                    # Whatevers are 1-based
+                    $n = $n(+@matches)
+                }
+
+                state $max = -Inf;
+
+                if ($n > $max or once $n == -Inf) {
+                    $max = $n;
+                    # After first positive, <= 0 are "ignored" per spec
+                    once fail "Attempt to retrieve before :1st match -- :nth($n)"
+                       if $max < 1;
+                    $n - 1;
+                }
+                else {
+                    Slip.new();
                 }
             }
+            if $nth.defined and not $x.defined {
+                $multi = Positional.ACCEPTS($nth);
+                $idxs := $nth.map(&nthidx).Array;
+                $clip := $idxs.elems..Inf;
+            }
+            if $x.defined {
+                $multi = True;
+                if nqp::istype($x, Int) {
+                    $clip := $x..$x;
+                }
+                elsif nqp::istype($x, Range) {
+                    my $mx = $x.max.floor;
+                    $mx = $mx - 1 unless $mx ~~ $x;
+                    my $mn = $x.min.ceiling;
+                    $mn = $mn + 1 unless $mn ~~ $x;
+                    $clip := $mn..$mx;
+                }
+                elsif nqp::istype($x, Whatever) {
+                    $clip := 0..Inf;
+                }
+                else {
+                    X::Str::Match::x.new(:got($x)).fail;
+                }
+                $clip := 0..($clip.max) if $clip.min < 0;
+                return Nil if $clip.max < $clip.min;
+
+                if $nth.defined {
+                    $idxs := $nth.map(&nthidx).Array;
+                    return Nil
+                        if $clip.min and not $idxs.EXISTS-POS($clip.min - 1);
+                }
+                else {
+                    $idxs := (0..Inf).Array;
+                }
+            }
+
+            unless $matches.defined {
+                # Whatever, we have an extra layer of memoization.
+                $matches := @matches.values;
+                @matches := ();
+            }
+
+
+            # Just "list $matches.grep", once we have True.last
+            @matches := (gather do for $matches -> $m {
+                state $i = 0;
+                state $took = 0;
+                state $n = $idxs.shift;
+                last unless $n.defined;
+
+                if $i == $n {
+                    $n = $idxs.shift;
+                    take $m;
+                    $took++;
+                    last if $took >= $clip.max;
+                };
+                $i++;
+
+                last unless $n.defined;
+            }).list;
+            @matches := () unless not $clip.min or @matches.EXISTS-POS($clip.min - 1);
         }
-
-        # XXX GLR sort out list/seq stuff with @matches
-        #if $x.defined {
-        #    $multi = True;
-        #    if nqp::istype($x, Int) {
-        #        @matches := @matches.gimme($x) >= $x
-        #                    ?? @matches[^$x].list
-        #                    !! ().list
-        #    }
-        #    elsif nqp::istype($x, Range) {
-        #        my $min = $x.min.ceiling;
-        #        my $max = $x.max;
-        #        $min++ while $min <= $max && $min !~~ $x;
-        #        if @matches.gimme($min) >= $min && $min ~~ $x {
-        #            my @src := @matches;
-        #            @matches := gather {
-        #                my $n = 0;
-        #                while @src && ($n < $min || $n+1 ~~ $x) {
-        #                    take @src.shift;
-        #                    $n++;
-        #                }
-        #            }
-        #        }
-        #        else { @matches := ().list }
-        #    }
-        #    elsif nqp::istype($x, Whatever) { }
-        #    else {
-        #        X::Str::Match::x.new(got => $x).fail;
-        #    }
-        #}
-
-        my @matches := $matches.list;
+        else {
+            @matches := $matches.list;
+        }
         if $multi {
             if nqp::istype($pat, Regex) {
                 try $caller_dollar_slash = +@matches

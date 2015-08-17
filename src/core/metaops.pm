@@ -23,12 +23,13 @@ sub METAOP_CROSS(\op, &reduce) {
     -> |lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my $Inf = False;
-        my @lol = eager for ^lol.elems -> $i {
+        my @loi = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
             $Inf = True if elem.infinite;
 
-            if nqp::iscont(elem) { (elem,).list.item }
-            else                 { (elem,).flat.item }
+            nqp::istype(elem, Iterable)
+                ?? elem.iterator
+                !! elem.list.iterator;
         }
         my Mu $cache := nqp::list();
         my int $i = 0;
@@ -59,9 +60,8 @@ sub METAOP_CROSS(\op, &reduce) {
                     if $i >= $n { take $rop(|@v); }
                     else { $i = $i + 1; @j.push($j); $j = 0; }
                 }
-                elsif @lol[$i].gimme(1) {
-                    my Mu $o := @lol[$i].shift;
-                    nqp::bindpos($sublist, $j, $o);
+                elsif (my \value = @loi[$i].pull-one) !=:= IterationEnd {
+                    nqp::bindpos($sublist, $j, value);
                     redo;
                 }
                 else {
@@ -74,7 +74,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     }
                 }
             }
-        })
+        }.list)
     }
 }
 

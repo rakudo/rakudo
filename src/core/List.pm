@@ -851,12 +851,6 @@ sub infix:<X>(|lol) {
     my Mu $v := nqp::list();
     my int $i = 0;
 
-    # Don't care if a finite Range is lazy
-    my $policy = &list;
-    if nqp::istype(lol[0],Range) {
-        $policy = { .eager } unless $Inf || lol[0].infinite;
-    }
-
     if $Inf {  # general case treats all lists as potentially lazy
         return gather {
             while $i >= 0 {
@@ -871,11 +865,11 @@ sub infix:<X>(|lol) {
                 }
                 else { $i = $i - 1 }
             }
-        }.list
+        }
     }
     # optimize for 2D and 3D crosses
     elsif $n == 1 { # 2-dimensional
-        $policy(gather {
+        gather {
             my int $e = nqp::atpos_i($end,1);
             my $l0 = @l[0];
             my $l1 = @l[1];
@@ -887,10 +881,10 @@ sub infix:<X>(|lol) {
                     take nqp::clone($v);
                 }
             }
-        }.list)
+        }
     }
     elsif $n == 2 { # 3-dimensional
-        $policy(gather {
+        gather {
             my int $e1 = nqp::atpos_i($end,1);
             my int $e2 = nqp::atpos_i($end,2);
             my $l0 = @l[0];
@@ -907,11 +901,11 @@ sub infix:<X>(|lol) {
                     }
                 }
             }
-        }.list)
+        }
     }
     else { # more than 3 dimensions
         my Mu $jsave := nqp::list_i();
-        $policy(gather {
+        gather {
             while $i == 0 {
                 if @l[0].gimme(1) {
                     nqp::bindpos($v, $i, @l[0].shift);
@@ -940,7 +934,7 @@ sub infix:<X>(|lol) {
                 }
                 else { $i = $i - 1 }
             }
-        })
+        }
     }
 }
 

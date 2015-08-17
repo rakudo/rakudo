@@ -43,12 +43,6 @@ sub METAOP_CROSS(\op, &reduce) {
         my @j;
         my @v;
 
-        # Don't care if a finite Range is lazy
-        my $policy = &list;
-        if nqp::istype(lol[0],Range) {
-            $policy = { .eager } unless $Inf || lol[0].infinite;
-        }
-
         $i = 0;
         gather {
             while $i >= 0 {

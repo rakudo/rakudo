@@ -103,15 +103,20 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
-        return () unless @values.gimme(1);
+    sub (\iterablish) {
+        my \source = nqp::istype(iterablish, Iterable)
+            ?? iterablish.iterator
+            !! iterablish.list.iterator;
 
+        my \first = source.pull-one;
+        return () if first =:= IterationEnd;
+
+        my $result := first;
         GATHER({
-            my $result := @values.shift;
-            take $result;
-            take ($result := op.($result, @values.shift))
-                while @values.gimme(1);
-        }, :infinite(@values.infinite));
+            until (my \value = source.pull-one) =:= IterationEnd {
+                take ($result := op.($result, value));
+            }
+        });
     }
 }
 multi sub METAOP_REDUCE_LEFT(\op) {

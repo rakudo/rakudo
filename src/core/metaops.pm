@@ -82,15 +82,20 @@ sub METAOP_ZIP(\op, &reduce) {
     -> |lol {
         my $arity = lol.elems;
         my $rop = $arity == 2 ?? op !! &reduce(op);
-        my @lol = eager for ^lol.elems -> $i {
+        my @loi = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 
-            if nqp::iscont(elem) { (elem,).list.item }
-            else                 { (elem,).flat.item }
+            nqp::istype(elem, Iterable)
+                ?? elem.iterator
+                !! elem.list.iterator;
         }
         gather {
             loop {
-                my \z = @lol.map: { last unless .gimme(1); .shift }
+                my \z = @loi.map: {
+                    my \value = .pull-one;
+                    last if value =:= IterationEnd;
+                    value
+                };
                 last if z.elems < $arity;
                 take-rw $rop(|z);
             }

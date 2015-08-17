@@ -170,12 +170,14 @@ my class Array { # declared in BOOTSTRAP
 
     proto method BIND-POS(|) { * }
     multi method BIND-POS(Int $pos, Mu \bindval) is rw {
+        self!ensure-allocated();
         my int $ipos = $pos;
         my $todo := nqp::getattr(self, List, '$!todo');
         $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
         nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval);
     }
     multi method BIND-POS(int $pos, Mu \bindval) is rw {
+        self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
         $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
         nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval);

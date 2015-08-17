@@ -3832,11 +3832,8 @@ Compilation unit '$file' contained the following violations:
                 my $twigil := ~$<variable><twigil>;
                 if $twigil eq '?' {
                     unless $*COMPILING_CORE_SETTING {
-                        $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                          what       => 'constant',
-                          twigil     => $twigil,
-                          scope      => $*SCOPE,
-                          additional => ' because we cannot make it work properly yet'
+                        $*W.throw($/, 'X::Comp::NYI',
+                          feature => "Constants with a '$twigil' twigil"
                         );
                     }
                 }

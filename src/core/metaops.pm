@@ -50,7 +50,7 @@ sub METAOP_CROSS(\op, &reduce) {
         }
 
         $i = 0;
-        $policy(gather {
+        gather {
             while $i >= 0 {
                 my Mu $sublist := nqp::atpos($cache, $i);
                 if $j < nqp::elems($sublist) {
@@ -74,7 +74,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     }
                 }
             }
-        }.list)
+        }
     }
 }
 

@@ -3830,7 +3830,15 @@ Compilation unit '$file' contained the following violations:
         elsif $<variable> {
             if $<variable><twigil> {
                 my $twigil := ~$<variable><twigil>;
-                if $twigil eq '?' {  # no action as of yet/anymore
+                if $twigil eq '?' {
+                    unless $*COMPILING_CORE_SETTING {
+                        $*W.throw($/, 'X::Syntax::Variable::Twigil',
+                          what       => 'constant',
+                          twigil     => $twigil,
+                          scope      => $*SCOPE,
+                          additional => ' because we cannot make it work properly yet'
+                        );
+                    }
                 }
 
                 elsif $twigil eq '*' {

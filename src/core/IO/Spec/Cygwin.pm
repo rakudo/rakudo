@@ -24,7 +24,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 
     method tmpdir {
-        my %ENV := $%ENV;
+        my %ENV := %*ENV;
         my $io;
         first( {
             if .defined {

@@ -24,7 +24,7 @@ CODE
 my $p = run($*EXECUTABLE, $filename, :out, :err);
 ok $p ~~ Proc,                    "did we get a Proc?";
 is $p.out.lines.join, "42",       "is the program output ok?";
-is $p.err.lines.join("\n"), qq:to/STDERR/, "is the trace ok?";
+is $p.err.lines.join("\n"), qq:to/STDERR/.chop, "is the trace ok?";
 4 ($filename:4)
 \$a++
 10 ($filename:10)

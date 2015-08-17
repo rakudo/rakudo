@@ -896,8 +896,9 @@ sub infix:<X>(|lol) {
             my $l0 = @l[0];
             my $l1 = @l[1];
             my $l2 = @l[2];
-            while $l0.gimme(1) {
-                nqp::bindpos($v, 0, @l[0].shift);
+            my \source = $l0.iterator;
+            until (my \value = source.pull-one) =:= IterationEnd {
+                nqp::bindpos($v, 0, value);
                 loop (my int $j = 0; $j < $e1; $j = $j + 1) {
                     nqp::bindpos($v, 1, $l1[$j]);
                     loop (my int $k = 0; $k < $e2; $k = $k + 1) {
@@ -906,7 +907,7 @@ sub infix:<X>(|lol) {
                     }
                 }
             }
-        })
+        }.list)
     }
     else { # more than 3 dimensions
         my Mu $jsave := nqp::list_i();

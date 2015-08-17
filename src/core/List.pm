@@ -835,8 +835,9 @@ sub infix:<X>(|lol) {
     my @l = eager for 0..$n -> $i {
         my \elem = lol[$i];         # can't use mapping here, mustn't flatten
         $Inf = True if $i and elem.infinite;
-        if nqp::iscont(elem) { (elem,).list.item }
-        else                 { (elem,).flat.item }
+        nqp::istype(elem, Iterable)
+            ?? elem
+            !! elem.list;
     }
 
     # eagerize 2nd and subsequent lists if finite
@@ -865,12 +866,12 @@ sub infix:<X>(|lol) {
                     else {
                         $i = $i + 1;
                         my \elem = lol[$i];
-                        @l[$i] = nqp::iscont(elem) ?? (elem,).list.item !! (elem,).flat.item;
+                        @l[$i] = nqp::istype(elem, Iterable) ?? elem !! elem.list;
                     }
                 }
                 else { $i = $i - 1 }
             }
-        }
+        }.list
     }
     # optimize for 2D and 3D crosses
     elsif $n == 1 { # 2-dimensional
@@ -878,14 +879,15 @@ sub infix:<X>(|lol) {
             my int $e = nqp::atpos_i($end,1);
             my $l0 = @l[0];
             my $l1 = @l[1];
-            while $l0.gimme(1) {
-                nqp::bindpos($v, 0, @l[0].shift);
+            my \source = $l0.iterator;
+            until (my \value = source.pull-one) =:= IterationEnd {
+                nqp::bindpos($v, 0, value);
                 loop (my int $j = 0; $j < $e; $j = $j + 1) {
                     nqp::bindpos($v, 1, $l1[$j]);
                     take nqp::clone($v);
                 }
             }
-        })
+        }.list)
     }
     elsif $n == 2 { # 3-dimensional
         $policy(gather {

@@ -81,6 +81,10 @@ my class Seq does Iterable does PositionalBindFailover {
         self.list.gist
     }
 
+    multi method perl(Seq:D \SELF:) {
+        self.list.perl ~ '.iterator';
+    }
+
     method sink() {
         self.iterator.sink-all;
         Nil

@@ -39,9 +39,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $ver;
     my @installations = @*INC.grep( { .starts-with("inst#") } )\
         .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
-    my @binaries = @installations>>.files(\'bin/#name#\', :$name, :$auth, :$ver);
+    my @binaries = @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
     unless +@binaries {
-        @binaries = @installations>>.files(\'bin/#name#\');
+        @binaries = @installations.map: { .files(\'bin/#name#\') };
         if +@binaries {
             note q:to/SORRY/;
                 ===SORRY!===
@@ -65,7 +65,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
-    exit run($*EXECUTABLE-NAME, @binaries[0]<files><bin/#name#>, @*ARGS).exitcode
+    exit run($*EXECUTABLE-NAME, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
     method install(:$dist!, *@files) {
@@ -169,13 +169,14 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
 
                 if (!$name || $dist<name> ~~ $name)
                 && (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver)
-                && $dist<files>{$file} {
-                    my $candi   = %$dist;
-                    $candi<ver> = $dver;
-                    $candi<files>{$file} = $path ~ '/' ~ $candi<files>{$file}
-                        unless $candi<files>{$file} ~~ /^$path/;
-                    @candi.push: $candi;
+                && (!$ver  || $dver ~~ $ver) {
+                    with $dist<files>{$file} {
+                        my $candi   = %$dist;
+                        $candi<ver> = $dver;
+                        $candi<files>{$file} = $path ~ '/' ~ $candi<files>{$file}
+                            unless $candi<files>{$file} ~~ /^$path/;
+                        @candi.push: $candi;
+                    }
                 }
             }
         }

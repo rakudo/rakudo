@@ -575,27 +575,35 @@ augment class Any {
         }
     }
 
-    # XXX GLR fix this to work on an Iterable rather than forcing a List
     proto method pairup(|) is nodal { * }
     multi method pairup(Any:U:) { () }
     multi method pairup(Any:D:) {
-        my $list := self.list;
-        my int $i;
-        my int $elems = $list.elems;
+        my \iter = nqp::istype(self, Iterable)
+            ?? self.iterator
+            !! self.list.iterator;
 
-        gather while $i < $elems {
-            my Mu $it := $list.AT-POS($i++);
-            if nqp::istype($it,Enum) {
-                take $it.key => $it.value;
-            }
-            elsif nqp::istype($it,EnumMap) and !nqp::iscont($it) {
-                take $it.pairs;
-            }
-            elsif $i < $elems {
-                take $it => $list.AT-POS($i++);
-            }
-            else {
-                X::Pairup::OddNumber.new.throw;
+        my $cupid := Nil;
+        gather loop {
+            my $it := iter.pull-one;
+            if nqp::isconcrete($cupid) {
+                if $it =:= IterationEnd {
+                    X::Pairup::OddNumber.new.throw;
+                }
+                take $cupid.value => $it;
+                $cupid := Nil
+            } else {
+                if nqp::istype($it,Enum) {
+                    take $it.key => $it.value
+                }
+                elsif nqp::istype($it,EnumMap) and !nqp::iscont($it) {
+                    take Slip.new(|$it.pairs)
+                }
+                elsif $it =:= IterationEnd {
+                    last
+                }
+                else {
+                    $cupid := '' => $it;
+                }
             }
         }
     }

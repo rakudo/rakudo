@@ -1223,6 +1223,14 @@ Compilation unit '$file' contained the following violations:
         make $past;
     }
 
+    method statement_control:sym<whenever>($/) {
+        my $xblock := $<xblock>.ast;
+        make QAST::Op.new(
+            :op<call>, :name<&WHENEVER>, :node($/),
+            $xblock[0], block_closure($xblock[1])
+        );
+    }
+
     method statement_control:sym<loop>($/) {
         my $block := pblock_immediate($<block>.ast);
         my $cond := $<e2> ?? $<e2>.ast !! QAST::IVal.new( :value(1) );

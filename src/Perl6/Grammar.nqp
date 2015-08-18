@@ -1400,6 +1400,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <xblock(1)>
     }
 
+    rule statement_control:sym<whenever> {
+        <sym><.kok> {}
+        <xblock(1)>
+    }
+
     rule statement_control:sym<foreach> {
         <sym><.end_keyword> <.obs("'foreach'", "'for'")>
     }

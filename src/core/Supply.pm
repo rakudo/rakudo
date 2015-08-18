@@ -1051,4 +1051,14 @@ sub WHENEVER(Supply() $supply, &block) {
         !! X::WheneverOutOfScope.new.throw
 }
 
+sub REACT(&block) {
+    my $s = SUPPLY(&block);
+    my $p = Promise.new;
+    $s.tap(
+        { warn "Useless use of emit in react" },
+        done => { $p.keep(Nil) },
+        quit => { $p.break($_) });
+    await $p;
+}
+
 # vim: ft=perl6 expandtab sw=4

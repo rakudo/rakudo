@@ -379,4 +379,15 @@ sub GATHER(&block) {
     }.new(&block))
 }
 
+multi sub infix:<eqv>(Seq $a, Seq $b) {
+    my \ia := $a.iterator;
+    my \ib := $b.iterator;
+    loop {
+        my \va := ia.pull-one;
+        my \vb := ib.pull-one;
+        return Bool::True if va =:= IterationEnd && vb =:= IterationEnd;
+        return Bool::False if va =:= IterationEnd or vb =:= IterationEnd or not va eqv vb;
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

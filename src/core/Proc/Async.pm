@@ -60,14 +60,14 @@ my class Proc::Async {
         self.bless(:$path,:@args,:$w);
     }
 
-    method !supply(\what,\supply,\type,\value) {
+    method !supply(\what,\the-supply,\type,\value) {
         X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
           if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => what, proc => self).throw
-          if supply and type != value;
+          if the-supply and type != value;
 
-        type     = value;
-        supply //= Supply.new;
+        type         = value;
+        the-supply //= Supply.new;
     }
 
     proto method stdout(|) { * }
@@ -106,7 +106,7 @@ my class Proc::Async {
         self.stderr(:bin);
     }
 
-    method !capture(\callbacks,\std,\type,\supply) {
+    method !capture(\callbacks,\std,\type,\the-supply) {
 
         my $promise = Promise.new;
         my $lock = Lock.new;
@@ -120,12 +120,12 @@ my class Proc::Async {
 
                 # oh noes!
                 if err {
-                    $promise.keep( (supply,err) );
+                    $promise.keep( (the-supply,err) );
                 }
 
                 # we're done
                 elsif seq < 0 {
-                    $promise.keep( supply );
+                    $promise.keep( the-supply );
                 }
 
                 # got new data to process
@@ -143,7 +143,7 @@ my class Proc::Async {
                         my int $done;
                         while @buffer.EXISTS-POS($done) {
 #say "emitting { $next_seq + $done }: {@buffer[$done]}" if std eq 'stdout';
-                            supply.emit( @buffer[$done] );
+                            the-supply.emit( @buffer[$done] );
                             $done = $done + 1;
                         }
 

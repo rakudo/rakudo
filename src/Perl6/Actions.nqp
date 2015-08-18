@@ -1497,6 +1497,42 @@ Compilation unit '$file' contained the following violations:
         make QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
     }
 
+    method statement_control:sym<QUIT>($/) {
+        my $block := $<block>.ast;
+
+        # Take exception as parameter and bind into $_.
+        my $past := $block.ann('past_block');
+        $past[0].push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name('$_'), :scope('lexical') ),
+            QAST::Var.new( :name('__param'), :scope('local'), :decl('param') )
+        ));
+
+        # If the handler has a succeed handler, then make sure we sink
+        # the exception it will produce.
+        if $past.ann('handlers') && nqp::existskey($past.ann('handlers'), 'SUCCEED') {
+            my $suc := $past.ann('handlers')<SUCCEED>;
+            $suc[0] := QAST::Stmts.new(
+                sink(QAST::Op.new(
+                    :op('getpayload'),
+                    QAST::Op.new( :op('exception') )
+                )),
+                QAST::WVal.new( :value($*W.find_symbol(['Nil'])) )
+            );
+        }
+
+        # If we don't handle the exception by succeeding, we'll return it.
+        if $past.ann('handlers') {
+            $past[1][0].push(QAST::Var.new( :name('$_'), :scope('lexical') ));
+        }
+        else {
+            $past[1].push(QAST::Var.new( :name('$_'), :scope('lexical') ));
+        }
+
+        # Add as a QUIT phaser, which evaluates to Nil.
+        make $*W.add_phaser($/, 'QUIT', $block.ann('code_object'));
+    }
+
     method statement_prefix:sym<BEGIN>($/)   { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<CHECK>($/)   { make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast).ann('code_object')); }

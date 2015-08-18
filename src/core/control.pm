@@ -157,6 +157,15 @@ sub samewith(|c) {
 
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
+sub supply-emit(\value) {
+    THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
+    value
+}
+sub supply-done() {
+    THROW(nqp::const::CONTROL_DONE, Nil);
+    Nil
+}
+
 proto sub die(|) {*};
 multi sub die(Exception:U $e) {
     X::AdHoc.new(:payload("Died with undefined " ~ $e.^name)).throw;

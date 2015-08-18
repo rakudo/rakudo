@@ -2098,4 +2098,10 @@ my class X::InvalidType does X::Comp {
     }
 }
 
+class X::WheneverOutOfScope is Exception {
+    method message() {
+        "Cannot have a 'whenever' block outside the scope of a 'supply' block"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

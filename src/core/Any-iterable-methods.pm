@@ -581,29 +581,23 @@ augment class Any {
         my \iter = nqp::istype(self, Iterable)
             ?? self.iterator
             !! self.list.iterator;
-
-        my $cupid := Nil;
         gather loop {
             my $it := iter.pull-one;
-            if nqp::isconcrete($cupid) {
-                if $it =:= IterationEnd {
+            if nqp::istype($it, Enum) {
+                take $it.key => $it.value
+            }
+            elsif nqp::istype($it, EnumMap) and !nqp::iscont($it) {
+                take Slip.new(|$it.pairs)
+            }
+            elsif $it =:= IterationEnd {
+                last
+            }
+            else {
+                my $it-value := iter.pull-one;
+                if $it-value =:= IterationEnd {
                     X::Pairup::OddNumber.new.throw;
                 }
-                take $cupid.value => $it;
-                $cupid := Nil
-            } else {
-                if nqp::istype($it,Enum) {
-                    take $it.key => $it.value
-                }
-                elsif nqp::istype($it,EnumMap) and !nqp::iscont($it) {
-                    take Slip.new(|$it.pairs)
-                }
-                elsif $it =:= IterationEnd {
-                    last
-                }
-                else {
-                    $cupid := '' => $it;
-                }
+                take $it => $it-value;
             }
         }
     }

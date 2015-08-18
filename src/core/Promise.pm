@@ -198,6 +198,20 @@ my class Promise {
         }
         $p
     }
+
+    method Supply(Promise:D:) {
+        my $s = Supply.new;
+        self.then({
+            if self.status == Kept {
+                $s.emit(self.result);
+                $s.done();
+            }
+            else {
+                $s.quit(self.cause);
+            }
+        });
+        $s
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

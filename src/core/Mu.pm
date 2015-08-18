@@ -4,6 +4,18 @@ my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 
 my class Mu { # declared in BOOTSTRAP
+
+    # XXX while the GLR is fanning out to the ecosystem
+    proto method gimme(|) {
+        die "
+The 'gimme' method was an internal method used by rakudo before the Great
+List Refactor.  The fact that you are seeing this message, means that you
+have code that was using that unsupported rakudo internal API.
+
+Please refactor this code using the new Iterator / Seq interface.
+"
+    }
+
     proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Mu:U: Any \topic) {
         nqp::p6bool(nqp::istype(topic, self))

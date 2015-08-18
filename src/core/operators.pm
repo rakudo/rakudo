@@ -103,13 +103,15 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
 }
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {
-    my @right := nqp::iscont(right) ?? [right] !! (right,).list.flat;
+    my \righti := nqp::iscont(right)
+        ?? nqp::istype(right, Iterable) ?? right.iterator !! right.list.iterator
+        !! [right].iterator;
+    my $endpoint := righti.pull-one;
     X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)')).throw
-      unless @right;
-    my $endpoint = @right.shift;
+      if $endpoint =:= IterationEnd;
     $endpoint.sink if $endpoint ~~ Failure;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
-    $endpoint = Bool::False if $infinite;
+    $endpoint := Bool::False if $infinite;
     my @tail;
     my $end_code_arity = 0;
     my @end_tail;
@@ -160,19 +162,18 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     }
 
     my \gathered = GATHER({
-        my @left := nqp::iscont(left) ?? [left] !! (left,).list.flat;
-        X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
-          unless @left;
+        my \lefti := nqp::istype(left, Iterable) ?? left.iterator !! left.list.iterator;
         my $value;
         my $code;
         my $stop;
-        for flat @left -> $v {
-            my \value = $v;
+        my $looped;
+        while (my \value := lefti.pull-one) !=:= IterationEnd {
+            $looped = True;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
                 @end_tail.push(value);
                 if +@end_tail >= $end_code_arity {
-                    @end_tail.pop xx (@end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
+                    @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
                     if $endpoint(|@end_tail) {
                         $stop = 1;
                         @tail.push(value) unless $exclude_end;
@@ -187,6 +188,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             }
             @tail.push(value);
         }
+        X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
+          unless $looped;
         if $stop {
             take $_ for @tail;
         }
@@ -391,7 +394,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     if $end_code_arity != 0 {
                         @end_tail.push(|value);
                         if @end_tail.elems >= $end_code_arity {
-                            @end_tail.pop xx (@end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
+                            @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
                             if $endpoint(|@end_tail) {
                                 (.take for value) unless $exclude_end;
                                 $stop = 1;
@@ -427,8 +430,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         }
     });
     $infinite
-        ?? (gathered.lazy.Slip, @right.Slip)
-        !! (gathered.Slip, @right.Slip)
+        ?? (gathered.lazy.Slip, Slip.from-iterator(righti))
+        !! (gathered.Slip, Slip.from-iterator(righti))
 }
 
 # XXX Wants to be macros when we have them.

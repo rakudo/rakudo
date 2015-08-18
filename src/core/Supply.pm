@@ -1044,7 +1044,7 @@ sub SUPPLY(&block) {
     }.new(:&block)
 }
 
-sub WHENEVER($supply, &block) {
+sub WHENEVER(Supply() $supply, &block) {
     my \adder = &*ADD-WHENEVER;
     adder.defined
         ?? adder.($supply, &block)

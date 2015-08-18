@@ -1584,6 +1584,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<once>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<start>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<supply>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
     token statement_prefix:sym<DOC>     {
         <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>

@@ -1524,6 +1524,12 @@ Compilation unit '$file' contained the following violations:
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
+    method statement_prefix:sym<supply>($/) {
+        my $past := block_closure($<blorst>.ast);
+        $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+        make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
+    }
+
     method statement_prefix:sym<once>($/) {
         # create state variable to remember whether we ran the block
         my $pad := $*W.cur_lexpad();

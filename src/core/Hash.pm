@@ -517,7 +517,7 @@ my class Hash { # declared in BOOTSTRAP
 
 
 sub circumfix:<{ }>(*@elems) { my % = @elems }
-sub hash(*@a, *%h) { my % = @a, %h }
+sub hash(*@a, *%h) { my % = flat @a, %h }
 
 # XXX parse hangs with ordinary sub declaration
 BEGIN my &circumfix:<:{ }> = sub (*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }

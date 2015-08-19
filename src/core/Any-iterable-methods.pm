@@ -71,8 +71,8 @@ augment class Any {
                 $iter
             }
 
-            method lazy() {
-                $!source.lazy
+            method is-lazy() {
+                $!source.is-lazy
             }
         }
 

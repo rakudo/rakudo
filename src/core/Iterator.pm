@@ -62,7 +62,7 @@ my role Iterator {
     # IterationEnd should be returned. Otherwise, return something else (Mu
     # will do fine).
     method push-until-lazy($target) {
-        self.lazy
+        self.is-lazy
             ?? Mu
             !! self.push-all($target)
     }
@@ -88,7 +88,7 @@ my role Iterator {
     }
 
     # Whether the iterator is lazy (True if yes, False if no).
-    method lazy() {
+    method is-lazy() {
         False
     }
 }

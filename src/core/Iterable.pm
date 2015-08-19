@@ -74,7 +74,7 @@ my role Iterable {
                 $!iterator.push-exactly($target, $n);
             }
 
-            method lazy() { True }
+            method is-lazy() { True }
         }.new(self))
     }
 

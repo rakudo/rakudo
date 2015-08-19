@@ -45,6 +45,12 @@ my class Seq does Iterable does PositionalBindFailover {
         iter
     }
 
+    method is-lazy(Seq:D:) {
+        my \iter = $!iter;
+        X::Seq::Consumed.new.throw unless iter.DEFINITE;
+        iter.is-lazy
+    }
+
     method List() {
         List.from-iterator(self.iterator)
     }
@@ -148,7 +154,7 @@ my class Seq does Iterable does PositionalBindFailover {
             }
         }
 
-        method lazy() { True }
+        method is-lazy() { True }
     }
 
     my class WhileLoopIter does SlippyIterator {
@@ -201,7 +207,7 @@ my class Seq does Iterable does PositionalBindFailover {
             }
         }
 
-        method lazy() { False }
+        method is-lazy() { False }
     }
 
     my class CStyleLoopIter does SlippyIterator {
@@ -262,7 +268,7 @@ my class Seq does Iterable does PositionalBindFailover {
             }
         }
 
-        method lazy() { False }
+        method is-lazy() { False }
     }
 
     proto method from-loop(|) { * }

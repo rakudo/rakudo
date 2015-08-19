@@ -157,8 +157,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !$!current-iter.DEFINITE && !$!future.DEFINITE
         }
 
-        method lazy() {
-            $!current-iter.DEFINITE ?? $!current-iter.lazy !! False
+        method is-lazy() {
+            $!current-iter.DEFINITE ?? $!current-iter.is-lazy !! False
         }
     }
 
@@ -353,8 +353,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 !$!todo.DEFINITE || $!todo.fully-reified ?? IterationEnd !! Mu
             }
 
-            method lazy() {
-                $!todo.DEFINITE ?? $!todo.lazy !! False
+            method is-lazy() {
+                $!todo.DEFINITE ?? $!todo.is-lazy !! False
             }
         }.new(self)
     }

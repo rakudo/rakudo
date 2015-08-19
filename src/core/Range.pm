@@ -152,7 +152,7 @@ my class Range is Cool does Iterable does Positional {
                     $!i++
                 }
 
-                method lazy() { True }
+                method is-lazy() { True }
             }.new($value)
         }
 

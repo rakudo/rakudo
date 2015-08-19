@@ -339,12 +339,12 @@ multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right
     nqp::iscont(right) ?? $type(|@result.eager).item !! $type(|@result.eager)
 }
 
-multi sub HYPER(&operator, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {
+multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$dwim-right) {
     my @result;
 
     # Check if a dwimmy side ends *. If so, that's considered a replication of the final element
-    my $left-elems  = left.elems;
-    my $right-elems = right.elems;
+    my $left-elems  = left.is-lazy ?? Inf !! left.elems;
+    my $right-elems = right.is-lazy ?? Inf !! right.elems;
     my $left-whatev = 0;
     my $right-whatev = 0;
     if $dwim-left and 1 < $left-elems < Inf and left[$left-elems - 1] ~~ Whatever {

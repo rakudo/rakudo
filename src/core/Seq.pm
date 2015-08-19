@@ -356,12 +356,12 @@ sub GATHER(&block) {
         method !start-slip-wanted(\slip) {
             my $value := self.start-slip(slip);
             unless $value =:= IterationEnd {
-                $!push-target.push($value);
+                my $sink = $!push-target.push($value);
                 my int $i = 1;
                 my int $n = $!wanted;
                 while $i < $n {
                     last if ($value := self.slip-one()) =:= IterationEnd;
-                    $!push-target.push($value);
+                    $sink = $!push-target.push($value);
                     $i = $i + 1;
                 }
                 $!wanted = $!wanted - $i;
@@ -374,7 +374,7 @@ sub GATHER(&block) {
             my $value;
             while $i < $n {
                 last if ($value := self.slip-one()) =:= IterationEnd;
-                $!push-target.push($value);
+                my $sink = $!push-target.push($value);
                 $i = $i + 1;
             }
             $!wanted = $!wanted - $i;

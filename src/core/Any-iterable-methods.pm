@@ -517,7 +517,7 @@ augment class Any {
         gather self.map: {
             $target = &as($_);
             if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target);
+                my $sink = @seen.push($target);
                 take $_;
             }
         };
@@ -541,7 +541,7 @@ augment class Any {
         gather self.map: {
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target.item);
+                my $sink = @seen.push($target.item);
                 take $_;
             }
         }

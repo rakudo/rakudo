@@ -104,7 +104,7 @@ my role Iterable {
                     !! nqp::elems($cache);
                 my int $i = 0;
                 while $i < $n {
-                    $target.push(nqp::shift($cache));
+                    my $sink = $target.push(nqp::shift($cache));
                     $i = $i + 1
                 }
                 nqp::elems($cache)

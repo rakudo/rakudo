@@ -26,7 +26,7 @@ my role Iterator {
         while $i < $n {
             $pulled := self.pull-one();
             last if $pulled =:= IterationEnd;
-            $target.push($pulled);
+            my $sink = $target.push($pulled);
             $i = $i + 1;
         }
         $pulled =:= IterationEnd

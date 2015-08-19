@@ -105,7 +105,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     }
                 }
                 else {
-                    $!reification-target.push(current);
+                    my $sink = $!reification-target.push(current);
                 }
             }
             nqp::elems($!reified);
@@ -128,7 +128,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                         }
                     }
                     else {
-                        $!reification-target.push(current);
+                        my $sink = $!reification-target.push(current);
                     }
                 }
                 $!future := Mu unless nqp::elems($!future);
@@ -144,7 +144,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             if $!future.DEFINITE {
                 while nqp::elems($!future) {
                     my \current = nqp::shift($!future);
-                    nqp::istype(current, Slip) && nqp::isconcrete(current)
+                    my $sink = nqp::istype(current, Slip) && nqp::isconcrete(current)
                         ?? current.iterator.push-all($!reification-target)
                         !! $!reification-target.push(current);
                 }
@@ -196,7 +196,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my int $n = nqp::elems(vm-tuple);
         while $i < $n {
             my \consider = nqp::atpos(vm-tuple, $i);
-            nqp::push(future, nqp::iscont(consider)
+            my $sink = nqp::push(future, nqp::iscont(consider)
                 ?? consider
                 !! nqp::istype(consider, Iterable)
                     ?? consider.flat.Slip
@@ -221,7 +221,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \iterbuffer = IterationBuffer.CREATE;
         nqp::bindattr(list, List, '$!reified', iterbuffer);
         for @things {
-            iterbuffer.push($_);
+            my $sink = iterbuffer.push($_);
         }
         list
     }
@@ -346,7 +346,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     !! nqp::elems($!reified);
                 my int $i = $!i;
                 while $i < $n {
-                    $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
+                    my $sink = $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
                     $i = $i + 1;
                 }
                 $!i = $n;
@@ -402,12 +402,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \lhs-iter = self.iterator;
         my \rhs-iter = iterable.iterator;
         my int $rhs-done = 0;
+        my $sink;
         loop {
             my Mu \c := lhs-iter.pull-one;
             last if c =:= IterationEnd;
             if nqp::iscont(c) {
                 # Container: scalar assignment
-                nqp::push(cv, c);
+                $sink = nqp::push(cv, c);
                 if $rhs-done {
                     nqp::push(cv, Nil);
                 }
@@ -416,7 +417,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     $rhs-done = 1;
                 }
                 else {
-                    nqp::push(cv, v);
+                    $sink = nqp::push(cv, v);
                 }
             }
             elsif nqp::istype(c, Whatever) {
@@ -428,7 +429,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             }
             else {
                 # Non-container: store entire remaining rhs
-                nqp::push(cv, c);
+                $sink = nqp::push(cv, c);
                 nqp::push(cv, List.from-iterator(rhs-iter));
                 $rhs-done = 1;
             }
@@ -651,12 +652,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $n %= $elems;
         return self if $n == 0;
 
+        my $sink;
         my $rot := nqp::clone($!reified);
         if $n > 0 {
-            nqp::push($rot, nqp::shift($rot)) while $n--;
+            $sink = nqp::push($rot, nqp::shift($rot)) while $n--;
         }
         elsif $n < 0 {
-            nqp::unshift($rot, nqp::pop($rot)) while $n++;
+            $sink = nqp::unshift($rot, nqp::pop($rot)) while $n++;
         }
         my $rlist := nqp::create(self.WHAT);
         nqp::bindattr($rlist, List, '$!reified', $rot);
@@ -769,7 +771,7 @@ multi infix:<,>(|) {
             last;
         }
         else {
-            nqp::push(reified, nqp::shift(in));
+            my $sink = nqp::push(reified, nqp::shift(in));
             Nil # don't Sink the thing above
         }
     }

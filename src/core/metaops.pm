@@ -313,13 +313,14 @@ multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right
     my int $elems = left.elems;
     X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1)).throw
         unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
-    my @left := left.eager;
-    for ^$elems {
-        @result[$_] := HYPER(&operator, @left[$_], right, :$dwim-left, :$dwim-right);
+    my \lefti := left.iterator;
+    my int $i = 0;
+    until (my \value := lefti.pull-one) =:= IterationEnd {
+        @result[$i++] := HYPER(&operator, value, right, :$dwim-left, :$dwim-right);
     }
     # Coerce to the original type
     my $type = left.WHAT;
-    nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
+    nqp::iscont(left) ?? $type(|@result.eager).item !! $type(|@result.eager)
 }
 
 multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
@@ -328,13 +329,14 @@ multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right
     my int $elems = right.elems;
     X::HyperOp::NonDWIM.new(:&operator, :left-elems(1), :right-elems($elems)).throw
         unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;
-    my @right := right.eager;
-    for ^$elems {
-        @result[$_] := HYPER(&operator, left, @right[$_], :$dwim-left, :$dwim-right);
+    my \righti := right.iterator;
+    my int $i = 0;
+    until (my \value := righti.pull-one) =:= IterationEnd {
+        @result[$i++] := HYPER(&operator, left, value, :$dwim-left, :$dwim-right);
     }
     # Coerce to the original type
     my $type = right.WHAT;
-    nqp::iscont(right) ?? $type(@result.eager).item !! $type(@result.eager)
+    nqp::iscont(right) ?? $type(|@result.eager).item !! $type(|@result.eager)
 }
 
 multi sub HYPER(&operator, Positional:D \left, Positional:D \right, :$dwim-left, :$dwim-right) {

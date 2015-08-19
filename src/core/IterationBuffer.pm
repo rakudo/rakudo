@@ -20,7 +20,8 @@ my class IterationBuffer {
     }
 
     multi method push(IterationBuffer:D: Mu \value) {
-        nqp::push(self, value)
+        my $sink = nqp::push(self, value);
+        nqp::elems(self)
     }
 
     multi method AT-POS(IterationBuffer:D: int $pos) {

@@ -608,9 +608,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my $elems = self.elems;
         return () unless $elems;
 
-        gather loop {
-            take nqp::atpos($!reified,$elems.rand.floor);
-        }
+        # directly use Seq.from-loop so that the result is known infinite
+        Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)});
     }
     multi method roll(\number) {
         return self.roll(*) if number == Inf;

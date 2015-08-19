@@ -147,14 +147,15 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
     my $ :=
 #?endif
     sub (*@values) {
-        my $list := @values.reverse;
-        return () unless $list.gimme(1);
+        my \list = @values.reverse;
+        my $result := list.pull-one;
+        return () if $result =:= IterationEnd;
 
         gather {
-            my $result := $list.shift;
             take $result;
-            take ($result := op.($list.shift, $result))
-              while $list.gimme(1);
+            while (my $elem = list.pull-one) !=:= IterationEnd {
+                take $result := op.($elem, $result)
+            }
         }
     }
 }

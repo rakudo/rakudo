@@ -302,7 +302,7 @@ sub subtest(&subtests, $desc = '') is export {
     _init_vars();
     $indents ~= "    ";
     subtests();
-    done() if !$done_testing_has_been_run;
+    done-testing() if !$done_testing_has_been_run;
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
@@ -642,7 +642,7 @@ END {
     ## In planned mode, people don't necessarily expect to have to call done
     ## So call it for them if they didn't
     if !$done_testing_has_been_run && !$no_plan {
-        done;
+        done-testing;
     }
 
     for $output, $failure_output, $todo_output -> $handle {

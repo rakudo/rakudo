@@ -14,7 +14,7 @@ sub NPOSITIONS(\pos, \elems) {
 # Range, which will auto-truncate even though not lazy.
 proto sub POSITIONS(|) { * }
 multi sub POSITIONS(\SELF, \pos) {
-    my \pos-iter = pos.flat.iterator;
+    my \pos-iter = pos.iterator;
     my \pos-list = List.CREATE;
     my \eager-indices = IterationBuffer.CREATE;
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
@@ -22,10 +22,10 @@ multi sub POSITIONS(\SELF, \pos) {
         # There are lazy positions to care about too. We truncate at the first
         # one that fails to exists.
         my \rest-seq = Seq.new(pos-iter).map: -> Int() $i {
-            last unless SELF.EXISTS-KEY($i);
+            last unless SELF.EXISTS-POS($i);
             $i
         };
-        my \todo := LIST::Reifier.CREATE;
+        my \todo := List::Reifier.CREATE;
         nqp::bindattr(todo, List::Reifier, '$!reified', eager-indices);
         nqp::bindattr(todo, List::Reifier, '$!current-iter', rest-seq.iterator);
         nqp::bindattr(todo, List::Reifier, '$!reification-target', eager-indices);

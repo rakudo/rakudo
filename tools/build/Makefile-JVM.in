@@ -70,7 +70,6 @@ J_CORE_SOURCES = \
   src/core/Any-iterable-methods.pm \
   src/core/SLICE.pm \
   src/core/Whatever.pm \
-  src/core/array_slice.pm \
   src/core/hash_slice.pm \
   src/core/Scalar.pm \
   src/core/Code.pm \
@@ -103,6 +102,7 @@ J_CORE_SOURCES = \
   src/core/Nil.pm \
   src/core/Range.pm \
   src/core/List.pm \
+  src/core/array_slice.pm \
   src/core/Slip.pm \
   src/core/Array.pm \
   src/core/native_array.pm \

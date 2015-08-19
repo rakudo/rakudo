@@ -574,6 +574,11 @@ sub done_testing() is export {
 }
 
 sub done() is export {
+    DEPRECATED('done-testing',|<2015.08 2015.09>);
+    done-testing();
+}
+
+sub done-testing() is export {
     _init_io() unless $output;
     $done_testing_has_been_run = 1;
 

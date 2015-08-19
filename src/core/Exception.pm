@@ -770,8 +770,7 @@ my class X::Undeclared::Symbols does X::Comp {
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
         sub s(@s) {
-            # XXX GLR this dies when trying to stringify, even though @s is just the List ("sec")
-            #"Did you mean '{ @s.join("', '") }'?";
+            "Did you mean '{ @s.join("', '") }'?";
         }
         my $r = "";
         if %.post_types {

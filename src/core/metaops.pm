@@ -306,6 +306,37 @@ multi sub HYPER(&op, \left, \right, :$dwim-left, :$dwim-right) {
     op(left, right);
 }
 
+multi sub HYPER(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+    my %keyset;
+    if !$dwim-left {
+        %keyset{$_} = 1 for left.keys;
+    }
+    else {
+        %keyset{$_} = 1 if right.EXISTS-KEY($_) for left.keys;
+    }
+    if !$dwim-right {
+        %keyset{$_} = 1 for right.keys;
+    }
+    my @keys := %keyset.keys;
+    my $type = left.WHAT;
+    my %result := $type(@keys Z=> HYPER(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
+    nqp::iscont(left) ?? $%result !! %result;
+}
+
+multi sub HYPER(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
+    my @keys = left.keys;
+    my $type = left.WHAT;
+    my %result := $type(@keys Z=> HYPER(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
+    nqp::iscont(left) ?? $%result !! %result;
+}
+
+multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+    my @keys = right.keys;
+    my $type = right.WHAT;
+    my %result := $type(@keys Z=> HYPER(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
+    nqp::iscont(right) ?? $%result !! %result;
+}
+
 # XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
 multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
     my @result;
@@ -535,37 +566,6 @@ multi sub duckmap(\op, \obj) {
 multi sub duckmap(\op, Associative \h) {
     my @keys = h.keys;
     hash @keys Z duckmap(op, h{@keys})
-}
-
-multi sub HYPER(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
-    my %keyset;
-    if !$dwim-left {
-        %keyset{$_} = 1 for left.keys;
-    }
-    else {
-        %keyset{$_} = 1 if right.EXISTS-KEY($_) for left.keys;
-    }
-    if !$dwim-right {
-        %keyset{$_} = 1 for right.keys;
-    }
-    my @keys := %keyset.keys;
-    my $type = left.WHAT;
-    my %result := $type(@keys Z=> HYPER(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right));
-    nqp::iscont(left) ?? $%result !! %result;
-}
-
-multi sub HYPER(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
-    my @keys = left.keys;
-    my $type = left.WHAT;
-    my %result := $type(@keys Z=> HYPER(&op, left{@keys}, right, :$dwim-left, :$dwim-right));
-    nqp::iscont(left) ?? $%result !! %result;
-}
-
-multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
-    my @keys = right.keys;
-    my $type = right.WHAT;
-    my %result := $type(@keys Z=> HYPER(&op, left, right{@keys}, :$dwim-left, :$dwim-right));
-    nqp::iscont(right) ?? $%result !! %result;
 }
 
 # vim: ft=perl6 expandtab sw=4

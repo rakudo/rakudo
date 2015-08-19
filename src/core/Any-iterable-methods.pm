@@ -541,7 +541,7 @@ augment class Any {
         gather self.map: {
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target);
+                @seen.push($target.item);
                 take $_;
             }
         }

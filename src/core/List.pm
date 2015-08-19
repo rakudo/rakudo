@@ -854,8 +854,9 @@ sub infix:<X>(|lol) {
     if $Inf {  # general case treats all lists as potentially lazy
         return gather {
             while $i >= 0 {
-                if @l[$i].gimme(1) {
-                    nqp::bindpos($v, $i, @l[$i].shift);
+                my \e = @l[$i].pull-one();
+                if e !=:= IterationEnd {
+                    nqp::bindpos($v, $i, e);
                     if $i >= $n { take nqp::clone($v) }
                     else {
                         $i = $i + 1;
@@ -907,8 +908,9 @@ sub infix:<X>(|lol) {
         my Mu $jsave := nqp::list_i();
         gather {
             while $i == 0 {
-                if @l[0].gimme(1) {
-                    nqp::bindpos($v, $i, @l[0].shift);
+                my \e = @l[0].pull-one;
+                if e !=:= IterationEnd {
+                    nqp::bindpos($v, $i, e);
 
                     if $i >= $n { take nqp::clone($v) }
                     else { $i = $i + 1; }

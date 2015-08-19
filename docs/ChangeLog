@@ -11,6 +11,7 @@ New in 2015.08
    + Creating constants with a ? twigil has become a NYI for now
    + No longer allowed to create dynamic constants with "my constant $*FOO"
  + Deprecations:
+   + done() from Test.pm is now done-testing()
    + IO::Notification.watch_path is now watch-path
 
 New in 2015.07

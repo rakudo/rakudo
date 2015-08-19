@@ -425,7 +425,7 @@ multi sub HYPER(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
 
     # Coerce to the original type
     my $type = left.WHAT;
-    nqp::iscont(left) ?? $type(@result.eager).item !! $type(@result.eager)
+    nqp::iscont(left) ?? $type(|@result.eager).item !! $type(|@result.eager)
 }
 
 multi sub HYPER(\op, \obj) {

@@ -387,11 +387,15 @@ multi sub HYPER(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
     # Generate all of the non-dwimmmy results
     my \lefti  :=  nqp::istype(left,  Iterable) ??  left.iterator !!  left.list.iterator;
     my \righti :=  nqp::istype(right, Iterable) ?? right.iterator !! right.list.iterator;
+    my \leftb  := IterationBuffer.new if 0 < $left-elems < $max-elems;
+    my \rightb := IterationBuffer.new if 0 < $right-elems < $max-elems;
     my ($last-left, $last-right);
     for ^$min-elems {
-        $last-left  := lefti.pull-one;
-        $last-right := righti.pull-one;
-        @result[$_] := HYPER(&operator, $last-left, $last-right, :$dwim-left, :$dwim-right);
+        my \leftv := lefti.pull-one;
+        my \rightv := righti.pull-one;
+        leftb.push(leftv)   if leftb;
+        rightb.push(rightv) if rightb;
+        @result[$_] := HYPER(&operator, leftv, rightv, :$dwim-left, :$dwim-right);
     }
 
     # Check if 0 < $elems since if either side is empty and dwimmy (or both are empty),
@@ -401,26 +405,24 @@ multi sub HYPER(&operator, Positional:D \left, Positional:D \right, :$dwim-left,
         if $left-whatev || $left-elems == 1 {
             # Repeat last element
             for $left-elems..^$max-elems {
-                @result[$_] := HYPER(&operator, $last-left, righti.pull-one, :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, leftb[$left-elems - 1], righti.pull-one, :$dwim-left, :$dwim-right);
             }
         } else {
             # Cycle through the elements
             for $left-elems..^$max-elems {
-                die "NYI in GLR";
-                #@result[$_] := HYPER(&operator, @left[$_ % $left-elems], @right[$_], :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, leftb[$_ % $left-elems], righti.pull-one, :$dwim-left, :$dwim-right);
             }
         }
     } elsif 0 < $right-elems < $max-elems {
         if $right-whatev || $right-elems == 1 {
             # Repeat last element
             for $right-elems..^$max-elems {
-                @result[$_] := HYPER(&operator, lefti.pull-one, $last-right, :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, lefti.pull-one, rightb[$right-elems - 1], :$dwim-left, :$dwim-right);
             }
         } else {
             # Cycle through the elements
             for $right-elems..^$max-elems {
-                die "NYI in GLR";
-                #@result[$_] := HYPER(&operator, @left[$_], @right[$_ % $right-elems], :$dwim-left, :$dwim-right);
+                @result[$_] := HYPER(&operator, lefti.pull-one, rightb[$_ % $right-elems], :$dwim-left, :$dwim-right);
             }
         }
     }

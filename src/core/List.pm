@@ -663,7 +663,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $rlist;
     }
 
-    # XXX GLR
     method rotor(List:D: *@cycle, :$partial) is nodal {
         die "Must specify *how* to rotor a List"
           unless @cycle.is-lazy || @cycle;

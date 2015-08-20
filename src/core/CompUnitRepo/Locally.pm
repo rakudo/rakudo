@@ -32,7 +32,7 @@ role CompUnitRepo::Locally {
         self.short-id ~ '#' ~ $!IO.abspath;
     }
 
-    method absolutify(CompUnitRepo::Locally:_: |c) {
+    method absolutify(CompUnitRepo::Locally: |c) {
         $*SPEC.rel2abs(|c);
     }
 

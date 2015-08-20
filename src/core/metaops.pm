@@ -157,7 +157,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 
         gather {
             take $result;
-            while (my $elem = iter.pull-one) !=:= IterationEnd {
+            while (my $elem := iter.pull-one) !=:= IterationEnd {
                 take $result := op.($elem, $result)
             }
         }

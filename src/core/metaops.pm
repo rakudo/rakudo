@@ -237,15 +237,20 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
 #?endif
     sub (*@values) {
         my $state = True;
-        my Mu $current = @values.shift;
+        my \iter = @values.iterator;
+        my Mu $current = iter.pull-one;
         gather {
             take $state;
-            while $state && @values.gimme(1) {
-                $state = op.($current, @values[0]);
+            while $state && (my $next := iter.pull-one) !=:= IterationEnd {
+                $state = op.($current, $next);
                 take $state;
-                $current = @values.shift;
+                $current := $next;
             }
-            take False for @values;
+            unless $state {
+                while (my \v = iter.pull-one) !=:= IterationEnd {
+                    take False;
+                }
+            }
         }
     }
 }

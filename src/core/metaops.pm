@@ -120,29 +120,25 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
     }
 }
 
-sub REDUCE_LEFT_ITERATOR(\op, Iterator \iter) {
-    my \first = iter.pull-one;
-    return op.() if first =:= IterationEnd;
-
-    my \second = iter.pull-one;
-    return op.(first) if second =:= IterationEnd;
-
-    my $result := op.(first, second);
-    until (my \value = iter.pull-one) =:= IterationEnd {
-        $result := op.($result, value);
-    }
-    $result;
-}
-
 multi sub METAOP_REDUCE_LEFT(\op) {
 #?if jvm
     my $ :=
 #?endif
     sub (\iterablish) {
-        my \source = nqp::istype(iterablish, Iterable)
+        my \iter = nqp::istype(iterablish, Iterable)
             ?? iterablish.iterator
             !! iterablish.list.iterator;
-        REDUCE_LEFT_ITERATOR(op, source);
+        my \first = iter.pull-one;
+        return op.() if first =:= IterationEnd;
+
+        my \second = iter.pull-one;
+        return op.(first) if second =:= IterationEnd;
+
+        my $result := op.(first, second);
+        until (my \value = iter.pull-one) =:= IterationEnd {
+            $result := op.($result, value);
+        }
+        $result;
     }
 }
 
@@ -170,7 +166,18 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
     my $ :=
 #?endif
     sub (*@values) {
-        REDUCE_LEFT_ITERATOR(op, @values.reverse.iterator);
+        my \iter = @values.reverse.iterator;
+        my \first = iter.pull-one;
+        return op.() if first =:= IterationEnd;
+
+        my \second = iter.pull-one;
+        return op.(first) if second =:= IterationEnd;
+
+        my $result := op.(second, first);
+        until (my \value = iter.pull-one) =:= IterationEnd {
+            $result := op.(value, $result);
+        }
+        $result;
     }
 }
 

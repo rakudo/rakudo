@@ -112,6 +112,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 
         my $result := first;
         GATHER({
+            take first;
             until (my \value = source.pull-one) =:= IterationEnd {
                 take ($result := op.($result, value));
             }

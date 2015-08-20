@@ -367,7 +367,6 @@ my class Hash { # declared in BOOTSTRAP
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False
         }
-        # XXX GLR
         method keys(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
             Seq.new(class :: does Iterator {

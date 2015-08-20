@@ -180,15 +180,15 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
     my $ :=
 #?endif
     sub (*@values) {
-        return () unless @values.gimme(1);
 
-        GATHER({
+        my \res = GATHER({
             my @list;
-            while @values {
-                @list.push(@values.shift);
+            for @values -> \v {
+                @list.push(v);
                 take op.(|@list);
             }
-        }, :infinite(@values.infinite));
+        });
+        @values.is-lazy ?? res.lazy !! res;
     }
 }
 multi sub METAOP_REDUCE_LIST(\op) {

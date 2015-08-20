@@ -468,7 +468,7 @@ proto sub deepmap(|) { * }
 
 multi sub deepmap(\op, \obj) {
     my Mu $rpa := nqp::list();
-    my Mu $items := nqp::getattr(obj.List, List, '$!reified');
+    my Mu $items := obj.FLATTENABLE_LIST;
     my Mu $o;
     # We process the elements in two passes, end to start, to
     # prevent users from relying on a sequential ordering of hyper.

@@ -112,6 +112,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 
         my $result := first;
         GATHER({
+            take $result;
             until (my \value = source.pull-one) =:= IterationEnd {
                 take ($result := op.($result, value));
             }
@@ -146,36 +147,41 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
-        my \iter = @values.reverse.iterator;
-        my $result := iter.pull-one;
-        return () if $result =:= IterationEnd;
+    sub (\iterablish) {
+        my \source = nqp::istype(iterablish, Iterable)
+            ?? iterablish.reverse.iterator
+            !! iterablish.list.reverse.iterator;
 
-        gather {
+        my \first = source.pull-one;
+        return () if first =:= IterationEnd;
+
+        my $result := first;
+        GATHER({
             take $result;
-            while (my $elem = iter.pull-one) !=:= IterationEnd {
-                take $result := op.($elem, $result)
+            until (my \value = source.pull-one) =:= IterationEnd {
+                take ($result := op.(value, $result));
             }
-        }
+        });
     }
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
-
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
-        my $list := @values.reverse;
-        return op.() unless $list.gimme(1);
+    sub (\iterablish) {
+        my \source = nqp::istype(iterablish, Iterable)
+            ?? iterablish.reverse.iterator
+            !! iterablish.list.reverse.iterator;
 
-        my $result := $list.shift;
-        return op.($result) unless $list.gimme(1);
+        my \first = source.pull-one;
+        return op.() if first =:= IterationEnd;
 
-        my int $i;
-        while my int $c = $list.gimme(1000) {
-            $i = 0;
-            $result := op.($list.shift, $result)
-              while ($i = $i + 1) <= $c;
+        my \second = source.pull-one;
+        return op.(first) if second =:= IterationEnd;
+
+        my $result := op.(second, first);
+        until (my \value = source.pull-one) =:= IterationEnd {
+            $result := op.(value, $result);
         }
         $result;
     }

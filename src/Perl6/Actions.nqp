@@ -1334,15 +1334,16 @@ Compilation unit '$file' contained the following violations:
         $past.push($op);
 
         if $<EXPR> {
-            my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>.ast).list.eager;
-            my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
+            my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
+            my $IterationEnd := $*W.find_symbol(['IterationEnd']);
             my $lexpad      := $*W.cur_lexpad();
             my $*SCOPE      := 'my';
             my $import_past := QAST::Op.new(:node($/), :op<call>,
                                :name<&REQUIRE_IMPORT>,
                                $name_past);
-            for $arglist {
-                my $symbol := nqp::unbox_s($_.Str());
+
+            while !((my $arg := $p6_argiter.pull-one) =:= $IterationEnd) {
+                my $symbol := nqp::unbox_s($arg.Str());
                 $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
                     if $lexpad.symbol($symbol);
                 declare_variable($/, $past,

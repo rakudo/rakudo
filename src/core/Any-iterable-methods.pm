@@ -15,15 +15,15 @@ augment class Any {
 
     proto method map(|) { * }
 
-    multi method map(&block) {
-        sequential-map(as-iterable(self).iterator, &block);
+    multi method map(&block, :$label) {
+        sequential-map(as-iterable(self).iterator, &block, :$label);
     }
 
-    multi method map(HyperIterable:D: &block) {
+    multi method map(HyperIterable:D: &block, :$label) {
         # For now we only know how to parallelize when we've only one input
         # value needed per block. For the rest, fall back to sequential.
         if &block.count != 1 {
-            sequential-map(as-iterable(self).iterator, &block)
+            sequential-map(as-iterable(self).iterator, &block, :$label)
         }
         else {
             HyperSeq.new(class :: does HyperIterator {
@@ -45,7 +45,7 @@ augment class Any {
                     unless $!source.process-buffer($work) =:= Mu {
                         $work.swap();
                     }
-                    my \buffer-mapper = sequential-map($work.input-iterator, &!block);
+                    my \buffer-mapper = sequential-map($work.input-iterator, &!block, :$label);
                     buffer-mapper.iterator.push-all($work.output);
                     $work
                 }
@@ -57,7 +57,7 @@ augment class Any {
         }
     }
 
-    sub sequential-map(\source, &block) {
+    sub sequential-map(\source, &block, :$label) {
         my role MapIterCommon does SlippyIterator {
             has &!block;
             has $!source;
@@ -94,6 +94,37 @@ augment class Any {
                     }
                     elsif ($value := $!source.pull-one()) =:= IterationEnd {
                         $value
+                    }
+                    elsif $label {
+                        nqp::while(
+                            $redo,
+                            nqp::stmts(
+                                $redo = 0,
+                                nqp::handle(
+                                    nqp::stmts(
+                                        ($result := &!block($value)),
+                                        nqp::if(
+                                            nqp::istype($result, Slip),
+                                            nqp::stmts(
+                                                ($result := self.start-slip($result)),
+                                                nqp::if(
+                                                    nqp::eqaddr($result, IterationEnd),
+                                                    nqp::stmts(
+                                                        ($value := $!source.pull-one()),
+                                                        ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
+                                                ))
+                                            ))
+                                    ),
+                                    'LABELED', nqp::decont($label),
+                                    'NEXT', nqp::stmts(
+                                        ($value := $!source.pull-one()),
+                                        nqp::eqaddr($value, IterationEnd)
+                                            ?? ($result := IterationEnd)
+                                            !! ($redo = 1)),
+                                    'REDO', $redo = 1,
+                                    'LAST', ($result := IterationEnd))),
+                            :nohandler);
+                        $result
                     }
                     else {
                         nqp::while(
@@ -144,6 +175,41 @@ augment class Any {
                     elsif $!source.push-exactly($!value-buffer, $!count) =:= IterationEnd
                             && nqp::elems($!value-buffer) == 0 {
                         IterationEnd
+                    }
+                    elsif $label {
+                        nqp::while(
+                            $redo,
+                            nqp::stmts(
+                                $redo = 0,
+                                nqp::handle(
+                                    nqp::stmts(
+                                        ($result := nqp::p6invokeflat(&!block, $!value-buffer)),
+                                        nqp::if(
+                                            nqp::istype($result, Slip),
+                                            nqp::stmts(
+                                                ($result := self.start-slip($result)),
+                                                nqp::if(
+                                                    nqp::eqaddr($result, IterationEnd),
+                                                    nqp::stmts(
+                                                        (nqp::setelems($!value-buffer, 0)),
+                                                        ($redo = 1 unless nqp::eqaddr(
+                                                                $!source.push-exactly($!value-buffer, $!count),
+                                                                IterationEnd)
+                                                            && nqp::elems($!value-buffer) == 0)
+                                                ))
+                                            ))
+                                    ),
+                                    'LABELED', nqp::decont($label),
+                                    'NEXT', nqp::stmts(
+                                        (nqp::setelems($!value-buffer, 0)),
+                                        nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
+                                                && nqp::elems($!value-buffer) == 0
+                                            ?? ($result := IterationEnd)
+                                            !! ($redo = 1)),
+                                    'REDO', $redo = 1,
+                                    'LAST', ($result := IterationEnd))),
+                            :nohandler);
+                        $result
                     }
                     else {
                         nqp::while(

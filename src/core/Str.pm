@@ -1744,7 +1744,7 @@ multi sub infix:«~<»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~<»").throw;
 }
 
-multi sub ords(Str $s) returns List:D {
+multi sub ords(Str $s) returns Seq:D {
     my Int $c  = $s.chars;
     my str $ns = nqp::unbox_s($s);
     (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }

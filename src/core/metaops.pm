@@ -51,7 +51,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     my Mu $o := nqp::atpos($sublist, $j);
                     @v[$i] := $o;
                     $j = $j + 1;
-                    if $i >= $n { take $rop(|@v); }
+                    if $i >= $n { take lol.elems == 2 ?? $rop(|@v) !! $rop(@v); }
                     else { $i = $i + 1; @j.push($j); $j = 0; }
                 }
                 elsif (my \value = @loi[$i].pull-one) !=:= IterationEnd {

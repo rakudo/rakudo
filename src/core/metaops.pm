@@ -118,6 +118,21 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         });
     }
 }
+
+sub REDUCE_LEFT_ITERATOR(\op, Iterator \iter) {
+    my \first = iter.pull-one;
+    return op.() if first =:= IterationEnd;
+
+    my \second = iter.pull-one;
+    return op.(first) if second =:= IterationEnd;
+
+    my $result := op.(first, second);
+    until (my \value = iter.pull-one) =:= IterationEnd {
+        $result := op.($result, value);
+    }
+    $result;
+}
+
 multi sub METAOP_REDUCE_LEFT(\op) {
 #?if jvm
     my $ :=
@@ -126,18 +141,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         my \source = nqp::istype(iterablish, Iterable)
             ?? iterablish.iterator
             !! iterablish.list.iterator;
-
-        my \first = source.pull-one;
-        return op.() if first =:= IterationEnd;
-
-        my \second = source.pull-one;
-        return op.(first) if second =:= IterationEnd;
-
-        my $result := op.(first, second);
-        until (my \value = source.pull-one) =:= IterationEnd {
-            $result := op.($result, value);
-        }
-        $result;
+        REDUCE_LEFT_ITERATOR(op, source);
     }
 }
 
@@ -165,19 +169,7 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
     my $ :=
 #?endif
     sub (*@values) {
-        my $list := @values.reverse;
-        return op.() unless $list.gimme(1);
-
-        my $result := $list.shift;
-        return op.($result) unless $list.gimme(1);
-
-        my int $i;
-        while my int $c = $list.gimme(1000) {
-            $i = 0;
-            $result := op.($list.shift, $result)
-              while ($i = $i + 1) <= $c;
-        }
-        $result;
+        REDUCE_LEFT_ITERATOR(op, @values.reverse.iterator);
     }
 }
 

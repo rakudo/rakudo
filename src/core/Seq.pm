@@ -25,7 +25,7 @@ my role PositionalBindFailover {
     }
 }
 nqp::p6configposbindfailover(Positional, PositionalBindFailover);
-my class Seq does Iterable does PositionalBindFailover {
+my class Seq is Cool does Iterable does PositionalBindFailover {
     # The underlying iterator that iterating this sequence will work its
     # way through. Can only be obtained once.
     has Iterator $!iter;

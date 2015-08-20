@@ -149,12 +149,11 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             }
         }.new(self))
     }
-    # XXX GLR implement these iterators
     multi method antipairs(EnumMap:D:) {
-        nqp::die('Hash antipairs iterator NYI in GLR')
+        self.map: { .value => .key }
     }
     multi method invert(EnumMap:D:) {
-        nqp::die('Hash invert iterator NYI in GLR')
+        self.map: { (.value »=>» .key).list.Slip }
     }
 
     multi method AT-KEY(EnumMap:D: \key) is rw {

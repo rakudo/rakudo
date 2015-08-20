@@ -452,12 +452,10 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self, $?CLASS, nqp::getattr(self, EnumMap, '$!storage')))
         }
         method antipairs(EnumMap:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-            nqp::die('Typed hash antipairs iterator NYI in GLR')
+            self.map: { .value => .key }
         }
         method invert(EnumMap:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-            nqp::die('Typed hash invert iterator NYI in GLR')
+            self.map: { .value »=>» .key }
         }
         multi method perl(::?CLASS:D \SELF:) {
             my $TKey-perl   := TKey.perl;

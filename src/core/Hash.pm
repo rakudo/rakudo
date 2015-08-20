@@ -2,6 +2,10 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is EnumMap {
     #     has Mu $!descriptor;
 
+    multi method Hash() {
+        self
+    }
+
     multi method AT-KEY(Hash:D: \key) is rw {
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())

@@ -30,7 +30,7 @@ my class IO::Path is Cool {
     }
 
     multi method new(IO::Path: $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        die "Must specify something as a path: did you mean '.' for the current directory?" unless $path;
+        die "Must specify something as a path: did you mean '.' for the current directory?" unless $path.?chars;
         self.bless(:$path, :$SPEC, :$CWD);
     }
     multi method new(IO::Path:

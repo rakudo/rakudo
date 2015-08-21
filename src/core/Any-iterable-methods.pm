@@ -541,28 +541,46 @@ augment class Any {
 
     proto method reduce(|) { * }
     multi method reduce(&with) is nodal {
+        return unless self.DEFINITE;
+
         # XXX GLR we really, really should be able to do reduce on the
         # iterable in left-associative cases without having to make a
         # list in memory.
-        nqp::die('reduce needs re-working after GLR');
-        #return unless self.DEFINITE;
-        #return self.values if self.elems < 2;
-        #if &with.count > 2 and &with.count < Inf {
-        #    my $moar = &with.count - 1;
-        #    my \vals = self.values;
-        #    if try &with.prec<assoc> eq 'right' {
-        #        my Mu $val = vals.pop;
-        #        $val = with(|vals.splice(*-$moar,$moar), $val) while vals >= $moar;
-        #        return $val;
-        #    }
-        #    else {
-        #        my Mu $val = vals.shift;
-        #        $val = with($val, |vals.splice(0,$moar)) while vals >= $moar;
-        #        return $val;
-        #    }
-        #}
-        #my $reducer = find-reducer-for-op(&with);
-        #$reducer(&with)(self) if $reducer;
+        if &with.count > 2 and &with.count < Inf {
+            my int $count = &with.count;
+            if try &with.prec<assoc> eq 'right' {
+                my \iter = self.reverse.iterator;
+                my Mu $val := iter.pull-one;
+                return if $val =:= IterationEnd;
+                my @args = $val;
+                while (my \current = iter.pull-one) !=:= IterationEnd {
+                    @args.unshift: current;
+                    if @args.elems == $count {
+                        $val := with(|@args);
+                        @args = $val;
+                    }
+                }
+                return $val;
+            }
+            else {
+                my \iter = nqp::istype(self, Iterator)
+                           ?? self.iterator
+                           !! self.list.iterator;
+                my Mu $val := iter.pull-one;
+                return if $val =:= IterationEnd;
+                my @args = $val;
+                while (my \current = iter.pull-one) !=:= IterationEnd {
+                    @args.push: current;
+                    if @args.elems == $count {
+                        $val := with(|@args);
+                        @args = $val;
+                    }
+                }
+                return $val;
+            }
+        }
+        my $reducer := find-reducer-for-op(&with);
+        $reducer(&with)(self) if $reducer;
     }
 
     proto method unique(|) is nodal {*}

@@ -165,9 +165,26 @@ my class Range is Cool does Iterable does Positional {
             }.new($value)
         }
 
-        # XXX do other cases here
+        # General case according to spec
         else {
-            nqp::die('Range iterator NYI')
+            class :: does Iterator {
+                has $!i;
+                has $!e;
+
+                method new($i is copy, $e is copy) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!i', $i);
+                    nqp::bindattr(iter, self, '$!e', $e);
+                    iter
+                }
+
+                method pull-one() {
+                    $!i.=succ;
+                    $!i <= $!e ?? $!i !! IterationEnd
+                }
+
+                method is-lazy() { True }
+            }.new($value, $!excludes-max ?? $!max.pred !! $!max)
         }
     }
     multi method list(Range:D:) { List.from-iterator(self.iterator) }

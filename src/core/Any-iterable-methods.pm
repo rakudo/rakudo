@@ -693,20 +693,20 @@ proto sub infix:<min>(|) is pure { * }
 multi sub infix:<min>(Mu:D \a, Mu:U) { a }
 multi sub infix:<min>(Mu:U, Mu:D \b) { b }
 multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
-multi sub infix:<min>(*@args) { @args.min }
+multi sub infix:<min>(*@args is rw) { @args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
 #proto sub min(|)     { * }
 #multi sub min(*@args) { @args.min() }
 #multi sub min(*@args, :&by!) { @args.min(&by) }
-sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
+sub min(*@args is rw, :&by = &infix:<cmp>) { @args.min(&by) }
 
 proto sub infix:<max>(|) is pure { * }
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
-multi sub infix:<max>(*@args) { @args.max }
-sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
+multi sub infix:<max>(*@args is rw) { @args.max }
+sub max(*@args is rw, :&by = &infix:<cmp>) { @args.max(&by) }
 
 proto sub infix:<minmax>(|) is pure { * }
 multi sub infix:<minmax>(**@args is rw) { @args.minmax }

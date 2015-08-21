@@ -49,25 +49,25 @@ multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$SINK!,*%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, key, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$delete!,*%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, key, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$exists!,*%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, key, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$kv!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, key, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$p, |%other );
+    SLICE_MORE_HASH( SELF, key, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$k!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$k, |%other );
+    SLICE_MORE_HASH( SELF, key, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$v!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$v, |%other );
+    SLICE_MORE_HASH( SELF, key, :$v, |%other );
 }
 
 # %h{*}

@@ -72,7 +72,7 @@ multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$v!, *%other) is rw {
 
 # %h{*}
 multi sub postcircumfix:<{ }>( \SELF, Whatever ) is rw {
-    SELF{SELF.keys};
+    SELF{SELF.keys.list};
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, Mu \ASSIGN) is rw {
     die "Cannot assign to *, as the order of keys is non-deterministic";
@@ -81,30 +81,30 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$delete!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$exists!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$kv!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$k!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is rw {
     %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys, :$v, |%other )
-      !! SELF{SELF.keys};
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, :$v, |%other )
+      !! SELF{SELF.keys.list};
 }
 
 # %h{}
@@ -115,30 +115,30 @@ multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$delete!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$exists!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$kv!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$k!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$v!, *%other) is rw {
     %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys, :$v, |%other )
-      !! SELF{SELF.keys};
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, :$v, |%other )
+      !! SELF{SELF.keys.list};
 }
 
 # %h{;}

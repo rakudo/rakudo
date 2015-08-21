@@ -649,7 +649,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     X::Str::Match::x.new(:got($x)).fail;
                 }
                 $clip := 0..($clip.max) if $clip.min < 0;
-                return Nil if $clip.max < $clip.min;
+                return Slip.new() if $clip.max < $clip.min;
 
                 if $nth.defined {
                     $idxs := $nth.map(&nthidx).Array;
@@ -921,29 +921,29 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         return ().list
           if nqp::istype($limit,Numeric) && $limit <= 0;
-        my @matches = nqp::istype($limit, Whatever)
+        my \matches = nqp::istype($limit, Whatever)
           ?? self.match($pat, :g)
           !! self.match($pat, :x(1..$limit-1), :g);
 
-        # add dummy for last
-        push @matches, Match.new( :from(self.chars) );
         my $prev-pos = 0;
 
         if ($all) {
-            my $elems = +@matches;
+            my $elems = +matches;
             map {
                 my $value = substr(self,$prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 # we don't want the dummy object
-                --$elems ?? ($value, $_) !! $value;
-            }, @matches;
+                $elems-- ?? Slip.new($value, $_) !! $value;
+            }, matches, Match.new( :from(self.chars) );
+            #           ^-- add dummy for last
         }
         else {
             map {
-                my $value = substr(self,$prev-pos, .from - $prev-pos);
+                my $value = substr(self, $prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 $value;
-            }, @matches;
+            }, matches, Match.new( :from(self.chars) );
+            #           ^-- add dummy for last
         }
     }
 

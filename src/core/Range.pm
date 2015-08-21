@@ -60,11 +60,7 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method elems {
-        return Inf if nqp::istype($!min, Whatever)
-                   || nqp::istype($!max, Whatever)
-                   || $!min === -Inf
-                   || $!max === Inf
-                   ;
+        return Inf if $!min === -Inf || $!max === Inf;
         if nqp::istype($!min, Int) && nqp::istype($!max, Int) {
             my Int:D $least =
               $!excludes-min ?? $!min + 1 !! $!min;
@@ -151,8 +147,7 @@ my class Range is Cool does Iterable does Positional {
         }
 
         # Also something quick and easy for 1..* style things.
-        elsif nqp::istype($value, Numeric) &&
-            (nqp::istype($!max, Whatever) || $!max === Inf) {
+        elsif nqp::istype($value, Numeric) && $!max === Inf {
             class :: does Iterator {
                 has $!i;
 

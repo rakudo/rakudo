@@ -33,12 +33,12 @@ multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
 }
 multi sub infix:<does>(Mu:D \obj, **@roles) is rw {
     # XXX Mutability check.
-    my @real-roles := eager @roles.map: -> \rolish {
+    my \real-roles = eager @roles.map: -> \rolish {
         rolish.HOW.archetypes.composable() ?? rolish !!
             rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
             X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
     }
-    obj.^mixin(|@real-roles).BUILD_LEAST_DERIVED({});
+    obj.^mixin(|real-roles).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<does>(Mu:U \obj, **@roles) is rw {
     X::Does::TypeObject.new(type => obj).throw
@@ -84,22 +84,22 @@ multi sub infix:<but>(Mu \obj, Mu:D $val) is rw {
     obj.clone.^mixin(GENERATE-ROLE-FROM-VALUE($val));
 }
 multi sub infix:<but>(Mu:D \obj, **@roles) {
-    my @real-roles := eager @roles.map: -> \rolish {
+    my \real-roles := eager @roles.map: -> \rolish {
         rolish.DEFINITE ?? GENERATE-ROLE-FROM-VALUE(rolish) !!
             rolish.HOW.archetypes.composable() ?? rolish !!
             rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
             X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
     }
-    obj.clone.^mixin(|@real-roles).BUILD_LEAST_DERIVED({});
+    obj.clone.^mixin(|real-roles).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<but>(Mu:U \obj, **@roles) {
-    my @real-roles := eager @roles.map: -> \rolish {
+    my \real-roles := eager @roles.map: -> \rolish {
         rolish.DEFINITE ?? GENERATE-ROLE-FROM-VALUE(rolish) !!
             rolish.HOW.archetypes.composable() ?? rolish !!
             rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
             X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
     }
-    obj.^mixin(|@real-roles)
+    obj.^mixin(|real-roles)
 }
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {

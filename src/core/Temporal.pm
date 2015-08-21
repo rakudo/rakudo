@@ -99,7 +99,7 @@ my role Dateish {
     }
 
     method day-of-year() {
-        [+] $!day, map { self.days-in-month($!year, $^m) }, 1 ..^ $!month
+        [+] flat $!day, map { self.days-in-month($!year, $^m) }, 1 ..^ $!month
     }
 
     method check-value($val is copy, $name, $range, :$allow-nonint) {

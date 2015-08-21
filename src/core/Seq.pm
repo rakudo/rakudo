@@ -71,6 +71,10 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.list.Int
     }
 
+    method Bool(Seq:D:) {
+        self.list.Bool
+    }
+
     multi method Str(Seq:D:) {
         self.list.Str
     }

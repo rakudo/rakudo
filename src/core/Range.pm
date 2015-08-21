@@ -182,8 +182,6 @@ my class Range is Cool does Iterable does Positional {
                     $!i.=succ;
                     $!i <= $!e ?? $!i !! IterationEnd
                 }
-
-                method is-lazy() { True }
             }.new($value, $!excludes-max ?? $!max.pred !! $!max)
         }
     }

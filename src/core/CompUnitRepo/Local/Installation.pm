@@ -196,26 +196,25 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
         @candi
     }
 
-    method uninstall($name, :$file, :$auth, :$ver) {
+    method uninstall($dist) {
         $!lock.protect( {
-        my $path      = self.writeable-path or die "No writeable path found";
-        my $repo      = %!dists{$path};
-        my @candi     = self.candidates($name, :$file, :$auth, :$ver) or return False;
-        my @delete-id = @candi.map(*.<id>).list;
-        my %dists     = $repo<dists>.classify: { $_<id> ~~  none(@delete-id) ?? 'keep' !! 'discard' }
+        my $path       = self.writeable-path or die "No writeable path found";
+        my $repo       = %!dists{$path};
+        my @candi      = self.candidates($dist.name, :auth($dist.auth), :ver($dist.ver)) or return False;
+        my $delete-idx = $repo<dists>.first-index({ $_<id> eq @candi[0]<id> });
 
-        my @delete-files = %dists<discard>>>{"files"}>>.values.flat,
-            %dists<discard>>>{"provides"}>>.values>>.values>>{"file"}>>.values.flat;
-        my @keep-files  = %dists<keep>>>{"files"}>>.values.flat,
-            %dists<keep>>>{"provides"}>>.values>>.values>>{"file"}>>.values.flat;
+        my @delete-files = $repo<dists>[$delete-idx]<files>.values,
+            $repo<dists>[$delete-idx]<provides>.values>>.values>>{"file"}.values;
 
         for @delete-files {
             try unlink($_);
         }
 
-        $repo<dists>      = %dists<keep> // [ ];
+        $repo<dists>.splice($delete-idx, 1);
+
         $repo<dist-count> = $repo<dists>.flat.elems;
-        $repo<file-count> = @keep-files.flat.elems;
+        $repo<file-count> = [+] +$repo<dists>>>{"files"}>>.values.flat.elems,
+            +$repo<dists>>>{"provides"}>>.values>>.values>>{"file"}>>.values.flat.elems;
 
         "$path/MANIFEST".IO.spurt: to-json( $repo )
         } );

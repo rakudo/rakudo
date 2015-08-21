@@ -412,6 +412,8 @@ class array does Iterable is repr('VMArray') {
     multi method Str(array:D:)     { self.join(' ') }
 
     multi method elems(array:D:)    { nqp::elems(self) }
+    proto method Int(|) { * }
+    multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
     # XXX GLR will infinite survive?
     multi method infinite(array:D:) { False }

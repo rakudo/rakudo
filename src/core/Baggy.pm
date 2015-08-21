@@ -11,12 +11,12 @@ my role Baggy does QuantHash {
     multi method antipairs(Baggy:D:) { %!elems.values.map: { (.value => .key) } }
     multi method invert(Baggy:D:)   { %!elems.values.map: { (.value => .key) } } # NB value can't be listy
 
-    method kxxv { %!elems.values.map( {.key xx .value} ) }
-    method elems(--> Int) { %!elems.elems }
+    method kxxv(Baggy:D:) { %!elems.values.map( {.key xx .value} ) }
+    method elems(Baggy:D: --> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
-    method Bool { %!elems.Bool }
+    method Bool(Baggy:D:) { %!elems.Bool }
 
-    method hash(--> Hash) { %!elems.values.hash }
+    method hash(Baggy:D: --> Hash) { %!elems.values.hash }
 
     method new(*@args --> Baggy) {
         my %e;
@@ -70,7 +70,7 @@ my role Baggy does QuantHash {
         ~ ").{self.^name}"
     }
 
-    method list() { self.pairs }
+    multi method list(Baggy:D:) { self.pairs }
 
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {

@@ -8,8 +8,8 @@ my role Setty does QuantHash {
     multi method kv(Setty:D:)     { %!elems.values X, True }
     multi method values(Setty:D:) { True xx %!elems.elems }
 
-    method elems(--> Int) { %!elems.elems }
-    method total(--> Int) { %!elems.elems }
+    method elems(Setty:D: --> Int) { %!elems.elems }
+    method total(Setty:D: --> Int) { %!elems.elems }
     method minpairs(--> List) { self.pairs }
     method maxpairs(--> List) { self.pairs }
     multi method Bool(Setty:D:) { %!elems.Bool }
@@ -60,23 +60,23 @@ my role Setty does QuantHash {
         ~ ')';
     }
 
-    method list() { %!elems.values }
+    multi method list(Setty:D:) { %!elems.values }
     multi method pairs(Setty:D:)    { %!elems.values.map: { $_ => True } }
     multi method antipairs(Setty:D:) { %!elems.values.map: { True => $_ } }
-    method grab($count = 1) {
+    method grab(Setty:D: $count = 1) {
         (%!elems{ %!elems.keys.pick($count) }:delete).list;
     }
-    method grabpairs($count = 1) {
+    method grabpairs(Setty:D: $count = 1) {
         (%!elems{ %!elems.keys.pick($count) }:delete).map( { ($_=>True) } );
     }
 
     proto method pick(|) { * }
-    multi method pick()       { %!elems.values.pick()       }
-    multi method pick($count) { %!elems.values.pick($count) }
+    multi method pick(Setty:D:)       { %!elems.values.pick()       }
+    multi method pick(Setty:D: $count) { %!elems.values.pick($count) }
 
     proto method roll(|) { * }
-    multi method roll()       { %!elems.values.roll()       }
-    multi method roll($count) { %!elems.values.roll($count) }
+    multi method roll(Setty:D:)       { %!elems.values.roll()       }
+    multi method roll(Setty:D: $count) { %!elems.values.roll($count) }
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool) {
         nqp::p6bool(

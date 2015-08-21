@@ -145,28 +145,40 @@ my class Array { # declared in BOOTSTRAP
             !! value
     }
 
-    # XXX GLR
-    #multi method ASSIGN-POS(Array:D: int \pos, Mu \assignee) is rw {
-    #    X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
-    #      if nqp::islt_i(pos,0);
-    #    my \items := nqp::p6listitems(self);
-    #    nqp::existspos(items,pos)
-    #      || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-    #      && self.EXISTS-POS(pos)
-    #        ?? (nqp::atpos(items,pos) = assignee)
-    #        !! (nqp::bindpos(items,pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
-    #}
-    #multi method ASSIGN-POS(Array:D: Int:D \pos, Mu \assignee) is rw {
-    #    my int $pos = nqp::unbox_i(pos);
-    #    X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>).throw
-    #      if nqp::islt_i($pos,0);
-    #    my \items := nqp::p6listitems(self);
-    #    nqp::existspos(items,$pos)
-    #      || nqp::isconcrete(nqp::getattr(self,List,'$!nextiter'))
-    #      && self.EXISTS-POS($pos)
-    #        ?? (nqp::atpos(items,$pos) = assignee)
-    #        !! (nqp::bindpos(items,$pos,nqp::p6scalarfromdesc($!descriptor)) = assignee)
-    #}
+    multi method ASSIGN-POS(Array:D: int $ipos, Mu \assignee) is rw {
+        X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>).throw
+          if nqp::islt_i($ipos, 0);
+        my Mu \reified := nqp::getattr(self, List, '$!reified');
+        reified.DEFINITE && $ipos < nqp::elems(reified)
+            ?? nqp::isnull(nqp::atpos(reified, $ipos))
+                ?? (nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
+                !! (nqp::atpos(reified, $ipos) = assignee)
+            !! self!ASSIGN-POS-SLOWPATH($ipos, assignee)
+    }
+    multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is rw {
+        my int $ipos = nqp::unbox_i($pos);
+        X::OutOfRange.new(:what<Index>,:got($pos),:range<0..Inf>).throw
+          if nqp::islt_i($ipos, 0);
+        my Mu \reified := nqp::getattr(self, List, '$!reified');
+        reified.DEFINITE && $ipos < nqp::elems(reified)
+            ?? nqp::isnull(nqp::atpos(reified, $ipos))
+                ?? (nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
+                !! (nqp::atpos(reified, $ipos) = assignee)
+            !! self!ASSIGN-POS-SLOWPATH($ipos, assignee)
+    }
+    method !ASSIGN-POS-SLOWPATH(int $ipos, Mu \assignee) is rw {
+        fail X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>)
+          if nqp::islt_i($ipos, 0);
+        self!ensure-allocated();
+        my $todo := nqp::getattr(self, List, '$!todo');
+        if $todo.DEFINITE {
+            $todo.reify-at-least($ipos + 1);
+        }
+        my Mu \reified := nqp::getattr(self, List, '$!reified');
+        $ipos >= nqp::elems(reified) || nqp::isnull(my \value = nqp::atpos(reified, $ipos))
+            ?? (nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
+            !! (nqp::atpos(reified, $ipos) = assignee)
+    }
 
     proto method BIND-POS(|) { * }
     multi method BIND-POS(Int $pos, Mu \bindval) is rw {

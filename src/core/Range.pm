@@ -59,6 +59,20 @@ my class Range is Cool does Iterable does Positional {
           ~ $!max;
     }
 
+    method elems {
+        return Inf if nqp::istype($!min, Whatever)
+                   || nqp::istype($!max, Whatever)
+                   || $!min === -Inf
+                   || $!max === Inf
+                   ;
+        if nqp::istype($!min, Int) && nqp::istype($!max, Int) {
+            my Int:D $least =
+              $!excludes-min ?? $!min + 1 !! $!min;
+            return 1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
+        }
+        nextsame;
+    }
+
     # XXX GLR steal this logic into the (to be written) iterator for ranges.
     #method reify($n) {
     #    my $count;

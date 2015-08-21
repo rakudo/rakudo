@@ -232,7 +232,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method Bool(List:D:) {
         self!ensure-allocated;
-        nqp::elems($!reified) ||
+        so nqp::elems($!reified) ||
             $!todo.DEFINITE && $!todo.reify-at-least(1)
     }
     multi method Int(List:D:)     { self.elems }

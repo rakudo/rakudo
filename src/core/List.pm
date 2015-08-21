@@ -821,6 +821,8 @@ multi sub infix:<xx>(Mu \x, Int() $n) {
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 
+sub prefix:<|>(\x) { x.Slip }
+
 multi sub infix:<cmp>(@a, @b) {
     (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b
 }

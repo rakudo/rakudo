@@ -1917,6 +1917,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!{ $*IN_DECL }>
         <!{ $*QSIGIL }>
         <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
+        <!{ $<text> ~~ / ^ \s* $ / }>
         <?{
             my $sigil := $<sigil>.Str;
             my $text := $<text>.Str;

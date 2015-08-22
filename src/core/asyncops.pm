@@ -14,7 +14,7 @@ multi sub await(Channel:D $c) {
     $c.receive
 }
 multi sub await(*@awaitables) {
-    @awaitables.eager.map(&await)
+    @awaitables.eager.map({await $_})
 }
 
 sub cas (\val,&code) { val = code(val) } # naive implementation of cas

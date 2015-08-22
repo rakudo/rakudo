@@ -1133,7 +1133,7 @@ Compilation unit '$file' contained the following violations:
             unless $BLOCK.symbol('$_') || $*IMPLICIT {
                 $*W.install_lexical_magical($BLOCK, '$_');
             }
-            for <$/ $!> {
+            for <$/ $! $¢> {
                 unless $BLOCK.symbol($_) {
                     $*W.install_lexical_magical($BLOCK, $_);
                 }
@@ -3010,7 +3010,7 @@ Compilation unit '$file' contained the following violations:
             if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
                 return 0 if $name ne '$*DISPATCHER' && $name ne '$_' &&
-                    $name ne '$/' && $name ne '$!' &&
+                    $name ne '$/' && $name ne '$¢' && $name ne '$!' &&
                     !nqp::existskey(%arg_placeholders, $name);
             }
             elsif nqp::istype($_, QAST::Block) {
@@ -3480,7 +3480,7 @@ Compilation unit '$file' contained the following violations:
             my $consider := $BLOCK[0][$i];
             if nqp::istype($consider, QAST::Var) {
                 my $name := $consider.name;
-                if $name eq '$_' || $name eq '$/' || $name eq '$!' {
+                if $name eq '$_' || $name eq '$/' || $name eq '$!' || $name eq '$¢' {
                     $BLOCK[0][$i] := QAST::Op.new( :op('null') );
                 }
             }
@@ -3573,8 +3573,7 @@ Compilation unit '$file' contained the following violations:
             $past := $block;
         }
         else {
-            $block[0].unshift(QAST::Var.new(:name<$¢>, :scope<lexical>, :decl('var')));
-            $block.symbol('$¢', :scope<lexical>);
+            $*W.install_lexical_magical($block, '$¢');
             unless $use_outer_match {
                 $*W.install_lexical_magical($block, '$/');
             }
@@ -6586,7 +6585,7 @@ Compilation unit '$file' contained the following violations:
         );
         if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
             # if this match returns a list of matches instead of a single
-            # match, don't assing to $/ (which imposes item context)
+            # match, don't assign to $/ (which imposes item context)
             make $past;
         } else {
             make QAST::Op.new( :op('p6store'),

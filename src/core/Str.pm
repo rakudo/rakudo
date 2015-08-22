@@ -604,12 +604,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
             # Translate :nth lists to monotonic 0-based indices
             my sub nthidx($n is copy) {
 
-                if nqp::istype($n, Callable) {
-                    # Whatevers force us to remember early
+                if nqp::istype($n, Callable) or nqp::istype($n, Whatever) {
+                    # WhateverCode forces us to remember early
                     once @matches := $matches.list;
                     once $matches := Nil;
-                    # Whatevers are 1-based
-                    $n = $n(+@matches)
+                    # WhateverCode is 1-based
+                    $n = nqp::istype($n, Whatever) ?? +@matches !! $n(+@matches);
                 }
 
                 state $max = -Inf;
@@ -649,11 +649,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     X::Str::Match::x.new(:got($x)).fail;
                 }
                 $clip := 0..($clip.max) if $clip.min < 0;
-                return Slip.new() if $clip.max < $clip.min;
+                return Slip.new() if $clip.max < 1 or $clip.max < $clip.min;
 
                 if $nth.defined {
                     $idxs := $nth.map(&nthidx).Array;
-                    return Nil
+                    return Slip.new()
                         if $clip.min and not $idxs.EXISTS-POS($clip.min - 1);
                 }
                 else {
@@ -666,7 +666,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $matches := @matches.values;
                 @matches := ();
             }
-
 
             # Just "list $matches.grep", once we have True.last
             @matches := (gather do for $matches -> $m {

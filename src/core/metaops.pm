@@ -483,48 +483,70 @@ multi sub HYPER(\op, \obj) {
 proto sub deepmap(|) { * }
 
 multi sub deepmap(\op, \obj) {
-    my Mu $rpa := nqp::list();
-    my \objs := obj.List;
+    #my Mu $rpa := nqp::list();
+    #my \objs := obj.List;
     # as a wanted side-effect is-lazy reifies the list
-    fail X::Cannot::Lazy.new(:action('deepmap')) if objs.is-lazy;
-    my Mu $items := nqp::getattr(objs, List, '$!reified');
-    my Mu $o;
-    # We process the elements in two passes, end to start, to
-    # prevent users from relying on a sequential ordering of hyper.
-    # Also, starting at the end pre-allocates $rpa for us.
-    my int $i = nqp::elems($items) - 1;
-    nqp::while(
-        nqp::isge_i($i, 0),
-        nqp::stmts(
-            ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i,
-                nqp::if(nqp::istype($o, Iterable),
-                        $o.new(deepmap(op, $o)).item,
-                        nqp::stmts(
-                            ($o := op.($o)),
-                            nqp::if(nqp::istype($o, List),
-                                    $o.gimme(*)),
-                                    $o))),
-            $i = nqp::sub_i($i, 2)
-        )
-    );
-    $i = nqp::elems($items) - 2;
-    nqp::while(
-        nqp::isge_i($i, 0),
-        nqp::stmts(
-            ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i,
-                nqp::if(nqp::istype($o, Iterable),
-                        $o.new(deepmap(op, $o)).item,
-                        nqp::stmts(
-                            ($o := op.($o)),
-                            nqp::if(nqp::istype($o, List),
-                                    $o.gimme(*)),
-                                    $o))),
-            $i = nqp::sub_i($i, 2)
-        )
-    );
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
+    #fail X::Cannot::Lazy.new(:action('deepmap')) if objs.is-lazy;
+    my \iterable = obj.DEFINITE && nqp::istype(obj, Iterable)
+            ?? obj
+            !! obj.list;
+
+    Seq.new(class :: does SlippyIterator {
+        has &!block;
+        has $!source;
+
+        method new(&block, $source) {
+            my $iter := self.CREATE;
+            nqp::bindattr($iter, self, '&!block', &block);
+            nqp::bindattr($iter, self, '$!source', $source);
+            $iter
+        }
+
+        method is-lazy() {
+            $!source.is-lazy
+        }
+        method pull-one() is rw {
+            my int $redo = 1;
+            my $value;
+            my $result;
+            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+                $result
+            }
+            elsif ($value := $!source.pull-one()) =:= IterationEnd {
+                $value
+            }
+            else {
+                nqp::while(
+                    $redo,
+                    nqp::stmts(
+                        $redo = 0,
+                        nqp::handle(
+                            nqp::stmts(
+                                ($result := &!block($value)),
+                                nqp::if(
+                                    nqp::istype($result, Slip), # GLR add code handling Iterable here
+                                    nqp::stmts(
+                                        ($result := self.start-slip($result)),
+                                        nqp::if(
+                                            nqp::eqaddr($result, IterationEnd),
+                                            nqp::stmts(
+                                                ($value := $!source.pull-one()),
+                                                ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
+                                        ))
+                                    ))
+                            ),
+                            'NEXT', nqp::stmts(
+                                ($value := $!source.pull-one()),
+                                nqp::eqaddr($value, IterationEnd)
+                                    ?? ($result := IterationEnd)
+                                    !! ($redo = 1)),
+                            'REDO', $redo = 1,
+                            'LAST', ($result := IterationEnd))),
+                    :nohandler);
+                $result
+            }
+        }
+    }.new(op, iterable.iterator));
 }
 
 multi sub deepmap(\op, Associative \h) {

@@ -563,7 +563,9 @@ Please refactor this code using the new Iterator / Seq interface.
             }
             $i = $i + 1;
         }
-        &infix:<,>(|@results)
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', nqp::getattr(@results, List, '$!reified'));
+        $list
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {

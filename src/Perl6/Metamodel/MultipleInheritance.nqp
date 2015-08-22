@@ -53,7 +53,8 @@ role Perl6::Metamodel::MultipleInheritance {
             my @result;
             for @!parents {
                 my @pt := [$_];
-                @pt.push($_.HOW.parents($_, :tree(1)));
+                my @recursive_parents := $_.HOW.parents($_, :tree(1));
+                @pt.push(@recursive_parents) if @recursive_parents;
                 @result.push(nqp::hllizefor(@pt, 'perl6').Array.item);
             }
             return nqp::hllizefor(@result, 'perl6');

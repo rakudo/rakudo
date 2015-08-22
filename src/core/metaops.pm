@@ -524,7 +524,13 @@ multi sub deepmap(\op, \obj) {
                             nqp::stmts(
                                 ($result := &!block($value)),
                                 nqp::if(
-                                    nqp::istype($result, Slip), # GLR add code handling Iterable here
+                                    nqp::istype($result, Iterable),
+                                    nqp::stmts(
+                                        ($result := deepmap(op, $result))
+                                    )
+                                ),
+                                nqp::if(
+                                    nqp::istype($result, Slip),
                                     nqp::stmts(
                                         ($result := self.start-slip($result)),
                                         nqp::if(

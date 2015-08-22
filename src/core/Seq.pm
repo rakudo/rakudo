@@ -116,6 +116,8 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.list.EXISTS-POS($idx)
     }
 
+    multi method invert(Seq:D:) { self.List.invert }
+
     # Lazy loops produce a Seq wrapping a loop iterator. We have a few
     # special cases of that.
     my class InfiniteLoopIter does SlippyIterator {

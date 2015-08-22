@@ -974,11 +974,20 @@ sub infix:<Z>(|lol) {
 my &zip := &infix:<Z>;
 
 sub roundrobin(**@lol) {
-    my @l = @lol.map({ (.flat,).list.item });
+    my @iters = @lol.map: { nqp::istype($_, Iterable) ?? .iterator !! .list.iterator };
     gather {
-        my $p;
-        while $p := @l.grep(*.Bool).map(*.shift).eager.List {
-            take $p;
+        while @iters {
+            my @new-iters;
+            my @values;
+            for @iters -> $i {
+                my \v = $i.pull-one;
+                if v !=:= IterationEnd {
+                    @values.push: v;
+                    @new-iters.push: $i;
+                }
+            }
+            take @values if @values;
+            @iters = @new-iters;
         }
     }
 }

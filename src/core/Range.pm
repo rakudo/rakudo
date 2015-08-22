@@ -170,16 +170,18 @@ my class Range is Cool does Iterable does Positional {
             class :: does Iterator {
                 has $!i;
                 has $!e;
+                has $!exclude;
 
-                method new($i is copy, $e is copy) {
+                method new($i is copy, $exclude is copy, $e is copy) {
                     my \iter = self.CREATE;
                     nqp::bindattr(iter, self, '$!i', $i);
                     nqp::bindattr(iter, self, '$!e', $e);
+                    nqp::bindattr(iter, self, '$!exclude', $exclude);
                     iter
                 }
 
                 method pull-one() {
-                    if $!i <= $!e {
+                    if $!exclude ?? $!i < $!e !! $!i <= $!e {
                         my Mu $i = $!i;
                         $!i = $i.succ;
                         $i
@@ -188,7 +190,7 @@ my class Range is Cool does Iterable does Positional {
                         IterationEnd
                     }
                 }
-            }.new($value, $!excludes-max ?? $!max.pred !! $!max)
+            }.new($value, $!excludes-max, $!max)
         }
     }
     multi method list(Range:D:) { List.from-iterator(self.iterator) }

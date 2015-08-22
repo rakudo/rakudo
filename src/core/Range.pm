@@ -59,6 +59,14 @@ my class Range is Cool does Iterable does Positional {
           ~ $!max;
     }
 
+    multi method EXISTS-POS(Range:D: int \pos) {
+        self.List.EXISTS-POS(pos);
+    }
+
+    multi method EXISTS-POS(Range:D: Int \pos) {
+        self.List.EXISTS-POS(pos);
+    }
+
     method elems {
         return Inf if $!min === -Inf || $!max === Inf;
         if nqp::istype($!min, Int) && nqp::istype($!max, Int) {

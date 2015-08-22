@@ -17,11 +17,7 @@ multi sub say(Str:D \x) {
     $out.print: x;
     $out.print-nl;
 }
-multi sub say(\x) {
-    my $out := $*OUT;
-    $out.print: x.gist;
-    $out.print-nl;
-}
+
 multi sub say(*@args is rw) {
     my $out := $*OUT;
     $out.print(.gist) for @args;
@@ -39,11 +35,7 @@ multi sub note(Str:D \x) {
     $err.print: x;
     $err.print-nl;
 }
-multi sub note(\x) {
-    my $err := $*ERR;
-    $err.print: x.gist;
-    $err.print-nl;
-}
+
 multi sub note(*@args is rw) {
     my $err := $*ERR;
     $err.print(.gist) for @args;

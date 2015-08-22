@@ -179,8 +179,14 @@ my class Range is Cool does Iterable does Positional {
                 }
 
                 method pull-one() {
-                    $!i.=succ;
-                    $!i <= $!e ?? $!i !! IterationEnd
+                    if $!i <= $!e {
+                        my Mu $i = $!i;
+                        $!i = $i.succ;
+                        $i
+                    }
+                    else {
+                        IterationEnd
+                    }
                 }
             }.new($value, $!excludes-max ?? $!max.pred !! $!max)
         }

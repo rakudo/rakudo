@@ -491,7 +491,7 @@ multi sub deepmap(\op, \obj) {
             ?? obj
             !! obj.list;
 
-    Seq.new(class :: does SlippyIterator {
+    my \result := class :: does SlippyIterator {
         has &!block;
         has $!source;
 
@@ -552,7 +552,9 @@ multi sub deepmap(\op, \obj) {
                 $result
             }
         }
-    }.new(op, iterable.iterator));
+    }.new(op, iterable.iterator);
+
+    nqp::iscont(obj) ?? List.from-iterator(result).item !! List.from-iterator(result)
 }
 
 multi sub deepmap(\op, Associative \h) {

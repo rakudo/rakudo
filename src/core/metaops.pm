@@ -384,9 +384,12 @@ multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right
 multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$dwim-right) {
     my @result;
 
+    my \lefti  :=  left.iterator;
+    my \righti :=  right.iterator;
+
     # Check if a dwimmy side ends *. If so, that's considered a replication of the final element
-    my $left-elems  = left.is-lazy ?? Inf !! left.elems;
-    my $right-elems = right.is-lazy ?? Inf !! right.elems;
+    my $left-elems  =  lefti.is-lazy ?? Inf !! left.elems;
+    my $right-elems = righti.is-lazy ?? Inf !! right.elems;
     my $left-whatev = 0;
     my $right-whatev = 0;
     if $dwim-left and 1 < $left-elems < Inf and left[$left-elems - 1] ~~ Whatever {
@@ -427,8 +430,6 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
     }
 
     # Generate all of the non-dwimmmy results
-    my \lefti  :=  nqp::istype(left,  Iterable) ??  left.iterator !!  left.list.iterator;
-    my \righti :=  nqp::istype(right, Iterable) ?? right.iterator !! right.list.iterator;
     my \leftb  := IterationBuffer.new if 0 < $left-elems < $max-elems;
     my \rightb := IterationBuffer.new if 0 < $right-elems < $max-elems;
     my ($last-left, $last-right);

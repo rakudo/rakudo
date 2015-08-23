@@ -727,7 +727,7 @@ multi sub grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
 
 proto sub grep-index(|) {*}
 multi sub grep-index(Mu $test, @values) { @values.grep-index($test) }
-multi sub grep-index(Mu $test, *@values) { @values.grep-index($test) }
+multi sub grep-index(Mu $test, **@values) { @values.grep-index($test) }
 multi sub grep-index(Bool:D $t, *@v) {
     fail X::Match::Bool.new(type => 'grep-index');
 }

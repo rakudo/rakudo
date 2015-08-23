@@ -555,7 +555,7 @@ multi sub deepmap(\op, \obj) {
         }
     }.new(op, iterable.iterator);
 
-    nqp::iscont(obj) ?? List.from-iterator(result).item !! List.from-iterator(result)
+    nqp::iscont(obj) ?? List.from-iterator(result).eager.item !! List.from-iterator(result).eager
 }
 
 multi sub deepmap(\op, Associative \h) {

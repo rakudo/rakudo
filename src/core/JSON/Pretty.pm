@@ -19,7 +19,7 @@ my class JSONPrettyActions {
     }
 
     method arraylist($/) {
-        make [$<value>>>.ast];
+        make [$<value>.map(*.made)];
     }
 
     method string($/) {

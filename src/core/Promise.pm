@@ -212,6 +212,14 @@ my class Promise {
         });
         $s
     }
+
+    # experimental
+    method Str(Promise:D:)     { self.result.Str     }
+    method Numeric(Promise:D:) { self.result.Numeric }
+}
+
+multi sub infix:<eqv>(Promise:D $a, Promise:D $b) {
+    infix:<eqv>($a.result, $b.result);
 }
 
 # vim: ft=perl6 expandtab sw=4

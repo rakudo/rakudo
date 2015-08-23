@@ -373,7 +373,14 @@ my class DateTime does Dateish {
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
                 $month = ($month - 1) % 12 + 1;
-                $date = Date.new(:$year, :$month, :$!day);
+                my $day = $!day;
+                # If we overflow on days in the month, rather than throw an
+                # exception, we just clip to the 1st of the next month
+                if $day > $.days-in-month($year, $month) {
+                    $day = 1;
+                    $month++;
+                }
+                $date = Date.new(:$year, :$month, :$day);
                 succeed;
             }
 
@@ -605,7 +612,14 @@ my class Date does Dateish {
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
                 $month = ($month - 1) % 12 + 1;
-                $date = self.new(:$year, :$month, :$!day);
+                my $day = $!day;
+                # If we overflow on days in the month, rather than throw an
+                # exception, we just clip to the 1st of the next month
+                if $day > $.days-in-month($year, $month) {
+                    $day = 1;
+                    $month++;
+                }
+                $date = Date.new(:$year, :$month, :$day);
                 succeed;
             }
 

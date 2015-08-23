@@ -73,7 +73,8 @@ my sub MAIN_HELPER($retval = 0) {
             my ($vol, $dir, $base) = $SPEC.splitpath($name);
             $dir = $SPEC.canonpath($dir);
             for $SPEC.path() -> $elem {
-                if $SPEC.catpath($vol, $elem, $base).IO.x {
+                my $file = $SPEC.catpath($vol, $elem, $base).IO;
+                if $file.x && $file.f {
                     return $base if $SPEC.canonpath($elem) eq $dir;
                     # Shadowed command found in earlier PATH element
                     return $name;

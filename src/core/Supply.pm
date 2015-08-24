@@ -347,7 +347,7 @@ my role Supply {
         self.rotor( (2 => -1) );
     }
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
-        my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
+        my @c := @cycle.is-lazy ?? @cycle !! @cycle xx *;
 
         on -> $res {
             $self => do {

@@ -28,10 +28,12 @@ my sub combinations($n, $k) {
 }
 
 my sub permutations(Int $n) {
-    $n == 1 ?? ( (0,) ) !!
+    $n == 1 ?? ( (0,), ) !!
     gather for ^$n -> $i {
-        my @i = 0 ..^ $i, $i ^..^ $n;
-        sink permutations($n - 1).map: { take ($i, @i[@$_]) }
+        my @i = flat 0 ..^ $i, $i ^..^ $n;
+        for permutations($n - 1) {
+            take (flat $i, @i[@$_])
+        }
     }
 }
 

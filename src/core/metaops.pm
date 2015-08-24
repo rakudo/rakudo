@@ -523,12 +523,12 @@ multi sub deepmap(\op, \obj) {
                         $redo = 0,
                         nqp::handle(
                             nqp::stmts(
-                                ($result := &!block($value)),
                                 nqp::if(
-                                    nqp::istype($result, Iterable),
+                                    nqp::istype($value, Iterable),
                                     nqp::stmts(
-                                        ($result := deepmap(op, $result))
-                                    )
+                                        ($result := deepmap(&!block, $value).item),
+                                    ),
+                                    ($result := &!block($value)),
                                 ),
                                 nqp::if(
                                     nqp::istype($result, Slip),

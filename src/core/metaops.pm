@@ -555,7 +555,10 @@ multi sub deepmap(\op, \obj) {
         }
     }.new(op, iterable.iterator);
 
-    nqp::iscont(obj) ?? List.from-iterator(result).eager.item !! List.from-iterator(result).eager
+    my $type = nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
+    my \retval = $type.from-iterator(result);
+    retval.is-lazy(); # fully reifies as a side-effect
+    nqp::iscont(obj) ?? retval.item !! retval;
 }
 
 multi sub deepmap(\op, Associative \h) {

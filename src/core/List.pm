@@ -847,7 +847,7 @@ sub infix:<X>(|lol) {
     my $Inf = False;
     my @l = eager for 0..$n -> $i {
         my \elem = lol[$i];         # can't use mapping here, mustn't flatten
-        $Inf = True if $i and elem.infinite;
+        $Inf = True if $i and elem.is-lazy;
         nqp::istype(elem, Iterable)
             ?? elem
             !! elem.list;

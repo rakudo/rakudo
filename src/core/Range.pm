@@ -6,6 +6,7 @@ my class Range is Cool does Iterable does Positional {
     has $.excludes-min;
     has $.excludes-max;
     has $.infinite;
+    method is-lazy { self.infinite }
 
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments

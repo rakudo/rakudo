@@ -25,7 +25,7 @@ sub METAOP_CROSS(\op, &reduce) {
         my $Inf = False;
         my @loi = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
-            $Inf = True if elem.infinite;
+            $Inf = True if elem.is-lazy;
 
             nqp::istype(elem, Iterable)
                 ?? elem.iterator
@@ -215,14 +215,15 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
         return () unless p.elems;
 
         my int $i;
-        GATHER({
+        my \res = GATHER({
             my @list;
             while $i < p.elems {
                 @list.push(p[$i]);
                 $i = $i + 1;
                 take op.(|@list);
             }
-        }, :infinite(p.infinite));
+        });
+        p.is-lazy ?? res.lazy !! res;
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {
@@ -351,7 +352,7 @@ multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
 # XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
 multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
     my @result;
-    X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.infinite;
+    X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.is-lazy;
     my int $elems = left.elems;
     X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1)).throw
         unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
@@ -367,7 +368,7 @@ multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right
 
 multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
     my @result;
-    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right.infinite;
+    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right.is-lazy;
     my int $elems = right.elems;
     X::HyperOp::NonDWIM.new(:&operator, :left-elems(1), :right-elems($elems)).throw
         unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;

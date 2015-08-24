@@ -714,9 +714,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         combinations(self.elems, $of).map: { self[@$_] }
     }
     multi method combinations( Range $ofrange = 0 .. * ) {
-        gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
-            # XXX inside of gather should already sink
-            sink combinations(self.elems, $of).map: { take self[@$_] }
+        gather for flat $ofrange.min .. ($ofrange.max min self.elems) -> $of {
+            for combinations(self.elems, $of) {
+                take self[@$_]
+            }
         }
     }
 

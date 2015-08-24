@@ -459,6 +459,16 @@ my class Array { # declared in BOOTSTRAP
         '[' ~ self.map({.perl}).join(', ') ~ ']';
     }
 
+    multi method WHICH(Array:D:) {
+        nqp::box_s(
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
+                nqp::objectid(self)
+            ),
+            ObjAt
+        )
+    }
+
     my role TypedArray[::TValue] does Positional[TValue] {
         method new(**@values is rw) {
             my \arr = nqp::create(self);

@@ -523,6 +523,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.new(|c);
     }
 
+    method WHICH(List:D:) {
+        $!WHICH //= self.^name
+          ~ '|'
+          ~ (^self.elems).map( {'(' ~ self[$_].VAR.WHICH ~ ')'} ).join;
+    }
+
     method is-lazy() {
         if $!todo.DEFINITE {
             $!todo.reify-until-lazy();

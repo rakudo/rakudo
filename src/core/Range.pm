@@ -189,7 +189,7 @@ my class Range is Cool does Iterable does Positional {
                 }
 
                 method pull-one() {
-                    if $!exclude ?? $!i < $!e !! $!i <= $!e {
+                    if $!exclude ?? $!i before $!e !! not $!i after $!e {
                         my Mu $i = $!i;
                         $!i = $i.succ;
                         $i

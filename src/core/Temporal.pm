@@ -141,8 +141,9 @@ sub default-formatter(DateTime $dt, Bool :$subseconds) {
     my $o = $dt.offset;
     $o %% 60
         or warn "Default DateTime formatter: offset $o not divisible by 60.\n";
-    sprintf '%04d-%02d-%02dT%02d:%02d:%s%s',
-        $dt.year, $dt.month, $dt.day, $dt.hour, $dt.minute,
+    my $year = sprintf((0 <= $dt.year <= 9999 ?? '%04d' !! '%+05d'), $dt.year);
+    sprintf '%s-%02d-%02dT%02d:%02d:%s%s',
+        $year, $dt.month, $dt.day, $dt.hour, $dt.minute,
         $subseconds
           ?? $dt.second.fmt('%09.6f')
           !! $dt.whole-second.fmt('%02d'),
@@ -258,7 +259,7 @@ my class DateTime does Dateish {
     }
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
-        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
+        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) <[Tt]> (\d\d) ':' (\d\d) ':' (\d\d) (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',
@@ -273,7 +274,7 @@ my class DateTime does Dateish {
         if $6 {
             $timezone
                 and X::DateTime::TimezoneClash.new.throw;
-            if $6 eq 'Z' {
+            if $6.chars == 1 {
                 $timezone = 0;
             } else {
                 if $6[2] && $6[2][0] > 59 {
@@ -644,11 +645,12 @@ my class Date does Dateish {
     }
 
     multi method gist(Date:D:) {
-        sprintf '%04d-%02d-%02d', $!year, $!month, $!day;
+        self.Str
     }
 
     multi method Str(Date:D:) {
-        sprintf '%04d-%02d-%02d', $!year, $!month, $!day;
+        my str $format = (0 <= $!year <= 9999 ?? '%04d-%02d-%02d' !! '%+05d-%02d-%02d');
+        sprintf $format, $!year, $!month, $!day;
     }
 
     multi method perl(Date:D:) {

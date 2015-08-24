@@ -251,7 +251,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
         $code := make_topic_block_ref($/, $code, copy => 1);
-        my $past := QAST::Op.new(:op<callmethod>, :name<FOR>,
+        my $past := QAST::Op.new(:op<callmethod>, :name<map>,
             QAST::Op.new(:op<call>, :name<&lines>),
             QAST::Op.new(:op<p6capturelex>, $code)
         );

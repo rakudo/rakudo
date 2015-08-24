@@ -281,7 +281,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     multi method push(Buf:D: @values is copy) {
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
-          if @values.infinite;
+          if @values.is-lazy;
 
         my int $length = nqp::elems(self);
         my @splicees := nqp::create(self);

@@ -72,7 +72,7 @@ class array does Iterable is repr('VMArray') {
         }
         multi method push(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
-              if @values.infinite;
+              if @values.is-lazy;
             nqp::push_i(self, $_) for flat @values;
             self
         }
@@ -99,7 +99,7 @@ class array does Iterable is repr('VMArray') {
         }
         multi method unshift(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
-              if @values.infinite;
+              if @values.is-lazy;
             nqp::unshift_i(self, @values.pop) while @values;
             self
         }
@@ -243,7 +243,7 @@ class array does Iterable is repr('VMArray') {
         }
         multi method push(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
-              if @values.infinite;
+              if @values.is-lazy;
             nqp::push_n(self, $_) for flat @values;
             self
         }
@@ -270,14 +270,14 @@ class array does Iterable is repr('VMArray') {
         }
         multi method unshift(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
-              if @values.infinite;
+              if @values.is-lazy;
             nqp::unshift_n(self, @values.pop) while @values;
             self
         }
 
         multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
             fail X::Cannot::Lazy.new(:action('splice in'))
-              if @values.infinite;
+              if @values.is-lazy;
 
             my $elems = self.elems;
             my int $o = nqp::istype($offset,Callable)
@@ -415,8 +415,7 @@ class array does Iterable is repr('VMArray') {
     proto method Int(|) { * }
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
-    # XXX GLR will infinite survive?
-    multi method infinite(array:D:) { False }
+    method is-lazy(array:D:) { False }
 
     method eager() { self }
     method flat()  { self }

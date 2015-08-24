@@ -375,7 +375,7 @@ class array does Iterable is repr('VMArray') {
         self!validate-parameterized();
         nqp::create(self).STORE(@values)
     }
-    multi method new(*@values) {
+    multi method new(**@values) {
         self!validate-parameterized();
         nqp::create(self).STORE(@values)
     }

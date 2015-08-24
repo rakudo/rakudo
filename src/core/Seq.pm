@@ -92,7 +92,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     multi method perl(Seq:D \SELF:) {
-        self.list.perl ~ '.iterator';
+        self.list.perl ~ '.Seq';
     }
 
     method sink() {

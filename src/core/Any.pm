@@ -492,7 +492,7 @@ sub dd(|) {
     while $args {
         my $var  := nqp::shift($args);
         my $name := $var.VAR.?name;
-        my $what := $var.?infinite
+        my $what := $var.?is-lazy
           ?? $var[^10].perl.chop ~ "...Inf)"
           !! $var.perl;
         note $name ?? "$name = $what" !! $what;

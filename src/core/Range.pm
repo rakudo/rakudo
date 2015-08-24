@@ -5,7 +5,6 @@ my class Range is Cool does Iterable does Positional {
     has $.max;
     has $.excludes-min;
     has $.excludes-max;
-    has $.infinite;
 
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
@@ -45,7 +44,6 @@ my class Range is Cool does Iterable does Positional {
       $!max,
       Bool() $!excludes-min,
       Bool() $!excludes-max,
-      Bool   $!infinite = False,
     ) {
         self;
     }
@@ -58,6 +56,8 @@ my class Range is Cool does Iterable does Positional {
           ~ ("^" if $!excludes-max)
           ~ $!max;
     }
+
+    method is-lazy() { False }
 
     multi method EXISTS-POS(Range:D: int \pos) {
         self.List.EXISTS-POS(pos);

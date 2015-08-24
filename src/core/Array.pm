@@ -460,28 +460,17 @@ my class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-    # XXX GLR
-    #    method new(|) {
-    #        my Mu $args := nqp::p6argvmarray();
-    #        nqp::shift($args);
-    #
-    #        my $list := nqp::p6list($args, self.WHAT, Bool::True);
-    #
-    #        my $of = self.of;
-    #        if ( $of !=:= Mu ) {
-    #            for @$list {
-    #                if $_ !~~ $of {
-    #                    X::TypeCheck.new(
-    #                      operation => '.new',
-    #                      expected  => $of,
-    #                      got       => $_,
-    #                    ).throw;
-    #                }
-    #            }
-    #        }
-    #
-    #        $list;
-    #    }
+        method new(**@values is rw) {
+            my \arr = nqp::create(self);
+            nqp::bindattr(
+                arr,
+                Array,
+                '$!descriptor',
+                Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
+            );
+            arr.STORE(@values);
+            arr
+        }
         multi method BIND-POS(Int $pos, TValue \bindval) is rw {
             my int $ipos = $pos;
             my $todo := nqp::getattr(self, List, '$!todo');

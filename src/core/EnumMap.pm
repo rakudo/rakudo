@@ -114,7 +114,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
                 iter
             }
 
-            method pull-one() {
+            method pull-one() is rw {
                 if $!on-value {
                     $!on-value = 0;
                     nqp::iterval($!hash-iter)
@@ -142,7 +142,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
                 iter
             }
 
-            method pull-one() {
+            method pull-one() is rw {
                 $!hash-iter
                     ?? nqp::iterval(nqp::shift($!hash-iter))
                     !! IterationEnd

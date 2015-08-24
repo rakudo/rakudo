@@ -239,8 +239,10 @@ my class Array { # declared in BOOTSTRAP
         fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
 
         my \values-iter = @values.iterator;
-        my $reified := nqp::getattr(self, List, '$!reified');
-        unless values-iter.push-until-lazy($reified) =:= IterationEnd {
+        my \reified := nqp::getattr(self, List, '$!reified');
+        my \target := ArrayReificationTarget.new(reified,
+            nqp::decont($!descriptor));
+        unless values-iter.push-until-lazy(target) =:= IterationEnd {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name));
         }
         self

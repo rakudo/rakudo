@@ -106,7 +106,7 @@ class array does Iterable is repr('VMArray') {
 
         multi method splice(array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
             fail X::Cannot::Lazy.new(:action('splice in'))
-              if @values.infinite;
+              if @values.is-lazy;
 
             my $elems = self.elems;
             my int $o = nqp::istype($offset,Callable)

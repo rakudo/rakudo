@@ -38,6 +38,8 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         $seq
     }
 
+    method is-ready(Seq:D:) { $!iter.DEFINITE }
+
     method iterator(Seq:D:) {
         my \iter = $!iter;
         X::Seq::Consumed.new.throw unless iter.DEFINITE;

@@ -78,69 +78,6 @@ my role Iterable {
         }.new(self))
     }
 
-    method eager() {
-        Seq.new(class :: does Iterator {
-            has $!iterator;
-            has $!cache;
-
-            method new(\iterator) {
-                my \iter = self.CREATE;
-                nqp::bindattr(iter, self, '$!iterator', iterator);
-                iter
-            }
-
-            method pull-one() is rw {
-                self!fill-cache() unless $!cache.DEFINITE;
-                nqp::elems($!cache)
-                    ?? nqp::shift($!cache)
-                    !! IterationEnd
-            }
-
-            method push-exactly($target, int $n) {
-                self!fill-cache() unless $!cache.DEFINITE;
-                my $cache := $!cache;
-                my int $todo = $n < nqp::elems($cache)
-                    ?? $n
-                    !! nqp::elems($cache);
-                my int $i = 0;
-                while $i < $n {
-                    $target.push(nqp::shift($cache));
-                    $i = $i + 1
-                }
-                nqp::elems($cache)
-                    ?? $todo
-                    !! IterationEnd
-            }
-
-            method push-at-least($target, int $n) {
-                self!all($target)
-            }
-
-            method push-until-lazy($target) {
-                self!all($target)
-            }
-
-            method push-all($target) {
-                self!all($target)
-            }
-
-            method !fill-cache() {
-                $!cache := IterationBuffer.CREATE;
-                $!iterator.push-all($!cache);
-            }
-
-            method !all($target) {
-                # Normally if we end up here, we didn't pull things into the
-                # cache. But if we did, delegate to the default version of
-                # push-all from the role to make sure we eat out the cache,
-                # not from the now-depleted iterator.
-                $!cache.DEFINITE
-                    ?? self.Iterator::push-all($target)
-                    !! $!iterator.push-all($target)
-            }
-        }.new(self.iterator))
-    }
-
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
         self!go-hyper(HyperConfiguration.new(:!race, :$batch, :$degree))
     }

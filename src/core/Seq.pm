@@ -51,6 +51,10 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         iter.is-lazy
     }
 
+    method eager {
+        List.from-iterator(self.iterator).eager;
+    }
+
     method List() {
         List.from-iterator(self.iterator)
     }

@@ -850,11 +850,11 @@ sub infix:<X>(|lol) {
     }
     my int $n = lol.elems - 1;
     my $Inf = False;
-    my @l = eager for 0..$n -> $i {
+    eager my @l = do for 0..$n -> $i {
         my \elem = lol[$i];         # can't use mapping here, mustn't flatten
         $Inf = True if $i and elem.is-lazy;
         nqp::istype(elem, Iterable)
-            ?? elem
+            ?? elem.item # without this .item, a Seq would get iterated by the "for"
             !! elem.list;
     }
 

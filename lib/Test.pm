@@ -342,6 +342,14 @@ multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
     $ok;
 }
 
+multi sub does-ok(Mu $var, Mu $type, $msg = ("The object does role '" ~ $type.perl ~ "'")) is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    my $ok = proclaim($var.does($type), $msg)
+        or diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
+    $time_before = nqp::time_n;
+    $ok;
+}
+
 multi sub can-ok(Mu $var, Str $meth, $msg = ( ($var.defined ?? "An object of type '" !! "The type '" ) ~ $var.WHAT.perl ~ "' can do the method '$meth'") ) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ok = proclaim($var.^can($meth), $msg);

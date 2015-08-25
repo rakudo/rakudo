@@ -969,8 +969,9 @@ sub infix:<Z>(|lol) {
     return if $arity == 0;
     eager my @l = (^$arity).map: -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
-            if nqp::iscont(elem) { (elem,).iterator }
-            else                 { elem.iterator }
+            nqp::istype(elem, Iterable)
+                ?? elem.iterator
+                !! elem.list.iterator;
     };
 
     gather {

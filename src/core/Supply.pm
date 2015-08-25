@@ -63,7 +63,7 @@ my role Supply {
             .emit().(msg) for tappers;
         }
         elsif !$!been_tapped {
-            $!tappers_lock.protect({ @!paused.push: msg });
+            $!tappers_lock.protect({ @!paused.push: (msg,) });
         }
         Nil;
     }
@@ -229,7 +229,7 @@ my role Supply {
                                   }
                               }
                               else {
-                                  @seen.push: $[$target, $now+$expires];
+                                  @seen.push: ([$target, $now+$expires],);
                                   $res.emit(val);
                               }
                           }
@@ -244,7 +244,7 @@ my role Supply {
                                   }
                               }
                               else {
-                                  @seen.push: $[val, $now+$expires];
+                                  @seen.push: ([val, $now+$expires],);
                                   $res.emit(val);
                               }
                           };
@@ -281,14 +281,14 @@ my role Supply {
                           ?? -> \val {
                               $target = &as(val);
                               if @seen.first({ &with($target,$_) } ) =:= Nil {
-                                  @seen.push($target);
+                                  @seen.push(($target,));
                                   $res.emit(val);
                               }
                           }
                           !! -> \val {
                               if @seen.first({ &with(val,$_) } ) =:= Nil {
-                                  @seen.push(val);
-                                  $res.emit(val);
+                                  @seen.push((val,));
+                                  $res.emit(val,);
                               }
                           };
                     }
@@ -380,7 +380,7 @@ my role Supply {
 
                 {
                     emit => -> \val {
-                        @batched.push: val unless $skip && $skip--;
+                        @batched.push: (val,) unless $skip && $skip--;
                         if @batched.elems == $elems {
                             flush;
                             next-batch;
@@ -419,10 +419,10 @@ my role Supply {
                                   if $this_time != $last_time {
                                       flush if @batched;
                                       $last_time = $this_time;
-                                      @batched.push: val;
+                                      @batched.push: (val,);
                                   }
                                   else {
-                                      @batched.push: val;
+                                      @batched.push: (val,);
                                       flush if @batched.elems == $elems;
                                   }
                               }
@@ -432,12 +432,12 @@ my role Supply {
                                       flush if @batched;
                                       $last_time = $this_time;
                                   }
-                                  @batched.push: val;
+                                  @batched.push: (val,);
                               }
                         }
                         else { # just $elems
                             -> \val {
-                                @batched.push: val;
+                                @batched.push: (val,);
                                 flush if @batched.elems == $elems;
                             }
                         }
@@ -614,7 +614,7 @@ my role Supply {
                       ?? -> \val { @seen[0] = val }
                       !! -> \val {
                           @seen.shift if +@seen == $number;
-                          @seen.push: val;
+                          @seen.push: (val,);
                       },
                     done => {
                         $res.emit($_) for @seen;
@@ -707,7 +707,7 @@ my role Supply {
             $self => do {
                 my @seen;
                 {
-                    emit => -> \val { @seen.push: val },
+                    emit => -> \val { @seen.push: (val,) },
                     done => {
                         $res.emit($_) for when_done(@seen);
                         $res.done;
@@ -752,7 +752,7 @@ my role Supply {
         my @values = ( [] xx +@s );
         on -> $res {
             @s => -> $val, $index {
-                @values[$index].push($val);
+                @values[$index].push(($val,));
                 if all(@values) {
                     $res.emit( [[&with]] @values>>.shift );
                 }
@@ -895,10 +895,10 @@ sub on(&setup) {
                 }
                 given $what {
                     when EnumMap {
-                        @to_close.push(self!add_source($source, $lock, $index, |$what));
+                        @to_close.push((self!add_source($source, $lock, $index, |$what),));
                     }
                     when Callable {
-                        @to_close.push(self!add_source($source, $lock, $index, emit => $what));
+                        @to_close.push((self!add_source($source, $lock, $index, emit => $what),));
                     }
                     default {
                         X::Supply::On::BadSetup.new.throw;

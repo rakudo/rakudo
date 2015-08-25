@@ -73,8 +73,7 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
         for @contestant {
             %channels-by-kind{$kind}{$_.WHICH} = $_;
-            # XXX GLR .item necessary ??
-            @todo.push: [ +@todo, $kind, $_, &block ].item;
+            @todo.push: ([ +@todo, $kind, $_, &block ],);
         }
     }
 
@@ -89,15 +88,13 @@ sub EARLIEST(@earliest,*@other,:$wild_done,:$wild_more,:$wait,:$wait_time) {
 
             if $wild_more.defined {
                 if not %channels-by-kind{$EARLIEST_KIND_MORE}{$n}:exists {
-                    # XXX GLR .item necessary ??
-                    @todo.push: [ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more ].item;
+                    @todo.push: ([ +@todo, $EARLIEST_KIND_MORE, $_, $wild_more ],);
                     %distinct-channels{$n} = $_;
                 }
             }
             if $wild_done.defined {
                 if not %channels-by-kind{$EARLIEST_KIND_DONE}{$n}:exists {
-                    # XXX GLR .item necessary ??
-                    @todo.push: [ +@todo, $EARLIEST_KIND_DONE, $_, $wild_done ].item;
+                    @todo.push: ([ +@todo, $EARLIEST_KIND_DONE, $_, $wild_done ],);
                     %distinct-channels{$n} = $_;
                 }
             }

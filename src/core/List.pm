@@ -967,11 +967,11 @@ sub infix:<Z>(|lol) {
     }
     my $arity = lol.elems;
     return if $arity == 0;
-    my @l = eager for ^$arity -> $i {
+    eager my @l = (^$arity).map: -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
             if nqp::iscont(elem) { (elem,).iterator }
             else                 { elem.iterator }
-        }
+    };
 
     gather {
         loop {

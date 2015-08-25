@@ -103,7 +103,6 @@ Please refactor this code using the new Iterator / Seq interface.
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
-    # XXX GLR does this survive?
     proto method is-lazy (|) { * }
     multi method is-lazy(Mu:) { False }
 

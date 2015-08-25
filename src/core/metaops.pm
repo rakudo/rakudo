@@ -90,8 +90,10 @@ sub METAOP_ZIP(\op, &reduce) {
                     last if value =:= IterationEnd;
                     value
                 };
-                last if z.elems < $arity;
-                take-rw $rop(|z);
+                my $z = List.from-iterator(z.iterator);
+                $z.eager;
+                last if $z.elems < $arity;
+                take-rw $arity == 2 ?? $rop(|$z) !! $rop(@$z);
             }
         }
     }

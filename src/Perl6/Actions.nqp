@@ -1413,7 +1413,7 @@ Compilation unit '$file' contained the following violations:
                         :name('new'),
                         QAST::WVal.new( :value($*W.find_symbol(['List'])) ) ));
             } else {
-                $past.push( QAST::Op.new(:name('&infix:<,>'), :op('call'), $<xblock><EXPR>.ast) );
+                $past.push( QAST::Op.new(:name('&flat'), :op('call'), $<xblock><EXPR>.ast) );
             }
         } elsif $<block> {
             $past.push( QAST::Op.new(

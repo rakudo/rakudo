@@ -19,7 +19,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_BIND_PUBLIC_ATTR   = 4;
     my constant $SIG_ELEM_SLURPY_POS         = 8;
     my constant $SIG_ELEM_SLURPY_NAMED       = 16;
-    my constant $SIG_ELEM_SLURPY_BLOCK       = 32;
+    my constant $SIG_ELEM_SLURPY_LOL         = 32;
     my constant $SIG_ELEM_INVOCANT           = 64;
     my constant $SIG_ELEM_MULTI_INVOCANT     = 128;
     my constant $SIG_ELEM_IS_RW              = 256;
@@ -119,7 +119,7 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::p6bool(
             $!flags +& ($SIG_ELEM_SLURPY_POS
                         +| $SIG_ELEM_SLURPY_NAMED
-                        +| $SIG_ELEM_SLURPY_BLOCK)
+                        +| $SIG_ELEM_SLURPY_LOL)
         )
     }
 
@@ -236,7 +236,7 @@ my class Parameter { # declared in BOOTSTRAP
         }
         my $default = self.default();
         if self.slurpy {
-            $name = '*' ~ $name;
+            $name = ($!flags +& $SIG_ELEM_SLURPY_LOL ?? "**" !! "*") ~ $name;
         } elsif self.named {
             my $name1 := substr($name,1);
             if @(self.named_names).first({$_ && $_ eq $name1}) {

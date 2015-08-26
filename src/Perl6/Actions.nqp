@@ -5576,7 +5576,10 @@ Compilation unit '$file' contained the following violations:
                     QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :scope('local'), :name($tmp), :decl('var') ),
-                        QAST::Op.new( :op('call'), $result )
+                        QAST::Op.new(
+                            :op('callmethod'), :name('list'),
+                            QAST::Op.new( :op('call'), $result )
+                        ),
                     ),
                     QAST::Op.new(
                         :op('callmethod'), :name('push'),

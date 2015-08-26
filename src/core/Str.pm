@@ -726,7 +726,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $samecase,
               $samespace,
             );
-            $global ?? (@matches,).list !! @matches[0];
+            if $global {
+                my \result := List.CREATE;
+                nqp::bindattr(result, List, '$!reified', nqp::getattr(@matches, List, '$!reified'));
+                result
+            }
+            else {
+                @matches[0]
+            }
         }
     }
 

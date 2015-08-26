@@ -102,7 +102,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     method sink() {
-        self.iterator.sink-all;
+        self.iterator.sink-all if $!iter.DEFINITE;
         Nil
     }
 

@@ -315,7 +315,7 @@ sub GATHER(&block) {
                             iter!start-slip-wanted($taken),
                             ($wanted = nqp::getattr_i(iter, self, '$!wanted'))),
                         nqp::stmts(
-                            nqp::getattr(iter, self, '$!push-target').push($taken),
+                            my $ = nqp::getattr(iter, self, '$!push-target').push($taken),
                             ($wanted = nqp::bindattr_i(iter, self, '$!wanted',
                                 nqp::sub_i(nqp::getattr_i(iter, self, '$!wanted'), 1))))),
                     nqp::if(nqp::iseq_i($wanted, 0),
@@ -326,7 +326,7 @@ sub GATHER(&block) {
                 )
             }
             nqp::bindattr(iter, self, '&!resumption', {
-                nqp::handle(&block(), 'TAKE', $taker());
+                my $ = nqp::handle(&block(), 'TAKE', $taker());
                 nqp::continuationcontrol(0, PROMPT, -> | {
                     nqp::bindattr(iter, self, '&!resumption', Callable)
                 });
@@ -368,12 +368,12 @@ sub GATHER(&block) {
         method !start-slip-wanted(\slip) {
             my $value := self.start-slip(slip);
             unless $value =:= IterationEnd {
-                $!push-target.push($value);
+                my $ = $!push-target.push($value);
                 my int $i = 1;
                 my int $n = $!wanted;
                 while $i < $n {
                     last if ($value := self.slip-one()) =:= IterationEnd;
-                    $!push-target.push($value);
+                    my $ = $!push-target.push($value);
                     $i = $i + 1;
                 }
                 $!wanted = $!wanted - $i;
@@ -386,7 +386,7 @@ sub GATHER(&block) {
             my $value;
             while $i < $n {
                 last if ($value := self.slip-one()) =:= IterationEnd;
-                $!push-target.push($value);
+                my $ = $!push-target.push($value);
                 $i = $i + 1;
             }
             $!wanted = $!wanted - $i;

@@ -107,7 +107,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     }
                 }
                 else {
-                    $!reification-target.push(current);
+                    my $ = $!reification-target.push(current);
                 }
             }
             nqp::elems($!reified);
@@ -130,7 +130,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                         }
                     }
                     else {
-                        $!reification-target.push(current);
+                        my $ = $!reification-target.push(current);
                     }
                 }
                 $!future := Mu unless nqp::elems($!future);
@@ -148,7 +148,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     my \current = nqp::shift($!future);
                     nqp::istype(current, Slip) && nqp::isconcrete(current)
                         ?? current.iterator.push-all($!reification-target)
-                        !! $!reification-target.push(current);
+                        !! my $ = $!reification-target.push(current);
                 }
                 $!future := Mu;
             }
@@ -198,7 +198,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my int $n = nqp::elems(vm-tuple);
         while $i < $n {
             my \consider = nqp::atpos(vm-tuple, $i);
-            nqp::push(future, nqp::iscont(consider)
+            my $ = nqp::push(future, nqp::iscont(consider)
                 ?? consider
                 !! nqp::istype(consider, Iterable)
                     ?? consider.flat.Slip
@@ -223,7 +223,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \iterbuffer = IterationBuffer.CREATE;
         nqp::bindattr(list, List, '$!reified', iterbuffer);
         for @things {
-            iterbuffer.push($_);
+            my $ = iterbuffer.push($_);
         }
         list
     }
@@ -348,7 +348,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     !! nqp::elems($!reified);
                 my int $i = $!i;
                 while $i < $n {
-                    $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
+                    my $ = $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
                     $i = $i + 1;
                 }
                 $!i = $n;

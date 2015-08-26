@@ -68,7 +68,10 @@ my &take := -> | {
 #?if !jvm
 proto sub take(|) { * }
 multi sub take()   { die "take without parameters doesn't make sense" }
-multi sub take(\x) { THROW(nqp::const::CONTROL_TAKE,nqp::p6recont_ro(x)); x }
+multi sub take(\x) {
+    my $ = THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x));
+    x
+}
 multi sub take(|) {
     my $list := RETURN-LIST(nqp::p6argvmarray());
     THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($list) );

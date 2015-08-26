@@ -35,38 +35,38 @@ multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is rw {
 }
 
 # %h<a b c>
-multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
+multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is rw {
     nqp::iscont(key)
       ?? SELF.AT-KEY(key)
       !! key.flatmap({ SELF{$_} }).eager.List;
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, Mu \ASSIGN) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is rw {
     (nqp::iscont(key)
       ?? SELF.AT-KEY(key)
       !! key.flatmap({ SELF{$_} }).eager.List) = ASSIGN
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$SINK!,*%other) is rw {
+multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$SINK!,*%other) is rw {
     SLICE_MORE_HASH( SELF, key, :$SINK, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$delete!,*%other) is rw {
+multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$delete!,*%other) is rw {
     SLICE_MORE_HASH( SELF, key, :$delete, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$exists!,*%other) is rw {
+multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$exists!,*%other) is rw {
     SLICE_MORE_HASH( SELF, key, :$exists, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$kv!, *%other) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$kv!, *%other) is rw {
     SLICE_MORE_HASH( SELF, key, :$kv, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$p!, *%other) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$p!, *%other) is rw {
     SLICE_MORE_HASH( SELF, key, :$p, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$k!, *%other) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$k!, *%other) is rw {
     SLICE_MORE_HASH( SELF, key, :$k, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$v!, *%other) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$v!, *%other) is rw {
     SLICE_MORE_HASH( SELF, key, :$v, |%other );
 }
 

@@ -48,7 +48,7 @@ my class IO::Spec::Unix is IO::Spec {
                 $io = .IO;
                 $io.d && $io.r && $io.w && $io.x;
             }
-    },
+          },
           %*ENV<TMPDIR>,
           '/tmp',
         ) ?? $io !! IO::Path.new(".");

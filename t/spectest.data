@@ -778,6 +778,7 @@ S17-supply/sort.t
 S17-supply/squish.t
 S17-supply/stable.t
 S17-supply/start.t
+S17-supply/syntax.t
 S17-supply/unique.t
 S17-supply/wait.t
 S17-supply/watch-path.t

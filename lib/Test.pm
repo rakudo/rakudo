@@ -302,7 +302,7 @@ sub subtest(&subtests, $desc = '') is export {
     _init_vars();
     $indents ~= "    ";
     subtests();
-    done() if !$done_testing_has_been_run;
+    done-testing() if !$done_testing_has_been_run;
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
@@ -338,6 +338,14 @@ multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ok = proclaim($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.^name);
+    $time_before = nqp::time_n;
+    $ok;
+}
+
+multi sub does-ok(Mu $var, Mu $type, $msg = ("The object does role '" ~ $type.perl ~ "'")) is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    my $ok = proclaim($var.does($type), $msg)
+        or diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
     $time_before = nqp::time_n;
     $ok;
 }
@@ -574,6 +582,11 @@ sub done_testing() is export {
 }
 
 sub done() is export {
+    DEPRECATED('done-testing',|<2015.08 2015.09>);
+    done-testing();
+}
+
+sub done-testing() is export {
     _init_io() unless $output;
     $done_testing_has_been_run = 1;
 
@@ -637,7 +650,7 @@ END {
     ## In planned mode, people don't necessarily expect to have to call done
     ## So call it for them if they didn't
     if !$done_testing_has_been_run && !$no_plan {
-        done;
+        done-testing;
     }
 
     for $output, $failure_output, $todo_output -> $handle {

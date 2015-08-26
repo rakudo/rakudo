@@ -953,4 +953,112 @@ sub on(&setup) {
     OnSupply.new(:&setup)
 }
 
+sub SUPPLY(&block) {
+    my class SupplyBlockState {
+        has $.sub;
+        has $.lock;
+        has $.active is rw;
+        has %.active-taps;
+    }
+
+    class :: does Supply {
+        has &!block;
+
+        submethod BUILD(:&!block) { }
+
+        method tap(|c) {
+            my $state = SupplyBlockState.new(
+                sub => self.Supply::tap(|c, closing => { ; }),
+                lock => Lock.new,
+                active => 1);
+            self!run-supply-code(&!block, $state);
+            self!deactivate-one($state);
+            $state.sub
+        }
+
+        method !run-supply-code(&code, $state) {
+            my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
+                $state.active++;
+                my $tap = $supply.tap(
+                    -> \value {
+                        self!run-supply-code({ whenever-block(value) }, $state)
+                    },
+                    done => {
+                        $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
+                        my @phasers := &whenever-block.phasers('LAST');
+                        if @phasers {
+                            self!run-supply-code({ .() for @phasers }, $state)
+                        }
+                        self!deactivate-one($state);
+                    },
+                    quit => -> \ex {
+                        $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
+                        my $handled;
+                        my $phaser := &whenever-block.phasers('QUIT')[0];
+                        if $phaser.DEFINITE {
+                            self!run-supply-code({ $handled = $phaser(ex) === Nil }, $state)
+                        }
+                        if $handled {
+                            self!deactivate-one($state);
+                        }
+                        elsif $state.active {
+                            $state.sub.quit().(ex) if $state.sub.quit;
+                            $state.active = 0;
+                            self!teardown($state);
+                        }
+                    });
+                $state.active-taps{nqp::objectid($tap)} = $tap;
+            }
+
+            nqp::handle($state.lock.protect({ code() }),
+                'EMIT', {
+                    $state.sub.emit().(nqp::getpayload(nqp::exception())) if $state.sub.emit;
+                    nqp::resume(nqp::exception())
+                }(),
+                'DONE', {
+                    $state.sub.done().() if $state.sub.done;
+                    $state.active = 0;
+                    self!teardown($state);
+                }(),
+                'CATCH', {
+                    my \ex = EXCEPTION(nqp::exception());
+                    $state.sub.quit().(ex) if $state.sub.quit;
+                    $state.active = 0;
+                    self!teardown($state);
+                }());
+        }
+
+        method !deactivate-one($state) {
+            $state.lock.protect({
+                if --$state.active == 0 {
+                    $state.sub.done().() if $state.sub.done;
+                    self!teardown($state);
+                }
+            });
+        }
+
+        method !teardown($state) {
+            .close for $state.active-taps.values;
+            $state.active-taps = ();
+        }
+    }.new(:&block)
+}
+
+sub WHENEVER(Supply() $supply, &block) {
+    my \adder = &*ADD-WHENEVER;
+    adder.defined
+        ?? adder.($supply, &block)
+        !! X::WheneverOutOfScope.new.throw
+}
+
+sub REACT(&block) {
+    my $s = SUPPLY(&block);
+    my $p = Promise.new;
+    $s.tap(
+        { warn "Useless use of emit in react" },
+        done => { $p.keep(Nil) },
+        quit => { $p.break($_) });
+    await $p;
+}
+
 # vim: ft=perl6 expandtab sw=4

@@ -1133,7 +1133,7 @@ Compilation unit '$file' contained the following violations:
             unless $BLOCK.symbol('$_') || $*IMPLICIT {
                 $*W.install_lexical_magical($BLOCK, '$_');
             }
-            for <$/ $!> {
+            for <$/ $! $¢> {
                 unless $BLOCK.symbol($_) {
                     $*W.install_lexical_magical($BLOCK, $_);
                 }
@@ -1221,6 +1221,14 @@ Compilation unit '$file' contained the following violations:
         my $sinkee := $past[0];
         $past.annotate('statement_level', -> { $sinkee.name('sink') });
         make $past;
+    }
+
+    method statement_control:sym<whenever>($/) {
+        my $xblock := $<xblock>.ast;
+        make QAST::Op.new(
+            :op<call>, :name<&WHENEVER>, :node($/),
+            $xblock[0], block_closure($xblock[1])
+        );
     }
 
     method statement_control:sym<loop>($/) {
@@ -1490,6 +1498,42 @@ Compilation unit '$file' contained the following violations:
         make QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
     }
 
+    method statement_control:sym<QUIT>($/) {
+        my $block := $<block>.ast;
+
+        # Take exception as parameter and bind into $_.
+        my $past := $block.ann('past_block');
+        $past[0].push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name('$_'), :scope('lexical') ),
+            QAST::Var.new( :name('__param'), :scope('local'), :decl('param') )
+        ));
+
+        # If the handler has a succeed handler, then make sure we sink
+        # the exception it will produce.
+        if $past.ann('handlers') && nqp::existskey($past.ann('handlers'), 'SUCCEED') {
+            my $suc := $past.ann('handlers')<SUCCEED>;
+            $suc[0] := QAST::Stmts.new(
+                sink(QAST::Op.new(
+                    :op('getpayload'),
+                    QAST::Op.new( :op('exception') )
+                )),
+                QAST::WVal.new( :value($*W.find_symbol(['Nil'])) )
+            );
+        }
+
+        # If we don't handle the exception by succeeding, we'll return it.
+        if $past.ann('handlers') {
+            $past[1][0].push(QAST::Var.new( :name('$_'), :scope('lexical') ));
+        }
+        else {
+            $past[1].push(QAST::Var.new( :name('$_'), :scope('lexical') ));
+        }
+
+        # Add as a QUIT phaser, which evaluates to Nil.
+        make $*W.add_phaser($/, 'QUIT', $block.ann('code_object'));
+    }
+
     method statement_prefix:sym<BEGIN>($/)   { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<CHECK>($/)   { make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast).ann('code_object')); }
@@ -1523,6 +1567,18 @@ Compilation unit '$file' contained the following violations:
         my $past := block_closure($<blorst>.ast);
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
+    }
+
+    method statement_prefix:sym<supply>($/) {
+        my $past := block_closure($<blorst>.ast);
+        $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+        make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
+    }
+
+    method statement_prefix:sym<react>($/) {
+        my $past := block_closure($<blorst>.ast);
+        $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+        make QAST::Op.new( :op('call'), :name('&REACT'), $past );
     }
 
     method statement_prefix:sym<once>($/) {
@@ -2967,7 +3023,7 @@ Compilation unit '$file' contained the following violations:
             if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
                 return 0 if $name ne '$*DISPATCHER' && $name ne '$_' &&
-                    $name ne '$/' && $name ne '$!' &&
+                    $name ne '$/' && $name ne '$¢' && $name ne '$!' &&
                     !nqp::existskey(%arg_placeholders, $name);
             }
             elsif nqp::istype($_, QAST::Block) {
@@ -3437,7 +3493,7 @@ Compilation unit '$file' contained the following violations:
             my $consider := $BLOCK[0][$i];
             if nqp::istype($consider, QAST::Var) {
                 my $name := $consider.name;
-                if $name eq '$_' || $name eq '$/' || $name eq '$!' {
+                if $name eq '$_' || $name eq '$/' || $name eq '$!' || $name eq '$¢' {
                     $BLOCK[0][$i] := QAST::Op.new( :op('null') );
                 }
             }
@@ -3530,8 +3586,7 @@ Compilation unit '$file' contained the following violations:
             $past := $block;
         }
         else {
-            $block[0].unshift(QAST::Var.new(:name<$¢>, :scope<lexical>, :decl('var')));
-            $block.symbol('$¢', :scope<lexical>);
+            $*W.install_lexical_magical($block, '$¢');
             unless $use_outer_match {
                 $*W.install_lexical_magical($block, '$/');
             }
@@ -3845,11 +3900,8 @@ Compilation unit '$file' contained the following violations:
                 my $twigil := ~$<variable><twigil>;
                 if $twigil eq '?' {
                     unless $*COMPILING_CORE_SETTING {
-                        $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                          what       => 'constant',
-                          twigil     => $twigil,
-                          scope      => $*SCOPE,
-                          additional => ' because it is reserved'
+                        $*W.throw($/, 'X::Comp::NYI',
+                          feature => "Constants with a '$twigil' twigil"
                         );
                     }
                 }
@@ -6550,7 +6602,7 @@ Compilation unit '$file' contained the following violations:
         );
         if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
             # if this match returns a list of matches instead of a single
-            # match, don't assing to $/ (which imposes item context)
+            # match, don't assign to $/ (which imposes item context)
             make $past;
         } else {
             make QAST::Op.new( :op('p6store'),

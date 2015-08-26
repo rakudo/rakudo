@@ -198,6 +198,28 @@ my class Promise {
         }
         $p
     }
+
+    method Supply(Promise:D:) {
+        my $s = Supply.new;
+        self.then({
+            if self.status == Kept {
+                $s.emit(self.result);
+                $s.done();
+            }
+            else {
+                $s.quit(self.cause);
+            }
+        });
+        $s
+    }
+
+    # experimental
+    method Str(Promise:D:)     { self.result.Str     }
+    method Numeric(Promise:D:) { self.result.Numeric }
+}
+
+multi sub infix:<eqv>(Promise:D $a, Promise:D $b) {
+    infix:<eqv>($a.result, $b.result);
 }
 
 # vim: ft=perl6 expandtab sw=4

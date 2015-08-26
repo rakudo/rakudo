@@ -1089,6 +1089,11 @@ my class X::Syntax::Variable::Match does X::Syntax {
     method message() { 'Cannot declare a match variable' }
 }
 
+my class X::Syntax::Variable::Initializer does X::Syntax {
+    has $.name = '<anon>';
+    method message() { "Cannot use variable $!name in declaration to initialize itself" }
+}
+
 
 my class X::Syntax::Variable::Twigil does X::Syntax {
     has $.what = 'variable';
@@ -2100,6 +2105,12 @@ my class X::Seq::Consumed is Exception {
 my class X::Seq::NotIndexable is Exception {
     method message() {
         "Cannot index a Seq; coerce it to a list or assign it to an array first"
+    }
+}
+
+my class X::WheneverOutOfScope is Exception {
+    method message() {
+        "Cannot have a 'whenever' block outside the scope of a 'supply' block"
     }
 }
 

@@ -46,13 +46,12 @@ class Perl6::Pod {
         if $leveled {
             my $level := nqp::substr($<type>.Str, 4);
             my $level_past;
-            if $level ne '' {
-                $level_past := $*W.add_constant(
-                    'Int', 'int', +$level,
-                ).compile_time_value;
-            } else {
-                $level_past := $*W.find_symbol(['Mu']);
+            if $level eq '' {
+                $level := "1";
             }
+            $level_past := $*W.add_constant(
+                'Int', 'int', +$level,
+            ).compile_time_value;
 
             my $past := serialize_object(
                 $type, :level($level_past), :config($config),

@@ -24,14 +24,14 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 
     method tmpdir {
-        my %ENV := $%ENV;
+        my %ENV := %*ENV;
         my $io;
         first( {
             if .defined {
                 $io = .IO;
                 $io.d && $io.r && $io.w && $io.x;
             }
-        },
+          },
           %ENV<TMPDIR>,
           "/tmp",
           %ENV<TMP>,

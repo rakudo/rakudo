@@ -1233,8 +1233,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_BLOCK;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
-        { $*DECLARATOR_DOCS := '' }
         {
+            $*DECLARATOR_DOCS := '';
+            $*VARIABLE        := '' if $*VARIABLE;
+
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
                 $*PRECEDING_DECL := $*DECLARAND;
@@ -1398,6 +1400,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <xblock(1)>
     }
 
+    rule statement_control:sym<whenever> {
+        <sym><.kok> {}
+        <xblock(1)>
+    }
+
     rule statement_control:sym<foreach> {
         <sym><.end_keyword> <.obs("'foreach'", "'for'")>
     }
@@ -1552,6 +1559,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule statement_control:sym<CATCH> {<sym> <block(1)> }
     rule statement_control:sym<CONTROL> {<sym> <block(1)> }
+    rule statement_control:sym<QUIT> {<sym> <block(1)> }
 
     proto token statement_prefix { <...> }
     token statement_prefix:sym<BEGIN>   { :my %*MYSTERY; <sym><.kok> <blorst> <.explain_mystery> <.cry_sorrows> }
@@ -1582,6 +1590,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<once>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<start>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<supply>  { <sym><.kok> <blorst> }
+    token statement_prefix:sym<react>   { <sym><.kok> <blorst> }
     token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
     token statement_prefix:sym<DOC>     {
         <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
@@ -1953,11 +1963,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
         | <sigil> <twigil>? <desigilname>
+          [ <?{ !$*IN_DECL && $*VARIABLE && $*VARIABLE eq $<sigil> ~ $<twigil> ~ $<desigilname> }>
+            { self.typed_panic: 'X::Syntax::Variable::Initializer', name => $*VARIABLE } ]?
         | <special_variable>
         | <sigil> $<index>=[\d+]                              [<?{ $*IN_DECL }> <.typed_panic: "X::Syntax::Variable::Numeric">]?
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
         | <?before <sigil> <?[ ( [ { ]>> <contextualizer>
-        | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+        | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && $<twigil> eq '.' }>
@@ -2270,6 +2282,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token declarator {
         :my $*LEFTSIGIL := '';
+        :my $*VARIABLE := '';
         [
         # STD.pm6 uses <defterm> here, but we need different
         # action methods
@@ -2375,11 +2388,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';
-        :my $var;
         <variable>
         {
-            $var := $<variable>.Str;
-            $/.CURSOR.add_variable($var);
+            $*VARIABLE := $<variable>.Str;
+            $/.CURSOR.add_variable($*VARIABLE);
             $*IN_DECL := '';
         }
         [
@@ -2387,7 +2399,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $<shape>=[
             | '(' ~ ')' <signature>
                 {
-                    my $sigil := nqp::substr($var, 0, 1);
+                    my $sigil := nqp::substr($*VARIABLE, 0, 1);
                     if $sigil eq '&' {
                         self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in routine declarations',

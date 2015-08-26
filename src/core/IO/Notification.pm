@@ -21,7 +21,7 @@ my class IO::Notification {
                 }
                 else {
                     my $event = rename ?? FileRenamed !! FileChanged;
-                    $s.emit(Change.new(:path(path // $path), :$event));
+                    $s.emit(Change.new(:path($*SPEC.catdir($path, path)), :$event));
                 }
             },
             $path, FileWatchCancellation);

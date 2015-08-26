@@ -642,22 +642,24 @@ augment class Any {
     multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
         my str $which;
-        gather self.map: {
+        my \res := gather self.map: {
             $which = &as($_).Str;
             unless with($which,$last) {
                 $last = $which;
                 take $_;
             }
         }
+        self.is-lazy ?? res.lazy !! res
     }
     multi method squish( :&with = &[===] ) {
         my $last = @secret;
-        gather self.map: {
+        my \res := gather self.map: {
             unless with($_,$last) {
                 $last = $_;
                 take $_;
             }
         }
+        self.is-lazy ?? res.lazy !! res
     }
 
     proto method pairup(|) is nodal { * }

@@ -617,7 +617,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 if ($n > $max or once $n == -Inf) {
                     $max = $n;
                     # After first positive, <= 0 are "ignored" per spec
-                    once fail "Attempt to retrieve before :1st match -- :nth($n)"
+                    once die "Attempt to retrieve before :1st match -- :nth($n)"
                        if $max < 1;
                     $n - 1;
                 }

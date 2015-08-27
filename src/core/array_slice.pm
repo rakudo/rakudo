@@ -14,14 +14,42 @@ sub NPOSITIONS(\pos, \elems) {
 # Range, which will auto-truncate even though not lazy.
 proto sub POSITIONS(|) { * }
 multi sub POSITIONS(\SELF, \pos) {
+    my class IndicesReificationTarget {
+        has $!target;
+        has $!star;
+
+        method new(\target, \star) {
+            my \rt = self.CREATE;
+            nqp::bindattr(rt, self, '$!target', target);
+            nqp::bindattr(rt, self, '$!star', star);
+            rt
+        }
+
+        method push(Mu \value) {
+            if nqp::istype(value,Callable) {
+                if nqp::istype($!star, Callable) {
+                    nqp::bindattr(self, IndicesReificationTarget, '$!star', $!star())
+                }
+                # just using value(...) causes stage optimize to die
+                my &whatever := value;
+                nqp::push($!target, whatever(|(+$!star xx &whatever.count)))
+            }
+            else {
+                nqp::push($!target, value)
+            }
+        }
+    }
+
+
     my \pos-iter = pos.iterator;
     my \pos-list = List.CREATE;
     my \eager-indices = IterationBuffer.CREATE;
+    my \target = IndicesReificationTarget.new(eager-indices, -> { SELF.elems });
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
-    unless pos-iter.push-until-lazy(eager-indices) =:= IterationEnd {
+    unless pos-iter.push-until-lazy(target) =:= IterationEnd {
         # There are lazy positions to care about too. We truncate at the first
         # one that fails to exists.
-        my \rest-seq = Seq.new(pos-iter).map: -> Int() $i {
+        my \rest-seq = Seq.new(pos-iter).flatmap: -> Int() $i {
             last unless SELF.EXISTS-POS($i);
             $i
         };

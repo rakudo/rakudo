@@ -486,6 +486,10 @@ my class IO::Handle does IO {
 
 
     proto method print(|) { * }
+    multi method print(IO::Handle:D: str:D \x) {
+        nqp::printfh($!PIO,x);
+        Bool::True
+    }
     multi method print(IO::Handle:D: Str:D \x) {
         nqp::printfh($!PIO, nqp::unbox_s(x));
         Bool::True

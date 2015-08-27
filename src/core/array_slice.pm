@@ -333,33 +333,33 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 
 proto sub postcircumfix:<[; ]>(|) is nodal { * }
 
-sub MD-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
+sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
     my int $next-dim = $dim + 1;
     if $next-dim < indices.elems {
         if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
             for idx {
-                MD-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
+                MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
             }
         }
         elsif nqp::istype(idx, Int) {
-            MD-SLICE-ONE-POSITION(SELF.AT-POS(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
+            MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
         }
         elsif nqp::istype(idx, Whatever) {
             for ^SELF.elems {
-                MD-SLICE-ONE-POSITION(SELF.AT-POS($_), indices, indices.AT-POS($next-dim), $next-dim, target)
+                MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS($_), indices, indices.AT-POS($next-dim), $next-dim, target)
             }
         }
         elsif nqp::istype(idx, Callable) {
-            MD-SLICE-ONE-POSITION(SELF, indices, idx.(|(SELF.elems xx idx.count)), $dim, target);
+            MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, idx.(|(SELF.elems xx idx.count)), $dim, target);
         }
         else  {
-            MD-SLICE-ONE-POSITION(SELF.AT-POS(idx.Int), indices, indices.AT-POS($next-dim), $next-dim, target)
+            MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS(idx.Int), indices, indices.AT-POS($next-dim), $next-dim, target)
         }
     }
     else {
         if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
             for idx {
-                MD-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
+                MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
             }
         }
         elsif nqp::istype(idx, Int) {
@@ -378,13 +378,12 @@ sub MD-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
         }
     }
 }
-sub MD-SLICE(\SELF, @indices) {
+sub MD-ARRAY-SLICE(\SELF, @indices) {
     my \target = IterationBuffer.new;
-    MD-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
+    MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
     nqp::p6bindattrinvres(List.CREATE, List, '$!reified', target)
 }
 
-# @a[Int 1; Int 1]
 multi sub postcircumfix:<[; ]>(\SELF, @indices) {
     my int $n = @indices.elems;
     my int $i = 0;
@@ -395,7 +394,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) {
     }
     $all-ints
         ?? SELF.AT-POS(|@indices)
-        !! MD-SLICE(SELF, @indices)
+        !! MD-ARRAY-SLICE(SELF, @indices)
 }
 
 # vim: ft=perl6 expandtab sw=4

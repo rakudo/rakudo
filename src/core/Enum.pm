@@ -27,8 +27,9 @@ my class Enum does Associative {
 
     multi method gist(Enum:D:) {
         my $result;
-        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.perl }
+        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
         if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Pair_{self.WHERE}" }
+        %*gistseen{self.WHICH} = 1;
         if nqp::istype($!key, Enum) {
             $result = '(' ~ $!key.gist ~ ') => ' ~ $!value.gist;
         } else {
@@ -42,6 +43,7 @@ my class Enum does Associative {
         my $result;
         if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
         if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Pair_{self.WHERE}" }
+        %*perlseen{self.WHICH} = 1;
         if nqp::istype($!key, Enum) {
             $result = '(' ~ $!key.perl ~ ') => ' ~ $!value.perl;
         } elsif nqp::istype($!key, Str) and !$arglist and $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/ {

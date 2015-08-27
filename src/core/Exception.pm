@@ -1212,7 +1212,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$`'  => '$/.prematch',
       '$\'' => '$/.postmatch',
       '$,'  => '$*OUT.output_field_separator()',
-      '$.'  => "the filehandle's .line method",
+      '$.'  => "the filehandle's .ins method",
       '$/'  => "the filehandle's .nl attribute",
       '$\\' => "the filehandle's .nl attribute",
       '$|'  => ':autoflush on open',

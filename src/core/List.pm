@@ -20,7 +20,9 @@ my sub combinations($n, $k) {
             @result[$index++] = $value++;
             @stack.push($value);
             if $index == $k {
-                take infix:<,>(|@result);
+                my @copy = @result.clone;
+                take infix:<,>(|@copy);
+                # take @result.map(-> $x { $x }).list;
                 $value = $n;  # fake a last
             }
         }

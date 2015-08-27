@@ -1139,7 +1139,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule semilist {
-        :dba('lol composer')
+        :dba('list composer')
         ''
         [
         | <?before <[)\]}]> >
@@ -3927,6 +3927,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '(' ~ ')' [ <.ws> <arglist> ]
         <O('%methodcall')>
     }
+
+    # These are here to prevent us generating the candidates when parsing CORE.setting.
+    token postcircumfix:sym<[; ]> { <!> }
+    token postcircumfix:sym<{; }> { <!> }
 
     token postfix:sym<i>  { <sym> >> <O('%methodcall')> }
 

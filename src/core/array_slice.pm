@@ -330,35 +330,7 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
       !! SELF[^SELF.elems];
 }
 
-# @a[;]
-# XXX GLR work out what type LoL is replaced by here
-#multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, *%adv) is rw {
-#    if keys > 1 {
-#        X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
-#            if keys[0].isa(HyperWhatever);
-#
-#        if [||] %adv<kv p k> {
-#            (SELF[keys[0]]:kv).flatmap(-> \key, \value {
-#                # make sure to call .item so that recursive calls don't map the LoL's elems
-#                map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2).item, value2 } !!
-#                    %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
-#                    { LoL.new(key, |$_).item },
-#                    postcircumfix:<[ ]>(value, LoL.new(|keys[1..*]), |%adv);
-#            }).eager.List;
-#        } else {
-#            (keys[0].isa(Whatever)
-#                ?? SELF[^SELF.elems].Parcel
-#                !! SELF[keys[0].list].Parcel
-#            ).flatmap(-> \elem {
-#                postcircumfix:<[ ]>(elem, LoL.new(|keys[1..*]), |%adv);
-#            }).eager.List;
-#        }
-#    } else {
-#        postcircumfix:<[ ]>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);
-#    }
-#}
-#multi sub postcircumfix:<[ ]> (\SELF is rw, LoL:D \keys, Mu \assignee) is rw {
-#    (SELF[keys],) = assignee;
-#}
+
+proto sub postcircumfix:<[; ]>(|) is nodal { * }
 
 # vim: ft=perl6 expandtab sw=4

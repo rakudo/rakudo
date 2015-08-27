@@ -793,6 +793,7 @@ Compilation unit '$file' contained the following violations:
                     $l.push($_.ast);
                 }
                 $past.push($l);
+                $past.annotate('multislice', 1);
             }
             else {
                 $past.push($<statement>[0].ast);
@@ -6174,6 +6175,9 @@ Compilation unit '$file' contained the following violations:
             my $c := $/.CURSOR;
             my $ast := $<semilist>.ast;
             $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+            if $ast.ann('multislice') {
+                $past.name('&postcircumfix:<[; ]>');
+            }
             for nqp::split(';', ~$<semilist>) {
                 my $ix := $_ ~~ / [ ^ | '..' ] \s* <( '-' \d+ )> \s* $ /;
                 if $ix {
@@ -6189,6 +6193,9 @@ Compilation unit '$file' contained the following violations:
         if $<semilist> {
             my $ast := $<semilist>.ast;
             $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+            if $ast.ann('multislice') {
+                $past.name('&postcircumfix:<{; }>');
+            }
         }
         make $past;
     }

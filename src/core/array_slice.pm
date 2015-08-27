@@ -350,6 +350,11 @@ sub MD-SLICE-ONE-POSITION(\SELF, \indices, int $dim, \target) {
                 MD-SLICE-ONE-POSITION(SELF.AT-POS($_), indices, $next-dim, target)
             }
         }
+        elsif nqp::istype(idx, Callable) {
+            my @copy = indices.clone;
+            @copy[$dim] = idx.(|(SELF.elems xx idx.count));
+            MD-SLICE-ONE-POSITION(SELF, @copy, $dim, target);
+        }
         else  {
             MD-SLICE-ONE-POSITION(SELF.AT-POS(idx.Int), indices, $next-dim, target)
         }
@@ -368,7 +373,10 @@ sub MD-SLICE-ONE-POSITION(\SELF, \indices, int $dim, \target) {
                 nqp::push(target, SELF.AT-POS($_))
             }
         }
-        else  {
+        elsif nqp::istype(idx, Callable) {
+            nqp::push(target, SELF.AT-POS(idx.(|(SELF.elems xx idx.count))))
+        }
+        else {
             nqp::push(target, SELF.AT-POS(idx.Int))
         }
     }

@@ -404,7 +404,7 @@ my role Supply {
                 my @batched;
                 my $last_time;
                 sub flush {
-                    $res.emit([@batched]);
+                    $res.emit(([@batched],));
                     @batched = ();
                 }
 

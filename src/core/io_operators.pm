@@ -17,6 +17,14 @@ multi sub say(Str:D \x) {
     $out.print: x;
     $out.print-nl;
 }
+multi sub say(\args) {
+    my $out := $*OUT;
+    my \iterator := nqp::istype(args, Iterable) ?? args.iterator !! args.list.iterator;
+    until (my \value := iterator.pull-one) =:= IterationEnd {
+        $out.print(value.gist);
+    }
+    $out.print-nl;
+}
 multi sub say(**@args is rw) {
     my $out := $*OUT;
     $out.print(.gist) for @args;

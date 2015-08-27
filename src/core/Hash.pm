@@ -192,16 +192,16 @@ my class Hash { # declared in BOOTSTRAP
        if @list {
            # multi-level categorize
            if nqp::istype(test(@list[0])[0],Iterable) {
-               # @list.map: -> $l {
-               #     my $value := &as ?? as($l) !! $l;
-               #     for test($l) -> $k {
-               #         my @keys = @($k);
-               #         my $last := @keys.pop;
-               #         my $hash  = self;
-               #         $hash = $hash{$_} //= self.new for @keys;
-               #         $hash{$last}.push: $value;
-               #     }
-               # }
+               @list.map: -> $l {
+                   my $value := &as ?? as($l) !! $l;
+                   for test($l) -> $k {
+                       my @keys = @($k);
+                       my $last := @keys.pop;
+                       my $hash  = self;
+                       $hash = $hash{$_} //= self.new for @keys;
+                       $hash{$last}.push: $value;
+                   }
+               }
            } else {    
            # just a simple categorize
                @list.map: -> $l {

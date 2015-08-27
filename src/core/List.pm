@@ -452,13 +452,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
+        '(' ~
         self.map( -> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }
                 default  { $elem.gist }
             }
-        }).join: ' ';
+        }).join(' ')
+        ~ ')';
     }
 
     multi method perl(List:D \SELF:) {

@@ -459,6 +459,10 @@ my class Array { # declared in BOOTSTRAP
         '[' ~ self.map({nqp::decont($_).perl}).join(', ') ~ ',' x (self.elems == 1) ~ ']';
     }
 
+    multi method gist(Array:D \SELF:) {
+        '[' ~ self.map({.gist}).join(' ') ~ ']';
+    }
+
     multi method WHICH(Array:D:) {
         nqp::box_s(
             nqp::concat(

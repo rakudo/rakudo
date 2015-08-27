@@ -60,7 +60,7 @@ my role Supply {
 
     method emit(Supply:D: \msg) {
         if self.tappers -> \tappers {
-            .emit().((msg,)) for tappers;
+            .emit().(msg) for tappers;
         }
         elsif !$!been_tapped {
             $!tappers_lock.protect({ @!paused.push: msg });

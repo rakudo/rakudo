@@ -60,7 +60,7 @@ my role Supply {
 
     method emit(Supply:D: \msg) {
         if self.tappers -> \tappers {
-            .emit().(msg) for tappers;
+            .emit().((msg,)) for tappers;
         }
         elsif !$!been_tapped {
             $!tappers_lock.protect({ @!paused.push: msg });
@@ -669,13 +669,13 @@ my role Supply {
                     emit => -> \val {
                         if val.defined {
                             if !$min.defined {
-                                $res.emit( Range.new($min = val, $max = val) );
+                                $res.emit( (Range.new($min = val, $max = val),) );
                             }
                             elsif cmp(val,$min) < 0 {
-                                $res.emit( Range.new( $min = val, $max ) );
+                                $res.emit( (Range.new( $min = val, $max ),) );
                             }
                             elsif cmp(val,$max) > 0 {
-                                $res.emit( Range.new( $min, $max = val ) );
+                                $res.emit( (Range.new( $min, $max = val ),) );
                             }
                         }
                     },

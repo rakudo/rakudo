@@ -39,7 +39,14 @@ my class Array { # declared in BOOTSTRAP
         result
     }
 
-    method new(**@values is rw) {
+    proto method new(|) { * }
+    multi method new(Mu:D \values) {
+        my \arr = nqp::create(self);
+        arr.STORE(values);
+        arr
+    }
+
+    multi method new(**@values is rw) {
         my \arr = nqp::create(self);
         arr.STORE(@values);
         arr
@@ -532,7 +539,16 @@ multi circumfix:<[ ]>() {
     result
 }
 multi circumfix:<[ ]>(Iterable:D \iterable) {
-    Array.from-iterator(iterable.iterator)
+    if nqp::iscont(iterable) {
+        my \result = Array.CREATE;
+        my \buffer = IterationBuffer.CREATE;
+        buffer.push(iterable);
+        nqp::bindattr(result, List, '$!reified', buffer);
+        result
+    }
+    else {
+        Array.from-iterator(iterable.iterator)
+    }
 }
 multi circumfix:<[ ]>(|) {
     my \in      = nqp::p6argvmarray();

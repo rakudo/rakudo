@@ -448,7 +448,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     $rhs-done = 1 if v =:= IterationEnd;
                 }
             }
-            elsif nqp::istype(c, List) {
+            elsif nqp::istype(c, List) and not nqp::istype(c, Array) {
                 # List splice into current lhs
                 my \subiter := c.iterator;
                 until (my \sc = subiter.pull-one) =:= IterationEnd {

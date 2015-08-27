@@ -453,6 +453,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <subshortname> <sigterm>?
     }
 
+    token deftermnow { <defterm> }
+
     token defterm {     # XXX this is probably too general
         :dba('new term to be defined')
         <identifier>
@@ -2286,7 +2288,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         # STD.pm6 uses <defterm> here, but we need different
         # action methods
-        | '\\' <defterm>
+        | '\\' <deftermnow>
             [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
           [

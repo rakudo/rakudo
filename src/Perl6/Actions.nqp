@@ -227,6 +227,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    method deftermnow($/) {
+        # 'my \foo' style declaration
+        if $*SCOPE ne 'my' {
+            $*W.throw($/, 'X::Comp::NYI',
+                feature => "$*SCOPE scoped term definitions (only 'my' is supported at the moment)");
+        }
+        my $name       :=  $<defterm>.ast;
+        my $cur_lexpad := $*W.cur_lexpad;
+        if $cur_lexpad.symbol($name) {
+            $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
+        }
+        if $*OFTYPE {
+            my $type := $*OFTYPE.ast;
+            $cur_lexpad[0].push(QAST::Var.new( :$name, :scope('lexical'),
+                :decl('var'), :returns($type) ));
+            $cur_lexpad.symbol($name, :$type, :scope<lexical>);
+        }
+        else {
+            $cur_lexpad[0].push(QAST::Var.new(:$name, :scope('lexical'), :decl('var')));
+            $cur_lexpad.symbol($name, :scope('lexical'));
+        }
+        make $<defterm>.ast;
+    }
+
     method defterm($/) {
         my $name := ~$<identifier>;
         if $<colonpair> {
@@ -2432,22 +2456,11 @@ Compilation unit '$file' contained the following violations:
 
             make $list;
         }
-        elsif $<defterm> {
+        elsif $<deftermnow> {
             # 'my \foo' style declaration
-            if $*SCOPE ne 'my' {
-                $*W.throw($/, 'X::Comp::NYI',
-                    feature => "$*SCOPE scoped term definitions (only 'my' is supported at the moment)");
-            }
-            my $name       :=  $<defterm>.ast;
-            my $cur_lexpad := $*W.cur_lexpad;
-            if $cur_lexpad.symbol($name) {
-                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
-            }
+            my $name       :=  $<deftermnow>.ast;
             if $*OFTYPE {
                 my $type := $*OFTYPE.ast;
-                $cur_lexpad[0].push(QAST::Var.new( :$name, :scope('lexical'),
-                    :decl('var'), :returns($type) ));
-                $cur_lexpad.symbol($name, :$type, :scope<lexical>);
                 make QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:$name, :scope<lexical>),
@@ -2461,14 +2474,12 @@ Compilation unit '$file' contained the following violations:
                 );
             }
             else {
-                $cur_lexpad[0].push(QAST::Var.new(:$name, :scope('lexical'), :decl('var')));
-                $cur_lexpad.symbol($name, :scope('lexical'));
                 make QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:$name, :scope<lexical>),
                     $<term_init>.ast
                 );
-                }
+            }
         }
         else {
             $/.CURSOR.panic('Unknown declarator type');

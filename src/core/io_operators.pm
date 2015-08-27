@@ -17,7 +17,7 @@ multi sub say(Str:D \x) {
     $out.print: x;
     $out.print-nl;
 }
-multi sub say(\args) {
+multi sub say(Mu:D \args) {
     my $out := $*OUT;
     my \iterator := nqp::istype(args, Iterable) ?? args.iterator !! args.list.iterator;
     until (my \value := iterator.pull-one) =:= IterationEnd {

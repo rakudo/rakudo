@@ -402,11 +402,11 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
         has $!whatever;
         has $!i;
         has $!elems;
-        method new(\source, $ended is rw) {
+        method new(\source) {
             my $iter := self.CREATE;
             nqp::bindattr($iter, self, '$!source', source);
             nqp::bindattr($iter, self, '$!buffer', IterationBuffer.new);
-            nqp::bindattr($iter, self, '$!ended', $ended);
+            nqp::bindattr($iter, self, '$!ended', False);
             nqp::bindattr($iter, self, '$!whatever', False);
             nqp::bindattr($iter, self, '$!i', 0);
             nqp::bindattr($iter, self, '$!elems', 0);
@@ -424,12 +424,12 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
             else {
                 my \value := $!source.pull-one;
                 if value =:= IterationEnd {
-                    $!ended = True;
+                    $!ended := True;
                     $!elems == 0 ?? value !! self.pull-one()
                 }
                 elsif nqp::istype(value, Whatever) {
                     $!whatever := True;
-                    $!ended = True;
+                    $!ended := True;
                     self.pull-one()
                 }
                 else {
@@ -439,6 +439,7 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
                 }
             }
         }
+        method ended() { $!ended }
         method count-elems() {
             unless ($!ended) {
                 $!elems := $!elems + 1 until $!source.pull-one =:= IterationEnd;
@@ -447,23 +448,20 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
         }
     }
 
-    my $left-ended  = False;
-    my $right-ended = False;
-    my \lefti  :=  DwimIterator.new(left-iterator, $left-ended);
-    my \righti :=  DwimIterator.new(right-iterator, $right-ended);
+    my \lefti  :=  DwimIterator.new(left-iterator);
+    my \righti :=  DwimIterator.new(right-iterator);
 
     my \result := IterationBuffer.new;
     loop {
         my \leftv := lefti.pull-one;
         my \rightv := righti.pull-one;
 
-        last if ($dwim-left and $dwim-right)
-            ?? ($left-ended and $right-ended)
-            !! (($dwim-left or $left-ended) and ($dwim-right or $right-ended));
-        last if $++ == 0 and ($dwim-left and $left-ended or $dwim-right and $right-ended);
-
         X::HyperOp::NonDWIM.new(:&operator, :left-elems(lefti.count-elems), :right-elems(righti.count-elems)).throw
-            if leftv =:= IterationEnd or rightv =:= IterationEnd;
+            if !$dwim-left and !$dwim-right and (lefti.ended != righti.ended);
+
+        last if ($dwim-left and $dwim-right) ?? (lefti.ended and righti.ended) !!
+               (($dwim-left or lefti.ended) and ($dwim-right or righti.ended));
+        last if $++ == 0 and ($dwim-left and lefti.ended or $dwim-right and righti.ended);
 
         result.push(HYPER(&operator, leftv, rightv, :$dwim-left, :$dwim-right));
     }

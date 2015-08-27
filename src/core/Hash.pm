@@ -184,39 +184,41 @@ my class Hash { # declared in BOOTSTRAP
     proto method categorize-list(|) { * }
     # XXX GLR possibly more efficient taking an Iterable, not a @list
     # XXX GLR replace p6listitems op use
-    #multi method categorize-list( &test, @list, :&as ) {
-    #    fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
-    #    if @list {
-    #
-    #        # multi-level categorize
-    #        if nqp::istype(test(@list[0])[0],List) {
-    #            @list.map: -> $l {
-    #                my $value := &as ?? as($l) !! $l;
-    #                for test($l) -> $k {
-    #                    my @keys = @($k);
-    #                    my $last := @keys.pop;
-    #                    my $hash  = self;
-    #                    $hash = $hash{$_} //= self.new for @keys;
-    #                    nqp::push(
-    #                      nqp::p6listitems(nqp::decont($hash{$last} //= [])),
-    #                      $value
-    #                    );
-    #                }
-    #            }
-    #        }
-    #
-    #        # just a simple categorize
-    #        else {
-    #            @list.map: -> $l {
-    #                my $value := &as ?? as($l) !! $l;
-    #                nqp::push(
-    #                  nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
-    #                  for test($l);
-    #            }
-    #        }
-    #    }
-    #    self;
-    #}
+    # XXX GLR I came up with a simple workaround for the main case,
+    #         but it can probably be done more efficiently better.
+    #         Weird case is completely commented out at the moment.
+    multi method categorize-list( &test, @list, :&as ) {
+       fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
+       if @list {
+           # multi-level categorize
+           if nqp::istype(test(@list[0])[0],Iterable) {
+               # @list.map: -> $l {
+               #     my $value := &as ?? as($l) !! $l;
+               #     for test($l) -> $k {
+               #         my @keys = @($k);
+               #         my $last := @keys.pop;
+               #         my $hash  = self;
+               #         $hash = $hash{$_} //= self.new for @keys;
+               #         $hash{$last}.push: $value;
+               #     }
+               # }
+           } else {    
+           # just a simple categorize
+               @list.map: -> $l {
+                  my $value := &as ?? as($l) !! $l;
+                  (self{$_} //= []).push: $value for test($l);
+               }
+               # more efficient (maybe?) nom version that might
+               # yet be updated for GLR
+               # @list.map: -> $l {
+               #     my $value := &as ?? as($l) !! $l;
+               #     nqp::push(
+               #       nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
+               #       for test($l);
+           }
+       }
+       self;
+    }
     multi method categorize-list( %test, $list ) {
         self.categorize-list( { %test{$^a} }, $list );
     }

@@ -29,6 +29,21 @@ my sub combinations($n, $k) {
     }
 }
 
+# XXX This next function is only checked in to help 
+#     debug a fairly insane bug.  It is not intended 
+#     to be a long term part of rakudo.
+sub very-broken-combinations($n, $k) {
+    my @result;
+    my $value = 1;
+
+    gather for 0..4 {
+        for 0..1 {
+            @result[$_] = $value++;
+        }
+        take @result;
+    }
+}
+
 my sub permutations(Int $n) {
     $n == 1 ?? ( (0,), ) !!
     gather for ^$n -> $i {

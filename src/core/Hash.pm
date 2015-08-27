@@ -139,7 +139,7 @@ my class Hash { # declared in BOOTSTRAP
         if @list {
 
             # multi-level classify
-            if nqp::istype(test(@list[0]),List) {
+            if nqp::istype(test(@list[0]),Iterable) {
                 @list.map: -> $l {
                     my @keys  = test($l);
                     my $last := @keys.pop;

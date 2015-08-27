@@ -167,25 +167,25 @@ my class Any { # declared in BOOTSTRAP
     method deepmap(&block) is rw is nodal { deepmap(&block, self) }
 
     # XXX GLR Do we need tree post-GLR?
-    #proto method tree(|) is nodal { * }
-    #multi method tree(Any:U:) { self }
-    #multi method tree(Any:D:) {
-    #    nqp::istype(self,Positional)
-    #        ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
-    #        !! self
-    #}
-    #multi method tree(Any:D: Whatever ) { self.tree }
-    #multi method tree(Any:D: Int(Cool) $count) {
-    #    nqp::istype(self,Positional) && $count > 0
-    #        ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
-    #        !! self
-    #}
-    #multi method tree(Any:D: *@ [&first, *@rest]) {
-    #    nqp::istype(self,Positional)
-    #        ?? @rest ?? first(MapIter.new(self.list, { .tree(|@rest) }, Mu).list)
-    #                 !! first(self.list)
-    #        !! self
-    #}
+    proto method tree(|) is nodal { * }
+    multi method tree(Any:U:) { self }
+    multi method tree(Any:D:) {
+        nqp::istype(self, Iterable)
+            ?? self.map({ .tree }).item
+            !! self
+    }
+    multi method tree(Any:D: Whatever ) { self.tree }
+    multi method tree(Any:D: Int(Cool) $count) {
+        nqp::istype(self, Iterable) && $count > 0
+            ?? self.map({ .tree($count - 1) }).item
+            !! self
+    }
+    multi method tree(Any:D: *@ [&first, *@rest]) {
+        nqp::istype(self, Iterable)
+            ?? @rest ?? first(self.map({ .tree(|@rest) }))
+                     !! first(self)
+            !! self
+    }
 
     # auto-vivifying
     proto method push(|) is nodal { * }

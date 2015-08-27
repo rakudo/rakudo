@@ -2,58 +2,71 @@ my class IO::ArgFiles { ... }
 
 proto sub print(|) { * }
 multi sub print(*@args) {
-    my $out := $*OUT;
-    $out.print(.Str) for @args;
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $*OUT.print($str);
     Bool::True
 }
 multi sub print(Str:D \x) {
     $*OUT.print(x);
 }
 
+# Once we have an nqp::say that looks at the *output* line separator of the
+# PIO, then we can stop concatenating .nl to each string before .print, but
+# instead call nqp::say directly.
+
 proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
-    $out.print: x;
-    $out.print-nl;
+    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl);
+    $out.print($str);
 }
 multi sub say(Mu:D \args) {
     my $out := $*OUT;
+    my str $str;
     my \iterator := nqp::istype(args, Iterable) ?? args.iterator !! args.list.iterator;
     until (my \value := iterator.pull-one) =:= IterationEnd {
-        $out.print(value.gist);
+        $str = nqp::concat($str,nqp::unbox_s(value.gist));
     }
-    $out.print-nl;
+    $str = nqp::concat($str,$out.nl);
+    $out.print($str);
 }
 multi sub say(**@args is rw) {
     my $out := $*OUT;
-    $out.print(.gist) for @args;
-    $out.print-nl;
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $str = nqp::concat($str,$out.nl);
+    $out.print($str);
 }
 
 proto sub note(|) { * }
 multi sub note() {
     my $err := $*ERR;
-    $err.print: "Noted";
-    $err.print-nl;
+    my str $str = nqp::concat("Noted",$err.nl);
+    $err.print($str);
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;
-    $err.print: x;
-    $err.print-nl;
+    my str $str = nqp::concat(nqp::unbox_s(x),$err.nl);
+    $err.print($str);
 }
 multi sub note(\args) {
     my $err := $*ERR;
+    my str $str;
     my \iterator := nqp::istype(args, Iterable) ?? args.iterator !! args.list.iterator;
     until (my \value := iterator.pull-one) =:= IterationEnd {
-        $err.print(value.gist);
+        $str = nqp::concat($str,nqp::unbox_s(value.gist));
     }
-    $err.print-nl;
+    $str = nqp::concat($str,$err.nl);
+    $err.print($str);
 }
 multi sub note(**@args is rw) {
     my $err := $*ERR;
-    $err.print(.gist) for @args;
-    $err.print-nl;
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $str = nqp::concat($str,$err.nl);
+    $err.print($str);
 }
 
 sub gist(|) {

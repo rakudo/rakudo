@@ -233,7 +233,7 @@ my role Baggy does QuantHash {
         if @list {
 
             # multi-level classify
-            if nqp::istype(test(@list[0]),List) {
+            if nqp::istype(test(@list[0]),Iterable) {
                 for @list -> $l {
                     my @keys  = test($l);
                     my $last := @keys.pop;

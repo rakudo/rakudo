@@ -1,8 +1,8 @@
 New in 2015.08
  + Features
    + with/orwith/without conditionals allow you to check for .defined but
-   + new `supply`, `whenever` and `react` blocks for easy reactive programming
      topicalize to the actual value returned
+   + new `supply`, `whenever` and `react` blocks for easy reactive programming
    + Mu.return implemented: allows for ".return with $foo"
    + Cool.indices/indices() expands on Cool.index/index() functionality
    + Callframes now allow easy introspection of associated Code object

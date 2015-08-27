@@ -347,7 +347,7 @@ my role Supply {
         self.rotor( (2 => -1) );
     }
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
-        my @c := @cycle.is-lazy ?? @cycle !! @cycle xx *;
+        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.list;
 
         on -> $res {
             $self => do {
@@ -355,8 +355,9 @@ my role Supply {
                 my Int $gap;
                 my int $to-skip;
                 my int $skip;
+                my \c = @c.iterator;
                 sub next-batch() {
-                    given @c.shift {
+                    given c.pull-one {
                         when Pair {
                             $elems   = +.key;
                             $gap     = +.value;
@@ -373,8 +374,7 @@ my role Supply {
 
                 my @batched;
                 sub flush() {
-                    $res.emit( [@batched] );
-                    @batched.splice( 0, +@batched + $gap );
+                    $res.emit( [@batched.splice(0, +@batched, @batched[* + $gap .. *]),] );
                     $skip = $to-skip;
                 }
 

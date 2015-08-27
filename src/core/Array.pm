@@ -456,7 +456,7 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method perl(Array:D \SELF:) {
         '$' x nqp::iscont(SELF) ~
-        '[' ~ self.map({.perl}).join(', ') ~ ']';
+        '[' ~ self.map({nqp::decont($_).perl}).join(', ') ~ ',' x (self.elems == 1) ~ ']';
     }
 
     multi method WHICH(Array:D:) {

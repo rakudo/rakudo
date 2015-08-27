@@ -1,6 +1,9 @@
 my class X::TypeCheck { ... };
 my class X::Subscript::Negative { ... };
 
+my %*gistseen;
+my %*perlseen;
+
 # An Array is a List that ensures every item added to it is in a Scalar
 # container. It also supports push, pop, shift, unshift, splice, BIND-POS,
 # and so forth.
@@ -455,12 +458,22 @@ my class Array { # declared in BOOTSTRAP
         nqp::isnull($d) ?? Bool !! so $d.dynamic;
     }
     multi method perl(Array:D \SELF:) {
-        '$' x nqp::iscont(SELF) ~
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
+        %*perlseen{self.WHICH} = 1;
+        my $result = '$' x nqp::iscont(SELF) ~
         '[' ~ self.map({nqp::decont($_).perl}).join(', ') ~ ',' x (self.elems == 1) ~ ']';
+        $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result;
     }
 
-    multi method gist(Array:D \SELF:) {
-        '[' ~ self.map({.gist}).join(' ') ~ ']';
+    multi method gist(Array:D:) {
+        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
+        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
+        %*gistseen{self.WHICH} = 1;
+        my $result = '[' ~ self.map({.gist}).join(' ') ~ ']';
+        $result = "(\\Array_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result;
     }
 
     multi method WHICH(Array:D:) {

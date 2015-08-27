@@ -452,19 +452,29 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
-        '(' ~
-        self.map( -> $elem {
-            given ++$ {
-                when 101 { '...' }
-                when 102 { last }
-                default  { $elem.gist }
-            }
-        }).join(' ')
-        ~ ')';
+        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
+        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "List_{self.WHERE}" }
+        %*gistseen{self.WHICH} = 1;
+        my $result = '(' ~
+            self.map( -> $elem {
+                given ++$ {
+                    when 101 { '...' }
+                    when 102 { last }
+                    default  { $elem.gist }
+                }
+            }).join(' ')
+            ~ ')';
+        $result = "(\\List_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result;
     }
 
     multi method perl(List:D \SELF:) {
-        '$' x nqp::iscont(SELF) ~ '(' ~ self.map({.perl}).join(', ') ~ ')';
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "List_{self.WHERE}" }
+        %*perlseen{self.WHICH} = 1;
+        my $result = '$' x nqp::iscont(SELF) ~ '(' ~ self.map({.perl}).join(', ') ~ ')';
+        $result = "(my \\List_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result;
     }
 
     # XXX GLR

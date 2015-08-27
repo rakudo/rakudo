@@ -44,18 +44,28 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method perl(Hash:D \SELF:) {
-        '$' x nqp::iscont(SELF) ~
-        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+        %*perlseen{self.WHICH} = 1;
+        my $result = '$' x nqp::iscont(SELF) ~
+        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}';
+        $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result;
     }
 
     multi method gist(Hash:D:) {
-        self.pairs.sort.map( -> $elem {
+        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
+        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+        %*gistseen{self.WHICH} = 1;
+        my $result = self.pairs.sort.map( -> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }
                 default  { $elem.gist }
             }
         } ).join: ', ';
+        $result = "(\\Hash_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result;
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {

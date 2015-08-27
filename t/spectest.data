@@ -867,7 +867,8 @@ S32-hash/pairs.t
 S32-hash/perl.t
 S32-hash/push.t
 S32-hash/slice.t
-S32-io/IO-Socket-Async.t
+# flapper on moarvm; commented out for the 2015.08 release
+# S32-io/IO-Socket-Async.t
 S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t

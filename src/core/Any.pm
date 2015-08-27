@@ -399,7 +399,8 @@ my class Any { # declared in BOOTSTRAP
     method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
     method Supply() is nodal { self.list.Supply }
 
-    method print-nl() { self.print("\n") }
+    method nl() { "\n" }
+    method print-nl() { self.print(self.nl) }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

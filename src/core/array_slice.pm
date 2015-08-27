@@ -345,6 +345,11 @@ sub MD-SLICE-ONE-POSITION(\SELF, \indices, int $dim, \target) {
         elsif nqp::istype(idx, Int) {
             MD-SLICE-ONE-POSITION(SELF.AT-POS(idx), indices, $next-dim, target)
         }
+        elsif nqp::istype(idx, Whatever) {
+            for ^SELF.elems {
+                MD-SLICE-ONE-POSITION(SELF.AT-POS($_), indices, $next-dim, target)
+            }
+        }
         else  {
             MD-SLICE-ONE-POSITION(SELF.AT-POS(idx.Int), indices, $next-dim, target)
         }
@@ -357,6 +362,11 @@ sub MD-SLICE-ONE-POSITION(\SELF, \indices, int $dim, \target) {
         }
         elsif nqp::istype(idx, Int) {
             nqp::push(target, SELF.AT-POS(idx))
+        }
+        elsif nqp::istype(idx, Whatever) {
+            for ^SELF.elems {
+                nqp::push(target, SELF.AT-POS($_))
+            }
         }
         else  {
             nqp::push(target, SELF.AT-POS(idx.Int))
@@ -373,19 +383,14 @@ sub MD-SLICE(\SELF, @indices) {
 multi sub postcircumfix:<[; ]>(\SELF, @indices) {
     my int $n = @indices.elems;
     my int $i = 0;
-    my $slicey := False;
-    my $inty   := True;
-    my $index;
+    my $all-ints := True;
     while $i < $n {
-        $index := @indices.AT-POS($i);
-        nqp::istype($index, Iterable) && !nqp::iscont($index)
-            ?? ($slicey := True)
-            !! ($inty := False unless nqp::istype($index, Int));
+        $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
         $i = $i + 1;
     }
-    $slicey
-        ?? MD-SLICE(SELF, @indices)
-        !! SELF.AT-POS(|($inty ?? @indices !! @indices>>.Int))
+    $all-ints
+        ?? SELF.AT-POS(|@indices)
+        !! MD-SLICE(SELF, @indices)
 }
 
 # vim: ft=perl6 expandtab sw=4

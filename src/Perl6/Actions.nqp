@@ -785,24 +785,23 @@ Compilation unit '$file' contained the following violations:
 
     # Produces a LoL from a semicolon list
     method semilist($/) {
-        my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
+            my $past := QAST::Stmts.new( :node($/) );
             if $<statement> > 1 {
-                my $l := QAST::Op.new( :name('&infix:<,>'), :op('call'));
+                my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $<statement> {
                     $l.push($_.ast);
                 }
-                $past.push(QAST::Op.new( :name('lol'), :op('callmethod'), $l));
+                $past.push($l);
             }
             else {
                 $past.push($<statement>[0].ast);
             }
+            make $past;
         }
-        unless +@($past) {
-            $past := QAST::Op.new( :op('call'), :name('&infix:<,>'));
+        else {
+            make QAST::Op.new( :op('call'), :name('&infix:<,>') );
         }
-
-        make $past;
     }
 
     method sequence($/) {

@@ -1,9 +1,6 @@
 my class X::TypeCheck { ... };
 my class X::Subscript::Negative { ... };
 
-my %*gistseen;
-my %*perlseen;
-
 # An Array is a List that ensures every item added to it is in a Scalar
 # container. It also supports push, pop, shift, unshift, splice, BIND-POS,
 # and so forth.

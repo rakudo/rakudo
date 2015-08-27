@@ -42,13 +42,15 @@ multi sub note(Str:D \x) {
     $err.print: x;
     $err.print-nl;
 }
-# XXX GLR casualty
-#multi sub note(\x) {
-#    my $err := $*ERR;
-#    $err.print: x.gist;
-#    $err.print-nl;
-#}
-multi sub note(*@args is rw) {
+multi sub note(\args) {
+    my $err := $*ERR;
+    my \iterator := nqp::istype(args, Iterable) ?? args.iterator !! args.list.iterator;
+    until (my \value := iterator.pull-one) =:= IterationEnd {
+        $err.print(value.gist);
+    }
+    $err.print-nl;
+}
+multi sub note(**@args is rw) {
     my $err := $*ERR;
     $err.print(.gist) for @args;
     $err.print-nl;

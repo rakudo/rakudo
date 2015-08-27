@@ -184,9 +184,8 @@ my class Hash { # declared in BOOTSTRAP
     proto method categorize-list(|) { * }
     # XXX GLR possibly more efficient taking an Iterable, not a @list
     # XXX GLR replace p6listitems op use
-    # XXX GLR I came up with a simple workaround for the main case,
-    #         but it can probably be done more efficiently better.
-    #         Weird case is completely commented out at the moment.
+    # XXX GLR I came up with simple workarounds but this can probably
+    #         be done more efficiently better.
     multi method categorize-list( &test, @list, :&as ) {
        fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
        if @list {

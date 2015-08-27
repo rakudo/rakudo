@@ -1235,7 +1235,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         {
             $*DECLARATOR_DOCS := '';
-            $*VARIABLE        := '' if $*VARIABLE;
 
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -1303,6 +1302,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
             '{'
+            <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
             [<.cheat_heredoc> || '}']
             <?ENDSTMT>

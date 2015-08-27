@@ -17,13 +17,7 @@ multi sub say(Str:D \x) {
     $out.print: x;
     $out.print-nl;
 }
-# XXX GLR casualty
-#multi sub say(\x) {
-#    my $out := $*OUT;
-#    $out.print: x.gist;
-#    $out.print-nl;
-#}
-multi sub say(*@args is rw) {
+multi sub say(**@args is rw) {
     my $out := $*OUT;
     $out.print(.gist) for @args;
     $out.print-nl;

@@ -333,4 +333,23 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 
 proto sub postcircumfix:<[; ]>(|) is nodal { * }
 
+# @a[Int 1; Int 1]
+multi sub postcircumfix:<[; ]>(\SELF, @indices) {
+    my int $n = @indices.elems;
+    my int $i = 0;
+    my $slicey := False;
+    my $inty   := True;
+    my $index;
+    while $i < $n {
+        $index := @indices.AT-POS($i);
+        nqp::istype($index, Iterable) && !nqp::iscont($index)
+            ?? ($slicey := True)
+            !! ($inty := False unless nqp::istype($index, Int));
+        $i = $i + 1;
+    }
+    $slicey
+        ?? (die "NYI")
+        !! SELF.AT-POS(|($inty ?? @indices !! @indices>>.Int))
+}
+
 # vim: ft=perl6 expandtab sw=4

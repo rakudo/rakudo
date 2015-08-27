@@ -158,11 +158,11 @@ sub samewith(|c) {
 
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
-sub supply-emit(\value) {
+sub emit(\value) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
     value
 }
-sub supply-done() {
+sub done() {
     THROW(nqp::const::CONTROL_DONE, Nil);
     Nil
 }

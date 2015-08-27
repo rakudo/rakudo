@@ -577,15 +577,6 @@ sub proclaim($cond, $desc) {
     $cond;
 }
 
-sub done_testing() is export {
-    die "done_testing() has been renamed to done(), please change your test code";
-}
-
-sub done() is export {
-    DEPRECATED('done-testing',|<2015.08 2015.09>);
-    done-testing();
-}
-
 sub done-testing() is export {
     _init_io() unless $output;
     $done_testing_has_been_run = 1;

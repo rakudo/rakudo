@@ -438,7 +438,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     $rhs-done = 1;
                 }
                 else {
-                    nqp::push(cv, v);
+                    nqp::push(cv, nqp::iscont(v) ?? nqp::decont(v) !! v);
                 }
             }
             elsif nqp::istype(c, Whatever) {

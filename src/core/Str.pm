@@ -563,6 +563,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $self = nqp::unbox_s(self);
         (^self.chars).map({ nqp::p6box_s(nqp::substr($self, $_, 1)) });
     }
+    multi method comb(Str:D: Str $pat, $limit = Inf) {
+        my $count = 0;
+        my $pos = 0;
+        my $inputsize = self.chars;
+        my $haslimit = ! (nqp::istype($limit, Whatever) || $limit == Inf);
+        while ($pos <= $inputsize) {
+            with self.index($pat, $pos) -> $found {
+                $count++;
+                last if $haslimit && $count == $limit;
+                $pos = $found + 1;
+            } else {
+                last;
+            }
+        }
+        return $pat xx $count;
+    }
     multi method comb(Str:D: Regex $pat, $limit = Inf, :$match) {
         my $x;
         $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;

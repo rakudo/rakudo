@@ -255,6 +255,7 @@ my class Cool { # declared in BOOTSTRAP
     proto method comb(|) {*}
     multi method comb() { self.Str.comb() }
     multi method comb(Regex $matcher, $limit = Inf) { self.Str.comb($matcher, $limit) }
+    multi method comb(Str $matcher, $limit = Inf) { self.Str.comb($matcher, $limit) }
 
     proto method lines(|) {*}
     multi method lines(Cool:D: |c) { self.Str.lines(|c) }
@@ -343,6 +344,7 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 
 proto sub comb($, $, $?)            { * }
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
+multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
 proto sub wordcase($) is pure { * }
 multi sub wordcase(Str:D $x) {$x.wordcase }

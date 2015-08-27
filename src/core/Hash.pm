@@ -49,7 +49,7 @@ my class Hash { # declared in BOOTSTRAP
         %*perlseen{self.WHICH} = 1;
         my $result = '$' x nqp::iscont(SELF) ~
         '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}';
-        $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
         $result;
     }
 
@@ -64,7 +64,7 @@ my class Hash { # declared in BOOTSTRAP
                 default  { $elem.gist }
             }
         } ).join: ', ';
-        $result = "(\\Hash_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result = "(\\Hash_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
         $result;
     }
 

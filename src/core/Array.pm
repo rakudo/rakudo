@@ -467,7 +467,7 @@ my class Array { # declared in BOOTSTRAP
         %*perlseen{self.WHICH} = 1;
         my $result = '$' x nqp::iscont(SELF) ~
         '[' ~ self.map({nqp::decont($_).perl}).join(', ') ~ ',' x (self.elems == 1) ~ ']';
-        $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
         $result;
     }
 
@@ -476,7 +476,7 @@ my class Array { # declared in BOOTSTRAP
         if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
         %*gistseen{self.WHICH} = 1;
         my $result = '[' ~ self.map({.gist}).join(' ') ~ ']';
-        $result = "(\\Array_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result = "(\\Array_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
         $result;
     }
 

@@ -464,7 +464,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 }
             }).join(' ')
             ~ ')';
-        $result = "(\\List_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result = "(\\List_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
         $result;
     }
 
@@ -473,7 +473,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "List_{self.WHERE}" }
         %*perlseen{self.WHICH} = 1;
         my $result = '$' x nqp::iscont(SELF) ~ '(' ~ self.map({.perl}).join(', ') ~ ')';
-        $result = "(my \\List_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result = "(my \\List_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
         $result;
     }
 

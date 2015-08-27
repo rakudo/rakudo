@@ -34,7 +34,7 @@ my class Enum does Associative {
         } else {
             $result = $!key.gist ~ ' => ' ~ $!value.gist;
         }
-        $result = "(\\Pair_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result = "(\\Pair_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
         $result;
     }
 
@@ -53,7 +53,7 @@ my class Enum does Associative {
         } else {
             $result = $!key.perl ~ ' => ' ~ $!value.perl;
         }
-        $result = "(my \\Pair_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result = "(my \\Pair_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
         $result;
     }
 

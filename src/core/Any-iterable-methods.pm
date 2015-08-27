@@ -62,12 +62,14 @@ augment class Any {
             has &!block;
             has $!source;
             has $!count;
+            has $!label;
 
-            method new(&block, $source, $count) {
+            method new(&block, $source, $count, $label) {
                 my $iter := self.CREATE;
                 nqp::bindattr($iter, self, '&!block', &block);
                 nqp::bindattr($iter, self, '$!source', $source);
                 nqp::bindattr($iter, self, '$!count', $count);
+                nqp::bindattr($iter, self, '$!label', $label);
                 $iter
             }
 
@@ -96,37 +98,6 @@ augment class Any {
                     elsif ($value := $!source.pull-one()) =:= IterationEnd {
                         $value
                     }
-                    elsif $label {
-                        nqp::while(
-                            $redo,
-                            nqp::stmts(
-                                $redo = 0,
-                                nqp::handle(
-                                    nqp::stmts(
-                                        ($result := &!block($value)),
-                                        nqp::if(
-                                            nqp::istype($result, Slip),
-                                            nqp::stmts(
-                                                ($result := self.start-slip($result)),
-                                                nqp::if(
-                                                    nqp::eqaddr($result, IterationEnd),
-                                                    nqp::stmts(
-                                                        ($value := $!source.pull-one()),
-                                                        ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
-                                                ))
-                                            ))
-                                    ),
-                                    'LABELED', nqp::decont($label),
-                                    'NEXT', nqp::stmts(
-                                        ($value := $!source.pull-one()),
-                                        nqp::eqaddr($value, IterationEnd)
-                                            ?? ($result := IterationEnd)
-                                            !! ($redo = 1)),
-                                    'REDO', $redo = 1,
-                                    'LAST', ($result := IterationEnd))),
-                            :nohandler);
-                        $result
-                    }
                     else {
                         nqp::while(
                             $redo,
@@ -147,6 +118,7 @@ augment class Any {
                                                 ))
                                             ))
                                     ),
+                                    'LABELED', nqp::decont($!label),
                                     'NEXT', nqp::stmts(
                                         ($value := $!source.pull-one()),
                                         nqp::eqaddr($value, IterationEnd)
@@ -158,7 +130,7 @@ augment class Any {
                         $result
                     }
                 }
-            }.new(&block, source, 1));
+            }.new(&block, source, 1, $label));
         }
         else {
             Seq.new(class :: does MapIterCommon {
@@ -177,41 +149,6 @@ augment class Any {
                             && nqp::elems($!value-buffer) == 0 {
                         IterationEnd
                     }
-                    elsif $label {
-                        nqp::while(
-                            $redo,
-                            nqp::stmts(
-                                $redo = 0,
-                                nqp::handle(
-                                    nqp::stmts(
-                                        ($result := nqp::p6invokeflat(&!block, $!value-buffer)),
-                                        nqp::if(
-                                            nqp::istype($result, Slip),
-                                            nqp::stmts(
-                                                ($result := self.start-slip($result)),
-                                                nqp::if(
-                                                    nqp::eqaddr($result, IterationEnd),
-                                                    nqp::stmts(
-                                                        (nqp::setelems($!value-buffer, 0)),
-                                                        ($redo = 1 unless nqp::eqaddr(
-                                                                $!source.push-exactly($!value-buffer, $!count),
-                                                                IterationEnd)
-                                                            && nqp::elems($!value-buffer) == 0)
-                                                ))
-                                            ))
-                                    ),
-                                    'LABELED', nqp::decont($label),
-                                    'NEXT', nqp::stmts(
-                                        (nqp::setelems($!value-buffer, 0)),
-                                        nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
-                                                && nqp::elems($!value-buffer) == 0
-                                            ?? ($result := IterationEnd)
-                                            !! ($redo = 1)),
-                                    'REDO', $redo = 1,
-                                    'LAST', ($result := IterationEnd))),
-                            :nohandler);
-                        $result
-                    }
                     else {
                         nqp::while(
                             $redo,
@@ -235,6 +172,7 @@ augment class Any {
                                                 ))
                                             ))
                                     ),
+                                    'LABELED', nqp::decont($!label),
                                     'NEXT', nqp::stmts(
                                         (nqp::setelems($!value-buffer, 0)),
                                         nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
@@ -247,7 +185,7 @@ augment class Any {
                         $result
                     }
                 }
-            }.new(&block, source, $count));
+            }.new(&block, source, $count, $label));
         }
     }
 

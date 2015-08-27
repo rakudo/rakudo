@@ -130,7 +130,7 @@ my sub MAIN_HELPER($retval = 0) {
         my @named-params = $signature.params.grep: *.named;
         return False if @named-params.grep: *.slurpy;
 
-        my %accepts-argument = @named-params.map({ .named_names }) Z=> 1 xx *;
+        my %accepts-argument = @named-params.map({ .named_names.Slip }) Z=> 1 xx *;
         for %named-arguments.keys -> $name {
             return True if !%accepts-argument{$name}
         }

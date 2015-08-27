@@ -448,6 +448,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     $rhs-done = 1 if v =:= IterationEnd;
                 }
             }
+            elsif nqp::istype(c, List) {
+                # List splice into current lhs
+                my \subiter := c.iterator;
+                until (my \sc = subiter.pull-one) =:= IterationEnd {
+                    nqp::push(cv, sc);
+                    if (my \v = rhs-iter.pull-one) =:= IterationEnd {
+                        nqp::push(cv, Nil);
+                        $rhs-done = 1;
+                    }
+                    else {
+                        nqp::push(cv, nqp::iscont(v) ?? nqp::decont(v) !! v);
+                    }
+                }
+            }
             else {
                 # Non-container: store entire remaining rhs
                 nqp::push(cv, c);

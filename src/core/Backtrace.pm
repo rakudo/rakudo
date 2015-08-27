@@ -27,7 +27,7 @@ my class Backtrace::Frame {
         if $RAKUDO-VERBOSE-STACKFRAME -> $extra {
             my $io = $!file.IO;
             if $io.e {
-                my @lines := $io.lines;
+                my @lines = $io.lines;
                 my $from = max $!line - $extra, 1;
                 my $to   = min $!line + $extra, +@lines;
                 for $from..$to -> $line {

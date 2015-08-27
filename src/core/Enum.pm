@@ -26,25 +26,35 @@ my class Enum does Associative {
     multi method Str(Enum:D:) { $!key ~ "\t" ~ $!value }
 
     multi method gist(Enum:D:) {
+        my $result;
+        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.perl }
+        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Pair_{self.WHERE}" }
         if nqp::istype($!key, Enum) {
-            '(' ~ $!key.gist ~ ') => ' ~ $!value.gist;
+            $result = '(' ~ $!key.gist ~ ') => ' ~ $!value.gist;
         } else {
-            $!key.gist ~ ' => ' ~ $!value.gist;
+            $result = $!key.gist ~ ' => ' ~ $!value.gist;
         }
+        $result = "(\\Pair_{self.WHERE} = $result)" if %*gistseen{self.WHICH} == 2;
+        $result;
     }
 
     multi method perl(Enum:D: :$arglist) {
+        my $result;
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Pair_{self.WHERE}" }
         if nqp::istype($!key, Enum) {
-            '(' ~ $!key.perl ~ ') => ' ~ $!value.perl;
+            $result = '(' ~ $!key.perl ~ ') => ' ~ $!value.perl;
         } elsif nqp::istype($!key, Str) and !$arglist and $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/ {
             if nqp::istype($!value,Bool) {
-                ':' ~ '!' x !$!value ~ $!key;
+                $result = ':' ~ '!' x !$!value ~ $!key;
             } else {
-                ':' ~ $!key ~ '(' ~ $!value.perl ~ ')';
+                $result = ':' ~ $!key ~ '(' ~ $!value.perl ~ ')';
             }
         } else {
-            $!key.perl ~ ' => ' ~ $!value.perl;
+            $result = $!key.perl ~ ' => ' ~ $!value.perl;
         }
+        $result = "(my \\Pair_{self.WHERE} = $result)" if %*perlseen{self.WHICH} == 2;
+        $result;
     }
 
     method fmt($format = "%s\t%s") {

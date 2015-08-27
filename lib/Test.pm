@@ -617,7 +617,7 @@ sub _init_vars {
 }
 
 sub _push_vars {
-    @vars.push: item [
+    @vars.push: ([
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,
@@ -628,7 +628,7 @@ sub _push_vars {
       $time_before,
       $time_after,
       $done_testing_has_been_run,
-    ];
+    ],);
 }
 
 sub _pop_vars {

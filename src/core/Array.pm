@@ -225,7 +225,7 @@ my class Array { # declared in BOOTSTRAP
 
     multi method push(Array:D: \value) {
         self!ensure-allocated();
-        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+        if nqp::not_i(nqp::istype(value, Iterable)) {
             fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
 
             nqp::push(
@@ -256,7 +256,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method unshift(Array:D: \value) {
-        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+        if nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
 
             nqp::unshift(

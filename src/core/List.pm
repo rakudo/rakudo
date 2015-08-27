@@ -18,7 +18,7 @@ my sub combinations($n, $k) {
 
         while $value < $n {
             @result[$index++] = $value++;
-            @stack.push($value);
+            @stack.push(($value,));
             if $index == $k {
                 my @copy = @result.clone;
                 take infix:<,>(|@copy);
@@ -1028,7 +1028,7 @@ sub roundrobin(**@lol) {
             for @iters -> $i {
                 my \v = $i.pull-one;
                 if v !=:= IterationEnd {
-                    @values.push: v;
+                    @values.push: (v,);
                     @new-iters.push: $i;
                 }
             }

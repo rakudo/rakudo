@@ -348,8 +348,7 @@ class Perl6::World is HLL::World {
               self.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
         }
         else {
-            my $FILES := nqp::getlexdyn('$?FILES');
-            $*STRICT  := nqp::isnull($FILES) || $FILES ne '-e';
+            $*STRICT  := 1;
         }
 
         # Bootstrap

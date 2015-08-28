@@ -35,9 +35,11 @@ my class Range is Cool does Iterable does Positional {
           $max == Inf || $min == -Inf,
         );
     }
-    multi method new($min is copy, $max, :$excludes-min, :$excludes-max) {
+    multi method new($min is copy, $max is copy, :$excludes-min, :$excludes-max) {
         $min = +$min
           if nqp::istype($min,List) || nqp::istype($min,Match);
+        $max = +$max
+          if nqp::istype($max,List) || nqp::istype($max,Match);
         nqp::create(self).BUILD($min, $max, $excludes-min, $excludes-max);
     }
 

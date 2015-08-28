@@ -265,6 +265,23 @@ sub copy($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
     my $result := $from.IO(:$SPEC,:$CWD).copy($to,:$SPEC,:$CWD, :$createonly);
     $result // $result.throw;
 }
+sub move($from, $to, :$createonly) {
+    try {
+        copy($from, $to, :$createonly);
+        unlink($from);
+        return True;
+
+        CATCH {
+            when X::IO::Copy|X::IO::Unlink {
+                fail X::IO::Move.new(
+                    :from(.from),
+                    :to(.to),
+                    :os-error(.os-error),
+                );
+            }
+        }
+    }
+}
 sub symlink($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     my $result := $target.IO(:$SPEC,:$CWD).symlink($name,:$SPEC,:$CWD);
     $result // $result.throw;

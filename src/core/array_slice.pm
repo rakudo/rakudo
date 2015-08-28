@@ -333,7 +333,7 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
 
 proto sub postcircumfix:<[; ]>(|) is nodal { * }
 
-sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
+sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is rw {
     my int $next-dim = $dim + 1;
     if $next-dim < indices.elems {
         if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
@@ -378,13 +378,13 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
         }
     }
 }
-sub MD-ARRAY-SLICE(\SELF, @indices) {
+sub MD-ARRAY-SLICE(\SELF, @indices) is rw {
     my \target = IterationBuffer.new;
     MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
     nqp::p6bindattrinvres(List.CREATE, List, '$!reified', target)
 }
 
-multi sub postcircumfix:<[; ]>(\SELF, @indices) {
+multi sub postcircumfix:<[; ]>(\SELF, @indices) is rw {
     my int $n = @indices.elems;
     my int $i = 0;
     my $all-ints := True;

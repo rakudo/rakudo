@@ -27,7 +27,8 @@ sub METAOP_CROSS(\op, &reduce) {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
             $Inf = True if elem.is-lazy;
 
-            nqp::istype(elem, Iterable)
+            nqp::iscont(elem) ?? (elem,).iterator
+              !! nqp::istype(elem, Iterable)
                 ?? elem.iterator
                 !! elem.list.iterator;
         }

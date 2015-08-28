@@ -64,7 +64,7 @@ multi sub note(\args) {
 multi sub note(**@args is rw) {
     my $err := $*ERR;
     my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
     $str = nqp::concat($str,$err.nl);
     $err.print($str);
 }

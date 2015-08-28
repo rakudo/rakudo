@@ -86,7 +86,6 @@ augment class Any {
             # XXX We need a funkier iterator to care about phasers. Will
             # put that on a different code-path to keep the commonest
             # case fast.
-            # XXX Support labels
             Seq.new(class :: does MapIterCommon {
                 method pull-one() is rw {
                     my int $redo = 1;

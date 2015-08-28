@@ -64,7 +64,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method list(|) is nodal { * }
-    multi method list(Any:U:) { infix:<,>() }
+    multi method list(Any:U:) { infix:<,>(self) }
     multi method list(Any:D:) { infix:<,>(self) }
 
     proto method flat(|) is nodal { * }
@@ -90,11 +90,11 @@ my class Any { # declared in BOOTSTRAP
     multi method Hash() { self.hash.Hash }
 
     proto method elems(|) is nodal { * }
-    multi method elems(Any:U:) { 0 }
+    multi method elems(Any:U:) { 1 }
     multi method elems(Any:D:) { self.list.elems }
 
     proto method end(|) is nodal { * }
-    multi method end(Any:U:) { -1 }
+    multi method end(Any:U:) { 0 }
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal { * }

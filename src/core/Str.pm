@@ -957,7 +957,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $delim-str        = $delimiter.Str;
         my str $self-string  = self;
         my str $match-string = $delim-str;
-        return unless nqp::chars($self-string) || nqp::chars($match-string);
+        return ().list unless nqp::chars($self-string) || nqp::chars($match-string);
 
         my int $l = nqp::istype($limit, Whatever) || $limit == Inf
             ?? nqp::chars($self-string) + 1

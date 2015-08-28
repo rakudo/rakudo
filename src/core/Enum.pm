@@ -41,7 +41,7 @@ my class Enum does Associative {
 
     multi method perl(Enum:D: :$arglist) {
         my $result;
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl(:$arglist) }
         if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Pair_{self.WHERE}" }
         %*perlseen{self.WHICH} = 1;
         if nqp::istype($!key, Enum) {

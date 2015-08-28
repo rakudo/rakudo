@@ -4,7 +4,7 @@ my role QuantHash does Associative {
     method Numeric ( --> Numeric) { self.total.Numeric }
     method Real    ( --> Real)    { self.total.Real }
 
-    method minpairs ( --> List ) {
+    method minpairs {
         my @found;
         my $min = Inf;
         for self.pairs {
@@ -23,7 +23,7 @@ my role QuantHash does Associative {
         @found;
     }
 
-    method maxpairs ( --> List ) {
+    method maxpairs {
         my @found;
         my $max = -Inf;
         for self.pairs {

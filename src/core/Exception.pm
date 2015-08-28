@@ -355,6 +355,14 @@ my class X::IO::Copy does X::IO {
     }
 }
 
+my class X::IO::Move does X::IO {
+    has $.from;
+    has $.to;
+    method message() {
+        "Failed to move '$.from' to '$.to': $.os-error"
+    }
+}
+
 my class X::IO::DoesNotExist does X::IO {
     has $.path;
     has $.trying;

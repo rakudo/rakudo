@@ -10,8 +10,8 @@ my role Setty does QuantHash {
 
     method elems(Setty:D: --> Int) { %!elems.elems }
     method total(Setty:D: --> Int) { %!elems.elems }
-    method minpairs(--> List) { self.pairs }
-    method maxpairs(--> List) { self.pairs }
+    method minpairs() { self.pairs }
+    method maxpairs() { self.pairs }
     multi method Bool(Setty:D:) { %!elems.Bool }
 
     multi method hash(Setty:D: --> Hash) {

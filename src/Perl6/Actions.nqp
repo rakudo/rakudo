@@ -8034,7 +8034,19 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 for @words { $result.push($*W.add_string_constant(~$_)); }
             }
             else {
-                $result.push(QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $node, QAST::IVal.new( :value(1), :named('autoderef') ) ) );
+                $result.push(
+                    QAST::Op.new(
+                        :op('callmethod'),
+                        :name('Slip'),
+                        QAST::Op.new(
+                            :op('callmethod'),
+                            :name('words'),
+                            :node($/),
+                            $node,
+                            QAST::IVal.new( :value(1), :named('autoderef') )
+                        )
+                    )
+                );
             }
         }
         walk($past);

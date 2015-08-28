@@ -392,9 +392,10 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
     # Check whether any side is lazy. They must not be to proceed.
     if left-iterator.is-lazy {
         X::HyperOp::Infinite.new(:side<both>, :&operator).throw if right-iterator.is-lazy;
-        X::HyperOp::Infinite.new(:side<left>, :&operator).throw;
+        X::HyperOp::Infinite.new(:side<left>, :&operator).throw if not $dwim-left or $dwim-right;
     }
-    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right-iterator.is-lazy and not $dwim-right;
+    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right-iterator.is-lazy and
+        (not $dwim-right or $dwim-left);
 
     my class DwimIterator does Iterator {
         has $!source;

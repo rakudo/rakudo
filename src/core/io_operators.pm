@@ -35,7 +35,7 @@ multi sub say(Mu:D \args) {
 multi sub say(**@args is rw) {
     my $out := $*OUT;
     my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
     $str = nqp::concat($str,$out.nl);
     $out.print($str);
 }

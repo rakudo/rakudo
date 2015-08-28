@@ -4,6 +4,8 @@ my role QuantHash does Associative {
     method Numeric ( --> Numeric) { self.total.Numeric }
     method Real    ( --> Real)    { self.total.Real }
 
+    method list() { self.pairs }
+
     method minpairs {
         my @found;
         my $min = Inf;
@@ -50,8 +52,6 @@ my role QuantHash does Associative {
             self.pairs.fmt($format, $sep);
         }
     }
-
-    multi method grep(QuantHash:D: Mu $test) { self.pairs.grep($test) }
 }
 
 # vim: ft=perl6 expandtab sw=4

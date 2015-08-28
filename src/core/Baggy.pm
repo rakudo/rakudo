@@ -76,8 +76,6 @@ my role Baggy does QuantHash {
         ~ ").{self.^name}"
     }
 
-    multi method list(Baggy:D:) { self.pairs }
-
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
         %!elems.DELETE-KEY(%!elems.keys.pick);

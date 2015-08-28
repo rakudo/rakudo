@@ -66,7 +66,6 @@ my role Setty does QuantHash {
         ~ ')';
     }
 
-    multi method list(Setty:D:) { %!elems.values }
     multi method pairs(Setty:D:)    { %!elems.values.map: { $_ => True } }
     multi method antipairs(Setty:D:) { %!elems.values.map: { True => $_ } }
     method grab(Setty:D: $count = 1) {

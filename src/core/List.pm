@@ -589,6 +589,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $cap
     }
     method FLATTENABLE_LIST() {
+        self!ensure-allocated;
         $!todo.reify-all() if $!todo.DEFINITE;
         $!reified
     }

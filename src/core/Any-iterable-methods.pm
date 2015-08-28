@@ -87,10 +87,19 @@ augment class Any {
             # put that on a different code-path to keep the commonest
             # case fast.
             Seq.new(class :: does MapIterCommon {
+                has $!did-run;
+
                 method pull-one() is rw {
                     my int $redo = 1;
                     my $value;
                     my $result;
+
+                    unless $!did-run {
+                        nqp::p6setfirstflag(&!block)
+                          if (nqp::can(&!block, 'phasers') && &!block.phasers('FIRST'));
+                        $!did-run = 1;
+                    }
+
                     if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
                         $result
                     }
@@ -134,6 +143,7 @@ augment class Any {
         else {
             Seq.new(class :: does MapIterCommon {
                 has $!value-buffer;
+                has $!did-run;
 
                 method pull-one() is rw {
                     $!value-buffer.DEFINITE
@@ -141,6 +151,13 @@ augment class Any {
                         !! ($!value-buffer := IterationBuffer.new);
                     my int $redo = 1;
                     my $result;
+
+                    unless $!did-run {
+                        nqp::p6setfirstflag(&!block)
+                          if (nqp::can(&!block, 'phasers') && &!block.phasers('FIRST'));
+                        $!did-run = 1;
+                    }
+
                     if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
                         $result
                     }

@@ -334,6 +334,26 @@ my class IO::Path is Cool {
         self.copy($to.IO(:$!SPEC,:$CWD),|c);
     }
 
+    method move(IO::Path:D: |c) {
+        my $result = self.copy(|c);
+
+        fail X::IO::Move.new(
+            :from($result.exception.from),
+            :to($result.exception.to),
+            :os-error($result.exception.os-error),
+        ) unless $result.defined;
+
+        $result = self.unlink();
+
+        fail X::IO::Move.new(
+            :from($result.exception.from),
+            :to($result.exception.to),
+            :os-error($result.exception.os-error),
+        ) unless $result.defined;
+
+        True
+    }
+
     method chmod(IO::Path:D: Int() $mode) {
         nqp::chmod($.abspath, nqp::unbox_i($mode));
         CATCH { default {

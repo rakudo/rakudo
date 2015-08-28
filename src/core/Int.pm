@@ -257,6 +257,10 @@ multi sub infix:<**>(Int:D \a, Int:D \b) {
            !! 1 / nqp::pow_I(nqp::decont(a), nqp::decont(-b), Num, Int)
 }
 
+multi sub infix:<**>(int $a, int $b) returns int {
+    nqp::pow_i($a, $b)
+}
+
 multi sub infix:<lcm>(Int:D \a, Int:D \b) returns Int {
     nqp::lcm_I(nqp::decont(a), nqp::decont(b), Int);
 }

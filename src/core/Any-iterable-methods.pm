@@ -8,15 +8,19 @@
 use MONKEY-TYPING;
 augment class Any {
     sub as-iterable(\iterablish) {
-        iterablish.DEFINITE && nqp::istype(iterablish, Iterable)
-            ?? iterablish
-            !! iterablish.list;
+        # XXX used to use a tertiary operator here but that seems to break mutability of iterablish.list
+        if iterablish.DEFINITE && nqp::istype(iterablish, Iterable) {
+            iterablish
+        }
+        else {
+            iterablish.list;
+        }
     }
 
     proto method map(|) { * }
 
-    multi method map(&block, :$label) {
-        sequential-map(as-iterable(self).iterator, &block, :$label);
+    multi method map(\SELF: &block, :$label) {
+        sequential-map(as-iterable(SELF).iterator, &block, :$label);
     }
 
     multi method map(HyperIterable:D: &block, :$label) {

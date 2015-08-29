@@ -65,7 +65,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method list(|) is nodal { * }
     multi method list(Any:U:) { infix:<,>(self) }
-    multi method list(Any:D:) { infix:<,>(self) }
+    multi method list(Any:D \SELF:) { infix:<,>(SELF) }
 
     proto method flat(|) is nodal { * }
     multi method flat() { self.list.flat }

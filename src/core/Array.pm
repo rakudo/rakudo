@@ -116,6 +116,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::decont($!descriptor))
     }
 
+    multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 
     multi method AT-POS(Array:D: int $ipos) is rw {

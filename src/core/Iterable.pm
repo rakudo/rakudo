@@ -15,7 +15,7 @@ my role Iterable {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
     }
 
-    method flat() {
+    method flat(Iterable:D:) {
         Seq.new(class :: does Iterator {
             has $!source;
             has Iterator $!nested-iter;

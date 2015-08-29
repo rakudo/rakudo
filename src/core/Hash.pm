@@ -289,10 +289,10 @@ my class Hash { # declared in BOOTSTRAP
                 bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            'Hash['
+            '(my '
               ~ TValue.perl
-              ~ '].new('
-              ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
+              ~ ' % = '
+              ~ self.pairs.sort.map({.perl}).join(', ')
               ~ ')';
         }
     }

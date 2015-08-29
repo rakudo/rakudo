@@ -91,24 +91,28 @@ augment class Any {
             # put that on a different code-path to keep the commonest
             # case fast.
             Seq.new(class :: does MapIterCommon {
-                has $!did-run;
+                has $!did-init;
+                has $!did-iterate;
+                has $!NEXT;
+                has $!CAN_FIRE_PHASERS;
 
                 method pull-one() is rw {
                     my int $redo = 1;
                     my $value;
                     my $result;
 
-                    unless $!did-run {
-                        nqp::p6setfirstflag(&!block)
-                          if (nqp::can(&!block, 'phasers') && &!block.phasers('FIRST'));
-                        $!did-run = 1;
+                    if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+                        $!did-init         = 1;
+                        $!CAN_FIRE_PHASERS = 1;
+                        $!NEXT             = +&!block.phasers('NEXT');
+                        nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
                     }
 
                     if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
-                        $result
+                        # $result will be returned at the end
                     }
                     elsif ($value := $!source.pull-one()) =:= IterationEnd {
-                        $value
+                        $result := $value
                     }
                     else {
                         nqp::while(
@@ -118,6 +122,7 @@ augment class Any {
                                 nqp::handle(
                                     nqp::stmts(
                                         ($result := &!block($value)),
+                                        ($!did-iterate = 1),
                                         nqp::if(
                                             nqp::istype($result, Slip),
                                             nqp::stmts(
@@ -128,26 +133,35 @@ augment class Any {
                                                         ($value := $!source.pull-one()),
                                                         ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
                                                 ))
-                                            ))
+                                            )
+                                        ),
+                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                     ),
                                     'LABELED', nqp::decont($!label),
                                     'NEXT', nqp::stmts(
+                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                         ($value := $!source.pull-one()),
                                         nqp::eqaddr($value, IterationEnd)
                                             ?? ($result := IterationEnd)
                                             !! ($redo = 1)),
                                     'REDO', $redo = 1,
-                                    'LAST', ($result := IterationEnd))),
+                                    'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                                )
+                            ),
                             :nohandler);
-                        $result
                     }
+                    &!block.fire_phasers('LAST') if $!CAN_FIRE_PHASERS && $!did-iterate && nqp::eqaddr($result, IterationEnd);
+                    $result
                 }
             }.new(&block, source, 1, $label));
         }
         else {
             Seq.new(class :: does MapIterCommon {
                 has $!value-buffer;
-                has $!did-run;
+                has $!did-init;
+                has $!did-iterate;
+                has $!NEXT;
+                has $!CAN_FIRE_PHASERS;
 
                 method pull-one() is rw {
                     $!value-buffer.DEFINITE
@@ -156,18 +170,19 @@ augment class Any {
                     my int $redo = 1;
                     my $result;
 
-                    unless $!did-run {
-                        nqp::p6setfirstflag(&!block)
-                          if (nqp::can(&!block, 'phasers') && &!block.phasers('FIRST'));
-                        $!did-run = 1;
+                    if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+                        $!did-init         = 1;
+                        $!CAN_FIRE_PHASERS = 1;
+                        $!NEXT             = +&!block.phasers('NEXT');
+                        nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
                     }
 
                     if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
-                        $result
+                        # $result will be returned at the end
                     }
                     elsif $!source.push-exactly($!value-buffer, $!count) =:= IterationEnd
                             && nqp::elems($!value-buffer) == 0 {
-                        IterationEnd
+                        $result := IterationEnd
                     }
                     else {
                         nqp::while(
@@ -177,6 +192,7 @@ augment class Any {
                                 nqp::handle(
                                     nqp::stmts(
                                         ($result := nqp::p6invokeflat(&!block, $!value-buffer)),
+                                        ($!did-iterate = 1),
                                         nqp::if(
                                             nqp::istype($result, Slip),
                                             nqp::stmts(
@@ -190,20 +206,26 @@ augment class Any {
                                                                 IterationEnd)
                                                             && nqp::elems($!value-buffer) == 0)
                                                 ))
-                                            ))
+                                            )
+                                        ),
+                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                     ),
                                     'LABELED', nqp::decont($!label),
                                     'NEXT', nqp::stmts(
+                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                         (nqp::setelems($!value-buffer, 0)),
                                         nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
                                                 && nqp::elems($!value-buffer) == 0
                                             ?? ($result := IterationEnd)
                                             !! ($redo = 1)),
                                     'REDO', $redo = 1,
-                                    'LAST', ($result := IterationEnd))),
+                                    'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                                )
+                            ),
                             :nohandler);
-                        $result
                     }
+                    &!block.fire_phasers('LAST') if $!CAN_FIRE_PHASERS && $!did-iterate && nqp::eqaddr($result, IterationEnd);
+                    $result
                 }
             }.new(&block, source, $count, $label));
         }

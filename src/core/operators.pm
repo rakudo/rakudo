@@ -411,13 +411,11 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         @tail.push(value);
                         take value;
                     }
-                    elsif value {
-                        @tail.push(|value);
-                        .take for value;
-                    }
                     else {
-                        @tail.push(value.item);
-                        take value;
+                        for value -> \v {
+                            @tail.push(v);
+                            v.take;
+                        }
                     }
                 }
             }

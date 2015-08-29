@@ -22,16 +22,6 @@ multi sub say(Str:D \x) {
     my str $str = nqp::concat(nqp::unbox_s(x),$out.nl);
     $out.print($str);
 }
-multi sub say(Mu:D \args) {
-    my $out := $*OUT;
-    my str $str;
-    my \iterator := nqp::istype(args, Iterable) ?? args.iterator !! args.list.iterator;
-    until (my \value := iterator.pull-one) =:= IterationEnd {
-        $str = nqp::concat($str,nqp::unbox_s(value.gist));
-    }
-    $str = nqp::concat($str,$out.nl);
-    $out.print($str);
-}
 multi sub say(**@args is rw) {
     my $out := $*OUT;
     my str $str;

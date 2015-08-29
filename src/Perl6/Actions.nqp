@@ -7941,10 +7941,10 @@ class Perl6::QActions is HLL::Actions does STDActions {
             $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
         }
 
-        if nqp::can($/.CURSOR, 'postprocessor') {
-            my $pp := $/.CURSOR.postprocessor;
-            nqp::say("PP ADV $pp");
-            $past := self."postprocess_$pp"($/, $past);
+        if nqp::can($/.CURSOR, 'postprocessors') {
+            for $/.CURSOR.postprocessors -> $pp {
+                $past := self."postprocess_$pp"($/, $past);
+            }
         }
 
         $past.node($/);

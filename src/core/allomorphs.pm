@@ -84,7 +84,11 @@ my class ComplexStr is Complex is Str {
     }
 }
 
-sub val(Str $maybeval) {
+multi sub val(*@maybevals) {
+    @maybevals.map: { val($_) }
+}
+
+multi sub val(Str $maybeval) {
 
 #`{{{{
     =begin pod

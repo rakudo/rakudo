@@ -470,13 +470,13 @@ my class Hash { # declared in BOOTSTRAP
         multi method perl(::?CLASS:D \SELF:) {
             my $TKey-perl   := TKey.perl;
             my $TValue-perl := TValue.perl;
-            if nqp::iscont(SELF) && $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
+            if $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
                 ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
-                "Hash[$TValue-perl,$TKey-perl].new({
+                "Hash[$TValue-perl,$TKey-perl].new(({
                   self.pairs.sort.map({.perl(:arglist)}).join(', ')
-                })";
+                }))";
             }
         }
         multi method DELETE-KEY($key) {

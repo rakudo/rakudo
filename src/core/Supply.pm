@@ -749,7 +749,7 @@ my role Supply {
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
-        my @values = ( [] xx +@s );
+        my @values = [] xx +@s;
         on -> $res {
             @s => &with
               ?? -> $val, $index {
@@ -758,7 +758,7 @@ my role Supply {
               }
               !! -> $val, $index {
                   @values[$index].push($val);
-                  $res.emit( $(|@values.map(*.shift)) ) if all(@values);
+                  $res.emit( $(@values.map(*.shift).List) ) if all(@values);
               }
         }
     }

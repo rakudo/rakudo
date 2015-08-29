@@ -89,6 +89,9 @@ my role Setty does QuantHash {
         );
     }
 
+    method Bag { Bag.new( %!elems.values ) }
+    method BagHash { BagHash.new( %!elems.values ) }
+
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 

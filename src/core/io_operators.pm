@@ -70,8 +70,10 @@ multi sub note(**@args is rw) {
 }
 
 sub gist(|) {
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-        nqp::p6argvmarray()).gist
+    my \args := nqp::p6argvmarray();
+    nqp::elems(args) == 1
+        ?? nqp::atpos(args, 0).gist
+        !! nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', args).gist
 }
 
 sub prompt($msg) {

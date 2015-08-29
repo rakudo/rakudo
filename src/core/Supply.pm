@@ -739,7 +739,7 @@ my role Supply {
         }
     }
 
-    method zip(**@s, :&with is copy = &[,]) {
+    method zip(**@s, :&with) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
 
@@ -751,16 +751,19 @@ my role Supply {
 
         my @values = ( [] xx +@s );
         on -> $res {
-            @s => -> $val, $index {
-                @values[$index].push($val);
-                if all(@values) {
-                    $res.emit( [[&with]] @values.map(*.shift) );
-                }
-            }
+            @s => &with
+              ?? -> $val, $index {
+                  @values[$index].push($val);
+                  $res.emit( [[&with]] @values.map(*.shift) ) if all(@values);
+              }
+              !! -> $val, $index {
+                  @values[$index].push($val);
+                  $res.emit( $(|@values.map(*.shift)) ) if all(@values);
+              }
         }
     }
 
-    method zip-latest(**@s, :&with is copy = &[,], :$initial ) {
+    method zip-latest(**@s, :&with, :$initial ) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to do.
 
@@ -785,15 +788,19 @@ my role Supply {
         on -> $res {
             @s => do {
                 {
-                emit => -> $val, $index {
-                    if $uninitialised > 0 && not @values.EXISTS-POS($index) {
-                        --$uninitialised;
-                    }
-                    @values[$index] = $val;
-                    unless $uninitialised {
-                        $res.emit( [[&with]] @values );
-                    }
-                },
+                emit => &with
+                  ?? -> $val, $index {
+                      --$uninitialised
+                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
+                      @values[$index] = $val;
+                      $res.emit( [[&with]] @values ) unless $uninitialised;
+                  }
+                  !! -> $val, $index {
+                      --$uninitialised
+                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
+                      @values[$index] = $val;
+                      $res.emit( @values ) unless $uninitialised;
+                  },
                 done => { $res.done() if ++$dones == +@s }
                 }
             }

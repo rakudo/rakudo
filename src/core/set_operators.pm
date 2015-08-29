@@ -137,7 +137,7 @@ only sub infix:<∖>(|p) {
     infix:<(-)>(|p);
 }
 only sub infix:<(^)>(**@p) {
-    Set.new(BagHash.new(@p.map(*.Set(:view).keys)).pairs.map({.key if .value == 1}));
+    Set.new(BagHash.new(@p.map(*.Set(:view).keys.Slip)).pairs.map({.key if .value == 1}));
 }
 # U+2296 CIRCLED MINUS
 only sub infix:<⊖>($a, $b --> Setty) {

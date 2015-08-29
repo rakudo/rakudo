@@ -312,8 +312,8 @@ only sub infix:<≽>($a, $b --> Bool) {
     $a (>+) $b;
 }
 
-sub set(|c  --> Set) { Set.new(|c) }
-sub bag(|c  --> Bag) { Bag.new(|c) }
-sub mix(|c  --> Mix) { Mix.new(|c) }
+sub set(*@a --> Set) { Set.new(@a) }
+sub bag(*@a --> Bag) { Bag.new(@a) }
+sub mix(*@a --> Mix) { Mix.new(@a) }
 
 # vim: ft=perl6 expandtab sw=4

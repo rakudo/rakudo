@@ -289,11 +289,16 @@ my class Hash { # declared in BOOTSTRAP
                 bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            '(my '
+            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+            %*perlseen{self.WHICH} = 1;
+            my $result = '(my '
               ~ TValue.perl
               ~ ' % = '
               ~ self.pairs.sort.map({.perl}).join(', ')
               ~ ')';
+            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+            $result;
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
@@ -468,16 +473,24 @@ my class Hash { # declared in BOOTSTRAP
             self.map: { .value »=>» .key }
         }
         multi method perl(::?CLASS:D \SELF:) {
+            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+            %*perlseen{self.WHICH} = 1;
+            my $result;
+
             my $TKey-perl   := TKey.perl;
             my $TValue-perl := TValue.perl;
             if $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
-                ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+                $result = ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
-                "(my $TValue-perl %\{$TKey-perl\} = {
+                $result = "(my $TValue-perl %\{$TKey-perl\} = {
                   self.pairs.sort.map({.perl}).join(', ')
                 })";
             }
+
+            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+            $result;
         }
         multi method DELETE-KEY($key) {
             my Mu $val = self.AT-KEY($key);

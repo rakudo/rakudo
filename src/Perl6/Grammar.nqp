@@ -4831,6 +4831,9 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
     method tweak_quotewords($v) { self.tweak_ww($v) }
 
+    method tweak_v($v)          { self.HOW.mixin(self, $v ?? v1 !! v0) }
+    method tweak_val($v)        { self.tweak_v($v) }
+
     method tweak_cc($v)         { self.truly($v, ':cc'); self.HOW.mixin(self, cc); }
 
     method tweak_to($v) {

@@ -7943,6 +7943,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
 
         if nqp::can($/.CURSOR, 'postprocessor') {
             my $pp := $/.CURSOR.postprocessor;
+            nqp::say("PP ADV $pp");
             $past := self."postprocess_$pp"($/, $past);
         }
 
@@ -7956,6 +7957,10 @@ class Perl6::QActions is HLL::Actions does STDActions {
 
     method postprocess_run($/, $past) {
         QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
+    }
+
+    method postprocess_val($/, $past) {
+        QAST::Op.new(:name('&val'), :op('call'), :node($/), $past);
     }
 
     method postprocess_words($/, $past) {

@@ -438,7 +438,7 @@ sub HOW (Mu \x) { x.HOW }
 sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) { * }
-multi sub infix:<...>(\a, Mu \b) { SEQUENCE(a, b) }
+multi sub infix:<...>(\a, Mu \b) { Seq.new(SEQUENCE(a, b).iterator) }
 multi sub infix:<...>(|lol) {
     my @lol := lol.list;
     my @end;
@@ -480,15 +480,15 @@ multi sub infix:<...>(|lol) {
         ++$i;
     }
     if @seq[$m] =:= Empty {
-        $ret.Slip;
+        Seq.new($ret.iterator);
     }
     else {
-        $ret.Slip, Slip.from-iterator(@seq[$m]);
+        Seq.new(($ret.Slip, Slip.from-iterator(@seq[$m])).iterator);
     }
 }
 
 proto sub infix:<...^>(|) { * }
-multi sub infix:<...^>(\a, Mu \b) { SEQUENCE(a, b, :exclude_end(1)) }
+multi sub infix:<...^>(\a, Mu \b) { Seq.new(SEQUENCE(a, b, :exclude_end(1)).iterator) }
 
 proto sub infix:<…>(|) { * }
 multi sub infix:<…>(|c) { infix:<...>(|c) }

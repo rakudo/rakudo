@@ -119,7 +119,7 @@ my class Array { # declared in BOOTSTRAP
     multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 
-    multi method List(Array:D) {
+    multi method List(Array:D:) {
         self!ensure-allocated;
         X::Cannot::Lazy.new(:action<List>).throw if self.is-lazy;
         my \clone = self.clone;

@@ -19,8 +19,8 @@ augment class Any {
 
     proto method map(|) { * }
 
-    multi method map(\SELF: &block, :$label) {
-        sequential-map(as-iterable(SELF).iterator, &block, :$label);
+    multi method map(\SELF: &block, :$label, :$item) {
+        sequential-map(as-iterable($item ?? (SELF,) !! SELF).iterator, &block, :$label);
     }
 
     multi method map(HyperIterable:D: &block, :$label) {

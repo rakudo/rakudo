@@ -1231,18 +1231,34 @@ Compilation unit '$file' contained the following violations:
 
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
-        my $past := QAST::Op.new(
+        my $for-list-name := QAST::Node.unique('for-list');
+        my $iscont := QAST::Op.new(:op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ));
+        $iscont.named('item');
+        my $call := QAST::Op.new(
             :op<callmethod>, :name<map>, :node($/),
-            $xblock[0],
-            block_closure($xblock[1])
+            QAST::Var.new( :name($for-list-name), :scope('local') ),
+            block_closure($xblock[1]),
+            $iscont,
         );
         if $*LABEL {
-            $past.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
+            $call.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
         }
-        $past := QAST::Want.new(
-            QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
-            'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
-        my $sinkee := $past[0];
+        my $bind := QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
+            $xblock[0],
+        );
+        my $past := QAST::Want.new(
+            QAST::Stmts.new(
+                $bind,
+                QAST::Op.new( :op<callmethod>, :name<eager>, $call )
+            ),
+            'v', QAST::Stmts.new(
+                $bind,
+                QAST::Op.new( :op<callmethod>, :name<sink>, $call )
+            ),
+        );
+        my $sinkee := $past[0][1];
         $past.annotate('statement_level', -> { $sinkee.name('sink') });
         make $past;
     }

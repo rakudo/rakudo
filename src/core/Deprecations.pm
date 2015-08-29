@@ -10,8 +10,6 @@ class Deprecation {
     has Version $.from;    # release version from which deprecated
     has Version $.removed; # release version when will be removed
 
-    method camelia() { gethostname() eq 'ns1' } # until something better
-
     multi method WHICH (Deprecation:D:) {
         ($!file||"",$!type||"",$!package||"",$!name).join(':');
     }
@@ -21,10 +19,10 @@ class Deprecation {
         return Nil unless %DEPRECATIONS;
 
         my $message = "Saw {+%DEPRECATIONS} occurrence{ 's' if +%DEPRECATIONS != 1 } of deprecated code.\n";
-        $message ~= ("=" x 80) ~ "\n" unless self.camelia;
+        $message ~= ("=" x 80) ~ "\n";
         for %DEPRECATIONS.sort(*.key)>>.value>>.report -> $r {
             $message ~= $r;
-            $message ~= ("-" x 80) ~ "\n" unless self.camelia;
+            $message ~= ("-" x 80) ~ "\n";
         }
 
         %DEPRECATIONS = ();  # reset for new batches if applicable
@@ -101,8 +99,7 @@ END {
 adapted, so that this message will disappear!
 
 Please note that *ALL* deprecated features will be removed at the RC-0 release
-(expected September 2015).'
-              unless Deprecation.camelia;
+(expected September 2015).';
         }
     }
 }

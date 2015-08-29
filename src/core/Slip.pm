@@ -2,6 +2,7 @@
 # or another List. Other than that, it's a totally normal List.
 my class Slip {
     multi method Slip(Slip:D:) { self }
+    method defined () { self.so }
 }
 
 # The slip(...) function creates a Slip.

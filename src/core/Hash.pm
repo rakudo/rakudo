@@ -474,9 +474,9 @@ my class Hash { # declared in BOOTSTRAP
                 ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
-                "Hash[$TValue-perl,$TKey-perl].new(({
-                  self.pairs.sort.map({.perl(:arglist)}).join(', ')
-                }))";
+                "(my $TValue-perl %\{$TKey-perl\} = {
+                  self.pairs.sort.map({.perl}).join(', ')
+                })";
             }
         }
         multi method DELETE-KEY($key) {

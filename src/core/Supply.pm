@@ -754,7 +754,7 @@ my role Supply {
             @s => -> $val, $index {
                 @values[$index].push($val);
                 if all(@values) {
-                    $res.emit( [[&with]] @values>>.shift );
+                    $res.emit( [[&with]] @values.map(*.shift) );
                 }
             }
         }

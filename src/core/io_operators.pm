@@ -41,16 +41,6 @@ multi sub note(Str:D \x) {
     my str $str = nqp::concat(nqp::unbox_s(x),$err.nl);
     $err.print($str);
 }
-multi sub note(\args) {
-    my $err := $*ERR;
-    my str $str;
-    my \iterator := nqp::istype(args, Iterable) ?? args.iterator !! args.list.iterator;
-    until (my \value := iterator.pull-one) =:= IterationEnd {
-        $str = nqp::concat($str,nqp::unbox_s(value.gist));
-    }
-    $str = nqp::concat($str,$err.nl);
-    $err.print($str);
-}
 multi sub note(**@args is rw) {
     my $err := $*ERR;
     my str $str;

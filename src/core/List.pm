@@ -415,11 +415,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     proto method Seq(|) is nodal { * }
     multi method Seq(List:D:) { Seq.new(self.iterator) }
 
-    # XXX GLR
-    #method sink() {
-    #    self.gimme(*, :sink) if self.DEFINITE && $!nextiter.DEFINITE;
-    #    Nil;
-    #}
+    method sink() {
+        # XXX Stage parse runs into an endless loop if we actually do this:
+        # self.iterator.sink-all if self.DEFINITE && $!reified.DEFINITE;
+        Nil;
+    }
 
     multi method values(List:D:) {
         Seq.new(self.iterator)

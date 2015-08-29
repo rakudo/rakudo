@@ -456,7 +456,7 @@ multi sub infix:<...>(|lol) {
         }
         if $i {
             @end[$i-1] := @seq[$i].pull-one;
-            if @end[$i-1] !~~ Callable {
+            if @end[$i-1] ~~ Numeric | Stringy {
                 if @lol[$i] ~~ Iterable {
                     @seq[$i] := @lol[$i].iterator;
                 }

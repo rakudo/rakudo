@@ -80,7 +80,7 @@ my class Array { # declared in BOOTSTRAP
             ?? self!STORE-ONE(iterable)
             !! self!STORE-ITERABLE(iterable)
     }
-    multi method STORE(Array:D: \item) {
+    multi method STORE(Array:D: Mu \item) {
         self!STORE-ONE(item)
     }
     method !STORE-ITERABLE(\iterable) {
@@ -101,7 +101,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::bindattr(self, List, '$!reified', new-storage);
         self
     }
-    method !STORE-ONE(\item) {
+    method !STORE-ONE(Mu \item) {
         my \new-storage = IterationBuffer.CREATE;
         nqp::push(new-storage,
             nqp::assign(nqp::p6scalarfromdesc($!descriptor), item));

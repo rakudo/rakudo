@@ -441,29 +441,50 @@ proto sub infix:<...>(|) { * }
 multi sub infix:<...>(\a, Mu \b) { SEQUENCE(a, b) }
 multi sub infix:<...>(|lol) {
     my @lol := lol.list;
-    my @ret;
+    my @end;
+    my @seq;
+    my @excl;
+    my $ret := ();
     my int $i = 0;
     my int $m = +@lol - 1;
-    my @tail := @lol[$m].list.splice(1); # trailing elems of last list added back later
-    my $current_left;
-    while $m > $i {
-        if @ret { # 1st elem of left part can be closure; take computed value instead
-            $current_left := (@ret.pop, @lol[$i].list.splice(1));
+    while $i <= $m {
+        if @lol[$i] ~~ Iterable {
+            @seq[$i] := @lol[$i].iterator;
         }
-        else { # no need to modify left part for first list
-            $current_left := @lol[$i];
+        else {
+            @seq[$i] := @lol[$i].list.iterator;
         }
-        @ret := (@ret,
-            SEQUENCE(
-                $current_left,        # from-range (adjusted if needed), specifies steps
-                @lol[$i + 1].list[0], # to, we only need the endpoint (= first item)
-                :exclude_end( False ) # never exclude end; we take care of that
-            )
-        ).flat;
-        $i = nqp::add_i($i, 1);
+        if $i {
+            @end[$i-1] := @seq[$i].pull-one;
+            if @end[$i-1] !~~ Callable {
+                if @lol[$i] ~~ Iterable {
+                    @seq[$i] := @lol[$i].iterator;
+                }
+                else {
+                    @seq[$i] := @lol[$i].list.iterator;
+                }
+                @excl[$i-1] = True;
+            }
+        }
+        ++$i;
     }
-    push @ret, @tail if @tail;  # add back trailing elements of last list
-    @ret
+    $i = 0;
+    while $i < $m {
+        $ret := ($ret.Slip,
+            SEQUENCE(
+                (Slip.from-iterator(@seq[$i]),),
+                @end[$i],
+                :exclude_end(so @excl[$i])
+            ).Slip
+        );
+        ++$i;
+    }
+    if @seq[$m] =:= Empty {
+        $ret.Slip;
+    }
+    else {
+        $ret.Slip, Slip.from-iterator(@seq[$m]);
+    }
 }
 
 proto sub infix:<...^>(|) { * }

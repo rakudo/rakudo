@@ -687,11 +687,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
             @matches := (gather do for $matches -> $m {
                 state $i = 0;
                 state $took = 0;
-                state $n = $idxs.shift;
+                state $n = $idxs.EXISTS-POS(0) ?? $idxs.shift !! Nil;
                 last unless $n.defined;
 
                 if $i == $n {
-                    $n = $idxs.shift;
+                    $n = $idxs.EXISTS-POS(0) ?? $idxs.shift !! Nil;
                     take $m;
                     $took++;
                     last if $took >= $clip.max;

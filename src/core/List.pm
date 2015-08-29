@@ -1040,7 +1040,7 @@ sub infix:<Z>(|lol) {
         return METAOP_ZIP($op, find-reducer-for-op($op))(|lol.list) if $op;
     }
     my $arity = lol.elems;
-    return if $arity == 0;
+    return () if $arity == 0;
     eager my @l = (^$arity).map: -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
             nqp::istype(elem, Iterable)

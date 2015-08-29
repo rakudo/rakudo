@@ -119,6 +119,15 @@ my class Array { # declared in BOOTSTRAP
     multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 
+    multi method List(Array:D) {
+        self!ensure-allocated;
+        X::Cannot::Lazy.new(:action<List>).throw if self.is-lazy;
+        my \clone = self.clone;
+        my \retval := List.CREATE;
+        nqp::bindattr(retval, List, '$!reified', nqp::getattr(clone, List, '$!reified'));
+        retval
+    }
+
     multi method AT-POS(Array:D: int $ipos) is rw {
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0

@@ -530,7 +530,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method perl(List:D \SELF:) {
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }
         if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "List_{self.WHERE}" }
         %*perlseen{self.WHICH} = 1;
         my $result = '$' x nqp::iscont(SELF) ~ '(' ~ self.map({.perl}).join(', ') ~ ')';

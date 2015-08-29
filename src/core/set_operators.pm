@@ -49,7 +49,7 @@ only sub infix:<(|)>(**@p) {
         }
         $baghash.Bag(:view);
     } else {
-        Set.new( @p.map(*.Set(:view).keys) );
+        Set.new( @p.map(*.Set(:view).keys.Slip) );
     }
 }
 # U+222A UNION

@@ -590,12 +590,13 @@ class Perl6::World is HLL::World {
 
     method add_package_declarator($/, str $pdecl) {
         my $cursor := $/.CURSOR;
+        my $grammar := %*LANG<MAIN>;
 
         # Compute name of grammar/action entry.
         my $canname := 'package_declarator:sym<' ~ $pdecl ~ '>';
 
         # Add to grammar if needed.
-        unless nqp::can($cursor, $canname) {
+        unless nqp::can($grammar, $canname) {
             my role PackageDeclarator[$meth_name, $declarator] {
                 token ::($meth_name) {
                     :my $*OUTERPACKAGE := $*PACKAGE;
@@ -603,23 +604,28 @@ class Perl6::World is HLL::World {
                     :my $*LINE_NO := HLL::Compiler.lineof($cursor.orig(), $cursor.from(), :cache(1));
                     $<sym>=[$declarator] <.end_keyword> <package_def>
                 }
-            }
-            $cursor.HOW.mixin($cursor, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
+            };
 
-            # This also becomes the current MAIN. Also place it in %?LANG.
-            %*LANG<MAIN> := $cursor.WHAT;
+            # Add package declarator to current MAIN. Also place it in %?LANG
+            %*LANG<MAIN> := $grammar.HOW.mixin($grammar,
+                PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl)
+            );
             self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
         }
 
+        my $actions := %*LANG<MAIN-actions>;
+
         # Add action method if needed.
-        unless nqp::can($*ACTIONS, $canname) {
+        unless nqp::can($actions, $canname) {
             my role PackageDeclaratorAction[$meth] {
                 method ::($meth)($/) {
                     make $<package_def>.ast;
                 }
             };
-            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
-                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
+
+            %*LANG<MAIN-actions> := $actions.HOW.mixin($actions,
+                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname)
+            );
         }
     }
 

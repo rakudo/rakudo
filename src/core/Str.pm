@@ -1437,11 +1437,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::join('',$result));
     }
     multi method trans(Str:D: *@changes, :complement(:$c), :squash(:$s), :delete(:$d)) {
+        my sub myflat(*@s) { @s.map: { nqp::istype($_, Iterable) ?? .list.Slip !! $_ } }
         my sub expand($s) {
-            return $s.list
+            return myflat($s.list).Slip
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
-            $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
-                .[0] ?? ~.[0] .. ~.[1] !! ~$_
+            flat $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
+                flat(.[0] ?? ~.[0] .. ~.[1] !! ~$_).Slip
             };
         }
 

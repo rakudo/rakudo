@@ -1942,6 +1942,7 @@ Compilation unit '$file' contained the following violations:
         if $*IN_DECL eq 'variable' {
             $past.annotate('sink_ok', 1);
         }
+
         make $past;
     }
 

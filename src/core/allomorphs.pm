@@ -6,9 +6,9 @@ my class IntStr is Int is Str {
         SELF;
     }
 
-    method Numeric { self.Int }
-    method Int { nqp::getattr_i(self, Int, '$!value') }
-    method Str { nqp::getattr_s(self, Str, '$!value') }
+    multi method Numeric(IntStr:D:) { self.Int }
+    method Int(IntStr:D:) { nqp::getattr_i(self, Int, '$!value') }
+    multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
     multi method gist(IntStr:D:) {
         "val({self.Str.perl})";
@@ -27,9 +27,9 @@ my class NumStr is Num is Str {
         SELF;
     }
 
-    method Numeric { self.Num }
-    method Num { nqp::getattr_n(self, Num, '$!value') }
-    method Str { nqp::getattr_s(self, Str, '$!value') }
+    multi method Numeric(NumStr:D:) { self.Num }
+    method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
+    multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
     multi method gist(NumStr:D:) {
         "val({self.Str.perl})";
@@ -49,9 +49,9 @@ my class RatStr is Rat is Str {
         SELF;
     }
 
-    method Numeric { self.Rat }
-    method Rat { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
-    method Str { nqp::getattr_s(self, Str, '$!value') }
+    multi method Numeric(RatStr:D:) { self.Rat }
+    method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
+    multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
     multi method gist(RatStr:D:) {
         "val({self.Str.perl})";
@@ -71,9 +71,9 @@ my class ComplexStr is Complex is Str {
         SELF;
     }
 
-    method Numeric { self.Complex }
-    method Complex { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
-    method Str { nqp::getattr_s(self, Str, '$!value') }
+    multi method Numeric(ComplexStr:D:) { self.Complex }
+    method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
+    multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
     multi method gist(ComplexStr:D:) {
         "val({self.Str.perl})";
@@ -85,7 +85,27 @@ my class ComplexStr is Complex is Str {
 }
 
 multi sub val(*@maybevals) {
-    @maybevals.map: { val($_) }
+    # XXX .Parcel not needed on GLR (just .eager suffices)
+    # XXX GLR would need a .List before the .map, so that the output is === compatible
+    @maybevals.map({ val($_) }).eager.Parcel;
+}
+
+# XXX this multi not needed in GLR ?
+multi sub val(@maybevals) {
+    val(|@maybevals);
+}
+
+multi sub val(Pair $ww-thing) {
+    # this is a Pair object possible in «» constructs; just pass it through. We
+    # capture this specially from the below sub to avoid emitting a warning
+    # whenever an affected «» construct is being processed.
+
+    $ww-thing;
+}
+
+multi sub val(\one-thing) {
+    warn "Value of type {one-thing.WHAT.perl} uselessly passed to val()";
+    one-thing;
 }
 
 multi sub val(Str $maybeval) {

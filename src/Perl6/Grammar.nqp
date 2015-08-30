@@ -313,6 +313,7 @@ role STD {
         }
         if !$*IN_DECL && nqp::istype($varast, QAST::Var) && $varast.scope eq 'lexical' {
             my $name := $varast.name;
+
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
                     if !$*STRICT {
@@ -3548,11 +3549,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
             [ <?[>]> <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
-            <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))>
+            <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w', 'v']))>
         ]
     }
-    token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
-    token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
+    token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww', 'v']))> }
+    token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww', 'v']))> }
     token circumfix:sym<{ }> {
         :my $*FAKE_INFIX_FOUND := 0;
         <?[{]> <pblock(1)>
@@ -3884,7 +3885,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token postcircumfix:sym<ang> {
         '<'
         [
-        || <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
+        || <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w', 'v']))> '>'
         || <?before \h* [ \d | <sigil> | ':' ] >
            { $/.CURSOR.panic("Whitespace required before < operator") }
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
@@ -3896,7 +3897,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('shell-quote words')
         '<<'
         [
-        || <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> '>>'
+        || <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww', 'v']))> '>>'
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O('%methodcall')>
@@ -3906,7 +3907,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('shell-quote words')
         '«'
         [
-        || <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> '»'
+        || <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww', 'v']))> '»'
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O('%methodcall')>
@@ -4938,7 +4939,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
-        '<' <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
+        '<' <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w', 'v']))> '>'
         <.SIGOK>
     }
 

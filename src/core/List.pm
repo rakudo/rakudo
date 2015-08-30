@@ -586,6 +586,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $!todo.reify-all() if $!todo.DEFINITE;
         my $cap := nqp::create(Capture);
         nqp::bindattr($cap, Capture, '$!list', $!reified);
+
+        my \positional := IterationBuffer.CREATE;
+        my Mu $hash := nqp::hash();
+        my int $c = nqp::elems($!reified);
+        my int $i = 0;
+        while $i < $c {
+            my $v := nqp::atpos($!reified, $i);
+            nqp::istype($v, Pair)
+                ??  nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
+                !!  positional.push($v);
+            $i = $i + 1;
+        }
+        nqp::bindattr($cap, Capture, '$!list', positional);
+        nqp::bindattr($cap, Capture, '$!hash', $hash);
         $cap
     }
     method FLATTENABLE_LIST() {

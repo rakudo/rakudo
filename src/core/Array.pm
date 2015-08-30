@@ -25,6 +25,19 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
+    my class ListReificationTarget {
+        has $!target;
+
+        method new(\target) {
+            nqp::p6bindattrinvres(self.CREATE, self, '$!target', target);
+        }
+
+        method push(Mu \value) {
+            nqp::push($!target,
+                nqp::decont(value));
+        }
+    }
+
     method from-iterator(Array:U: Iterator $iter) {
         my \result := self.CREATE;
         my \buffer := IterationBuffer.CREATE;
@@ -122,9 +135,11 @@ my class Array { # declared in BOOTSTRAP
     multi method List(Array:D:) {
         self!ensure-allocated;
         X::Cannot::Lazy.new(:action<List>).throw if self.is-lazy;
-        my \clone = self.clone;
         my \retval := List.CREATE;
-        nqp::bindattr(retval, List, '$!reified', nqp::getattr(clone, List, '$!reified'));
+        my \reified := IterationBuffer.CREATE;
+        nqp::bindattr(retval, List, '$!reified', reified);
+        my \target := ListReificationTarget.new(reified);
+        self.iterator.push-all(target);
         retval
     }
 

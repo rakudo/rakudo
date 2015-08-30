@@ -1,6 +1,6 @@
 use v6;
 
-say '1..13';
+say '1..12';
 
 # Double-quoted string
 say "ok 1";
@@ -11,31 +11,29 @@ say 'ok 2';
 # Invoke method on literal
 'ok 3'.say;
 
-# Invoke method on list
-('ok', ' ', 4).say;
-say 'ok', ' ', 5;
+say 'ok', ' ', 4;
 
 # Invoke method on number
 print 'ok ';
-6.say;
+5.say;
 
 print 'ok ';
-say 7;
+say 6;
 
 # Invoke method on scalar variables
-my $test8 = 'ok 8';
-$test8.say;
+my $test7 = 'ok 7';
+$test7.say;
 
-my $test9 = 'ok 9';
-say $test9;
+my $test8 = 'ok 8';
+say $test8;
 
 # Verify return code of say
-say 'ok ', 11*say 'ok 10';
+say 'ok ', 10*say 'ok 9';
 
 # Direct call on result of expression
 print 'ok ';
-(2**4-4).say;
+(2**4-5).say;
 
 # Indirect call on result of expression
 print 'ok ';
-say 2**4-3;
+say 2**4-4;

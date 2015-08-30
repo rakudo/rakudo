@@ -84,6 +84,37 @@ my class ComplexStr is Complex is Str {
     }
 }
 
+# we define cmp ops for these allomorphic types as numeric first, then Str. If
+# you want just one half of the cmp, you'll need to coerce the args
+multi sub infix:<cmp>(IntStr $a, IntStr $b) {
+    given $a.Int cmp $b.Int {
+        return $_ unless $_ === Order::Same;
+        $a.Str cmp $b.Str
+    }
+}
+
+multi sub infix:<cmp>(RatStr $a, RatStr $b) {
+    given $a.Rat cmp $b.Rat {
+        return $_ unless $_ === Order::Same;
+        $a.Str cmp $b.Str
+    }
+}
+
+multi sub infix:<cmp>(NumStr $a, NumStr $b) {
+    given $a.Num cmp $b.Num {
+        return $_ unless $_ === Order::Same;
+        $a.Str cmp $b.Str
+    }
+}
+
+multi sub infix:<cmp>(ComplexStr $a, ComplexStr $b) {
+    given $a.Complex cmp $b.Complex {
+        return $_ unless $_ === Order::Same;
+        $a.Str cmp $b.Str
+    }
+}
+
+
 multi sub val(*@maybevals) {
     # XXX .Parcel not needed on GLR (just .eager suffices)
     # XXX GLR would need a .List before the .map, so that the output is === compatible

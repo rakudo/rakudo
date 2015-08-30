@@ -6178,8 +6178,9 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
+                   nqp::istype($nib[0], QAST::Stmts) &&
+                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
         make $past;
     }
 
@@ -6187,8 +6188,9 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
+                   nqp::istype($nib[0], QAST::Stmts) &&
+                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
         make $past;
     }
 
@@ -6196,8 +6198,9 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
+                   nqp::istype($nib[0], QAST::Stmts) &&
+                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
         make $past;
     }
 

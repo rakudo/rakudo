@@ -1,7 +1,7 @@
 my $DEBUG := +nqp::ifnull(nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG'), 0);
 sub DEBUG(*@strs) {
     my $err := nqp::getstderr();
-    nqp::printfh($err, "MODULE_DEBUG: ");
+    nqp::printfh($err, "P6M MODULE_DEBUG: ");
     for @strs { nqp::printfh($err, $_) };
     nqp::printfh($err, "\n");
     1;
@@ -72,6 +72,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
+        DEBUG("going to load $module_name") if $DEBUG;
         unless %chosen {
             # See if we need to load it from elsewhere.
             if nqp::existskey(%opts, 'from') {
@@ -264,7 +265,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     ($target.WHO){$sym} := $_.value;
                 }
                 else {
-                    nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }
             }
         }

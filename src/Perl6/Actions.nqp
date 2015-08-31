@@ -390,10 +390,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :post_deserialize($*W.fixup_tasks()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                QAST::Op.new(
-                    :op('getcurhllsym'),
-                    QAST::SVal.new( :value('ModuleLoader') )
-                )
+                QAST::WVal.new( :value($*W.find_symbol(['CompUnitRepo'])) )
             )),
 
             # If this unit is loaded as a module, we want it to automatically
@@ -1361,8 +1358,7 @@ Compilation unit '$file' contained the following violations:
                         !! $<file>.ast;
         my $op := QAST::Op.new(
             :op('callmethod'), :name('load_module'),
-            QAST::Op.new( :op('getcurhllsym'),
-                QAST::SVal.new( :value('ModuleLoader') ) ),
+            QAST::WVal.new( :value($*W.find_symbol(['CompUnitRepo'])) ),
             $name_past,
             QAST::Op.new( :op('hash') ),
             $*W.symbol_lookup(['GLOBAL'], $/),

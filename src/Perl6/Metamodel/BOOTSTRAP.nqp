@@ -75,6 +75,7 @@ my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub CompUnitRepo metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
@@ -2666,6 +2667,9 @@ BEGIN {
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
 
+    CompUnitRepo.HOW.add_parent(CompUnitRepo, Any);
+    CompUnitRepo.HOW.compose_repr(CompUnitRepo);
+
     # Set up Stash type, which is really just a hash.
     # class Stash is Hash {
     Stash.HOW.add_parent(Stash, Hash);
@@ -2707,6 +2711,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
+    Perl6::Metamodel::ClassHOW.add_stash(CompUnitRepo);
 
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
@@ -2808,6 +2813,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
+    EXPORT::DEFAULT.WHO<CompUnitRepo>        := CompUnitRepo;
 }
 EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
 

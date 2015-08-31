@@ -251,7 +251,7 @@ class Perl6::World is HLL::World {
               nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_MODULE_DEBUG'),0)
               ?? -> *@strs {
                      my $err := nqp::getstderr();
-                     nqp::printfh($err, "MODULE_DEBUG: ");
+                     nqp::printfh($err, "\$*W MODULE_DEBUG: ");
                      for @strs { nqp::printfh($err, $_) };
                      nqp::printfh($err, "\n");
                  }
@@ -354,7 +354,7 @@ class Perl6::World is HLL::World {
         # Bootstrap
         if $setting_name eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
-            my $module := self.load_module($/, $name, {}, $*GLOBALish);
+            my $module := self.load_module_early($/, $name, {}, $*GLOBALish);
             self.do_import($/, $module, $name);
             self.import_EXPORTHOW($/, $module);
         }
@@ -838,7 +838,7 @@ class Perl6::World is HLL::World {
 
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module($/, $module_name, %opts, $cur_GLOBALish) {
+    method load_module_early($/, $module_name, %opts, $cur_GLOBALish) {
         # Immediate loading.
         my $line   := self.current_line($/);
         my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, %opts,
@@ -866,6 +866,43 @@ class Perl6::World is HLL::World {
                         QAST::SVal.new( :value('ModuleLoader') ) ),
                    QAST::SVal.new( :value($module_name) ),
                    $opt_hash,
+                   QAST::IVal.new(:value($line), :named('line'))
+                ))));
+        }
+
+        return $module;
+    }
+
+    # Loads a module immediately, and also makes sure we load it
+    # during the deserialization.
+    method load_module($/, $module_name, %opts, $cur_GLOBALish) {
+        # Immediate loading.
+        my $line   := self.current_line($/);
+        my $module := self.find_symbol(['CompUnitRepo']).load_module($module_name, %opts,
+            $cur_GLOBALish, :$line);
+
+        # During deserialization, ensure that we get this module loaded.
+        if self.is_precompilation_mode() {
+            my $opt_hash := QAST::Op.new( :op('hash') );
+            for %opts {
+                self.add_object($_.value);
+                $opt_hash.push(QAST::SVal.new( :value($_.key) ));
+                my $Str := self.find_symbol(['Str']);
+                if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
+                    $opt_hash.push(QAST::SVal.new( :value($_.value) ));
+                }
+                else {
+                    $opt_hash.push(QAST::WVal.new( :value($_.value) ));
+                }
+            }
+            self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
+                self.perl6_module_loader_code(),
+                QAST::Op.new(
+                   :op('callmethod'), :name('load_module'),
+                   QAST::WVal.new( :value(self.find_symbol(['CompUnitRepo'])) ),
+                   QAST::SVal.new( :value($module_name) ),
+                   $opt_hash,
+                   QAST::WVal.new( :value(self.find_symbol(['Any'])) ),
                    QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }
@@ -3714,7 +3751,7 @@ class Perl6::World is HLL::World {
 my class Perl5ModuleLoaderStub {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
         {
-            nqp::gethllsym('perl6', 'ModuleLoader').load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
+            self.find_symbol(['CompUnitRepo']).load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
             CATCH {
                 $*W.find_symbol(nqp::list('X','NYI','Available')).new(
                     :available('Inline::Perl5'), :feature('Perl 5')).throw;

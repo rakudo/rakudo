@@ -95,8 +95,6 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
 
     PROCESS::<@INC>        := @INC;
     PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
-
-    nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
 }
 
 # vim: ft=perl6 expandtab sw=4

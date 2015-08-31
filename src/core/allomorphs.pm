@@ -192,10 +192,10 @@ multi sub val(Str $maybeval) {
     =item Adverbial number --- C<radix-adverb> --- C«:16<FF>», C«:11<0o7.7*8**2>», etc.
       =item2 Options:
         =item3 C<:nofrac> --- used when calling from C<frac-rat>
-        =item3 C<:nosign> --- passed through for coeff and base
+        =item3 C<:nosign> --- controls whether a sign can be in front of the adverb
       =item2 Requires:
-        =item3 C<just-int(:nosign)> (for radix specifier)
-        =item3 C<point-rat(:adverb, :$nosign)> (coefficient)
+        =item3 C<just-int(:nosign)> (for radix specifier, integer coeff)
+        =item3 C<point-rat(:adverb, :nosign)> (non-int coefficient)
         =item3 C<radix-adverb(:nofrac, :$nosign)> (optional base in :#<> form)
         =item3 C<just-int(:$nosign)> (optional base in :#<> form)
         =item3 C<radix-adverb(:nofrac)> (optional exp in :#<> form)
@@ -268,7 +268,17 @@ multi sub val(Str $maybeval) {
 
         $radix = $ohradix if $ohradix !=== False;
 
-        my $radresult := nqp::radix_I($radix, $maybeint, $ohradix === False ?? 0 !! 2, $negated, Int);
+        my $startpos = 0;
+        if $ohradix !=== False {
+            $startpos = 2;
+
+            # handle initial underscore, since radix_I won't
+            if nqp::eqat($maybeint, '_', $startpos) {
+                $startpos++;
+            }
+        }
+
+        my $radresult := nqp::radix_I($radix, $maybeint, $startpos, $negated, Int);
 
         if nqp::atpos($radresult, 2) < nqp::chars($maybeint) {
             return False;
@@ -297,7 +307,7 @@ multi sub val(Str $maybeval) {
             return False;
         }
 
-        $ipart = just-int($ipart, $radix, :$nosign);
+        $ipart = just-int($ipart, $radix, :$nosign, :e); # :e because we've handled the ohradix ourselves
         my $frad := nqp::radix_I($radix, $fpart, 0, 4, Int);
 
         if nqp::atpos($frad, 2) < nqp::chars($fpart) || $ipart === False {
@@ -312,10 +322,13 @@ multi sub val(Str $maybeval) {
     }
 
     ##| process a :#<> form number (:#[] NYI)
-    sub radix-adverb($maybenum, :$nofrac = False, :$nosign = False) {
-        unless nqp::eqat($maybenum, ':', 0) {
+    sub radix-adverb($maybenum is copy, :$nofrac = False, :$nosign = False) {
+        unless nqp::eqat($maybenum, ':', 0) || nqp::eqat($maybenum, ':', 1) {
             return False;
         }
+
+        # get the sign, if there
+        my $negated = $nosign ?? 0 !! is-negated($maybenum);
 
         # get the radix
         my $baseradix := nqp::radix_I(10, $maybenum, 1, 0, Int);
@@ -356,11 +369,18 @@ multi sub val(Str $maybeval) {
 
             $coeff = nqp::substr($maybenum, $numstart, $coend - $numstart);
 
+            my $res;
             if $nofrac {
-                return just-int($coeff, $defradix, :$nosign);
+                $res = just-int($coeff, $defradix, :nosign);
             } else {
-                return try-possibles($coeff, { just-int($_, $defradix, :$nosign) }, { point-rat($_, $defradix, :$nosign, :adverb) });
+                $res = try-possibles($coeff, { just-int($_, $defradix, :nosign) }, { point-rat($_, $defradix, :nosign, :adverb) });
             }
+
+            unless $res === False || !$negated {
+                $res = -$res;
+            }
+
+            return $res;
         }
 
         # we know we have a Num at this point, so no fractionals allowed means
@@ -386,8 +406,8 @@ multi sub val(Str $maybeval) {
 
         # coefficient is at best a decimal number, base and exp can be adverbs themselves
 
-        $coeff = try-possibles($coeff, { just-int($_ , $defradix, :$nosign) },
-                               { point-rat($_, $defradix, :$nosign, :adverb) });
+        $coeff = try-possibles($coeff, { just-int($_ , $defradix, :nosign) },
+                               { point-rat($_, $defradix, :nosign, :adverb) });
         $base = try-possibles($base, { just-int($_ , 10, :$nosign) },
                               { radix-adverb($_, :nofrac, :$nosign) });
         $exp = try-possibles($exp, &just-int, { radix-adverb($_, :nofrac) });
@@ -395,7 +415,7 @@ multi sub val(Str $maybeval) {
         if $coeff === False || $base === False || $exp === False {
             return False;
         } else {
-            $coeff.Num * $base.Num ** $exp.Num;
+            ($negated ?? -1 !! 1) * $coeff.Num * $base.Num ** $exp.Num;
         }
     }
 
@@ -425,6 +445,7 @@ multi sub val(Str $maybeval) {
     ##| Scientific notation Nums, or Inf/NaN
     sub science-num($maybenum) {
         my $e = nqp::index($maybenum, 'e');
+        $e = nqp::index($maybenum, 'E') if $e == -1;
 
         if $e == -1 {
             if nqp::chars($maybenum) == 4 {
@@ -443,7 +464,7 @@ multi sub val(Str $maybeval) {
         my $cstr = nqp::substr($maybenum, 0, $e);
         my $estr = nqp::substr($maybenum, $e + 1);
 
-        my $coeff = try-possibles($cstr, &just-int, &point-rat);
+        my $coeff = try-possibles($cstr, {just-int($_, :e)}, &point-rat);
         my $exp   = just-int($estr, :e);
 
         if $coeff === False || $exp === False {
@@ -459,11 +480,20 @@ multi sub val(Str $maybeval) {
             return False;
         }
 
+        my $escape-i = 0;
+        $escape-i++ if nqp::eqat($maybecmpx, Q[\i], nqp::chars($maybecmpx) - 2);
+
         my $splitpos = 1;
 
+        my $negated-im = 1;
+
         while $splitpos < nqp::chars($maybecmpx) {
-            last if nqp::eqat($maybecmpx, '+', $splitpos)
-                 || nqp::eqat($maybecmpx, '-', $splitpos);
+            last if nqp::eqat($maybecmpx, '+', $splitpos);
+
+            if nqp::eqat($maybecmpx, '-', $splitpos) {
+                $negated-im = -1;
+                last;
+            }
 
             $splitpos++;
         }
@@ -472,12 +502,12 @@ multi sub val(Str $maybeval) {
         my $im;
 
         if $splitpos == nqp::chars($maybecmpx) { # purely imaginary
-            my $istr = nqp::substr($maybecmpx, 0, nqp::chars($maybecmpx) - 1);
+            my $istr = nqp::substr($maybecmpx, 0, nqp::chars($maybecmpx) - (1 + $escape-i));
             $re = 0;
             $im = try-possibles($istr, &just-int, &point-rat, &science-num, &radix-adverb);
         } else {
             my $rstr = nqp::substr($maybecmpx, 0, $splitpos);
-            my $istr = nqp::substr($maybecmpx, $splitpos + 1, (nqp::chars($maybecmpx) - 1) - $splitpos - 1);
+            my $istr = nqp::substr($maybecmpx, $splitpos + 1, (nqp::chars($maybecmpx) - (1 + $escape-i)) - $splitpos - 1);
 
             $re = try-possibles($rstr, &just-int, &point-rat, &science-num, &radix-adverb);
             $im = try-possibles($istr, &just-int, &point-rat, &science-num, &radix-adverb);
@@ -487,7 +517,11 @@ multi sub val(Str $maybeval) {
             return False;
         }
 
-        return Complex.new($re, $im);
+        if $im === (NaN|Inf|-Inf) && $escape-i == 0 { # don't let NaNi or Infi work, must be NaN\i or Inf\i
+            return False;
+        }
+
+        return Complex.new($re, $im * $negated-im);
     }
 
     #

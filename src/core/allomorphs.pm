@@ -1,6 +1,7 @@
 my class IntStr is Int is Str {
     method new(Int $i, Str $s) {
         my \SELF = nqp::create(self);
+        # XXX this bindattr_i fails for bigints
         nqp::bindattr_i(SELF, Int, '$!value', $i);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;

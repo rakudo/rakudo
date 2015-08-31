@@ -422,11 +422,21 @@ multi sub val(Str $maybeval) {
         }
     }
 
-    ##| Scientific notation Nums
+    ##| Scientific notation Nums, or Inf/NaN
     sub science-num($maybenum) {
         my $e = nqp::index($maybenum, 'e');
 
         if $e == -1 {
+            if nqp::chars($maybenum) == 4 {
+                return Inf if nqp::iseq_s($maybenum, nqp::unbox_s("+Inf"));
+                return -Inf if nqp::iseq_s($maybenum, nqp::unbox_s("-Inf"));
+                return NaN if nqp::iseq_s($maybenum, nqp::unbox_s("+NaN"));
+                return -NaN if nqp::iseq_s($maybenum, nqp::unbox_s("-NaN"));
+            } elsif nqp::chars($maybenum) == 3 {
+                return Inf if nqp::iseq_s($maybenum, nqp::unbox_s("Inf"));
+                return NaN if nqp::iseq_s($maybenum, nqp::unbox_s("NaN"));
+            }
+
             return False;
         }
 

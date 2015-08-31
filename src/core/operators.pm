@@ -420,10 +420,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 }
             }
             elsif $badseq {
-                take (sub { die X::Sequence::Deduction.new(:from($badseq)) })();
+                die X::Sequence::Deduction.new(:from($badseq));
             }
             else {
-                take (sub { die X::Sequence::Deduction.new() })();
+                die X::Sequence::Deduction.new();
             }
         }
     });

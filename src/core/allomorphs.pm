@@ -115,6 +115,49 @@ multi sub infix:<cmp>(ComplexStr $a, ComplexStr $b) {
     }
 }
 
+# these allomorphic multis are needed to use their C<.gist>s properly, lest they
+# pick the Str:D candidate.
+multi sub say(IntStr:D \x) {
+    my $out := $*OUT;
+    $out.print: x.gist;
+    $out.print-nl;
+}
+multi sub say(RatStr:D \x) {
+    my $out := $*OUT;
+    $out.print: x.gist;
+    $out.print-nl;
+}
+multi sub say(NumStr:D \x) {
+    my $out := $*OUT;
+    $out.print: x.gist;
+    $out.print-nl;
+}
+multi sub say(ComplexStr:D \x) {
+    my $out := $*OUT;
+    $out.print: x.gist;
+    $out.print-nl;
+}
+
+multi sub note(IntStr:D \x) {
+    my $err := $*ERR;
+    $err.print: x.gist;
+    $err.print-nl;
+}
+multi sub note(RatStr:D \x) {
+    my $err := $*ERR;
+    $err.print: x.gist;
+    $err.print-nl;
+}
+multi sub note(NumStr:D \x) {
+    my $err := $*ERR;
+    $err.print: x.gist;
+    $err.print-nl;
+}
+multi sub note(ComplexStr:D \x) {
+    my $err := $*ERR;
+    $err.print: x.gist;
+    $err.print-nl;
+}
 
 multi sub val(*@maybevals) {
     # XXX .Parcel not needed on GLR (just .eager suffices)

@@ -10,6 +10,23 @@ multi sub print(*@args) {
 multi sub print(Str:D \x) {
     $*OUT.print(x);
 }
+multi sub print(\x) {
+    $*OUT.print(x.Str);
+}
+multi sub print(Iterable \x) {
+    my $out := $*OUT;
+    my str $str;
+    if nqp::iscont(x) {
+        $str = x.Str;
+    }
+    else {
+        my \iterator := x.iterator;
+        until (my \value := iterator.pull-one) =:= IterationEnd {
+            $str = nqp::concat($str, nqp::unbox_s(value.Str));
+        }
+    }
+    $out.print($str);
+}
 
 # Once we have an nqp::say that looks at the *output* line separator of the
 # PIO, then we can stop concatenating .nl to each string before .print, but

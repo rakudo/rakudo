@@ -3684,6 +3684,15 @@ Compilation unit '$file' contained the following violations:
         my $Pair := $*W.find_symbol(['Pair']);
         my @values;
         my $term_ast := $<term>.ast;
+
+        # XXX for now we assume enums want pure Strs, so we get rid of &val for
+        # enums. If enums would like allomorphic types as keys, this won't
+        # suffice (you'd have to the the &val Op and wrap each arg individually
+        # with it).
+        if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
+            $term_ast := $term_ast[0];
+        }
+
         if $term_ast.isa(QAST::Stmts) && +@($term_ast) == 1 {
             $term_ast := $term_ast[0];
         }

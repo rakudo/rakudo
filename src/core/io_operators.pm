@@ -22,6 +22,11 @@ multi sub say(Str:D \x) {
     my str $str = nqp::concat(nqp::unbox_s(x),$out.nl);
     $out.print($str);
 }
+multi sub say(\x) {
+    my $out := $*OUT;
+    my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl);
+    $out.print($str);
+}
 multi sub say(**@args is rw) {
     my $out := $*OUT;
     my str $str;

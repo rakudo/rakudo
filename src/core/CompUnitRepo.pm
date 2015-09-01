@@ -76,7 +76,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             }
         }
         elsif $file {
-            CompUnit.new($file).load(GLOBALish, :$line);
+            CompUnit.new($file.IO.absolute).load(GLOBALish, :$line);
         }
         elsif self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>)) -> ($candi) {
             $candi.load(GLOBALish, :$line)

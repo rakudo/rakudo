@@ -224,8 +224,32 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is rw {
         for 0..^+@target { @target[$p++] = rviter.pull-one }
         @target[0..^*];
     }
-    else {
-        die(X::NYI.new(:feature("Slice assignment to {SELF.WHAT.^name}")));
+    else { # The assumption for now is this must be Iterable
+        # Lazy list assignment.  This is somewhat experimental and
+        # semantics may change.
+        my $empty := False;
+        my $target := SELF.iterator;
+        my sub eagerize ($idx) {
+            once $target := $target.list.iterator;
+            $idx ~~ Whatever ?? $target.elems !! $target.EXISTS-POS($idx);
+        }
+        my @poslist := POSITIONS(SELF, pos, :eagerize(&eagerize)).eager;
+        my %keep;
+        # TODO: we could also use a quanthash and count occurences of an
+        # index to let things go to GC sooner.
+        %keep{@poslist} = ();
+        my $max = -1;
+        my \rviter := rvlist.iterator;
+        @poslist.map: -> $p {
+            my $lv;
+            for $max ^.. $p -> $i {
+                $max = $i;
+                my $lv := $target.pull-one;
+                %keep{$i} := $lv if %keep{$i}:exists and $lv !=:= IterationEnd;
+            }
+            $lv := %keep{$p};
+            $lv = rviter.pull-one;
+        };
     }
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is rw {

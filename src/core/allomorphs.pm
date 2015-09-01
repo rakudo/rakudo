@@ -184,6 +184,11 @@ multi sub val(\one-thing) {
 }
 
 multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
+    #
+    #  docs/val.pod6  describes what's going on in this sub; take a look if you're lost!
+    #
+
+
     my $*LAST_CHANCE = 0;
 
     ##| checks if number is to be negated, and chops off the sign
@@ -224,6 +229,9 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
         $cand;
     }
 
+    ##| Works like :: in regexes, tells try-possibles that the sub that called
+    ##| this has to be the right choice, or else nothing is. (aka, the potential
+    ##| number given to val() "has to be this")
     sub has-to-be-this { $*LAST_CHANCE = 1 }
 
     # passing around a regular ol' Failure will cause Perl 6 to hang, for
@@ -234,21 +242,27 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
         has $.reason = "";
         has $.offset = 0;
 
+        ##| Imitates Failure.defined
         method defined {
             Bool::False
         }
 
+        ##| Prefixes an additional bit of explanation to the reason (used when
+        ##| subs carry failures from inner calls upwards)
         method stack-reason($newbit) {
             $!reason = $newbit ~ $!reason;
             self;
         }
 
+        ##| Adjusts the offset, effectively setting it relative to a new string
+        ##| (used when subs carry failures from inner calls upwards)
         method adjust-offset($off) {
             $!offset += $off;
             self;
         }
     }
 
+    ##| A failure caught during parsing of the string
     sub parsing-fail(Str $reason, Int $offset = 0) {
         return ProtoFailure.new.stack-reason($reason).adjust-offset($offset);
     }

@@ -8,9 +8,11 @@ resorting to a grammar.
 The phrase "or fails" in statements on return values means it returns a
 C<ProtoFailure>, something that always presents itself as undefined.
 
-The C<$*LAST_CHANCE> dynamic is used to mark a given candidate as the last
-possible one, even if it isn't the last in the list (see below on
-C<try-possibles> and C<has-to-be-this>).
+The C<$*LAST_CHANCE> dynamic (defined within C<try-possibles>) is used to mark a
+given candidate as the last possible one, even if it isn't the last in the list
+(see below on C<try-possibles> and C<has-to-be-this>). The top-level (first)
+call to C<try-possibles> will set C<$really-no-doubt> to C<$*LAST_CHANCE> as
+part of the error reporting process.
 
 =head2 C<ProtoFailure>
 
@@ -37,9 +39,9 @@ C<Failure> at the end.
 
 =item C<try-possibles> --- Runs through a sequence of subs in trying to find a
       literal, or part of one.
-  =item2 Adverb C<:toplevel> sets the caller's C<$*LAST_CHANCE> (meant to let
-         the top-level call to C<try-possibles> add a measure of doubt to the
-         given error message)
+  =item2 Adverb C<:toplevel> sets C<$really-no-doubt> to C<$*LAST_CHANCE> (meant
+         to let the top-level call to C<try-possibles> add a measure of doubt to
+         the given error message)
   =item2 Returns a literal or fails (with the last candidate's C<ProtoFailure>)
   =item2 In regex terms, similar to C<||>
 

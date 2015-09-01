@@ -188,9 +188,6 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
     #  docs/val.pod6  describes what's going on in this sub; take a look if you're lost!
     #
 
-
-    my $*LAST_CHANCE = 0;
-
     ##| checks if number is to be negated, and chops off the sign
     sub is-negated($val) {
         nqp::eqat($val, '-', 0) ?? 1 !! 0;
@@ -215,6 +212,7 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
         }
     }
 
+    my $really-no-doubt;
     sub try-possibles($checking, *@funcs, :$toplevel) {
         my $cand;
         my $*LAST_CHANCE = 0;
@@ -225,7 +223,7 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
                 last;
             }
         }
-        CALLERS::<$*LAST_CHANCE> = $*LAST_CHANCE if $toplevel;
+        $really-no-doubt = $*LAST_CHANCE if $toplevel;
         $cand;
     }
 
@@ -245,6 +243,12 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
         ##| Imitates Failure.defined
         method defined {
             Bool::False
+        }
+
+        ##| Called at the end of val() processing, when we aren't sure our error
+        ##| will be meaningful (though the pointer will still be helpful)
+        method doubt-reason {
+            $!reason = $!reason.trim-trailing ~ " (but we're not sure what kind of value this wants to be)";
         }
 
         ##| Prefixes an additional bit of explanation to the reason (used when
@@ -331,7 +335,7 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
         my $frad := nqp::radix_I($radix, $fpart, 0, 4, Int);
 
         if nqp::atpos($frad, 2) < nqp::chars($fpart) {
-            return parsing-fail("Trailing garbage after supposed point-radix rational", $radixpoint + 1 + nqp::atpos($frad, 2));
+            return parsing-fail("Trailing garbage after supposed point-radix rational", $radixpoint + 1 + (nqp::atpos($frad, 2) max 0));
         }
 
         $ipart *= nqp::atpos($frad, 1);
@@ -598,10 +602,15 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
     # manually trimming the unboxed string ourselves, and perhaps a bit better).
     my $as-str = nqp::unbox_s($MAYBEVAL.trim);
 
-    my $as-parsed = try-possibles($as-str, &complex-num, &frac-rat, &radix-adverb, &science-num, &point-rat, &just-int);
+    my $as-parsed = try-possibles($as-str, &complex-num, &frac-rat, &radix-adverb, &science-num, &point-rat, &just-int, :toplevel);
 
     if !$as-parsed.defined {
         if $val-or-fail {
+            # if $really-no-doubt isn't set, that means we didn't fail at a
+            # point where we knew for sure what kind of literal we got. Express
+            # that doubt now.
+            $as-parsed.doubt-reason unless $really-no-doubt;
+
             fail X::Str::Numeric.new(source => $MAYBEVAL,
                                      reason => $as-parsed.reason,
                                      pos    => ($as-parsed.offset + $ws-off));

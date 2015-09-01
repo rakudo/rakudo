@@ -3,12 +3,13 @@ class CompUnitRepo::Local::File         { ... }
 class CompUnitRepo::Local::Installation { ... }
 
 class CompUnitRepo {
-    my Mu $p6ml := nqp::gethllsym('perl6', 'ModuleLoader');
     my $lock     = Lock.new;
     my %modules_loaded;
 
     my %language_module_loaders =
-        'NQP' => nqp::gethllsym('nqp', 'ModuleLoader'),
+        # We're using Perl6::ModuleLoader instead of NQP's here,
+        # so it can special-cases NQP wrt GLOBALish correctly.
+        'NQP' => nqp::gethllsym('perl6', 'ModuleLoader'),
     ;
 
     method register_language_module_loader($lang, $loader, :$force) {
@@ -45,28 +46,22 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
         ();
     }
 
-    method p6ml { $p6ml }
-
     method load_module($module_name, %opts, \GLOBALish is rw, :$line, :$file) {
         RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $?RAKUDO_MODULE_DEBUG;
         $lock.protect( {
-        if %opts<from> && %opts<from> eq 'NQP' {
-            $p6ml.load_module($module_name, %opts, GLOBALish, :$line, :$file);
+        if %opts<from> {
+            # See if we need to load it from elsewhere.
+            if %language_module_loaders{%opts<from>}:exists {
+                return %language_module_loaders{%opts<from>}.load_module($module_name,
+                    %opts, GLOBALish, :$line, :$file);
+            }
+            else {
+                nqp::die("Do not know how to load code from " ~ %opts<from>);
+            }
         }
         else {
             my %chosen;
-            # See if we need to load it from elsewhere.
-            if %opts<from> {
-                if %language_module_loaders{%opts<from>}:exists {
-                    RAKUDO_MODULE_DEBUG("going to load $module_name from '%opts<from>'") if $?RAKUDO_MODULE_DEBUG;
-                    return %language_module_loaders{%opts<from>}.load_module($module_name,
-                        %opts, GLOBALish, :$line, :$file);
-                }
-                else {
-                    nqp::die("Do not know how to load code from " ~ %opts<from>);
-                }
-            }
-            elsif $file {
+            if $file {
                 %chosen<key> := %chosen<pm> := ~$file.IO.abspath;
             }
             else {

@@ -110,7 +110,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
 
             my @MODULES = nqp::clone(@*MODULES // ());
             for @MODULES -> $m {
-                if $m<module> eq $!name {
+                if $m<module> && $m<module> eq $!name {
                     nqp::die("Circular module loading detected involving module '$!name'");
                 }
             }
@@ -136,12 +136,12 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                     @*MODULES[*-1] = { line => $line };
                 }
 
-                my %trace            = { module => $!name, filename => %chosen<pm> };
+                my $trace            = { module => $!name, filename => %chosen<pm> };
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
-                @*MODULES.push: %trace;
+                @*MODULES.push: $trace;
 
                 if %chosen<load> {
-                    %trace<precompiled> = %chosen<load>;
+                    $trace<precompiled> = %chosen<load>;
                     RAKUDO_MODULE_DEBUG("loading ", %chosen<load>) if $?RAKUDO_MODULE_DEBUG;
                     my %*COMPILING := nqp::hash();
                     my $*CTXSAVE := self;

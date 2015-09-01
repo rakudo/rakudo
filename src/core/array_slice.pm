@@ -11,9 +11,17 @@ sub NPOSITIONS(\pos, \elems) {
 # before something lazy is encountered and eagerly reifies them. If there
 # are any lazy things in the slice, then we lazily consider those, but will
 # truncate at the first one that is out of range. We have a special case for
-# Range, which will auto-truncate even though not lazy.
+# Range, which will auto-truncate even though not lazy.  The optional
+# :$eagerize will be called if Whatever/WhateverCode is encountered or if
+# clipping of lazy indices is enacted.  It should return the number of
+# elements of the array if called with Whatever, or do something EXISTS-POSish
+# if called with an Int.  Before it does so, it may cause the calling code
+# to switch to a memoized version of an iterator by modifying variables in
+# the caller's scope.
 proto sub POSITIONS(|) { * }
-multi sub POSITIONS(\SELF, \pos) {
+multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
+                       $idx ~~ Whatever ?? SELF.elems !! SELF.EXISTS-POS($idx)
+                    }) {
     my class IndicesReificationTarget {
         has $!target;
         has $!star;
@@ -28,7 +36,7 @@ multi sub POSITIONS(\SELF, \pos) {
         method push(Mu \value) {
             if nqp::istype(value,Callable) {
                 if nqp::istype($!star, Callable) {
-                    nqp::bindattr(self, IndicesReificationTarget, '$!star', $!star())
+                    nqp::bindattr(self, IndicesReificationTarget, '$!star', $!star(*))
                 }
                 # just using value(...) causes stage optimize to die
                 my &whatever := value;
@@ -44,13 +52,13 @@ multi sub POSITIONS(\SELF, \pos) {
     my \pos-iter = pos.iterator;
     my \pos-list = List.CREATE;
     my \eager-indices = IterationBuffer.CREATE;
-    my \target = IndicesReificationTarget.new(eager-indices, -> { SELF.elems });
+    my \target = IndicesReificationTarget.new(eager-indices, $eagerize);
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
     unless pos-iter.push-until-lazy(target) =:= IterationEnd {
         # There are lazy positions to care about too. We truncate at the first
         # one that fails to exists.
         my \rest-seq = Seq.new(pos-iter).flatmap: -> Int() $i {
-            last unless SELF.EXISTS-POS($i);
+            last unless $eagerize($i);
             $i
         };
         my \todo := List::Reifier.CREATE;
@@ -66,7 +74,7 @@ multi sub POSITIONS(\SELF, Range \pos) {
     pos.map(-> Int() $i {
         last unless SELF.EXISTS-POS($i);
         $i
-    })
+    }).list;
 }
 
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
@@ -177,10 +185,48 @@ multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is rw {
       ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.List;
 }
-multi sub postcircumfix:<[ ]>( \SELF, Positional:D \pos, Mu \val ) is rw {
-    nqp::iscont(pos)
-      ?? SELF.ASSIGN-POS(pos.Int, val)
-      !! SELF[NPOSITIONS(pos, val.elems)] = val
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is rw {
+    # MMD is not behaving itself so we do this by hand.
+    if nqp::iscont(pos) {
+        return SELF[pos.Int] = val;
+    }
+
+    # Prep an iterator that will assign Nils past end of rval
+    my \rvlist :=
+        do if  nqp::iscont(val)
+            or not nqp::istype(val, Iterator)
+               and not nqp::istype(val, Iterable) {
+            (nqp::decont(val),).Slip
+        }
+        elsif nqp::istype(val, Iterator) {
+            Slip.from-loop({ nqp::decont(val.pull-one) })
+        }
+        elsif nqp::istype(val, Iterable) {
+            val.map({ nqp::decont($_) }).Slip
+        }, (Nil xx Inf).Slip;
+
+    if nqp::istype(SELF, Positional) {
+        # For Positionals, preserve established/expected evaluation order.
+        my @target;
+        # We try to reify indices eagerly first, in case doing so
+        # manipulates SELF.  If pos is lazy or contains Whatevers/closures,
+        # the SELF may start to reify as well.
+        my \indices := POSITIONS(SELF, pos);
+        indices.iterator.sink-all;
+        # Extract the values/containers which will be assigned to, in case
+        # reifying the rhs does crazy things like splicing SELF.
+        my $p = 0;
+        for indices { @target[$p++] := SELF[$_] }
+
+        rvlist.EXISTS-POS($p);
+        my \rviter := rvlist.iterator;
+        $p = 0;
+        for 0..^+@target { @target[$p++] = rviter.pull-one }
+        @target[0..^*];
+    }
+    else {
+        die(X::NYI.new(:feature("Slice assignment to {SELF.WHAT.^name}")));
+    }
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

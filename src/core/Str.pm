@@ -214,15 +214,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Numeric(Str:D: :$strict = True) {
-        my $strval = val(self);
-        unless $strval ~~ Numeric {
-            fail X::Str::Numeric.new(
-                source => self,
-                reason => "val() couldn't process as a number.",
-                :pos(0));
-        }
+        my $strval = val(self, :val-or-fail);
 
-        +$strval; # return a pure numeric value, not an allomorphic type
+        # return a pure numeric value, not an allomorphic type, if successful
+        with $strval {
+            +$strval;
+        } else {
+            # re-fail so things like Str.Int work right (too bad there's no
+            # refail, like rethrow)
+            fail $strval.exception;
+        }
     }
 
     my %esc = (

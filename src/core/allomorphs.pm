@@ -183,105 +183,20 @@ multi sub val(\one-thing) {
     one-thing;
 }
 
-multi sub val(Str $maybeval) {
-
-#`{{{{
-    =begin pod
-
-    The below subs build on one another. This mini-document is designed to
-    illustrate what kinds of literals val handles, and how these mini-subs fit
-    together.
-
-    The phrase "or fails" in statements on return values means it returns
-    C<Bool::False>, or some other non-number if C<Bool::False> turns out to be
-    too resource-intensive for this function.
-
-    Two generic checkers:
-
-    =item Check for negation --- C<is-negated>
-      =item2 Modifies given number (to remove sign if present)
-      =item2 Returns C<1> or C<0>, to match the flag for C<nqp::radix_I>
-
-    =item Check for oh radix prefix --- C<get-ohradix>
-      =item2 Returns new radix or fails
-
-    And the literals' structure:
-
-    =item Bare integer --- C<just-int> --- C<42>, C<-12>, C<0xF>, etc.
-      =item2 Options:
-        =item3 C<:e> --- used when calling from C<science-num>
-        =item3 C<:nosign> --- used when calling from C<frac-rat>
-      =item2 Requires:
-        =item3 C<is-negated> (unless C<:nosign>)
-        =item3 C<get-ohradix> (unless C<:e>)
-      =item2 Returns C<Int> or fails
-
-    =item Radix point rational --- C<point-rat> --- C<3.2>, C<-5.4>
-      =item2 Options:
-        =item3 C<:adverb> --- used when calling from C<radix-adverb>
-        =item3 C<:nosign> --- passed through for C<just-int>, and used in here
-      =item2 Requires:
-        =item3 C<just-int(:$nosign)> (for before point portion)
-        =item3 C<is-negated> (unless C<:nosign>)
-        =item3 C<get-ohradix> (only if C<:adverb>)
-      =item2 Returns C<Rat> or fails
-
-    =item Scientific C<Num> --- C<science-num> --- C<1e5>, C<-3.5e-2>
-      =item2 Requires:
-        =item3 C<point-rat> (coefficient)
-        =item3 C<just-int(:e)> (exponent, base of 10 implied)
-      =item2 Returns C<Num> or fails
-
-    =item Adverbial number --- C<radix-adverb> --- C«:16<FF>», C«:11<0o7.7*8**2>», etc.
-      =item2 Options:
-        =item3 C<:nofrac> --- used when calling from C<frac-rat>
-        =item3 C<:nosign> --- controls whether a sign can be in front of the adverb
-      =item2 Requires:
-        =item3 C<just-int(:nosign)> (for radix specifier, integer coeff)
-        =item3 C<point-rat(:adverb, :nosign)> (non-int coefficient)
-        =item3 C<radix-adverb(:nofrac, :$nosign)> (optional base in :#<> form)
-        =item3 C<just-int(:$nosign)> (optional base in :#<> form)
-        =item3 C<radix-adverb(:nofrac)> (optional exp in :#<> form)
-        =item3 C<just-int> (optional exp in :#<> form)
-      =item2 Returns:
-        =item3 C<Num> if optional base and exponent;
-        =item3 C<Rat> without base and exponent, non-integral number;
-        =item3 C<Int> without base and exponent, integral number;
-        =item3 or fails
-
-    =item Fractional rational --- C<frac-rat> --- C«1/2», C«-3/:16<F>», etc
-      =item2 Requires:
-        =item3 C<radix-adverb(:nofrac)> (for :#<> form numerator)
-        =item3 C<just-int> (for bare integers in numerator)
-        =item3 C<radix-adverb(:nofrac, :nosign)> (for :#<> form denominator)
-        =item3 C<just-int(:nosign)> (for bare integers in numerator)
-
-    =item Complex number --- C<complex-num> --- C<1+2i>, C<-3.5+-1i>, etc
-      =item2 Requires:
-        =item3 C<radix-adverb>
-        =item3 C<science-num>
-        =item3 C<point-rat>
-        =item3 C<just-int>
-      =item2 Returns C<Complex> or fails
-    =end pod
-}}}}
+multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
+    my $*LAST_CHANCE = 0;
 
     ##| checks if number is to be negated, and chops off the sign
-    sub is-negated($val is rw) {
-        if nqp::eqat($val, '-', 0) {
-            $val = nqp::substr($val, 1);
-            1
-        } elsif nqp::eqat($val, '+', 0) {
-            $val = nqp::substr($val, 1);
-            0
-        } else {
-            0
-        }
+    sub is-negated($val) {
+        nqp::eqat($val, '-', 0) ?? 1 !! 0;
+    }
+
+    sub has-sign($val) {
+        nqp::eqat($val, '+', 0) || is-negated($val) ?? 1 !! 0;
     }
 
     ##| retrieve an "oh radix" (0x, 0o, etc.), if there
     sub get-ohradix($maybeint is copy, $radix = 10) { # $radix to limit valid ohradices
-        my $negated = is-negated($maybeint);
         if $radix < 34 && nqp::eqat($maybeint, '0x', 0) {
             16
         } elsif $radix < 14 && nqp::eqat($maybeint, '0d', 0) {
@@ -291,29 +206,65 @@ multi sub val(Str $maybeval) {
         } elsif $radix < 12 && nqp::eqat($maybeint, '0b', 0) {
             2
         } else {
-            False
+            parsing-fail("nohradix");
         }
     }
 
-    sub try-possibles($checking, *@funcs) {
+    sub try-possibles($checking, *@funcs, :$toplevel) {
         my $cand;
+        my $*LAST_CHANCE = 0;
         for @funcs -> &trying {
             $cand = &trying($checking);
-            last unless $cand === False;
+            last if $*LAST_CHANCE;
+            with $cand { # XXX doesn't work as one-liner
+                last;
+            }
         }
+        CALLERS::<$*LAST_CHANCE> = $*LAST_CHANCE if $toplevel;
         $cand;
     }
 
+    sub has-to-be-this { $*LAST_CHANCE = 1 }
+
+    # passing around a regular ol' Failure will cause Perl 6 to hang, for
+    # whatever reason, so we use this "fake" class instead. Incidentally it lets
+    # us also defer creating the actual exception (and subsequent failure) until
+    # the end.
+    my class ProtoFailure {
+        has $.reason = "";
+        has $.offset = 0;
+
+        method defined {
+            Bool::False
+        }
+
+        method stack-reason($newbit) {
+            $!reason = $newbit ~ $!reason;
+            self;
+        }
+
+        method adjust-offset($off) {
+            $!offset += $off;
+            self;
+        }
+    }
+
+    sub parsing-fail(Str $reason, Int $offset = 0) {
+        return ProtoFailure.new.stack-reason($reason).adjust-offset($offset);
+    }
+
     ##| processes an integer, by default decimal
-    sub just-int($maybeint is copy, $radix is copy = 10, :$e = False, :$nosign = False) {
+    sub just-int($maybeint, $radix is copy = 10, :$e = False, :$nosign = False) {
         my $negated = $nosign ?? 0 !! is-negated($maybeint);
-        my $ohradix = $e ?? False !! get-ohradix($maybeint, $radix);
-
-        $radix = $ohradix if $ohradix !=== False;
-
+        my $signed = $nosign ?? 0 !! has-sign($maybeint);
+        my $ohradix = $e ?? parsing-fail("dummy-nohradix") !! get-ohradix(nqp::substr($maybeint, $signed), $radix);
         my $startpos = 0;
-        if $ohradix !=== False {
-            $startpos = 2;
+
+        $startpos++ if $signed;
+
+        with $ohradix {
+            $radix = $ohradix;
+            $startpos += 2;
 
             # handle initial underscore, since radix_I won't
             if nqp::eqat($maybeint, '_', $startpos) {
@@ -323,38 +274,50 @@ multi sub val(Str $maybeval) {
 
         my $radresult := nqp::radix_I($radix, $maybeint, $startpos, $negated, Int);
 
+        if nqp::atpos($radresult, 2) == -1 {
+            return parsing-fail("Strange text where integer expected");
+        }
+
         if nqp::atpos($radresult, 2) < nqp::chars($maybeint) {
-            return False;
+            return parsing-fail("Trailing garbage after integer", nqp::atpos($radresult, 2));
         }
 
         nqp::atpos($radresult, 0);
     }
 
     ##| process a Rat in "radix point" notation
-    sub point-rat($mayberat is copy, $radix is copy = 10, :$nosign = False, :$adverb = False) {
+    sub point-rat($mayberat, $radix is copy = 10, :$nosign = False, :$adverb = False) {
         my $radixpoint = nqp::index($mayberat, '.');
 
         if $radixpoint == -1 {
-            return False;
+            return parsing-fail("No point found for supposed point-radix rational");
         }
 
-        my $ipart = nqp::substr($mayberat, 0, $radixpoint);
+        has-to-be-this;
+
+        my $signed  = $nosign ?? 0 !! has-sign($mayberat);
+        my $negated = $nosign ?? 0 !! is-negated($mayberat);
+        my $ohradix = $adverb ?? get-ohradix(nqp::substr($mayberat, $signed), $radix) !! parsing-fail("dummy-nohradix");
+
+        my $ipart = nqp::substr($mayberat, $signed + (2 with $ohradix), $radixpoint - $signed - (2 with $ohradix));
         my $fpart = nqp::substr($mayberat, $radixpoint + 1);
 
-        my $negated = $nosign ?? 0 !! is-negated($ipart);
-        my $ohradix = $adverb ?? get-ohradix($mayberat, $radix) !! False;
-
-        $radix = $ohradix if $ohradix !=== False;
+        $radix = $ohradix with $ohradix;
 
         if nqp::index($fpart, '.') > -1 {
-            return False;
+            return parsing-fail("Extra point found in supposed point-radix rational", $radixpoint + 1 + nqp::index($fpart, '.'));
         }
 
-        $ipart = just-int($ipart, $radix, :$nosign, :e); # :e because we've handled the ohradix ourselves
+        $ipart = just-int($ipart, $radix, :nosign, :e); # :e and :nosign because we've handled the ohradix and negation ourselves
+
+        without $ipart {
+            return $ipart.stack-reason("Issue in parsing before the radix point: ");
+        }
+
         my $frad := nqp::radix_I($radix, $fpart, 0, 4, Int);
 
-        if nqp::atpos($frad, 2) < nqp::chars($fpart) || $ipart === False {
-            return False;
+        if nqp::atpos($frad, 2) < nqp::chars($fpart) {
+            return parsing-fail("Trailing garbage after supposed point-radix rational", $radixpoint + 1 + nqp::atpos($frad, 2));
         }
 
         $ipart *= nqp::atpos($frad, 1);
@@ -367,17 +330,25 @@ multi sub val(Str $maybeval) {
     ##| process a :#<> form number (:#[] NYI)
     sub radix-adverb($maybenum is copy, :$nofrac = False, :$nosign = False) {
         unless nqp::eqat($maybenum, ':', 0) || nqp::eqat($maybenum, ':', 1) {
-            return False;
+            return parsing-fail("Not an adverbial number");
         }
 
+        has-to-be-this;
+
         # get the sign, if there
+        my $signed  = $nosign ?? 0 !! has-sign($maybenum);
         my $negated = $nosign ?? 0 !! is-negated($maybenum);
 
         # get the radix
-        my $baseradix := nqp::radix_I(10, $maybenum, 1, 0, Int);
+        my $baseradix := nqp::radix_I(10, $maybenum, 1 + $signed, 0, Int);
 
-        if nqp::atpos($baseradix, 2) == -1 || !(2 <= nqp::atpos($baseradix, 0) <= 36) {
-            return False; # wouldn't be so immediately failing when :#[] form is supported
+        if nqp::atpos($baseradix, 2) == -1 {
+            return parsing-fail("Strange text after colon", nqp::atpos($baseradix, 2));
+        }
+
+        if !(2 <= nqp::atpos($baseradix, 0) <= 36) {
+            # wouldn't be so immediately failing when :#[] form is supported
+            return parsing-fail("Invalid radix of {nqp::atpos($baseradix, 0)} in adverb (must be in range 2..36)", nqp::atpos($baseradix, 2));
         }
 
         # get start point
@@ -387,12 +358,12 @@ multi sub val(Str $maybeval) {
 
         if !nqp::eqat($maybenum, '<', $numstart) {
             if nqp::eqat($maybenum, '[', $numstart) {
-                warn ":[] NYI for val()";
+                return parsing-fail(":#[] style adverbs NYI, sorry", $numstart);
             } elsif nqp::eqat($maybenum, '(', $numstart) {
-                warn ":() not supported by val()";
+                return parsing-fail(":#() style adverbs not supported by val(), please use EVAL($MAYBEVAL.perl()) instead", $numstart);
             }
 
-            return False;
+            return parsing-fail("Unknown text after radix in supposed adverbial number", $numstart);
         }
 
         $numstart++;
@@ -407,7 +378,7 @@ multi sub val(Str $maybeval) {
             $coend = nqp::index($maybenum, '>', $numstart);
 
             if $coend < nqp::chars($maybenum) - 1 {
-                return False;
+                return parsing-fail("Trailing garbage after supposed adverbial form", $coend + 1);
             }
 
             $coeff = nqp::substr($maybenum, $numstart, $coend - $numstart);
@@ -416,11 +387,14 @@ multi sub val(Str $maybeval) {
             if $nofrac {
                 $res = just-int($coeff, $defradix, :nosign);
             } else {
-                $res = try-possibles($coeff, { just-int($_, $defradix, :nosign) }, { point-rat($_, $defradix, :nosign, :adverb) });
+                $res = try-possibles($coeff, { point-rat($_, $defradix, :nosign, :adverb) },
+                                             { just-int($_, $defradix, :nosign) });
             }
 
-            unless $res === False || !$negated {
-                $res = -$res;
+            with $res {
+                $res = -$res if $negated;
+            } else {
+                $res = $res.stack-reason("Error parsing adverbial number: ").adjust-offset($numstart);
             }
 
             return $res;
@@ -429,17 +403,24 @@ multi sub val(Str $maybeval) {
         # we know we have a Num at this point, so no fractionals allowed means
         # failure
         if $nofrac {
-            return False;
+            return parsing-fail("Num adverbial detected where integer required (don't use * and ** here)", $coend);
         }
 
         # get a base and exponent
 
         $bend = nqp::index($maybenum, '**', $coend + 1);
-        return False if $bend == -1;
+        if $bend == -1 {
+            return parsing-fail("Missing ** in Num adverbial", $coend + 1);
+        }
 
-        $eend = nqp::index($maybenum, '>', $bend + 1);
-        return False if $eend == -1;
-        return False if $eend < nqp::chars($maybenum) - 1;
+        $eend = nqp::index($maybenum, '>', $bend + 2);
+        if $eend == -1 {
+            return parsing-fail("Missing > in Num adverbial", $bend + 2);
+        }
+
+        if $eend < (nqp::chars($maybenum) - 1) {
+            return parsing-fail("Trailing garbage after supposed adverbial number", $eend + 1);
+        }
 
         # get substrings
 
@@ -449,17 +430,25 @@ multi sub val(Str $maybeval) {
 
         # coefficient is at best a decimal number, base and exp can be adverbs themselves
 
-        $coeff = try-possibles($coeff, { just-int($_ , $defradix, :nosign) },
-                               { point-rat($_, $defradix, :nosign, :adverb) });
-        $base = try-possibles($base, { just-int($_ , 10, :$nosign) },
-                              { radix-adverb($_, :nofrac, :$nosign) });
-        $exp = try-possibles($exp, &just-int, { radix-adverb($_, :nofrac) });
+        $coeff = try-possibles($coeff, { point-rat($_, $defradix, :nosign, :adverb) },
+                                       { just-int($_ , $defradix, :nosign) });
+        $base = try-possibles($base, { radix-adverb($_, :nofrac, :$nosign) },
+                                     { just-int($_ , 10, :$nosign) });
+        $exp = try-possibles($exp, { radix-adverb($_, :nofrac) }, &just-int);
 
-        if $coeff === False || $base === False || $exp === False {
-            return False;
-        } else {
-            ($negated ?? -1 !! 1) * $coeff.Num * $base.Num ** $exp.Num;
+        without $coeff {
+            return $coeff.stack-reason("Problematic coefficient: ").adjust-offset($numstart);
         }
+
+        without $base {
+            return $base.stack-reason("Problematic base: ").adjust-offset($coend + 1);
+        }
+
+        without $exp {
+            return $exp.stack-reason("Problematic exponent: ").adjust-offset($bend + 2);
+        }
+
+        ($negated ?? -1 !! 1) * $coeff.Num * $base.Num ** $exp.Num;
     }
 
     ##| Rationals in fraction form
@@ -467,22 +456,28 @@ multi sub val(Str $maybeval) {
         my $slash = nqp::index($mayberat, '/');
 
         if $slash == -1 {
-            return False;
+            return parsing-fail("Required slash for fractional Rats not found");
         }
+
+        has-to-be-this;
 
         my $nstr = nqp::substr($mayberat, 0, $slash);
         my $dstr = nqp::substr($mayberat, $slash + 1);
 
         # Rat literals only allow integral numerators/denominators
-        my $numer = try-possibles($nstr, &just-int, { radix-adverb($_, :nofrac) });
-        my $denom = try-possibles($dstr, { just-int($_, :nosign) },
-                                  { radix-adverb($_, :nofrac, :nosign) });
+        my $numer = try-possibles($nstr, { radix-adverb($_, :nofrac) }, &just-int);
+        my $denom = try-possibles($dstr, { radix-adverb($_, :nofrac, :nosign) },
+                                         { just-int($_, :nosign) });
 
-        if $numer === False || $denom === False {
-            return False;
-        } else {
-            return Rat.new($numer, $denom);
+        without $numer {
+            return $numer.stack-reason("Problematic numerator: ");
         }
+
+        without $denom {
+            return $denom.stack-reason("Problematic denominator: ").adjust-offset($slash + 1);
+        }
+
+        return Rat.new($numer, $denom);
     }
 
     ##| Scientific notation Nums, or Inf/NaN
@@ -501,27 +496,35 @@ multi sub val(Str $maybeval) {
                 return NaN if nqp::iseq_s($maybenum, nqp::unbox_s("NaN"));
             }
 
-            return False;
+            return parsing-fail("Supposed scientific Num doesn't have 'e' or 'E', nor is 'Inf' or 'NaN'");
         }
+
+        has-to-be-this;
 
         my $cstr = nqp::substr($maybenum, 0, $e);
         my $estr = nqp::substr($maybenum, $e + 1);
 
-        my $coeff = try-possibles($cstr, {just-int($_, :e)}, &point-rat);
+        my $coeff = try-possibles($cstr, &point-rat, {just-int($_, :e)});
         my $exp   = just-int($estr, :e);
 
-        if $coeff === False || $exp === False {
-            return False;
-        } else {
-            return $coeff.Num * 10 ** $exp.Num;
+        without $coeff {
+            return $coeff.stack-reason("Bad coefficient: ");
         }
+
+        without $exp {
+            return $exp.stack-reason("Bad exponent: ").adjust-offset($e);
+        }
+
+        return $coeff.Num * 10 ** $exp.Num;
     }
 
     ##| Complex numbers
     sub complex-num($maybecmpx) {
         unless nqp::eqat($maybecmpx, 'i', nqp::chars($maybecmpx) - 1) {
-            return False;
+            return parsing-fail("No 'i' found for supposed complex number");
         }
+
+        has-to-be-this;
 
         my $escape-i = 0;
         $escape-i++ if nqp::eqat($maybecmpx, Q[\i], nqp::chars($maybecmpx) - 2);
@@ -547,21 +550,25 @@ multi sub val(Str $maybeval) {
         if $splitpos == nqp::chars($maybecmpx) { # purely imaginary
             my $istr = nqp::substr($maybecmpx, 0, nqp::chars($maybecmpx) - (1 + $escape-i));
             $re = 0;
-            $im = try-possibles($istr, &just-int, &point-rat, &science-num, &radix-adverb);
+            $im = try-possibles($istr, &radix-adverb, &science-num, &point-rat, &just-int);
         } else {
             my $rstr = nqp::substr($maybecmpx, 0, $splitpos);
             my $istr = nqp::substr($maybecmpx, $splitpos + 1, (nqp::chars($maybecmpx) - (1 + $escape-i)) - $splitpos - 1);
 
-            $re = try-possibles($rstr, &just-int, &point-rat, &science-num, &radix-adverb);
-            $im = try-possibles($istr, &just-int, &point-rat, &science-num, &radix-adverb);
+            $re = try-possibles($rstr, &radix-adverb, &science-num, &point-rat, &just-int);
+            $im = try-possibles($istr, &radix-adverb, &science-num, &point-rat, &just-int);
         }
 
-        if $re === False || $im === False {
-            return False;
+        without $re {
+            return $re.stack-reason("Problem with real part: ");
+        }
+
+        without $im {
+            return $im.stack-reason("Problem with imaginary part: ").adjust-offset($splitpos + 1);
         }
 
         if $im === (NaN|Inf|-Inf) && $escape-i == 0 { # don't let NaNi or Infi work, must be NaN\i or Inf\i
-            return False;
+            return parsing-fail("Imaginary unit must be escaped with an imaginary part of '$im', i.e. $im\\i", nqp::chars($maybecmpx) - 1);
         }
 
         return Complex.new($re, $im * $negated-im);
@@ -571,14 +578,21 @@ multi sub val(Str $maybeval) {
     # And now, finally, the part where we do something
     #
 
+    my $ws-off = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $MAYBEVAL, 0, $MAYBEVAL.chars);
+
     # get unboxed, trimmed string (calling .trim is at least not worse than
     # manually trimming the unboxed string ourselves, and perhaps a bit better).
-    my $as-str = nqp::unbox_s($maybeval.trim);
+    my $as-str = nqp::unbox_s($MAYBEVAL.trim);
 
-    my $as-parsed = try-possibles($as-str, &just-int, &point-rat, &frac-rat, &science-num, &radix-adverb, &complex-num);
+    my $as-parsed = try-possibles($as-str, &complex-num, &frac-rat, &radix-adverb, &science-num, &point-rat, &just-int);
 
-    if $as-parsed === False {
-        return $maybeval;
+    if !$as-parsed.defined {
+        if $val-or-fail {
+            fail X::Str::Numeric.new(source => $MAYBEVAL,
+                                     reason => $as-parsed.reason,
+                                     pos    => ($as-parsed.offset + $ws-off));
+        }
+        return $MAYBEVAL;
     } else {
         # construct appropriate allomorphic object. We wait until the end,
         # instead of having the above inner subs make them, because the other
@@ -586,19 +600,19 @@ multi sub val(Str $maybeval) {
         # make it a waste to construct an allomorphic object.
         given $as-parsed {
             when Int {
-                return IntStr.new($_, $maybeval);
+                return IntStr.new($_, $MAYBEVAL);
             }
 
             when Rat {
-                return RatStr.new($_, $maybeval);
+                return RatStr.new($_, $MAYBEVAL);
             }
 
             when Num {
-                return NumStr.new($_, $maybeval);
+                return NumStr.new($_, $MAYBEVAL);
             }
 
             when Complex {
-                return ComplexStr.new($_, $maybeval);
+                return ComplexStr.new($_, $MAYBEVAL);
             }
 
             default {

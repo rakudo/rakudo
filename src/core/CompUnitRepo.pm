@@ -2,6 +2,21 @@ role  CompUnitRepo::Locally             { ... }
 class CompUnitRepo::Local::File         { ... }
 class CompUnitRepo::Local::Installation { ... }
 
+my class Perl5ModuleLoaderStub {
+    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
+        {
+            CompUnitRepo.load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
+            CATCH {
+                $*W.find_symbol(nqp::list('X','NYI','Available')).new(
+                    :available('Inline::Perl5'), :feature('Perl 5')).throw;
+            }
+        }
+
+        # Inline::Perl5 has overwritten this module loader at this point
+        return CompUnitRepo.load_module($module_name, %opts, @GLOBALish, :$line, :$file);
+    }
+}
+
 class CompUnitRepo {
     my $lock     = Lock.new;
     my %modules_loaded;
@@ -10,6 +25,7 @@ class CompUnitRepo {
         # We're using Perl6::ModuleLoader instead of NQP's here,
         # so it can special-cases NQP wrt GLOBALish correctly.
         'NQP' => nqp::gethllsym('perl6', 'ModuleLoader'),
+        'Perl5' => Perl5ModuleLoaderStub,
     ;
 
     method register_language_module_loader($lang, $loader, :$force) {

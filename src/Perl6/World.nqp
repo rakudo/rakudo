@@ -3748,21 +3748,4 @@ class Perl6::World is HLL::World {
     }
 }
 
-my class Perl5ModuleLoaderStub {
-    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
-        {
-            self.find_symbol(['CompUnitRepo']).load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
-            CATCH {
-                $*W.find_symbol(nqp::list('X','NYI','Available')).new(
-                    :available('Inline::Perl5'), :feature('Perl 5')).throw;
-            }
-        }
-
-        # Inline::Perl5 has overwritten this module loader at this point
-        return Perl6::ModuleLoader.load_module($module_name, %opts, @GLOBALish, :$line, :$file);
-    }
-}
-
-nqp::gethllsym('perl6', 'ModuleLoader').register_language_module_loader('Perl5', Perl5ModuleLoaderStub);
-
 # vim: ft=perl6 expandtab sw=4

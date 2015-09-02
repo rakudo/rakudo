@@ -67,11 +67,10 @@ role STD {
             nqp::join("\0", @keybits)
         }
         sub con_lang() {
-            my $lang := $l.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+            my $lang := $l;
             for @base_tweaks {
                 $lang := $lang."tweak_$_"(1);
             }
-
             for @extra_tweaks {
                 my $t := $_[0];
                 if nqp::can($lang, "tweak_$t") {
@@ -313,7 +312,6 @@ role STD {
         }
         if !$*IN_DECL && nqp::istype($varast, QAST::Var) && $varast.scope eq 'lexical' {
             my $name := $varast.name;
-
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
                     if !$*STRICT {
@@ -3549,11 +3547,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
             [ <?[>]> <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
-            <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w', 'v']))>
+            <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))>
         ]
     }
-    token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww', 'v']))> }
-    token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww', 'v']))> }
+    token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
+    token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
     token circumfix:sym<{ }> {
         :my $*FAKE_INFIX_FOUND := 0;
         <?[{]> <pblock(1)>
@@ -3885,7 +3883,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token postcircumfix:sym<ang> {
         '<'
         [
-        || <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w', 'v']))> '>'
+        || <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
         || <?before \h* [ \d | <sigil> | ':' ] >
            { $/.CURSOR.panic("Whitespace required before < operator") }
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
@@ -3897,7 +3895,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('shell-quote words')
         '<<'
         [
-        || <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww', 'v']))> '>>'
+        || <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> '>>'
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O('%methodcall')>
@@ -3907,7 +3905,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('shell-quote words')
         '«'
         [
-        || <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww', 'v']))> '»'
+        || <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> '»'
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O('%methodcall')>
@@ -4603,7 +4601,32 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<&> { <!> }
     }
 
-    role ww {
+    role p1 {
+        method postprocessor () { 'path' }
+    }
+
+    role p0 {
+        method postprocessor () { 'null' }
+    }
+
+    role v1 {
+        method postprocessor () { 'val' }
+    }
+
+    role v0 {
+        method postprocessor () { 'null' }
+    }
+
+    role w1 {
+        method postprocessor () { 'words' }
+    }
+
+    role w0 {
+        method postprocessor () { 'null' }
+    }
+
+    role ww1 {
+        method postprocessor () { 'quotewords' }
         token escape:sym<' '> {
             <?[']> <quote=.LANG('MAIN','quote')>
         }
@@ -4621,9 +4644,21 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         }
     }
 
+    role ww0 {
+        method postprocessor () { 'null' }
+    }
+
+    role x1 {
+        method postprocessor () { 'run' }
+    }
+
+    role x0 {
+        method postprocessor () { 'null' }
+    }
+
     role to[$herelang] {
         method herelang() { $herelang }
-        method postprocessors () { nqp::list_s('heredoc') } # heredoc strings are the only postproc when present
+        method postprocessor () { 'heredoc' }
     }
 
     role q {
@@ -4789,62 +4824,18 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_c($v)          { self.HOW.mixin(self, $v ?? c1 !! c0) }
     method tweak_closure($v)    { self.tweak_c($v) }
 
-    method add-postproc(str $newpp) {
-        my @pplist := nqp::list_s();
-
-        if nqp::can(self, "postprocessors") {
-            @pplist := self.postprocessors;
-        }
-
-        # once we have a heredoc marker, we're being asked to tweak the parser
-        # for the stop string (the HERE in q:to/HERE/), and no longer the parser
-        # for the string contents. We could probably get at the contents parser
-        # (it's curried as $herelang to the 'to' role, available through
-        # self.herelang now) and add subsequent postproc adverbs correctly, but
-        # for now we'll take the more careful route and require :to/:heredoc to
-        # be at the end of the chain of adverbs.
-        if nqp::elems(@pplist) && nqp::atpos_s(@pplist, 0) eq "heredoc" {
-            self.panic("Heredoc adverb must be the last one")
-        }
-
-        nqp::push_s(@pplist, $newpp);
-
-        # yes, the currying is necessary. Otherwise weird things can happen,
-        # e.g.  perl6 -e 'q:w:x//; q:ww:v//' turning the second into q:w:x:v//
-        role postproc[@curlist] {
-            method postprocessors() {
-                @curlist;
-            }
-        }
-
-        my $new := self.HOW.mixin(self, postproc.HOW.curry(postproc, @pplist));
-
-        $new;
-    }
-
-# path() NYI
-#    method tweak_p($v)          { $v ?? self.add-postproc("path") !! self }
-#    method tweak_path($v)       { self.tweak_p($v) }
-
-    method tweak_x($v)          { $v ?? self.add-postproc("run") !! self }
+    method tweak_x($v)          { self.HOW.mixin(self, $v ?? x1 !! x0) }
     method tweak_exec($v)       { self.tweak_x($v) }
-    method tweak_w($v)          { $v ?? self.add-postproc("words") !! self }
+    method tweak_w($v)          { self.HOW.mixin(self, $v ?? w1 !! w0) }
     method tweak_words($v)      { self.tweak_w($v) }
-    method tweak_ww($v)         { $v ?? self.add-postproc("quotewords").HOW.mixin(self, ww) !! self }
+    method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
     method tweak_quotewords($v) { self.tweak_ww($v) }
-
-    method tweak_v($v)          { $v ?? self.add-postproc("val") !! self }
-    method tweak_val($v)        { self.tweak_v($v) }
 
     method tweak_cc($v)         { self.truly($v, ':cc'); self.HOW.mixin(self, cc); }
 
     method tweak_to($v) {
         self.truly($v, ':to');
-
-        # the cursor_init is to make sure the .panic in add-postproc works, and
-        # to ensure it's been initalized the same way 'self' was back in
-        # quote_lang
-        %*LANG<Q>.HOW.mixin(%*LANG<Q>, to.HOW.curry(to, self)).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
+        %*LANG<Q>.HOW.mixin(%*LANG<Q>, to.HOW.curry(to, self))
     }
     method tweak_heredoc($v)    { self.tweak_to($v) }
 

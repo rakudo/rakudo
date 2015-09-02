@@ -142,7 +142,6 @@ J_CORE_SOURCES = \
   src/core/IO/ArgFiles.pm \
   src/core/AST.pm \
   src/core/CallFrame.pm \
-  src/core/allomorphs.pm \
   src/core/Main.pm \
   src/core/tai-utc.pm \
   src/core/Instant.pm \

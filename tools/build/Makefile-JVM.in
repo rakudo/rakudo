@@ -224,6 +224,9 @@ J_CLEANUPS = \
   $(SETTING_JAR) \
   $(PERL6_JAR) \
   lib/NativeCall.pm.jar \
+  lib/NativeCall/Types.pm.jar \
+  lib/NativeCall/Compiler/GNU.pm.jar \
+  lib/NativeCall/Compiler/MSVC.pm.jar \
   lib/Test.pm.jar \
   lib/lib.pm6.jar \
   lib/Pod/To/Text.pm.jar \
@@ -240,7 +243,8 @@ J_CLEANUPS = \
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 J_HARNESS = $(PERL) t/harness --jvm
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/lib.pm6.jar lib/Pod/To/Text.pm.jar lib/NativeCall.pm.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/nqp.pm6.jar lib/Pod/To/Text.pm.jar \
+    lib/NativeCall.pm.jar lib/NativeCall/Types.pm.jar lib/NativeCall/Compiler/GNU.pm.jar lib/NativeCall/Compiler/MSVC.pm.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -319,8 +323,17 @@ $(J_DEBUG_RUNNER): tools/build/create-jvm-runner.pl $(PERL6_DEBUG_JAR)
 	$(PERL) tools/build/create-jvm-runner.pl dev-debug . . $(NQP_PREFIX) $(NQP_JARS)
 
 ##  shipped modules
-lib/NativeCall.pm.jar: lib/NativeCall.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
-	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall.pm.jar -Ilib lib/NativeCall.pm
+lib/NativeCall.pm.jar: lib/NativeCall.pm lib/NativeCall/Types.pm.jar lib/NativeCall/Compiler/GNU.pm.jar lib/NativeCall/Compiler/MSVC.pm.jar $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar -Ilib --output=lib/NativeCall.pm.jar lib/NativeCall.pm
+
+lib/NativeCall/Types.pm.jar: lib/NativeCall/Types.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar --output=lib/NativeCall/Types.pm.jar lib/NativeCall/Types.pm
+
+lib/NativeCall/Compiler/GNU.pm.jar: lib/NativeCall/Compiler/GNU.pm lib/NativeCall/Types.pm.jar $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar -Ilib --output=lib/NativeCall/Compiler/GNU.pm.jar lib/NativeCall/Compiler/GNU.pm
+
+lib/NativeCall/Compiler/MSVC.pm.jar: lib/NativeCall/Compiler/MSVC.pm lib/NativeCall/Types.pm.jar $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar -Ilib --output=lib/NativeCall/Compiler/MSVC.pm.jar lib/NativeCall/Compiler/MSVC.pm
 
 lib/Test.pm.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.pm.jar -Ilib lib/Test.pm
@@ -387,6 +400,14 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) lib/NativeCall.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/NativeCall.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
+	$(CP) lib/NativeCall/Types.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
+	$(CP) lib/NativeCall/Types.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/GNU.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/GNU.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/MSVC.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/MSVC.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
 	$(CP) lib/Test.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/Test.pm.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/lib.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib

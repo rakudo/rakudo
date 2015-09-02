@@ -66,6 +66,9 @@ M_CLEANUPS = \
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
   lib/NativeCall.pm.moarvm \
+  lib/NativeCall/Types.pm.moarvm \
+  lib/NativeCall/Compiler/GNU.pm.moarvm \
+  lib/NativeCall/Compiler/MSVC.pm.moarvm \
   lib/Test.pm.moarvm \
   lib/lib.pm6.moarvm \
   lib/Pod/To/Text.pm.moarvm \
@@ -85,7 +88,8 @@ M_CLEANUPS = \
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
-m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/Pod/To/Text.pm.moarvm lib/NativeCall.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/Pod/To/Text.pm.moarvm \
+    lib/NativeCall.pm.moarvm lib/NativeCall/Types.pm.moarvm lib/NativeCall/Compiler/GNU.pm.moarvm lib/NativeCall/Compiler/MSVC.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
@@ -186,8 +190,17 @@ $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
 ##  shipped modules
-lib/NativeCall.pm.moarvm: lib/NativeCall.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc --output=lib/NativeCall.pm.moarvm -Ilib lib/NativeCall.pm
+lib/NativeCall.pm.moarvm: lib/NativeCall.pm lib/NativeCall/Types.pm.moarvm lib/NativeCall/Compiler/GNU.pm.moarvm lib/NativeCall/Compiler/MSVC.pm.moarvm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	.@slash@$(M_RUNNER) --target=mbc -Ilib --output=lib/NativeCall.pm.moarvm lib/NativeCall.pm
+
+lib/NativeCall/Types.pm.moarvm: lib/NativeCall/Types.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	.@slash@$(M_RUNNER) --target=mbc --output=lib/NativeCall/Types.pm.moarvm lib/NativeCall/Types.pm
+
+lib/NativeCall/Compiler/GNU.pm.moarvm: lib/NativeCall/Compiler/GNU.pm lib/NativeCall/Types.pm.moarvm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	.@slash@$(M_RUNNER) --target=mbc -Ilib --output=lib/NativeCall/Compiler/GNU.pm.moarvm lib/NativeCall/Compiler/GNU.pm
+
+lib/NativeCall/Compiler/MSVC.pm.moarvm: lib/NativeCall/Compiler/MSVC.pm lib/NativeCall/Types.pm.moarvm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	.@slash@$(M_RUNNER) --target=mbc -Ilib --output=lib/NativeCall/Compiler/MSVC.pm.moarvm lib/NativeCall/Compiler/MSVC.pm
 
 lib/Test.pm.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
 	.@slash@$(M_RUNNER) --target=mbc --output=lib/Test.pm.moarvm -Ilib lib/Test.pm
@@ -249,6 +262,14 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
 	$(CP) lib/NativeCall.pm lib/Test.pm lib/lib.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) lib/NativeCall.pm.moarvm lib/Test.pm.moarvm lib/lib.pm6.moarvm  $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
+	$(CP) lib/NativeCall/Types.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
+	$(CP) lib/NativeCall/Types.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/GNU.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/GNU.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/MSVC.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
+	$(CP) lib/NativeCall/Compiler/MSVC.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) lib/Pod/To/Text.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) lib/Pod/To/Text.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To

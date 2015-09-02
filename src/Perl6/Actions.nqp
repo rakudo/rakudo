@@ -7964,10 +7964,6 @@ class Perl6::QActions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method postprocess_null($/, $past) {
-        $past
-    }
-
     method postprocess_run($/, $past) {
         QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
     }

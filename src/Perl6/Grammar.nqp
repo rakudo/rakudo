@@ -4603,31 +4603,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<&> { <!> }
     }
 
-    role p1 {
-        method postprocessor () { 'path' }
-    }
-
-    role p0 {
-        method postprocessor () { 'null' }
-    }
-
-    role v1 {
-        method postprocessor () { 'val' }
-    }
-
-    role v0 {
-        method postprocessor () { 'null' }
-    }
-
-    role w1 {
-        method postprocessor () { 'words' }
-    }
-
-    role w0 {
-        method postprocessor () { 'null' }
-    }
-
-    role ww1 {
+    role ww {
         token escape:sym<' '> {
             <?[']> <quote=.LANG('MAIN','quote')>
         }
@@ -4846,11 +4822,15 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         $new;
     }
 
+# path() NYI
+#    method tweak_p($v)          { $v ?? self.add-postproc("path") !! self }
+#    method tweak_path($v)       { self.tweak_p($v) }
+
     method tweak_x($v)          { $v ?? self.add-postproc("run") !! self }
     method tweak_exec($v)       { self.tweak_x($v) }
     method tweak_w($v)          { $v ?? self.add-postproc("words") !! self }
     method tweak_words($v)      { self.tweak_w($v) }
-    method tweak_ww($v)         { $v ?? self.add-postproc("quotewords").HOW.mixin(self, ww1) !! self }
+    method tweak_ww($v)         { $v ?? self.add-postproc("quotewords").HOW.mixin(self, ww) !! self }
     method tweak_quotewords($v) { self.tweak_ww($v) }
 
     method tweak_v($v)          { $v ?? self.add-postproc("val") !! self }

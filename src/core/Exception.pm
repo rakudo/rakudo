@@ -1522,22 +1522,14 @@ my class X::Str::Numeric is Exception {
     has $.pos;
     has $.reason;
     method source-indicator {
-        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
-        my $goodpart = $color ?? "\e[32m" !! "";
-        my $ejection = $color ?? "\e[33m\c[EJECT SYMBOL]" !! "\c[EJECT SYMBOL]";
-        my $badpart  = $color ?? "\e[31m" !! "";
-        my $clearcol = $color ?? "\e[0m" !! "";
+        my constant marker = chr(0x23CF);
         my sub escape($str) { $str.perl.substr(1).chop }
         join '', "in '",
-                $goodpart,
                 escape(substr($.source,0, $.pos)),
-                $ejection,
-                $badpart,
+                marker,
                 escape(substr($.source,$.pos)),
-                $clearcol,
                 "' (indicated by ",
-                $ejection,
-                $clearcol,
+                marker,
                 ")",
                 ;
     }

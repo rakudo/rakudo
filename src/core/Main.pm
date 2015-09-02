@@ -1,4 +1,11 @@
 # TODO:
+# * Align number parsing to STD
+#   * Rakudo's .Numeric
+#     * complex numbers
+#   * Rakudo's grammar
+#   * val()
+# * Strengthen val()
+#   * Make val() available globally
 # * $?USAGE
 #   * Create $?USAGE at compile time
 #   * Make $?USAGE available globally
@@ -13,11 +20,29 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
+    # Temporary stand-in for magic val() routine
+    my sub hack-val ($v) {
+        # Convert to native type if appropriate
+
+        my $val;
+        if    $v ~~ /^ 'Bool::'?'False' $/ { $val := Bool::False }
+        elsif $v ~~ /^ 'Bool::'?'True'  $/ { $val := Bool::True  }
+        elsif $v.Numeric.defined           { $val := +$v }
+        else                               { return $v   }
+
+        # Mix in original stringifications
+        my role orig-string[$orig] {
+                  method Str  ()      { $orig.Str  }
+            multi method gist (Mu:D:) { $orig.gist }
+        };
+        $val but orig-string[$v];
+    }
+
     # Convert raw command line args into positional and named args for MAIN
-    my sub process-cmd-args(@args is copy) {
+    my sub process-cmd-args (@args is copy) {
         my (@positional-arguments, %named-arguments);
         my $stopped = False;
-        while +@args {
+        while (@args) {
             my $passed-value = @args.shift;
             $stopped = $passed-value eq '--';
             if !$stopped && $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {
@@ -25,7 +50,7 @@ my sub MAIN_HELPER($retval = 0) {
 
                 with $arg.index('=') {
                     my ($name, $value) = $arg.split('=', 2);
-                    $value = val($value);
+                    $value = hack-val($value);
                     $value = $value but False if $negate;
                     %named-arguments.push: $name => $value;
                 } else {
@@ -33,7 +58,7 @@ my sub MAIN_HELPER($retval = 0) {
                 }
             } else {
                 @args.unshift($passed-value) unless $passed-value eq '--';
-                @positional-arguments.push: @args.map: &val;
+                @positional-arguments.push: @args.map: &hack-val;
                 last;
             }
         }
@@ -42,7 +67,7 @@ my sub MAIN_HELPER($retval = 0) {
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
-    my sub gen-usage() {
+    my sub gen-usage () {
         my @help-msgs;
 
         my sub strip_path_prefix($name) {

@@ -2307,29 +2307,35 @@ class Perl6::World is HLL::World {
         if (nqp::istype($ast, QAST::Stmts) || nqp::istype($ast, QAST::Stmt)) && +@($ast) == 1 {
             $ast := $ast[0];
         }
+
         if $ast.has_compile_time_value {
             return nqp::unbox_s($ast.compile_time_value);
-        }
-        elsif nqp::istype($ast, QAST::Op) && $ast.name eq '&infix:<,>' {
-            my @pieces;
-            for @($ast) {
-                if $_.has_compile_time_value {
-                    nqp::push(@pieces, nqp::unbox_s($_.compile_time_value));
+        } elsif nqp::istype($ast, QAST::Op) {
+            if $ast.name eq '&infix:<,>' {
+                my @pieces;
+                for @($ast) {
+                    if $_.has_compile_time_value {
+                        nqp::push(@pieces, nqp::unbox_s($_.compile_time_value));
+                    }
+                    else {
+                        $/.CURSOR.panic($mkerr());
+                    }
                 }
-                else {
-                    $/.CURSOR.panic($mkerr());
-                }
+                return join(' ', @pieces);
+            } elsif $ast.name eq '&val' {
+                # we ignore the val() here (since we clearly want a string
+                # anyway) and focus on what's inside the val (which could be a
+                # single thing or a list of things, as done above)
+                self.nibble_to_str($/, $ast[0], $mkerr);
             }
-            return join(' ', @pieces);
-        }
-        else {
+        } else {
             $/.CURSOR.panic($mkerr());
         }
     }
 
     method colonpair_nibble_to_str($/, $nibble) {
         self.nibble_to_str($/, $nibble.ast,
-            -> { "Colon pair value '$nibble' too complex to use in name" })
+            -> { "Colon pair value '$nibble' too complex to use in name" });
     }
 
     # Takes a declarator name and locates the applicable meta-object for it.
@@ -3013,6 +3019,14 @@ class Perl6::World is HLL::World {
                 }
                 else {
                     my $ast := $_.ast;
+
+                    # XXX hackish for dealing with <longname> stuff, which
+                    # doesn't get handled in a consistent way like <deflongname>
+                    # stuff. The better solution, in the long run, is to
+                    # uniformly run longname through nibble_to_str before this
+                    if nqp::istype($ast, QAST::Op) && $ast.name eq '&val' {
+                        $ast := $ast[0];
+                    }
                     $cp_str := nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal)
                         ?? ':<' ~ $ast[2].value ~ '>'
                         !! ~$_;

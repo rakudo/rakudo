@@ -1950,6 +1950,7 @@ Compilation unit '$file' contained the following violations:
         if $*IN_DECL eq 'variable' {
             $past.annotate('sink_ok', 1);
         }
+
         make $past;
     }
 
@@ -3723,6 +3724,15 @@ Compilation unit '$file' contained the following violations:
         my $Pair := $*W.find_symbol(['Pair']);
         my @values;
         my $term_ast := $<term>.ast;
+
+        # XXX for now we assume enums want pure Strs, so we get rid of &val for
+        # enums. If enums would like allomorphic types as keys, this won't
+        # suffice (you'd have to the the &val Op and wrap each arg individually
+        # with it).
+        if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
+            $term_ast := $term_ast[0];
+        }
+
         if $term_ast.isa(QAST::Stmts) && +@($term_ast) == 1 {
             $term_ast := $term_ast[0];
         }
@@ -6231,8 +6241,9 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
+                   nqp::istype($nib[0], QAST::Stmts) &&
+                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
         make $past;
     }
 
@@ -6240,8 +6251,9 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
+                   nqp::istype($nib[0], QAST::Stmts) &&
+                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
         make $past;
     }
 
@@ -6249,8 +6261,9 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
+                   nqp::istype($nib[0], QAST::Stmts) &&
+                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
         make $past;
     }
 
@@ -7997,21 +8010,22 @@ class Perl6::QActions is HLL::Actions does STDActions {
             $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
         }
 
-        if nqp::can($/.CURSOR, 'postprocessor') {
-            my $pp := $/.CURSOR.postprocessor;
-            $past := self."postprocess_$pp"($/, $past);
+        if nqp::can($/.CURSOR, 'postprocessors') {
+            for $/.CURSOR.postprocessors -> $pp {
+                $past := self."postprocess_$pp"($/, $past);
+            }
         }
 
         $past.node($/);
         make $past;
     }
 
-    method postprocess_null($/, $past) {
-        $past
-    }
-
     method postprocess_run($/, $past) {
         QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
+    }
+
+    method postprocess_val($/, $past) {
+        QAST::Op.new(:name('&val'), :op('call'), :node($/), $past);
     }
 
     method postprocess_words($/, $past) {

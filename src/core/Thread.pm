@@ -45,6 +45,10 @@ my class Thread {
         self
     }
 
+    method join(Thread:D:) {
+        self.finish
+    }
+
     multi method Str(Thread:D:) {
         "Thread<$.id>($.name)"
     }

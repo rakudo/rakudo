@@ -44,6 +44,7 @@ S02-lexical-conventions/unspace.t
 S02-lists/indexing.t
 S02-lists/tree.t
 S02-literals/adverbs.t
+S02-literals/allomorphic.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t

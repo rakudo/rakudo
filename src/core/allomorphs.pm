@@ -1,14 +1,13 @@
+# the uses of add_I in this class are a trick to make bigints work right
 my class IntStr is Int is Str {
     method new(Int $i, Str $s) {
-        my \SELF = nqp::create(self);
-        # XXX this bindattr_i fails for bigints
-        nqp::bindattr_i(SELF, Int, '$!value', $i);
+        my \SELF = nqp::add_I($i, 0, IntStr);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
 
     multi method Numeric(IntStr:D:) { self.Int }
-    method Int(IntStr:D:) { nqp::getattr_i(self, Int, '$!value') }
+    method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
     multi method gist(IntStr:D:) {

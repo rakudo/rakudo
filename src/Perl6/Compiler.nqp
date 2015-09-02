@@ -171,7 +171,7 @@ class Perl6::Compiler is HLL::Compiler {
  
           -c                   check syntax only (runs BEGIN and CHECK blocks)
           --doc                extract documentation and print it as text
-          -e program           one line of program, strict is disabled by default
+          -e program           one line of program, strict is enabled by default
           -h, --help           display this help text
           -n                   run program once for each line of input
           -p                   same as -n, but also print \$_ at the end of lines

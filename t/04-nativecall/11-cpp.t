@@ -2,8 +2,6 @@ use v6;
 use NativeCall;
 use Test;
 
-plan 21;
-
 my $cmd    = $*DISTRO.is-win
            ?? 'cl /LD /EHsc /Fe11-cpp.dll t/04-nativecall/11-cpp.cpp'
            !! 'g++ --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
@@ -11,9 +9,11 @@ my $handle = shell("$cmd 2>&1", :out);
 my $output = $handle.out.slurp-rest;
 if $handle.out.close.status -> $status {
     diag "Error while compiling C++ script:\n$output";
-    skip-rest 'Failed to compile C++ script';
-    exit $status
+    print "1..0 # Skip: Cannot compile C++ script\n";
+    exit 0
 }
+
+plan 21;
 
 #~ shell 'dumpbin /exports 11-cpp.dll';
 #~ shell 'clang --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';

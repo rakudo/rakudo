@@ -2,8 +2,6 @@ use v6;
 use NativeCall;
 use Test;
 
-plan 20;
-
 my $cmd    = $*DISTRO.is-win
            ?? 'cl /LD /EHsc /Fe13-cpp-mangling.dll t/04-nativecall/13-cpp-mangling.cpp'
            !! 'g++ --shared -fPIC -o 13-cpp-mangling.so t/04-nativecall/13-cpp-mangling.cpp';
@@ -11,9 +9,11 @@ my $handle = shell("$cmd 2>&1", :out);
 my $output = $handle.out.slurp-rest;
 if $handle.out.close.status -> $status {
     diag "Error while compiling C++ script:\n$output";
-    skip-rest 'Failed to compile C++ script';
-    exit $status
+    print "1..0 # Skip: Cannot compile C++ script\n";
+    exit 0
 }
+
+plan 20;
 
 # shell 'dumpbin /exports 13-cpp-mangling.dll';
 

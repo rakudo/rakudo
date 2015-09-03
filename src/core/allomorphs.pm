@@ -596,6 +596,21 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
     # And now, finally, the part where we do something
     #
 
+    # First, check if there's any kind of digit in the string. If not, we can
+    # fail or return the string right away. This only fails to work on "i"
+    # (which I'm unsure if it should work) and "Inf"/"NaN"
+    unless nqp::findcclass(nqp::const::CCLASS_NUMERIC, $MAYBEVAL, 0, $MAYBEVAL.chars) < $MAYBEVAL.chars {
+        unless nqp::index($MAYBEVAL, "Inf") > -1 || nqp::index($MAYBEVAL, "NaN") > -1 {
+            if $val-or-fail {
+                fail X::Str::Numeric.new(source => $MAYBEVAL,
+                                         reason => "Contains no digits, cannot be a number",
+                                         pos    => 0);
+            } else {
+                return $MAYBEVAL;
+            }
+        }
+    }
+
     my $ws-off = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $MAYBEVAL, 0, $MAYBEVAL.chars);
 
     # get unboxed, trimmed string (calling .trim is at least not worse than

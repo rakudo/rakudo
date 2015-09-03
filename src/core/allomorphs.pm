@@ -188,6 +188,80 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
     #  docs/val.pod6  describes what's going on in this sub; take a look if you're lost!
     #
 
+    # get trimmed string
+    my $str-form = nqp::unbox_s($MAYBEVAL.trim);
+
+    # cover all the cases without any numerals
+    return NumStr.new(Inf, $MAYBEVAL) if $str-form eq "Inf" || $str-form eq "+Inf";
+    return NumStr.new(NaN, $MAYBEVAL) if $str-form eq "NaN" || $str-form eq "+NaN";
+    return NumStr.new(-Inf, $MAYBEVAL) if $str-form eq "-Inf";
+    return NumStr.new(-NaN, $MAYBEVAL) if $str-form eq "-NaN";
+#    return ComplexStr.new(i, $MAYBEVAL) if $str-form eq "i";
+
+    # die if there's no digits, since now there's no way it could be a val.
+    unless nqp::findcclass(nqp::const::CCLASS_NUMERIC, $str-form, 0, nqp::chars($str-form)) < nqp::chars($str-form) {
+        if $val-or-fail {
+            fail X::Str::Numeric.new(source => $MAYBEVAL,
+                                     reason => "No digits in value, cannot possibly be a value",
+                                     pos    => 0);
+        }
+        return $MAYBEVAL;
+    }
+
+    my $val-form;
+
+    if nqp::eqat($str-form, ':', 0) || nqp::eqat($str-form, ':', 1) {
+        $val-form = radix-adverb($str-form);
+    } elsif nqp::eqat($str-form, 'i', nqp::chars($str-form) - 1) {
+        $val-form = complex-num($str-form);
+    } elsif nqp::index($str-form, '/') > -1 {
+        $val-form = frac-rat($str-form);
+    } elsif nqp::index($str-form, 'e') > -1 || nqp::index($str-form, 'E') > -1 {
+        # can be a scientific num or an integer
+        $val-form = science-num($str-form) // just-int($str-form);
+    } elsif nqp::index($str-form, '.') > -1 {
+        $val-form = point-rat($str-form);
+    } else {
+        $val-form = just-int($str-form);
+    }
+
+    with $val-form {
+        given $val-form {
+            when Int {
+                return IntStr.new($_, $MAYBEVAL);
+            }
+
+            when Rat {
+                return RatStr.new($_, $MAYBEVAL);
+            }
+
+            when Num {
+                return NumStr.new($_, $MAYBEVAL);
+            }
+
+            when Complex {
+                return ComplexStr.new($_, $MAYBEVAL);
+            }
+
+            default {
+                die "Unknown type from val() processing: {$_.WHAT}";
+            }
+        }
+    } else {
+        if $val-or-fail {
+            my $ws-off = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $MAYBEVAL, 0, $MAYBEVAL.chars);
+            fail X::Str::Numeric.new(source => $MAYBEVAL,
+                                     reason => $val-form.reason,
+                                     pos    => ($val-form.offset + $ws-off));
+        }
+
+        return $MAYBEVAL;
+    }
+
+    #
+    # Here's where the subs used are defined
+    #
+
     ##| checks if number is to be negated, and chops off the sign
     sub is-negated($val) {
         nqp::eqat($val, '-', 0) ?? 1 !! 0;
@@ -213,9 +287,8 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
     }
 
     my $really-no-doubt;
-    sub try-possibles($checking, *@funcs, :$toplevel) {
+    sub try-possibles($checking, *@funcs) {
         my $cand;
-        my $*LAST_CHANCE = 0;
         for @funcs -> &trying {
             $cand = &trying($checking);
             last if $*LAST_CHANCE;
@@ -223,14 +296,13 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
                 last;
             }
         }
-        $really-no-doubt = $*LAST_CHANCE if $toplevel;
         $cand;
     }
 
     ##| Works like :: in regexes, tells try-possibles that the sub that called
     ##| this has to be the right choice, or else nothing is. (aka, the potential
     ##| number given to val() "has to be this")
-    sub has-to-be-this { $*LAST_CHANCE = 1 }
+    sub has-to-be-this { }
 
     # passing around a regular ol' Failure will cause Perl 6 to hang, for
     # whatever reason, so we use this "fake" class instead. Incidentally it lets
@@ -590,72 +662,5 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
         }
 
         return Complex.new($re, $im * $negated-im);
-    }
-
-    #
-    # And now, finally, the part where we do something
-    #
-
-    # First, check if there's any kind of digit in the string. If not, we can
-    # fail or return the string right away. This only fails to work on "i"
-    # (which I'm unsure if it should work) and "Inf"/"NaN"
-    unless nqp::findcclass(nqp::const::CCLASS_NUMERIC, $MAYBEVAL, 0, $MAYBEVAL.chars) < $MAYBEVAL.chars {
-        unless nqp::index($MAYBEVAL, "Inf") > -1 || nqp::index($MAYBEVAL, "NaN") > -1 {
-            if $val-or-fail {
-                fail X::Str::Numeric.new(source => $MAYBEVAL,
-                                         reason => "Contains no digits, cannot be a number",
-                                         pos    => 0);
-            } else {
-                return $MAYBEVAL;
-            }
-        }
-    }
-
-    my $ws-off = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $MAYBEVAL, 0, $MAYBEVAL.chars);
-
-    # get unboxed, trimmed string (calling .trim is at least not worse than
-    # manually trimming the unboxed string ourselves, and perhaps a bit better).
-    my $as-str = nqp::unbox_s($MAYBEVAL.trim);
-
-    my $as-parsed = try-possibles($as-str, &complex-num, &frac-rat, &radix-adverb, &science-num, &point-rat, &just-int, :toplevel);
-
-    if !$as-parsed.defined {
-        if $val-or-fail {
-            # if $really-no-doubt isn't set, that means we didn't fail at a
-            # point where we knew for sure what kind of literal we got. Express
-            # that doubt now.
-            $as-parsed.doubt-reason unless $really-no-doubt;
-
-            fail X::Str::Numeric.new(source => $MAYBEVAL,
-                                     reason => $as-parsed.reason,
-                                     pos    => ($as-parsed.offset + $ws-off));
-        }
-        return $MAYBEVAL;
-    } else {
-        # construct appropriate allomorphic object. We wait until the end,
-        # instead of having the above inner subs make them, because the other
-        # inner subs calling would just convert them back to numeric-only, and
-        # make it a waste to construct an allomorphic object.
-        given $as-parsed {
-            when Int {
-                return IntStr.new($_, $MAYBEVAL);
-            }
-
-            when Rat {
-                return RatStr.new($_, $MAYBEVAL);
-            }
-
-            when Num {
-                return NumStr.new($_, $MAYBEVAL);
-            }
-
-            when Complex {
-                return ComplexStr.new($_, $MAYBEVAL);
-            }
-
-            default {
-                die "Unknown type from val() processing: {$_.WHAT}";
-            }
-        }
     }
 }

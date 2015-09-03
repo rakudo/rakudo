@@ -214,6 +214,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Numeric(Str:D: :$strict = True) {
+        # Handle special empty string
+        return 0 if self eq "";
+
         my $strval = val(self, :val-or-fail);
 
         # return a pure numeric value, not an allomorphic type, if successful

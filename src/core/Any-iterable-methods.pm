@@ -19,6 +19,11 @@ augment class Any {
 
     proto method map(|) { * }
 
+    multi method map(\SELF: Whatever, |c) {
+        # XXX nextwith/callwith would not work here
+        SELF.map(-> $star is parcel { $star }, |c)
+    }
+
     multi method map(\SELF: &block, :$label, :$item) {
         sequential-map(as-iterable($item ?? (SELF,) !! SELF).iterator, &block, :$label);
     }

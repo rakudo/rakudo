@@ -153,6 +153,6 @@ todo( 'failing is-deeply returns False' );
 my $is-deeply = is-deeply {a => 1}, {}, 'is-deeply with exta key fails';
 nok $is-deeply, 'failing is-deeply returns False';
 
-done;
+done-testing;
 
 # vim: ft=perl6

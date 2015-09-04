@@ -279,16 +279,16 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
 multi sub trait_mod:<is>(Routine:D \r, :$export!) {
     my $to_export := r.multi ?? r.dispatcher !! r;
     my $exp_name  := '&' ~ r.name;
-    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
-                       nqp::istype($export,Positional) ?? @($export)>>.key !!
-                       'DEFAULT');
+    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
+                            nqp::istype($export,Positional) ?? @($export)>>.key !!
+                            'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^name;
-    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
-                       nqp::istype($export,Positional) ?? @($export)>>.key !!
-                       'DEFAULT');
+    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
+                            nqp::istype($export,Positional) ?? @($export)>>.key !!
+                            'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, type);
     if nqp::istype(type.HOW, Metamodel::EnumHOW) {
         type.^set_export_callback( {
@@ -300,9 +300,9 @@ multi sub trait_mod:<is>(Mu:U \type, :$export!) {
 }
 # for constants
 multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
-    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
-                    nqp::istype($export,Positional) ?? @($export)>>.key !!
-                    'DEFAULT');
+    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
+                            nqp::istype($export,Positional) ?? @($export)>>.key !!
+                            'DEFAULT');
     EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
 

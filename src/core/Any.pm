@@ -1,4 +1,3 @@
-my class MapIter                { ... }
 my class Pair                   { ... }
 my class Range                  { ... }
 my class X::Adverb::Slice       { ... }
@@ -55,100 +54,70 @@ my class Any { # declared in BOOTSTRAP
     multi method DELETE-POS(Any:D: $pos) {
         fail "Can not remove elements from a {self.^name}";
     }
+    multi method DELETE-POS(**@indices) {
+        my $final := @indices.pop;
+        my $target := self;
+        for @indices {
+            $target := $target.AT-POS($_);
+        }
+        $target.DELETE-POS($final);
+    }
 
     proto method list(|) is nodal { * }
-    multi method list(Any:U:) { nqp::p6list(nqp::list(),     List, Mu) }
-    multi method list(Any:D:) { nqp::p6list(nqp::list(self), List, Mu) }
+    multi method list(Any:U:) { infix:<,>(self) }
+    multi method list(Any:D \SELF:) { infix:<,>(SELF) }
 
     proto method flat(|) is nodal { * }
-    multi method flat(Any:U:) { nqp::p6list(nqp::list(),     List, Bool::True) }
-    multi method flat(Any:D:) { nqp::p6list(nqp::list(self), List, Bool::True) }
+    multi method flat() { self.list.flat }
 
     proto method eager(|) is nodal { * }
-    multi method eager(Any:U:) {
-        nqp::p6list(nqp::list(),     List, Mu).eager;
-    }
-    multi method eager(Any:D:) {
-        nqp::p6list(nqp::list(self), List, Mu).eager;
-    }
+    multi method eager() { self.list.eager }
+
+    # derived from .list
+    proto method List(|) is nodal { * }
+    multi method List() { self.list.List }
+    proto method Slip(|) is nodal { * }
+    multi method Slip() { self.list.Slip }
+    proto method Array(|) is nodal { * }
+    multi method Array() { self.list.Array }
 
     proto method hash(|) is nodal { * }
     multi method hash(Any:U:) { my % = () }
     multi method hash(Any:D:) { my % = self }
-    method Hash() is nodal { self.hash }
 
-    # derived from .list
-    method Parcel() is nodal { self.list.Parcel }
-    method List() is nodal { self.list }
+    # derived from .hash
+    proto method Hash(|) is nodal { * }
+    multi method Hash() { self.hash.Hash }
 
     proto method elems(|) is nodal { * }
-    multi method elems(Any:U:) { 0 }
+    multi method elems(Any:U:) { 1 }
     multi method elems(Any:D:) { self.list.elems }
 
     proto method end(|) is nodal { * }
-    multi method end(Any:U:) { -1 }
+    multi method end(Any:U:) { 0 }
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal { * }
-    multi method keys(Any:U:) { ().list }
+    multi method keys(Any:U:) { () }
     multi method keys(Any:D:) { self.list.keys }
 
     proto method kv(|) is nodal { * }
-    multi method kv(Any:U:) { ().list }
+    multi method kv(Any:U:) { () }
     multi method kv(Any:D:) { self.list.kv }
 
     proto method values(|) is nodal { * }
-    multi method values(Any:U:) { ().list }
+    multi method values(Any:U:) { () }
     multi method values(Any:D:) { self.list }
 
     proto method pairs(|) is nodal { * }
-    multi method pairs(Any:U:) { ().list }
+    multi method pairs(Any:U:) { () }
     multi method pairs(Any:D:) { self.list.pairs }
 
     proto method antipairs(|) is nodal { * }
-    multi method antipairs(Any:U:) { ().list }
+    multi method antipairs(Any:U:) { () }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal { * }
-
-    proto method pairup(|) is nodal { * }
-    multi method pairup(Any:U:) { ().list }
-    multi method pairup(Any:D:) {
-
-        my $list := self.list;
-        my int $i;
-        my int $elems = self.elems;
-
-        gather while $i < $elems {
-            my Mu $it := $list.AT-POS($i++);
-            if nqp::istype($it,Enum) {
-                take $it.key => $it.value;
-            }
-            elsif nqp::istype($it,EnumMap) and !nqp::iscont($it) {
-                take $it.pairs;
-            }
-            elsif $i < $elems {
-                take $it => $list.AT-POS($i++);
-            }
-            else {
-                X::Pairup::OddNumber.new.throw;
-            }
-        }
-    }
-
-    method squish(|c) is nodal { self.list.squish(|c) }
-    method rotor(|c) is nodal { self.list.rotor(|c) }
-    method reverse() is nodal { self.list.reverse }
-    method sort(&by = &infix:<cmp>) is nodal { self.list.sort(&by) }
-    method reduce(&with) is nodal { self.list.reduce(&with) }
-    method combinations(|c) is nodal { self.list.combinations(|c) }
-    method permutations(|c) is nodal { self.list.permutations(|c) }
-
-    method unique(|c) is nodal { self.list.unique(|c) }
-    method uniq(|c) is nodal {
-        DEPRECATED('unique', |<2014.11 2015.09>);
-        self.unique(|c);
-    }
 
     proto method pick(|) is nodal { * }
     multi method pick()   { self.list.pick     }
@@ -186,54 +155,37 @@ my class Any { # declared in BOOTSTRAP
         Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
     }
 
-    # derived from MapIter/list
-    method lol()  is nodal {
-        MapIter.new(self.list, { .item }, Mu).list
-    }
-    proto method map (|) is nodal { * }
-    multi method map(Whatever) is rw { self }
-    multi method map(&block, :$label) is rw {
-        MapIter.new(self, &block, Bool::False, :$label).list
-    }
-    proto method FOR (|) { * }
-    multi method FOR(Whatever) is rw { self }
-    multi method FOR(&block, :$label) is rw {
-        MapIter.new(self, &block, Bool::False, :$label).list;
-    }
-    method for(|c) is nodal {
-        DEPRECATED('flatmap',|<2015.05 2015.09>);
-        self.flatmap(|c);
-    }
-    proto method flatmap (|) is nodal { * }
-    multi method flatmap(Whatever) is rw { self }
-    multi method flatmap(&block, :$label) is rw {
-        MapIter.new(self, &block, Bool::True, :$label).list
-    }
+    method rotor(|c) is nodal { self.list.rotor(|c) }
+    method reverse() is nodal { self.list.reverse }
+    method combinations(|c) is nodal { self.list.combinations(|c) }
+    method permutations(|c) is nodal { self.list.permutations(|c) }
+    method join($separator = '') is nodal { self.list.join($separator) }
+
+    # XXX GLR should move these
     method nodemap(&block) is rw is nodal { nodemap(&block, self) }
     method duckmap(&block) is rw is nodal { duckmap(&block, self) }
     method deepmap(&block) is rw is nodal { deepmap(&block, self) }
 
+    # XXX GLR Do we need tree post-GLR?
     proto method tree(|) is nodal { * }
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) {
-        nqp::istype(self,Positional)
-            ?? LoL.new(|MapIter.new(self.list, { .tree }, Mu).list).item
+        nqp::istype(self, Iterable)
+            ?? self.map({ .tree }).item
             !! self
     }
     multi method tree(Any:D: Whatever ) { self.tree }
     multi method tree(Any:D: Int(Cool) $count) {
-        nqp::istype(self,Positional) && $count > 0
-            ?? LoL.new(|MapIter.new(self.list, { .tree($count - 1) }, Mu).list).item
+        nqp::istype(self, Iterable) && $count > 0
+            ?? self.map({ .tree($count - 1) }).item
             !! self
     }
     multi method tree(Any:D: *@ [&first, *@rest]) {
-        nqp::istype(self,Positional)
-            ?? @rest ?? first(MapIter.new(self.list, { .tree(|@rest) }, Mu).list)
-                     !! first(self.list)
+        nqp::istype(self, Iterable)
+            ?? @rest ?? first(self.map({ .tree(|@rest) }))
+                     !! first(self)
             !! self
     }
-
-    method Array() is nodal { Array.new(self.flat) }
 
     # auto-vivifying
     proto method push(|) is nodal { * }
@@ -246,258 +198,6 @@ my class Any { # declared in BOOTSTRAP
     multi method unshift(Any:U \SELF: *@values) {
         SELF = Array.new;
         SELF.unshift(@values);
-    }
-
-    proto method grep(|) is nodal { * }
-    multi method grep(Bool:D $t) is rw {
-        fail X::Match::Bool.new( type => '.grep' );
-    }
-    multi method grep(Regex:D $test) is rw {
-        self.map({ next unless .match($test); $_ });
-    }
-    multi method grep(Callable:D $test) is rw {
-        if ($test.count == 1) {
-            self.map({next unless $test($_); $_});
-        } else {
-            my role CheatArity {
-                has $!arity;
-                has $!count;
-
-                method set-cheat($new-arity, $new-count) {
-                    $!arity = $new-arity;
-                    $!count = $new-count;
-                }
-
-                method arity(Code:D:) { $!arity }
-                method count(Code:D:) { $!count }
-            }
-
-            my &tester = -> |c {
-                #note "*cough* {c.perl} -> {$test(|c).perl}";
-                next unless $test(|c);
-                c.list
-            } but CheatArity;
-
-            &tester.set-cheat($test.arity, $test.count);
-
-            self.map(&tester);
-        }
-    }
-    multi method grep(Mu $test) is rw {
-        self.map({ next unless $_ ~~ $test; $_ });
-    }
-
-    proto method grep-index(|) is nodal { * }
-    multi method grep-index(Bool:D $t) is rw {
-        fail X::Match::Bool.new( type => '.grep-index' );
-    }
-    multi method grep-index(Regex:D $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index+1;
-            next unless .match($test);
-            nqp::box_i($index,Int);
-        };
-    }
-    multi method grep-index(Callable:D $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            next unless $test($_);
-            nqp::box_i($index,Int);
-        };
-    }
-    multi method grep-index(Mu $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            next unless $_ ~~ $test;
-            nqp::box_i($index,Int);
-        };
-    }
-
-    proto method first(|) is nodal { * }
-    multi method first(Bool:D $t) is rw {
-        fail X::Match::Bool.new( type => '.first' );
-    }
-    multi method first(Regex:D $test) is rw {
-        self.map({ return-rw $_ if .match($test) });
-        Nil;
-    }
-    multi method first(Callable:D $test) is rw {
-        self.map({ return-rw $_ if $test($_) });
-        Nil;
-    }
-    multi method first(Mu $test) is rw {
-        self.map({ return-rw $_ if $_ ~~ $test });
-        Nil;
-    }
-
-    proto method first-index(|) is nodal { * }
-    multi method first-index(Bool:D $t) is rw {
-        fail X::Match::Bool.new( type => '.first-index' );
-    }
-    multi method first-index(Regex:D $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            return nqp::box_i($index,Int) if .match($test);
-        };
-        Nil;
-    }
-    multi method first-index(Callable:D $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            return nqp::box_i($index,Int) if $test($_);
-        };
-        Nil;
-    }
-    multi method first-index(Mu $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            return nqp::box_i($index,Int) if $_ ~~ $test;
-        };
-        Nil;
-    }
-
-    proto method last-index(|) is nodal { * }
-    multi method last-index(Bool:D $t) is rw {
-        fail X::Match::Bool.new( type => '.last-index' );
-    }
-    multi method last-index(Regex:D $test) {
-        my $elems = self.elems;
-        return Inf if $elems == Inf;
-
-        my int $index = $elems;
-        while $index {
-            $index = $index - 1;
-            return nqp::box_i($index,Int) if self.AT-POS($index).match($test);
-        }
-        Nil;
-    }
-    multi method last-index(Callable:D $test) {
-        my $elems = self.elems;
-        return Inf if $elems == Inf;
-
-        my int $index = $elems;
-        while $index {
-            $index = $index - 1;
-            return nqp::box_i($index,Int) if $test(self.AT-POS($index));
-        }
-        Nil;
-    }
-    multi method last-index(Mu $test) {
-        my $elems = self.elems;
-        return Inf if $elems == Inf;
-
-        my int $index = $elems;
-        while $index {
-            $index = $index - 1;
-            return nqp::box_i($index,Int) if self.AT-POS($index) ~~ $test;
-        }
-        Nil;
-    }
-
-    method join($separator = '') is nodal {
-        my $list = (self,).eager;
-        my Mu $rsa := nqp::list_s();
-        $list.gimme(4);        # force reification of at least 4 elements
-        unless $list.infinite {  # presize array
-            nqp::setelems($rsa, nqp::unbox_i($list.elems));
-            nqp::setelems($rsa, 0);
-        }
-        my $tmp;
-        while $list.gimme(0) {
-            $tmp := $list.shift;
-            nqp::push_s($rsa,
-              nqp::unbox_s(nqp::istype($tmp, Str) && nqp::isconcrete($tmp) ?? $tmp !! $tmp.Str));
-        }
-        nqp::push_s($rsa, '...') if $list.infinite;
-        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
-    }
-
-    proto method min (|) is nodal { * }
-    multi method min(Any:D:) {
-        my $min;
-        self.map: {
-            $min = $_ if .defined and !$min.defined || $_ cmp $min < 0;
-        }
-        $min // Inf;
-    }
-    multi method min(Any:D: &by) {
-        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        my $min;
-        self.map: {
-            $min = $_ if .defined and !$min.defined || $cmp($_, $min) < 0;
-        }
-        $min // Inf;
-    }
-
-    proto method max (|) is nodal { * }
-    multi method max(Any:D:) {
-        my $max;
-        self.map: {
-            $max = $_ if .defined and !$max.defined || $_ cmp $max > 0;
-        }
-        $max // -Inf;
-    }
-    multi method max(Any:D: &by) {
-        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        my $max;
-        self.map: {
-            $max = $_ if .defined and !$max.defined || $cmp($_, $max) > 0;
-        }
-        $max // -Inf;
-    }
-
-    proto method minmax (|) is nodal { * }
-    multi method minmax(Any:D: &by = &infix:<cmp>) {
-        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) };
-
-        my $min;
-        my $max;
-        my $excludes-min = Bool::False;
-        my $excludes-max = Bool::False;
-
-        @.list.map: {
-            .defined or next;
-
-            if .isa(Range) {
-                if !$min.defined || $cmp($_.min, $min) < 0 {
-                    $min = .min;
-                    $excludes-min = $_.excludes-min;
-                }
-                if !$max.defined || $cmp($_.max, $max) > 0 {
-                    $max = .max;
-                    $excludes-max = $_.excludes-max;
-                }
-            } elsif Positional.ACCEPTS($_) {
-                my $mm = .minmax(&by);
-                if !$min.defined || $cmp($mm.min, $min) < 0 {
-                    $min = $mm.min;
-                    $excludes-min = $mm.excludes-min;
-                }
-                if !$max.defined || $cmp($mm.max, $max) > 0 {
-                    $max = $mm.max;
-                    $excludes-max = $mm.excludes-max;
-                }
-            } else {
-                if !$min.defined || $cmp($_, $min) < 0 {
-                    $min = $_;
-                    $excludes-min = Bool::False;
-                }
-                if !$max.defined || $cmp($_, $max) > 0 {
-                    $max = $_;
-                    $excludes-max = Bool::False;
-                }
-            }
-        }
-        Range.new($min // Inf,
-                  $max // -Inf,
-                  :excludes-min($excludes-min),
-                  :excludes-max($excludes-max));
     }
 
     method exists_pos(|c) is nodal {
@@ -528,6 +228,14 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
+    }
+    multi method EXISTS-POS(**@indices) {
+        my $final := @indices.pop;
+        my $target := self;
+        for @indices {
+            $target := $target.AT-POS($_);
+        }
+        $target.EXISTS-POS($final);
     }
 
     method at_pos(|c) is rw is nodal {
@@ -575,9 +283,15 @@ my class Any { # declared in BOOTSTRAP
     multi method AT-POS(Any:D: Any:D \pos) is rw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-
     multi method AT-POS(Any:   Any:U \pos) is rw {
         die "Cannot use '{pos.^name}' as an index";
+    }
+    multi method AT-POS(**@indices) is rw {
+        my $result := self;
+        for @indices {
+            $result := $result.AT-POS($_);
+        }
+        $result
     }
 
     method bind_pos(|c) is rw is nodal {
@@ -611,6 +325,15 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
+    }
+    multi method ASSIGN-POS(**@indices) {
+        my \value := @indices.pop;
+        my $final := @indices.pop;
+        my $target := self;
+        for @indices {
+            $target := $target.AT-POS($_);
+        }
+        $target.ASSIGN-POS($final, value)
     }
 
     method all() is nodal { Junction.new(self.list, :type<all>) }
@@ -660,22 +383,24 @@ my class Any { # declared in BOOTSTRAP
         SELF.AT-KEY(key) = assignee;
     }
 
+    # XXX GLR review these
     method FLATTENABLE_LIST() is nodal {
         my $list := self.list;
         nqp::findmethod($list, 'FLATTENABLE_LIST')($list);
     }
     method FLATTENABLE_HASH() is nodal { nqp::hash() }
 
+    # XXX GLR do these really need to force a list?
     method Set()     is nodal {     Set.new-from-pairs(self.list) }
     method SetHash() is nodal { SetHash.new-from-pairs(self.list) }
     method Bag()     is nodal {     Bag.new-from-pairs(self.list) }
     method BagHash() is nodal { BagHash.new-from-pairs(self.list) }
     method Mix()     is nodal {     Mix.new-from-pairs(self.list) }
     method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
-
     method Supply() is nodal { self.list.Supply }
 
-    method print-nl() { self.print("\n") }
+    method nl() { "\n" }
+    method print-nl() { self.print(self.nl) }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
@@ -708,77 +433,6 @@ multi postfix:<++>(Mu:U \a is rw) { a = 1; 0 }
 proto postfix:<-->(|)             { * }
 multi postfix:<-->(Mu:D \a is rw) { my $b = a; a = a.pred; $b }
 multi postfix:<-->(Mu:U \a is rw) { a = -1; 0 }
-
-# builtins
-proto sub infix:<min>(|) is pure { * }
-multi sub infix:<min>(Mu:D \a, Mu:U) { a }
-multi sub infix:<min>(Mu:U, Mu:D \b) { b }
-multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
-multi sub infix:<min>(*@args) { @args.min }
-# XXX the multi version suffers from a multi dispatch bug
-# where the mandatory named is ignored in the presence of a slurpy
-#proto sub min(|)     { * }
-#multi sub min(*@args) { @args.min() }
-#multi sub min(*@args, :&by!) { @args.min(&by) }
-sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
-
-proto sub infix:<max>(|) is pure { * }
-multi sub infix:<max>(Mu:D \a, Mu:U) { a }
-multi sub infix:<max>(Mu:U, Mu:D \b) { b }
-multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
-multi sub infix:<max>(*@args) { @args.max }
-#proto sub max(|) { * }
-#multi sub max(*@args) { @args.max() }
-#multi sub max(*@args, :&by!) { @args.max(&by) }
-sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
-
-proto sub infix:<minmax>(|) is pure { * }
-multi sub infix:<minmax>(**@args) { @args.minmax }
-#proto sub minmax(|) { * }
-#multi sub minmax(*@args) { @args.minmax() }
-#multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
-sub minmax(**@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
-
-proto sub map(|) {*}
-# fails integration/99problems-21-to-30, test 12/13
-#multi sub map(&code, @values) { @values.map(&code) }
-multi sub map(&code, *@values is rw) { @values.map(&code) }
-multi sub map(Whatever, \a)    { a }
-multi sub map(&code, Whatever) { (1..Inf).map(&code) }
-
-proto sub grep(|) {*}
-multi sub grep(Mu $test, @values) { @values.grep($test) }
-multi sub grep(Mu $test, *@values) { @values.grep($test) }
-multi sub grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
-
-proto sub grep-index(|) {*}
-multi sub grep-index(Mu $test, @values) { @values.grep-index($test) }
-multi sub grep-index(Mu $test, *@values) { @values.grep-index($test) }
-multi sub grep-index(Bool:D $t, *@v) {
-    fail X::Match::Bool.new(type => 'grep-index');
-}
-
-proto sub first(|) {*}
-multi sub first(Mu $test, @values) { @values.first($test) }
-multi sub first(Mu $test, *@values) { @values.first($test) }
-multi sub first(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
-
-proto sub first-index(|) {*}
-multi sub first-index(Mu $test, @values) { @values.first-index($test) }
-multi sub first-index(Mu $test, *@values) { @values.first-index($test) }
-multi sub first-index(Bool:D $t,*@v) {
-    fail X::Match::Bool.new(type => 'first-index');
-}
-
-proto sub last-index(|) {*}
-multi sub last-index(Mu $test, @values) { @values.last-index($test) }
-multi sub last-index(Mu $test, *@values) { @values.last-index($test) }
-multi sub last-index(Bool:D $t, *@v) {
-    fail X::Match::Bool.new(type => 'last-index');
-}
-
-proto sub join(|) { * }
-multi sub join($sep = '', *@values) { @values.join($sep) }
 
 proto sub pick(|) { * }
 multi sub pick($n, @values) { @values.pick($n) }
@@ -825,28 +479,9 @@ sub categorize( $test, *@items, *%named ) {
     }
 }
 
-proto sub uniq(|) { * }
-multi sub uniq(*@values, |c) {
-    DEPRECATED('unique', |<2014.12 2015.09>);
-    @values.unique(|c)
-}
-
-proto sub unique(|) { * }
-multi sub unique(*@values, |c) { @values.unique(|c) }
-
-proto sub squish(|) { * }
-multi sub squish(*@values, |c) { @values.squish(|c) }
-
-proto sub sort(|) {*}
-multi sub sort(*@values)      {
-    nqp::istype(@values.AT-POS(0), Callable)
-        ?? SEQ(my $cmp := @values.shift; @values.sort($cmp) )
-        !! @values.sort;
-}
-
-proto sub item(|) is pure   { * }
+proto sub item(|) is pure { * }
 multi sub item(\x)    { my $ = x }
-multi sub item(*@a)   { my $ = nqp::p6parcel(nqp::p6argvmarray(), nqp::null()) }
+multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
 sub RWPAIR(\k, \v) {   # internal fast pair creation
@@ -884,17 +519,17 @@ sub DELETEKEY(Mu \d, str $key) {
     }
 } #DELETEKEY
 
-
 sub dd(|) {
     my Mu $args := nqp::p6argvmarray();
     while $args {
         my $var  := nqp::shift($args);
         my $name := $var.VAR.?name;
-        my $what := $var.?infinite
+        my $what := $var.?is-lazy
           ?? $var[^10].perl.chop ~ "...Inf)"
           !! $var.perl;
         note $name ?? "$name = $what" !! $what;
     }
     return
 }
+
 # vim: ft=perl6 expandtab sw=4

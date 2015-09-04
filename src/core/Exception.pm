@@ -56,7 +56,9 @@ my class Exception {
         nqp::bindattr(self, Exception, '$!bt', $bt); # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
         my $msg := try self.?message;
-        $msg := try ~$msg if defined($msg);
+        if defined($msg) {
+            $msg := try ~$msg;
+        }
         $msg := $msg // "{self.^name} exception produced no message";
         nqp::setmessage($!ex, nqp::unbox_s($msg));
         nqp::throw($!ex)
@@ -807,8 +809,8 @@ my class X::Undeclared::Symbols does X::Comp {
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
                 $r ~= " (in Perl 6 please use " ~ $obs{$_.key()} ~ " instead)" if $obs{$_.key()};
-                if +%.routine_suggestion{$_.key()} {
-                    $r ~= ". " ~ s(%.routine_suggestion{$_.key()});
+                if +%.routine_suggestion{$_.key()}.list {
+                    $r ~= ". " ~ s(%.routine_suggestion{$_.key()}.list);
                 }
                 $r ~= "\n";
             }
@@ -1424,10 +1426,6 @@ my class X::Syntax::DuplicatedPrefix does X::Syntax {
     }
 }
 
-my class X::Syntax::ArgFlattener does X::Syntax {
-    method message() { "Arg-flattening | is only valid in an argument list" }
-}
-
 my class X::Attribute::Package does X::Comp {
     has $.package-kind;
     has $.name;
@@ -1575,13 +1573,13 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
-my class X::Cannot::Infinite is Exception {
+my class X::Cannot::Lazy is Exception {
     has $.action;
     has $.what;
     method message() {
         $.what
-          ?? "Cannot $.action an infinite list onto a $.what"
-          !! "Cannot $.action an infinite list";
+          ?? "Cannot $.action a lazy list onto a $.what"
+          !! "Cannot $.action a lazy list";
     }
 }
 my class X::Cannot::Empty is Exception {
@@ -1948,7 +1946,7 @@ my class X::Multi::NoMatch is Exception {
             @bits.unshift($invocant ~ ': ' ~ $first);
         }
         my $cap = '(' ~ @bits.join(", ") ~ ')';
-        @priors = "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
+        @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~
         join "\n    ",
             "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
@@ -2106,7 +2104,19 @@ my class X::InvalidType does X::Comp {
     }
 }
 
-class X::WheneverOutOfScope is Exception {
+my class X::Seq::Consumed is Exception {
+    method message() {
+        "This Seq has already been iterated, and its values consumed"
+    }
+}
+
+my class X::Seq::NotIndexable is Exception {
+    method message() {
+        "Cannot index a Seq; coerce it to a list or assign it to an array first"
+    }
+}
+
+my class X::WheneverOutOfScope is Exception {
     method message() {
         "Cannot have a 'whenever' block outside the scope of a 'supply' block"
     }

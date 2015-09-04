@@ -49,7 +49,7 @@ only sub infix:<(|)>(**@p) {
         }
         $baghash.Bag(:view);
     } else {
-        Set.new( @p.map(*.Set(:view).keys) );
+        Set.new( @p.map(*.Set(:view).keys.Slip) );
     }
 }
 # U+222A UNION
@@ -137,7 +137,7 @@ only sub infix:<∖>(|p) {
     infix:<(-)>(|p);
 }
 only sub infix:<(^)>(**@p) {
-    Set.new(BagHash.new(@p.map(*.Set(:view).keys)).pairs.map({.key if .value == 1}));
+    Set.new(BagHash.new(@p.map(*.Set(:view).keys.Slip)).pairs.map({.key if .value == 1}));
 }
 # U+2296 CIRCLED MINUS
 only sub infix:<⊖>($a, $b --> Setty) {
@@ -312,8 +312,8 @@ only sub infix:<≽>($a, $b --> Bool) {
     $a (>+) $b;
 }
 
-sub set(*@args --> Set) { Set.new(@args) }
-sub bag(*@args --> Bag) { Bag.new(@args) }
-sub mix(*@args --> Mix) { Mix.new(@args) }
+sub set(*@a --> Set) { Set.new(@a) }
+sub bag(*@a --> Bag) { Bag.new(@a) }
+sub mix(*@a --> Mix) { Mix.new(@a) }
 
 # vim: ft=perl6 expandtab sw=4

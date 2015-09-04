@@ -1,56 +1,81 @@
 my class IO::ArgFiles { ... }
 
-sub print(|) {
-    my $args := nqp::p6argvmarray();
-    my $out := $*OUT;
-    $out.print(nqp::shift($args)) while $args;
+proto sub print(|) { * }
+multi sub print(*@args) {
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $*OUT.print($str);
     Bool::True
 }
+multi sub print(Str:D \x) {
+    $*OUT.print(x);
+}
+multi sub print(\x) {
+    $*OUT.print(x.Str);
+}
+multi sub print(Iterable \x) {
+    my $out := $*OUT;
+    my str $str;
+    if nqp::iscont(x) {
+        $str = x.Str;
+    }
+    else {
+        my \iterator := x.iterator;
+        until (my \value := iterator.pull-one) =:= IterationEnd {
+            $str = nqp::concat($str, nqp::unbox_s(value.Str));
+        }
+    }
+    $out.print($str);
+}
+
+# Once we have an nqp::say that looks at the *output* line separator of the
+# PIO, then we can stop concatenating .nl to each string before .print, but
+# instead call nqp::say directly.
 
 proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
-    $out.print: x;
-    $out.print-nl;
+    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl);
+    $out.print($str);
 }
 multi sub say(\x) {
     my $out := $*OUT;
-    $out.print: x.gist;
-    $out.print-nl;
+    my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl);
+    $out.print($str);
 }
-multi sub say(|) {
-    my $args := nqp::p6argvmarray();
+multi sub say(**@args is rw) {
     my $out := $*OUT;
-    $out.print(nqp::shift($args).gist) while $args;
-    $out.print-nl;
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
+    $str = nqp::concat($str,$out.nl);
+    $out.print($str);
 }
 
 proto sub note(|) { * }
 multi sub note() {
     my $err := $*ERR;
-    $err.print: "Noted";
-    $err.print-nl;
+    my str $str = nqp::concat("Noted",$err.nl);
+    $err.print($str);
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;
-    $err.print: x;
-    $err.print-nl;
+    my str $str = nqp::concat(nqp::unbox_s(x),$err.nl);
+    $err.print($str);
 }
-multi sub note(\x) {
+multi sub note(**@args is rw) {
     my $err := $*ERR;
-    $err.print: x.gist;
-    $err.print-nl;
-}
-multi sub note(|) {
-    my $args := nqp::p6argvmarray();
-    my $err := $*ERR;
-    $err.print(nqp::shift($args).gist) while $args;
-    $err.print-nl;
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
+    $str = nqp::concat($str,$err.nl);
+    $err.print($str);
 }
 
 sub gist(|) {
-    nqp::p6parcel(nqp::p6argvmarray(), Mu).gist
+    my \args := nqp::p6argvmarray();
+    nqp::elems(args) == 1
+        ?? nqp::atpos(args, 0).gist
+        !! nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', args).gist
 }
 
 sub prompt($msg) {

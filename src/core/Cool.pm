@@ -196,10 +196,8 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method indices(|) {*}
     multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0, :$overlap) {
-        my str $str  = nqp::unbox_s(self.Str);
-        return () if $start < 0 || $start > nqp::chars($str);
-
         my int $pos  = $start;
+        my str $str  = nqp::unbox_s(self.Str);
         my str $need = nqp::unbox_s($needle);
         my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
 
@@ -211,7 +209,7 @@ my class Cool { # declared in BOOTSTRAP
             nqp::push($rpa,nqp::box_i($i,Int));
             $pos = $i + $add;
         }
-        nqp::p6parcel($rpa, nqp::null());
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     proto method index(|) {*}
@@ -220,10 +218,20 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my str $str = nqp::unbox_s(self.Str);
-        my int $i = $pos < 0 || $pos > nqp::chars($str)
-          ?? -1
-          !! nqp::index($str, nqp::unbox_s($needle), nqp::unbox_i($pos));
+        my int $i;
+        try {
+            $i = nqp::unbox_i($pos);
+            CATCH {
+                default {
+                    return Nil
+                }
+            }
+        }
+        $i = nqp::index(
+          nqp::unbox_s(self.Str),
+          nqp::unbox_s($needle),
+          $i
+        );
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 
@@ -233,10 +241,20 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my str $str = nqp::unbox_s(self.Str);
-        my int $i = $pos < 0 || $pos > nqp::chars($str)
-          ?? -1
-          !! nqp::rindex($str, nqp::unbox_s($needle), nqp::unbox_i($pos));
+        my int $i;
+        try {
+            $i = nqp::unbox_i($pos);
+            CATCH {
+                default {
+                    return Nil
+                }
+            }
+        }
+        $i = nqp::rindex(
+          nqp::unbox_s(self.Str),
+          nqp::unbox_s($needle),
+          $i
+        );
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 
@@ -356,10 +374,10 @@ sub sprintf(Cool $format, *@args) {
         $sprintfHandlerInitialized = True;
     }
 
-    @args.gimme(*);
+    @args.elems;
     nqp::p6box_s(
         nqp::sprintf(nqp::unbox_s($format.Stringy),
-            nqp::clone(nqp::getattr(@args, List, '$!items'))
+            nqp::clone(nqp::getattr(@args, List, '$!reified'))
         )
     );
 }

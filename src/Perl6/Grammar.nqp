@@ -453,6 +453,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <subshortname> <sigterm>?
     }
 
+    token deftermnow { <defterm> }
+
     token defterm {     # XXX this is probably too general
         :dba('new term to be defined')
         <identifier>
@@ -1139,7 +1141,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule semilist {
-        :dba('lol composer')
+        :dba('list composer')
         ''
         [
         | <?before <[)\]}]> >
@@ -1235,7 +1237,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         {
             $*DECLARATOR_DOCS := '';
-            $*VARIABLE        := '' if $*VARIABLE;
 
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -1303,6 +1304,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
             '{'
+            <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
             [<.cheat_heredoc> || '}']
             <?ENDSTMT>
@@ -1926,6 +1928,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sigil> '{' {} $<text>=[.*?] '}'
         <!{ $*IN_DECL }>
         <!{ $*QSIGIL }>
+        <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
+        <!{ $<text> ~~ / ^ \s* $ / }>
         <?{
             my $sigil := $<sigil>.Str;
             my $text := $<text>.Str;
@@ -1966,7 +1970,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <special_variable>
         | <sigil> $<index>=[\d+]                              [<?{ $*IN_DECL }> <.typed_panic: "X::Syntax::Variable::Numeric">]?
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
-        | :dba('contextualizer') <sigil> '(' ~ ')' <sequence> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
+        | <?before <sigil> <?[ ( [ { ]>> <?{ !$*IN_DECL }> <contextualizer>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
@@ -1974,6 +1978,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>
         ]?
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
+    }
+
+    token contextualizer {
+        :dba('contextualizer')
+        [ <?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer"> ]?
+        [
+        | <sigil> '(' ~ ')'    <coercee=sequence>
+        | <sigil> <?[ \[ \{ ]> <coercee=circumfix>
+        ]
     }
 
     token sigil { <[$@%&]> }
@@ -2275,7 +2288,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         # STD.pm6 uses <defterm> here, but we need different
         # action methods
-        | '\\' <defterm>
+        | '\\' <deftermnow>
             [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
           [
@@ -3917,6 +3930,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <O('%methodcall')>
     }
 
+    # These are here to prevent us generating the candidates when parsing CORE.setting.
+    token postcircumfix:sym<[; ]> { <!> }
+    token postcircumfix:sym<{; }> { <!> }
+
     token postfix:sym<i>  { <sym> >> <O('%methodcall')> }
 
     token prefix:sym<++>  { <sym>  <O('%autoincrement')> }
@@ -3942,6 +3959,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<??>  { <sym> <.dupprefix('??')> <O('%symbolic_unary')> }
     token prefix:sym<?>   { <sym> <!before '??'> <O('%symbolic_unary')> }
     token prefix:sym<!>   { <sym> <!before '!!'> <O('%symbolic_unary')> }
+    token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<+^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
@@ -3949,10 +3967,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<^>   {
         <sym>  <O('%symbolic_unary')>
         <?before \d+ <?before \. <?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
-    }
-    token prefix:sym<|>   {
-        <sym> <O('%symbolic_unary')>
-        [ <?{ $*ARG_FLAT_OK }> || <.typed_sorry('X::Syntax::ArgFlattener')> ]
     }
 
     token infix:sym<*>    { <sym>  <O('%multiplicative')> }

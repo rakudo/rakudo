@@ -45,7 +45,8 @@ my class ThreadPoolScheduler does Scheduler {
                         try {
                             if nqp::islist($task) {
                                 my Mu $code := nqp::shift($task);
-                                $code(|nqp::p6parcel($task, Any));
+                                my \args = nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $task);
+                                $code(|args);
                             }
                             else {
                                 $task();

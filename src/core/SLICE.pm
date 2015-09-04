@@ -202,7 +202,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                 Nil;
             }
             elsif nqp::elems($d) == 0 {       # :delete
-                $more.list.flatmap( { SELF.DELETE-POS($_) } ).eager.Parcel;
+                $more.list.flatmap( { SELF.DELETE-POS($_) } ).eager.List;
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
                 my $exists := DELETEKEY($d,'exists');
@@ -211,7 +211,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                     $more.list.flatmap( {
                         SELF.DELETE-POS($_) if $wasthere = SELF.EXISTS-POS($_);
                         !( $wasthere ?^ $exists );
-                    } ).eager.Parcel;
+                    } ).eager.List;
                 }
                 elsif nqp::existskey($d,'kv') { # :delete:exists(0|1):kv(0|1):*
                     my $kv := DELETEKEY($d,'kv');
@@ -220,7 +220,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                             SELF.DELETE-POS($_) if $wasthere = SELF.EXISTS-POS($_);
                             next unless !$kv || $wasthere;
                             ($_, !( $wasthere ?^ $exists ));
-                        } ).flat.eager.Parcel;
+                        } ).flat.eager.List;
                     }
                     else {
                         @nogo = <delete exists kv>;
@@ -233,7 +233,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                             SELF.DELETE-POS($_) if $wasthere = SELF.EXISTS-POS($_);
                             next unless !$p || $wasthere;
                             RWPAIR($_,!($wasthere ?^ $exists));
-                        } ).eager.Parcel;
+                        } ).eager.List;
                     }
                     else {
                         @nogo = <delete exists p>;
@@ -250,10 +250,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-POS($_);
                              ( $_, SELF.DELETE-POS($_) );
-                         } ).flat.eager.Parcel
+                         } ).flat.eager.List
                       !! $more.list.flatmap( {
                              ( $_, SELF.DELETE-POS($_) )
-                         } ).flat.eager.Parcel;
+                         } ).flat.eager.List;
                 }
                 else {
                     @nogo = <delete kv>;
@@ -266,10 +266,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-POS($_);
                              RWPAIR($_, SELF.DELETE-POS($_));
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              RWPAIR($_, SELF.DELETE-POS($_))
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <delete p>;
@@ -282,10 +282,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-POS($_);
                              SEQ( SELF.DELETE-POS($_); $_ );
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              SELF.DELETE-POS($_); $_
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <delete k>;
@@ -298,10 +298,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-POS($_);
                              SELF.DELETE-POS($_);
-                     } ).eager.Parcel
+                     } ).eager.List
                       !! $more.list.flatmap( {
                              SELF.DELETE-POS($_)
-                     } ).eager.Parcel;
+                     } ).eager.List;
                 }
                 else {
                     @nogo = <delete v>;
@@ -314,7 +314,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
         elsif nqp::existskey($d,'exists') { # :!delete?:exists(0|1):*
             my $exists := DELETEKEY($d,'exists');
             if nqp::elems($d) == 0 {          # :!delete?:exists(0|1)
-                $more.list.flatmap({ !( SELF.EXISTS-POS($_) ?^ $exists ) }).eager.Parcel;
+                $more.list.flatmap({ !( SELF.EXISTS-POS($_) ?^ $exists ) }).eager.List;
             }
             elsif nqp::existskey($d,'kv') {   # :!delete?:exists(0|1):kv(0|1):*
                 my $kv := DELETEKEY($d,'kv');
@@ -323,10 +323,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-POS($_);
                              ( $_, $exists );
-                         } ).flat.eager.Parcel
+                         } ).flat.eager.List
                       !! $more.list.flatmap( {
                              ( $_, !( SELF.EXISTS-POS($_) ?^ $exists ) )
-                         } ).flat.eager.Parcel;
+                         } ).flat.eager.List;
                 }
                 else {
                     @nogo = <exists kv>;
@@ -339,10 +339,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-POS($_);
                              RWPAIR( $_, $exists );
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              RWPAIR( $_, !( SELF.EXISTS-POS($_) ?^ $exists ) )
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <exists p>;
@@ -359,10 +359,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.EXISTS-POS($_);
                          $_, SELF.AT-POS($_);
-                     } ).flat.eager.Parcel
+                     } ).flat.eager.List
                   !! $more.list.flatmap( {
                          $_, SELF.AT-POS($_)
-                     } ).flat.eager.Parcel;
+                     } ).flat.eager.List;
             }
             else {
                 @nogo = <kv>;
@@ -375,10 +375,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.EXISTS-POS($_);
                          RWPAIR($_, SELF.AT-POS($_));
-                     } ).eager.Parcel
+                     } ).eager.List
                   !! $more.list.flatmap( {
                          RWPAIR( $_, SELF.AT-POS($_) )
-                     } ).eager.Parcel;
+                     } ).eager.List;
             }
             else {
                 @nogo = <p>
@@ -391,8 +391,8 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.EXISTS-POS($_);
                          $_;
-                     } ).eager.Parcel
-                  !! $more.list.flat.eager.Parcel;
+                     } ).eager.List
+                  !! $more.list.flat.eager.List;
             }
             else {
                 @nogo = <k>;
@@ -405,17 +405,17 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                   ??  $more.list.flatmap( {
                           next unless SELF.EXISTS-POS($_);
                           SELF.AT-POS($_);
-                      } ).eager.Parcel
+                      } ).eager.List
                   !!  $more.list.flatmap( {
                           SELF.AT-POS($_)
-                      } ).eager.Parcel;
+                      } ).eager.List;
             }
             else {
                 @nogo = <v>;
             }
         }
         elsif nqp::elems($d) == 0 {         # :!delete
-            $more.list.flatmap( { SELF.AT-POS($_) } ).eager.Parcel;
+            $more.list.flatmap( { SELF.AT-POS($_) } ).eager.List;
         }
     }
 
@@ -619,7 +619,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                 Nil;
             }
             elsif nqp::elems($d) == 0 {       # :delete
-                $more.list.flatmap( { SELF.DELETE-KEY($_) } ).eager.Parcel;
+                $more.list.flatmap( { SELF.DELETE-KEY($_) } ).eager.List;
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
                 my $exists := DELETEKEY($d,'exists');
@@ -628,7 +628,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                     $more.list.flatmap( {
                         SELF.DELETE-KEY($_) if $wasthere = SELF.EXISTS-KEY($_);
                         !( $wasthere ?^ $exists );
-                    } ).eager.Parcel;
+                    } ).eager.List;
                 }
                 elsif nqp::existskey($d,'kv') { # :delete:exists(0|1):kv(0|1):*
                     my $kv := DELETEKEY($d,'kv');
@@ -637,7 +637,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                             SELF.DELETE-KEY($_) if $wasthere = SELF.EXISTS-KEY($_);
                             next unless !$kv || $wasthere;
                             ($_, !( $wasthere ?^ $exists ));
-                        } ).flat.eager.Parcel;
+                        } ).flat.eager.List;
                     }
                     else {
                         @nogo = <delete exists kv>;
@@ -650,7 +650,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                             SELF.DELETE-KEY($_) if $wasthere = SELF.EXISTS-KEY($_);
                             next unless !$p || $wasthere;
                             RWPAIR($_,!($wasthere ?^ $exists));
-                        } ).eager.Parcel;
+                        } ).eager.List;
                     }
                     else {
                         @nogo = <delete exists p>;
@@ -667,10 +667,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
                              ( $_, SELF.DELETE-KEY($_) );
-                         } ).flat.eager.Parcel
+                         } ).flat.eager.List
                       !! $more.list.flatmap( {
                              ( $_, SELF.DELETE-KEY($_) )
-                         } ).flat.eager.Parcel;
+                         } ).flat.eager.List;
                 }
                 else {
                     @nogo = <delete kv>;
@@ -683,10 +683,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
                              RWPAIR($_, SELF.DELETE-KEY($_));
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              RWPAIR($_, SELF.DELETE-KEY($_))
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <delete p>;
@@ -699,10 +699,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
                              SEQ( SELF.DELETE-KEY($_); $_ );
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              SELF.DELETE-KEY($_); $_
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <delete k>;
@@ -715,10 +715,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
                              SELF.DELETE-KEY($_);
-                     } ).eager.Parcel
+                     } ).eager.List
                       !! $more.list.flatmap( {
                              SELF.DELETE-KEY($_)
-                     } ).eager.Parcel;
+                     } ).eager.List;
                 }
                 else {
                     @nogo = <delete v>;
@@ -731,7 +731,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
         elsif nqp::existskey($d,'exists') { # :!delete?:exists(0|1):*
             my $exists := DELETEKEY($d,'exists');
             if nqp::elems($d) == 0 {          # :!delete?:exists(0|1)
-                $more.list.flatmap({ !( SELF.EXISTS-KEY($_) ?^ $exists ) }).eager.Parcel;
+                $more.list.flatmap({ !( SELF.EXISTS-KEY($_) ?^ $exists ) }).eager.List;
             }
             elsif nqp::existskey($d,'kv') {   # :!delete?:exists(0|1):kv(0|1):*
                 my $kv := DELETEKEY($d,'kv');
@@ -740,10 +740,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
                              ( $_, $exists );
-                         } ).flat.eager.Parcel
+                         } ).flat.eager.List
                       !! $more.list.flatmap( {
                              ( $_, !( SELF.EXISTS-KEY($_) ?^ $exists ) )
-                         } ).flat.eager.Parcel;
+                         } ).flat.eager.List;
                 }
                 else {
                     @nogo = <exists kv>;
@@ -756,10 +756,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                       ?? $more.list.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
                              RWPAIR( $_, $exists );
-                         } ).eager.Parcel
+                         } ).eager.List
                       !! $more.list.flatmap( {
                              RWPAIR( $_, !( SELF.EXISTS-KEY($_) ?^ $exists ) )
-                         } ).eager.Parcel;
+                         } ).eager.List;
                 }
                 else {
                     @nogo = <exists p>;
@@ -776,10 +776,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.EXISTS-KEY($_);
                          $_, SELF.AT-KEY($_);
-                     } ).flat.eager.Parcel
+                     } ).flat.eager.List
                   !! $more.list.flatmap( {
                          $_, SELF.AT-KEY($_)
-                     } ).flat.eager.Parcel;
+                     } ).flat.eager.List;
             }
             else {
                 @nogo = <kv>;
@@ -792,10 +792,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.EXISTS-KEY($_);
                          RWPAIR($_, SELF.AT-KEY($_));
-                     } ).eager.Parcel
+                     } ).eager.List
                   !! $more.list.flatmap( {
                          RWPAIR( $_, SELF.AT-KEY($_) )
-                     } ).eager.Parcel;
+                     } ).eager.List;
             }
             else {
                 @nogo = <p>
@@ -808,8 +808,8 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                   ?? $more.list.flatmap( {
                          next unless SELF.EXISTS-KEY($_);
                          $_;
-                     } ).eager.Parcel
-                  !! $more.list.flat.eager.Parcel;
+                     } ).eager.List
+                  !! $more.list.flat.eager.List;
             }
             else {
                 @nogo = <k>;
@@ -822,17 +822,17 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                   ??  $more.list.flatmap( {
                           next unless SELF.EXISTS-KEY($_);
                           SELF.AT-KEY($_);
-                      } ).eager.Parcel
+                      } ).eager.List
                   !!  $more.list.flatmap( {
                           SELF.AT-KEY($_)
-                      } ).eager.Parcel;
+                      } ).eager.List;
             }
             else {
                 @nogo = <v>;
             }
         }
         elsif nqp::elems($d) == 0 {         # :!delete
-            $more.list.flatmap( { SELF.AT-KEY($_) } ).eager.Parcel;
+            $more.list.flatmap( { SELF.AT-KEY($_) } ).eager.List;
         }
     }
 

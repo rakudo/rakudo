@@ -1030,15 +1030,14 @@ class Perl6::Optimizer {
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
         if $optype eq 'callmethod' && $op.name eq 'sink' &&
-              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'FOR' && @($op[0]) == 2 &&
-              nqp::istype((my $c1 := $op[0][0]), QAST::Op) && $c1.name eq '&infix:<,>' &&
-                (nqp::istype((my $c2 := $op[0][0][0]), QAST::Op) &&
-                        nqp::existskey(%range_bounds, $c2.name)
-                 || nqp::istype($op[0][0][0], QAST::Stmts) &&
-                        nqp::istype(($c2 := $op[0][0][0][0]), QAST::Op) &&
-                        nqp::existskey(%range_bounds, $c2.name)) &&
-              $!symbols.is_from_core($c2.name) {
-            self.optimize_for_range($op, $c2);
+              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
+                (nqp::istype((my $c1 := $op[0][0]), QAST::Op) &&
+                        nqp::existskey(%range_bounds, $c1.name)
+                 || nqp::istype($op[0][0], QAST::Stmts) &&
+                        nqp::istype(($c1 := $op[0][0][0]), QAST::Op) &&
+                        nqp::existskey(%range_bounds, $c1.name)) &&
+              $!symbols.is_from_core($c1.name) {
+            self.optimize_for_range($op, $c1);
             self.visit_op_children($op);
             return $op;
         }

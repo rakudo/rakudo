@@ -35,44 +35,44 @@ multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is rw {
 }
 
 # %h<a b c>
-multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
+multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is rw {
     nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! key.flatmap({ SELF{$_} }).eager.Parcel;
+      !! key.flatmap({ SELF{$_} }).eager.List;
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, Mu \ASSIGN) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is rw {
     (nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! key.flatmap({ SELF{$_} }).eager.Parcel) = ASSIGN
+      !! key.flatmap({ SELF{$_} }).eager.List) = ASSIGN
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$SINK!,*%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$SINK, |%other );
+multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$SINK!,*%other) is rw {
+    SLICE_MORE_HASH( SELF, key, :$SINK, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$delete!,*%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$delete, |%other );
+multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$delete!,*%other) is rw {
+    SLICE_MORE_HASH( SELF, key, :$delete, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF,Positional \key, :$exists!,*%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$exists, |%other );
+multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$exists!,*%other) is rw {
+    SLICE_MORE_HASH( SELF, key, :$exists, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$kv!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$kv, |%other );
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$kv!, *%other) is rw {
+    SLICE_MORE_HASH( SELF, key, :$kv, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$p, |%other );
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$p!, *%other) is rw {
+    SLICE_MORE_HASH( SELF, key, :$p, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$k!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$k, |%other );
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$k!, *%other) is rw {
+    SLICE_MORE_HASH( SELF, key, :$k, |%other );
 }
-multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$v!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, \key, :$v, |%other );
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$v!, *%other) is rw {
+    SLICE_MORE_HASH( SELF, key, :$v, |%other );
 }
 
 # %h{*}
 multi sub postcircumfix:<{ }>( \SELF, Whatever ) is rw {
-    SELF{SELF.keys};
+    SELF{SELF.keys.list};
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, Mu \ASSIGN) is rw {
     die "Cannot assign to *, as the order of keys is non-deterministic";
@@ -81,30 +81,30 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$delete!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$exists!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$kv!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$k!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is rw {
     %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys, :$v, |%other )
-      !! SELF{SELF.keys};
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, :$v, |%other )
+      !! SELF{SELF.keys.list};
 }
 
 # %h{}
@@ -115,60 +115,79 @@ multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$delete!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$delete, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$exists!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$exists, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$kv!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$kv, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$k!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$k, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
-    SLICE_MORE_HASH( SELF, SELF.keys, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$v!, *%other) is rw {
     %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys, :$v, |%other )
-      !! SELF{SELF.keys};
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, :$v, |%other )
+      !! SELF{SELF.keys.list};
 }
 
-# %h{;}
-multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, *%adv) is rw {
-    if keys > 1 {
-        X::NYI.new(feature => "Accessing dimensions after HyperWhatever").throw
-            if keys[0].isa(HyperWhatever);
 
-        if [||] %adv<kv p k> {
-            postcircumfix:<{ }>(SELF, keys[0], :kv).flatmap(-> \key, \value {
-                map %adv<kv> ?? -> \key2, \value2 { LoL.new(key, |key2), value2 } !!
-                    %adv<p>  ?? {; LoL.new(key, |.key) => .value } !!
-                    # .item so that recursive calls don't map the LoL's elems
-                    %adv<k>  ?? { LoL.new(key, |$_).item } !!
-                    *, postcircumfix:<{ }>(value, LoL.new(|keys[1..*]), |%adv);
-            }).eager.Parcel;
-        } else {
-            (keys[0].isa(Whatever)
-                ?? SELF{SELF.keys}.Parcel
-                !! SELF{keys[0].list}.Parcel
-            ).flatmap(-> \elem {
-                postcircumfix:<{ }>(elem, LoL.new(|keys[1..*]), |%adv);
-            }).eager.Parcel;
+proto sub postcircumfix:<{; }>(|) is nodal { * }
+
+sub MD-HASH-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
+    my int $next-dim = $dim + 1;
+    if $next-dim < indices.elems {
+        if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
+            for idx {
+                MD-HASH-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
+            }
         }
-    } else {
-        postcircumfix:<{ }>(SELF, keys[0].elems > 1 ?? keys[0].list !! keys[0] , |%adv);
+        elsif nqp::istype(idx, Str) {
+            MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
+        }
+        elsif nqp::istype(idx, Whatever) {
+            for SELF.keys {
+                MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY($_), indices, indices.AT-POS($next-dim), $next-dim, target)
+            }
+        }
+        else  {
+            MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
+        }
+    }
+    else {
+        if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
+            for idx {
+                MD-HASH-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
+            }
+        }
+        elsif nqp::istype(idx, Str) {
+            nqp::push(target, SELF.AT-KEY(idx))
+        }
+        elsif nqp::istype(idx, Whatever) {
+            for SELF.keys {
+                nqp::push(target, SELF.AT-KEY($_))
+            }
+        }
+        else {
+            nqp::push(target, SELF.AT-KEY(idx))
+        }
     }
 }
-multi sub postcircumfix:<{ }> (\SELF is rw, LoL \keys, Mu \ASSIGN) is rw {
-    (SELF{keys},) = ASSIGN;
+
+multi sub postcircumfix:<{; }>(\SELF, @indices) {
+    my \target = IterationBuffer.new;
+    MD-HASH-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
+    nqp::p6bindattrinvres(List.CREATE, List, '$!reified', target)
 }
 
 # vim: ft=perl6 expandtab sw=4

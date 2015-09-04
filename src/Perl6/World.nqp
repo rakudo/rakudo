@@ -692,7 +692,9 @@ class Perl6::World is HLL::World {
             $DEBUG("  $arg") if $DEBUG;
         }
 
-        $INC := nqp::p6parcel($INC, self.find_symbol(['Any']));
+        my $INC-list := nqp::create(self.find_symbol(['List']));
+        nqp::bindattr($INC-list, self.find_symbol(['List']), '$!reified', $INC);
+        $INC := $INC-list;
         self.add_object($INC);
         self.install_lexical_symbol(self.cur_lexpad,'@?INC',$INC);
     }
@@ -800,11 +802,7 @@ class Perl6::World is HLL::World {
     method arglist($/) {
         my $arglist;
         if $<arglist><EXPR> -> $expr {
-            $arglist := nqp::getattr(
-              self.compile_time_evaluate($/,$expr.ast).list.eager,
-              self.find_symbol(['List']),
-              '$!items',
-            );
+            $arglist := self.compile_time_evaluate($/,$expr.ast).List.FLATTENABLE_LIST;
         }
         $arglist;
     }
@@ -3566,22 +3564,22 @@ class Perl6::World is HLL::World {
 
         my $Str;
         my $Int;
-        my $Parcel;
+        my $List;
         my int $has_str;
         my int $has_int;
-        my int $has_parcel;
+        my int $has_list;
 
         try { $Str := self.find_symbol(["Str"]); $has_str := 1 }
         try { $Int := self.find_symbol(["Int"]); $has_int := 1 }
-        try { $Parcel := self.find_symbol(["Parcel"]); $has_parcel := 1 }
+        try { $List := self.find_symbol(["List"]); $has_list := 1 }
 
         sub safely_stringify($target) {
             if $has_str && nqp::istype($target, $Str) {
                 return ~nqp::unbox_s($target);
             } elsif $has_int && nqp::istype($target, $Int) {
                 return ~nqp::unbox_i($target);
-            } elsif $has_parcel && nqp::istype($target, $Parcel) {
-                my $storage := nqp::getattr($target, $Parcel, '$!storage');
+            } elsif $has_list && nqp::istype($target, $List) {
+                my $storage := nqp::getattr($target, $List, '$!reified');
                 my @result;
                 for $storage {
                     nqp::push(@result, safely_stringify($_));

@@ -240,7 +240,7 @@ my role Native[Routine $r, $libname where Str|Callable] {
         if nqp::elems($args) != $r.signature.arity {
             X::TypeCheck::Argument.new(
                 :objname($.name),
-                :arguments(nqp::p6list($args, Array, Mu).map(*.^name))
+                :arguments(args.list.map(*.^name))
                 :signature("    Expected: " ~ try $r.signature.perl),
             ).throw
         }

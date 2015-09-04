@@ -11,7 +11,7 @@ my class Backtrace::Frame {
     has Str $.subname;
 
     method subtype(Backtrace::Frame:D:) {
-        my $s = $!code.^name.lc.split('+', 2)[0];
+        my $s = $!code.^name.lc.split('+', 2).list[0];
         $s eq 'mu' ?? '' !! $s;
     }
 
@@ -27,7 +27,7 @@ my class Backtrace::Frame {
         if $RAKUDO-VERBOSE-STACKFRAME -> $extra {
             my $io = $!file.IO;
             if $io.e {
-                my @lines := $io.lines;
+                my @lines = $io.lines;
                 my $from = max $!line - $extra, 1;
                 my $to   = min $!line + $extra, +@lines;
                 for $from..$to -> $line {
@@ -63,8 +63,8 @@ my class Backtrace {
         self.new($!, 2 + $offset);
     }
 
-    # note that backtraces are nqp::list()s, marshalled to us as Parcel
-    multi method new(Parcel $bt, Int $bt-next = 0) {
+    # note that backtraces are nqp::list()s, marshalled to us as a List
+    multi method new(List $bt, Int $bt-next = 0) {
 
         # only check for verbose stack frames once
         $RAKUDO-VERBOSE-STACKFRAME = +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
@@ -241,7 +241,7 @@ my class Backtrace {
     }
     multi method list(Backtrace:D:) {
         self.AT-POS(100);  # will stop when done, do we need more than 100???
-        nqp::p6parcel($!frames,Mu);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $!frames)
     }
 
     method first-none-setting-line(Backtrace:D:) {

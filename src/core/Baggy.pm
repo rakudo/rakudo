@@ -11,14 +11,20 @@ my role Baggy does QuantHash {
     multi method antipairs(Baggy:D:) { %!elems.values.map: { (.value => .key) } }
     multi method invert(Baggy:D:)   { %!elems.values.map: { (.value => .key) } } # NB value can't be listy
 
-    method kxxv { %!elems.values.map( {.key xx .value} ) }
-    method elems(--> Int) { %!elems.elems }
+    method kxxv(Baggy:D:) { %!elems.values.map( {.key xx .value} ) }
+    method elems(Baggy:D: --> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
-    method Bool { %!elems.Bool }
+    method Bool(Baggy:D:) { %!elems.Bool }
 
-    method hash(--> Hash) { %!elems.values.hash }
+    method hash(Baggy:D: --> Hash) { %!elems.values.hash }
 
-    method new(*@args --> Baggy) {
+    multi method new(Baggy: \value) {
+      nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))
+        ?? self!new([value]) 
+        !! self!new([|value])
+    }
+    multi method new(Baggy: **@args) { self!new(@args) }
+    method !new(@args) {
         my %e;
         # need explicit signature because of #119609
         -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
@@ -69,8 +75,6 @@ my role Baggy does QuantHash {
         ~ %!elems.values.map( {"{.key.perl}=>{.value}"} ).join(',')
         ~ ").{self.^name}"
     }
-
-    method list() { self.pairs }
 
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
@@ -229,11 +233,11 @@ my role Baggy does QuantHash {
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
-        fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
+        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
         if @list {
 
             # multi-level classify
-            if nqp::istype(test(@list[0]),List) {
+            if nqp::istype(test(@list[0]),Iterable) {
                 for @list -> $l {
                     my @keys  = test($l);
                     my $last := @keys.pop;
@@ -259,7 +263,7 @@ my role Baggy does QuantHash {
 
     proto method categorize-list(|) { * }
     multi method categorize-list( &test, *@list ) {
-        fail X::Cannot::Infinite.new(:action<categorize>) if @list.infinite;
+        fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
         if @list {
 
             # multi-level categorize

@@ -2,6 +2,10 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is EnumMap {
     #     has Mu $!descriptor;
 
+    multi method Hash() {
+        self
+    }
+
     multi method AT-KEY(Hash:D: \key) is rw {
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
@@ -40,18 +44,28 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method perl(Hash:D \SELF:) {
-        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
-        ~ '<>' x !nqp::iscont(SELF)
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+        %*perlseen{self.WHICH} = 1;
+        my $result = '$' x nqp::iscont(SELF) ~
+        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}';
+        $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+        $result;
     }
 
-    multi method gist(Hash:D \SELF:) {
-        SELF.pairs.sort.map( -> $elem {
+    multi method gist(Hash:D:) {
+        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
+        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+        %*gistseen{self.WHICH} = 1;
+        my $result = self.pairs.sort.map( -> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }
                 default  { $elem.gist }
             }
         } ).join: ', ';
+        $result = "(\\Hash_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
+        $result;
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {
@@ -107,8 +121,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method push(*@values) {
-        fail X::Cannot::Infinite.new(:action<push>, :what(self.^name))
-          if @values.infinite;
+        fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
+          if @values.is-lazy;
         my $previous;
         my $has_previous;
         for @values -> $e {
@@ -129,19 +143,20 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method classify-list(|) { * }
+    # XXX GLR possibly more efficient taking an Iterable, not a @list
     multi method classify-list( &test, @list, :&as ) {
-        fail X::Cannot::Infinite.new(:action<classify>) if @list.infinite;
+        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
         if @list {
 
             # multi-level classify
-            if nqp::istype(test(@list[0]),List) {
+            if nqp::istype(test(@list[0]),Iterable) {
                 @list.map: -> $l {
                     my @keys  = test($l);
                     my $last := @keys.pop;
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
                     nqp::push(
-                      nqp::p6listitems(nqp::decont($hash{$last} //= [])),
+                      nqp::getattr(nqp::decont($hash{$last} //= []), List, '$!reified'),
                       &as ?? as($l) !! $l
                     );
                 }
@@ -151,7 +166,7 @@ my class Hash { # declared in BOOTSTRAP
             elsif &as {
                 @list.map: {
                     nqp::push(
-                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+                      nqp::getattr(nqp::decont(self{test $_} //= []), List, '$!reified'),
                       as($_)
                     )
                 }
@@ -161,7 +176,7 @@ my class Hash { # declared in BOOTSTRAP
             else {
                 @list.map: {
                     nqp::push(
-                      nqp::p6listitems(nqp::decont(self{test $_} //= [])),
+                      nqp::getattr(nqp::decont(self{test $_} //= []), List, '$!reified'),
                       $_
                     )
                 }
@@ -177,38 +192,41 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method categorize-list(|) { * }
+    # XXX GLR possibly more efficient taking an Iterable, not a @list
+    # XXX GLR replace p6listitems op use
+    # XXX GLR I came up with simple workarounds but this can probably
+    #         be done more efficiently better.
     multi method categorize-list( &test, @list, :&as ) {
-        fail X::Cannot::Infinite.new(:action<categorize>) if @list.infinite;
-        if @list {
-
-            # multi-level categorize
-            if nqp::istype(test(@list[0])[0],List) {
-                @list.map: -> $l {
-                    my $value := &as ?? as($l) !! $l;
-                    for test($l) -> $k {
-                        my @keys = @($k);
-                        my $last := @keys.pop;
-                        my $hash  = self;
-                        $hash = $hash{$_} //= self.new for @keys;
-                        nqp::push(
-                          nqp::p6listitems(nqp::decont($hash{$last} //= [])),
-                          $value
-                        );
-                    }
-                }
-            }
-
-            # just a simple categorize
-            else {
-                @list.map: -> $l {
-                    my $value := &as ?? as($l) !! $l;
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
-                      for test($l);
-                }
-            }
-        }
-        self;
+       fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
+       if @list {
+           # multi-level categorize
+           if nqp::istype(test(@list[0])[0],Iterable) {
+               @list.map: -> $l {
+                   my $value := &as ?? as($l) !! $l;
+                   for test($l) -> $k {
+                       my @keys = @($k);
+                       my $last := @keys.pop;
+                       my $hash  = self;
+                       $hash = $hash{$_} //= self.new for @keys;
+                       $hash{$last}.push: $value;
+                   }
+               }
+           } else {    
+           # just a simple categorize
+               @list.map: -> $l {
+                  my $value := &as ?? as($l) !! $l;
+                  (self{$_} //= []).push: $value for test($l);
+               }
+               # more efficient (maybe?) nom version that might
+               # yet be updated for GLR
+               # @list.map: -> $l {
+               #     my $value := &as ?? as($l) !! $l;
+               #     nqp::push(
+               #       nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
+               #       for test($l);
+           }
+       }
+       self;
     }
     multi method categorize-list( %test, $list ) {
         self.categorize-list( { %test{$^a} }, $list );
@@ -271,11 +289,16 @@ my class Hash { # declared in BOOTSTRAP
                 bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            'Hash['
+            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+            %*perlseen{self.WHICH} = 1;
+            my $result = '(my '
               ~ TValue.perl
-              ~ '].new('
-              ~ self.pairs.sort.map({.perl(:arglist)}).join(', ')
+              ~ ' % = '
+              ~ self.pairs.sort.map({.perl}).join(', ')
               ~ ')';
+            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+            $result;
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
@@ -362,39 +385,112 @@ my class Hash { # declared in BOOTSTRAP
         }
         method keys(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.keys(self,$!keys).list
+            Seq.new(class :: does Iterator {
+                has $!hash-iter;
+
+                method new(\hash, $class) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!hash-iter',
+                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
+                    iter
+                }
+
+                method pull-one() {
+                    $!hash-iter
+                        ?? nqp::iterval(nqp::shift($!hash-iter))
+                        !! IterationEnd
+                }
+            }.new(self, $?CLASS))
         }
         method kv(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.kv(self,$!keys).list
-        }
-        method values(EnumMap:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.values(self,$!keys).list
+
+            my $storage := nqp::getattr(self, EnumMap, '$!storage');
+            Seq.new(class :: does Iterator {
+                has $!hash-iter;
+                has $!storage;
+                has int $!on-value;
+                has $!current-value;
+
+                method new(\hash, $class, $storage) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!hash-iter',
+                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
+                    nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
+                    iter
+                }
+
+                method pull-one() {
+                    if $!hash-iter {
+                    }
+                    if $!on-value {
+                        $!on-value = 0;
+                        $!current-value
+                    }
+                    elsif $!hash-iter {
+                        my \tmp = nqp::shift($!hash-iter);
+                        $!on-value = 1;
+                        $!current-value := nqp::atkey($!storage, nqp::iterkey_s(tmp));
+                        nqp::iterval(tmp)
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+            }.new(self, $?CLASS, nqp::getattr(self, EnumMap, '$!storage')))
         }
         method pairs(EnumMap:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.pairs(self,$!keys).list
+
+            my $storage := nqp::getattr(self, EnumMap, '$!storage');
+            Seq.new(class :: does Iterator {
+                has $!hash-iter;
+                has $!storage;
+
+                method new(\hash, $class, $storage) {
+                    my \iter = self.CREATE;
+                    nqp::bindattr(iter, self, '$!hash-iter',
+                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
+                    nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
+                    iter
+                }
+
+                method pull-one() {
+                    if $!hash-iter {
+                        my \tmp = nqp::shift($!hash-iter);
+                        Pair.new(key => nqp::iterval(tmp), value => nqp::atkey($!storage, nqp::iterkey_s(tmp)));
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+            }.new(self, $?CLASS, nqp::getattr(self, EnumMap, '$!storage')))
         }
         method antipairs(EnumMap:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.antipairs(self,$!keys).list
+            self.map: { .value => .key }
         }
         method invert(EnumMap:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-            HashIter.invert(self,$!keys).list
+            self.map: { .value »=>» .key }
         }
         multi method perl(::?CLASS:D \SELF:) {
+            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
+            %*perlseen{self.WHICH} = 1;
+            my $result;
+
             my $TKey-perl   := TKey.perl;
             my $TValue-perl := TValue.perl;
-            if nqp::iscont(SELF) && $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
-                ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+            if $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
+                $result = ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
             }
             else {
-                "Hash[$TValue-perl,$TKey-perl].new({
-                  self.pairs.sort.map({.perl(:arglist)}).join(', ')
+                $result = "(my $TValue-perl %\{$TKey-perl\} = {
+                  self.pairs.sort.map({.perl}).join(', ')
                 })";
             }
+
+            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+            $result;
         }
         multi method DELETE-KEY($key) {
             my Mu $val = self.AT-KEY($key);
@@ -445,10 +541,10 @@ my class Hash { # declared in BOOTSTRAP
 }
 
 
-sub circumfix:<{ }>(*@elems) { (my % = @elems).item }
-sub hash(*@a, *%h) { my % = @a, %h }
+sub circumfix:<{ }>(*@elems) { my % = @elems }
+sub hash(*@a, *%h) { my % = flat @a, %h }
 
 # XXX parse hangs with ordinary sub declaration
-BEGIN my &circumfix:<:{ }> = sub (*@elems) { my $ = Hash.^parameterize(Mu,Any).new(@elems) }
+BEGIN my &circumfix:<:{ }> = sub (*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

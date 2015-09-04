@@ -229,7 +229,7 @@ my role Supply {
                                   }
                               }
                               else {
-                                  @seen.push: [$target, $now+$expires];
+                                  @seen.push: $[$target, $now+$expires];
                                   $res.emit(val);
                               }
                           }
@@ -244,7 +244,7 @@ my role Supply {
                                   }
                               }
                               else {
-                                  @seen.push: [val, $now+$expires];
+                                  @seen.push: $[val, $now+$expires];
                                   $res.emit(val);
                               }
                           };
@@ -347,7 +347,7 @@ my role Supply {
         self.rotor( (2 => -1) );
     }
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
-        my @c := @cycle.infinite ?? @cycle !! @cycle xx *;
+        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.list;
 
         on -> $res {
             $self => do {
@@ -355,8 +355,9 @@ my role Supply {
                 my Int $gap;
                 my int $to-skip;
                 my int $skip;
+                my \c = @c.iterator;
                 sub next-batch() {
-                    given @c.shift {
+                    given c.pull-one {
                         when Pair {
                             $elems   = +.key;
                             $gap     = +.value;
@@ -373,8 +374,7 @@ my role Supply {
 
                 my @batched;
                 sub flush() {
-                    $res.emit( [@batched] );
-                    @batched.splice( 0, +@batched + $gap );
+                    $res.emit( [@batched.splice(0, +@batched, @batched[* + $gap .. *]),] );
                     $skip = $to-skip;
                 }
 
@@ -404,7 +404,7 @@ my role Supply {
                 my @batched;
                 my $last_time;
                 sub flush {
-                    $res.emit([@batched]);
+                    $res.emit(([@batched],));
                     @batched = ();
                 }
 
@@ -669,13 +669,13 @@ my role Supply {
                     emit => -> \val {
                         if val.defined {
                             if !$min.defined {
-                                $res.emit( Range.new($min = val, $max = val) );
+                                $res.emit( (Range.new($min = val, $max = val),) );
                             }
                             elsif cmp(val,$min) < 0 {
-                                $res.emit( Range.new( $min = val, $max ) );
+                                $res.emit( (Range.new( $min = val, $max ),) );
                             }
                             elsif cmp(val,$max) > 0 {
-                                $res.emit( Range.new( $min, $max = val ) );
+                                $res.emit( (Range.new( $min, $max = val ),) );
                             }
                         }
                     },
@@ -739,7 +739,7 @@ my role Supply {
         }
     }
 
-    method zip(*@s, :&with is copy = &[,]) {
+    method zip(**@s, :&with) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to be done
 
@@ -749,18 +749,21 @@ my role Supply {
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
-        my @values = ( [] xx +@s );
+        my @values = [] xx +@s;
         on -> $res {
-            @s => -> $val, $index {
-                @values[$index].push($val);
-                if all(@values) {
-                    $res.emit( [[&with]] @values>>.shift );
-                }
-            }
+            @s => &with
+              ?? -> $val, $index {
+                  @values[$index].push($val);
+                  $res.emit( [[&with]] @values.map(*.shift) ) if all(@values);
+              }
+              !! -> $val, $index {
+                  @values[$index].push($val);
+                  $res.emit( $(@values.map(*.shift).List) ) if all(@values);
+              }
         }
     }
 
-    method zip-latest(*@s, :&with is copy = &[,], :$initial ) {
+    method zip-latest(**@s, :&with, :$initial ) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
         return Supply unless +@s;           # nothing to do.
 
@@ -785,15 +788,19 @@ my role Supply {
         on -> $res {
             @s => do {
                 {
-                emit => -> $val, $index {
-                    if $uninitialised > 0 && not @values.EXISTS-POS($index) {
-                        --$uninitialised;
-                    }
-                    @values[$index] = $val;
-                    unless $uninitialised {
-                        $res.emit( [[&with]] @values );
-                    }
-                },
+                emit => &with
+                  ?? -> $val, $index {
+                      --$uninitialised
+                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
+                      @values[$index] = $val;
+                      $res.emit( [[&with]] @values ) unless $uninitialised;
+                  }
+                  !! -> $val, $index {
+                      --$uninitialised
+                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
+                      @values[$index] = $val;
+                      $res.emit( @values.List.item ) unless $uninitialised;
+                  },
                 done => { $res.done() if ++$dones == +@s }
                 }
             }

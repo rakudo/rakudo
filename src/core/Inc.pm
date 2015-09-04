@@ -21,7 +21,7 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
                 while $iter {
                     @INC.push: PARSE-INCLUDE-SPECS(nqp::shift($iter));
                 }
-            }
+           }
             else {
                 @INC.push: PARSE-INCLUDE-SPECS($I);
             }
@@ -46,25 +46,25 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
 
         my $abspath := "$prefix/share/libraries.json";
         if IO::Path.new-from-absolute-path($abspath).e {
-            my $config = from-json( slurp $abspath );
-
-            for $config.list -> @group {
-                for @group>>.kv -> $class, $props {
-                    for $props.list -> $prop {
-                        if nqp::istype($prop,Associative) {
-                            for $prop.value.flat -> $path {
-                                @INC.push: PARSE-INCLUDE-SPECS($path);
-                                %CUSTOM_LIB{$prop.key} = $path;
-                            }
-                        }
-                        else {
-                            for $prop.flat -> $path {
-                                @INC.push: PARSE-INCLUDE-SPECS($path);
-                            }
-                        }
-                    }
-                }
-            }
+#            my $config = from-json( slurp $abspath );
+#
+#            for $config.list -> @group {
+#                for @group>>.kv -> $class, $props {
+#                    for $props.list -> $prop {
+#                        if nqp::istype($prop,Associative) {
+#                            for $prop.value.flat -> $path {
+#                                @INC.push: PARSE-INCLUDE-SPECS($path);
+#                                %CUSTOM_LIB{$prop.key} = $path;
+#                            }
+#                        }
+#                        else {
+#                            for $prop.flat -> $path {
+#                                @INC.push: PARSE-INCLUDE-SPECS($path);
+#                            }
+#                        }
+#                    }
+#                }
+#            }
         }
         # There is no config file, so pick sane defaults.
         else {

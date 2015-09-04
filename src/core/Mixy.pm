@@ -38,7 +38,7 @@ my role Mixy does Baggy  {
     }
 
     multi method roll($count = 1) {
-        my @pairs := self.pairs.grep: *.value > 0;
+        my @pairs = self.pairs.grep: *.value > 0;
         my $total := [+] @pairs.map: *.value;
         my $rolls = nqp::istype($count,Num)
           ?? $total min $count !! nqp::istype($count,Whatever) ?? Inf !! $count;

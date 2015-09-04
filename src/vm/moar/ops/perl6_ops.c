@@ -44,10 +44,6 @@ static MVMObject *Int                 = NULL;
 static MVMObject *Num                 = NULL;
 static MVMObject *Str                 = NULL;
 static MVMObject *Scalar              = NULL;
-static MVMObject *Parcel              = NULL;
-static MVMObject *Iterable            = NULL;
-static MVMObject *List                = NULL;
-static MVMObject *ListIter            = NULL;
 static MVMObject *True                = NULL;
 static MVMObject *False               = NULL;
 static MVMObject *ContainerDescriptor = NULL;
@@ -65,29 +61,6 @@ static MVMString *str_p6ex       = NULL;
 static MVMString *str_xnodisp    = NULL;
 static MVMString *str_xatcf      = NULL;
 static MVMString *str_cfr        = NULL;
-
-/* Parcel, as laid out as a P6opaque. */
-typedef struct {
-    MVMP6opaque  p6o;
-    MVMObject   *storage;
-} Rakudo_Parcel;
-
-/* ListIter, as laid out as a P6opaque. */
-typedef struct {
-    MVMP6opaque  p6o;
-    MVMObject   *reified;
-    MVMObject   *nextiter;
-    MVMObject   *rest;
-    MVMObject   *list;
-} Rakudo_ListIter;
-
-/* List, as laid out as a P6opaque. */
-typedef struct {
-    MVMP6opaqueBody  p6o;
-    MVMObject       *items;
-    MVMObject       *flattens;
-    MVMObject       *nextiter;
-} Rakudo_List;
 
 /* Expose Nil and Mu for containers. */
 MVMObject * get_nil() { return Nil; }
@@ -142,10 +115,6 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
         get_type(tc, conf, "Num", Num);
         get_type(tc, conf, "Str", Str);
         get_type(tc, conf, "Scalar", Scalar);
-        get_type(tc, conf, "Parcel", Parcel);
-        get_type(tc, conf, "Iterable", Iterable);
-        get_type(tc, conf, "List", List);
-        get_type(tc, conf, "ListIter", ListIter);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
         get_type(tc, conf, "ContainerDescriptor", ContainerDescriptor);
@@ -211,9 +180,6 @@ static void p6box_s_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns
     MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
 #endif
 }
-static void p6parcel_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Parcel);
-}
 
 static MVMuint8 s_p6box_i[] = {
     MVM_operand_obj | MVM_operand_write_reg,
@@ -235,101 +201,6 @@ static MVMuint8 s_p6box_s[] = {
 };
 static void p6box_s(MVMThreadContext *tc, MVMuint8 *cur_op) {
      GET_REG(tc, 0).o = MVM_repr_box_str(tc, Str, GET_REG(tc, 2).s);
-}
-
-static MVMuint8 s_p6parcel[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6parcel(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *parcel = MVM_repr_alloc_init(tc, Parcel);
-    MVMObject *vmarr  = GET_REG(tc, 2).o;
-    MVMObject *fill   = GET_REG(tc, 4).o;
-    MVM_ASSIGN_REF(tc, &(parcel->header), ((Rakudo_Parcel *)parcel)->storage, vmarr);
-
-    if (!MVM_is_null(tc, fill)) {
-        MVMint64 elems = MVM_repr_elems(tc, vmarr);
-        MVMint64 i;
-        for (i = 0; i < elems; i++)
-            if (MVM_is_null(tc, MVM_repr_at_pos_o(tc, vmarr, i)))
-                MVM_repr_bind_pos_o(tc, vmarr, i, fill);
-    }
-
-    GET_REG(tc, 0).o = parcel;
-}
-
-/* Produces a lazy Perl 6 list of the specified type with the given items. */
-static MVMObject * make_listiter(MVMThreadContext *tc, MVMObject *items, MVMObject *list) {
-    MVMObject *result;
-    MVMROOT(tc, items, {
-    MVMROOT(tc, list, {
-        result = MVM_repr_alloc_init(tc, ListIter);
-        MVM_ASSIGN_REF(tc, &(result->header), ((Rakudo_ListIter *)result)->rest, items);
-        MVM_ASSIGN_REF(tc, &(result->header), ((Rakudo_ListIter *)result)->list, list);
-    });
-    });
-    return result;
-}
-static MVMuint8 s_p6list[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6list(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     MVMObject *list = MVM_repr_alloc_init(tc, GET_REG(tc, 4).o);
-     if (IS_CONCRETE(list) && MVM_6model_istype_cache_only(tc, list, List)) {
-        MVMROOT(tc, list, {
-            MVMObject *items = GET_REG(tc, 2).o;
-            if (!MVM_is_null(tc, items)) {
-                MVMObject *iter = make_listiter(tc, items, list);
-                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->nextiter, iter);
-            }
-            MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->flattens, GET_REG(tc, 6).o);
-        });
-        GET_REG(tc, 0).o = list;
-    }
-    else {
-        MVM_exception_throw_adhoc(tc, "p6list may only be used on a concrete List");
-    }
-}
-
-static MVMuint8 s_p6listiter[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6listiter(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject  *arr = GET_REG(tc, 2).o;
-    MVMObject *list = GET_REG(tc, 4).o;
-    GET_REG(tc, 0).o = make_listiter(tc, arr, list);
-}
-static void p6listiter_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, ListIter);
-}
-
-/* Returns the $!items attribute of a List, vivifying it to a
- * low-level array if it isn't one already. */
-static MVMuint8 s_p6listitems[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6listitems(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     MVMObject *list = GET_REG(tc, 2).o;
-     if (IS_CONCRETE(list) && MVM_6model_istype_cache_only(tc, list, List)) {
-        MVMObject *items = ((Rakudo_List *)REAL_BODY(tc, list))->items;
-        if (MVM_is_null(tc, items) || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
-            MVMROOT(tc, list, {
-                items = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
-                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->items, items);
-            });
-        }
-        GET_REG(tc, 0).o = items;
-     }
-     else {
-        MVM_exception_throw_adhoc(tc, "p6listitems may only be used on a concrete List");
-     }
 }
 
 /* Turns zero to False and non-zero to True. */
@@ -436,8 +307,14 @@ static MVMuint8 s_p6decontrv[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
 };
+static MVMObject *Iterable = NULL;
 static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *retval = GET_REG(tc, 2).o;
+    MVMObject *retval;
+    if (!Iterable)
+        Iterable = MVM_frame_find_lexical_by_name(tc,
+            MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "Iterable"),
+            MVM_reg_obj)->o;
+    retval = GET_REG(tc, 2).o;
     if (MVM_is_null(tc, retval)) {
        retval = Mu;
     }
@@ -448,8 +325,7 @@ static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
                 ((Rakudo_Scalar *)retval)->descriptor;
             if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
                 MVMObject *value = ((Rakudo_Scalar *)retval)->value;
-                if (MVM_6model_istype_cache_only(tc, value, Iterable)
-                    || MVM_6model_istype_cache_only(tc, value, Parcel)) {
+                if (MVM_6model_istype_cache_only(tc, value, Iterable)) {
                     MVMROOT(tc, value, {
                         MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
                         MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
@@ -764,83 +640,6 @@ static void p6argsfordispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVM_exception_throw_adhoc(tc, "Could not find arguments for dispatcher");
 }
 
-static MVMuint8 s_p6shiftpush[] = {
-    MVM_operand_obj   | MVM_operand_write_reg,
-    MVM_operand_obj   | MVM_operand_read_reg,
-    MVM_operand_obj   | MVM_operand_read_reg,
-    MVM_operand_int64 | MVM_operand_read_reg
-};
-static void p6shiftpush(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject   *a = GET_REG(tc, 2).o;
-    MVMObject   *b = GET_REG(tc, 4).o;
-    MVMint64 count = GET_REG(tc, 6).i64;
-    MVMint64 total = count;
-    MVMint64 elems = MVM_repr_elems(tc, b);
-    if (count > elems)
-        count = elems;
-
-    if (!MVM_is_null(tc, a) && total > 0) {
-        MVMint64 getPos = 0;
-        MVMint64 setPos = MVM_repr_elems(tc, a);
-        REPR(a)->pos_funcs.set_elems(tc, STABLE(a), a, OBJECT_BODY(a), setPos + count);
-        while (count > 0) {
-            MVM_repr_bind_pos_o(tc, a, setPos, MVM_repr_at_pos_o(tc, b, getPos));
-            count--;
-            getPos++;
-            setPos++;
-        }
-    }
-    if (total > 0) {
-        MVMROOT(tc, a, {
-        MVMROOT(tc, b, {
-            MVMObject *copy = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
-            REPR(b)->pos_funcs.splice(tc, STABLE(b), b, OBJECT_BODY(b),
-                copy, 0, total);
-        });
-        });
-    }
-
-    GET_REG(tc, 0).o = a;
-}
-
-static MVMuint8 s_p6arrfindtypes[] = {
-    MVM_operand_int64 | MVM_operand_write_reg,
-    MVM_operand_obj   | MVM_operand_read_reg,
-    MVM_operand_obj   | MVM_operand_read_reg,
-    MVM_operand_int64 | MVM_operand_read_reg,
-    MVM_operand_int64 | MVM_operand_read_reg
-};
-static void p6arrfindtypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *arr    = GET_REG(tc, 2).o;
-    MVMObject *types  = GET_REG(tc, 4).o;
-    MVMint64   start  = GET_REG(tc, 6).i64;
-    MVMint64   last   = GET_REG(tc, 8).i64;
-    MVMint64   elems  = MVM_repr_elems(tc, arr);
-    MVMint64   ntypes = MVM_repr_elems(tc, types);
-    MVMint64   index, type_index;
-
-    if (elems < last)
-        last = elems;
-
-    for (index = start; index < last; index++) {
-        MVMObject *val = MVM_repr_at_pos_o(tc, arr, index);
-        if (!MVM_is_null(tc, val) && !STABLE(val)->container_spec) {
-            MVMint64 found = 0;
-            for (type_index = 0; type_index < ntypes; type_index++) {
-                MVMObject *type = MVM_repr_at_pos_o(tc, types, type_index);
-                if (MVM_6model_istype_cache_only(tc, val, type)) {
-                    found = 1;
-                    break;
-                }
-            }
-            if (found)
-                break;
-        }
-    }
-
-    GET_REG(tc, 0).i64 = index;
-}
-
 static MVMuint8 s_p6decodelocaltime[] = {
     MVM_operand_obj   | MVM_operand_write_reg,
     MVM_operand_int64 | MVM_operand_read_reg
@@ -925,10 +724,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i, NULL, p6box_i_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n, NULL, p6box_n_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s, NULL, p6box_s_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6parcel",  p6parcel, 3, s_p6parcel, NULL, NULL, MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6listiter",  p6listiter, 3, s_p6listiter, NULL, p6listiter_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6listitems",  p6listitems, 2, s_p6listitems, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, p6scalarfromdesc_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
@@ -949,8 +744,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6inpre", p6inpre, 1, s_p6inpre, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher, NULL, NULL, MVM_EXTOP_NO_JIT);
     MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6arrfindtypes", p6arrfindtypes, 5, s_p6arrfindtypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime, NULL, NULL, MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder, NULL, NULL, MVM_EXTOP_INVOKISH);

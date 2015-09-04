@@ -85,7 +85,8 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     method params() {
-        nqp::p6list(nqp::clone($!params), List, Mu);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
+            nqp::clone($!params));
     }
 
     method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {
@@ -93,7 +94,7 @@ my class Signature { # declared in BOOTSTRAP
         my $text = $perl ?? ':(' !! '(';
 
         # Parameters.
-        if self.params -> @params {
+        if self.params.Array -> @params {
             $text ~= @params.shift.perl(:$elide-type) ~ ': '
                 if @params[0].invocant;
             $text ~= ';; '

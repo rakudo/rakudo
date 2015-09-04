@@ -1,6 +1,6 @@
 my class X::Hash::Store::OddNumber { ... }
 
-my class EnumMap does Associative { # declared in BOOTSTRAP
+my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     # my class EnumMap is Iterable is Cool {
     #   has Mu $!storage;
 
@@ -16,6 +16,9 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     method elems(EnumMap:D:) {
         nqp::p6box_i(nqp::defined($!storage) && nqp::elems($!storage));
     }
+    multi method Int(EnumMap:D:)     { self.elems }
+    multi method Numeric(EnumMap:D:) { self.elems }
+    multi method Str(EnumMap:D:)     { self.list.Str }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
         self.EXISTS-KEY($topic.any);
@@ -54,25 +57,103 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     method iterator(EnumMap:) { self.pairs.iterator }
-    method list(EnumMap:) { self.pairs }
+    method list(EnumMap:) { self.pairs.list }
 
+    multi method pairs(EnumMap:D:) {
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() {
+                if $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    Pair.new(key => nqp::iterkey_s(tmp), value => nqp::iterval(tmp))
+                }
+                else {
+                    IterationEnd
+                }
+            }
+        }.new(self))
+    }
     multi method keys(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.keys(self)     !! ()).list;
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() {
+                $!hash-iter
+                    ?? nqp::iterkey_s(nqp::shift($!hash-iter))
+                    !! IterationEnd
+            }
+        }.new(self))
     }
     multi method kv(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.kv(self)       !! ()).list;
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+            has int $!on-value;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() is rw {
+                if $!on-value {
+                    $!on-value = 0;
+                    nqp::iterval($!hash-iter)
+                }
+                elsif $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    $!on-value = 1;
+                    nqp::iterkey_s(tmp)
+                }
+                else {
+                    IterationEnd
+                }
+            }
+        }.new(self))
     }
     multi method values(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.values(self)   !! ()).list;
-    }
-    multi method pairs(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.pairs(self)    !! ()).list;
+        $!storage := nqp::hash() unless $!storage.DEFINITE;
+        Seq.new(class :: does Iterator {
+            has $!hash-iter;
+
+            method new(\hash) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!hash-iter',
+                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                iter
+            }
+
+            method pull-one() is rw {
+                $!hash-iter
+                    ?? nqp::iterval(nqp::shift($!hash-iter))
+                    !! IterationEnd
+            }
+        }.new(self))
     }
     multi method antipairs(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.antipairs(self) !! ()).list;
+        self.map: { .value => .key }
     }
     multi method invert(EnumMap:D:) {
-        (nqp::defined($!storage) ?? HashIter.invert(self)   !! ()).list;
+        self.map: { (.value »=>» .key).list.Slip }
     }
 
     multi method AT-KEY(EnumMap:D: \key) is rw {
@@ -83,16 +164,20 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     method STORE(\to_store) {
-        my $items = (to_store,).flat.eager;
+        my \iter = nqp::istype(to_store, Iterable)
+            ?? to_store.iterator
+            !! to_store.list.iterator;
         $!storage := nqp::hash();
-
-        while $items {
-            my Mu $x := $items.shift;
-            if nqp::istype($x,Enum) { self.STORE_AT_KEY($x.key, $x.value) }
-            elsif nqp::istype($x,EnumMap) and !nqp::iscont($x) {
+        until (my Mu $x := iter.pull-one) =:= IterationEnd {
+            if nqp::istype($x,Enum) {
+                self.STORE_AT_KEY($x.key, $x.value)
+            }
+            elsif nqp::istype($x, EnumMap) and !nqp::iscont($x) {
                 for $x.list { self.STORE_AT_KEY(.key, .value) }
             }
-            elsif $items { self.STORE_AT_KEY($x, $items.shift) }
+            elsif (my Mu $y := iter.pull-one) !=:= IterationEnd {
+                self.STORE_AT_KEY($x, $y)
+            }
             else {
                 nqp::istype($x,Failure)
                   ?? $x.throw
@@ -148,6 +233,5 @@ multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {
     }
     Bool::True;
 }
-
 
 # vim: ft=perl6 expandtab sw=4

@@ -61,15 +61,20 @@ J_CORE_SOURCES = \
   src/core/Mu.pm \
   src/core/Stringy.pm \
   src/core/Any.pm \
+  src/core/Attribute.pm \
+  src/core/Iterator.pm \
+  src/core/SlippyIterator.pm \
+  src/core/HyperIterator.pm \
+  src/core/HyperIterable.pm \
+  src/core/Iterable.pm \
+  src/core/Any-iterable-methods.pm \
   src/core/SLICE.pm \
   src/core/Whatever.pm \
-  src/core/array_slice.pm \
   src/core/hash_slice.pm \
   src/core/Scalar.pm \
   src/core/Code.pm \
   src/core/WhateverCode.pm \
   src/core/Block.pm \
-  src/core/Attribute.pm \
   src/core/Variable.pm \
   src/core/Routine.pm \
   src/core/Sub.pm \
@@ -89,21 +94,20 @@ J_CORE_SOURCES = \
   src/core/Buf.pm \
   src/core/Str.pm \
   src/core/Capture.pm \
-  src/core/Parcel.pm \
-  src/core/Iterable.pm \
-  src/core/Iterator.pm \
+  src/core/IterationBuffer.pm \
+  src/core/HyperConfiguration.pm \
+  src/core/HyperWorkBuffer.pm \
+  src/core/Seq.pm \
+  src/core/HyperSeq.pm \
   src/core/Nil.pm \
   src/core/Range.pm \
-  src/core/ListIter.pm \
-  src/core/MapIter.pm \
-  src/core/GatherIter.pm \
   src/core/List.pm \
-  src/core/LoL.pm \
+  src/core/array_slice.pm \
+  src/core/Slip.pm \
   src/core/Array.pm \
   src/core/native_array.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \
-  src/core/HashIter.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Stash.pm \

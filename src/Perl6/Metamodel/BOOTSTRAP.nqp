@@ -44,7 +44,6 @@ my class BOOTSTRAPATTR {
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Empty metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -62,13 +61,9 @@ my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
 my knowhow bigint is repr('P6bigint') { }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Parcel metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Iterable metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Iterator metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Slip metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub LoL metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -128,6 +123,8 @@ my class Binder {
     my int $BIND_RESULT_JUNCTION := 2;
 
     my $autothreader;
+    my $Positional;
+    my $PositionalBindFailover;
 
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
@@ -170,6 +167,11 @@ my class Binder {
 
     method set_autothreader($callable) {
         $autothreader := $callable;
+    }
+
+    method set_pos_bind_failover($pos, $pos_bind_failover) {
+        $Positional := $pos;
+        $PositionalBindFailover := $pos_bind_failover;
     }
 
     # Binds a single parameter.
@@ -271,6 +273,12 @@ my class Binder {
                 $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
                 if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
                     $nom_type := $nom_type.HOW.instantiate_generic($nom_type, $lexpad);
+                }
+
+                # If the expected type is Positional, see if we need to do the
+                # positional bind failover.
+                if nqp::istype($nom_type, $Positional) && nqp::istype($oval, $PositionalBindFailover) {
+                    $oval := $oval.list;
                 }
 
                 # If not, do the check. If the wanted nominal type is Mu, then
@@ -396,9 +404,11 @@ my class Binder {
                 # and a normal bind is a straightforward binding.
                 if $flags +& $SIG_ELEM_ARRAY_SIGIL {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        my $bindee := nqp::create(Array);
-                        $bindee.STORE(nqp::decont($oval));
-                        nqp::bindkey($lexpad, $varname, $bindee);
+                        # XXX GLR
+                        nqp::die('replace this Array is copy logic');
+                        # my $bindee := nqp::create(Array);
+                        # $bindee.STORE(nqp::decont($oval));
+                        # nqp::bindkey($lexpad, $varname, $bindee);
                     }
                     else {
                         nqp::bindkey($lexpad, $varname, nqp::decont($oval));
@@ -571,9 +581,7 @@ my class Binder {
         # Otherwise, go by sigil to pick the correct default type of value.
         else {
             if $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                my $result := nqp::create(Array);
-                nqp::bindattr($result, List, '$!flattens', nqp::p6bool(1));
-                $result
+                nqp::create(Array)
             }
             elsif $flags +& $SIG_ELEM_HASH_SIGIL {
                 nqp::create(Hash)
@@ -711,15 +719,10 @@ my class Binder {
                         }
                         $cur_pos_arg++;
                     }
-                    my int $flatten := $flags +& $SIG_ELEM_SLURPY_POS;
-                    my $bindee := nqp::create($flatten
-                        ?? ($flags +& $SIG_ELEM_IS_RW ?? List !! Array)
-                        !! LoL);
-                    my $listiter := nqp::create(ListIter);
-                    nqp::bindattr($listiter, ListIter, '$!rest', $temp);
-                    nqp::bindattr($listiter, ListIter, '$!list', $bindee);
-                    nqp::bindattr($bindee, List, '$!nextiter', $listiter);
-                    nqp::bindattr($bindee, List, '$!flattens', nqp::p6bool($flatten));
+                    my $slurpy_type := $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
+                    my $bindee := $flags +& $SIG_ELEM_SLURPY_POS
+                        ?? $slurpy_type.from-slurpy-flat($temp)
+                        !! $slurpy_type.from-slurpy($temp);
                     $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                         0, $bindee, 0, 0.0, '');
                     return $bind_fail if $bind_fail;
@@ -2591,51 +2594,21 @@ BEGIN {
     Num.HOW.publish_boolification_spec(Num);
     Num.HOW.compose_repr(Num);
 
-    # class Parcel is Cool {
-    #     has Mu $!storage;    # VM's array of Parcel's elements
-    Parcel.HOW.add_parent(Parcel, Cool);
-    Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
-    Parcel.HOW.add_attribute(Parcel, scalar_attr('$!WHICH', Str, Parcel));
-    Parcel.HOW.compose_repr(Parcel);
-
-    # class Iterable is Any {
-    Iterable.HOW.add_parent(Iterable, Any);
-    Iterable.HOW.compose_repr(Iterable);
-
-    # class Iterator is Iterable {
-    Iterator.HOW.add_parent(Iterator, Iterable);
-    Iterator.HOW.compose_repr(Iterator);
-
     # class Nil is Cool {
     Nil.HOW.compose_repr(Nil);
     
-    # class Empty is Iterator {
-    Empty.HOW.add_parent(Empty, Iterator);
-    Empty.HOW.compose_repr(Empty);
-
-    # class ListIter is Iterator {
+    # class List is Cool {
     #     has Mu $!reified;
-    #     has Mu $!nextiter;
-    #     has Mu $!rest;
-    #     has Mu $!list;
-    ListIter.HOW.add_parent(ListIter, Iterator);
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu, ListIter));
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu, ListIter));
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu, ListIter));
-    ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu, ListIter));
-    ListIter.HOW.compose_repr(ListIter);
-    
-    # class List is Iterable is Cool {
-    #     has Mu $!items;
-    #     has Mu $!flattens;
-    #     has Mu $!nextiter;
-    List.HOW.add_parent(List, Iterable);
+    #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!infinite', Any, List));
+    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
+    List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
+    List.HOW.add_attribute(List, scalar_attr('$!WHICH', Str, List));
     List.HOW.compose_repr(List);
+
+    # class Slip is Cool {
+    Slip.HOW.add_parent(Slip, List);
+    Slip.HOW.compose_repr(Slip);
 
     # class Array is List {
     #     has Mu $!descriptor;
@@ -2643,15 +2616,8 @@ BEGIN {
     Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
     Array.HOW.compose_repr(Array);
 
-    # class LoL is List {
-    #     has Mu $!descriptor;
-    LoL.HOW.add_parent(LoL, List);
-    LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(LoL)));
-    LoL.HOW.compose_repr(LoL);
-
-    # my class EnumMap is Iterable is Cool {
+    # my class EnumMap is Cool {
     #     has Mu $!storage;
-    EnumMap.HOW.add_parent(EnumMap, Iterable);
     EnumMap.HOW.add_parent(EnumMap, Cool);
     EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap, :associative_delegate));
     EnumMap.HOW.compose_repr(EnumMap);
@@ -2736,6 +2702,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(List);
+    Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
@@ -2752,9 +2719,9 @@ BEGIN {
                     @pos[0]."$coercer_name"()
                 }
                 else {
-                    my $parcel := nqp::create(Parcel);
-                    nqp::bindattr($parcel, Parcel, '$!storage', @pos);
-                    $parcel."$coercer_name"()
+                    my $list := nqp::create(List);
+                    nqp::bindattr($list, List, '$!reified', @pos);
+                    $list."$coercer_name"()
                 }
             }
             else {
@@ -2797,7 +2764,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Any>        := Any;
     EXPORT::DEFAULT.WHO<Cool>       := Cool;
     EXPORT::DEFAULT.WHO<Nil>        := Nil;
-    EXPORT::DEFAULT.WHO<Empty>      := Empty;
     EXPORT::DEFAULT.WHO<Attribute>  := Attribute;
     EXPORT::DEFAULT.WHO<Signature>  := Signature;
     EXPORT::DEFAULT.WHO<Parameter>  := Parameter;
@@ -2811,13 +2777,9 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Str>        := Str;
     EXPORT::DEFAULT.WHO<Int>        := Int;
     EXPORT::DEFAULT.WHO<Num>        := Num;
-    EXPORT::DEFAULT.WHO<Parcel>     := Parcel;  
-    EXPORT::DEFAULT.WHO<Iterable>   := Iterable;
-    EXPORT::DEFAULT.WHO<Iterator>   := Iterator;
-    EXPORT::DEFAULT.WHO<ListIter>   := ListIter;
     EXPORT::DEFAULT.WHO<List>       := List;
+    EXPORT::DEFAULT.WHO<Slip>       := Slip;
     EXPORT::DEFAULT.WHO<Array>      := Array;
-    EXPORT::DEFAULT.WHO<LoL>        := LoL;
     EXPORT::DEFAULT.WHO<EnumMap>    := EnumMap;
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;
@@ -2915,8 +2877,10 @@ nqp::sethllconfig('perl6', nqp::hash(
     'foreign_type_int', Int,
     'foreign_type_num', Num,
     'foreign_type_str', Str,
-    'foreign_transform_array', -> $array {
-        nqp::p6parcel($array, Mu)
+    'foreign_transform_array', -> $farray {
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', $farray);
+        $list
     },
     'foreign_transform_hash', -> $hash {
         my $result := nqp::create(Hash);

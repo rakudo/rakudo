@@ -1,25 +1,25 @@
 my class Junction { # declared in BOOTSTRAP
     # class Junction is Mu {
-    #     has Mu $!storage;             # elements of Junction
+    #     has Mu $!storage;              # elements of Junction
     #     has str $!type;                # type of Junction
 
     multi method new(\values, Str :$type!) {
         my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', values.eager);
+        nqp::bindattr($junc, Junction, '$!storage', values.eager.List);
         nqp::bindattr($junc, Junction, '$!type', $type);
         $junc
     }
 
     multi method Bool(Junction:D:) {
-        SEQ($!storage.map({return True if $_}).gimme(*); return False)
+        SEQ($!storage.map({return True if $_}).sink; return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.map({return False unless $_}).gimme(*); return True)
+        SEQ($!storage.map({return False unless $_}).sink; return True)
             if nqp::iseq_s($!type, 'all');
-        SEQ($!storage.map({return False if $_}).gimme(*); return True)
+        SEQ($!storage.map({return False if $_}).sink; return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
-        $!storage.map({ $count++ if $_; return False if $count > 1 }).gimme(*);
+        $!storage.map({ $count++ if $_; return False if $count > 1 }).sink;
         $count == 1;
     }
 
@@ -34,15 +34,15 @@ my class Junction { # declared in BOOTSTRAP
         nqp::p6bool(nqp::istype(topic, Junction));
     }
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        SEQ($!storage.map({return True if $_.ACCEPTS(topic)}).gimme(*); return False)
+        SEQ($!storage.map({return True if $_.ACCEPTS(topic)}).sink; return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.map({return False unless $_.ACCEPTS(topic)}).gimme(*); return True)
+        SEQ($!storage.map({return False unless $_.ACCEPTS(topic)}).sink; return True)
             if nqp::iseq_s($!type, 'all');
-        SEQ($!storage.map({return False if $_.ACCEPTS(topic)}).gimme(*); return True)
+        SEQ($!storage.map({return False if $_.ACCEPTS(topic)}).sink; return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
-        $!storage.map({ $count++ if $_.ACCEPTS(topic); return False if $count > 1 }).gimme(*);
+        $!storage.map({ $count++ if $_.ACCEPTS(topic); return False if $count > 1 }).sink;
         $count == 1;
     }
 
@@ -81,7 +81,8 @@ my class Junction { # declared in BOOTSTRAP
                 Nil;
             }
             my $res_junc := nqp::clone(nqp::decont($arg));
-            nqp::bindattr($res_junc, Junction, '$!storage', nqp::p6parcel($res, Nil));
+            nqp::bindattr($res_junc, Junction, '$!storage',
+                nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $res));
             return $res_junc;
         }
 
@@ -123,7 +124,8 @@ my class Junction { # declared in BOOTSTRAP
                     Nil;
                 }
                 my $res_junc := nqp::clone(nqp::decont($v));
-                nqp::bindattr($res_junc, Junction, '$!storage', nqp::p6parcel($res, Nil));
+                nqp::bindattr($res_junc, Junction, '$!storage',
+                    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $res));
                 return $res_junc;
             }
         }

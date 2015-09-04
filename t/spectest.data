@@ -44,7 +44,6 @@ S02-lexical-conventions/unspace.t
 S02-lists/indexing.t
 S02-lists/tree.t
 S02-literals/adverbs.t
-S02-literals/allomorphic.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t
@@ -144,7 +143,7 @@ S02-types/nested_pairs.t
 S02-types/nil.t
 S02-types/num.t
 S02-types/pair.t
-S02-types/parcel.t
+S02-types/list.t
 S02-types/parsing-bool.t
 S02-types/range.t
 S02-types/set.t
@@ -318,7 +317,6 @@ S04-statements/given.t
 S04-statements/if.t
 S04-statements/label.t
 S04-statements/last.t
-S04-statements/lazy.t
 S04-statements/loop.t
 S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
@@ -910,6 +908,7 @@ S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
 S32-list/rotor.t
+S32-list/seq.t
 S32-list/sort.t
 S32-list/unique.t
 S32-list/squish.t

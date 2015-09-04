@@ -4,7 +4,9 @@ my role QuantHash does Associative {
     method Numeric ( --> Numeric) { self.total.Numeric }
     method Real    ( --> Real)    { self.total.Real }
 
-    method minpairs ( --> List ) {
+    method list() { self.pairs }
+
+    method minpairs {
         my @found;
         my $min = Inf;
         for self.pairs {
@@ -23,7 +25,7 @@ my role QuantHash does Associative {
         @found;
     }
 
-    method maxpairs ( --> List ) {
+    method maxpairs {
         my @found;
         my $max = -Inf;
         for self.pairs {
@@ -50,8 +52,6 @@ my role QuantHash does Associative {
             self.pairs.fmt($format, $sep);
         }
     }
-
-    multi method grep(QuantHash:D: Mu $test) { self.pairs.grep($test) }
 }
 
 # vim: ft=perl6 expandtab sw=4

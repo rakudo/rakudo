@@ -588,10 +588,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method match($pat,
-                  :continue(:$c), :pos(:$p),
-                  :global(:$g), :overlap(:$ov), :exhaustive(:$ex),
-                  # :st(:nd(:rd(:th($nth)))) is cute, but slow
-                  :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
+                 :continue(:$c), :pos(:$p),
+                 :global(:$g), :overlap(:$ov), :exhaustive(:$ex),
+                 # :st(:nd(:rd(:th($nth)))) is cute, but slow
+                 :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }
@@ -602,58 +602,109 @@ my class Str does Stringy { # declared in BOOTSTRAP
         %opts<ov> = $ov if $ov;
         %opts<ex> = $ex if $ex;
 
-        my @matches := gather {
+        my $matches := gather {
             while $cur.pos >= 0 {
                 take $cur.MATCH_SAVE;
                 $cur := $cur.'!cursor_more'(|%opts);
             }
         }
+
         my $multi = $g || $ov || $ex;
 
-        if $nth.defined {
-            $multi = Positional.ACCEPTS($nth);
-            my @nlist := $nth.list;
-            my @src   := @matches;
-            @matches  := gather {
-                my $max = 0;
-                while @nlist {
-                    my $n = shift @nlist;
-                    $n = $n(+@src) + 1 if nqp::istype($n, Callable);
-                    fail "Attempt to retrieve negative match :nth($n)" if $n < 1;
-                    if $n > $max { take @src[$n-1]; $max = $n; }
+        my @matches;
+
+        if $nth.defined or $x.defined {
+            my $clip;
+            my $idxs;
+
+            # Translate :nth lists to monotonic 0-based indices
+            my sub nthidx($n is copy) {
+
+                if nqp::istype($n, Callable) or nqp::istype($n, Whatever) {
+                    # WhateverCode forces us to remember early
+                    once @matches := $matches.list;
+                    once $matches := Nil;
+                    # WhateverCode is 1-based
+                    $n = nqp::istype($n, Whatever) ?? +@matches !! $n(+@matches);
+                }
+
+                state $max = -Inf;
+
+                if ($n > $max or once $n == -Inf) {
+                    $max = $n;
+                    # After first positive, <= 0 are "ignored" per spec
+                    once die "Attempt to retrieve before :1st match -- :nth($n)"
+                       if $max < 1;
+                    $n - 1;
+                }
+                else {
+                    Slip.new();
                 }
             }
-        }
-
-        if $x.defined {
-            $multi = True;
-            if nqp::istype($x, Int) {
-                @matches := @matches.gimme($x) >= $x
-                            ?? @matches[^$x].list
-                            !! ().list
+            if $nth.defined and not $x.defined {
+                $multi = Positional.ACCEPTS($nth);
+                $idxs := $nth.map(&nthidx).Array;
+                $clip := $idxs.elems..Inf;
             }
-            elsif nqp::istype($x, Range) {
-                my $min = $x.min.ceiling;
-                my $max = $x.max;
-                $min++ while $min <= $max && $min !~~ $x;
-                if @matches.gimme($min) >= $min && $min ~~ $x {
-                    my @src := @matches;
-                    @matches := gather {
-                        my $n = 0;
-                        while @src && ($n < $min || $n+1 ~~ $x) {
-                            take @src.shift;
-                            $n++;
-                        }
-                    }
+            if $x.defined {
+                $multi = True;
+                if nqp::istype($x, Int) {
+                    $clip := $x..$x;
                 }
-                else { @matches := ().list }
-            }
-            elsif nqp::istype($x, Whatever) { }
-            else {
-                X::Str::Match::x.new(got => $x).fail;
-            }
-        }
+                elsif nqp::istype($x, Range) {
+                    my $mx = $x.max.floor;
+                    $mx = $mx - 1 unless $mx ~~ $x;
+                    my $mn = $x.min.ceiling;
+                    $mn = $mn + 1 unless $mn ~~ $x;
+                    $clip := $mn..$mx;
+                }
+                elsif nqp::istype($x, Whatever) {
+                    $clip := 0..Inf;
+                }
+                else {
+                    X::Str::Match::x.new(:got($x)).fail;
+                }
+                $clip := 0..($clip.max) if $clip.min < 0;
+                return Slip.new() if $clip.max < 1 or $clip.max < $clip.min;
 
+                if $nth.defined {
+                    $idxs := $nth.map(&nthidx).Array;
+                    return Slip.new()
+                        if $clip.min and not $idxs.EXISTS-POS($clip.min - 1);
+                }
+                else {
+                    $idxs := (0..Inf).Array;
+                }
+            }
+
+            unless $matches.defined {
+                # Whatever, we have an extra layer of memoization.
+                $matches := @matches.values;
+                @matches := ();
+            }
+
+            # Just "list $matches.grep", once we have True.last
+            @matches := (gather do for $matches -> $m {
+                state $i = 0;
+                state $took = 0;
+                state $n = $idxs.EXISTS-POS(0) ?? $idxs.shift !! Nil;
+                last unless $n.defined;
+
+                if $i == $n {
+                    $n = $idxs.EXISTS-POS(0) ?? $idxs.shift !! Nil;
+                    take $m;
+                    $took++;
+                    last if $took >= $clip.max;
+                };
+                $i++;
+
+                last unless $n.defined;
+            }).list;
+            @matches := () unless not $clip.min or @matches.EXISTS-POS($clip.min - 1);
+        }
+        else {
+            @matches := $matches.list;
+        }
         if $multi {
             if nqp::istype($pat, Regex) {
                 try $caller_dollar_slash = +@matches
@@ -691,7 +742,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $samecase,
               $samespace,
             );
-            $global ?? (@matches,).list !! @matches[0];
+            if $global {
+                my \result := List.CREATE;
+                nqp::bindattr(result, List, '$!reified', nqp::getattr(@matches, List, '$!reified'));
+                result
+            }
+            else {
+                @matches[0]
+            }
         }
     }
 
@@ -835,7 +893,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             );
             $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
     multi method lines(Str:D: :$count!) {
         return self.lines if !$count;
@@ -879,35 +937,35 @@ my class Str does Stringy { # declared in BOOTSTRAP
             );
             $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         return ().list
           if nqp::istype($limit,Numeric) && $limit <= 0;
-        my @matches = nqp::istype($limit, Whatever)
+        my \matches = nqp::istype($limit, Whatever)
           ?? self.match($pat, :g)
           !! self.match($pat, :x(1..$limit-1), :g);
 
-        # add dummy for last
-        push @matches, Match.new( :from(self.chars) );
         my $prev-pos = 0;
 
         if ($all) {
-            my $elems = +@matches;
+            my $elems = +matches;
             map {
                 my $value = substr(self,$prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 # we don't want the dummy object
-                --$elems ?? ($value, $_) !! $value;
-            }, @matches;
+                $elems-- ?? Slip.new($value, $_) !! $value;
+            }, matches, Match.new( :from(self.chars) );
+            #           ^-- add dummy for last
         }
         else {
             map {
-                my $value = substr(self,$prev-pos, .from - $prev-pos);
+                my $value = substr(self, $prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 $value;
-            }, @matches;
+            }, matches, Match.new( :from(self.chars) );
+            #           ^-- add dummy for last
         }
     }
 
@@ -915,7 +973,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $delim-str        = $delimiter.Str;
         my str $self-string  = self;
         my str $match-string = $delim-str;
-        return unless nqp::chars($self-string) || nqp::chars($match-string);
+        return ().list unless nqp::chars($self-string) || nqp::chars($match-string);
 
         my int $l = nqp::istype($limit, Whatever) || $limit == Inf
             ?? nqp::chars($self-string) + 1
@@ -996,8 +1054,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
 
     method samespace(Str:D: Str:D $pat) {
-        my @self-chunks  = self.split(rx/\s+/, :all).flat;
-        my @pat-chunks  := $pat.split(rx/\s+/, :all).flat;
+        my @self-chunks = self.split(rx/\s+/, :all).flat;
+        my @pat-chunks  = $pat.split(rx/\s+/, :all).flat;
         loop (my $i = 1; $i < @pat-chunks && $i < @self-chunks; $i += 2) {
             @self-chunks[$i] = @pat-chunks[$i];
         }
@@ -1071,7 +1129,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $pos = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
     multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
         my @list := self.words(:eager);
@@ -1124,7 +1182,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $pos = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
         }
-        nqp::p6parcel($rpa, Nil);
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;
@@ -1379,11 +1437,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::join('',$result));
     }
     multi method trans(Str:D: *@changes, :complement(:$c), :squash(:$s), :delete(:$d)) {
+        my sub myflat(*@s) { @s.map: { nqp::istype($_, Iterable) ?? .list.Slip !! $_ } }
         my sub expand($s) {
-            return $s.list
+            return myflat($s.list).Slip
               if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
-            $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
-                .[0] ?? ~.[0] .. ~.[1] !! ~$_
+            flat $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
+                flat(.[0] ?? ~.[0] .. ~.[1] !! ~$_).Slip
             };
         }
 
@@ -1406,7 +1465,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my @to = expand $p.value;
                 if @to {
                     my $padding = $d ?? '' !! @to[@to - 1];
-                    @to = @to, $padding xx @from - @to;
+                    @to = flat @to, $padding xx @from - @to;
                 }
                 else {
                     @to = '' xx @from
@@ -1708,7 +1767,7 @@ multi sub infix:«~<»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~<»").throw;
 }
 
-multi sub ords(Str $s) returns List:D {
+multi sub ords(Str $s) returns Seq:D {
     my Int $c  = $s.chars;
     my str $ns = nqp::unbox_s($s);
     (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }

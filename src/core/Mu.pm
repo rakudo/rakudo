@@ -4,6 +4,27 @@ my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 
 my class Mu { # declared in BOOTSTRAP
+
+    # XXX while the GLR is fanning out to the ecosystem
+    proto method gimme(|) {
+        die "
+The 'gimme' method was an internal method used by rakudo before the Great
+List Refactor.  The fact that you are seeing this message, means that you
+have code that was using that unsupported rakudo internal API.
+
+Please refactor this code using the new Iterator / Seq interface.
+"
+    }
+    proto method munch(|) {
+        die "
+The 'munch' method was an internal method used by rakudo before the Great
+List Refactor.  The fact that you are seeing this message, means that you
+have code that was using that unsupported rakudo internal API.
+
+Please refactor this code using the new Iterator / Seq interface.
+"
+    }
+
     proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Mu:U: Any \topic) {
         nqp::p6bool(nqp::istype(topic, self))
@@ -33,11 +54,15 @@ my class Mu { # declared in BOOTSTRAP
     method take {
         take self;
     }
-    method return(|) {
-        my $parcel :=
-          &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-        nqp::p6routinereturn(nqp::p6recont_ro($parcel));
-        $parcel
+    method return-rw(|) {  # same code as control.pm's return-rw
+        my $list := RETURN-LIST(nqp::p6argvmarray());
+        nqp::p6routinereturn($list);
+        $list;
+    }
+    method return(|) {  # same code as control.pm's return
+        my $list := RETURN-LIST(nqp::p6argvmarray());
+        nqp::p6routinereturn(nqp::p6recont_ro($list));
+        $list;
     }
 
     proto method WHY(|) { * }
@@ -78,8 +103,8 @@ my class Mu { # declared in BOOTSTRAP
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
-    proto method infinite (|) { * }
-    multi method infinite(Mu:) { Nil }
+    proto method is-lazy (|) { * }
+    multi method is-lazy(Mu:) { False }
 
     method CREATE() {
         nqp::create(self)
@@ -537,7 +562,9 @@ my class Mu { # declared in BOOTSTRAP
             }
             $i = $i + 1;
         }
-        &infix:<,>(|@results)
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', nqp::getattr(@results, List, '$!reified'));
+        $list
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {

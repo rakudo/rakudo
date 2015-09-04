@@ -117,7 +117,7 @@ my class IO::Spec::Unix is IO::Spec {
           !! $dirname ~ $file
     }
 
-    method catdir( *@parts ) { self.canonpath( (@parts, '').join('/') ) }
+    method catdir( *@parts ) { self.canonpath( (flat @parts, '').join('/') ) }
     method splitdir( $path ) { $path.split( '/' )  }
     method catfile( |c )     { self.catdir(|c) }
 

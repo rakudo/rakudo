@@ -44,6 +44,7 @@ BEGIN {
     trait_mod:<is>(&prefix:<->,  :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<?>,  :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<!>,  :prec($symbolic_unary));
+    trait_mod:<is>(&prefix:<|>,  :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<+^>, :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<~^>, :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<?^>, :prec($symbolic_unary));

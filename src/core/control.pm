@@ -20,33 +20,31 @@ sub THROW-NIL(int $type) {
     Nil
 }
 
-sub RETURN-PARCEL(Mu \parcel) is rw {
-    my Mu $storage := nqp::getattr(parcel, Parcel, '$!storage');
+sub RETURN-LIST(Mu \list) is rw {
+    my Mu $storage := nqp::getattr(list, List, '$!reified');
     nqp::iseq_i(nqp::elems($storage), 0)
       ?? Nil
       !! (nqp::iseq_i(nqp::elems($storage), 1)
             ?? nqp::shift($storage)
-            !! parcel)
+            !! list)
 }
 
 my &return-rw := -> | {
-    my $parcel :=
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    nqp::p6routinereturn($parcel);
-    $parcel
+    my $list := RETURN-LIST(nqp::p6argvmarray());
+    nqp::p6routinereturn($list);
+    $list;
 };
 my &return := -> | {
-    my $parcel :=
-        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    nqp::p6routinereturn(nqp::p6recont_ro($parcel));
-    $parcel
+    my $list := RETURN-LIST(nqp::p6argvmarray());
+    nqp::p6routinereturn(nqp::p6recont_ro($list));
+    $list;
 };
 
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm
 my &take-rw := -> | {
-    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::const::CONTROL_TAKE, $parcel);
+    my $list := RETURN-LIST(nqp::p6argvmarray());
+    THROW(nqp::const::CONTROL_TAKE, $list);
 }
 #?endif
 #?if !jvm
@@ -54,27 +52,30 @@ proto sub take-rw(|) { * }
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
-    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::const::CONTROL_TAKE, $parcel);
+    my $list := RETURN-LIST(nqp::p6argvmarray());
+    THROW(nqp::const::CONTROL_TAKE, $list);
 }
 #?endif
 
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm
 my &take := -> | {
-    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($parcel) );
-    $parcel
+    my $list := RETURN-LIST(nqp::p6argvmarray());
+    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($list) );
+    $list;
 }
 #?endif
 #?if !jvm
 proto sub take(|) { * }
 multi sub take()   { die "take without parameters doesn't make sense" }
-multi sub take(\x) { THROW(nqp::const::CONTROL_TAKE,nqp::p6recont_ro(x)); x }
+multi sub take(\x) {
+    my $ = THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x));
+    x
+}
 multi sub take(|) {
-    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($parcel) );
-    $parcel
+    my $list := RETURN-LIST(nqp::p6argvmarray());
+    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($list) );
+    $list;
 }
 #?endif
 
@@ -97,8 +98,8 @@ proto sub succeed(|) { * }
 multi sub succeed()   { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
 multi sub succeed(\x) { THROW(nqp::const::CONTROL_SUCCEED, nqp::decont(x)) }
 multi sub succeed(|) {
-    my $parcel := &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW( nqp::const::CONTROL_SUCCEED, nqp::decont($parcel));
+    my $list := RETURN-LIST(nqp::p6argvmarray());
+    THROW( nqp::const::CONTROL_SUCCEED, nqp::decont($list));
 }
 
 sub proceed() { THROW-NIL(nqp::const::CONTROL_PROCEED) }
@@ -157,11 +158,11 @@ sub samewith(|c) {
 
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
-sub supply-emit(\value) {
+sub emit(\value) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
     value
 }
-sub supply-done() {
+sub done() {
     THROW(nqp::const::CONTROL_DONE, Nil);
     Nil
 }
@@ -245,8 +246,9 @@ sub exit($status = 0) {
 }
 
 sub THE_END {
-    my @END := nqp::p6list(nqp::getcurhllsym("@END_PHASERS"), Array, Mu);
-    while @END.shift -> $end { $end() };
+    my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
+        nqp::getcurhllsym("@END_PHASERS"));
+    for @END -> $end { $end() };
 }
 
 constant Inf = nqp::p6box_n(nqp::inf());

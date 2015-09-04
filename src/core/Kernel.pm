@@ -104,7 +104,7 @@ class Kernel does Systemic {
             my @names;
             if self.name eq 'win32' {
                 # These are the ones libuv emulates on Windows.
-                @names = "", <INT BREAK HUP WINCH>;
+                @names = flat "", <INT BREAK HUP WINCH>;
             } else {
                 @names = flat "", qx/kill -l/.words;
                 @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge

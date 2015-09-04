@@ -132,12 +132,12 @@ sub type_code_for(Mu ::T) {
         "If you want to pass an array, be sure to use the CArray type.";
 }
 
-sub gen_native_symbol(Routine $r) {
+sub gen_native_symbol(Routine $r, :$cpp-name-mangler) {
     if $r.package.REPR eq 'CPPStruct' {
-        mangle_cpp_symbol($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name))
+        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name))
     }
     elsif $r.?native_call_mangled {
-        mangle_cpp_symbol($r, $r.?native_symbol // $r.name)
+        $cpp-name-mangler($r, $r.?native_symbol // $r.name)
     }
     else {
         $r.?native_symbol // $r.name
@@ -185,20 +185,47 @@ sub guess_library_name($lib) {
     else { "{$libname}.so"; }
 }
 
+my %lib;
+my @cpp-name-mangler =
+    &NativeCall::Compiler::MSVC::mangle_cpp_symbol,
+    &NativeCall::Compiler::GNU::mangle_cpp_symbol,
+;
+
+sub guess-name-mangler(Routine $r, Str $libname) {
+    if $r.package.REPR eq 'CPPStruct' {
+        my $sym = $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name);
+        for @cpp-name-mangler -> &mangler {
+            return &mangler if try cglobal($libname, mangler($r, $sym), Pointer)
+        }
+        die "Don't know how to mangle symbol '$sym' for library '$libname'"
+    }
+    elsif $r.?native_call_mangled {
+        my $sym = $r.?native_symbol // $r.name;
+        for @cpp-name-mangler -> &mangler {
+            return &mangler if try cglobal($libname, mangler($r, $sym), Pointer)
+        }
+        die "Don't know how to mangle symbol '$sym' for library '$libname'"
+    }
+}
+
 # This role is mixed in to any routine that is marked as being a
 # native call.
 my role Native[Routine $r, $libname where Str|Callable] {
     has int $!setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;
+    has $!cpp-name-mangler;
 
     method CALL-ME(|args) {
         unless $!setup {
+            my $guessed_libname = guess_library_name($libname);
+            $!cpp-name-mangler  = %lib{$guessed_libname} //
+                (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
             my Mu $arg_info := param_list_for($r.signature, $r);
             my str $conv = self.?native_call_convention || '';
             nqp::buildnativecall(self,
-                nqp::unbox_s(guess_library_name($libname)),    # library name
-                nqp::unbox_s(gen_native_symbol($r)),      # symbol to call
+                nqp::unbox_s($guessed_libname),                           # library name
+                nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
                 return_hash_for($r.signature, $r));
@@ -295,12 +322,6 @@ multi trait_mod:<is>(Parameter $p, :$cpp-ref!) is export(:DEFAULT, :traits) {
 multi refresh($obj) is export(:DEFAULT, :utils) {
     nqp::nativecallrefresh($obj);
     1;
-}
-
-sub mangle_cpp_symbol(Routine $r, $symbol) {
-    $*DISTRO.is-win
-        ?? NativeCall::Compiler::MSVC::mangle_cpp_symbol($r, $symbol)
-        !! NativeCall::Compiler::GNU::mangle_cpp_symbol($r, $symbol)
 }
 
 sub nativecast($target-type, $source) is export(:DEFAULT) {

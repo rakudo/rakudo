@@ -27,7 +27,33 @@ sub compile_test_lib($name) is export {
     shell($l_line);
 }
 
+sub compile_cpp_test_lib($name) is export {
+    my @cmds;
+    my $VM  := $*VM;
+    my $cfg := $VM.config;
+    my $so   = $VM.name eq 'moar'
+            ?? $cfg<dll>.subst(/^.*\./, '')
+            !! $cfg<nativecall.so>;
+    @cleanup = "$name.$so";
+    if $*DISTRO.is-win {
+        @cmds    = "cl /LD /EHsc /Fe$name.$so t/04-nativecall/$name.cpp",
+                   "g++ --shared -fPIC -o $name.$so t/04-nativecall/$name.cpp",
+    }
+    else {
+        @cmds    = "g++ --shared -fPIC -o $name.$so t/04-nativecall/$name.cpp",
+                   "clang++ -stdlib=libc++ --shared -fPIC -o $name.$so t/04-nativecall/$name.cpp",
+    }
+
+    my @fails;
+    for @cmds -> $cmd {
+        my $handle = shell("$cmd 2>&1", :out);
+        my $output = $handle.out.slurp-rest;
+        @fails.push: "Running '$cmd':\n$output" if $handle.out.close.status;
+    }
+    fail @fails.join('=' x 80 ~ "\n") if @fails;
+}
+
 END {
 #    say "cleaning up @cleanup[]";
-    unlink @cleanup;
+    #~ unlink @cleanup;
 }

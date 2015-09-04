@@ -1,16 +1,19 @@
 use v6;
+use lib 't/04-nativecall';
+use CompileTestLib;
+use lib 'lib';
 use NativeCall;
 use Test;
 
-my $cmd    = $*DISTRO.is-win
-           ?? 'cl /LD /EHsc /Fe11-cpp.dll t/04-nativecall/11-cpp.cpp'
-           !! 'g++ --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
-my $handle = shell("$cmd 2>&1", :out);
-my $output = $handle.out.slurp-rest;
-if $handle.out.close.status -> $status {
-    diag "Error while compiling C++ script:\n$output";
-    print "1..0 # Skip: Cannot compile C++ script\n";
-    exit 0
+try {
+    compile_cpp_test_lib('11-cpp');
+    CATCH {
+        default {
+            diag "Error while compiling C++ script:\n$_.payload()";
+            print "1..0 # Skip: Cannot compile C++ script\n";
+            exit 0
+        }
+    }
 }
 
 plan 21;

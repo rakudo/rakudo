@@ -21,7 +21,7 @@ my class Capture { # declared in BOOTSTRAP
         if !nqp::isnull($!list) && $!list {
             $WHICH ~= '|';
             $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
-              for flat nqp::hllize($!list);
+              for nqp::hllize($!list);
         }
         if !nqp::isnull($!hash) && $!hash {
             $WHICH ~= '|';

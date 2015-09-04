@@ -2,42 +2,15 @@ my class IO::Path { ... }
 my class IO::Special { ... }
 my class Proc { ... }
 
-# Will be removed together with pipe() and open(:p).
-my class Proc::Status {
-    has $.exitcode = -1;  # distinguish uninitialized from 0 status
-    has $.pid;
-    has $.signal;
-
-    method exit {
-        DEPRECATED('Proc::Status.exitcode', |<2015.03 2015.09>);
-        $!exitcode;
-    }
-
-    proto method status(|) { * }
-    multi method status($new_status) {
-        $!exitcode = $new_status +> 8;
-        $!signal   = $new_status +& 0xFF;
-    }
-    multi method status(Proc::Status:D:)  { ($!exitcode +< 8) +| $!signal }
-    multi method Numeric(Proc::Status:D:) { $!exitcode }
-    multi method Bool(Proc::Status:D:)    { $!exitcode == 0 }
-}
-
 my class IO::Handle does IO {
     has $.path;
     has $!PIO;
     has int $.ins;
     has $.chomp is rw = Bool::True;
     has $.nl    = "\n";
-    has int $!pipe;
-
-    method pipe(IO::Handle:D: |c) {
-        DEPRECATED('shell() or run() with :in, :out or :err', |<2015.06 2015.09>);
-        self.open(:p, :nodepr, |c);
-    }
 
     method open(IO::Handle:D:
-      :$p, :$r, :$w, :$x, :$a, :$update,
+      :$r, :$w, :$x, :$a, :$update,
       :$rw, :$rx, :$ra,
       :$mode is copy,
       :$create is copy,
@@ -52,8 +25,6 @@ my class IO::Handle does IO {
     ) {
 
         $mode //= do {
-            when so $p { 'pipe' }
-
             when so ($r && $w) || $rw { $create              = True; 'rw' }
             when so ($r && $x) || $rx { $create = $exclusive = True; 'rw' }
             when so ($r && $a) || $ra { $create = $append    = True; 'rw' }
@@ -100,66 +71,46 @@ my class IO::Handle does IO {
         fail (X::IO::Directory.new(:$!path, :trying<open>))
           if $!path.e && $!path.d;
 
-        if $mode eq 'pipe' {
-            DEPRECATED('shell(...)/run(...) with :in, :out or :err', |<2015.06 2015.09>, :what(':p for pipe')) unless $nodepr;
-            $!pipe = 1;
-
-            $!PIO := nqp::syncpipe();
-            nqp::shell(
-              nqp::unbox_s($!path.Str),
-              nqp::unbox_s($*CWD.Str),
-              CLONE-HASH-DECONTAINERIZED(%*ENV),
-              nqp::null(), $!PIO, nqp::null(),
-              nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
-            );
+        my $llmode = do given $mode {
+            when 'ro' { 'r' }
+            when 'wo' { '-' }
+            when 'rw' { '+' }
+            default { die "Unknown mode '$_'" }
         }
-        else {
-            my $llmode = do given $mode {
-                when 'ro' { 'r' }
-                when 'wo' { '-' }
-                when 'rw' { '+' }
-                default { die "Unknown mode '$_'" }
-            }
 
-            $llmode = join '', $llmode,
-                $create    ?? 'c' !! '',
-                $append    ?? 'a' !! '',
-                $truncate  ?? 't' !! '',
-                $exclusive ?? 'x' !! '';
+        $llmode = join '', $llmode,
+            $create    ?? 'c' !! '',
+            $append    ?? 'a' !! '',
+            $truncate  ?? 't' !! '',
+            $exclusive ?? 'x' !! '';
 
 #?if !moar
-            # don't use new modes on anything but MoarVM
-            # TODO: check what else can be made to work on Parrot
-            #       cf io/utilities.c, Parrot_io_parse_open_flags()
-            #          platform/generic/io.c, convert_flags_to_unix()
-            #          platform/win32/io.c, convert_flags_to_win32 ()
-            $llmode = do given $llmode {
-                when 'r'   { 'r' }
-                when '-ct' { 'w' }
-                when '-ca' { 'wa' }
-                default {
-                    die "Backend { $*VM.name
-                        } does not support opening files in mode '$llmode'";
-                }
+        # don't use new modes on anything but MoarVM
+        # TODO: check what else can be made to work on Parrot
+        #       cf io/utilities.c, Parrot_io_parse_open_flags()
+        #          platform/generic/io.c, convert_flags_to_unix()
+        #          platform/win32/io.c, convert_flags_to_win32 ()
+        $llmode = do given $llmode {
+            when 'r'   { 'r' }
+            when '-ct' { 'w' }
+            when '-ca' { 'wa' }
+            default {
+                die "Backend { $*VM.name
+                    } does not support opening files in mode '$llmode'";
             }
+        }
 #?endif
 
-            # TODO: catch error, and fail()
-            $!PIO := nqp::open(
-              nqp::unbox_s($!path.abspath),
-              nqp::unbox_s($llmode),
-            );
-        }
+        # TODO: catch error, and fail()
+        $!PIO := nqp::open(
+          nqp::unbox_s($!path.abspath),
+          nqp::unbox_s($llmode),
+        );
 
         $!chomp = $chomp;
         nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
         self;
-    }
-
-    method input-line-separator {
-        DEPRECATED("nl",|<2015.03 2015.09>);
-        self.nl;
     }
 
     method nl is rw {
@@ -175,17 +126,9 @@ my class IO::Handle does IO {
 
     method close(IO::Handle:D:) {
         # TODO:b catch errors
-        if $!pipe {
-            my $ps = Proc::Status.new;
-            $ps.status( nqp::closefh_i($!PIO) ) if nqp::defined($!PIO);
-            $!PIO := Mu;
-            $ps;
-        }
-        else {
-            nqp::closefh($!PIO) if nqp::defined($!PIO);
-            $!PIO := Mu;
-            True;
-        }
+        nqp::closefh($!PIO) if nqp::defined($!PIO);
+        $!PIO := Mu;
+        True;
     }
 
     method eof(IO::Handle:D:) {
@@ -511,11 +454,6 @@ my class IO::Handle does IO {
         Bool::True;
     }
 
-    method slurp(IO::Handle:D: |c) {
-        DEPRECATED('$handle.slurp-rest', |<2014.10 2015.09>);
-        self.slurp-rest(|c);
-    }
-
     proto method slurp-rest(|) { * }
     multi method slurp-rest(IO::Handle:D: :$bin!) returns Buf {
         my $Buf := buf8.new();
@@ -530,23 +468,6 @@ my class IO::Handle does IO {
     multi method slurp-rest(IO::Handle:D: :$enc) returns Str {
         self.encoding($enc) if $enc.defined;
         nqp::p6box_s(nqp::readallfh($!PIO));
-    }
-
-    proto method spurt(|) { * }
-    multi method spurt(IO::Handle:D: Cool $contents, :$nodepr) {
-        DEPRECATED("IO::Path.spurt", |<2014.10 2015.09>) unless $nodepr;
-        self.print($contents);
-    }
-
-    multi method spurt(IO::Handle:D: Blob $contents, :$nodepr) {
-        DEPRECATED("IO::Path.spurt", |<2014.10 2015.09>) unless $nodepr;
-        self.write($contents);
-    }
-
-    # not spec'd
-    method copy(IO::Handle:D: $dest) {
-        DEPRECATED("IO::Path.copy", |<2014.10 2015.09>);
-        $!path.copy($dest);
     }
 
     method chmod(IO::Handle:D: Int $mode) { $!path.chmod($mode) }

@@ -2008,15 +2008,7 @@ Compilation unit '$file' contained the following violations:
 
         if $twigil eq '*' {
             # DEPRECATIONS
-            if $name eq '$*OS' {
-                $*W.DEPRECATED($/,
-                  '$*DISTRO.name','2014.09','2015.09',:what('$*OS'));
-            }
-            elsif $name eq '$*OSVER' {
-                $*W.DEPRECATED($/,
-                  '$*DISTRO.version','2014.09','2015.09',:what('$*OSVER'));
-            }
-            elsif $name eq '$*EXECUTABLE_NAME' {
+            if $name eq '$*EXECUTABLE_NAME' {
                 $*W.DEPRECATED($/,
                   '$*EXECUTABLE-NAME','2015.06','2015.09',:what('$*EXECUTABLE_NAME'));
             }

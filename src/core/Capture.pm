@@ -21,12 +21,12 @@ my class Capture { # declared in BOOTSTRAP
         if !nqp::isnull($!list) && $!list {
             $WHICH ~= '|';
             $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
-              for flat $!list;
+              for flat nqp::hllize($!list);
         }
         if !nqp::isnull($!hash) && $!hash {
             $WHICH ~= '|';
             $WHICH ~= ( $_ ~ '(' ~ nqp::atkey($!hash, nqp::unbox_s($_)).WHICH ~ ')' )
-              for self.hash.keys.sort;
+              for nqp::hllize($!hash).keys.sort;
         }
         $WHICH;
     }

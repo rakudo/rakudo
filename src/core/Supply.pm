@@ -68,11 +68,6 @@ my role Supply {
         Nil;
     }
 
-    method more(Supply:D: \msg) {
-        DEPRECATED('emit', |<2014.10 2015.09>);
-        self.emit(msg);
-    }
-
     method done(Supply:D:) {
         for self.tappers -> $t {
             my $l = $t.done();
@@ -848,11 +843,10 @@ sub on(&setup) {
 
         method !add_source(
           $source, $lock, $index, :&done is copy, :&quit is copy,
-          :&emit is copy, :&more   # more deprecated, emit must be changeable
+          :&emit
         ) {
-            DEPRECATED('emit => {...}', |<2014.10 2015.09>) if &more;
             $!live ||= True if $source.live;
-            &emit //= &more // X::Supply::On::NoEmit.new.throw;
+            &emit // X::Supply::On::NoEmit.new.throw;
             &done //= { self.done };
             &quit //= -> $ex { self.quit($ex) };
 

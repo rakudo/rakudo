@@ -1442,10 +1442,6 @@ Compilation unit '$file' contained the following violations:
         make when_handler_helper($<block>.ast);
     }
 
-    method term:sym<winner>($/) {
-        $*W.DEPRECATED($/,"'earliest'",'2014.10','2015.09',:what("'winner'"));
-        self.term:sym<earliest>($/);
-    }
     method term:sym<earliest>($/) {
         my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
         my $wild_done;

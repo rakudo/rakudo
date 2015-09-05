@@ -27,9 +27,4 @@ my class IO::Notification {
             $path, FileWatchCancellation);
         $s
     }
-
-    method watch_path(|c) {
-        DEPRECATED('watch-path', |<2015.08 2015.09> );
-        self.watch-path(|c);
-    }
 }

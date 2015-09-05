@@ -8,11 +8,6 @@ my class IO::Socket::Async {
             "IO::Socket::Async.connect or IO::Socket::Async.listen.";
     }
 
-    method send(|c) {
-        DEPRECATED('print', |<2015.07 2015.09>);
-        self.print(|c)
-    }
-
     method print(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
@@ -94,11 +89,6 @@ my class IO::Socket::Async {
         };
     }
 
-    method chars_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
-        DEPRECATED('chars-supply',|<2015.07 2015.10>);
-        self.chars-supply(:$scheduler);
-    }
-
     method chars-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
         my $cancellation;
         Supply.on-demand( -> $supply {
@@ -113,11 +103,6 @@ my class IO::Socket::Async {
               $cancellation && nqp::cancel($cancellation)
           },
         );
-    }
-
-    method bytes_supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
-        DEPRECATED('bytes-supply',|<2015.07 2015.10>);
-        self.bytes-supply(:$scheduler, :$buf);
     }
 
     method bytes-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {

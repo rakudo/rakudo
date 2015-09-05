@@ -1663,7 +1663,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $pos := $/.from;
             my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
             my $lex := $*W.cur_lexpad();
-            for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method', 'with', 'without' {
+            for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method', 'with', 'without', 'supply', 'whenever', 'react' {
                 $needparens++ if $_ eq 'loop';
                 my $m := %*MYSTERY{$_ ~ '-' ~ $lex.cuid};
                 next unless $m;

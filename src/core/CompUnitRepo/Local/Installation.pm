@@ -39,9 +39,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $ver;
     my @installations = @*INC.grep( { .starts-with("inst#") } )\
         .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
-    my @binaries = @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
+    my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
     unless +@binaries {
-        @binaries = @installations.map: { .files(\'bin/#name#\') };
+        @binaries = flat @installations.map: { .files(\'bin/#name#\') };
         if +@binaries {
             note q:to/SORRY/;
                 ===SORRY!===

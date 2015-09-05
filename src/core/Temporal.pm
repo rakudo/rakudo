@@ -721,8 +721,8 @@ sub sleep-timer(Real() $seconds = Inf --> Duration) {
     }
 }
 
-sub sleep-till(Instant() $till --> Bool) {
-    my $seconds = $till - now;
+sub sleep-until(Instant() $until --> Bool) {
+    my $seconds = $until - now;
     return False if $seconds < 0;
 
     1 while $seconds = sleep-timer($seconds);

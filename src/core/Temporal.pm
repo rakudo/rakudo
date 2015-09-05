@@ -710,7 +710,7 @@ sub sleep($seconds = Inf --> Nil) {
     Nil;
 }
 
-sub sleep-timer (Real $seconds = Inf --> Duration) {
+sub sleep-timer(Real() $seconds = Inf --> Duration) {
     if $seconds <= 0 {
         Duration.new(0);
     }
@@ -721,7 +721,7 @@ sub sleep-timer (Real $seconds = Inf --> Duration) {
     }
 }
 
-sub sleep-till (Instant $till --> Bool) {
+sub sleep-till(Instant() $till --> Bool) {
     my $seconds = $till - now;
     return False if $seconds < 0;
 

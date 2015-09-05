@@ -512,7 +512,7 @@ public final class Binder {
                     if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
                         SixModelObject BOOTHash = tc.gc.BOOTHash;
                         bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
-                        bindee.bind_attribute_boxed(tc, gcx.EnumMap, "$!storage",
+                        bindee.bind_attribute_boxed(tc, gcx.Map, "$!storage",
                             HINT_ENUMMAP_storage, BOOTHash.st.REPR.allocate(tc, BOOTHash.st));
                         RakOps.p6store(bindee, decontValue, tc);
                     }
@@ -799,7 +799,7 @@ public final class Binder {
             else if ((flags & SIG_ELEM_SLURPY_NAMED) != 0) {
                 SixModelObject slurpy = vmHashOfRemainingNameds(tc, gcx, namedArgsCopy, args);
                 SixModelObject bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
-                bindee.bind_attribute_boxed(tc, gcx.EnumMap, "$!storage",
+                bindee.bind_attribute_boxed(tc, gcx.Map, "$!storage",
                     HINT_ENUMMAP_storage, slurpy);
                 bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
                     noNomTypeCheck, error);

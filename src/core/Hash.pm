@@ -1,5 +1,5 @@
 my class Hash { # declared in BOOTSTRAP
-    # my class Hash is EnumMap {
+    # my class Hash is Map {
     #     has Mu $!descriptor;
 
     multi method Hash() {
@@ -7,8 +7,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method AT-KEY(Hash:D: \key) is rw {
-        my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
-        $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+        my Mu $storage := nqp::getattr(self, Map, '$!storage');
+        $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
             unless nqp::defined($storage);
         my str $skey = nqp::istype(key, Str) ?? key !! key.Str;
         if nqp::existskey($storage, $skey) {
@@ -25,8 +25,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) {
-        my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
-        $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+        my Mu $storage := nqp::getattr(self, Map, '$!storage');
+        $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
             unless nqp::defined($storage);
         my str $key = nqp::istype(key, Str) ?? key !! key.Str;
         nqp::existskey($storage, $key)
@@ -36,8 +36,8 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method BIND-KEY(Hash:D: \key, Mu \bindval) is rw {
-        my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
-        $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+        my Mu $storage := nqp::getattr(self, Map, '$!storage');
+        $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
             unless nqp::defined($storage);
         my str $key = nqp::istype(key, Str) ?? key !! key.Str;
         nqp::bindkey($storage, $key, bindval)
@@ -75,13 +75,13 @@ my class Hash { # declared in BOOTSTRAP
         nqp::push($attrs, '$!descriptor');
         nqp::push($attrs,  $!descriptor );
         nqp::push($attrs, '$!storage'   );
-        nqp::push($attrs,  nqp::getattr(nqp::decont(self), EnumMap, '$!storage'));
+        nqp::push($attrs,  nqp::getattr(nqp::decont(self), Map, '$!storage'));
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 
     method STORE_AT_KEY(\key, Mu $x) is rw {
         my $v := nqp::p6scalarfromdesc($!descriptor);
-        nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
+        nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
     }
 
     # introspection
@@ -107,14 +107,14 @@ my class Hash { # declared in BOOTSTRAP
     multi method DELETE-KEY(Str() \key) {
         my Mu $val = self.AT-KEY(key);
         nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::getattr(self, Map, '$!storage'),
             nqp::unbox_s(key)
         );
         $val;
     }
     multi method DELETE-KEY(Str() \key, :$SINK!) {
         nqp::deletekey(
-            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::getattr(self, Map, '$!storage'),
             nqp::unbox_s(key)
         );
         Nil;
@@ -259,25 +259,25 @@ my class Hash { # declared in BOOTSTRAP
     my role TypedHash[::TValue] does Associative[TValue] {
         method AT-KEY(::?CLASS:D: Str() $key) is rw {
             if self.EXISTS-KEY($key) {
-                nqp::findmethod(EnumMap, 'AT-KEY')(self, $key);
+                nqp::findmethod(Map, 'AT-KEY')(self, $key);
             }
             else {
                 nqp::p6bindattrinvres(
                     (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'))),
                     Scalar,
                     '$!whence',
-                    -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, v) }
+                    -> { nqp::findmethod(Map, 'STORE_AT_KEY')(self, $key, v) }
                 );
             }
         }
         method STORE_AT_KEY(Str \key, TValue $x) is rw {
             my $v :=
               nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
-            nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
+            nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
         }
         multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) {
-            my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
-            $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+            my Mu $storage := nqp::getattr(self, Map, '$!storage');
+            $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
                 unless nqp::defined($storage);
             my str $key = nqp::istype(key, Str) ?? key !! key.Str;
             if nqp::existskey($storage, $key) {
@@ -289,10 +289,10 @@ my class Hash { # declared in BOOTSTRAP
             }
         }
         method BIND-KEY($key, TValue \bindval) is rw {
-            nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
-                nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+            nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
+                nqp::bindattr(self, Map, '$!storage', nqp::hash());
             nqp::bindkey(
-                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::getattr(self, Map, '$!storage'),
                 nqp::unbox_s($key.Str),
                 bindval)
         }
@@ -315,7 +315,7 @@ my class Hash { # declared in BOOTSTRAP
         method AT-KEY(::?CLASS:D: TKey \key) is rw {
             my $key_which = key.WHICH;
             if self.EXISTS-KEY(key) {
-                nqp::findmethod(EnumMap, 'AT-KEY')(self, $key_which);
+                nqp::findmethod(Map, 'AT-KEY')(self, $key_which);
             }
             else {
                 nqp::p6bindattrinvres(
@@ -325,14 +325,14 @@ my class Hash { # declared in BOOTSTRAP
                     -> {
                         nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                             nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-                        nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
-                            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+                        nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
+                            nqp::bindattr(self, Map, '$!storage', nqp::hash());
                         nqp::bindkey(
                             nqp::getattr(self, $?CLASS, '$!keys'),
                             nqp::unbox_s($key_which),
                             key);
                         nqp::bindkey(
-                            nqp::getattr(self, EnumMap, '$!storage'),
+                            nqp::getattr(self, Map, '$!storage'),
                             nqp::unbox_s($key_which),
                             v);
                     });
@@ -342,8 +342,8 @@ my class Hash { # declared in BOOTSTRAP
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-            nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
-                nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+            nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
+                nqp::bindattr(self, Map, '$!storage', nqp::hash());
             nqp::bindkey(
                 nqp::getattr(self, $?CLASS, '$!keys'),
                 nqp::unbox_s($key_which),
@@ -351,13 +351,13 @@ my class Hash { # declared in BOOTSTRAP
             my $v :=
               nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
             nqp::bindkey(
-                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::getattr(self, Map, '$!storage'),
                 nqp::unbox_s($key_which),
                 $v = $x);
         }
         method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) {
-            my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
-            $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+            my Mu $storage := nqp::getattr(self, Map, '$!storage');
+            $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
                 unless nqp::defined($storage);
             my str $key_which = nqp::unbox_s(key.WHICH);
             if nqp::existskey($storage, $key_which) {
@@ -375,14 +375,14 @@ my class Hash { # declared in BOOTSTRAP
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-            nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
-                nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+            nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
+                nqp::bindattr(self, Map, '$!storage', nqp::hash());
             nqp::bindkey(
                 nqp::getattr(self, $?CLASS, '$!keys'),
                 nqp::unbox_s($key_which),
                 key);
             nqp::bindkey(
-                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::getattr(self, Map, '$!storage'),
                 nqp::unbox_s($key_which),
                 bindval)
         }
@@ -391,7 +391,7 @@ my class Hash { # declared in BOOTSTRAP
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False
         }
-        method keys(EnumMap:) {
+        method keys(Map:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
             Seq.new(class :: does Iterator {
                 has $!hash-iter;
@@ -410,10 +410,10 @@ my class Hash { # declared in BOOTSTRAP
                 }
             }.new(self, $?CLASS))
         }
-        method kv(EnumMap:) {
+        method kv(Map:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
 
-            my $storage := nqp::getattr(self, EnumMap, '$!storage');
+            my $storage := nqp::getattr(self, Map, '$!storage');
             Seq.new(class :: does Iterator {
                 has $!hash-iter;
                 has $!storage;
@@ -445,12 +445,12 @@ my class Hash { # declared in BOOTSTRAP
                         IterationEnd
                     }
                 }
-            }.new(self, $?CLASS, nqp::getattr(self, EnumMap, '$!storage')))
+            }.new(self, $?CLASS, nqp::getattr(self, Map, '$!storage')))
         }
-        method pairs(EnumMap:) {
+        method pairs(Map:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
 
-            my $storage := nqp::getattr(self, EnumMap, '$!storage');
+            my $storage := nqp::getattr(self, Map, '$!storage');
             Seq.new(class :: does Iterator {
                 has $!hash-iter;
                 has $!storage;
@@ -472,12 +472,12 @@ my class Hash { # declared in BOOTSTRAP
                         IterationEnd
                     }
                 }
-            }.new(self, $?CLASS, nqp::getattr(self, EnumMap, '$!storage')))
+            }.new(self, $?CLASS, nqp::getattr(self, Map, '$!storage')))
         }
-        method antipairs(EnumMap:) {
+        method antipairs(Map:) {
             self.map: { .value => .key }
         }
-        method invert(EnumMap:) {
+        method invert(Map:) {
             self.map: { .value »=>» .key }
         }
         multi method perl(::?CLASS:D \SELF:) {
@@ -510,14 +510,14 @@ my class Hash { # declared in BOOTSTRAP
             );
 
             nqp::deletekey(
-                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::getattr(self, Map, '$!storage'),
                 nqp::unbox_s($key-which)
             );
             $val;
         }
 
         # gotta force capture keys to strings or binder fails
-        method Capture(EnumMap:D:) {
+        method Capture(Map:D:) {
             my $cap := nqp::create(Capture);
             my $h := nqp::hash();
             for self.kv -> \k, \v {

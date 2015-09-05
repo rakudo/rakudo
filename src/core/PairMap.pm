@@ -8,7 +8,7 @@ my class PairMap is Hash {
               nqp::p6scalarfromdesc($descriptor) = $pair.value)
         }
 
-        nqp::bindattr(self, EnumMap, '$!storage', $storage);
+        nqp::bindattr(self, Map, '$!storage', $storage);
         self;
     }
 

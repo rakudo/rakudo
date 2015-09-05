@@ -686,7 +686,7 @@ augment class Any {
             if nqp::istype($it, Enum) {
                 take $it.key => $it.value
             }
-            elsif nqp::istype($it, EnumMap) and !nqp::iscont($it) {
+            elsif nqp::istype($it, Map) and !nqp::iscont($it) {
                 take Slip.new(|$it.pairs)
             }
             elsif $it =:= IterationEnd {

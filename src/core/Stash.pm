@@ -2,9 +2,9 @@ my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash {
 
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback) is rw {
-        my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
-            nqp::getattr(self, EnumMap, '$!storage') !!
-            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+        my Mu $storage := nqp::defined(nqp::getattr(self, Map, '$!storage')) ??
+            nqp::getattr(self, Map, '$!storage') !!
+            nqp::bindattr(self, Map, '$!storage', nqp::hash());
         if nqp::existskey($storage, nqp::unbox_s($key)) {
             nqp::atkey($storage, nqp::unbox_s($key))
         }
@@ -20,9 +20,9 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     method package_at_key(Stash:D: str $key) {
-        my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
-            nqp::getattr(self, EnumMap, '$!storage') !!
-            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+        my Mu $storage := nqp::defined(nqp::getattr(self, Map, '$!storage')) ??
+            nqp::getattr(self, Map, '$!storage') !!
+            nqp::bindattr(self, Map, '$!storage', nqp::hash());
         if nqp::existskey($storage, nqp::unbox_s($key)) {
             nqp::atkey($storage, $key)
         }

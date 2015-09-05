@@ -12,7 +12,7 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.list), List, '$!reified')
         );
-        my Mu $hs := nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage');
+        my Mu $hs := nqp::getattr(nqp::decont(%hash), Map, '$!storage');
         nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
     }
 
@@ -53,8 +53,8 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method hash(Capture:D:) {
-        my $enum := nqp::create(EnumMap);
-        nqp::bindattr($enum, EnumMap, '$!storage', $!hash);
+        my $enum := nqp::create(Map);
+        nqp::bindattr($enum, Map, '$!storage', $!hash);
         $enum;
     }
 

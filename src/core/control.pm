@@ -268,7 +268,7 @@ sub NOT_ALL_DEFINED_TYPE(\values,\type) {
 
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     my Mu $clone := nqp::hash();
-    my Mu $iter  := nqp::iterator(nqp::getattr(hash,EnumMap,'$!storage'));
+    my Mu $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'));
     my $e;
     while $iter {
         $e := nqp::shift($iter);

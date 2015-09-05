@@ -10,8 +10,8 @@ my class CallFrame {
         while $i-- {
             $ctx := nqp::ctxcaller($ctx);
         }
-        my $h := nqp::create(EnumMap);
-        nqp::bindattr($h, EnumMap, '$!storage', $ctx);
+        my $h := nqp::create(Map);
+        nqp::bindattr($h, Map, '$!storage', $ctx);
         nqp::bindattr($self, CallFrame, '%!my', $h);
         nqp::bindattr($self, CallFrame, '$!level', $l);
 
@@ -34,7 +34,7 @@ my class CallFrame {
         "%annotations<file> at line %annotations<line>";
     }
     method code() {
-        my $ctx := nqp::getattr(%!my, EnumMap, '$!storage');
+        my $ctx := nqp::getattr(%!my, Map, '$!storage');
         nqp::getcodeobj(nqp::ctxcode($ctx));
     }
 

@@ -1,5 +1,5 @@
 # This is the meta-object for an enumeration (declared with enum).
-# It keeps hold of the enumeration values in an EnumMap, which is
+# It keeps hold of the enumeration values in an Map, which is
 # created at composition time. It supports having roles composed in,
 # one or two of which presumably provide the core enum-ish methods.
 class Perl6::Metamodel::EnumHOW

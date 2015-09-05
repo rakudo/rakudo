@@ -1,7 +1,7 @@
 my class X::Hash::Store::OddNumber { ... }
 
-my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
-    # my class EnumMap is Iterable is Cool {
+my class Map does Iterable does Associative { # declared in BOOTSTRAP
+    # my class Map is Iterable is Cool {
     #   has Mu $!storage;
 
     method new(*@args) {
@@ -10,56 +10,56 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
         %h;
     }
 
-    multi method Bool(EnumMap:D:) {
+    multi method Bool(Map:D:) {
         nqp::p6bool(nqp::defined($!storage) && nqp::elems($!storage));
     }
-    method elems(EnumMap:D:) {
+    method elems(Map:D:) {
         nqp::p6box_i(nqp::defined($!storage) && nqp::elems($!storage));
     }
-    multi method Int(EnumMap:D:)     { self.elems }
-    multi method Numeric(EnumMap:D:) { self.elems }
-    multi method Str(EnumMap:D:)     { self.list.Str }
+    multi method Int(Map:D:)     { self.elems }
+    multi method Numeric(Map:D:) { self.elems }
+    multi method Str(Map:D:)     { self.list.Str }
 
-    multi method ACCEPTS(EnumMap:D: Any $topic) {
+    multi method ACCEPTS(Map:D: Any $topic) {
         self.EXISTS-KEY($topic.any);
     }
 
-    multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
+    multi method ACCEPTS(Map:D: Cool:D $topic) {
         self.EXISTS-KEY($topic);
     }
 
-    multi method ACCEPTS(EnumMap:D: Positional $topic) {
+    multi method ACCEPTS(Map:D: Positional $topic) {
         self.EXISTS-KEY($topic.any);
     }
 
-    multi method ACCEPTS(EnumMap:D: Regex $topic) {
+    multi method ACCEPTS(Map:D: Regex $topic) {
         so self.keys.any.match($topic);
     }
 
-    multi method EXISTS-KEY(EnumMap:D: Str:D \key) {
+    multi method EXISTS-KEY(Map:D: Str:D \key) {
         nqp::p6bool(
             nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s(key))
         )
     }
-    multi method EXISTS-KEY(EnumMap:D: \key) {
+    multi method EXISTS-KEY(Map:D: \key) {
         nqp::p6bool(
             nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s(key.Str))
         )
     }
 
-    multi method perl(EnumMap:D:) {
+    multi method perl(Map:D:) {
         self.^name
           ~ '.new('
           ~ self.pairs.sort.map({.perl}).join(', ')
           ~ ')';
     }
 
-    method iterator(EnumMap:) { self.pairs.iterator }
-    method list(EnumMap:) { self.pairs.cache }
+    method iterator(Map:) { self.pairs.iterator }
+    method list(Map:) { self.pairs.cache }
 
-    multi method pairs(EnumMap:D:) {
+    multi method pairs(Map:D:) {
         $!storage := nqp::hash() unless $!storage.DEFINITE;
         Seq.new(class :: does Iterator {
             has $!hash-iter;
@@ -67,7 +67,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             method new(\hash) {
                 my \iter = self.CREATE;
                 nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
                 iter
             }
 
@@ -82,7 +82,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             }
         }.new(self))
     }
-    multi method keys(EnumMap:D:) {
+    multi method keys(Map:D:) {
         $!storage := nqp::hash() unless $!storage.DEFINITE;
         Seq.new(class :: does Iterator {
             has $!hash-iter;
@@ -90,7 +90,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             method new(\hash) {
                 my \iter = self.CREATE;
                 nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
                 iter
             }
 
@@ -101,7 +101,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             }
         }.new(self))
     }
-    multi method kv(EnumMap:D:) {
+    multi method kv(Map:D:) {
         $!storage := nqp::hash() unless $!storage.DEFINITE;
         Seq.new(class :: does Iterator {
             has $!hash-iter;
@@ -110,7 +110,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             method new(\hash) {
                 my \iter = self.CREATE;
                 nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
                 iter
             }
 
@@ -130,7 +130,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             }
         }.new(self))
     }
-    multi method values(EnumMap:D:) {
+    multi method values(Map:D:) {
         $!storage := nqp::hash() unless $!storage.DEFINITE;
         Seq.new(class :: does Iterator {
             has $!hash-iter;
@@ -138,7 +138,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             method new(\hash) {
                 my \iter = self.CREATE;
                 nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, EnumMap, '$!storage')));
+                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
                 iter
             }
 
@@ -149,14 +149,14 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             }
         }.new(self))
     }
-    multi method antipairs(EnumMap:D:) {
+    multi method antipairs(Map:D:) {
         self.map: { .value => .key }
     }
-    multi method invert(EnumMap:D:) {
+    multi method invert(Map:D:) {
         self.map: { (.value »=>» .key).cache.Slip }
     }
 
-    multi method AT-KEY(EnumMap:D: \key) is rw {
+    multi method AT-KEY(Map:D: \key) is rw {
         my str $skey = nqp::unbox_s(key.Str);
         nqp::defined($!storage) && nqp::existskey($!storage, $skey)
           ?? nqp::atkey($!storage, $skey)
@@ -172,7 +172,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
             if nqp::istype($x,Enum) {
                 self.STORE_AT_KEY($x.key, $x.value)
             }
-            elsif nqp::istype($x, EnumMap) and !nqp::iscont($x) {
+            elsif nqp::istype($x, Map) and !nqp::iscont($x) {
                 for $x.list { self.STORE_AT_KEY(.key, .value) }
             }
             elsif (my Mu $y := iter.pull-one) !=:= IterationEnd {
@@ -190,16 +190,16 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     proto method STORE_AT_KEY(|) is rw { * }
     multi method STORE_AT_KEY(Str \key, Mu \value) is rw {
         nqp::defined($!storage) ||
-            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+            nqp::bindattr(self, Map, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key), value)
     }
     multi method STORE_AT_KEY(\key, Mu \value) is rw {
         nqp::defined($!storage) ||
-            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+            nqp::bindattr(self, Map, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
     }
 
-    method Capture(EnumMap:D:) {
+    method Capture(Map:D:) {
         my $cap := nqp::create(Capture);
         nqp::bindattr($cap, Capture, '$!hash', $!storage);
         $cap
@@ -208,11 +208,11 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
         nqp::defined($!storage) ||
-            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+            nqp::bindattr(self, Map, '$!storage', nqp::hash());
         $!storage
     }
 
-    method fmt(EnumMap: Cool $format = "%s\t\%s", $sep = "\n") {
+    method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n") {
         if nqp::p6box_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy) )) == 1 {
             self.keys.fmt($format, $sep);
         }
@@ -224,7 +224,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     method hash() { self }
 }
 
-multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {
+multi sub infix:<eqv>(Map:D $a, Map:D $b) {
     if +$a != +$b { return Bool::False }
     for $a.kv -> $k, $v {
         unless $b.EXISTS-KEY($k) && $b{$k} eqv $v {

@@ -39,7 +39,7 @@ public final class RakOps {
         public SixModelObject ListIter;
         public SixModelObject Array;
         public SixModelObject Nil;
-        public SixModelObject EnumMap;
+        public SixModelObject Map;
         public SixModelObject Hash;
         public SixModelObject Junction;
         public SixModelObject Scalar;
@@ -103,7 +103,7 @@ public final class RakOps {
         gcx.ListIter = conf.at_key_boxed(tc, "ListIter");
         gcx.Array = conf.at_key_boxed(tc, "Array");
         gcx.Nil = conf.at_key_boxed(tc, "Nil");
-        gcx.EnumMap = conf.at_key_boxed(tc, "EnumMap");
+        gcx.Map = conf.at_key_boxed(tc, "Map");
         gcx.Hash = conf.at_key_boxed(tc, "Hash");
         gcx.Junction = conf.at_key_boxed(tc, "Junction");
         gcx.Scalar = conf.at_key_boxed(tc, "Scalar");

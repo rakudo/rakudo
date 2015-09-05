@@ -106,7 +106,6 @@ J_CORE_SOURCES = \
   src/core/Slip.pm \
   src/core/Array.pm \
   src/core/native_array.pm \
-  src/core/Enum.pm \
   src/core/Pair.pm \
   src/core/Map.pm \
   src/core/Hash.pm \

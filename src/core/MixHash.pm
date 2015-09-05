@@ -20,7 +20,7 @@ my class MixHash does Mixy {
           },
           STORE => -> $, $value is copy {
               if $value != 0 {
-                  (%!elems.AT-KEY(k.WHICH) //= ((k) => 0)).value = $value;
+                  (%!elems.AT-KEY(k.WHICH) //= ((k) => my $ = 0)).value = $value;
               }
               else {
                   %!elems.DELETE-KEY(k.WHICH);

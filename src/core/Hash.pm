@@ -82,6 +82,7 @@ my class Hash { # declared in BOOTSTRAP
     method STORE_AT_KEY(\key, Mu $x) is rw {
         my $v := nqp::p6scalarfromdesc($!descriptor);
         nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
+        $v;
     }
 
     # introspection
@@ -129,7 +130,7 @@ my class Hash { # declared in BOOTSTRAP
             if $has_previous {
                 self!_push_construct($previous, $e);
                 $has_previous = 0;
-            } elsif $e.^isa(Enum) {
+            } elsif $e.^isa(Pair) {
                 self!_push_construct($e.key, $e.value);
             } else {
                 $previous = $e;

@@ -16,10 +16,10 @@ my class Set does Setty {
     }
 
     multi method pairs(Set:D:) {    # must copy else we can change the Set
-        %!elems.values.map: { Enum.new(:key($_),:value(True)) };
+        %!elems.values.map: { Pair.new(:key($_),:value(True)) };
     }
     multi method antipairs(Set:D:) { # must copy else we can change the Set
-        %!elems.values.map: { Enum.new(:key(True),:value($_)) };
+        %!elems.values.map: { Pair.new(:key(True),:value($_)) };
     }
 
     method Set { self }

@@ -8,10 +8,10 @@ my class Mix does Mixy {
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
     multi method pairs(Mix:D:) {    # copy values else we can change the Mix
-        %!elems.values.map: { Enum.new(:key(.key),:value(.value)) };
+        %!elems.values.map: { Pair.new(:key(.key),:value(.value)) };
     }
     multi method antipairs(Mix:D:) { # copy values else we can change the Mix
-        %!elems.values.map: { Enum.new(:key(.value),:value(.key)) };
+        %!elems.values.map: { Pair.new(:key(.value),:value(.key)) };
     }
 
     method total (--> Real) { $!total //= [+] self.values }

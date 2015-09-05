@@ -679,7 +679,7 @@ augment class Any {
             !! self.list.iterator;
         gather loop {
             my $it := iter.pull-one;
-            if nqp::istype($it, Enum) {
+            if nqp::istype($it, Pair) {
                 take $it.key => $it.value
             }
             elsif nqp::istype($it, Map) and !nqp::iscont($it) {

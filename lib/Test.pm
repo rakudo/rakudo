@@ -188,11 +188,6 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
     $ok;
 }
 
-multi sub cmp_ok(Mu $got, $op, Mu $expected, $desc = '') is export {
-    DEPRECATED('cmp-ok',|<2015.05 2015.09>);
-    cmp-ok($got, $op, $expected, $desc);
-}
-
 multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     $got.defined; # Hack to deal with Failures
@@ -285,11 +280,6 @@ multi sub skip($reason, $count = 1) is export {
     $time_before = nqp::time_n;
 }
 
-sub skip_rest($reason = '<unknown>') is export {
-    DEPRECATED('skip-rest',|<2015.05 2015.09>);
-    skip-rest($reason);
-}
-
 sub skip-rest($reason = '<unknown>') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     die "A plan is required in order to use skip-rest" if $no_plan;
@@ -327,11 +317,6 @@ multi sub flunk($reason) is export {
     my $ok = proclaim(0, $reason);
     $time_before = nqp::time_n;
     $ok;
-}
-
-multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
-    DEPRECATED('isa-ok',|<2015.05 2015.09>);
-    isa-ok($var, $type, $msg);
 }
 
 multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
@@ -393,11 +378,6 @@ multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
     $ok;
 }
 
-multi sub dies_ok(Callable $code, $reason = '') is export {
-    DEPRECATED('dies-ok',|<2015.05 2015.09>);
-    dies-ok($code, $reason);
-}
-
 multi sub dies-ok(Callable $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $death = 1;
@@ -410,11 +390,6 @@ multi sub dies-ok(Callable $code, $reason = '') is export {
     $ok;
 }
 
-multi sub lives_ok(Callable $code, $reason = '') is export {
-    DEPRECATED('lives-ok',|<2015.05 2015.09>);
-    lives-ok($code, $reason);
-}
-
 multi sub lives-ok(Callable $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     try {
@@ -425,22 +400,12 @@ multi sub lives-ok(Callable $code, $reason = '') is export {
     $ok;
 }
 
-multi sub eval_dies_ok(Str $code, $reason = '') is export {
-    DEPRECATED('eval-dies-ok',|<2015.05 2015.09>);
-    eval-dies-ok($code, $reason);
-}
-
 multi sub eval-dies-ok(Str $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
     my $ok = proclaim( $ee.defined, $reason );
     $time_before = nqp::time_n;
     $ok;
-}
-
-multi sub eval_lives_ok(Str $code, $reason = '') is export {
-    DEPRECATED('eval-lives-ok',|<2015.05 2015.09>);
-    eval-lives-ok($code, $reason);
 }
 
 multi sub eval-lives-ok(Str $code, $reason = '') is export {
@@ -450,11 +415,6 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
         or diag("Error: $ee");
     $time_before = nqp::time_n;
     $ok;
-}
-
-multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export {
-    DEPRECATED('is-deeply',|<2015.05 2015.09>);
-    is-deeply($got, $expected, $reason);
 }
 
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
@@ -471,11 +431,6 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
     }
     $time_before = nqp::time_n;
     $ok;
-}
-
-sub throws_like(|capture) is export {
-    DEPRECATED('throws-like',|<2015.05 2015.09>);
-    throws-like(|capture);
 }
 
 sub throws-like($code, $ex_type, $reason?, *%matcher) is export {

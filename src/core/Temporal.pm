@@ -729,11 +729,6 @@ sub sleep-until (Instant() $until --> Bool) {
     True;
 }
 
-sub sleep-till (Instant $till --> Bool) {
-    DEPRECATED('sleep-until', |<2015.09 2015.09>);
-    sleep-until($till);
-}
-
 # =begin pod
 #
 # =head1 SEE ALSO

@@ -19,34 +19,14 @@ my class Any { # declared in BOOTSTRAP
         nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
     }
 
-    method invoke(|c) {
-        DEPRECATED('CALL-ME',|<2015.03 2015.09>);
-        self.CALL-ME(|c);
-    }
-
-    method exists_key(|c) is nodal {
-        DEPRECATED('EXISTS-KEY',|<2015.03 2015.09>);
-        self.EXISTS-KEY(|c);
-    }
-
     proto method EXISTS-KEY(|) is nodal { * }
     multi method EXISTS-KEY(Any:U: $) { False }
     multi method EXISTS-KEY(Any:D: $) { False }
-
-    method delete_key(|c) is nodal {
-        DEPRECATED('DELETE-KEY',|<2015.03 2015.09>);
-        self.DELETE-KEY(|c);
-    }
 
     proto method DELETE-KEY(|) is nodal { * }
     multi method DELETE-KEY(Any:U: $) { Nil }
     multi method DELETE-KEY(Any:D: $) {
         fail "Can not remove values from a {self.^name}";
-    }
-
-    method delete_pos(|c) is nodal {
-        DEPRECATED('DELETE-POS',|<2015.03 2015.09>);
-        self.DELETE-POS(|c);
     }
 
     proto method DELETE-POS(|) is nodal { * }
@@ -200,11 +180,6 @@ my class Any { # declared in BOOTSTRAP
         SELF.unshift(@values);
     }
 
-    method exists_pos(|c) is nodal {
-        DEPRECATED('EXISTS-POS',|<2015.03 2015.09>);
-        self.EXISTS-POS(|c);
-    }
-
     proto method EXISTS-POS(|) is nodal { * }
     multi method EXISTS-POS(Any:U: Any:D $) { False }
     multi method EXISTS-POS(Any:U: Any:U $pos) is rw {
@@ -236,11 +211,6 @@ my class Any { # declared in BOOTSTRAP
             $target := $target.AT-POS($_);
         }
         $target.EXISTS-POS($final);
-    }
-
-    method at_pos(|c) is rw is nodal {
-        DEPRECATED('AT-POS',|<2015.03 2015.09>);
-        self.AT-POS(|c);
     }
 
     proto method AT-POS(|) is nodal {*}
@@ -294,16 +264,6 @@ my class Any { # declared in BOOTSTRAP
         $result
     }
 
-    method bind_pos(|c) is rw is nodal {
-        DEPRECATED('BIND-POS',|<2015.03 2015.09>);
-        self.BIND-POS(|c);
-    }
-
-    method assign_pos(|c) is nodal {
-        DEPRECATED('ASSIGN-POS',|<2015.03 2015.09>);
-        self.ASSIGN-POS(|c);
-    }
-
     proto method ASSIGN-POS(|) is nodal { * }
     multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check
@@ -341,11 +301,6 @@ my class Any { # declared in BOOTSTRAP
     method one() is nodal { Junction.new(self.list, :type<one>) }
     method none() is nodal { Junction.new(self.list, :type<none>) }
 
-    method at_key(|c) is rw is nodal {
-        DEPRECATED('AT-KEY',|<2015.03 2015.09>);
-        self.AT-KEY(|c);
-    }
-
     # internals
     proto method AT-KEY(|) is nodal { * }
     multi method AT-KEY(Any:D: $key) is rw {
@@ -358,11 +313,6 @@ my class Any { # declared in BOOTSTRAP
         $v
     }
 
-    method bind_key(|c) is rw is nodal {
-        DEPRECATED('BIND-KEY',|<2015.03 2015.09>);
-        self.BIND-KEY(|c);
-    }
-
     proto method BIND-KEY(|) is nodal { * }
     multi method BIND-KEY(Any:D: \k, \v) is rw {
         fail X::Bind.new(target => self.^name);
@@ -371,11 +321,6 @@ my class Any { # declared in BOOTSTRAP
         SELF = Hash.new;
         SELF.BIND-KEY($key, $BIND);
         $BIND
-    }
-
-    method assign_key(|c) is nodal {
-        DEPRECATED('ASSIGN-KEY',|<2015.03 2015.09>);
-        self.ASSIGN-KEY(|c);
     }
 
     proto method ASSIGN-KEY(|) is nodal { * }

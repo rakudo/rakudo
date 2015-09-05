@@ -721,7 +721,7 @@ sub sleep-timer (Real $seconds = Inf --> Duration) {
     }
 }
 
-sub sleep-until (Instant $until --> Bool) {
+sub sleep-until (Instant() $until --> Bool) {
     my $seconds = $until - now;
     return False if $seconds < 0;
 
@@ -731,6 +731,7 @@ sub sleep-until (Instant $until --> Bool) {
 
 sub sleep-till (Instant $till --> Bool) {
     DEPRECATED('sleep-until', |<2015.09 2015.09>);
+    sleep-until($till);
 }
 
 # =begin pod

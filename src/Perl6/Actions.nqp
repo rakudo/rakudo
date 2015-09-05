@@ -1864,8 +1864,6 @@ Compilation unit '$file' contained the following violations:
 
     sub make_pair($key_str, $value) {
         my $key := $*W.add_string_constant($key_str);
-        $key.named('key');
-        $value.named('value');
         QAST::Op.new(
             :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
             QAST::Var.new( :name('Pair'), :scope('lexical') ),

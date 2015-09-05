@@ -452,8 +452,8 @@ multi sub item(Mu $a) { $a }
 
 sub RWPAIR(\k, \v) {   # internal fast pair creation
     my \p := nqp::create(Pair);
-    nqp::bindattr(p, Enum, '$!key', k);
-    nqp::bindattr(p, Enum, '$!value', v);
+    nqp::bindattr(p, Pair, '$!key', k);
+    nqp::bindattr(p, Pair, '$!value', v);
     p
 }
 

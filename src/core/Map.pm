@@ -169,7 +169,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             !! to_store.list.iterator;
         $!storage := nqp::hash();
         until (my Mu $x := iter.pull-one) =:= IterationEnd {
-            if nqp::istype($x,Enum) {
+            if nqp::istype($x,Pair) {
                 self.STORE_AT_KEY($x.key, $x.value)
             }
             elsif nqp::istype($x, Map) and !nqp::iscont($x) {

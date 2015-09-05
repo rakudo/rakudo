@@ -55,7 +55,6 @@ src/core/array_slice.pm
 src/core/Slip.pm
 src/core/Array.pm
 src/core/native_array.pm
-src/core/Enum.pm
 src/core/Pair.pm
 src/core/Map.pm
 src/core/Hash.pm

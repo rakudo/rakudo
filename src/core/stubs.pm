@@ -6,7 +6,7 @@
 my class Exception { ... }
 my class X::AdHoc  { ... }
 my class FatRat    { ... }
-my class Enum      { ... }
+my class Pair      { ... }
 my class X::OutOfRange { ... }
 my class X::Dynamic::NotFound { ... }
 

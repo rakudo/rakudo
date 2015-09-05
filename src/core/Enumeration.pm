@@ -63,7 +63,7 @@ sub ANON_ENUM(*@args) {
     my Mu $prev = -1;
     my %res;
     for @args {
-        if .^isa(Enum) {
+        if .^isa(Pair) {
             %res{.key} = $prev = .value;
         }
         else {

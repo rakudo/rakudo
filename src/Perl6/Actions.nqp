@@ -8054,7 +8054,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
             }
         }
         walk($past);
-        +@($result) == 1 ?? $result[0] !! $result
+        +@($result) == 1 ?? $result[0] !! QAST::Stmts.new( $result )
     }
 
     method postprocess_heredoc($/, $past) {

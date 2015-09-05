@@ -870,7 +870,7 @@ sub on(&setup) {
                     X::Supply::On::BadSetup.new.throw;
                 }
                 given $what {
-                    when EnumMap {
+                    when Map {
                         @to_close.push(self!add_source($source, $lock, $index, |$what));
                     }
                     when Callable {

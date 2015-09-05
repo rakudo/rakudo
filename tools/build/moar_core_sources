@@ -57,7 +57,7 @@ src/core/Array.pm
 src/core/native_array.pm
 src/core/Enum.pm
 src/core/Pair.pm
-src/core/EnumMap.pm
+src/core/Map.pm
 src/core/Hash.pm
 src/core/Stash.pm
 src/core/Label.pm

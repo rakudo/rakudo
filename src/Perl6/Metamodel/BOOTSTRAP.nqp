@@ -64,7 +64,7 @@ my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Slip metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Map metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -686,7 +686,7 @@ my class Binder {
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
-                nqp::bindattr($hash, EnumMap, '$!storage', $named_args || Mu);
+                nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;
@@ -2631,15 +2631,15 @@ BEGIN {
     Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
     Array.HOW.compose_repr(Array);
 
-    # my class EnumMap is Cool {
+    # my class Map is Cool {
     #     has Mu $!storage;
-    EnumMap.HOW.add_parent(EnumMap, Cool);
-    EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap, :associative_delegate));
-    EnumMap.HOW.compose_repr(EnumMap);
+    Map.HOW.add_parent(Map, Cool);
+    Map.HOW.add_attribute(Map, scalar_attr('$!storage', Mu, Map, :associative_delegate));
+    Map.HOW.compose_repr(Map);
 
-    # my class Hash is EnumMap {
+    # my class Hash is Map {
     #     has Mu $!descriptor;
-    Hash.HOW.add_parent(Hash, EnumMap);
+    Hash.HOW.add_parent(Hash, Map);
     Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
     Hash.HOW.compose_repr(Hash);
 
@@ -2687,7 +2687,7 @@ BEGIN {
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.
-    Perl6::Metamodel::Configuration.set_stash_type(Stash, EnumMap);
+    Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
 
     # Give everything we've set up so far a Stash.
     Perl6::Metamodel::ClassHOW.add_stash(Mu);
@@ -2795,7 +2795,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<List>       := List;
     EXPORT::DEFAULT.WHO<Slip>       := Slip;
     EXPORT::DEFAULT.WHO<Array>      := Array;
-    EXPORT::DEFAULT.WHO<EnumMap>    := EnumMap;
+    EXPORT::DEFAULT.WHO<Map>    := Map;
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;
     EXPORT::DEFAULT.WHO<ObjAt>      := ObjAt;
@@ -2871,7 +2871,7 @@ Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 
 # Configure the MOP (not persisted as it ends up in a lexical...)
-Perl6::Metamodel::Configuration.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
 Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
 
 # Register default parent types.
@@ -2880,7 +2880,7 @@ Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
 # Put PROCESS in place, and ensure it's never repossessed.
 nqp::neverrepossess(PROCESS.WHO);
-nqp::neverrepossess(nqp::getattr(PROCESS.WHO, EnumMap, '$!storage'));
+nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 
 # HLL configuration: interop, boxing and exit handling.
@@ -2899,7 +2899,7 @@ nqp::sethllconfig('perl6', nqp::hash(
     },
     'foreign_transform_hash', -> $hash {
         my $result := nqp::create(Hash);
-        nqp::bindattr($result, EnumMap, '$!storage', $hash);
+        nqp::bindattr($result, Map, '$!storage', $hash);
         $result
     },
     'foreign_transform_code', -> $code {

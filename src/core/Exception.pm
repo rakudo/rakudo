@@ -2018,7 +2018,7 @@ my class X::Inheritance::NotComposed does X::MOP {
     %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) {
         X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
     }
-    nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, EnumMap, '$!storage'));
+    nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, Map, '$!storage'));
 
     0;
 }

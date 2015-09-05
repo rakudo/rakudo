@@ -70,9 +70,9 @@ sub ANON_ENUM(*@args) {
             %res{$_} = $prev.=succ;
         }
     }
-    my $r := nqp::create(EnumMap);
-    nqp::bindattr($r, EnumMap, '$!storage',
-        nqp::getattr(%res, EnumMap, '$!storage'));
+    my $r := nqp::create(Map);
+    nqp::bindattr($r, Map, '$!storage',
+        nqp::getattr(%res, Map, '$!storage'));
     $r;
 }
 

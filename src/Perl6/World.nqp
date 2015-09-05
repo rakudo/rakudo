@@ -655,13 +655,13 @@ class Perl6::World is HLL::World {
             }
             if nqp::existskey($module, '&EXPORT') {
                 my $result := $module<&EXPORT>(|@positional_imports);
-                my $EnumMap := self.find_symbol(['EnumMap']);
-                if nqp::istype($result, $EnumMap) {
+                my $Map := self.find_symbol(['Map']);
+                if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
                     self.import($/, $storage, $package_source_name);
                 }
                 else {
-                    nqp::die("&EXPORT sub did not return an EnumMap");
+                    nqp::die("&EXPORT sub did not return an Map");
                 }
             }
             else {

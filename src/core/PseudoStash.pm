@@ -1,7 +1,7 @@
 my class X::Bind { ... }
 my class X::Caller::NotDynamic { ... }
 
-my class PseudoStash is EnumMap {
+my class PseudoStash is Map {
     has Mu $!ctx;
     has int $!mode;
 
@@ -16,7 +16,7 @@ my class PseudoStash is EnumMap {
         my $obj := nqp::create(self);
         my $ctx := nqp::ctxcaller(nqp::ctx());
         nqp::bindattr($obj, PseudoStash, '$!ctx', $ctx);
-        nqp::bindattr($obj, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+        nqp::bindattr($obj, Map, '$!storage', nqp::ctxlexpad($ctx));
         $obj
     }
 
@@ -34,7 +34,7 @@ my class PseudoStash is EnumMap {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
@@ -45,7 +45,7 @@ my class PseudoStash is EnumMap {
             my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC);
             nqp::setwho(
@@ -56,7 +56,7 @@ my class PseudoStash is EnumMap {
             my Mu $ctx := nqp::ctxouterskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
@@ -74,7 +74,7 @@ my class PseudoStash is EnumMap {
             my Mu $ctx := nqp::ctxouterskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
@@ -92,7 +92,7 @@ my class PseudoStash is EnumMap {
             my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC);
             nqp::setwho(
@@ -105,7 +105,7 @@ my class PseudoStash is EnumMap {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage',nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
@@ -121,7 +121,7 @@ my class PseudoStash is EnumMap {
             }
             $ctx := nqp::ctxouter(nqp::ctxouter($ctx));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
@@ -140,7 +140,7 @@ my class PseudoStash is EnumMap {
                 die "No client package found" unless $ctx;
             }
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC);
             nqp::setwho(
@@ -159,7 +159,7 @@ my class PseudoStash is EnumMap {
             %pseudoers{$key}(self)
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
-            my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
+            my Mu $store := nqp::getattr(self, Map, '$!storage');
             my Mu $res := nqp::existskey($store, $nkey) ??
                             nqp::atkey($store, $nkey) !!
                             Any;
@@ -191,7 +191,7 @@ my class PseudoStash is EnumMap {
             X::Bind.new(target => "pseudo-package $key").throw;
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
-            my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
+            my Mu $store := nqp::getattr(self, Map, '$!storage');
             nqp::bindkey($store, nqp::unbox_s($key), value)
         }
         elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
@@ -208,7 +208,7 @@ my class PseudoStash is EnumMap {
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
             nqp::p6bool(nqp::existskey(
-                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::getattr(self, Map, '$!storage'),
                 nqp::unbox_s($key)))
         }
         elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {

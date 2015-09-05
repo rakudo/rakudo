@@ -219,8 +219,8 @@ class Perl6::Compiler is HLL::Compiler {
                 }
 
                 my $our := nqp::getlexrel($ctx, '$?PACKAGE').WHO;
-                my $EnumMap := self.eval('EnumMap', :outer_ctx(nqp::null()));
-                my $storage := nqp::getattr($our, $EnumMap, '$!storage');
+                my $Map := self.eval('Map', :outer_ctx(nqp::null()));
+                my $storage := nqp::getattr($our, $Map, '$!storage');
 
                 $it := nqp::iterator($storage);
 

@@ -7008,7 +7008,7 @@ Compilation unit '$file' contained the following violations:
                             :op('create'),
                             QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
                         ),
-                        QAST::WVal.new( :value($*W.find_symbol(['EnumMap'])) ),
+                        QAST::WVal.new( :value($*W.find_symbol(['Map'])) ),
                         QAST::SVal.new( :value('$!storage') ),
                         QAST::Var.new( :name($name), :scope('local') )
                     ));

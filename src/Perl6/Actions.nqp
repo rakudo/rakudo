@@ -1438,10 +1438,6 @@ Compilation unit '$file' contained the following violations:
         make when_handler_helper($<block>.ast);
     }
 
-    method term:sym<winner>($/) {
-        $*W.DEPRECATED($/,"'earliest'",'2014.10','2015.09',:what("'winner'"));
-        self.term:sym<earliest>($/);
-    }
     method term:sym<earliest>($/) {
         my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
         my $wild_done;
@@ -2004,15 +2000,7 @@ Compilation unit '$file' contained the following violations:
 
         if $twigil eq '*' {
             # DEPRECATIONS
-            if $name eq '$*OS' {
-                $*W.DEPRECATED($/,
-                  '$*DISTRO.name','2014.09','2015.09',:what('$*OS'));
-            }
-            elsif $name eq '$*OSVER' {
-                $*W.DEPRECATED($/,
-                  '$*DISTRO.version','2014.09','2015.09',:what('$*OSVER'));
-            }
-            elsif $name eq '$*EXECUTABLE_NAME' {
+            if $name eq '$*EXECUTABLE_NAME' {
                 $*W.DEPRECATED($/,
                   '$*EXECUTABLE-NAME','2015.06','2015.09',:what('$*EXECUTABLE_NAME'));
             }

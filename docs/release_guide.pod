@@ -14,11 +14,10 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-08-20   Rakudo #91 duff
-  2015-09-17   Rakudo #92
-  2015-10-22   Rakudo #93
-  2015-11-19   Rakudo #94
-  2015-12-17   Rakudo #95
+  2015-09-17   Rakudo #91
+  2015-10-22   Rakudo #92
+  2015-11-19   Rakudo #93
+  2015-12-17   Rakudo #94
 
 (More planned dates can be generated with F<tools/release-dates.pl>).
 

@@ -177,11 +177,6 @@ my class IO::Spec::Unix is IO::Spec {
         }
         self.catdir( self.canonpath($base), $path );
     }
-
-    method no-parent-or-current-test {
-        DEPRECATED('curupdir', |<2014.10 2015.09>);
-        none('.', '..');
-    }
 }
 
 # vim: ft=perl6 expandtab sw=4

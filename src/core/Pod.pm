@@ -2,12 +2,7 @@ my class Pod::Block {
     has %.config;
     has @.contents;
 
-    submethod BUILD(:$content = Any, :%!config, :@!contents) {
-        if $content.defined {
-            DEPRECATED("Pod::Block.new(:contents)", |<2014.09 2015.09>, :up(5), :what('Pod::Block.new(:content)'));
-            @!contents.push: $content.list;
-        }
-    }
+    submethod BUILD(:%!config, :@!contents) {}
 
     sub pod-gist(Pod::Block $pod, $level = 0) {
         my $leading = ' ' x $level;
@@ -38,11 +33,6 @@ my class Pod::Block {
 
     multi method gist(Pod::Block:D:) {
         pod-gist(self)
-    }
-
-    method content { # is DEPRECATED doesn't work in settings
-        DEPRECATED("Pod::Block.contents", |<2014.09 2015.09>);
-        @.contents
     }
 }
 
@@ -127,11 +117,6 @@ class Pod::Config {
 class Pod::Raw {
     has $.target;
     has @.contents;
-
-    method content { # is DEPRECATED doesn't work in settings
-        DEPRECATED("Pod::Raw.contents", |<2014.09 2015.09>);
-        @.contents
-    }
 }
 
 # vim: ft=perl6 expandtab sw=4

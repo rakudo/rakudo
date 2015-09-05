@@ -59,9 +59,9 @@ my class Array { # declared in BOOTSTRAP
         arr
     }
 
-    multi method new(**@values is rw) {
+    multi method new(|values) {
         my \arr = nqp::create(self);
-        arr.STORE(@values);
+        arr.STORE(values.list);
         arr
     }
 

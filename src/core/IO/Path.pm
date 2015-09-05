@@ -34,17 +34,6 @@ my class IO::Path is Cool {
         self.bless(:$path, :$SPEC, :$CWD);
     }
     multi method new(IO::Path:
-      :$basename,
-      :$directory!,
-      :$volume = '',
-      :$SPEC   = $*SPEC,
-      :$CWD    = $*CWD,
-    ) {
-        DEPRECATED(':dirname', |<2014.10 2015.09>, :what<IO::Path.new with :directory>);
-        self.bless(
-          :path($SPEC.join($volume,$directory,$basename)), :$SPEC, :$CWD);
-    }
-    multi method new(IO::Path:
       :$basename!,
       :$dirname = '',
       :$volume  = '',
@@ -404,11 +393,6 @@ my class IO::Path is Cool {
         True;
     }
 
-    method contents(IO::Path:D: |c) {
-        DEPRECATED('dir', |<2014.10 2015.09>);
-        self.dir(|c);
-    }
-
     method dir(IO::Path:D:
         Mu :$test = $*SPEC.curupdir,
         :$absolute,
@@ -634,11 +618,6 @@ my class IO::Path is Cool {
     method changed() {
         fail X::IO::DoesNotExist.new(:path(self.Str),:trying<changed>) if !$.e;
         FILETEST-CHANGED($!abspath);
-    }
-
-    method directory() {
-        DEPRECATED("dirname", |<2014.10 2015.09>);
-        self.dirname;
     }
 }
 

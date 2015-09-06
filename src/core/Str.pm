@@ -217,16 +217,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # Handle special empty string
         return 0 if self.trim eq "";
 
-        my $strval = val(self, :val-or-fail);
-
-        # return a pure numeric value, not an allomorphic type, if successful
-        with $strval {
-            +$strval;
-        } else {
-            # re-fail so things like Str.Int work right (too bad there's no
-            # refail, like rethrow)
-            fail $strval.exception;
-        }
+        val(self, :val-or-fail);
     }
 
     my %esc = (

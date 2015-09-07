@@ -5253,7 +5253,7 @@ Compilation unit '$file' contained the following violations:
                     hunt_loose_adverbs_in_arglist($EXPR, @args);
                 }
                 for @args {
-                    $_[2].named('value');
+                    $_[2] := QAST::Want.new(|$_[2].list);
                 }
             }
         }
@@ -5268,8 +5268,14 @@ Compilation unit '$file' contained the following violations:
             && nqp::istype($past[0][0], QAST::Var) && $past[0][0].name eq 'Pair' {
                 $past := QAST::Stmts.new( :node($/),
                     QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                    $past[0], |@args)
-                )
+                        QAST::Op.new(
+                            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
+                            QAST::Var.new( :name('Pair'), :scope('lexical') ),
+                            $past[0][1], $past[0][2]
+                        ),
+                        |@args
+                    )
+                );
             }
             else {
                 for @args {

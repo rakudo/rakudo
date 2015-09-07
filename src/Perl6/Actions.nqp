@@ -5396,8 +5396,14 @@ Compilation unit '$file' contained the following violations:
                             hunt_loose_adverbs_in_arglist($EXPR, @args);
                         }
                         for @args {
-                            $_[2].named('value');
-                            $past.push($_);
+                            $_[2] := QAST::Want.new(|$_[2].list);
+                            $past.push(
+                                QAST::Op.new(
+                                    :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
+                                    QAST::Var.new( :name('Pair'), :scope('lexical') ),
+                                    $_[1], $_[2]
+                                )
+                            );
                         }
                     }
                 }

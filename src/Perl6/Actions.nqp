@@ -6187,9 +6187,8 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
-                   nqp::istype($nib[0], QAST::Stmts) &&
-                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
+            unless nqp::istype($nib, QAST::Stmts) &&
+                   nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 
@@ -6197,9 +6196,8 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
-                   nqp::istype($nib[0], QAST::Stmts) &&
-                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
+            unless nqp::istype($nib, QAST::Stmts) &&
+                   nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 
@@ -6207,9 +6205,8 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Op) && $nib.name eq '&val' &&
-                   nqp::istype($nib[0], QAST::Stmts) &&
-                   nqp::istype($nib[0][0], QAST::Op) && $nib[0][0].name eq '&infix:<,>' && +@($nib[0][0]) == 0;
+            unless nqp::istype($nib, QAST::Stmts) &&
+                   nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 
@@ -7968,8 +7965,30 @@ class Perl6::QActions is HLL::Actions does STDActions {
         QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
     }
 
-    method postprocess_val($/, $past) {
-        QAST::Op.new(:name('&val'), :op('call'), :node($/), $past);
+    method postprocess_val($/, $qast) {
+        # we want to handle strings with compile_time_values at compile time, to
+        # lighten the load at runtime. Note that $*W.comp_val() handles falling
+        # back to runtime for strings it's given. We just have to do the one
+        # where there is no compile-time value.
+        if nqp::istype($qast, QAST::Stmts) && nqp::istype($qast[0], QAST::Op) && $qast[0].name eq '&infix:<,>' { # qw/qqww list
+            my @results := [];
+            my $thisq;
+
+            for $qast[0].list {
+                if $_.has_compile_time_value {
+                    nqp::push(@results, $*W.comp_val($_, $_.compile_time_value));
+                }
+            }
+
+            # replace the existing children with what we processed
+            $qast[0].set_children(@results);
+        } elsif $qast.has_compile_time_value { # a single string that we can handle
+            $qast := $*W.comp_val($qast, $qast.compile_time_value);
+        } else { # no compile time value, resort to the run-time call
+            $qast := QAST::Op.new(:name('&val'), :op('call'), :node($/), $qast);
+        }
+
+        $qast
     }
 
     method postprocess_words($/, $past) {

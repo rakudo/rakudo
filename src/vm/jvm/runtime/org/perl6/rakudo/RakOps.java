@@ -39,7 +39,6 @@ public final class RakOps {
         public SixModelObject List;
         public SixModelObject ListIter;
         public SixModelObject Array;
-        public SixModelObject LoL;
         public SixModelObject Nil;
         public SixModelObject EnumMap;
         public SixModelObject Hash;
@@ -113,7 +112,6 @@ public final class RakOps {
         gcx.List = conf.at_key_boxed(tc, "List");
         gcx.ListIter = conf.at_key_boxed(tc, "ListIter");
         gcx.Array = conf.at_key_boxed(tc, "Array");
-        gcx.LoL = conf.at_key_boxed(tc, "LoL");
         gcx.Nil = conf.at_key_boxed(tc, "Nil");
         gcx.EnumMap = conf.at_key_boxed(tc, "EnumMap");
         gcx.Hash = conf.at_key_boxed(tc, "Hash");

@@ -814,22 +814,23 @@ public final class Binder {
                         }
                         curPosArg++;
                     }
-                    
-                    SixModelObject bindee;
-                    if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
-                        if ((flags & SIG_ELEM_IS_RW) != 0)
-                            bindee = RakOps.p6list(slurpy, gcx.List, gcx.True, tc);
-                        else
-                            bindee = RakOps.p6list(slurpy, gcx.Array, gcx.True, tc);
-                    }
-                    else {
-                        bindee = RakOps.p6list(slurpy, gcx.LoL, gcx.False, tc);
-                    }
-                    
-                    bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
-                        noNomTypeCheck, error);
-                    if (bindFail != 0)
-                        return bindFail;
+
+                    throw ExceptionHandling.dieInternal(tc, "Slurpy params NYI post-GLR");
+                    //SixModelObject bindee;
+                    //if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
+                    //    if ((flags & SIG_ELEM_IS_RW) != 0)
+                    //        bindee = RakOps.p6list(slurpy, gcx.List, gcx.True, tc);
+                    //    else
+                    //        bindee = RakOps.p6list(slurpy, gcx.Array, gcx.True, tc);
+                    //}
+                    //else {
+                    //    bindee = RakOps.p6list(slurpy, gcx.LoL, gcx.False, tc);
+                    //}
+                    //
+                    //bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
+                    //    noNomTypeCheck, error);
+                    //if (bindFail != 0)
+                    //    return bindFail;
                 }
                 
                 /* Otherwise, a positional. */

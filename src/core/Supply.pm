@@ -986,22 +986,26 @@ sub SUPPLY(&block) {
                 $state.active-taps{nqp::objectid($tap)} = $tap;
             }
 
-            nqp::handle($state.lock.protect({ code() }),
-                'EMIT', {
-                    $state.sub.emit().(nqp::getpayload(nqp::exception())) if $state.sub.emit;
-                    nqp::resume(nqp::exception())
-                }(),
-                'DONE', {
-                    $state.sub.done().() if $state.sub.done;
-                    $state.active = 0;
-                    self!teardown($state);
-                }(),
-                'CATCH', {
-                    my \ex = EXCEPTION(nqp::exception());
-                    $state.sub.quit().(ex) if $state.sub.quit;
-                    $state.active = 0;
-                    self!teardown($state);
-                }());
+            my $emitter = {
+                my \ex := nqp::exception();
+                $state.sub.emit().(nqp::getpayload(ex)) if $state.sub.emit;
+                nqp::resume(ex)
+            }
+            my $done = {
+                $state.sub.done().() if $state.sub.done;
+                $state.active = 0;
+                self!teardown($state);
+            }
+            my $catch = {
+                my \ex = EXCEPTION(nqp::exception());
+                $state.sub.quit().(ex) if $state.sub.quit;
+                $state.active = 0;
+                self!teardown($state);
+            }
+            nqp::handle($state.lock.protect(&code),
+                'EMIT', $emitter(),
+                'DONE', $done(),
+                'CATCH', $catch());
         }
 
         method !deactivate-one($state) {

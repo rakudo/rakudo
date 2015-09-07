@@ -321,12 +321,16 @@ public final class Binder {
          * bind if it passes the type check, or a native value that needs no
          * further checking. */
         SixModelObject decontValue = null;
+        boolean didHLLTransform = false;
         if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
             /* We need to work on the decontainerized value. */
             decontValue = Ops.decont(arg_o, tc);
             
             /* HLL map it as needed. */
+            SixModelObject beforeHLLize = decontValue;
             decontValue = Ops.hllize(decontValue, tc);
+            if (decontValue != beforeHLLize)
+                didHLLTransform = true;
             
             /* Skip nominal type check if not needed. */
             if (!noNomTypeCheck) {
@@ -473,7 +477,7 @@ public final class Binder {
             }
             else if ((paramFlags & SIG_ELEM_IS_PARCEL) != 0) {
                 /* Just bind the thing as is into the lexpad. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
+                cf.oLex[sci.oTryGetLexicalIdx(varName)] = didHLLTransform ? decontValue : arg_o;
             }
             else {
                 /* If it's an array, copy means make a new one and store,

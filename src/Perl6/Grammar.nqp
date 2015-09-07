@@ -4344,11 +4344,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
     my %categorically-won't-work := nqp::hash(
-        'infix:sym<=>', nqp::null(),
-        'infix:sym<:=>', nqp::null(),
-        'infix:sym<::=>', nqp::null(),
-        'infix:sym<~~>', nqp::null(),
-        'prefix:sym<|>', nqp::null());
+        'infix:sym<=>', NQPMu,
+        'infix:sym<:=>', NQPMu,
+        'infix:sym<::=>', NQPMu,
+        'infix:sym<~~>', '(consider implementing an ACCEPTS method)',
+        'prefix:sym<|>', NQPMu);
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
 
@@ -4357,7 +4357,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.typed_panic('X::Syntax::Extension::Null');
         }
         if nqp::existskey(%categorically-won't-work, $canname) && !$*COMPILING_CORE_SETTING {
-            self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
+            if %categorically-won't-work{$canname} -> $hint {
+                self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname, :$hint);
+            }
+            else {
+                self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
+            }
         }
 
         # If we already have the required operator in the grammar, just return.

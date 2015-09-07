@@ -482,8 +482,9 @@ public final class Binder {
                 if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
                     SixModelObject bindee = decontValue;
                     if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        bindee = RakOps.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
-                        RakOps.p6store(bindee, decontValue, tc);
+                        throw ExceptionHandling.dieInternal(tc, "is copy on lists NYI after GLR");
+                        //bindee = RakOps.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
+                        //RakOps.p6store(bindee, decontValue, tc);
                     }
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                 }
@@ -675,7 +676,8 @@ public final class Binder {
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                return RakOps.p6list(null, gcx.Array, gcx.True, tc);
+                throw ExceptionHandling.dieInternal(tc, "optional array param NYI after GLR");
+                //return RakOps.p6list(null, gcx.Array, gcx.True, tc);
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
                 SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);

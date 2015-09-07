@@ -28,7 +28,6 @@ public final class RakOps {
     public static class GlobalExt {
         public SixModelObject Mu;
         public SixModelObject Any;
-        public SixModelObject Parcel;
         public SixModelObject Code;
         public SixModelObject Routine;
         public SixModelObject Signature;
@@ -101,7 +100,6 @@ public final class RakOps {
         GlobalExt gcx = key.getGC(tc);
         gcx.Mu = conf.at_key_boxed(tc, "Mu");
         gcx.Any = conf.at_key_boxed(tc, "Any");
-        gcx.Parcel = conf.at_key_boxed(tc, "Parcel");
         gcx.Code = conf.at_key_boxed(tc, "Code");
         gcx.Routine = conf.at_key_boxed(tc, "Routine");
         gcx.Signature = conf.at_key_boxed(tc, "Signature");
@@ -184,89 +182,7 @@ public final class RakOps {
         res.set_str(tc, value);
         return res;
     }
-    
-    public static SixModelObject p6list(SixModelObject arr, SixModelObject type, SixModelObject flattens, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        SixModelObject list = type.st.REPR.allocate(tc, type.st);
-        if (arr != null) 
-            list.bind_attribute_boxed(tc, gcx.List, "$!nextiter", HINT_LIST_nextiter,
-                p6listiter(arr, list, tc));
-        list.bind_attribute_boxed(tc, gcx.List, "$!flattens", HINT_LIST_flattens, flattens);
-        return list;
-    }
-    
-    public static SixModelObject p6listitems(SixModelObject list, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        SixModelObject items = list.get_attribute_boxed(tc, gcx.List, "$!items", HINT_LIST_items);
-        if (!(items instanceof VMArrayInstance)) {
-            items = gcx.EMPTYARR.clone(tc);
-            list.bind_attribute_boxed(tc, gcx.List, "$!items", HINT_LIST_items, items);
-        }
-        return items;
-    }
-    
-    public static long p6arrfindtypes(SixModelObject arr, SixModelObject types, long start, long last, ThreadContext tc) {
-        int ntypes = (int)types.elems(tc);
-        SixModelObject[] typeArr = new SixModelObject[ntypes];
-        for (int i = 0; i < ntypes; i++)
-            typeArr[i] = types.at_pos_boxed(tc, i);
 
-        long elems = arr.elems(tc);
-        if (elems < last)
-            last = elems;
-
-        long index;
-        for (index = start; index < last; index++) {
-            SixModelObject val = arr.at_pos_boxed(tc, index);
-            if (val != null && val.st.ContainerSpec == null) {
-                boolean found = false;
-                for (int typeIndex = 0; typeIndex < ntypes; typeIndex++) {
-                    if (Ops.istype(val, typeArr[typeIndex], tc) != 0) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (found)
-                    break;
-            }
-        }
-
-        return index;
-    }
-    
-    public static SixModelObject p6shiftpush(SixModelObject a, SixModelObject b, long total, ThreadContext tc) {
-        long count = total;
-        long elems = b.elems(tc);
-        if (count > elems)
-            count = elems;
-
-        if (a != null && total > 0) {
-            long getPos = 0;
-            long setPos = a.elems(tc);
-            a.set_elems(tc, setPos + count);
-            while (count > 0) {
-                a.bind_pos_boxed(tc, setPos, b.at_pos_boxed(tc, getPos));
-                count--;
-                getPos++;
-                setPos++;
-            }
-        }
-        if (total > 0) {
-            GlobalExt gcx = key.getGC(tc);
-            b.splice(tc, gcx.EMPTYARR, 0, total);
-        }
-        
-        return a;
-    }
-    
-    public static SixModelObject p6listiter(SixModelObject arr, SixModelObject list, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        SixModelObject iter = gcx.ListIter.st.REPR.allocate(tc, gcx.ListIter.st);
-        iter.bind_attribute_boxed(tc, gcx.ListIter, "$!rest", HINT_LISTITER_rest, arr);
-        iter.bind_attribute_boxed(tc, gcx.ListIter, "$!list", HINT_LISTITER_list, list);
-        return iter;
-    }
-    
     public static SixModelObject p6argvmarray(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {
         SixModelObject BOOTArray = tc.gc.BOOTArray;
         SixModelObject res = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
@@ -419,22 +335,6 @@ public final class RakOps {
 
         /* Do trial bind. */
         return Binder.trialBind(tc, gcx, params, new CallSiteDescriptor(argFlags, null), args);
-    }
-    
-    public static SixModelObject p6parcel(SixModelObject array, SixModelObject fill, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        SixModelObject parcel = gcx.Parcel.st.REPR.allocate(tc, gcx.Parcel.st);
-        parcel.bind_attribute_boxed(tc, gcx.Parcel, "$!storage", HINT_PARCEL_STORAGE, array);
-
-        if (fill != null) {
-            long elems = array.elems(tc);
-            for (long i = 0; i < elems; i++) {
-                if (array.at_pos_boxed(tc, i) == null)
-                    array.bind_pos_boxed(tc, i, fill);
-            }
-        }
-
-        return parcel;
     }
     
     private static final CallSiteDescriptor STORE = new CallSiteDescriptor(

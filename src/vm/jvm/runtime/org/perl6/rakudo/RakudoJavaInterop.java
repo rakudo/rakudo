@@ -430,26 +430,27 @@ public class RakudoJavaInterop extends BootJavaInterop {
         else if(Ops.istype(in, gcx.List, tc) == 1
             || Ops.istype(in, gcx.Array, tc) == 1) {
             SixModelObject list = null;
-            list = RakOps.p6listitems(Ops.decont(in, tc), tc);
-            size = Ops.elems(list, tc);
-            for( int i = 0; i < size; ++i ) {
-                Object cur = Ops.atpos(Ops.decont(list, tc), i, tc);
-                Object value = null;
-                if(Ops.islist((SixModelObject) cur, tc) == 1) {
-                    ((Object[]) out)[i] = BootJavaInterop.marshalOutRecursive(in, tc, what);
-                }
-                else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1
-                    ||  Ops.istype((SixModelObject) cur, gcx.Array, tc) == 1) {
-                    value = marshalOutRecursive((SixModelObject) cur, tc, what);
-                }
-                else {
-                    value = parseSingleArg((SixModelObject) cur, tc);
-                }
-                if( out == null ) {
-                    out = Array.newInstance(value.getClass(), (int)size);
-                }
-                Array.set(out, i, value);
-            }
+            throw ExceptionHandling.dieInternal(tc, "List interop NYI after GLR");
+            //list = RakOps.p6listitems(Ops.decont(in, tc), tc);
+            //size = Ops.elems(list, tc);
+            //for( int i = 0; i < size; ++i ) {
+            //    Object cur = Ops.atpos(Ops.decont(list, tc), i, tc);
+            //    Object value = null;
+            //    if(Ops.islist((SixModelObject) cur, tc) == 1) {
+            //        ((Object[]) out)[i] = BootJavaInterop.marshalOutRecursive(in, tc, what);
+            //    }
+            //    else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1
+            //        ||  Ops.istype((SixModelObject) cur, gcx.Array, tc) == 1) {
+            //        value = marshalOutRecursive((SixModelObject) cur, tc, what);
+            //    }
+            //    else {
+            //        value = parseSingleArg((SixModelObject) cur, tc);
+            //    }
+            //    if( out == null ) {
+            //        out = Array.newInstance(value.getClass(), (int)size);
+            //    }
+            //    Array.set(out, i, value);
+            //}
         }
         return out;
     }
@@ -607,7 +608,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
                         Ops.bindpos((SixModelObject) out, i, cur, tc);
                     }
                 }
-                out = RakOps.p6list((SixModelObject) out, gcx.List, gcx.Mu, tc);
+                throw ExceptionHandling.dieInternal(tc, "List interop NYI after GLR");
+                //out = RakOps.p6list((SixModelObject) out, gcx.List, gcx.Mu, tc);
             }
             else {
                 out = RuntimeSupport.boxJava(in, gcx.rakudoInterop.getSTableForClass(what));

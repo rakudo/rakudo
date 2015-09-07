@@ -693,6 +693,8 @@ public final class Binder {
      * into the provided callframe. Returns BIND_RESULT_OK if binding works out,
      * BIND_RESULT_FAIL if there is a failure and BIND_RESULT_JUNCTION if the
      * failure was because of a Junction being passed (meaning we need to auto-thread). */
+     private static final CallSiteDescriptor slurpyFromArgs = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static int bind(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject params,
             CallSiteDescriptor csd, Object[] args,
             boolean noNomTypeCheck, String[] error) {
@@ -817,22 +819,16 @@ public final class Binder {
                         curPosArg++;
                     }
 
-                    throw ExceptionHandling.dieInternal(tc, "Slurpy params NYI post-GLR");
-                    //SixModelObject bindee;
-                    //if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
-                    //    if ((flags & SIG_ELEM_IS_RW) != 0)
-                    //        bindee = RakOps.p6list(slurpy, gcx.List, gcx.True, tc);
-                    //    else
-                    //        bindee = RakOps.p6list(slurpy, gcx.Array, gcx.True, tc);
-                    //}
-                    //else {
-                    //    bindee = RakOps.p6list(slurpy, gcx.LoL, gcx.False, tc);
-                    //}
-                    //
-                    //bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
-                    //    noNomTypeCheck, error);
-                    //if (bindFail != 0)
-                    //    return bindFail;
+                    SixModelObject slurpyType = (flags & SIG_ELEM_IS_RW) != 0 ? gcx.List : gcx.Array;
+                    SixModelObject sm = Ops.findmethod(tc, slurpyType,
+                        (flags & SIG_ELEM_SLURPY_POS) == 0 ? "from-slurpy-flat" : "from-slurpy");
+                    Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });
+                    SixModelObject bindee = Ops.result_o(tc.curFrame);
+
+                    bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
+                        noNomTypeCheck, error);
+                    if (bindFail != 0)
+                        return bindFail;
                 }
                 
                 /* Otherwise, a positional. */

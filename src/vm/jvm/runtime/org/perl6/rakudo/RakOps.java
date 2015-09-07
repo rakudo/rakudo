@@ -50,6 +50,8 @@ public final class RakOps {
         public SixModelObject False;
         public SixModelObject True;
         public SixModelObject AutoThreader;
+        public SixModelObject Positional;
+        public SixModelObject PositionalBindFailover;
         public SixModelObject EMPTYARR;
         public SixModelObject EMPTYHASH;
         public RakudoJavaInterop rakudoInterop;
@@ -145,7 +147,14 @@ public final class RakOps {
         gcx.AutoThreader = autoThreader;
         return autoThreader;
     }
-    
+
+    public static SixModelObject p6configposbindfailover(SixModelObject p, SixModelObject pbf, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        gcx.Positional = p;
+        gcx.PositionalBindFailover = pbf;
+        return p;
+    }
+
     public static SixModelObject booleanize(int x, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         return x == 0 ? gcx.False : gcx.True;

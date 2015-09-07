@@ -1663,6 +1663,11 @@ BEGIN {
             nqp::getattr(nqp::decont($self),
                 Routine, '$!dispatchees')
         }));
+    Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
+        nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
+            nqp::bindhllsym('perl6', 'MD_Pos', $Positional);
+            nqp::bindhllsym('perl6', 'MD_PBF', $PositionalBindFailover);
+        }));
     Routine.HOW.add_method(Routine, '!sort_dispatchees_internal', nqp::getstaticcode(sub ($self) {
             my int $SLURPY_ARITY      := nqp::bitshiftl_i(1, 30);
             my int $EDGE_REMOVAL_TODO := -1;
@@ -2026,6 +2031,7 @@ BEGIN {
             my @possibles;
             my int $done := 0;
             my int $done_bind_check := 0;
+            my $Positional := nqp::gethllsym('perl6', 'MD_Pos');
             until $done {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
@@ -2079,7 +2085,14 @@ BEGIN {
                                     $primish := 1;
                                 }
                                 unless nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
-                                    $type_mismatch := 1;
+                                    if $type_obj =:= $Positional {
+                                        my $PositionalBindFailover := nqp::gethllsym('perl6', 'MD_PBF');
+                                        unless nqp::istype($param, $PositionalBindFailover) {
+                                            $type_mismatch := 1;
+                                        }
+                                    } else {
+                                        $type_mismatch := 1;
+                                    }
                                 }
                                 if !$type_mismatch && $type_flags +& $DEFCON_MASK {
                                     my int $defined := $primish || nqp::isconcrete($param);

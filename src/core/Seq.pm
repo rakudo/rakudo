@@ -24,7 +24,8 @@ my role PositionalBindFailover {
             !! ($!list := List.from-iterator(self.iterator))
     }
 }
-nqp::p6configposbindfailover(Positional, PositionalBindFailover);
+nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
+Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover); # Multi-dispatch
 my class Seq is Cool does Iterable does PositionalBindFailover {
     # The underlying iterator that iterating this sequence will work its
     # way through. Can only be obtained once.

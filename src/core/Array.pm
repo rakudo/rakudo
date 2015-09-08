@@ -115,6 +115,14 @@ my class Array { # declared in BOOTSTRAP
         multi method plan(::?CLASS:D: *@) {
             X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
         }
+
+        # A shaped array isn't lazy, we these methods don't need to go looking
+        # into the "todo".
+        multi method elems(::?CLASS:D:) is nodal {
+            nqp::elems(nqp::getattr(self, List, '$!reified'))
+        }
+        method eager() { self }
+        method is-lazy() { False }
     }
 
     proto method new(|) { * }

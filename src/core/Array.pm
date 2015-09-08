@@ -86,6 +86,137 @@ my class Array { # declared in BOOTSTRAP
     my role ShapedArray[::TValue] does Positional[TValue] {
         has $.shape;
 
+        proto method AT-POS(|) is rw {*}
+        multi method AT-POS(Array:U: |c) is rw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(Array:D: **@indices) is rw {
+            my Mu $storage := nqp::getattr(self, List, '$!reified');
+            my int $numdims = nqp::numdimensions($storage);
+            my int $numind  = @indices.elems;
+            if $numind >= $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift.Int);
+                    $numdims = $numdims - 1;
+                }
+                my \elem = nqp::ifnull(
+                    nqp::atposnd($storage, $idxs),
+                    nqp::p6bindattrinvres(
+                        (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
+                        Scalar,
+                        '$!whence',
+                        -> { nqp::bindposnd($storage, $idxs, v) }));
+                @indices ?? elem.AT-POS(|@indices) !! elem
+            }
+            else {
+                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
+            }
+        }
+
+        proto method ASSIGN-POS(|) is rw {*}
+        multi method ASSIGN-POS(Array:U: |c) is rw {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(**@indices) is rw {
+            my \value = @indices.pop;
+            my Mu $storage := nqp::getattr(self, List, '$!reified');
+            my int $numdims = nqp::numdimensions($storage);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                # Dimension counts match, so fast-path it
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift.Int);
+                    $numdims = $numdims - 1;
+                }
+                nqp::ifnull(
+                    nqp::atposnd($storage, $idxs),
+                    nqp::bindposnd($storage, $idxs,
+                        nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor')))
+                    ) = value
+            }
+            elsif $numind > $numdims {
+                # More than enough dimensions; may work, fall to slow path
+                self.AT-POS(@indices) = value
+            }
+            else {
+                # Not enough dimensions, cannot possibly assign here
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
+
+        proto method EXISTS-POS(|) {*}
+        multi method EXISTS-POS(Array:U: |c) {
+            self.Any::EXISTS-POS(|c)
+        }
+        multi method EXISTS-POS(**@indices) {
+            my Mu $storage := nqp::getattr(self, List, '$!reified');
+            my int $numdims = nqp::numdimensions($storage);
+            my int $numind  = @indices.elems;
+            my $dims := nqp::dimensions($storage);
+            if $numind >= $numdims {
+                my $idxs := nqp::list_i();
+                loop (my int $i = 0; $i < $numind; $i = $i + 1) {
+                    my int $idx = @indices.shift.Int;
+                    return False if $idx >= nqp::atpos_i($dims, $i);
+                    nqp::push_i($idxs, $idx);
+                }
+                if nqp::isnull(nqp::atposnd($storage, $idxs)) {
+                    False
+                }
+                elsif @indices {
+                    nqp::atposnd($storage, $idxs).EXISTS-POS(|@indices)
+                }
+                else {
+                    True
+                }
+            }
+            else {
+                loop (my int $i = 0; $i < $numind; $i = $i + 1) {
+                    return False if @indices[$i] >= nqp::atpos_i($dims, $i);
+                }
+                True
+            }
+        }
+
+        proto method DELETE-POS(|) is rw {*}
+        multi method DELETE-POS(Array:U: |c) {
+            self.Any::DELETE-POS(|c)
+        }
+        multi method DELETE-POS(**@indices) {
+            my Mu $storage := nqp::getattr(self, List, '$!reified');
+            my int $numdims = nqp::numdimensions($storage);
+            my int $numind  = @indices.elems;
+            if $numind >= $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift.Int);
+                    $numdims = $numdims - 1;
+                }
+                my \value = nqp::ifnull(nqp::atposnd($storage, $idxs), Nil);
+                if @indices {
+                    value.DELETE-POS(|@indices)
+                }
+                else {
+                    nqp::bindposnd($storage, $idxs, nqp::null());
+                    value
+                }
+            }
+            else {
+                # Not enough dimensions, cannot delete
+                X::NotEnoughDimensions.new(
+                    operation => 'delete from',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
+
         multi method push(::?CLASS:D: $) {
             X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
         }

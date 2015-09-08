@@ -55,15 +55,17 @@ my class Array { # declared in BOOTSTRAP
     }
 
     proto method new(|) { * }
-    multi method new(Mu:D \values) {
-        my \arr = nqp::create(self);
-        arr.STORE(values);
-        arr
+    multi method new(Mu:D \values, :$shape) {
+        self!new-internal(values, $shape)
     }
 
-    multi method new(|values) {
+    multi method new(**@values is rw, :$shape) {
+        self!new-internal(@values, $shape)
+    }
+
+    method !new-internal(\values, \shape) {
         my \arr = nqp::create(self);
-        arr.STORE(values.list);
+        arr.STORE(values);
         arr
     }
 

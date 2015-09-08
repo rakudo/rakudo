@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 23;
+plan 33;
 
 compile_test_lib('05-arrays');
 
@@ -46,6 +46,24 @@ compile_test_lib('05-arrays');
     @arr[1] = Pointer.new;
     my $x = @arr[0];
     pass 'getting uninitialized element in managed array';
+}
+
+{
+    my @arr := CArray[int8].new(1, 2, 3, 4, 5);
+    is @arr.elems, 5, "CArray.elems works (int)";
+    is @arr[0], 1, ".new with values creates an array containing those values (int) - 1";
+    is @arr[1], 2, ".new with values creates an array containing those values (int) - 2";
+    is @arr[2], 3, ".new with values creates an array containing those values (int) - 3";
+    is @arr[3], 4, ".new with values creates an array containing those values (int) - 4";
+}
+
+{
+    my @arr := CArray[num].new(0.1e0, 0.2e0, 0.3e0, 0.4e0, 0.5e0);
+    is @arr.elems, 5, "CArray.elems works (num)";
+    is @arr[0], 0.1e0, ".new with values creates an array containing those values (num) - 1";
+    is @arr[1], 0.2e0, ".new with values creates an array containing those values (num) - 2";
+    is @arr[2], 0.3e0, ".new with values creates an array containing those values (num) - 3";
+    is @arr[3], 0.4e0, ".new with values creates an array containing those values (num) - 4";
 }
 
 {

@@ -85,6 +85,36 @@ my class Array { # declared in BOOTSTRAP
 
     my role ShapedArray[::TValue] does Positional[TValue] {
         has $.shape;
+
+        multi method push(::?CLASS:D: $) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
+        }
+        multi method push(::?CLASS:D: *@) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
+        }
+
+        multi method pop(::?CLASS:D:) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'pop').throw
+        }
+
+        multi method shift(::?CLASS:D:) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'shift').throw
+        }
+
+        multi method unshift(::?CLASS:D: $) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
+        }
+        multi method unshift(::?CLASS:D: *@) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
+        }
+
+        multi method splice(::?CLASS:D: *@) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'splice').throw
+        }
+
+        multi method plan(::?CLASS:D: *@) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
+        }
     }
 
     proto method new(|) { * }

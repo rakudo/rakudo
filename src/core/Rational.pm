@@ -81,8 +81,15 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method base($base, $digits?) {
-        my $prec = $digits // ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+    method base($base, Mu $digits? is copy) {
+        my $prec;
+        if $digits ~~ Whatever {
+            $digits = Nil;
+            $prec = 2**63;
+        }
+        else {
+            $prec = $digits // ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+        }
         my $s = $!numerator < 0 ?? '-' !! '';
         my $r = self.abs;
         my $i = $r.floor;
@@ -118,7 +125,7 @@ my role Rational[::NuT, ::DeT] does Real {
     method base-repeating($base = 10) {
         return ~self, '' if self.narrow ~~ Int;
         my (@quotients, @remainders, %remainders);
-        push @quotients, [div] my ($nu, $de) = self.nude;
+        push @quotients, [div] my ($nu, $de) = abs(self).nude;
         loop {
             push @remainders, $nu %= $de;
             last if %remainders{$nu}++ or $nu == 0;
@@ -128,7 +135,7 @@ my role Rational[::NuT, ::DeT] does Real {
         @quotients.=map(*.base($base));
         my @cycle = $nu ?? splice(@quotients, @remainders.first-index($nu) + 1) !! ();
         splice @quotients, 1, 0, '.';
-        @quotients.join, @cycle.join;
+        '-' x (self < 0) ~ @quotients.join, @cycle.join;
     }
 
     method succ {

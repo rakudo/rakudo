@@ -1,5 +1,6 @@
-New in 2015.08
+New in 2015.09
  + Features
+   + Great List Refactor
    + with/orwith/without conditionals allow you to check for .defined but
      topicalize to the actual value returned
    + new `supply`, `whenever` and `react` blocks for easy reactive programming

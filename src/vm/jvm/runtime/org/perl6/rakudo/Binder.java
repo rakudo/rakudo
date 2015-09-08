@@ -825,7 +825,7 @@ public final class Binder {
 
                     SixModelObject slurpyType = (flags & SIG_ELEM_IS_RW) != 0 ? gcx.List : gcx.Array;
                     SixModelObject sm = Ops.findmethod(tc, slurpyType,
-                        (flags & SIG_ELEM_SLURPY_POS) == 0 ? "from-slurpy-flat" : "from-slurpy");
+                        (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy");
                     Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });
                     SixModelObject bindee = Ops.result_o(tc.curFrame);
 

@@ -465,4 +465,40 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is rw {
         !! MD-ARRAY-SLICE(SELF, @indices)
 }
 
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is rw {
+    if $exists {
+        my int $n = @indices.elems;
+        my int $i = 0;
+        my $all-ints := True;
+        while $i < $n {
+            $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
+            $i = $i + 1;
+        }
+        $all-ints
+            ?? SELF.EXISTS-POS(|@indices)
+            !! X::NYI.new(feature => ':exists on multi-dimensional slices')
+    }
+    else {
+        SELF[@indices]
+    }
+}
+
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is rw {
+    if $delete {
+        my int $n = @indices.elems;
+        my int $i = 0;
+        my $all-ints := True;
+        while $i < $n {
+            $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
+            $i = $i + 1;
+        }
+        $all-ints
+            ?? SELF.DELETE-POS(|@indices)
+            !! X::NYI.new(feature => ':delete on multi-dimensional slices')
+    }
+    else {
+        SELF[@indices]
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

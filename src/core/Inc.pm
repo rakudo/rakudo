@@ -23,7 +23,7 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
                 }
            }
             else {
-                @INC.push: PARSE-INCLUDE-SPECS($I);
+                @INC.push: PARSE-INCLUDE-SPECS(nqp::p6box_s($I));
             }
         }
 

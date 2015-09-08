@@ -296,6 +296,20 @@ my class Any { # declared in BOOTSTRAP
         $target.ASSIGN-POS($final, value)
     }
 
+    proto method BIND-POS(|) { * }
+    multi method BIND-POS(Any:D: **@indices is rw) {
+        my int $elems = @indices.elems;
+        my \value := @indices.AT-POS($elems - 1);
+        my $final := @indices.AT-POS($elems - 2);
+        my $target := self;
+        my int $i = 0;
+        while $i < $elems - 2 {
+            $target := $target.AT-POS(@indices.AT-POS($i));
+            $i = $i + 1;
+        }
+        $target.BIND-POS($final, value)
+    }
+
     method all() is nodal { Junction.new(self.list, :type<all>) }
     method any() is nodal { Junction.new(self.list, :type<any>) }
     method one() is nodal { Junction.new(self.list, :type<one>) }

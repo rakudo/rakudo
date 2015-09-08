@@ -429,7 +429,6 @@ my class Array { # declared in BOOTSTRAP
             !! (nqp::atpos(reified, $ipos) = assignee)
     }
 
-    proto method BIND-POS(|) { * }
     multi method BIND-POS(Int $pos, Mu \bindval) is rw {
         self!ensure-allocated();
         my int $ipos = $pos;

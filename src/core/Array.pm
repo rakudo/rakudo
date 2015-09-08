@@ -145,6 +145,8 @@ my class Array { # declared in BOOTSTRAP
         retval
     }
 
+    method shape() { (*,) }
+
     multi method AT-POS(Array:D: int $ipos) is rw {
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0

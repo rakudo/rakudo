@@ -3533,6 +3533,17 @@ class Perl6::World is HLL::World {
                     }
                     # or here...
                 }
+                my $qs := $*LASTQUOTE[0];
+                my $qe := $*LASTQUOTE[1];
+                if HLL::Compiler.lineof($c.orig, $qe, :cache(1)) >= HLL::Compiler.lineof($c.orig, $c.pos, :cache(1)) - 1
+                    && nqp::index(nqp::substr($c.orig, $qs, $qe - $qs), "\n") >= 0 {
+                    my $quotes :=
+                        nqp::substr($c.orig, $qs - 1 , 1) ~
+                        nqp::substr($c.orig, $qe, 1);
+                    $quotes := "<<>>" if $quotes eq '<>' && nqp::substr($c.orig, $qe + 1, 1) eq '>';
+                    %opts<reason> := %opts<reason> ~ " (runaway multi-line " ~ $quotes ~
+                        " quote starting at line " ~ HLL::Compiler.lineof($c.orig, $qs, :cache(1)) ~ " maybe?)";
+                }
             }
 
             # Build and throw exception object.

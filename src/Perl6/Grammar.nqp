@@ -1100,6 +1100,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # performance improvement stuff
         :my $*FAKE_INFIX_FOUND := 0;
 
+        # for runaway detection
+        :my $*LASTQUOTE := [0,0];
+
         { $*W.loading_and_symbol_setup($/) }
 
         <.finishpad>
@@ -4749,6 +4752,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         {
             my $c := $/.CURSOR;
             $to   := $c.pos;
+            $*LASTQUOTE := [self.pos, $to];
             if $from != $to || !@*nibbles {
                 nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
             }

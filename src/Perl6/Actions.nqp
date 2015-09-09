@@ -8246,9 +8246,25 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( QAST::NodeList.new(
+        my $varast := $<var>.ast;
+        my int $is-str;
+        if nqp::istype($varast, QAST::Var) {
+            if nqp::istype($varast.returns, $*W.find_symbol(['Str'])) {
+                $is-str := 1;
+            }
+        }
+        if $is-str {
+            # We know it's a simple interpolation; use LITERAL.
+            make QAST::Regex.new( QAST::NodeList.new(
+                                        QAST::SVal.new( :value('!LITERAL') ),
+                                        $varast,
+                                        QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
+                                :rxtype<subrule>, :subtype<method>, :node($/));
+        }
+        else {
+            make QAST::Regex.new( QAST::NodeList.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),
-                                    $<var>.ast,
+                                    $varast,
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ) ),
@@ -8256,6 +8272,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                                     ),
                               :rxtype<subrule>, :subtype<method>, :node($/));
+        }
     }
 
     method assertion:sym<{ }>($/) {

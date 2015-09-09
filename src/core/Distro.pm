@@ -84,15 +84,9 @@ sub INITIALIZE-A-DISTRO-NOW() {
     Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
 }
 
-# set up $*DISTRO and deprecated $*OS and $*OSVER
+# set up $*DISTRO
 multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
     PROCESS::<$DISTRO> := INITIALIZE-A-DISTRO-NOW();
-}
-multi sub INITIALIZE_DYNAMIC('$*OS') {
-    PROCESS::<$OS> := $*DISTRO.name;
-}
-multi sub INITIALIZE_DYNAMIC('$*OSVER') {
-    PROCESS::<$OSVER> := $*DISTRO.version;
 }
 
 # vim: ft=perl6 expandtab sw=4

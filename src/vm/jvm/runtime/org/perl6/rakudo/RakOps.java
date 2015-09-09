@@ -63,7 +63,6 @@ public final class RakOps {
     public static ContextKey<ThreadExt, GlobalExt> key = new ContextKey< >(ThreadExt.class, GlobalExt.class);
 
     /* Parameter hints for fast lookups. */
-    private static final int HINT_PARCEL_STORAGE = 0;
     private static final int HINT_CODE_DO = 0;
     private static final int HINT_CODE_SIG = 1;
     private static final int HINT_ROUTINE_RW = 8;
@@ -74,13 +73,6 @@ public final class RakOps {
     public static final int HINT_CD_RW = 1;
     public static final int HINT_CD_NAME = 2;
     public static final int HINT_CD_DEFAULT = 3;
-    private static final int HINT_LIST_items = 0;
-    private static final int HINT_LIST_flattens = 1;
-    private static final int HINT_LIST_nextiter = 2;
-    private static final int HINT_LISTITER_reified = 0;
-    private static final int HINT_LISTITER_nextiter = 1;
-    private static final int HINT_LISTITER_rest = 2;
-    private static final int HINT_LISTITER_list = 3;
     
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);

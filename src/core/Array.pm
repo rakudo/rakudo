@@ -97,7 +97,7 @@ my class Array { # declared in BOOTSTRAP
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
                 while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift.Int);
+                    nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
                 my \elem = nqp::ifnull(
@@ -127,7 +127,7 @@ my class Array { # declared in BOOTSTRAP
                 # Dimension counts match, so fast-path it
                 my $idxs := nqp::list_i();
                 while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift.Int);
+                    nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
                 nqp::ifnull(
@@ -162,7 +162,7 @@ my class Array { # declared in BOOTSTRAP
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
                 loop (my int $i = 0; $i < $numind; $i = $i + 1) {
-                    my int $idx = @indices.shift.Int;
+                    my int $idx = @indices.shift;
                     return False if $idx >= nqp::atpos_i($dims, $i);
                     nqp::push_i($idxs, $idx);
                 }
@@ -195,7 +195,7 @@ my class Array { # declared in BOOTSTRAP
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
                 while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift.Int);
+                    nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
                 my \value = nqp::ifnull(nqp::atposnd($storage, $idxs), Nil);

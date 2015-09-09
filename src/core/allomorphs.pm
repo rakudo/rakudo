@@ -162,9 +162,9 @@ multi sub val(*@maybevals) {
     @maybevals.List.map({ val($_) }).eager;
 }
 
-# XXX this multi not needed in GLR ?
-multi sub val(@maybevals) {
-    val(|@maybevals);
+# needed to preserve slip-ness
+multi sub val(Slip $maybevals) {
+    val(|$maybevals).Slip
 }
 
 multi sub val(Pair $ww-thing) {

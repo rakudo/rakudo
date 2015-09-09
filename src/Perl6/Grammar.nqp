@@ -2275,6 +2275,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             if $*PKGDECL eq 'package' {
                                 $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style declaration like "unit package Foo;" or "unit module Foo;", or use the block form instead of the semicolon form.');
                             }
+                            $/.CURSOR.panic("Semicolon form of '$*PKGDECL' without 'unit' is illegal.  You probably want to use 'unit $*PKGDECL'");
                         }
                         unless $outer =:= $*UNIT {
                             $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => $*PKGDECL, where => "in a subscope");

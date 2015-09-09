@@ -157,7 +157,7 @@ sub spurt(Cool $path, $contents, :$enc = 'utf8', |c) {
 {
     sub chdir(Str() $path) {
         nqp::chdir(nqp::unbox_s($path));
-        $*CWD = IO::Path.new(cwd());
+        $*CWD = IO::Path.new(nqp::cwd());
         return True;
         CATCH {
             default {
@@ -280,11 +280,6 @@ sub symlink($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
 sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     my $result := $target.IO(:$SPEC,:$CWD).link($name,:$SPEC,:$CWD);
     $result // $result.throw;
-}
-
-sub cwd() {
-    DEPRECATED('$*CWD', |<2014.10 2015.09>);
-    $*CWD;
 }
 
 # vim: ft=perl6 expandtab sw=4

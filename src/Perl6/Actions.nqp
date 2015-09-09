@@ -5198,7 +5198,7 @@ Compilation unit '$file' contained the following violations:
                 if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {
                     my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     %named_counts{$name} := +%named_counts{$name} + 1;
-                    unless $*IN_DECL eq 'use' {
+                    unless $*IN_DECL eq 'use' || $*IN_DECL eq 'no' || $*IN_DECL eq 'import' {
                         $_[2].named($name);
                     }
                 }

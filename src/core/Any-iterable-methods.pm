@@ -61,32 +61,30 @@ augment class Any {
         }
     }
 
-    sub sequential-map(\source, &block, :$label) {
-        my role MapIterCommon does SlippyIterator {
-            has &!block;
-            has $!source;
-            has $!count;
-            has $!label;
+    my role MapIterCommon does SlippyIterator {
+        has &!block;
+        has $!source;
+        has $!count;
+        has $!label;
 
-            method new(&block, $source, $count, $label) {
-                my $iter := self.CREATE;
-                nqp::bindattr($iter, self, '&!block', &block);
-                nqp::bindattr($iter, self, '$!source', $source);
-                nqp::bindattr($iter, self, '$!count', $count);
-                nqp::bindattr($iter, self, '$!label', $label);
-                $iter
-            }
-
-            method is-lazy() {
-                $!source.is-lazy
-            }
+        method new(&block, $source, $count, $label) {
+            my $iter := self.CREATE;
+            nqp::bindattr($iter, self, '&!block', &block);
+            nqp::bindattr($iter, self, '$!source', $source);
+            nqp::bindattr($iter, self, '$!count', $count);
+            nqp::bindattr($iter, self, '$!label', $label);
+            $iter
         }
 
+        method is-lazy() {
+            $!source.is-lazy
+        }
+    }
+    sub sequential-map(\source, &block, :$label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
         my $count = &block.count;
-        $count = 1 if $count == Inf || $count == 0;
-        if $count == 1 {
+        if $count == 1 || $count == 0 || $count === Inf {
             Seq.new(class :: does MapIterCommon {
                 has $!did-init;
                 has $!did-iterate;

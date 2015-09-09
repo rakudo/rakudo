@@ -612,11 +612,6 @@ augment class Any {
         }
     }
 
-    method uniq(|c) is nodal {
-        DEPRECATED('unique', |<2014.11 2015.09>);
-        self.unique(|c);
-    }
-
     my @secret;
     proto method squish(|) is nodal {*}
     multi method squish( :&as!, :&with = &[===] ) {
@@ -737,12 +732,6 @@ proto sub join(|) { * }
 multi sub join($sep = '', *@values) { @values.join($sep) }
 
 sub reduce (&with, *@list)  { @list.reduce(&with) }
-
-proto sub uniq(|) { * }
-multi sub uniq(*@values, |c) {
-    DEPRECATED('unique', |<2014.12 2015.09>);
-    @values.unique(|c)
-}
 
 proto sub unique(|) { * }
 multi sub unique(*@values, |c) { @values.unique(|c) }

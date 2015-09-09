@@ -1404,9 +1404,10 @@ my class X::Syntax::Extension::Null does X::Syntax {
 my class X::Syntax::Extension::SpecialForm does X::Syntax {
     has $.category;
     has $.opname;
+    has $.hint;
     method message() {
         "Cannot override $.category operator '$.opname', as it is a special form " ~
-            "handled directly by the compiler";
+            "handled directly by the compiler" ~ ($!hint ?? "\n$!hint" !! "")
     }
 }
 
@@ -2119,6 +2120,22 @@ my class X::Seq::NotIndexable is Exception {
 my class X::WheneverOutOfScope is Exception {
     method message() {
         "Cannot have a 'whenever' block outside the scope of a 'supply' block"
+    }
+}
+
+my class X::IllegalOnFixedDimensionArray is Exception {
+    has $.operation;
+    method message() {
+        "Cannot $.operation a fixed-dimension array"
+    }
+}
+
+my class X::NotEnoughDimensions is Exception {
+    has $.operation;
+    has $.got-dimensions;
+    has $.needed-dimensions;
+    method message() {
+        "Cannot $.operation a $.needed-dimensions dimension array with only $.got-dimensions dimensions"
     }
 }
 

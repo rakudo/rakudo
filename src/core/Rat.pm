@@ -10,7 +10,7 @@ my class Rat is Cool does Rational[Int, Int] {
             $d div= 5 while $d %% 5;
             $d div= 2 while $d %% 2;
         }
-        ($d == 1) ?? self.Str !! '<' ~ $.numerator ~ '/' ~ $.denominator ~ '>';
+        ($d == 1) ?? self.base(10,*) !! '<' ~ $.numerator ~ '/' ~ $.denominator ~ '>';
     }
 }
 

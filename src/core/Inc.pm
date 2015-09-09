@@ -35,7 +35,7 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
         }
 
 #?if jvm
-        for nqp::jvmclasspaths() -> $path {
+        for nqp::hllize(nqp::jvmclasspaths()) -> $path {
             @INC.push: PARSE-INCLUDE-SPECS($path);
         }
 #?endif

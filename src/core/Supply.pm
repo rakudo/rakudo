@@ -164,10 +164,6 @@ my role Supply {
     method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
         SupplyOperations.stable(self, $time, :$scheduler);
     }
-    method delay(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        DEPRECATED('delayed', '2015.02', '2015.09');
-        SupplyOperations.delayed(self, $time, :$scheduler);
-    }
     method delayed(Supply:D: $time, :$scheduler = $*SCHEDULER) {
         SupplyOperations.delayed(self, $time, :$scheduler)
     }
@@ -337,10 +333,6 @@ my role Supply {
     }
 
     proto method rotor(|) {*}
-    multi method rotor(Supply:D:) {
-        DEPRECATED('.rotor( $elems => -$gap )',|<2015.04 2015.09>);
-        self.rotor( (2 => -1) );
-    }
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
         my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.list;
 
@@ -801,23 +793,6 @@ my role Supply {
             }
         }
     }
-
-    method for(Supply:U: |c) {
-        DEPRECATED('from-list',|<2015.01 2015.09>);
-        SupplyOperations.from-list(|c);
-    }
-    method on_demand(Supply:U: |c)       {
-        DEPRECATED('on-demand',|<2015.03 2015.09>);
-        SupplyOperations.on-demand(|c);
-    }
-    method schedule_on(Supply:D: Scheduler $scheduler) {
-        DEPRECATED('schedule-on',|<2015.03 2015.09>);
-        SupplyOperations.schedule-on(self, $scheduler);
-    }
-    method uniq(Supply:D: |c) {
-        DEPRECATED('unique', |<2014.11 2015.09>);
-        self.unique(|c);
-    }
 }
 
 # The on meta-combinator provides a mechanism for implementing thread-safe
@@ -1011,22 +986,26 @@ sub SUPPLY(&block) {
                 $state.active-taps{nqp::objectid($tap)} = $tap;
             }
 
-            nqp::handle($state.lock.protect({ code() }),
-                'EMIT', {
-                    $state.sub.emit().(nqp::getpayload(nqp::exception())) if $state.sub.emit;
-                    nqp::resume(nqp::exception())
-                }(),
-                'DONE', {
-                    $state.sub.done().() if $state.sub.done;
-                    $state.active = 0;
-                    self!teardown($state);
-                }(),
-                'CATCH', {
-                    my \ex = EXCEPTION(nqp::exception());
-                    $state.sub.quit().(ex) if $state.sub.quit;
-                    $state.active = 0;
-                    self!teardown($state);
-                }());
+            my $emitter = {
+                my \ex := nqp::exception();
+                $state.sub.emit().(nqp::getpayload(ex)) if $state.sub.emit;
+                nqp::resume(ex)
+            }
+            my $done = {
+                $state.sub.done().() if $state.sub.done;
+                $state.active = 0;
+                self!teardown($state);
+            }
+            my $catch = {
+                my \ex = EXCEPTION(nqp::exception());
+                $state.sub.quit().(ex) if $state.sub.quit;
+                $state.active = 0;
+                self!teardown($state);
+            }
+            nqp::handle($state.lock.protect(&code),
+                'EMIT', $emitter(),
+                'DONE', $done(),
+                'CATCH', $catch());
         }
 
         method !deactivate-one($state) {

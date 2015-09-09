@@ -416,8 +416,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method Seq(List:D:) { Seq.new(self.iterator) }
 
     method sink() {
-        # XXX Stage parse runs into an endless loop if we actually do this:
-        # self.iterator.sink-all if self.DEFINITE && $!reified.DEFINITE;
         Nil;
     }
 

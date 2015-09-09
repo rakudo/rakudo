@@ -428,7 +428,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         }
     });
     $infinite
-        ?? (gathered.lazy.Slip, Slip.from-iterator(righti))
+        ?? (gathered.Slip, Slip.from-iterator(righti)).lazy
         !! (gathered.Slip, Slip.from-iterator(righti))
 }
 

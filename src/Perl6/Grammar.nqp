@@ -5,6 +5,11 @@ use Perl6::Actions;
 use Perl6::World;
 use Perl6::Pod;
 
+role startstops[$start, $stop1, $stop2] {
+    token starter { $start }
+    token stopper { $stop1 | $stop2 }
+}
+
 role startstop[$start, $stop] {
     token starter { $start }
     token stopper { $stop }
@@ -42,7 +47,12 @@ role STD {
     }
 
     method balanced($start, $stop) {
-        self.HOW.mixin(self, startstop.HOW.curry(startstop, $start, $stop));
+        if nqp::istype($stop, VMArray) {
+            self.HOW.mixin(self, startstops.HOW.curry(startstops, $start, $stop[0], $stop[1]));
+        }
+        else {
+            self.HOW.mixin(self, startstop.HOW.curry(startstop, $start, $stop));
+        }
     }
     method unbalanced($stop) {
         self.HOW.mixin(self, stop.HOW.curry(stop, $stop));
@@ -54,7 +64,8 @@ role STD {
     my %quote_lang_cache;
     method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
         sub lang_key() {
-            my @keybits := [$l.HOW.name($l), $start, $stop];
+            my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;
+            my @keybits := [$l.HOW.name($l), $start, $stopstr];
             for @base_tweaks {
                 @keybits.push($_);
             }
@@ -80,6 +91,7 @@ role STD {
                     self.sorry("Unrecognized adverb: :$t");
                 }
             }
+            nqp::istype($stop,VMArray) ||
             $start ne $stop ?? $lang.balanced($start, $stop)
                             !! $lang.unbalanced($stop);
         }
@@ -1100,6 +1112,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # performance improvement stuff
         :my $*FAKE_INFIX_FOUND := 0;
 
+        # for runaway detection
+        :my $*LASTQUOTE := [0,0];
+
         { $*W.loading_and_symbol_setup($/) }
 
         <.finishpad>
@@ -1663,7 +1678,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $pos := $/.from;
             my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
             my $lex := $*W.cur_lexpad();
-            for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method' {
+            for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method', 'with', 'without', 'supply', 'whenever', 'react' {
                 $needparens++ if $_ eq 'loop';
                 my $m := %*MYSTERY{$_ ~ '-' ~ $lex.cuid};
                 next unless $m;
@@ -3165,10 +3180,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 $/.CURSOR.'!clear_highwater'();  # don't have suppose
                                 my $orry := $missing ?? "sorry" !! "worry";
                                 if $trap == 1 {        # probably misused P5ism
-                                    $<longname>.CURSOR."{$orry}obs"("bare \"$name\"", ".$name if you meant \$_, or use an explicit invocant or argument");
+                                    $<longname>.CURSOR."{$orry}obs"("bare \"$name\"", ".$name if you meant \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
                                 }
                                 elsif $trap == 2 {        # probably misused P6ism
-                                    $<longname>.CURSOR."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments)");
+                                    $<longname>.CURSOR."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun)");
                                 }
                                 $<longname>.CURSOR.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
                             }
@@ -3391,10 +3406,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token quote { <...> }
     token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
     token quote:sym<sapos> { :dba('smart single quotes') "‘" ~ "’" <nibble(self.quote_lang(%*LANG<Q>, "‘", "’", ['q']))> }
-    token quote:sym<lapos> { :dba('low smart single quotes') "‚" ~ "’" <nibble(self.quote_lang(%*LANG<Q>, "‚", "’", ['q']))> }
+    token quote:sym<lapos> { :dba('low smart single quotes') "‚" ~ ["’"|"‘"] <nibble(self.quote_lang(%*LANG<Q>, "‚", ["’","‘"], ['q']))> }
     token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
     token quote:sym<sdblq> { :dba('smart double quotes') '“' ~ '”' <nibble(self.quote_lang(%*LANG<Q>, '“', '”', ['qq']))> }
-    token quote:sym<ldblq> { :dba('low smart double quotes') '„' ~ '”' <nibble(self.quote_lang(%*LANG<Q>, '„', '”', ['qq']))> }
+    token quote:sym<ldblq> { :dba('low smart double quotes') '„' ~ ['”'|'“'] <nibble(self.quote_lang(%*LANG<Q>, '„', ['”','“'], ['qq']))> }
     token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(%*LANG<Q>, '｢', '｣'))> }
     token quote:sym<q> {
         :my $qm;
@@ -4344,11 +4359,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
     my %categorically-won't-work := nqp::hash(
-        'infix:sym<=>', nqp::null(),
-        'infix:sym<:=>', nqp::null(),
-        'infix:sym<::=>', nqp::null(),
-        'infix:sym<~~>', nqp::null(),
-        'prefix:sym<|>', nqp::null());
+        'infix:sym<=>', NQPMu,
+        'infix:sym<:=>', NQPMu,
+        'infix:sym<::=>', NQPMu,
+        'infix:sym<~~>', '(consider implementing an ACCEPTS method)',
+        'prefix:sym<|>', NQPMu);
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
 
@@ -4357,7 +4372,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.typed_panic('X::Syntax::Extension::Null');
         }
         if nqp::existskey(%categorically-won't-work, $canname) && !$*COMPILING_CORE_SETTING {
-            self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
+            if %categorically-won't-work{$canname} -> $hint {
+                self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname, :$hint);
+            }
+            else {
+                self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
+            }
         }
 
         # If we already have the required operator in the grammar, just return.
@@ -4744,6 +4764,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         {
             my $c := $/.CURSOR;
             $to   := $c.pos;
+            $*LASTQUOTE := [self.pos, $to];
             if $from != $to || !@*nibbles {
                 nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
             }

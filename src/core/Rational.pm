@@ -81,8 +81,30 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method base($base, $digits?) {
-        my $prec = $digits // ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+    method base($base, Any $digits? is copy) {
+        my $prec;
+        if $digits ~~ Whatever {
+            $digits = Nil;
+            $prec = 2**63;
+        }
+        elsif $digits.defined {
+            $digits = $digits.Int;
+            if $digits > 0 {
+                $prec = $digits;
+            }
+            elsif $digits == 0 {
+                return self.round.base($base)
+            }
+            else {
+                fail X::OutOfRange.new(
+                    what => 'digits argument to base', got => $digits, range => "0..*"
+                )
+            }
+        }
+        else {
+            $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+        }
+
         my $s = $!numerator < 0 ?? '-' !! '';
         my $r = self.abs;
         my $i = $r.floor;
@@ -91,26 +113,30 @@ my role Rational[::NuT, ::DeT] does Real {
                            K L M N O P Q R S T
                            U V W X Y Z>;
         $r -= $i;
-        $s ~= $i.base($base);
         if $digits // $r {
             my @f;
+            my $p = $i.base($base);
             while @f < $prec and ($digits // $r) {
                 $r *= $base;
-                $i = $r.floor;
-                push @f, $i;
-                $r -= $i;
+                my $d = $r.floor;
+                push @f, $d;
+                $r -= $d;
             }
             if 2 * $r >= 1 {
                 for @f-1 ... 0 -> $x {
                     last if ++@f[$x] < $base;
                     @f[$x] = 0;
-                    $s ~= ($i+1).base($base) if $x == 0; # never happens?
+                    $p = ($i+1).base($base) if $x == 0;
                 }
             }
+            $s ~= $p;
             if @f {
                 $s ~= '.';
                 $s ~= @conversion[@f].join;
             }
+        }
+        else {
+            $s ~= $i.base($base);
         }
         $s;
     }
@@ -118,7 +144,7 @@ my role Rational[::NuT, ::DeT] does Real {
     method base-repeating($base = 10) {
         return ~self, '' if self.narrow ~~ Int;
         my (@quotients, @remainders, %remainders);
-        push @quotients, [div] my ($nu, $de) = self.nude;
+        push @quotients, [div] my ($nu, $de) = abs(self).nude;
         loop {
             push @remainders, $nu %= $de;
             last if %remainders{$nu}++ or $nu == 0;
@@ -128,7 +154,7 @@ my role Rational[::NuT, ::DeT] does Real {
         @quotients.=map(*.base($base));
         my @cycle = $nu ?? splice(@quotients, @remainders.first-index($nu) + 1) !! ();
         splice @quotients, 1, 0, '.';
-        @quotients.join, @cycle.join;
+        '-' x (self < 0) ~ @quotients.join, @cycle.join;
     }
 
     method succ {

@@ -301,6 +301,14 @@ augment class CArray {
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
+
+        # stolen verbatim from Buf
+        multi method gist() {
+            self.^name ~ ':0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
+        }
+        multi method perl() {
+            self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
+        }
     }
 
     my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
@@ -335,6 +343,14 @@ augment class CArray {
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
+        }
+
+        # adapted from Buf
+        multi method gist() {
+            self.^name ~ ':0x<' ~ self.list.join(' ') ~ '>'
+        }
+        multi method perl() {
+            self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
         }
     }
 
@@ -380,6 +396,25 @@ augment class CArray {
             $typed := TypedCArray[t];
         }
         $typed.^inheritalize();
+    }
+
+    method elems { nqp::elems(self) }
+
+    method list {
+        do for ^self.elems { self.AT-POS($_) }
+    }
+
+    multi method new(*@values) {
+        nextsame unless @values;
+        my $result := self.new();
+        my int $n = @values.elems;
+        my int $i;
+        $result.ASSIGN-POS($n - 1, @values.AT-POS($n - 1));
+        while $i < $n {
+            $result.ASSIGN-POS($i, @values.AT-POS($i));
+            $i = $i + 1;
+        }
+        $result;
     }
 }
 

@@ -321,12 +321,16 @@ public final class Binder {
          * bind if it passes the type check, or a native value that needs no
          * further checking. */
         SixModelObject decontValue = null;
+        boolean didHLLTransform = false;
         if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
             /* We need to work on the decontainerized value. */
             decontValue = Ops.decont(arg_o, tc);
             
             /* HLL map it as needed. */
+            SixModelObject beforeHLLize = decontValue;
             decontValue = Ops.hllize(decontValue, tc);
+            if (decontValue != beforeHLLize)
+                didHLLTransform = true;
             
             /* Skip nominal type check if not needed. */
             if (!noNomTypeCheck) {
@@ -473,7 +477,7 @@ public final class Binder {
             }
             else if ((paramFlags & SIG_ELEM_IS_PARCEL) != 0) {
                 /* Just bind the thing as is into the lexpad. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
+                cf.oLex[sci.oTryGetLexicalIdx(varName)] = didHLLTransform ? decontValue : arg_o;
             }
             else {
                 /* If it's an array, copy means make a new one and store,
@@ -482,8 +486,9 @@ public final class Binder {
                 if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
                     SixModelObject bindee = decontValue;
                     if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        bindee = RakOps.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
-                        RakOps.p6store(bindee, decontValue, tc);
+                        throw ExceptionHandling.dieInternal(tc, "is copy on lists NYI after GLR");
+                        //bindee = RakOps.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
+                        //RakOps.p6store(bindee, decontValue, tc);
                     }
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                 }
@@ -675,7 +680,8 @@ public final class Binder {
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                return RakOps.p6list(null, gcx.Array, gcx.True, tc);
+                throw ExceptionHandling.dieInternal(tc, "optional array param NYI after GLR");
+                //return RakOps.p6list(null, gcx.Array, gcx.True, tc);
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
                 SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
@@ -691,6 +697,8 @@ public final class Binder {
      * into the provided callframe. Returns BIND_RESULT_OK if binding works out,
      * BIND_RESULT_FAIL if there is a failure and BIND_RESULT_JUNCTION if the
      * failure was because of a Junction being passed (meaning we need to auto-thread). */
+     private static final CallSiteDescriptor slurpyFromArgs = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static int bind(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject params,
             CallSiteDescriptor csd, Object[] args,
             boolean noNomTypeCheck, String[] error) {
@@ -814,18 +822,13 @@ public final class Binder {
                         }
                         curPosArg++;
                     }
-                    
-                    SixModelObject bindee;
-                    if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
-                        if ((flags & SIG_ELEM_IS_RW) != 0)
-                            bindee = RakOps.p6list(slurpy, gcx.List, gcx.True, tc);
-                        else
-                            bindee = RakOps.p6list(slurpy, gcx.Array, gcx.True, tc);
-                    }
-                    else {
-                        bindee = RakOps.p6list(slurpy, gcx.LoL, gcx.False, tc);
-                    }
-                    
+
+                    SixModelObject slurpyType = (flags & SIG_ELEM_IS_RW) != 0 ? gcx.List : gcx.Array;
+                    SixModelObject sm = Ops.findmethod(tc, slurpyType,
+                        (flags & SIG_ELEM_SLURPY_POS) == 0 ? "from-slurpy-flat" : "from-slurpy");
+                    Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });
+                    SixModelObject bindee = Ops.result_o(tc.curFrame);
+
                     bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
                         noNomTypeCheck, error);
                     if (bindFail != 0)

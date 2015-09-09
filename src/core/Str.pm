@@ -1571,11 +1571,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    method path(Str:D:) returns IO::Path:D {
-        DEPRECATED('IO', |<2014.11 2015.09>);
-        IO::Path.new(self)
-    }
-
     proto method codes(|) { * }
     multi method codes(Str:D:) returns Int:D {
 #?if moar

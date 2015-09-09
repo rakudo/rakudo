@@ -183,463 +183,332 @@ multi sub val(\one-thing) {
 }
 
 multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
-    #
-    #  docs/val.pod6  describes what's going on in this sub; take a look if you're lost!
-    #
-
-    ##| checks if number is to be negated, and chops off the sign
-    sub is-negated($val) {
-        nqp::eqat($val, '-', 0) ?? 1 !! 0;
-    }
-
-    sub has-sign($val) {
-        nqp::eqat($val, '+', 0) || is-negated($val) ?? 1 !! 0;
-    }
-
-    ##| retrieve an "oh radix" (0x, 0o, etc.), if there
-    sub get-ohradix($maybeint is copy, $radix = 10) { # $radix to limit valid ohradices
-        if $radix < 34 && nqp::eqat($maybeint, '0x', 0) {
-            16
-        } elsif $radix < 14 && nqp::eqat($maybeint, '0d', 0) {
-            10
-        } elsif $radix < 25 && nqp::eqat($maybeint, '0o', 0) {
-            8
-        } elsif $radix < 12 && nqp::eqat($maybeint, '0b', 0) {
-            2
-        } else {
-            parsing-fail("nohradix");
-        }
-    }
-
-    my $really-no-doubt;
-    sub try-possibles($checking, *@funcs, :$toplevel) {
-        my $cand;
-        my $*LAST_CHANCE = 0;
-        for @funcs -> &trying {
-            $cand = &trying($checking);
-            last if $*LAST_CHANCE;
-            with $cand { # XXX doesn't work as one-liner
-                last;
-            }
-        }
-        $really-no-doubt = $*LAST_CHANCE if $toplevel;
-        $cand;
-    }
-
-    ##| Works like :: in regexes, tells try-possibles that the sub that called
-    ##| this has to be the right choice, or else nothing is. (aka, the potential
-    ##| number given to val() "has to be this")
-    sub has-to-be-this { $*LAST_CHANCE = 1 }
-
-    # passing around a regular ol' Failure will cause Perl 6 to hang, for
-    # whatever reason, so we use this "fake" class instead. Incidentally it lets
-    # us also defer creating the actual exception (and subsequent failure) until
-    # the end.
-    my class ProtoFailure {
-        has $.reason = "";
-        has $.offset = 0;
-
-        ##| Imitates Failure.defined
-        method defined {
-            Bool::False
-        }
-
-        ##| Called at the end of val() processing, when we aren't sure our error
-        ##| will be meaningful (though the pointer will still be helpful)
-        method doubt-reason {
-            $!reason = $!reason.trim-trailing ~ " (but we're not sure what kind of value this wants to be)";
-        }
-
-        ##| Prefixes an additional bit of explanation to the reason (used when
-        ##| subs carry failures from inner calls upwards)
-        method stack-reason($newbit) {
-            $!reason = $newbit ~ $!reason;
-            self;
-        }
-
-        ##| Adjusts the offset, effectively setting it relative to a new string
-        ##| (used when subs carry failures from inner calls upwards)
-        method adjust-offset($off) {
-            $!offset += $off;
-            self;
-        }
-    }
-
-    ##| A failure caught during parsing of the string
-    sub parsing-fail(Str $reason, Int $offset = 0) {
-        return ProtoFailure.new.stack-reason($reason).adjust-offset($offset);
-    }
-
-    ##| processes an integer, by default decimal
-    sub just-int($maybeint, $radix is copy = 10, :$e = False, :$nosign = False) {
-        my $negated = $nosign ?? 0 !! is-negated($maybeint);
-        my $signed = $nosign ?? 0 !! has-sign($maybeint);
-        my $ohradix = $e ?? parsing-fail("dummy-nohradix") !! get-ohradix(nqp::substr($maybeint, $signed), $radix);
-        my $startpos = 0;
-
-        $startpos++ if $signed;
-
-        with $ohradix {
-            $radix = $ohradix;
-            $startpos += 2;
-
-            # handle initial underscore, since radix_I won't
-            if nqp::eqat($maybeint, '_', $startpos) {
-                $startpos++;
-            }
-        }
-
-        my $radresult := nqp::radix_I($radix, $maybeint, $startpos, $negated, Int);
-
-        if nqp::atpos($radresult, 2) == -1 {
-            return parsing-fail("Strange text where integer expected");
-        }
-
-        if nqp::atpos($radresult, 2) < nqp::chars($maybeint) {
-            return parsing-fail("Trailing garbage after integer", nqp::atpos($radresult, 2));
-        }
-
-        nqp::atpos($radresult, 0);
-    }
-
-    ##| process a Rat in "radix point" notation
-    sub point-rat($mayberat, $radix is copy = 10, :$nosign = False, :$adverb = False) {
-        my $radixpoint = nqp::index($mayberat, '.');
-
-        if $radixpoint == -1 {
-            return parsing-fail("No point found for supposed point-radix rational");
-        }
-
-        has-to-be-this;
-
-        my $signed  = $nosign ?? 0 !! has-sign($mayberat);
-        my $negated = $nosign ?? 0 !! is-negated($mayberat);
-        my $ohradix = $adverb ?? get-ohradix(nqp::substr($mayberat, $signed), $radix) !! parsing-fail("dummy-nohradix");
-
-        my $ipart = nqp::substr($mayberat, $signed + (2 with $ohradix), $radixpoint - $signed - (2 with $ohradix));
-        my $fpart = nqp::substr($mayberat, $radixpoint + 1);
-
-        $radix = $ohradix with $ohradix;
-
-        if nqp::index($fpart, '.') > -1 {
-            return parsing-fail("Extra point found in supposed point-radix rational", $radixpoint + 1 + nqp::index($fpart, '.'));
-        }
-
-        $ipart = just-int($ipart, $radix, :nosign, :e); # :e and :nosign because we've handled the ohradix and negation ourselves
-
-        without $ipart {
-            return $ipart.stack-reason("Issue in parsing before the radix point: ");
-        }
-
-        my $frad := nqp::radix_I($radix, $fpart, 0, 4, Int);
-
-        if nqp::atpos($frad, 2) < nqp::chars($fpart) {
-            return parsing-fail("Trailing garbage after supposed point-radix rational", $radixpoint + 1 + (nqp::atpos($frad, 2) max 0));
-        }
-
-        $ipart *= nqp::atpos($frad, 1);
-        $ipart += nqp::atpos($frad, 0);
-        $ipart *= $negated ?? -1 !! 1;
-
-        return Rat.new($ipart, nqp::atpos($frad, 1));
-    }
-
-    ##| process a :#<> form number (:#[] NYI)
-    sub radix-adverb($maybenum is copy, :$nofrac = False, :$nosign = False) {
-        unless nqp::eqat($maybenum, ':', 0) || nqp::eqat($maybenum, ':', 1) {
-            return parsing-fail("Not an adverbial number");
-        }
-
-        has-to-be-this;
-
-        # get the sign, if there
-        my $signed  = $nosign ?? 0 !! has-sign($maybenum);
-        my $negated = $nosign ?? 0 !! is-negated($maybenum);
-
-        # get the radix
-        my $baseradix := nqp::radix_I(10, $maybenum, 1 + $signed, 0, Int);
-
-        if nqp::atpos($baseradix, 2) == -1 {
-            return parsing-fail("Strange text after colon", nqp::atpos($baseradix, 2));
-        }
-
-        if !(2 <= nqp::atpos($baseradix, 0) <= 36) {
-            # wouldn't be so immediately failing when :#[] form is supported
-            return parsing-fail("Invalid radix of {nqp::atpos($baseradix, 0)} in adverb (must be in range 2..36)", nqp::atpos($baseradix, 2));
-        }
-
-        # get start point
-
-        my $numstart = nqp::atpos($baseradix, 2);
-        my $defradix = nqp::atpos($baseradix, 0);
-
-        if !nqp::eqat($maybenum, '<', $numstart) {
-            if nqp::eqat($maybenum, '[', $numstart) {
-                return parsing-fail(":#[] style adverbs NYI, sorry", $numstart);
-            } elsif nqp::eqat($maybenum, '(', $numstart) {
-                return parsing-fail(":#() style adverbs not supported by val(), please use EVAL($MAYBEVAL.perl()) instead", $numstart);
-            }
-
-            return parsing-fail("Unknown text after radix in supposed adverbial number", $numstart);
-        }
-
-        $numstart++;
-
-        # get components (coeff, base, exp)
-
-        my ($coeff, $coend, $base, $bend, $exp, $eend);
-
-        $coend = nqp::index($maybenum, '*', $numstart);
-
-        if $coend == -1 { # no base and exp, just coeff
-            $coend = nqp::index($maybenum, '>', $numstart);
-
-            if $coend < nqp::chars($maybenum) - 1 {
-                return parsing-fail("Trailing garbage after supposed adverbial form", $coend + 1);
-            }
-
-            $coeff = nqp::substr($maybenum, $numstart, $coend - $numstart);
-
-            my $res;
-            if $nofrac {
-                $res = just-int($coeff, $defradix, :nosign);
-            } else {
-                $res = try-possibles($coeff, { point-rat($_, $defradix, :nosign, :adverb) },
-                                             { just-int($_, $defradix, :nosign) });
-            }
-
-            with $res {
-                $res = -$res if $negated;
-            } else {
-                $res = $res.stack-reason("Error parsing adverbial number: ").adjust-offset($numstart);
-            }
-
-            return $res;
-        }
-
-        # we know we have a Num at this point, so no fractionals allowed means
-        # failure
-        if $nofrac {
-            return parsing-fail("Num adverbial detected where integer required (don't use * and ** here)", $coend);
-        }
-
-        # get a base and exponent
-
-        $bend = nqp::index($maybenum, '**', $coend + 1);
-        if $bend == -1 {
-            return parsing-fail("Missing ** in Num adverbial", $coend + 1);
-        }
-
-        $eend = nqp::index($maybenum, '>', $bend + 2);
-        if $eend == -1 {
-            return parsing-fail("Missing > in Num adverbial", $bend + 2);
-        }
-
-        if $eend < (nqp::chars($maybenum) - 1) {
-            return parsing-fail("Trailing garbage after supposed adverbial number", $eend + 1);
-        }
-
-        # get substrings
-
-        $coeff = nqp::substr($maybenum, $numstart, $coend - $numstart);
-        $base  = nqp::substr($maybenum, $coend + 1, $bend - $coend - 1);
-        $exp   = nqp::substr($maybenum, $bend + 2, $eend - $bend - 2);
-
-        # coefficient is at best a decimal number, base and exp can be adverbs themselves
-
-        $coeff = try-possibles($coeff, { point-rat($_, $defradix, :nosign, :adverb) },
-                                       { just-int($_ , $defradix, :nosign) });
-        $base = try-possibles($base, { radix-adverb($_, :nofrac, :$nosign) },
-                                     { just-int($_ , 10, :$nosign) });
-        $exp = try-possibles($exp, { radix-adverb($_, :nofrac) }, &just-int);
-
-        without $coeff {
-            return $coeff.stack-reason("Problematic coefficient: ").adjust-offset($numstart);
-        }
-
-        without $base {
-            return $base.stack-reason("Problematic base: ").adjust-offset($coend + 1);
-        }
-
-        without $exp {
-            return $exp.stack-reason("Problematic exponent: ").adjust-offset($bend + 2);
-        }
-
-        ($negated ?? -1 !! 1) * $coeff.Num * $base.Num ** $exp.Num;
-    }
-
-    ##| Rationals in fraction form
-    sub frac-rat($mayberat) {
-        my $slash = nqp::index($mayberat, '/');
-
-        if $slash == -1 {
-            return parsing-fail("Required slash for fractional Rats not found");
-        }
-
-        has-to-be-this;
-
-        my $nstr = nqp::substr($mayberat, 0, $slash);
-        my $dstr = nqp::substr($mayberat, $slash + 1);
-
-        # Rat literals only allow integral numerators/denominators
-        my $numer = try-possibles($nstr, { radix-adverb($_, :nofrac) }, &just-int);
-        my $denom = try-possibles($dstr, { radix-adverb($_, :nofrac, :nosign) },
-                                         { just-int($_, :nosign) });
-
-        without $numer {
-            return $numer.stack-reason("Problematic numerator: ");
-        }
-
-        without $denom {
-            return $denom.stack-reason("Problematic denominator: ").adjust-offset($slash + 1);
-        }
-
-        return Rat.new($numer, $denom);
-    }
-
-    ##| Scientific notation Nums, or Inf/NaN
-    sub science-num($maybenum) {
-        my $e = nqp::index($maybenum, 'e');
-        $e = nqp::index($maybenum, 'E') if $e == -1;
-
-        if $e == -1 {
-            if nqp::chars($maybenum) == 4 {
-                return Inf if nqp::iseq_s($maybenum, nqp::unbox_s("+Inf"));
-                return -Inf if nqp::iseq_s($maybenum, nqp::unbox_s("-Inf"));
-                return NaN if nqp::iseq_s($maybenum, nqp::unbox_s("+NaN"));
-                return -NaN if nqp::iseq_s($maybenum, nqp::unbox_s("-NaN"));
-            } elsif nqp::chars($maybenum) == 3 {
-                return Inf if nqp::iseq_s($maybenum, nqp::unbox_s("Inf"));
-                return NaN if nqp::iseq_s($maybenum, nqp::unbox_s("NaN"));
-            }
-
-            return parsing-fail("Supposed scientific Num doesn't have 'e' or 'E', nor is 'Inf' or 'NaN'");
-        }
-
-        has-to-be-this;
-
-        my $cstr = nqp::substr($maybenum, 0, $e);
-        my $estr = nqp::substr($maybenum, $e + 1);
-
-        my $coeff = try-possibles($cstr, &point-rat, {just-int($_, :e)});
-        my $exp   = just-int($estr, :e);
-
-        without $coeff {
-            return $coeff.stack-reason("Bad coefficient: ");
-        }
-
-        without $exp {
-            return $exp.stack-reason("Bad exponent: ").adjust-offset($e);
-        }
-
-        return $coeff.Num * 10 ** $exp.Num;
-    }
-
-    ##| Complex numbers
-    sub complex-num($maybecmpx) {
-        unless nqp::eqat($maybecmpx, 'i', nqp::chars($maybecmpx) - 1) {
-            return parsing-fail("No 'i' found for supposed complex number");
-        }
-
-        has-to-be-this;
-
-        my $escape-i = 0;
-        $escape-i++ if nqp::eqat($maybecmpx, Q[\i], nqp::chars($maybecmpx) - 2);
-
-        my $splitpos = 1;
-
-        my $negated-im = 1;
-
-        while $splitpos < nqp::chars($maybecmpx) {
-            last if nqp::eqat($maybecmpx, '+', $splitpos);
-
-            if nqp::eqat($maybecmpx, '-', $splitpos) {
-                $negated-im = -1;
-                last;
-            }
-
-            $splitpos++;
-        }
-
-        my $re;
-        my $im;
-
-        if $splitpos == nqp::chars($maybecmpx) { # purely imaginary
-            my $istr = nqp::substr($maybecmpx, 0, nqp::chars($maybecmpx) - (1 + $escape-i));
-            $re = 0;
-            $im = try-possibles($istr, &radix-adverb, &science-num, &point-rat, &just-int);
-        } else {
-            my $rstr = nqp::substr($maybecmpx, 0, $splitpos);
-            my $istr = nqp::substr($maybecmpx, $splitpos + 1, (nqp::chars($maybecmpx) - (1 + $escape-i)) - $splitpos - 1);
-
-            $re = try-possibles($rstr, &radix-adverb, &science-num, &point-rat, &just-int);
-            $im = try-possibles($istr, &radix-adverb, &science-num, &point-rat, &just-int);
-        }
-
-        without $re {
-            return $re.stack-reason("Problem with real part: ");
-        }
-
-        without $im {
-            return $im.stack-reason("Problem with imaginary part: ").adjust-offset($splitpos + 1);
-        }
-
-        if $im === (NaN|Inf|-Inf) && $escape-i == 0 { # don't let NaNi or Infi work, must be NaN\i or Inf\i
-            return parsing-fail("Imaginary unit must be escaped with an imaginary part of '$im', i.e. $im\\i", nqp::chars($maybecmpx) - 1);
-        }
-
-        return Complex.new($re, $im * $negated-im);
-    }
-
-    #
-    # And now, finally, the part where we do something
-    #
-
-    my $ws-off = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $MAYBEVAL, 0, $MAYBEVAL.chars);
-
-    # get unboxed, trimmed string (calling .trim is at least not worse than
-    # manually trimming the unboxed string ourselves, and perhaps a bit better).
-    my $as-str = nqp::unbox_s($MAYBEVAL.trim);
-
-    my $as-parsed = try-possibles($as-str, &complex-num, &frac-rat, &radix-adverb, &science-num, &point-rat, &just-int, :toplevel);
-
-    if !$as-parsed.defined {
+    # TODO:
+    # * Additional numeric styles:
+    #   + fractions in [] radix notation:  :100[10,'.',53]
+    # * Performance tuning
+    # * Fix remaining XXXX
+
+    my str $str = nqp::unbox_s($MAYBEVAL);
+    my int $eos = nqp::chars($str);
+
+    # S02:3276-3277: Ignore leading and trailing whitespace
+    my int $pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,
+                                              $str, 0, $eos);
+    my int $end = nqp::sub_i($eos, 1);
+
+    $end = nqp::sub_i($end, 1)
+        while nqp::isge_i($end, $pos)
+           && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $end);
+
+    # Str.Numeric should handle blank string before val()
+    parse_fail "Empty string not properly caught before val()" if nqp::islt_i($end, $pos);
+
+    # Reset end-of-string after trimming
+    $eos = nqp::add_i($end, 1);
+
+    # Fail all the way out when parse failures occur. Return the original
+    # string, or a failure if we're Str.Numeric
+    my &parse_fail := -> $msg {
         if $val-or-fail {
-            # if $really-no-doubt isn't set, that means we didn't fail at a
-            # point where we knew for sure what kind of literal we got. Express
-            # that doubt now.
-            $as-parsed.doubt-reason unless $really-no-doubt;
-
-            fail X::Str::Numeric.new(source => $MAYBEVAL,
-                                     reason => $as-parsed.reason,
-                                     pos    => ($as-parsed.offset + $ws-off));
+            fail X::Str::Numeric.new(
+                    source => $MAYBEVAL,
+                    reason => $msg,
+                    :$pos,
+            );
+        } else {
+            return $MAYBEVAL;
         }
-        return $MAYBEVAL;
-    } else {
-        # construct appropriate allomorphic object. We wait until the end,
-        # instead of having the above inner subs make them, because the other
-        # inner subs calling would just convert them back to numeric-only, and
-        # make it a waste to construct an allomorphic object.
-        given $as-parsed {
-            when Int {
-                return IntStr.new($_, $MAYBEVAL);
+    };
+
+    # return an appropriate type when we've found a number. Allomorphic unless
+    # Str.Numeric is calling
+    my &parse_win := -> \newval {
+        if $val-or-fail {
+            return newval;
+        } else {
+            if newval.isa(Num) {
+                return NumStr.new(newval, $MAYBEVAL);
+            } elsif newval.isa(Rat) {
+                return RatStr.new(newval, $MAYBEVAL);
+            } elsif newval.isa(Complex) {
+                return ComplexStr.new(newval, $MAYBEVAL);
+            } elsif newval.isa(Int) {
+                return IntStr.new(newval, $MAYBEVAL);
+            } else {
+                die "Unknown type {newval.^name} found in val() processing";
+            }
+        }
+    };
+
+    my sub parse-simple-number() {
+        # Handle NaN here, to make later parsing simpler
+        if nqp::iseq_s(nqp::substr($str, $pos, 3), 'NaN') {
+            $pos = nqp::add_i($pos, 3);
+            return nqp::p6box_n(nqp::nan());
+        }
+
+        # Handle any leading +/- sign
+        my int $ch  = nqp::ord($str, $pos);
+        my int $neg = nqp::iseq_i($ch, 45);                # '-'
+        if nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 43) {  # '-', '+'
+            $pos = nqp::add_i($pos, 1);
+            $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+        }
+
+        # nqp::radix_I parse results, and helper values
+        my Mu  $parse;
+        my str $prefix;
+        my int $radix;
+        my int $p;
+
+        my sub parse-int-frac-exp() {
+            # Integer part, if any
+            my Int:D $int := 0;
+            if nqp::isne_i($ch, 46) {  # '.'
+                parse_fail "Cannot convert radix of $radix (max 36)"
+                    if $radix > 36;
+                $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
+                $p      = nqp::atpos($parse, 2);
+                parse_fail "base-$radix number must begin with valid digits or '.'"
+                    if nqp::iseq_i($p, -1);
+                $pos    = $p;
+
+                $int   := nqp::atpos($parse, 0);
+                if nqp::isge_i($pos, $eos) {
+                    return $int;
+                }
+                else {
+                    $ch = nqp::ord($str, $pos);
+                }
             }
 
-            when Rat {
-                return RatStr.new($_, $MAYBEVAL);
+            # Fraction, if any
+            my Int:D $frac := 0;
+            my Int:D $base := 0;
+            if nqp::iseq_i($ch, 46) {  # '.'
+                $pos    = nqp::add_i($pos, 1);
+                $parse := nqp::radix_I($radix, $str, $pos,
+                                       nqp::add_i($neg, 4), Int);
+                $p      = nqp::atpos($parse, 2);
+                parse_fail 'radix point must be followed by one or more valid digits'
+                    if nqp::iseq_i($p, -1);
+                $pos    = $p;
+
+                $frac  := nqp::atpos($parse, 0);
+                $base  := nqp::atpos($parse, 1);
+                $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
             }
 
-            when Num {
-                return NumStr.new($_, $MAYBEVAL);
+            # Exponent, if 'E' or 'e' are present (forces return type Num)
+            if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {  # 'E', 'e'
+                parse_fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
+                    unless nqp::iseq_i($radix, 10);
+
+                $pos    = nqp::add_i($pos, 1);
+                $parse := nqp::radix_I(10, $str, $pos, 2, Int);
+                $p      = nqp::atpos($parse, 2);
+                parse_fail "'E' or 'e' must be followed by decimal (base-10) integer"
+                    if nqp::iseq_i($p, -1);
+                $pos    = $p;
+
+                my num $exp  = nqp::atpos($parse, 0).Num;
+                my num $coef = $frac ?? nqp::add_n($int.Num, nqp::div_n($frac.Num, $base.Num)) !! $int.Num;
+                return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10e0, $exp)));
             }
 
-            when Complex {
-                return ComplexStr.new($_, $MAYBEVAL);
+            # Multiplier with exponent, if single '*' is present
+            # (but skip if current token is '**', as otherwise we
+            # get recursive multiplier parsing stupidity)
+            if nqp::iseq_i($ch, 42)
+            && nqp::isne_s(substr($str, $pos, 2), '**') {  # '*'
+                $pos           = nqp::add_i($pos, 1);
+                my $mult_base := parse-simple-number();
+
+                parse_fail "'*' multiplier base must be an integer"
+                    unless $mult_base.WHAT === Int;
+                parse_fail "'*' multiplier base must be followed by '**' and exponent"
+                    unless nqp::iseq_s(nqp::substr($str, $pos, 2), '**');
+
+                $pos           = nqp::add_i($pos, 2);
+                my $mult_exp  := parse-simple-number();
+
+                parse_fail "'**' multiplier exponent must be an integer"
+                    unless $mult_exp.WHAT === Int;
+
+                my $mult := $mult_base ** $mult_exp;
+                $int     := $int  * $mult;
+                $frac    := $frac * $mult;
             }
 
-            default {
-                die "Unknown type from val() processing: {$_.WHAT}";
+            # Return an Int if there was no radix point
+            return $int unless $base;
+
+            # Otherwise, return a Rat
+            my Int:D $numerator := $int * $base + $frac;
+            return Rat.new($numerator, $base);
+        }
+
+        # Look for radix specifiers
+        if nqp::iseq_i($ch, 58) {  # ':'
+            # A string of the form :16<FE_ED.F0_0D> or :60[12,34,56]
+            $pos    = nqp::add_i($pos, 1);
+            $parse := nqp::radix_I(10, $str, $pos, 0, Int);
+            $p      = nqp::atpos($parse, 2);
+            parse_fail "radix (in decimal) expected after ':'"
+                if nqp::iseq_i($p, -1);
+            $pos    = $p;
+
+            $radix  = nqp::atpos($parse, 0);
+            $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+            if    nqp::iseq_i($ch, 60) {  # '<'
+                $pos = nqp::add_i($pos, 1);
+
+                my $result := parse-int-frac-exp();
+
+                parse_fail "malformed ':$radix<>' style radix number, expecting '>' after the body"
+                    unless nqp::islt_i($pos, $eos)
+                        && nqp::iseq_i(nqp::ord($str, $pos), 62);  # '>'
+
+                $pos = nqp::add_i($pos, 1);
+                return $result;
             }
+            elsif nqp::iseq_i($ch, 171) {  # '«'
+                $pos = nqp::add_i($pos, 1);
+
+                my $result := parse-int-frac-exp();
+
+                parse_fail "malformed ':$radix«»' style radix number, expecting '»' after the body"
+                    unless nqp::islt_i($pos, $eos)
+                        && nqp::iseq_i(nqp::ord($str, $pos), 187);  # '»'
+
+                $pos = nqp::add_i($pos, 1);
+                return $result;
+            }
+            elsif nqp::iseq_i($ch, 91) {  # '['
+                $pos = nqp::add_i($pos, 1);
+                my Int:D $result := 0;
+                my Int:D $digit  := 0;
+                while nqp::islt_i($pos, $eos)
+                   && nqp::isne_i(nqp::ord($str, $pos), 93) {  # ']'
+                    $parse := nqp::radix_I(10, $str, $pos, 0, Int);
+                    $p      = nqp::atpos($parse, 2);
+                    parse_fail "malformed ':$radix[]' style radix number, expecting comma separated decimal values after opening '['"
+                        if nqp::iseq_i($p, -1);
+                    $pos    = $p;
+
+                    $digit := nqp::atpos($parse, 0);
+                    parse_fail "digit is larger than {$radix - 1} in ':$radix[]' style radix number"
+                        if $digit >= $radix;
+
+                    $result := $result * $radix + $digit;
+                    $pos     = nqp::add_i($pos, 1)
+                        if nqp::islt_i($pos, $eos)
+                        && nqp::iseq_i(nqp::ord($str, $pos), 44);  # ','
+                }
+                parse_fail "malformed ':$radix[]' style radix number, expecting ']' after the body"
+                    unless nqp::islt_i($pos, $eos)
+                        && nqp::iseq_i(nqp::ord($str, $pos), 93);  # ']'
+                $pos = nqp::add_i($pos, 1);
+
+                # XXXX: Handle fractions!
+                # XXXX: Handle exponents!
+                return $neg ?? -$result !! $result;
+            }
+            else {
+                parse_fail "malformed ':$radix' style radix number, expecting '<' or '[' after the base";
+            }
+        }
+        elsif nqp::iseq_i($ch, 48)  # '0'
+          and $radix = nqp::index('  b     o d     x',
+                                  nqp::substr($str, nqp::add_i($pos, 1), 1))
+          and nqp::isge_i($radix, 2) {
+            # A string starting with 0x, 0d, 0o, or 0b,
+            # followed by one optional '_'
+            $pos   = nqp::add_i($pos, 2);
+            $pos   = nqp::add_i($pos, 1)
+                if nqp::islt_i($pos, $eos)
+                && nqp::iseq_i(nqp::ord($str, $pos), 95);  # '_'
+
+            return parse-int-frac-exp();
+        }
+        elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
+            # 'Inf'
+            $pos = nqp::add_i($pos, 3);
+            return $neg ?? -Inf !! Inf;
+        }
+        else {
+            # Last chance: a simple decimal number
+            $radix = 10;
+            return parse-int-frac-exp();
         }
     }
+
+    my sub parse-real() {
+        # Parse a simple number or a Rat numerator
+        my $result := parse-simple-number();
+        return $result if nqp::iseq_i($pos, $eos);
+
+        # Check for '/' indicating Rat denominator
+        if nqp::iseq_i(nqp::ord($str, $pos), 47) {  # '/'
+            $pos = nqp::add_i($pos, 1);
+            parse_fail "denominator expected after '/'"
+                unless nqp::islt_i($pos, $eos);
+
+            my $denom := parse-simple-number();
+
+            $result := nqp::istype($result, Int) && nqp::istype($denom, Int)
+                    ?? Rat.new($result, $denom)
+                    !! $result / $denom;
+        }
+
+        $result;
+    }
+
+    # Parse a real number, magnitude of a pure imaginary number,
+    # or real part of a complex number
+    my $result := parse-real();
+    parse_win $result if nqp::iseq_i($pos, $eos);
+
+    # Check for 'i' or '\\i' indicating first parsed number was
+    # the magnitude of a pure imaginary number
+    if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
+        parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
+            if $result == Inf || $result == NaN;
+        $pos = nqp::add_i($pos, 1);
+        $result := Complex.new(0, $result);
+    }
+    elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+        $pos = nqp::add_i($pos, 2);
+        $result := Complex.new(0, $result);
+    }
+    # Check for '+' or '-' indicating first parsed number was
+    # the real part of a complex number
+    elsif nqp::iseq_i(nqp::ord($str, $pos), 45)    # '-'
+       || nqp::iseq_i(nqp::ord($str, $pos), 43) {  # '+'
+        # Don't move $pos -- we want parse-real() to see the sign
+        my $im := parse-real();
+        parse_fail "imaginary part of complex number must be followed by 'i' or '\\i'"
+            unless nqp::islt_i($pos, $eos);
+
+        if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
+            parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
+                if $im == Inf || $im == NaN;
+            $pos = nqp::add_i($pos, 1);
+        }
+        elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+            $pos = nqp::add_i($pos, 2);
+        }
+        else {
+            parse_fail "imaginary part of complex number must be followed by 'i' or '\\i'"
+        }
+
+        $result := Complex.new($result, $im);
+    }
+
+    # Check for trailing garbage
+    parse_fail "trailing characters after number"
+        if nqp::islt_i($pos, $eos);
+
+    parse_win $result;
 }

@@ -159,9 +159,7 @@ multi sub note(ComplexStr:D \x) {
 }
 
 multi sub val(*@maybevals) {
-    # XXX .Parcel not needed on GLR (just .eager suffices)
-    # XXX GLR would need a .List before the .map, so that the output is === compatible
-    @maybevals.map({ val($_) }).eager.Parcel;
+    @maybevals.List.map({ val($_) }).eager;
 }
 
 # XXX this multi not needed in GLR ?

@@ -351,6 +351,19 @@ public final class Binder {
                     nomType = Ops.result_o(tc.curFrame);
                 }
 
+                /* If the expected type is Positional, see if we need to do the
+                 * positional bind failover. */
+                if (nomType == gcx.Positional && arg_o == gcx.PositionalBindFailover) {
+                    SixModelObject HOW = arg_o.st.HOW;
+                    SixModelObject ig = Ops.findmethod(tc, HOW, "list");
+                    SixModelObject ContextRef = tc.gc.ContextRef;
+                    SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+                    ((ContextRefInstance)cc).context = cf;
+                    Ops.invokeDirect(tc, ig, genIns,
+                        new Object[] { HOW, arg_o, cc });
+                    arg_o = Ops.result_o(tc.curFrame);
+                }
+
                 /* If not, do the check. If the wanted nominal type is Mu, then
                  * anything goes. */
                 if (nomType != gcx.Mu && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {

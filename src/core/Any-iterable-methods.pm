@@ -612,11 +612,6 @@ augment class Any {
         }
     }
 
-    method uniq(|c) is nodal {
-        DEPRECATED('unique', |<2014.11 2015.09>);
-        self.unique(|c);
-    }
-
     my @secret;
     proto method squish(|) is nodal {*}
     multi method squish( :&as!, :&with = &[===] ) {

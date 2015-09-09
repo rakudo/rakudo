@@ -21,11 +21,6 @@ role CompUnitRepo::Locally {
         $?CLASS.^name ~ ".new('$!IO.abspath()')";
     }
 
-    method path(CompUnitRepo::Locally:D:) {
-        DEPRECATED( 'IO', |<2014.11 2015.09> );
-        $!IO;
-    }
-
     multi method WHICH(CompUnitRepo::Locally:D:) { $!WHICH }
 
     method path-spec(CompUnitRepo::Locally:D:) {

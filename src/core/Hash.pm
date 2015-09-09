@@ -467,7 +467,7 @@ my class Hash { # declared in BOOTSTRAP
                 method pull-one() {
                     if $!hash-iter {
                         my \tmp = nqp::shift($!hash-iter);
-                        Pair.new(key => nqp::iterval(tmp), value => nqp::atkey($!storage, nqp::iterkey_s(tmp)));
+                        Pair.new(nqp::iterval(tmp), nqp::atkey($!storage, nqp::iterkey_s(tmp)));
                     }
                     else {
                         IterationEnd

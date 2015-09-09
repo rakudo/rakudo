@@ -318,9 +318,6 @@ my class Range is Cool does Iterable does Positional {
         my $floor := $diff.floor;
         $floor + 1 - ($floor == $diff ?? $.excludes-max !! 0);
     }
-
-    method excludes_min() { DEPRECATED('excludes-min', |<2014.12 2015.09>); $!excludes-min }
-    method excludes_max() { DEPRECATED('excludes-max', |<2014.12 2015.09>); $!excludes-max }
 }
 
 sub infix:<..>($min, $max) is pure {

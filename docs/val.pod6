@@ -1,0 +1,114 @@
+=begin pod
+
+This document is meant to describe in some detail what's going on in C<val()>
+(found in C<src/core/allomorphs.pm>), since it's quite a big function. It
+contains a bunch of inner subs to make the process as sane as possible without
+resorting to a grammar.
+
+The phrase "or fails" in statements on return values means it returns a
+C<ProtoFailure>, something that always presents itself as undefined.
+
+The C<$*LAST_CHANCE> dynamic (defined within C<try-possibles>) is used to mark a
+given candidate as the last possible one, even if it isn't the last in the list
+(see below on C<try-possibles> and C<has-to-be-this>). The top-level (first)
+call to C<try-possibles> will set C<$really-no-doubt> to C<$*LAST_CHANCE> as
+part of the error reporting process.
+
+=head2 C<ProtoFailure>
+
+The C<ProtoFailure> class is just a hack, because using C<Failure>s in a similar
+way will cause Perl 6 to hang and likely eat all your memory (including on
+compiling C<RESTRICTED>, the next step after C<CORE>).
+
+Its only similarity to a C<Failure> is that it always comes out as undefined (so
+it can be used with C<with>/C<orwith>/C<without>). Aside from that it's meant to
+collect the error information as the literal is processed, turning into a
+C<Failure> at the end.
+
+=head2 C<General functions>
+
+=item C<is-negated> --- Checks for a negative sign at the start of the string
+  =item2 Returns C<1> or C<0>, to match the flag for C<nqp::radix_I>
+
+=item C<has-sign> --- Checks if the start of string is a C<+> or C<->
+  =item2 Returns C<1> or C<0>, to match C<is-negated> (though these particular
+         return values aren't otherwise important)
+
+=item C<get-ohradix> --- Check for oh radix prefix (0x, 0d, 0b, 0o)
+  =item2 Returns new radix or fails
+
+=item C<try-possibles> --- Runs through a sequence of subs in trying to find a
+      literal, or part of one.
+  =item2 Adverb C<:toplevel> sets C<$really-no-doubt> to C<$*LAST_CHANCE> (meant
+         to let the top-level call to C<try-possibles> add a measure of doubt to
+         the given error message)
+  =item2 Returns a literal or fails (with the last candidate's C<ProtoFailure>)
+  =item2 In regex terms, similar to C<||>
+
+=item C<has-to-be-this> --- Sets C<$*LAST_CHANCE>, thereby telling
+      C<try-possibles> that the sub which called this has to be the one that
+      matches the literal. In other words, it's called by a candidate when it
+      knows that the literal "has to be this" candidate.
+  =item2 Returns nothing useful.
+  =item2 In regex terms, similar to C<::>
+
+=head2 C<Functions on Literals>
+
+=item Bare integer --- C<just-int> --- C<42>, C<-12>, C<0xF>, etc.
+  =item2 Options:
+    =item3 C<:e> --- used when calling from C<science-num>
+    =item3 C<:nosign> --- used when calling from C<frac-rat>
+  =item2 Requires:
+    =item3 C<is-negated> (unless C<:nosign>)
+    =item3 C<get-ohradix> (unless C<:e>)
+  =item2 Returns C<Int> or fails
+
+=item Radix point rational --- C<point-rat> --- C<3.2>, C<-5.4>
+  =item2 Options:
+    =item3 C<:adverb> --- used when calling from C<radix-adverb>, allows oh radices
+    =item3 C<:nosign> --- passed through for C<just-int>, and used in here
+  =item2 Requires:
+    =item3 C<just-int(:nosign, :e)> (for before point portion)
+    =item3 C<is-negated> (unless C<:nosign>)
+    =item3 C<get-ohradix> (only if C<:adverb>)
+  =item2 Returns C<Rat> or fails
+
+=item Scientific C<Num> --- C<science-num> --- C<1e5>, C<-3.5e-2>
+  =item2 Requires:
+    =item3 C<point-rat> (coefficient)
+    =item3 C<just-int(:e)> (exponent, base of 10 implied)
+  =item2 Returns C<Num> or fails
+
+=item Adverbial number --- C<radix-adverb> --- C«:16<FF>», C«:11<0o7.7*8**2>», etc.
+  =item2 Options:
+    =item3 C<:nofrac> --- used when calling from C<frac-rat>
+    =item3 C<:nosign> --- controls whether a sign can be in front of the adverb
+  =item2 Requires:
+    =item3 C<just-int(:nosign)> (for radix specifier, integer coeff)
+    =item3 C<point-rat(:adverb, :nosign)> (non-int coefficient)
+    =item3 C<radix-adverb(:nofrac, :$nosign)> (optional base in :#<> form)
+    =item3 C<just-int(:$nosign)> (optional base in :#<> form)
+    =item3 C<radix-adverb(:nofrac)> (optional exp in :#<> form)
+    =item3 C<just-int> (optional exp in :#<> form)
+  =item2 Returns:
+    =item3 C<Num> if optional base and exponent;
+    =item3 C<Rat> without base and exponent, non-integral number;
+    =item3 C<Int> without base and exponent, integral number;
+    =item3 or fails
+
+=item Fractional rational --- C<frac-rat> --- C«1/2», C«-3/:16<F>», etc
+  =item2 Requires:
+    =item3 C<radix-adverb(:nofrac)> (for :#<> form numerator)
+    =item3 C<just-int> (for bare integers in numerator)
+    =item3 C<radix-adverb(:nofrac, :nosign)> (for :#<> form denominator)
+    =item3 C<just-int(:nosign)> (for bare integers in numerator)
+  =item2 Returns C<Rat> or fails
+
+=item Complex number --- C<complex-num> --- C<1+2i>, C<-3.5+-1i>, etc
+  =item2 Requires:
+    =item3 C<radix-adverb>
+    =item3 C<science-num>
+    =item3 C<point-rat>
+    =item3 C<just-int>
+  =item2 Returns C<Complex> or fails
+=end pod

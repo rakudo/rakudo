@@ -90,11 +90,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                             return %language_module_loaders<NQP>.load_module($module_name);
                         }
                     }
-                    if %opts<from> eq 'java' {
-                        $*W.DEPRECATED($/,':from<Java>','2015.01','2015.09',:what(':from<java>'), :$line, :$file);
-                        return %language_module_loaders<Java>.load_module($module_name,
-                            %opts, |@GLOBALish, :$line, :$file);
-                    }
                     return %language_module_loaders{%opts<from>}.load_module($module_name,
                         %opts, |@GLOBALish, :$line, :$file);
                 }

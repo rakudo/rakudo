@@ -23,10 +23,11 @@ my role Iterator {
     method push-exactly($target, int $n) {
         my int $i = 0;
         my $pulled;
+        my $no-sink;
         while $i < $n {
             $pulled := self.pull-one();
             last if $pulled =:= IterationEnd;
-            my $ = $target.push($pulled); # we may not .sink $pulled here, since it can be a Seq
+            $no-sink := $target.push($pulled); # we may not .sink $pulled here, since it can be a Seq
             $i = $i + 1;
         }
         $pulled =:= IterationEnd

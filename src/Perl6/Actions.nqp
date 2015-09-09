@@ -151,10 +151,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     my %sinkable := nqp::hash(
             'call',         1,
             'callmethod',   1,
-            'while',        1,
-            'until',        1,
-            'repeat_until', 1,
-            'repeat_while', 1,
             'if',           1,
             'unless',       1,
             'handle',       1,
@@ -1942,6 +1938,7 @@ Compilation unit '$file' contained the following violations:
         if $*IN_DECL eq 'variable' {
             $past.annotate('sink_ok', 1);
         }
+
         make $past;
     }
 
@@ -1999,16 +1996,6 @@ Compilation unit '$file' contained the following violations:
         my $name := $past.name();
 
         if $twigil eq '*' {
-            # DEPRECATIONS
-            if $name eq '$*EXECUTABLE_NAME' {
-                $*W.DEPRECATED($/,
-                  '$*EXECUTABLE-NAME','2015.06','2015.09',:what('$*EXECUTABLE_NAME'));
-            }
-            elsif $name eq '$*PROGRAM_NAME' {
-                $*W.DEPRECATED($/,
-                  '$*PROGRAM-NAME','2015.06','2015.09',:what('$*PROGRAM_NAME'));
-            }
-
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
                 $*W.add_string_constant($name));
@@ -3707,19 +3694,30 @@ Compilation unit '$file' contained the following violations:
         my $Pair := $*W.find_symbol(['Pair']);
         my @values;
         my $term_ast := $<term>.ast;
+
+        # remove val call on a single item
+        if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
+            $term_ast := $term_ast[0];
+        }
+
         if $term_ast.isa(QAST::Stmts) && +@($term_ast) == 1 {
             $term_ast := $term_ast[0];
         }
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
-                if istype($_.returns(), $Pair) && $_[1].has_compile_time_value {
-                    @values.push($_);
+                my $item_ast := $_;
+                if $item_ast.isa(QAST::Op) && $item_ast.name eq '&val' {
+                    $item_ast := $item_ast[0];
                 }
-                elsif $_.has_compile_time_value {
-                    @values.push($_);
+
+                if istype($item_ast.returns(), $Pair) && $item_ast[1].has_compile_time_value {
+                    @values.push($item_ast);
+                }
+                elsif $item_ast.has_compile_time_value {
+                    @values.push($item_ast);
                 }
                 else {
-                    @values.push($*W.compile_time_evaluate($<term>, $_));
+                    @values.push($*W.compile_time_evaluate($<term>, $item_ast));
                 }
             }
         }
@@ -4404,7 +4402,11 @@ Compilation unit '$file' contained the following violations:
             # evaluate it to get that.
             my @trait_arg;
             if $<circumfix> {
-                my $arg := $<circumfix>[0].ast[0];
+                my $arg := $<circumfix>[0].ast;
+                if nqp::istype($arg, QAST::Want) {
+                    $arg := $arg[0];
+                }
+
                 @trait_arg[0] := $arg.has_compile_time_value ??
                     $arg.compile_time_value !!
                     $*W.create_thunk($/, $<circumfix>[0].ast)();
@@ -5720,14 +5722,18 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $target.isa(QAST::Op) && $target.op eq 'hllize' &&
                 $target[0].isa(QAST::Op) && $target[0].op eq 'call' &&
-                ($target[0].name eq '&postcircumfix:<[ ]>' || $target[0].name eq '&postcircumfix:<{ }>') {
+                ($target[0].name eq '&postcircumfix:<[ ]>' ||
+                 $target[0].name eq '&postcircumfix:<{ }>' ||
+                 $target[0].name eq '&postcircumfix:<[; ]>') {
             $source.named('BIND');
             $target[0].push($source);
             $target.annotate('nosink', 1);
             make $target;
         }
         elsif $target.isa(QAST::Op) && $target.op eq 'call' &&
-              ($target.name eq '&postcircumfix:<[ ]>' || $target.name eq '&postcircumfix:<{ }>') {
+              ($target.name eq '&postcircumfix:<[ ]>' ||
+               $target.name eq '&postcircumfix:<{ }>' ||
+               $target.name eq '&postcircumfix:<[; ]>') {
             $source.named('BIND');
             $target.push($source);
             $target.annotate('nosink', 1);
@@ -6215,8 +6221,8 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Stmts) &&
+                   nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 
@@ -6224,8 +6230,8 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Stmts) &&
+                   nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 
@@ -6233,8 +6239,8 @@ Compilation unit '$file' contained the following violations:
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)
-            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
-            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+            unless nqp::istype($nib, QAST::Stmts) &&
+                   nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 
@@ -6580,9 +6586,11 @@ Compilation unit '$file' contained the following violations:
     method quote:sym<apos>($/) { make $<nibble>.ast; }
     method quote:sym<sapos>($/){ make $<nibble>.ast; }
     method quote:sym<lapos>($/){ make $<nibble>.ast; }
+    method quote:sym<hapos>($/){ make $<nibble>.ast; }
     method quote:sym<dblq>($/) { make $<nibble>.ast; }
     method quote:sym<sdblq>($/){ make $<nibble>.ast; }
     method quote:sym<ldblq>($/){ make $<nibble>.ast; }
+    method quote:sym<hdblq>($/){ make $<nibble>.ast; }
     method quote:sym<crnr>($/) { make $<nibble>.ast; }
     method quote:sym<qq>($/)   { make $<quibble>.ast; }
     method quote:sym<q>($/)    { make $<quibble>.ast; }
@@ -7981,21 +7989,53 @@ class Perl6::QActions is HLL::Actions does STDActions {
             $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
         }
 
-        if nqp::can($/.CURSOR, 'postprocessor') {
-            my $pp := $/.CURSOR.postprocessor;
-            $past := self."postprocess_$pp"($/, $past);
+        if nqp::can($/.CURSOR, 'postprocessors') {
+            for $/.CURSOR.postprocessors -> $pp {
+                $past := self."postprocess_$pp"($/, $past);
+            }
         }
 
         $past.node($/);
         make $past;
     }
 
-    method postprocess_null($/, $past) {
-        $past
-    }
-
     method postprocess_run($/, $past) {
         QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
+    }
+
+    method postprocess_val($/, $qast) {
+        if nqp::istype($qast, QAST::Stmts) && nqp::istype($qast[0], QAST::Op) && $qast[0].name eq '&infix:<,>' { # qw/qqww list
+            my @results := [];
+
+            for $qast[0].list -> $thisq {
+                if $thisq.has_compile_time_value {
+                    try {
+                        my $result := $*W.find_symbol(['&val'])($thisq.compile_time_value);
+                        $*W.add_object($result);
+                        nqp::push(@results, QAST::WVal.new(:value($result)));
+
+                        CATCH { nqp::push(@results, $thisq) }
+                    }
+                } else {
+                   nqp::push(@results, QAST::Op.new(:name('&val'), :op('call'), :node($/), $thisq));
+                }
+            }
+
+            # replace the existing children with what we processed
+            $qast[0].set_children(@results);
+        } elsif $qast.has_compile_time_value { # a single string that we can handle
+            try {
+                my $result := $*W.find_symbol(['&val'])($qast.compile_time_value);
+                $*W.add_object($result);
+                $qast := QAST::WVal.new(:value($result));
+
+                CATCH { }
+            }
+        } else { # no compile time value, resort to the run-time call
+            $qast := QAST::Op.new(:name('&val'), :op('call'), :node($/), $qast);
+        }
+
+        $qast
     }
 
     method postprocess_words($/, $past) {
@@ -8190,9 +8230,25 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( QAST::NodeList.new(
+        my $varast := $<var>.ast;
+        my int $is-str;
+        if nqp::istype($varast, QAST::Var) {
+            if nqp::istype($varast.returns, $*W.find_symbol(['Str'])) {
+                $is-str := 1;
+            }
+        }
+        if $is-str {
+            # We know it's a simple interpolation; use LITERAL.
+            make QAST::Regex.new( QAST::NodeList.new(
+                                        QAST::SVal.new( :value('!LITERAL') ),
+                                        $varast,
+                                        QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
+                                :rxtype<subrule>, :subtype<method>, :node($/));
+        }
+        else {
+            make QAST::Regex.new( QAST::NodeList.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),
-                                    $<var>.ast,
+                                    $varast,
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ) ),
@@ -8200,6 +8256,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                                     ),
                               :rxtype<subrule>, :subtype<method>, :node($/));
+        }
     }
 
     method assertion:sym<{ }>($/) {

@@ -1812,12 +1812,14 @@ BEGIN {
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
                     my $named_names := nqp::getattr($param, Parameter, '$!named_names');
                     unless nqp::isnull($named_names) {
-                        if !($flags +& $SIG_ELEM_IS_OPTIONAL) {
-                            if nqp::elems($named_names) == 1 {
-                                %info<req_named> := nqp::atpos($named_names, 0);
+                        if $flags +& $SIG_ELEM_MULTI_INVOCANT {
+                            unless $flags +& $SIG_ELEM_IS_OPTIONAL {
+                                if nqp::elems($named_names) == 1 {
+                                    %info<req_named> := nqp::atpos($named_names, 0);
+                                }
                             }
+                            %info<bind_check> := 1;
                         }
-                        %info<bind_check> := 1;
                         next;
                     }
 

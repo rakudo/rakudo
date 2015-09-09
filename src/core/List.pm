@@ -215,7 +215,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my int $n = nqp::elems(vm-tuple);
         while $i < $n {
             my \consider = nqp::atpos(vm-tuple, $i);
-            my $ = nqp::push(future, nqp::iscont(consider)
+            my $no-sink := nqp::push(future, nqp::iscont(consider)
                 ?? consider
                 !! nqp::istype(consider, Iterable) && consider.DEFINITE
                     ?? consider.flat.Slip
@@ -240,7 +240,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \iterbuffer = IterationBuffer.CREATE;
         nqp::bindattr(list, List, '$!reified', iterbuffer);
         for @things {
-            my $ = iterbuffer.push($_);
+            my $no-sink := iterbuffer.push($_);
         }
         list
     }
@@ -364,8 +364,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     ?? $!todo.reify-until-lazy()
                     !! nqp::elems($!reified);
                 my int $i = $!i;
+                my $no-sink;
                 while $i < $n {
-                    my $ = $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
+                    $no-sink := $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
                     $i = $i + 1;
                 }
                 $!i = $n;

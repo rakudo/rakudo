@@ -66,11 +66,6 @@ my role IO::Socket does IO {
         die 'Socket.poll is NYI'
     }
 
-    method send(|c) {
-        DEPRECATED('print', |<2015.07 2015.09>);
-        self.print(|c)
-    }
-
     method print (Str(Cool) $string) {
         fail("Not connected") unless $!PIO;
         nqp::printfh($!PIO, nqp::unbox_s($string));

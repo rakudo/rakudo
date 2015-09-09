@@ -87,9 +87,6 @@ augment class Any {
         my $count = &block.count;
         $count = 1 if $count == Inf || $count == 0;
         if $count == 1 {
-            # XXX We need a funkier iterator to care about phasers. Will
-            # put that on a different code-path to keep the commonest
-            # case fast.
             Seq.new(class :: does MapIterCommon {
                 has $!did-init;
                 has $!did-iterate;
@@ -152,6 +149,50 @@ augment class Any {
                     }
                     &!block.fire_phasers('LAST') if $!CAN_FIRE_PHASERS && $!did-iterate && nqp::eqaddr($result, IterationEnd);
                     $result
+                }
+
+                method sink-all() {
+                    if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+                        $!did-init         = 1;
+                        $!CAN_FIRE_PHASERS = 1;
+                        $!NEXT             = +&!block.phasers('NEXT');
+                        nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
+                    }
+                    my $result;
+                    my int $redo;
+                    my $value;
+                    until nqp::eqaddr($result, IterationEnd) {
+                        if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
+                            $result := $value
+                        }
+                        else {
+                            $redo = 1;
+                            nqp::while(
+                                $redo,
+                                nqp::stmts(
+                                    $redo = 0,
+                                    nqp::handle(
+                                        nqp::stmts(
+                                            ($result := &!block($value)),
+                                            ($!did-iterate = 1),
+                                            nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                        ),
+                                        'LABELED', nqp::decont($!label),
+                                        'NEXT', nqp::stmts(
+                                            nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                            ($value := $!source.pull-one()),
+                                            nqp::eqaddr($value, IterationEnd)
+                                                ?? ($result := IterationEnd)
+                                                !! ($redo = 1)),
+                                        'REDO', $redo = 1,
+                                        'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                                    )
+                                ),
+                                :nohandler);
+                        }
+                        &!block.fire_phasers('LAST') if $!CAN_FIRE_PHASERS && $!did-iterate && nqp::eqaddr($result, IterationEnd);
+                    }
+                    IterationEnd
                 }
             }.new(&block, source, 1, $label));
         }

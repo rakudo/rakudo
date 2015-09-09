@@ -74,7 +74,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             method pull-one() {
                 if $!hash-iter {
                     my \tmp = nqp::shift($!hash-iter);
-                    Pair.new(key => nqp::iterkey_s(tmp), value => nqp::iterval(tmp))
+                    Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp))
                 }
                 else {
                     IterationEnd

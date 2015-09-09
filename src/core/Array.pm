@@ -217,6 +217,38 @@ my class Array { # declared in BOOTSTRAP
             }
         }
 
+        proto method BIND-POS(|) is rw {*}
+        multi method BIND-POS(Array:U: |c) is rw {
+            self.Any::BIND-POS(|c)
+        }
+        multi method BIND-POS(**@indices is rw) is rw {
+            my Mu $storage := nqp::getattr(self, List, '$!reified');
+            my int $numdims = nqp::numdimensions($storage);
+            my int $numind  = @indices.elems - 1;
+            my \value = @indices.AT-POS($numind);
+            if $numind >= $numdims {
+                # At least enough indices that binding will work out or we can
+                # pass the bind target on down the chain.
+                my $idxs := nqp::list_i();
+                my int $i = 0;
+                while $i < $numdims {
+                    nqp::push_i($idxs, @indices.AT-POS($i));
+                    $i = $i + 1;
+                }
+                $numind == $numdims
+                    ?? nqp::bindposnd($storage, $idxs, value)
+                    !! nqp::atposnd($storage, $idxs).BIND-POS(|@indices[$numdims..*])
+            }
+            else {
+                # Not enough dimensions, cannot possibly assign here
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
+
         multi method push(::?CLASS:D: $) {
             X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
         }

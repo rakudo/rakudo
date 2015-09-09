@@ -1457,6 +1457,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token statement_control:sym<import> {
+        :my $*IN_DECL := 'import';
         <sym> <.ws>
         <module_name> [ <.spacey> <arglist> ]? <.ws>
         :my $*HAS_SELF := '';
@@ -1480,6 +1481,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token statement_control:sym<no> {
+        :my $*IN_DECL := 'no';
         :my $longname;
         <sym> <.ws>
         [

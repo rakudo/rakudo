@@ -2407,10 +2407,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';
+        :my $sigil;
         <variable>
         {
             $*VARIABLE := $<variable>.Str;
             $/.CURSOR.add_variable($*VARIABLE);
+            $sigil := nqp::substr($*VARIABLE, 0, 1);
             $*IN_DECL := '';
         }
         [
@@ -2418,7 +2420,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $<shape>=[
             | '(' ~ ')' <signature>
                 {
-                    my $sigil := nqp::substr($*VARIABLE, 0, 1);
                     if $sigil eq '&' {
                         self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in routine declarations',
@@ -2438,8 +2439,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             reserved => '() shape syntax in variable declarations');
                     }
                 }
-            | :dba('shape definition') '[' ~ ']' <semilist> <.NYI: "Shaped variable declarations">
+            | :dba('shape definition') '[' ~ ']' <semilist>
+                { $sigil ne '@' && self.typed_sorry('X::Syntax::Reserved',
+                    reserved => '[] shape syntax with the ' ~ $sigil ~ ' sigil') }
             | :dba('shape definition') '{' ~ '}' <semilist>
+                { $sigil ne '%' && self.typed_sorry('X::Syntax::Reserved',
+                    reserved => '{} shape syntax with the ' ~ $sigil ~ ' sigil') }
             | <?[<]> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
         ]?

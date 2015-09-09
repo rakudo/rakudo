@@ -5740,14 +5740,18 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $target.isa(QAST::Op) && $target.op eq 'hllize' &&
                 $target[0].isa(QAST::Op) && $target[0].op eq 'call' &&
-                ($target[0].name eq '&postcircumfix:<[ ]>' || $target[0].name eq '&postcircumfix:<{ }>') {
+                ($target[0].name eq '&postcircumfix:<[ ]>' ||
+                 $target[0].name eq '&postcircumfix:<{ }>' ||
+                 $target[0].name eq '&postcircumfix:<[; ]>') {
             $source.named('BIND');
             $target[0].push($source);
             $target.annotate('nosink', 1);
             make $target;
         }
         elsif $target.isa(QAST::Op) && $target.op eq 'call' &&
-              ($target.name eq '&postcircumfix:<[ ]>' || $target.name eq '&postcircumfix:<{ }>') {
+              ($target.name eq '&postcircumfix:<[ ]>' ||
+               $target.name eq '&postcircumfix:<{ }>' ||
+               $target.name eq '&postcircumfix:<[; ]>') {
             $source.named('BIND');
             $target.push($source);
             $target.annotate('nosink', 1);

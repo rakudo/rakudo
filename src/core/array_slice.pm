@@ -501,4 +501,17 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is rw {
     }
 }
 
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is rw) is rw {
+    my int $n = @indices.elems;
+    my int $i = 0;
+    my $all-ints := True;
+    while $i < $n {
+        $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
+        $i = $i + 1;
+    }
+    $all-ints
+        ?? SELF.BIND-POS(|@indices, $BIND)
+        !! X::Bind::Slice.new(type => SELF.WHAT).throw;
+}
+
 # vim: ft=perl6 expandtab sw=4

@@ -97,7 +97,7 @@ my class Array { # declared in BOOTSTRAP
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
                 while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift.Int);
+                    nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
                 my \elem = nqp::ifnull(
@@ -127,7 +127,7 @@ my class Array { # declared in BOOTSTRAP
                 # Dimension counts match, so fast-path it
                 my $idxs := nqp::list_i();
                 while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift.Int);
+                    nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
                 nqp::ifnull(
@@ -162,7 +162,7 @@ my class Array { # declared in BOOTSTRAP
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
                 loop (my int $i = 0; $i < $numind; $i = $i + 1) {
-                    my int $idx = @indices.shift.Int;
+                    my int $idx = @indices.shift;
                     return False if $idx >= nqp::atpos_i($dims, $i);
                     nqp::push_i($idxs, $idx);
                 }
@@ -195,7 +195,7 @@ my class Array { # declared in BOOTSTRAP
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
                 while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift.Int);
+                    nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
                 my \value = nqp::ifnull(nqp::atposnd($storage, $idxs), Nil);
@@ -211,6 +211,38 @@ my class Array { # declared in BOOTSTRAP
                 # Not enough dimensions, cannot delete
                 X::NotEnoughDimensions.new(
                     operation => 'delete from',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
+
+        proto method BIND-POS(|) is rw {*}
+        multi method BIND-POS(Array:U: |c) is rw {
+            self.Any::BIND-POS(|c)
+        }
+        multi method BIND-POS(**@indices is rw) is rw {
+            my Mu $storage := nqp::getattr(self, List, '$!reified');
+            my int $numdims = nqp::numdimensions($storage);
+            my int $numind  = @indices.elems - 1;
+            my \value = @indices.AT-POS($numind);
+            if $numind >= $numdims {
+                # At least enough indices that binding will work out or we can
+                # pass the bind target on down the chain.
+                my $idxs := nqp::list_i();
+                my int $i = 0;
+                while $i < $numdims {
+                    nqp::push_i($idxs, @indices.AT-POS($i));
+                    $i = $i + 1;
+                }
+                $numind == $numdims
+                    ?? nqp::bindposnd($storage, $idxs, value)
+                    !! nqp::atposnd($storage, $idxs).BIND-POS(|@indices[$numdims..*])
+            }
+            else {
+                # Not enough dimensions, cannot possibly assign here
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
                     got-dimensions => $numind,
                     needed-dimensions => $numdims
                 ).throw
@@ -429,7 +461,6 @@ my class Array { # declared in BOOTSTRAP
             !! (nqp::atpos(reified, $ipos) = assignee)
     }
 
-    proto method BIND-POS(|) { * }
     multi method BIND-POS(Int $pos, Mu \bindval) is rw {
         self!ensure-allocated();
         my int $ipos = $pos;

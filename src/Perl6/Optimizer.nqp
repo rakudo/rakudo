@@ -1637,7 +1637,8 @@ class Perl6::Optimizer {
             # See if we know the node's type; if so, check it.
             my $type := $_.returns();
             my $ok_type := 0;
-            try $ok_type := nqp::istype($type, $!symbols.Mu);
+            try $ok_type := nqp::istype($type, $!symbols.Mu) &&
+                $type.HOW.archetypes.nominal();
             if $ok_type {
                 my $prim := nqp::objprimspec($type);
                 my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)

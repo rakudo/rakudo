@@ -83,6 +83,9 @@ my role Real does Numeric {
     }
 
     method base(Int:D $base, $digits?) {
+        fail X::OutOfRange.new(
+                what => 'digits argument to base', got => $digits, range => "0..*"
+            ) if $digits.defined and $digits < 0;
         my $prec = $digits // 1e8.log($base.Num).Int;
         my Int $int_part = self.Int;
         my $frac = abs(self - $int_part);

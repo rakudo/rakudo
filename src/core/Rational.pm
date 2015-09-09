@@ -81,15 +81,30 @@ my role Rational[::NuT, ::DeT] does Real {
         $s;
     }
 
-    method base($base, Mu $digits? is copy) {
+    method base($base, Any $digits? is copy) {
         my $prec;
         if $digits ~~ Whatever {
             $digits = Nil;
             $prec = 2**63;
         }
-        else {
-            $prec = $digits // ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+        elsif $digits.defined {
+            $digits = $digits.Int;
+            if $digits > 0 {
+                $prec = $digits;
+            }
+            elsif $digits == 0 {
+                return self.round.base($base)
+            }
+            else {
+                fail X::OutOfRange.new(
+                    what => 'digits argument to base', got => $digits, range => "0..*"
+                )
+            }
         }
+        else {
+            $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+        }
+
         my $s = $!numerator < 0 ?? '-' !! '';
         my $r = self.abs;
         my $i = $r.floor;
@@ -98,26 +113,30 @@ my role Rational[::NuT, ::DeT] does Real {
                            K L M N O P Q R S T
                            U V W X Y Z>;
         $r -= $i;
-        $s ~= $i.base($base);
         if $digits // $r {
             my @f;
+            my $p = $i.base($base);
             while @f < $prec and ($digits // $r) {
                 $r *= $base;
-                $i = $r.floor;
-                push @f, $i;
-                $r -= $i;
+                my $d = $r.floor;
+                push @f, $d;
+                $r -= $d;
             }
             if 2 * $r >= 1 {
                 for @f-1 ... 0 -> $x {
                     last if ++@f[$x] < $base;
                     @f[$x] = 0;
-                    $s ~= ($i+1).base($base) if $x == 0; # never happens?
+                    $p = ($i+1).base($base) if $x == 0;
                 }
             }
+            $s ~= $p;
             if @f {
                 $s ~= '.';
                 $s ~= @conversion[@f].join;
             }
+        }
+        else {
+            $s ~= $i.base($base);
         }
         $s;
     }

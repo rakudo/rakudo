@@ -60,6 +60,9 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method base(Int:D: Cool $base, $digits = 0) {
         fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;
+        fail X::OutOfRange.new(
+          what => 'digits argument to base', got => $digits, range => "0..*"
+        ) if $digits.defined and $digits < 0;
         my int $b = nqp::unbox_i($base.Int);
         nqp::p6box_s(nqp::base_I(self, $b)) ~ ($digits ?? '.' ~ '0' x $digits !! '');
     }

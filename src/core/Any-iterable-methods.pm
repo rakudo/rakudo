@@ -19,11 +19,11 @@ augment class Any {
 
     proto method map(|) { * }
 
-    multi method map(\SELF: &block, :$label, :$item) {
+    multi method map(\SELF: &block;; :$label, :$item) {
         sequential-map(as-iterable($item ?? (SELF,) !! SELF).iterator, &block, :$label);
     }
 
-    multi method map(HyperIterable:D: &block, :$label) {
+    multi method map(HyperIterable:D: &block;; :$label) {
         # For now we only know how to parallelize when we've only one input
         # value needed per block. For the rest, fall back to sequential.
         if &block.count != 1 {

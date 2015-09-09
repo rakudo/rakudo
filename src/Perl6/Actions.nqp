@@ -4390,7 +4390,11 @@ Compilation unit '$file' contained the following violations:
             # evaluate it to get that.
             my @trait_arg;
             if $<circumfix> {
-                my $arg := $<circumfix>[0].ast[0];
+                my $arg := $<circumfix>[0].ast;
+                if nqp::istype($arg, QAST::Want) {
+                    $arg := $arg[0];
+                }
+
                 @trait_arg[0] := $arg.has_compile_time_value ??
                     $arg.compile_time_value !!
                     $*W.create_thunk($/, $<circumfix>[0].ast)();
@@ -7966,24 +7970,33 @@ class Perl6::QActions is HLL::Actions does STDActions {
     }
 
     method postprocess_val($/, $qast) {
-        # we want to handle strings with compile_time_values at compile time, to
-        # lighten the load at runtime. Note that $*W.comp_val() handles falling
-        # back to runtime for strings it's given. We just have to do the one
-        # where there is no compile-time value.
         if nqp::istype($qast, QAST::Stmts) && nqp::istype($qast[0], QAST::Op) && $qast[0].name eq '&infix:<,>' { # qw/qqww list
             my @results := [];
-            my $thisq;
 
-            for $qast[0].list {
-                if $_.has_compile_time_value {
-                    nqp::push(@results, $*W.comp_val($_, $_.compile_time_value));
+            for $qast[0].list -> $thisq {
+                if $thisq.has_compile_time_value {
+                    try {
+                        my $result := $*W.find_symbol(['&val'])($thisq.compile_time_value);
+                        $*W.add_object($result);
+                        nqp::push(@results, QAST::WVal.new(:value($result)));
+
+                        CATCH { nqp::push(@results, $thisq) }
+                    }
+                } else {
+                   nqp::push(@results, QAST::Op.new(:name('&val'), :op('call'), :node($/), $thisq));
                 }
             }
 
             # replace the existing children with what we processed
             $qast[0].set_children(@results);
         } elsif $qast.has_compile_time_value { # a single string that we can handle
-            $qast := $*W.comp_val($qast, $qast.compile_time_value);
+            try {
+                my $result := $*W.find_symbol(['&val'])($qast.compile_time_value);
+                $*W.add_object($result);
+                $qast := QAST::WVal.new(:value($result));
+
+                CATCH { }
+            }
         } else { # no compile time value, resort to the run-time call
             $qast := QAST::Op.new(:name('&val'), :op('call'), :node($/), $qast);
         }

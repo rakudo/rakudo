@@ -2276,68 +2276,6 @@ class Perl6::World is HLL::World {
             'Ss', QAST::SVal.new( :value($value) ));
     }
 
-    # does a compile-time version of val that is similar, but could possibly
-    # "give up" and let the CORE val() take care of it. Uses the MAIN grammar to
-    # process numbers.
-    method comp_val($valqast, str $maybeval) {
-        my $qast := $valqast;
-
-        # early on in CORE compilation, types like 'Rat' won't exist yet. If
-        # this is the case, defer calling val() to runtime
-        try {
-            $qast := %*LANG<MAIN>.parse($maybeval, :actions(%*LANG<MAIN-actions>), :rule<numish>);
-
-            # only get the .ast if we matched the whole string (else it wasn't
-            # really a number)
-            if $qast.to == nqp::chars($maybeval) {
-                $qast := $qast.ast;
-            }
-
-            CATCH {
-                $qast := QAST::Op.new(:op<call>, :name<&val>, $valqast);
-            }
-        }
-
-        # this is to get the WVal inside a Want, since add_numeric_constant
-        # returns a Want, but add_constant returns a WVal (used by
-        # e.g. Rat). Both cases have a WVal we really want, so handle
-        # add_numeric_constant's Want 'wrapper' by getting rid of it
-        if nqp::istype($qast, QAST::Want) {
-            $qast := $qast[0];
-        }
-
-        if nqp::istype($qast, QAST::WVal) { # we got a number from it
-            my $allo := nqp::concat($qast.returns.HOW.name($qast.returns), 'Str');
-
-            # when compiling core, the requested allomorphic type may not exist
-            # yet (perhaps BOOTSTRAPing those types would help, but that seems
-            # unnecessary). In that case, just call val() at runtime
-            try {
-                $qast := self.add_constant($allo, 'type_new', $qast.compile_time_value, $maybeval);
-
-                CATCH {
-                    $qast := QAST::Op.new(:op<call>, :name<&val>, $valqast);
-                }
-            }
-        } else { # we only got ourselves a string
-            # XXX better "guaranteed string or give up" checking?
-
-            # if our string has a chance of still being a value, it'd have a
-            # number in it somewhere (a singular 'i' won't be caught by numish
-            # above, and currently won't be handled as a Complex here either,
-            # matching val()'s behavior)
-            if nqp::findcclass(nqp::const::CCLASS_NUMERIC, $maybeval, 0, nqp::chars($maybeval)) < nqp::chars($maybeval) {
-                # we might have a val, make the runtime call
-                $qast := QAST::Op.new(:op<call>, :name<&val>, $valqast);
-            } else { # no chance of being a value
-                # just give back the original qast
-                $qast := $valqast;
-            }
-        }
-
-        $qast
-    }
-
     method whatever() {
         unless nqp::isconcrete($!the_whatever) {
             $!the_whatever := nqp::create(self.find_symbol(['Whatever']));

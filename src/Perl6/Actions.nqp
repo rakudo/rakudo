@@ -3713,10 +3713,7 @@ Compilation unit '$file' contained the following violations:
         my @values;
         my $term_ast := $<term>.ast;
 
-        # XXX for now we assume enums want pure Strs, so we get rid of &val for
-        # enums. If enums would like allomorphic types as keys, this won't
-        # suffice (you'd have to the the &val Op and wrap each arg individually
-        # with it).
+        # remove val call on a single item
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
             $term_ast := $term_ast[0];
         }
@@ -3726,14 +3723,19 @@ Compilation unit '$file' contained the following violations:
         }
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
-                if istype($_.returns(), $Pair) && $_[1].has_compile_time_value {
-                    @values.push($_);
+                my $item_ast := $_;
+                if $item_ast.isa(QAST::Op) && $item_ast.name eq '&val' {
+                    $item_ast := $item_ast[0];
                 }
-                elsif $_.has_compile_time_value {
-                    @values.push($_);
+
+                if istype($item_ast.returns(), $Pair) && $item_ast[1].has_compile_time_value {
+                    @values.push($item_ast);
+                }
+                elsif $item_ast.has_compile_time_value {
+                    @values.push($item_ast);
                 }
                 else {
-                    @values.push($*W.compile_time_evaluate($<term>, $_));
+                    @values.push($*W.compile_time_evaluate($<term>, $item_ast));
                 }
             }
         }

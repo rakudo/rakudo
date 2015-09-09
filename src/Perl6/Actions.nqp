@@ -2000,16 +2000,6 @@ Compilation unit '$file' contained the following violations:
         my $name := $past.name();
 
         if $twigil eq '*' {
-            # DEPRECATIONS
-            if $name eq '$*EXECUTABLE_NAME' {
-                $*W.DEPRECATED($/,
-                  '$*EXECUTABLE-NAME','2015.06','2015.09',:what('$*EXECUTABLE_NAME'));
-            }
-            elsif $name eq '$*PROGRAM_NAME' {
-                $*W.DEPRECATED($/,
-                  '$*PROGRAM-NAME','2015.06','2015.09',:what('$*PROGRAM_NAME'));
-            }
-
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
                 $*W.add_string_constant($name));

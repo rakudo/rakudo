@@ -755,15 +755,6 @@ class Perl6::World is HLL::World {
             }
             %*PRAGMAS<trace> := $on;
         }
-        elsif $name eq 'MONKEY_TYPING' {
-            self.DEPRECATED($/,"'use MONKEY-TYPING'",'2015.04','2015.09',
-              :what("'use MONKEY_TYPING'"),
-            );
-            if nqp::islist($arglist) {
-                self.throw($/, 'X::Pragma::NoArgs', :$name)
-            }
-            %*PRAGMAS<MONKEY-TYPING> := $on;
-        }
         else {
             $DEBUG("'$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module

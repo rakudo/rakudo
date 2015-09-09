@@ -277,11 +277,6 @@ augment class Any {
         self.map(&block, :$label).flat
     }
 
-    method for(|c) is nodal {
-        DEPRECATED('flatmap',|<2015.05 2015.09>);
-        self.flatmap(|c);
-    }
-
     proto method grep(|) is nodal { * }
     multi method grep(Bool:D $t) is rw {
         fail X::Match::Bool.new( type => '.grep' );

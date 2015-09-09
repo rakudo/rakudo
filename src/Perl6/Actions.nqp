@@ -151,10 +151,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     my %sinkable := nqp::hash(
             'call',         1,
             'callmethod',   1,
-            'while',        1,
-            'until',        1,
-            'repeat_until', 1,
-            'repeat_while', 1,
             'if',           1,
             'unless',       1,
             'handle',       1,

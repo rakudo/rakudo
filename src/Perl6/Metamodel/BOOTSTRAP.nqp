@@ -96,7 +96,7 @@ my class Binder {
     my int $SIG_ELEM_SLURPY_POS          := 8;
     my int $SIG_ELEM_SLURPY_NAMED        := 16;
     my int $SIG_ELEM_SLURPY_LOL          := 32;
-    my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL);
+    my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL);
     my int $SIG_ELEM_INVOCANT            := 64;
     my int $SIG_ELEM_MULTI_INVOCANT      := 128;
     my int $SIG_ELEM_IS_RW               := 256;

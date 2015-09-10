@@ -667,7 +667,10 @@ multi sub infix:<=:=>(Mu \a, Mu \b) {
 proto sub infix:<eqv>(Any $?, Any $?) { * }
 multi sub infix:<eqv>($?)            { Bool::True }
 multi sub infix:<eqv>(Any $a, Any $b) {
-    $a.WHICH eq $b.WHICH
+    # Last ditch snapshot semantics.  We shouldn't come here too often, so
+    # please do not change this to be faster but wronger.  (Instead, add
+    # specialized multis for datatypes that can be tested piecemeal.)
+    $a.WHAT === $b.WHAT and $a.perl eq $b.perl;
 }
 
 multi sub infix:<eqv>(@a, @b) {

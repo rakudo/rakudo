@@ -693,8 +693,8 @@ public final class Binder {
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                throw ExceptionHandling.dieInternal(tc, "optional array param NYI after GLR");
-                //return RakOps.p6list(null, gcx.Array, gcx.True, tc);
+                SixModelObject res = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
+                return res;
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
                 SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);

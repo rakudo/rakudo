@@ -18,6 +18,11 @@ my class X::Seq::NotIndexable { ... }
 my role PositionalBindFailover {
     has $!list;
 
+    method cache() {
+        $!list.DEFINITE
+            ?? $!list
+            !! ($!list := List.from-iterator(self.iterator))
+    }
     method list() {
         $!list.DEFINITE
             ?? $!list

@@ -364,8 +364,8 @@ multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right
     until (my \value := lefti.pull-one) =:= IterationEnd {
         @result[$i++] := HYPER(&operator, value, right, :$dwim-left, :$dwim-right);
     }
-    # Coerce to the original type
-    my $type = left.WHAT;
+    # Coerce to the original type if it's a subtype of List
+    my $type = nqp::istype(left, List) ?? left.WHAT !! List;
     nqp::iscont(left) ?? $type(|@result.eager).item !! $type(|@result.eager)
 }
 
@@ -380,8 +380,8 @@ multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right
     until (my \value := righti.pull-one) =:= IterationEnd {
         @result[$i++] := HYPER(&operator, left, value, :$dwim-left, :$dwim-right);
     }
-    # Coerce to the original type
-    my $type = right.WHAT;
+    # Coerce to the original type if it's a subtype of List
+    my $type = nqp::istype(right, List) ?? right.WHAT !! List;
     nqp::iscont(right) ?? $type(|@result.eager).item !! $type(|@result.eager)
 }
 

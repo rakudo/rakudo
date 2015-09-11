@@ -308,9 +308,9 @@ multi sub pack(Str $template, *@items) {
         given $directive {
             when 'A' {
                 my $ascii = shift @items // '';
-                my $data = $ascii.ords;
+                my $data = $ascii.ords.cache;
                 if $amount eq '*' {
-                    $amount = +$data;
+                    $amount = $data.elems;
                 }
                 if $amount eq '' {
                     $amount = 1;
@@ -324,7 +324,7 @@ multi sub pack(Str $template, *@items) {
                 my $data = shift @items // Buf.new;
                 $data.=encode if nqp::istype($data,Str);
                 if $amount eq '*' {
-                    $amount = +@$data;
+                    $amount = $data.cache.elems;
                 }
                 if $amount eq '' {
                     $amount = 1;

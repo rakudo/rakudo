@@ -1244,7 +1244,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^T' => '$*BASETIME',
       '$^V' => '$*PERL.version or $*PERL.compiler.version',
       '$^W' => '$*WARNING',
-      '$^X' => '$*EXECUTABLE_NAME',
+      '$^X' => '$*EXECUTABLE-NAME',
 
       '$:'  => 'Form module',
       '$-'  => 'Form module',

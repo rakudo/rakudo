@@ -11,7 +11,7 @@ my class Backtrace::Frame {
     has Str $.subname;
 
     method subtype(Backtrace::Frame:D:) {
-        my $s = $!code.^name.lc.split('+', 2).list[0];
+        my $s = $!code.^name.lc.split('+', 2).cache[0];
         $s eq 'mu' ?? '' !! $s;
     }
 

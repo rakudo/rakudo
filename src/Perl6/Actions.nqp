@@ -7042,7 +7042,7 @@ Compilation unit '$file' contained the following violations:
                                     :op('bind'),
                                     QAST::Var.new( :name($name), :scope('local') ),
                                     QAST::Op.new(
-                                        :op('callmethod'), :name('list'),
+                                        :op('callmethod'), :name('cache'),
                                         QAST::Var.new( :name($name), :scope('local') )
                                     ))));
                         }

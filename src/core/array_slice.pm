@@ -72,7 +72,7 @@ multi sub POSITIONS(\SELF, Range \pos) {
     pos.map(-> Int() $i {
         last unless SELF.EXISTS-POS($i);
         $i
-    }).list;
+    }).cache;
 }
 
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
@@ -181,7 +181,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is rw {
 multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is rw {
     nqp::iscont(pos)
       ?? SELF.AT-POS(pos.Int)
-      !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.List;
+      !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is rw {
     # MMD is not behaving itself so we do this by hand.
@@ -228,7 +228,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is rw {
         my $empty := False;
         my $target := SELF.iterator;
         my sub eagerize ($idx) {
-            once $target := $target.list.iterator;
+            once $target := $target.cache.iterator;
             $idx ~~ Whatever ?? $target.elems !! $target.EXISTS-POS($idx);
         }
         my @poslist := POSITIONS(SELF, pos, :eagerize(&eagerize)).eager;

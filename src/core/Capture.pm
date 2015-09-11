@@ -10,7 +10,7 @@ my class Capture { # declared in BOOTSTRAP
     submethod BUILD(:@list, :%hash) {
         @list.elems; # force reification of all
         nqp::bindattr(self, Capture, '$!list',
-            nqp::getattr(nqp::decont(@list.List), List, '$!reified')
+            nqp::getattr(nqp::decont(@list.list), List, '$!reified')
         );
         my Mu $hs := nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage');
         nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());

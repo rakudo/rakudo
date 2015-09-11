@@ -5,7 +5,7 @@ my class Junction { # declared in BOOTSTRAP
 
     multi method new(\values, Str :$type!) {
         my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', values.eager.List);
+        nqp::bindattr($junc, Junction, '$!storage', values.eager.list);
         nqp::bindattr($junc, Junction, '$!type', $type);
         $junc
     }

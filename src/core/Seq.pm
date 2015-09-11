@@ -1,18 +1,19 @@
 # A Seq represents anything that can lazily produce a sequence of values. A
 # Seq is born in a state where iterating it will consume the values. However,
-# calling .list on a Seq will return a List that will lazily reify to the
-# values in the Seq. The List is memoized, so that subsequent calls to .list
+# calling .cache on a Seq will return a List that will lazily reify to the
+# values in the Seq. The List is memoized, so that subsequent calls to .cache
 # will always return the same List (safe thanks to List being immutable). More
-# than one call to .iterator throws an exception (and calling .list calls the
+# than one call to .iterator throws an exception (and calling .cache calls the
 # .iterator method the first time also). The memoization can be avoided by
-# asking very specifically for the Seq to be coerced to a List (.List), a
+# asking very specifically for the Seq to be coerced to a List (using .List or .list), a
 # Slip (.Slip) or an Array (.Array). The actual memoization functionality is
 # factored out into a role, PositionalBindFailover, which is used by the binder
 # to identify types that, on failure to bind to an @-sigilled thing, can have
-# .list called on them and expect memoization semantics. This not only makes
+# .cache called on them and expect memoization semantics. This not only makes
 # it easy for HyperSeq to also have this functionality, but makes it available
 # for other kinds of paradigm that show up in the future (beyond sequential
 # and parallel) that also want to have this behavior.
+my $in_deprecation;
 my class X::Seq::Consumed { ... }
 my class X::Seq::NotIndexable { ... }
 my role PositionalBindFailover {
@@ -24,9 +25,7 @@ my role PositionalBindFailover {
             !! ($!list := List.from-iterator(self.iterator))
     }
     method list() {
-        $!list.DEFINITE
-            ?? $!list
-            !! ($!list := List.from-iterator(self.iterator))
+            List.from-iterator(self.iterator)
     }
 }
 nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
@@ -75,36 +74,40 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         Array.from-iterator(self.iterator)
     }
 
+    method elems() {
+        self.cache.elems;
+    }
+
     method Numeric() {
-        self.list.Numeric
+        self.cache.Numeric
     }
 
     method Int() {
-        self.list.Int
+        self.cache.Int
     }
 
     method Bool(Seq:D:) {
-        self.list.Bool
+        self.cache.Bool
     }
 
     multi method Str(Seq:D:) {
-        self.list.Str
+        self.cache.Str
     }
 
     multi method Stringy(Seq:D:) {
-        self.list.Stringy
+        self.cache.Stringy
     }
 
     method fmt(|c) {
-        self.list.fmt(|c)
+        self.cache.fmt(|c)
     }
 
     multi method gist(Seq:D:) {
-        self.list.gist
+        self.cache.gist
     }
 
     multi method perl(Seq:D \SELF:) {
-        self.list.perl ~ '.Seq';
+        self.cache.perl ~ '.Seq';
     }
 
     method sink() {
@@ -113,22 +116,22 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     multi method AT-POS(Seq:D: Int $idx) {
-        self.list.AT-POS($idx)
+        self.cache.AT-POS($idx)
     }
 
     multi method AT-POS(Seq:D: int $idx) {
-        self.list.AT-POS($idx)
+        self.cache.AT-POS($idx)
     }
 
     multi method EXISTS-POS(Seq:D: Int $idx) {
-        self.list.EXISTS-POS($idx)
+        self.cache.EXISTS-POS($idx)
     }
 
     multi method EXISTS-POS(Seq:D: int $idx) {
-        self.list.EXISTS-POS($idx)
+        self.cache.EXISTS-POS($idx)
     }
 
-    multi method invert(Seq:D:) { self.List.invert }
+    multi method invert(Seq:D:) { self.list.invert }
 
     # Lazy loops produce a Seq wrapping a loop iterator. We have a few
     # special cases of that.

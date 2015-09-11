@@ -4,7 +4,7 @@ my role QuantHash does Associative {
     method Numeric ( --> Numeric) { self.total.Numeric }
     method Real    ( --> Real)    { self.total.Real }
 
-    method list() { self.pairs.list }
+    method list() { self.pairs.cache }
 
     method minpairs {
         my @found;

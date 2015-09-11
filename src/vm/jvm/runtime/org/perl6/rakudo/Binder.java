@@ -355,7 +355,7 @@ public final class Binder {
                  * positional bind failover. */
                 if (nomType == gcx.Positional && arg_o == gcx.PositionalBindFailover) {
                     SixModelObject HOW = arg_o.st.HOW;
-                    SixModelObject ig = Ops.findmethod(tc, HOW, "list");
+                    SixModelObject ig = Ops.findmethod(tc, HOW, "cache");
                     SixModelObject ContextRef = tc.gc.ContextRef;
                     SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                     ((ContextRefInstance)cc).context = cf;

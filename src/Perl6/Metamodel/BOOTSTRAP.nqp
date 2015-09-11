@@ -279,7 +279,7 @@ my class Binder {
                 # If the expected type is Positional, see if we need to do the
                 # positional bind failover.
                 if nqp::istype($nom_type, $Positional) && nqp::istype($oval, $PositionalBindFailover) {
-                    $oval := $oval.list;
+                    $oval := $oval.cache;
                 }
 
                 # If not, do the check. If the wanted nominal type is Mu, then

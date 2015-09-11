@@ -43,6 +43,8 @@ my class Any { # declared in BOOTSTRAP
         $target.DELETE-POS($final);
     }
 
+    method cache() { self.list }
+
     proto method list(|) is nodal { * }
     multi method list(Any:U:) { infix:<,>(self) }
     multi method list(Any:D \SELF:) { infix:<,>(SELF) }
@@ -55,7 +57,7 @@ my class Any { # declared in BOOTSTRAP
 
     # derived from .list
     proto method List(|) is nodal { * }
-    multi method List() { self.list.List }
+    multi method List() { self.list }
     proto method Slip(|) is nodal { * }
     multi method Slip() { self.list.Slip }
     proto method Array(|) is nodal { * }
@@ -483,10 +485,11 @@ sub dd(|) {
     while $args {
         my $var  := nqp::shift($args);
         my $name := $var.VAR.?name;
+        my $type := $var.WHAT.^name;
         my $what := $var.?is-lazy
           ?? $var[^10].perl.chop ~ "...Inf)"
           !! $var.perl;
-        note $name ?? "$name = $what" !! $what;
+        note $name ?? "$type $name = $what" !! $what;
     }
     return
 }

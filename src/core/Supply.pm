@@ -334,7 +334,7 @@ my role Supply {
 
     proto method rotor(|) {*}
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
-        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.list;
+        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
 
         on -> $res {
             $self => do {
@@ -745,7 +745,7 @@ my role Supply {
               }
               !! -> $val, $index {
                   @values[$index].push($val);
-                  $res.emit( $(@values.map(*.shift).List) ) if all(@values);
+                  $res.emit( $(@values.map(*.shift).list) ) if all(@values);
               }
         }
     }

@@ -131,7 +131,7 @@ multi sub note(ComplexStr:D \x) {
 }
 
 multi sub val(*@maybevals) {
-    @maybevals.List.map({ val($_) }).eager;
+    @maybevals.list.map({ val($_) }).eager;
 }
 
 # needed to preserve slip-ness

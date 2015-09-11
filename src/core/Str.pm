@@ -403,7 +403,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $i++;
 
                 last unless $n.defined;
-            }).list;
+            }).cache;
             @matches := () unless not $clip.min or @matches.EXISTS-POS($clip.min - 1);
         }
         else {

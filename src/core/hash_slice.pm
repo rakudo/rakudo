@@ -38,12 +38,12 @@ multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is rw {
 multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is rw {
     nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! key.flatmap({ SELF{$_} }).eager.List;
+      !! key.flatmap({ SELF{$_} }).eager.list;
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is rw {
     (nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! key.flatmap({ SELF{$_} }).eager.List) = ASSIGN
+      !! key.flatmap({ SELF{$_} }).eager.list) = ASSIGN
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

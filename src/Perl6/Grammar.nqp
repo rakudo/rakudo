@@ -1048,6 +1048,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_META := '';                       # parsing a metaoperator like [..]
         :my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
         :my $*IN_DECL;                             # what declaration we're in
+        :my $*IN_RETURN := 0;                      # are we in a return?
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
@@ -3140,7 +3141,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <longname>
         :my $*longname;
         :my $pos;
+        :my $*IN_RETURN;
         { $*longname := $*W.dissect_longname($<longname>); $pos := $/.CURSOR.pos }
+        { $*IN_RETURN := $<longname>.Str eq 'return'; }
         [
         ||  <?{ nqp::eqat($<longname>.Str, '::', 0) || $*W.is_name($*longname.components()) }>
             <.unsp>?
@@ -3669,6 +3672,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method EXPR(str $preclim = '') {
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
+        my $*IN_RETURN := 0;
         nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'y='));
     }
 

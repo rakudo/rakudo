@@ -786,7 +786,7 @@ my role Supply {
                       --$uninitialised
                         if $uninitialised > 0 && not @values.EXISTS-POS($index);
                       @values[$index] = $val;
-                      $res.emit( @values.list.item ) unless $uninitialised;
+                      $res.emit( @values.List.item ) unless $uninitialised;
                   },
                 done => { $res.done() if ++$dones == +@s }
                 }

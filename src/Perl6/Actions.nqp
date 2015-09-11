@@ -5186,7 +5186,7 @@ Compilation unit '$file' contained the following violations:
                 if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {
                     my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     %named_counts{$name} := +%named_counts{$name} + 1;
-                    unless $*IN_DECL eq 'use' || $*IN_DECL eq 'no' || $*IN_DECL eq 'import' {
+                    unless $*IN_DECL eq 'use' || $*IN_DECL eq 'no' || $*IN_DECL eq 'import' || $*IN_RETURN {
                         $_[2].named($name);
                     }
                 }
@@ -5195,7 +5195,7 @@ Compilation unit '$file' contained the following violations:
             # Make result.
             for @args {
                 if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {
-                    my $name := $_[2].named();
+                    my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     if %named_counts{$name} == 1 {
                         $past.push($_[2]);
                         $_[2].annotate('before_promotion', $_);

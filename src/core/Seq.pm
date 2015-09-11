@@ -74,6 +74,10 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         Array.from-iterator(self.iterator)
     }
 
+    method elems() {
+        self.cache.elems;
+    }
+
     method Numeric() {
         self.cache.Numeric
     }

@@ -351,6 +351,19 @@ public final class Binder {
                     nomType = Ops.result_o(tc.curFrame);
                 }
 
+                /* If the expected type is Positional, see if we need to do the
+                 * positional bind failover. */
+                if (nomType == gcx.Positional && arg_o == gcx.PositionalBindFailover) {
+                    SixModelObject HOW = arg_o.st.HOW;
+                    SixModelObject ig = Ops.findmethod(tc, HOW, "list");
+                    SixModelObject ContextRef = tc.gc.ContextRef;
+                    SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+                    ((ContextRefInstance)cc).context = cf;
+                    Ops.invokeDirect(tc, ig, genIns,
+                        new Object[] { HOW, arg_o, cc });
+                    arg_o = Ops.result_o(tc.curFrame);
+                }
+
                 /* If not, do the check. If the wanted nominal type is Mu, then
                  * anything goes. */
                 if (nomType != gcx.Mu && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
@@ -680,8 +693,8 @@ public final class Binder {
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                throw ExceptionHandling.dieInternal(tc, "optional array param NYI after GLR");
-                //return RakOps.p6list(null, gcx.Array, gcx.True, tc);
+                SixModelObject res = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
+                return res;
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
                 SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
@@ -825,7 +838,7 @@ public final class Binder {
 
                     SixModelObject slurpyType = (flags & SIG_ELEM_IS_RW) != 0 ? gcx.List : gcx.Array;
                     SixModelObject sm = Ops.findmethod(tc, slurpyType,
-                        (flags & SIG_ELEM_SLURPY_POS) == 0 ? "from-slurpy-flat" : "from-slurpy");
+                        (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy");
                     Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });
                     SixModelObject bindee = Ops.result_o(tc.curFrame);
 

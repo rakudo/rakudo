@@ -319,11 +319,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! True
     }
 
-    # XXX GLR does this survive?
-    #multi method infinite(List:D:) {
-    #    $!infinite ||= ?$!nextiter.infinite;
-    #}
-
     method reification-target(List:D:) {
         self!ensure-allocated;
         $!reified

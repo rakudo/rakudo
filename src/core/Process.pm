@@ -99,14 +99,4 @@ multi sub INITIALIZE_DYNAMIC('$*HOME') {
     IdFetch.new( :name<$GROUP> );
 }
 
-# Deprecations
-multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE_NAME') {
-    $*EXECUTABLE-NAME; # prime it
-    PROCESS::<$EXECUTABLE_NAME> := PROCESS::<$EXECUTABLE-NAME>;
-}
-multi sub INITIALIZE_DYNAMIC('$*PROGRAM_NAME') {
-    $*PROGRAM-NAME;  # prime it
-    PROCESS::<$PROGRAM_NAME> := PROCESS::<$PROGRAM-NAME>;
-}
-
 # vim: ft=perl6 expandtab sw=4

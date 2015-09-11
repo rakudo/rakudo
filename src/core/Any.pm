@@ -485,10 +485,11 @@ sub dd(|) {
     while $args {
         my $var  := nqp::shift($args);
         my $name := $var.VAR.?name;
+        my $type := $var.WHAT.^name;
         my $what := $var.?is-lazy
           ?? $var[^10].perl.chop ~ "...Inf)"
           !! $var.perl;
-        note $name ?? "$name = $what" !! $what;
+        note $name ?? "$type $name = $what" !! $what;
     }
     return
 }

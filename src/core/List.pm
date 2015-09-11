@@ -765,7 +765,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         my $finished = 0;
         # (Note, the xx should be harmless if the cycle is already infinite by accident.)
-        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).list;
+        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).cache;
         gather for flat @c -> $s {
             my $elems;
             my $gap;
@@ -943,7 +943,7 @@ sub infix:<X>(|lol) {
     my Mu $end := nqp::list_i();
     if !$Inf {
         for 1 .. $n -> $i {
-            nqp::bindpos_i($end,$i,@l[$i].elems);
+            nqp::bindpos_i($end,$i,@l[$i].cache.elems);
         }
     }
 

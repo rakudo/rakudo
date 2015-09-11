@@ -43,6 +43,8 @@ my class Any { # declared in BOOTSTRAP
         $target.DELETE-POS($final);
     }
 
+    method cache() { self.list }
+
     proto method list(|) is nodal { * }
     multi method list(Any:U:) { infix:<,>(self) }
     multi method list(Any:D \SELF:) { infix:<,>(SELF) }

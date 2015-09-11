@@ -57,7 +57,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method iterator(EnumMap:) { self.pairs.iterator }
-    method list(EnumMap:) { self.pairs.list }
+    method list(EnumMap:) { self.pairs.cache }
 
     multi method pairs(EnumMap:D:) {
         $!storage := nqp::hash() unless $!storage.DEFINITE;
@@ -153,7 +153,7 @@ my class EnumMap does Iterable does Associative { # declared in BOOTSTRAP
         self.map: { .value => .key }
     }
     multi method invert(EnumMap:D:) {
-        self.map: { (.value »=>» .key).list.Slip }
+        self.map: { (.value »=>» .key).cache.Slip }
     }
 
     multi method AT-KEY(EnumMap:D: \key) is rw {

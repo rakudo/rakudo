@@ -72,7 +72,7 @@ multi sub POSITIONS(\SELF, Range \pos) {
     pos.map(-> Int() $i {
         last unless SELF.EXISTS-POS($i);
         $i
-    }).list;
+    }).cache;
 }
 
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
@@ -228,7 +228,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is rw {
         my $empty := False;
         my $target := SELF.iterator;
         my sub eagerize ($idx) {
-            once $target := $target.list.iterator;
+            once $target := $target.cache.iterator;
             $idx ~~ Whatever ?? $target.elems !! $target.EXISTS-POS($idx);
         }
         my @poslist := POSITIONS(SELF, pos, :eagerize(&eagerize)).eager;

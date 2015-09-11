@@ -326,7 +326,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
                 if nqp::istype($n, Callable) or nqp::istype($n, Whatever) {
                     # WhateverCode forces us to remember early
-                    once @matches := $matches.list;
+                    once @matches := $matches.List;
                     once $matches := Nil;
                     # WhateverCode is 1-based
                     $n = nqp::istype($n, Whatever) ?? +@matches !! $n(+@matches);
@@ -403,11 +403,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $i++;
 
                 last unless $n.defined;
-            }).list;
+            }).cache;
             @matches := () unless not $clip.min or @matches.EXISTS-POS($clip.min - 1);
         }
         else {
-            @matches := $matches.list;
+            @matches := $matches.List;
         }
         if $multi {
             if nqp::istype($pat, Regex) {

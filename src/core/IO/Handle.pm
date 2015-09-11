@@ -323,25 +323,6 @@ my class IO::Handle does IO {
     }
 
     proto method lines (|) { * }
-    # can probably go after GLR
-    multi method lines(IO::Handle:D: :$eager!, :$close) {
-        return self.lines if !$eager;
-
-        my Mu $rpa := nqp::list();
-        if $.chomp {
-            until nqp::eoffh($!PIO) {
-                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
-            }
-        }
-        else {
-            until nqp::eoffh($!PIO) {
-                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
-            }
-        }
-        $!ins = nqp::elems($rpa);
-        self.close if $close;
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
-    }
     multi method lines(IO::Handle:D: :$count!, :$close) {
         return self.lines(:$close) if !$count;
 
@@ -351,25 +332,50 @@ my class IO::Handle does IO {
         }
         nqp::box_i($!ins, Int);
     }
-    multi method lines(IO::Handle:D: :$close) {
+    my role LinesIterCommon does Iterator {
+        has $!handle;
+        has $!PIO;
+        has $!close;
 
+        method new(\handle, \close) {
+            my \iter = self.CREATE;
+            nqp::bindattr(iter, self, '$!handle', handle);
+            nqp::bindattr(iter, self, '$!PIO',
+                nqp::getattr(handle, IO::Handle, '$!PIO'));
+            nqp::bindattr(iter, self, '$!close', close);
+            iter
+        }
+    }
+    multi method lines(IO::Handle:D: :$close) {
         if $.chomp {
-            gather {
-                until nqp::eoffh($!PIO) {
-                    $!ins = $!ins + 1;
-                    take nqp::p6box_s(nqp::readlinefh($!PIO)).chomp;
+            Seq.new(class :: does LinesIterCommon {
+                method pull-one() {
+                    if nqp::eoffh($!PIO) {
+                        $!handle.close if $!close;
+                        IterationEnd
+                    }
+                    else {
+                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                            nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
+                        nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
+                    }
                 }
-                self.close if $close;
-            }
+            }.new(self, $close));
         }
         else {
-            gather {
-                until nqp::eoffh($!PIO) {
-                    $!ins = $!ins + 1;
-                    take nqp::p6box_s(nqp::readlinefh($!PIO));
+            Seq.new(class :: does LinesIterCommon {
+                method pull-one() {
+                    if nqp::eoffh($!PIO) {
+                        $!handle.close if $!close;
+                        IterationEnd
+                    }
+                    else {
+                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                            nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
+                        nqp::p6box_s(nqp::readlinefh($!PIO))
+                    }
                 }
-                self.close if $close;
-            }
+            }.new(self, $close));
         }
     }
     multi method lines(IO::Handle:D: $limit, :$eager, :$close) {

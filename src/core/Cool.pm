@@ -259,10 +259,10 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method split(|) {*}
-    multi method split(Regex $pat, $limit = Inf, :$all) {
+    multi method split(Regex $pat, $limit = Inf;; :$all) {
         self.Stringy.split($pat, $limit, :$all);
     }
-    multi method split(Cool $pat, $limit = Inf, :$all) {
+    multi method split(Cool $pat, $limit = Inf;; :$all) {
         self.Stringy.split($pat.Stringy, $limit, :$all);
     }
     proto method match(|) {*}

@@ -1620,6 +1620,7 @@ class Perl6::Optimizer {
     # time analysis of the call.
     my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
     my %allo_rev := nqp::hash('Ii', 1, 'Nn', 2, 'Ss', 3);
+    my @prim_names := ['', 'int', 'num', 'str'];
     method analyze_args_for_ct_call($op) {
         my @types;
         my @flags;
@@ -1639,6 +1640,15 @@ class Perl6::Optimizer {
             my $ok_type := 0;
             try $ok_type := nqp::istype($type, $!symbols.Mu) &&
                 $type.HOW.archetypes.nominal();
+            unless $ok_type {
+                # nqp::ops end up labeled with nqp primtive types; we swap
+                # those out for their Perl 6 equivalents.
+                my int $ps := nqp::objprimspec($type);
+                if $ps >= 1 && $ps <= 3 {
+                    $type := $!symbols.find_lexical(@prim_names[$ps]);
+                    $ok_type := 1;
+                }
+            }
             if $ok_type {
                 my $prim := nqp::objprimspec($type);
                 my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)

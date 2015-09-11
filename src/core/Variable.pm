@@ -90,9 +90,9 @@ multi sub trait_mod:<is>(Variable:D $v, :$export!) {
         );
     }
     my $var  := $v.var;
-    my @tags = 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
-                       nqp::istype($export,Positional) ?? @($export)>>.key !!
-                       'DEFAULT');
+    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
+                            nqp::istype($export,Positional) ?? @($export)>>.key !!
+                            'DEFAULT');
     EXPORT_SYMBOL($var.VAR.name, @tags, $var);
 }
 

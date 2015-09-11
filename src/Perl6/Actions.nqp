@@ -4390,7 +4390,11 @@ Compilation unit '$file' contained the following violations:
         # Handle is repr specially.
         if ~$<longname> eq 'repr' {
             if $<circumfix> {
-                $*REPR := compile_time_value_str($<circumfix>[0].ast[0], "is repr(...) trait", $/);
+                if nqp::istype($<circumfix>[0].ast, QAST::WVal) {
+                    $*REPR := compile_time_value_str($<circumfix>[0].ast, "is repr(...) trait", $/);
+                } else {
+                    $*REPR := compile_time_value_str($<circumfix>[0].ast[0], "is repr(...) trait", $/);
+                }
             }
             else {
                 $/.CURSOR.panic("is repr(...) trait needs a parameter");

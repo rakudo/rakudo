@@ -18,6 +18,11 @@ my class X::Seq::NotIndexable { ... }
 my role PositionalBindFailover {
     has $!list;
 
+    method cache() {
+        $!list.DEFINITE
+            ?? $!list
+            !! ($!list := List.from-iterator(self.iterator))
+    }
     method list() {
         $!list.DEFINITE
             ?? $!list
@@ -351,18 +356,20 @@ sub GATHER(&block) {
         }
 
         method push-exactly($target, int $n) {
-            $!wanted = $n;
-            $!push-target := $target;
-            if $!slipping && self!slip-wanted() !=:= IterationEnd {
-                $!push-target := Mu;
-                $n
-            }
-            else {
-                nqp::continuationreset(PROMPT, &!resumption);
-                $!push-target := Mu;
-                &!resumption.DEFINITE
-                    ?? $n - $!wanted
-                    !! IterationEnd
+            if ($n > 0) {
+                $!wanted = $n;
+                $!push-target := $target;
+                if $!slipping && self!slip-wanted() !=:= IterationEnd {
+                    $!push-target := Mu;
+                    $n
+                }
+                else {
+                    nqp::continuationreset(PROMPT, &!resumption);
+                    $!push-target := Mu;
+                    &!resumption.DEFINITE
+                        ?? $n - $!wanted
+                        !! IterationEnd
+                }
             }
         }
 

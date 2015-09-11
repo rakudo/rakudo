@@ -1057,7 +1057,7 @@ sub infix:<Z>(|lol) {
                 last if val =:= IterationEnd;
                 val
             }
-            my \l = p.List;
+            my \l = p.list;
             last if l.elems < $arity;
             take-rw l;
         }

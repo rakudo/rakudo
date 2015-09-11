@@ -5,7 +5,7 @@
 # will always return the same List (safe thanks to List being immutable). More
 # than one call to .iterator throws an exception (and calling .cache calls the
 # .iterator method the first time also). The memoization can be avoided by
-# asking very specifically for the Seq to be coerced to a List (.List), a
+# asking very specifically for the Seq to be coerced to a List (using .List or .list), a
 # Slip (.Slip) or an Array (.Array). The actual memoization functionality is
 # factored out into a role, PositionalBindFailover, which is used by the binder
 # to identify types that, on failure to bind to an @-sigilled thing, can have
@@ -131,7 +131,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.cache.EXISTS-POS($idx)
     }
 
-    multi method invert(Seq:D:) { self.List.invert }
+    multi method invert(Seq:D:) { self.list.invert }
 
     # Lazy loops produce a Seq wrapping a loop iterator. We have a few
     # special cases of that.

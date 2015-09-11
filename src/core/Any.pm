@@ -57,7 +57,7 @@ my class Any { # declared in BOOTSTRAP
 
     # derived from .list
     proto method List(|) is nodal { * }
-    multi method List() { self.list.List }
+    multi method List() { self.list }
     proto method Slip(|) is nodal { * }
     multi method Slip() { self.list.Slip }
     proto method Array(|) is nodal { * }

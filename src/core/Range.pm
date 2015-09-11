@@ -63,11 +63,11 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method EXISTS-POS(Range:D: int \pos) {
-        self.List.EXISTS-POS(pos);
+        self.list.EXISTS-POS(pos);
     }
 
     multi method EXISTS-POS(Range:D: Int \pos) {
-        self.List.EXISTS-POS(pos);
+        self.list.EXISTS-POS(pos);
     }
 
     method elems {

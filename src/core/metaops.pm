@@ -236,7 +236,7 @@ multi sub METAOP_REDUCE_LISTINFIX(\op) {
     sub (|values) {
         my \p = values[0];
         nqp::iscont(p[0])
-          ?? op.(|p.map({nqp::decont($_).List}))
+          ?? op.(|p.map({nqp::decont($_).list}))
           !! op.(|p);
     }
 }
@@ -485,7 +485,7 @@ proto sub deepmap(|) { * }
 
 multi sub deepmap(\op, \obj) {
     #my Mu $rpa := nqp::list();
-    #my \objs := obj.List;
+    #my \objs := obj.list;
     # as a wanted side-effect is-lazy reifies the list
     #fail X::Cannot::Lazy.new(:action('deepmap')) if objs.is-lazy;
     my \iterable = obj.DEFINITE && nqp::istype(obj, Iterable)
@@ -571,7 +571,7 @@ multi sub deepmap(\op, Associative \h) {
 proto sub nodemap(|) { * }
 multi sub nodemap(\op, \obj) {
     my Mu $rpa := nqp::list();
-    my \objs := obj.List;
+    my \objs := obj.list;
     # as a wanted side-effect is-lazy reifies the list
     fail X::Cannot::Lazy.new(:action('deepmap')) if objs.is-lazy;
     my Mu $items := nqp::getattr(objs, List, '$!reified');

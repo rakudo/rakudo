@@ -745,7 +745,7 @@ my role Supply {
               }
               !! -> $val, $index {
                   @values[$index].push($val);
-                  $res.emit( $(@values.map(*.shift).List) ) if all(@values);
+                  $res.emit( $(@values.map(*.shift).list) ) if all(@values);
               }
         }
     }
@@ -786,7 +786,7 @@ my role Supply {
                       --$uninitialised
                         if $uninitialised > 0 && not @values.EXISTS-POS($index);
                       @values[$index] = $val;
-                      $res.emit( @values.List.item ) unless $uninitialised;
+                      $res.emit( @values.list.item ) unless $uninitialised;
                   },
                 done => { $res.done() if ++$dones == +@s }
                 }

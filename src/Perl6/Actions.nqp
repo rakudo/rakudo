@@ -1980,7 +1980,7 @@ Compilation unit '$file' contained the following violations:
             $past := QAST::Op.new( :op('locallifetime'), $past, $result_var );
         }
         else {
-            my $name := ~$<sigil> eq '@' ?? 'list' !!
+            my $name := ~$<sigil> eq '@' ?? 'cache' !!
                         ~$<sigil> eq '%' ?? 'hash' !!
                                             'item';
             # @() and %()

@@ -719,7 +719,7 @@ my class Binder {
                         }
                         $cur_pos_arg++;
                     }
-                    my $slurpy_type := $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
+                    my $slurpy_type := $flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
                     my $bindee := $flags +& $SIG_ELEM_SLURPY_POS
                         ?? $slurpy_type.from-slurpy-flat($temp)
                         !! $slurpy_type.from-slurpy($temp);

@@ -6984,7 +6984,7 @@ Compilation unit '$file' contained the following violations:
             elsif %info<pos_slurpy> || %info<pos_lol> {
                 $var.slurpy(1);
                 my $type := $*W.find_symbol(
-                    [$flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
+                    [$flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
                 $var.push(QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name($name), :scope('local') ),

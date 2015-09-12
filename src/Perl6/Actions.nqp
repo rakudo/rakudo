@@ -4819,7 +4819,7 @@ Compilation unit '$file' contained the following violations:
             make $past;
         }
         else {
-            my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
+            my $past := $<args>.ast;
             $past.name('&' ~ $<identifier>);
             $past.node($/);
             make $past;
@@ -4915,7 +4915,7 @@ Compilation unit '$file' contained the following violations:
                 });
             }
             else {
-                $past := capture_or_parcel($<args>.ast, ~$<longname>);
+                $past := $<args>.ast;
                 if +@name == 1 {
                     $past.name(@name[0]);
                     if +$past.list == 1 && %commatrap{@name[0]} {
@@ -7720,25 +7720,6 @@ Compilation unit '$file' contained the following violations:
 
         # Dispatch trait.
         $*W.apply_trait($/, '&trait_mod:<will>', $attr, :build($code));
-    }
-
-    # This is the hook where, in the future, we'll use this as the hook to check
-    # if we have a proto or other declaration in scope that states that this sub
-    # has a signature of the form :(\|$parcel), in which case we don't promote
-    # the Parcel to a Capture when calling it. For now, we just worry about the
-    # special case, return.
-    sub capture_or_parcel($args, $name) {
-        if $name eq 'return' {
-            # Need to demote pairs again.
-            my $parcel := QAST::Op.new( :op('call') );
-            for @($args) {
-                $parcel.push($_.ann('before_promotion') || $_);
-            }
-            $parcel
-        }
-        else {
-            $args
-        }
     }
 
     # This checks if we have something of the form * op *, * op <thing> or

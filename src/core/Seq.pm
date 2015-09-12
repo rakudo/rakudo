@@ -27,6 +27,8 @@ my role PositionalBindFailover {
     method list() {
             List.from-iterator(self.iterator)
     }
+
+    method iterator() { ... }
 }
 nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
 Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover); # Multi-dispatch

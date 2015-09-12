@@ -1904,7 +1904,7 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $<desigilname><variable> {
             $past := $<desigilname>.ast;
-            $past.name(~$<sigil> eq '@' ?? 'list' !!
+            $past.name(~$<sigil> eq '@' ?? 'cache' !!
                        ~$<sigil> eq '%' ?? 'hash' !!
                                            'item');
         }

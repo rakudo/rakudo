@@ -5796,6 +5796,14 @@ Compilation unit '$file' contained the following violations:
         my $var_sigil;
         if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
+            if $var_sigil eq '%' {
+                if nqp::can($rhs_ast,'name') {
+                    my $name := $rhs_ast.name;
+                    if $name ~~ /^ '&circumfix:<' ':'? '{ }>' $/ {
+                        $/.CURSOR.worry("Useless use of hash composer on right side of hash assignment; did you mean := instead?");
+                    }
+                }
+            }
         }
         if nqp::istype($lhs_ast, QAST::Var)
                 && nqp::objprimspec($lhs_ast.returns) -> $spec {

@@ -3944,6 +3944,14 @@ Compilation unit '$file' contained the following violations:
             $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
             $*W.add_constant_folded_result($value);
         }
+        if $sigil eq '%' {
+            my $Associative := $*W.find_symbol(['Associative']);
+            if !nqp::istype($value, $Associative) {
+                $*W.throw($/, 'X::TypeCheck',
+                    operation => "constant declaration of " ~ ~$<variable>,
+                    expected => $Associative, got => $*W.find_symbol([$value.HOW.name($value)]) );
+            }
+        }
 
         if $name {
             my $cur_pad := $*W.cur_lexpad();

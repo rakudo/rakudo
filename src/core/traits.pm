@@ -136,7 +136,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => ' ' ~ lc( $r.^name ),
-      highexpect => ('rw parcel hidden-from-backtrace hidden-from-USAGE',
+      highexpect => ('rw raw hidden-from-backtrace hidden-from-USAGE',
                      'cached pure default DEPRECATED inlinable nodal',
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
@@ -144,8 +144,8 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
 multi sub trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
-multi sub trait_mod:<is>(Routine:D $r, :$parcel!) {
-    $r.set_rw(); # for now, until we have real parcel handling
+multi sub trait_mod:<is>(Routine:D $r, :$raw!) {
+    $r.set_rw(); # for now, until we have real raw handling
 }
 multi sub trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
@@ -215,7 +215,7 @@ multi sub trait_mod:<is>(Parameter:D $param, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => ' parameter',
-      highexpect => <rw readonly copy required parcel leading_docs trailing_docs>,
+      highexpect => <rw readonly copy required raw leading_docs trailing_docs>,
     ).throw;
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$readonly!) {
@@ -230,8 +230,8 @@ multi sub trait_mod:<is>(Parameter:D $param, :$copy!) {
 multi sub trait_mod:<is>(Parameter:D $param, :$required!) {
     $param.set_required();
 }
-multi sub trait_mod:<is>(Parameter:D $param, :$parcel!) {
-    $param.set_parcel();
+multi sub trait_mod:<is>(Parameter:D $param, :$raw!) {
+    $param.set_raw();
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
     SET_LEADING_DOCS($param, $leading_docs);

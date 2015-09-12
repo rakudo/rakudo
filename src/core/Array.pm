@@ -560,7 +560,7 @@ my class Array { # declared in BOOTSTRAP
         self;
     }
 
-    method pop(Array:D:) is parcel is nodal {
+    method pop(Array:D:) is raw is nodal {
         self!ensure-allocated();
         fail X::Cannot::Lazy.new(action => 'pop from') if self.is-lazy;
 
@@ -570,7 +570,7 @@ my class Array { # declared in BOOTSTRAP
             !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
     }
 
-    method shift(Array:D:) is parcel is nodal {
+    method shift(Array:D:) is raw is nodal {
         # make sure we have at least one item, then shift+return it
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');

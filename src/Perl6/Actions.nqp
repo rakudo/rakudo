@@ -981,7 +981,7 @@ Compilation unit '$file' contained the following violations:
                     @params.push(hash(
                         :variable_name('$_'), :optional(1),
                         :nominal_type($*W.find_symbol(['Mu'])),
-                        :default_from_outer(1), :is_parcel(1),
+                        :default_from_outer(1), :is_raw(1),
                     ));
                 }
                 elsif !$block.symbol('$_') {
@@ -4085,7 +4085,7 @@ Compilation unit '$file' contained the following violations:
         %*PARAM_INFO<pos_lol>      := $quant eq '**' && %*PARAM_INFO<sigil> eq '@';
         %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
         %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
-        %*PARAM_INFO<is_parcel>    := $quant eq '\\';
+        %*PARAM_INFO<is_raw>       := $quant eq '\\';
         %*PARAM_INFO<is_capture>   := $quant eq '|';
 
         # Stash any traits.
@@ -4819,7 +4819,7 @@ Compilation unit '$file' contained the following violations:
             make $past;
         }
         else {
-            my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
+            my $past := capture_or_raw($<args>.ast, ~$<identifier>);
             $past.name('&' ~ $<identifier>);
             $past.node($/);
             make $past;
@@ -4915,7 +4915,7 @@ Compilation unit '$file' contained the following violations:
                 });
             }
             else {
-                $past := capture_or_parcel($<args>.ast, ~$<longname>);
+                $past := capture_or_raw($<args>.ast, ~$<longname>);
                 if +@name == 1 {
                     $past.name(@name[0]);
                     if +$past.list == 1 && %commatrap{@name[0]} {
@@ -6899,7 +6899,7 @@ Compilation unit '$file' contained the following violations:
     sub is_default_topic(@params) {
         if nqp::elems(@params) == 1 {
             my $only := @params[0];
-            if $only<default_from_outer> && $only<is_parcel> && $only<variable_name> eq '$_' {
+            if $only<default_from_outer> && $only<is_raw> && $only<variable_name> eq '$_' {
                 if $only<nominal_type> =:= $*W.find_symbol(['Mu']) {
                     return 1;
                 }
@@ -6908,7 +6908,7 @@ Compilation unit '$file' contained the following violations:
         0
     }
     my $SIG_ELEM_IS_RW       := 256;
-    my $SIG_ELEM_IS_PARCEL   := 1024;
+    my $SIG_ELEM_IS_RAW      := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
     my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s'];
     sub lower_signature($block, $sig, @params) {
@@ -7195,7 +7195,7 @@ Compilation unit '$file' contained the following violations:
 
             # Bind to lexical if needed.
             if nqp::existskey(%info, 'variable_name') && !%info<bind_attr> {
-                if nqp::objprimspec($nomtype) || $is_rw || $flags +& $SIG_ELEM_IS_PARCEL {
+                if nqp::objprimspec($nomtype) || $is_rw || $flags +& $SIG_ELEM_IS_RAW {
                     my $scope := $spec && $is_rw ?? 'lexicalref' !! 'lexical';
                     $var.push(QAST::Op.new(
                         :op('bind'),
@@ -7724,17 +7724,17 @@ Compilation unit '$file' contained the following violations:
 
     # This is the hook where, in the future, we'll use this as the hook to check
     # if we have a proto or other declaration in scope that states that this sub
-    # has a signature of the form :(\|$parcel), in which case we don't promote
-    # the Parcel to a Capture when calling it. For now, we just worry about the
+    # has a signature of the form :(\|$raw), in which case we don't promote
+    # the raw object to a Capture when calling it. For now, we just worry about the
     # special case, return.
-    sub capture_or_parcel($args, $name) {
+    sub capture_or_raw($args, $name) {
         if $name eq 'return' {
             # Need to demote pairs again.
-            my $parcel := QAST::Op.new( :op('call') );
+            my $raw := QAST::Op.new( :op('call') );
             for @($args) {
-                $parcel.push($_.ann('before_promotion') || $_);
+                $raw.push($_.ann('before_promotion') || $_);
             }
-            $parcel
+            $raw
         }
         else {
             $args
@@ -7859,7 +7859,7 @@ Compilation unit '$file' contained the following violations:
                             @params.push(hash(
                                 :variable_name($pname),
                                 :nominal_type($*W.find_symbol(['Mu'])),
-                                :is_parcel(1),
+                                :is_raw(1),
                             ));
                             $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl<var>));
                             my $to_push := QAST::Var.new(:name($pname), :scope<lexical>);
@@ -7875,7 +7875,7 @@ Compilation unit '$file' contained the following violations:
                     @params.push(hash(
                         :variable_name($pname),
                         :nominal_type($*W.find_symbol(['Mu'])),
-                        :is_parcel(1),
+                        :is_raw(1),
                     ));
                     $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
                     $past[$i] := QAST::Var.new(:name($pname), :scope<lexical>);

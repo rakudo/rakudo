@@ -24,7 +24,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_MULTI_INVOCANT     = 128;
     my constant $SIG_ELEM_IS_RW              = 256;
     my constant $SIG_ELEM_IS_COPY            = 512;
-    my constant $SIG_ELEM_IS_PARCEL          = 1024;
+    my constant $SIG_ELEM_IS_RAW             = 1024;
     my constant $SIG_ELEM_IS_OPTIONAL        = 2048;
     my constant $SIG_ELEM_ARRAY_SIGIL        = 4096;
     my constant $SIG_ELEM_HASH_SIGIL         = 8192;
@@ -43,7 +43,7 @@ my class Parameter { # declared in BOOTSTRAP
             $sigil = substr($name,0,1);
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $sigil = '|';
-            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+            } elsif $!flags +& $SIG_ELEM_IS_RAW {
                 $sigil = '\\' without '@$%&'.index($sigil);
             }
         } else {
@@ -55,7 +55,7 @@ my class Parameter { # declared in BOOTSTRAP
                 $sigil = '%';
             } elsif $!nominal_type.^name ~~ /^^ Callable >> / {
                 $sigil = '&';
-            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+            } elsif $!flags +& $SIG_ELEM_IS_RAW {
                 $sigil = '\\';
             } else {
                 $sigil = '$';
@@ -127,8 +127,8 @@ my class Parameter { # declared in BOOTSTRAP
         ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
     }
 
-    method parcel() {
-        ?($!flags +& $SIG_ELEM_IS_PARCEL)
+    method raw() {
+        ?($!flags +& $SIG_ELEM_IS_RAW)
     }
 
     method capture() {
@@ -144,7 +144,7 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method readonly() {
-        !($.rw || $.copy || $.parcel)
+        !($.rw || $.copy || $.raw)
     }
 
     method invocant() {
@@ -218,7 +218,7 @@ my class Parameter { # declared in BOOTSTRAP
         if $name {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
                 $name = '|' ~ $name;
-            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+            } elsif $!flags +& $SIG_ELEM_IS_RAW {
                 $name = '\\' ~ $name without '@$%&'.index(substr($name,0,1));
             }
         } else {
@@ -254,7 +254,7 @@ my class Parameter { # declared in BOOTSTRAP
         } elsif $!flags +& $SIG_ELEM_IS_COPY {
             $rest ~= ' is copy';
         }
-        if $!flags +& $SIG_ELEM_IS_PARCEL {
+        if $!flags +& $SIG_ELEM_IS_RAW {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
             if     not $.name
@@ -266,7 +266,7 @@ my class Parameter { # declared in BOOTSTRAP
                     $name = '\\';
             }
             if $name.substr(0,1) ne '\\' {
-                $rest ~= ' is parcel';
+                $rest ~= ' is raw';
             }
         }
         unless nqp::isnull($!sub_signature) {

@@ -352,7 +352,6 @@ multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
     nqp::iscont(right) ?? result.item !! result;
 }
 
-# XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
 multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
     my @result;
     X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.is-lazy;

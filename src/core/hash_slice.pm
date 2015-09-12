@@ -9,7 +9,7 @@ multi sub postcircumfix:<{ }>( \SELF, \key ) is rw {
 multi sub postcircumfix:<{ }>(\SELF, \key, Mu \ASSIGN) is rw {
     SELF.ASSIGN-KEY(key, ASSIGN);
 }
-multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is parcel) is rw {
+multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is raw) is rw {
     SELF.BIND-KEY(key, $BIND);
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$SINK!, *%other ) is rw {

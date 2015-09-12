@@ -20,7 +20,7 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.^mixin($role).BUILD_LEAST_DERIVED({});
 }
-multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
+multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is raw) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
@@ -51,7 +51,7 @@ multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.clone.^mixin($role).BUILD_LEAST_DERIVED({});
 }
-multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
+multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is raw) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;

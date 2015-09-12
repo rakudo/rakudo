@@ -101,7 +101,7 @@ my class Binder {
     my int $SIG_ELEM_MULTI_INVOCANT      := 128;
     my int $SIG_ELEM_IS_RW               := 256;
     my int $SIG_ELEM_IS_COPY             := 512;
-    my int $SIG_ELEM_IS_PARCEL           := 1024;
+    my int $SIG_ELEM_IS_RAW              := 1024;
     my int $SIG_ELEM_IS_OPTIONAL         := 2048;
     my int $SIG_ELEM_ARRAY_SIGIL         := 4096;
     my int $SIG_ELEM_HASH_SIGIL          := 8192;
@@ -395,7 +395,7 @@ my class Binder {
                 # wrapper container that carries extra constraints.
                 nqp::bindkey($lexpad, $varname, $oval);
             }
-            elsif $flags +& $SIG_ELEM_IS_PARCEL {
+            elsif $flags +& $SIG_ELEM_IS_RAW {
                 # Just bind the thing as is into the lexpad.
                 nqp::bindkey($lexpad, $varname, $oval);
             }
@@ -949,7 +949,7 @@ my class Binder {
             # positional parameter, we won't analyze it. */
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
             if $flags +& nqp::bitneg_i(
-                    $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_PARCEL +|
+                    $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_RAW +|
                     $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|
                     $SIG_ELEM_HASH_SIGIL +| $SIG_ELEM_NATIVE_VALUE +|
                     $SIG_ELEM_IS_OPTIONAL) {
@@ -1486,13 +1486,13 @@ BEGIN {
             }
             $dcself
         }));
-    Parameter.HOW.add_method(Parameter, 'set_parcel', nqp::getstaticcode(sub ($self) {
-            my $SIG_ELEM_IS_PARCEL := 1024;
+    Parameter.HOW.add_method(Parameter, 'set_raw', nqp::getstaticcode(sub ($self) {
+            my $SIG_ELEM_IS_RAW := 1024;
             my $dcself := nqp::decont($self);
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            unless $flags +& $SIG_ELEM_IS_PARCEL {
+            unless $flags +& $SIG_ELEM_IS_RAW {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
-                    $flags + $SIG_ELEM_IS_PARCEL);
+                    $flags + $SIG_ELEM_IS_RAW);
             }
             $dcself
         }));

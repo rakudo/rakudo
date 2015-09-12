@@ -31,7 +31,7 @@ public final class Binder {
     private static final int SIG_ELEM_MULTI_INVOCANT      = 128;
     private static final int SIG_ELEM_IS_RW               = 256;
     private static final int SIG_ELEM_IS_COPY             = 512;
-    private static final int SIG_ELEM_IS_PARCEL           = 1024;
+    private static final int SIG_ELEM_IS_RAW              = 1024;
     private static final int SIG_ELEM_IS_OPTIONAL         = 2048;
     private static final int SIG_ELEM_ARRAY_SIGIL         = 4096;
     private static final int SIG_ELEM_HASH_SIGIL          = 8192;
@@ -488,7 +488,7 @@ public final class Binder {
                  * wrapper container that carries extra constraints. */
                 cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
             }
-            else if ((paramFlags & SIG_ELEM_IS_PARCEL) != 0) {
+            else if ((paramFlags & SIG_ELEM_IS_RAW) != 0) {
                 /* Just bind the thing as is into the lexpad. */
                 cf.oLex[sci.oTryGetLexicalIdx(varName)] = didHLLTransform ? decontValue : arg_o;
             }
@@ -1007,7 +1007,7 @@ public final class Binder {
             param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             if ((flags & ~(
-                    SIG_ELEM_MULTI_INVOCANT | SIG_ELEM_IS_PARCEL |
+                    SIG_ELEM_MULTI_INVOCANT | SIG_ELEM_IS_RAW |
                     SIG_ELEM_IS_COPY | SIG_ELEM_ARRAY_SIGIL |
                     SIG_ELEM_HASH_SIGIL | SIG_ELEM_NATIVE_VALUE |
                     SIG_ELEM_IS_OPTIONAL)) != 0)

@@ -118,7 +118,7 @@ my class Block { # declared in BOOTSTRAP
             } elsif $parm.copy {
                 $rest ~= ' is copy';
             }
-            if  $parm.parcel {
+            if  $parm.raw {
                 if     not $.name {
                     if $name eq '$' and not $rest {
                         $name = '\\';
@@ -128,7 +128,7 @@ my class Block { # declared in BOOTSTRAP
                     }
                 }
                 if !$name.starts-with('\\') {
-                    $rest ~= ' is parcel';
+                    $rest ~= ' is raw';
                 }
             }
             if $name or $rest {

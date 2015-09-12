@@ -527,8 +527,8 @@ augment class Any {
             to-map.map(&by).iterator.push-all($transform-buffer);
         }
 
-        # Instead of sorting elements directly, we sort a Parcel of
-        # indices from 0..^$list.elems, then use that Parcel as
+        # Instead of sorting elements directly, we sort a list of
+        # indices from 0..^$list.elems, then use that list as
         # a slice into self. The JVM implementation uses a Java
         # collection sort. MoarVM has its sort algorithm implemented
         # in NQP.

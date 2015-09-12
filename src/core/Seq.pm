@@ -409,7 +409,7 @@ sub GATHER(&block) {
     }.new(&block))
 }
 
-multi sub infix:<eqv>(Seq $a, Seq $b) {
+multi sub infix:<eqv>(Seq:D $a, Seq:D $b) {
     my \ia := $a.iterator;
     my \ib := $b.iterator;
     loop {

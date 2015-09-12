@@ -410,6 +410,7 @@ sub GATHER(&block) {
 }
 
 multi sub infix:<eqv>(Seq:D $a, Seq:D $b) {
+    returns False unless $a.WHAT === $b.WHAT;
     my \ia := $a.iterator;
     my \ib := $b.iterator;
     loop {

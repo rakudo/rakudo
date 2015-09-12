@@ -3883,25 +3883,8 @@ Compilation unit '$file' contained the following violations:
     }
 
     method type_declarator:sym<constant>($/) {
-        # Get constant value.
-        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
         my $value_ast := $<initializer>.ast;
-        if $<initializer><sym> eq '.=' {
-            $value_ast.unshift(QAST::WVal.new(:value($type)));
-        }
-        $value_ast.returns($type);
-
-        my $con_block := $*W.pop_lexpad();
-        my $value;
-        if $value_ast.has_compile_time_value {
-            $value := $value_ast.compile_time_value;
-        }
-        else {
-            $con_block.push($value_ast);
-            my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
-            $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
-            $*W.add_constant_folded_result($value);
-        }
+        my $sigil := '';
 
         # Provided it's named, install it.
         my $name;
@@ -3909,6 +3892,12 @@ Compilation unit '$file' contained the following violations:
             $name := $<defterm>.ast;
         }
         elsif $<variable> {
+            if $<variable><sigil> {
+                $sigil := ~$<variable><sigil>;
+                if $sigil eq '@' {
+                    $value_ast := QAST::Op.new( :op<callmethod>, :name<cache>, $value_ast);
+                }
+            }
             if $<variable><twigil> {
                 my $twigil := ~$<variable><twigil>;
                 if $twigil eq '?' {
@@ -3935,6 +3924,25 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             $name := ~$<variable>;
+        }
+
+        # Get constant value.
+        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
+        if $<initializer><sym> eq '.=' {
+            $value_ast.unshift(QAST::WVal.new(:value($type)));
+        }
+        $value_ast.returns($type);
+
+        my $con_block := $*W.pop_lexpad();
+        my $value;
+        if $value_ast.has_compile_time_value {
+            $value := $value_ast.compile_time_value;
+        }
+        else {
+            $con_block.push($value_ast);
+            my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
+            $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
+            $*W.add_constant_folded_result($value);
         }
 
         if $name {

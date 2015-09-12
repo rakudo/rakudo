@@ -73,7 +73,7 @@ class CompUnit {
     method load(CompUnit:D:
       $module_name,
       %opts,
-      *@GLOBALish is rw,
+      *@GLOBALish is raw,
       :$line,
       :$file
     ) {

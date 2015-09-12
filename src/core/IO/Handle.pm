@@ -443,7 +443,7 @@ my class IO::Handle does IO {
         nqp::printfh($!PIO, nqp::unbox_s(x));
         Bool::True
     }
-    multi method print(IO::Handle:D: *@list is rw) { # is rw gives List, which is cheaper
+    multi method print(IO::Handle:D: *@list is raw) { # is raw gives List, which is cheaper
         nqp::printfh($!PIO, nqp::unbox_s(.Str)) for @list;
         Bool::True
     }

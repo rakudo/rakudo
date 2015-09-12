@@ -44,7 +44,7 @@ multi sub say(\x) {
     my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl);
     $out.print($str);
 }
-multi sub say(**@args is rw) {
+multi sub say(**@args is raw) {
     my $out := $*OUT;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
@@ -63,7 +63,7 @@ multi sub note(Str:D \x) {
     my str $str = nqp::concat(nqp::unbox_s(x),$err.nl);
     $err.print($str);
 }
-multi sub note(**@args is rw) {
+multi sub note(**@args is raw) {
     my $err := $*ERR;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;

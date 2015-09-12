@@ -36,7 +36,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
 
     method p6ml { $p6ml }
 
-    method load_module($module_name, %opts, *@GLOBALish is rw, :$line, :$file, :%chosen) {
+    method load_module($module_name, %opts, *@GLOBALish is raw, :$line, :$file, :%chosen) {
         $lock.protect( {
         unless %opts<from> { # don't try to find other language's modules in our CUR, Perl6ModuleLoader handles those
             my $candi = self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>))[0];

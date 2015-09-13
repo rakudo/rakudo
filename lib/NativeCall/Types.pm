@@ -182,6 +182,25 @@ augment class CArray {
         }
         $typed.^inheritalize();
     }
+
+    method elems { nqp::elems(self) }
+
+    method list {
+        do for ^self.elems { self.AT-POS($_) }
+    }
+
+    multi method new(*@values) {
+        nextsame unless @values;
+        my $result := self.new();
+        my int $n = @values.elems;
+        my int $i;
+        $result.ASSIGN-POS($n - 1, @values.AT-POS($n - 1));
+        while $i < $n {
+            $result.ASSIGN-POS($i, @values.AT-POS($i));
+            $i = $i + 1;
+        }
+        $result;
+    }
 }
 
 # duplicated code from NativeCall.pm to support Pointer.deref

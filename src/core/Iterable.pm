@@ -46,6 +46,8 @@ my role Iterable {
         }.new(self.iterator))
     }
 
+    method lazy-if($flag) { $flag ?? self.lazy !! self }
+
     method lazy() {
         # Return a Seq with an iterator wrapping this Iterable, claiming to
         # be lazy, and implicitly preventing working ahead (by hiding any

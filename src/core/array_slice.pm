@@ -88,7 +88,7 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Mu \assignee ) is rw {
     SELF.ASSIGN-POS($pos, assignee);
 }
-multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is raw) is rw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is rw {
@@ -120,7 +120,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos ) is rw {
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Mu \assignee ) is rw {
     SELF.ASSIGN-POS($pos, assignee);
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is parcel) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is raw) is rw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$SINK!, *%other ) is rw {
@@ -152,7 +152,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos ) is rw {
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Mu \assignee ) is rw {
     SELF.ASSIGN-POS(pos.Int, assignee);
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is parcel) is rw {
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is raw) is rw {
     SELF.BIND-POS(pos.Int, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$SINK!, *%other ) is rw {

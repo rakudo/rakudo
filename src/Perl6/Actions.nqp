@@ -978,7 +978,7 @@ Compilation unit '$file' contained the following violations:
                     @params.push(hash(
                         :variable_name('$_'), :optional(1),
                         :nominal_type($*W.find_symbol(['Mu'])),
-                        :default_from_outer(1), :is_parcel(1),
+                        :default_from_outer(1), :is_raw(1),
                     ));
                 }
                 elsif !$block.symbol('$_') {
@@ -1900,7 +1900,7 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $<desigilname><variable> {
             $past := $<desigilname>.ast;
-            $past.name(~$<sigil> eq '@' ?? 'list' !!
+            $past.name(~$<sigil> eq '@' ?? 'cache' !!
                        ~$<sigil> eq '%' ?? 'hash' !!
                                            'item');
         }
@@ -1976,7 +1976,7 @@ Compilation unit '$file' contained the following violations:
             $past := QAST::Op.new( :op('locallifetime'), $past, $result_var );
         }
         else {
-            my $name := ~$<sigil> eq '@' ?? 'list' !!
+            my $name := ~$<sigil> eq '@' ?? 'cache' !!
                         ~$<sigil> eq '%' ?? 'hash' !!
                                             'item';
             # @() and %()
@@ -3879,25 +3879,8 @@ Compilation unit '$file' contained the following violations:
     }
 
     method type_declarator:sym<constant>($/) {
-        # Get constant value.
-        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
         my $value_ast := $<initializer>.ast;
-        if $<initializer><sym> eq '.=' {
-            $value_ast.unshift(QAST::WVal.new(:value($type)));
-        }
-        $value_ast.returns($type);
-
-        my $con_block := $*W.pop_lexpad();
-        my $value;
-        if $value_ast.has_compile_time_value {
-            $value := $value_ast.compile_time_value;
-        }
-        else {
-            $con_block.push($value_ast);
-            my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
-            $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
-            $*W.add_constant_folded_result($value);
-        }
+        my $sigil := '';
 
         # Provided it's named, install it.
         my $name;
@@ -3905,6 +3888,12 @@ Compilation unit '$file' contained the following violations:
             $name := $<defterm>.ast;
         }
         elsif $<variable> {
+            if $<variable><sigil> {
+                $sigil := ~$<variable><sigil>;
+                if $sigil eq '@' {
+                    $value_ast := QAST::Op.new( :op<callmethod>, :name<cache>, $value_ast);
+                }
+            }
             if $<variable><twigil> {
                 my $twigil := ~$<variable><twigil>;
                 if $twigil eq '?' {
@@ -3931,6 +3920,33 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             $name := ~$<variable>;
+        }
+
+        # Get constant value.
+        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
+        if $<initializer><sym> eq '.=' {
+            $value_ast.unshift(QAST::WVal.new(:value($type)));
+        }
+        $value_ast.returns($type);
+
+        my $con_block := $*W.pop_lexpad();
+        my $value;
+        if $value_ast.has_compile_time_value {
+            $value := $value_ast.compile_time_value;
+        }
+        else {
+            $con_block.push($value_ast);
+            my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
+            $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
+            $*W.add_constant_folded_result($value);
+        }
+        if $sigil eq '%' {
+            my $Associative := $*W.find_symbol(['Associative']);
+            if !nqp::istype($value, $Associative) {
+                $*W.throw($/, 'X::TypeCheck',
+                    operation => "constant declaration of " ~ ~$<variable>,
+                    expected => $Associative, got => $*W.find_symbol([$value.HOW.name($value)]) );
+            }
         }
 
         if $name {
@@ -4065,7 +4081,7 @@ Compilation unit '$file' contained the following violations:
         %*PARAM_INFO<pos_lol>      := $quant eq '**' && %*PARAM_INFO<sigil> eq '@';
         %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
         %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
-        %*PARAM_INFO<is_parcel>    := $quant eq '\\';
+        %*PARAM_INFO<is_raw>       := $quant eq '\\';
         %*PARAM_INFO<is_capture>   := $quant eq '|';
 
         # Stash any traits.
@@ -4799,7 +4815,7 @@ Compilation unit '$file' contained the following violations:
             make $past;
         }
         else {
-            my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
+            my $past := capture_or_raw($<args>.ast, ~$<identifier>);
             $past.name('&' ~ $<identifier>);
             $past.node($/);
             make $past;
@@ -4895,7 +4911,7 @@ Compilation unit '$file' contained the following violations:
                 });
             }
             else {
-                $past := capture_or_parcel($<args>.ast, ~$<longname>);
+                $past := capture_or_raw($<args>.ast, ~$<longname>);
                 if +@name == 1 {
                     $past.name(@name[0]);
                     if +$past.list == 1 && %commatrap{@name[0]} {
@@ -5776,6 +5792,14 @@ Compilation unit '$file' contained the following violations:
         my $var_sigil;
         if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
+            if $var_sigil eq '%' {
+                if nqp::can($rhs_ast,'name') {
+                    my $name := $rhs_ast.name;
+                    if $name ~~ /^ '&circumfix:<' ':'? '{ }>' $/ {
+                        $/.CURSOR.worry("Useless use of hash composer on right side of hash assignment; did you mean := instead?");
+                    }
+                }
+            }
         }
         if nqp::istype($lhs_ast, QAST::Var)
                 && nqp::objprimspec($lhs_ast.returns) -> $spec {
@@ -6871,7 +6895,7 @@ Compilation unit '$file' contained the following violations:
     sub is_default_topic(@params) {
         if nqp::elems(@params) == 1 {
             my $only := @params[0];
-            if $only<default_from_outer> && $only<is_parcel> && $only<variable_name> eq '$_' {
+            if $only<default_from_outer> && $only<is_raw> && $only<variable_name> eq '$_' {
                 if $only<nominal_type> =:= $*W.find_symbol(['Mu']) {
                     return 1;
                 }
@@ -6880,7 +6904,7 @@ Compilation unit '$file' contained the following violations:
         0
     }
     my $SIG_ELEM_IS_RW       := 256;
-    my $SIG_ELEM_IS_PARCEL   := 1024;
+    my $SIG_ELEM_IS_RAW      := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
     my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s'];
     sub lower_signature($block, $sig, @params) {
@@ -6956,7 +6980,7 @@ Compilation unit '$file' contained the following violations:
             elsif %info<pos_slurpy> || %info<pos_lol> {
                 $var.slurpy(1);
                 my $type := $*W.find_symbol(
-                    [$flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
+                    [$flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
                 $var.push(QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name($name), :scope('local') ),
@@ -7167,7 +7191,7 @@ Compilation unit '$file' contained the following violations:
 
             # Bind to lexical if needed.
             if nqp::existskey(%info, 'variable_name') && !%info<bind_attr> {
-                if nqp::objprimspec($nomtype) || $is_rw || $flags +& $SIG_ELEM_IS_PARCEL {
+                if nqp::objprimspec($nomtype) || $is_rw || $flags +& $SIG_ELEM_IS_RAW {
                     my $scope := $spec && $is_rw ?? 'lexicalref' !! 'lexical';
                     $var.push(QAST::Op.new(
                         :op('bind'),
@@ -7696,17 +7720,17 @@ Compilation unit '$file' contained the following violations:
 
     # This is the hook where, in the future, we'll use this as the hook to check
     # if we have a proto or other declaration in scope that states that this sub
-    # has a signature of the form :(\|$parcel), in which case we don't promote
-    # the Parcel to a Capture when calling it. For now, we just worry about the
+    # has a signature of the form :(\|$raw), in which case we don't promote
+    # the raw object to a Capture when calling it. For now, we just worry about the
     # special case, return.
-    sub capture_or_parcel($args, $name) {
+    sub capture_or_raw($args, $name) {
         if $name eq 'return' {
             # Need to demote pairs again.
-            my $parcel := QAST::Op.new( :op('call') );
+            my $raw := QAST::Op.new( :op('call') );
             for @($args) {
-                $parcel.push($_.ann('before_promotion') || $_);
+                $raw.push($_.ann('before_promotion') || $_);
             }
-            $parcel
+            $raw
         }
         else {
             $args
@@ -7831,7 +7855,7 @@ Compilation unit '$file' contained the following violations:
                             @params.push(hash(
                                 :variable_name($pname),
                                 :nominal_type($*W.find_symbol(['Mu'])),
-                                :is_parcel(1),
+                                :is_raw(1),
                             ));
                             $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl<var>));
                             my $to_push := QAST::Var.new(:name($pname), :scope<lexical>);
@@ -7847,7 +7871,7 @@ Compilation unit '$file' contained the following violations:
                     @params.push(hash(
                         :variable_name($pname),
                         :nominal_type($*W.find_symbol(['Mu'])),
-                        :is_parcel(1),
+                        :is_raw(1),
                     ));
                     $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
                     $past[$i] := QAST::Var.new(:name($pname), :scope<lexical>);

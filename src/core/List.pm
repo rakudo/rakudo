@@ -868,11 +868,15 @@ multi infix:<,>(|) {
 }
 
 # These two we'll get out of "is rw" on slurpy making List, not Array.
-sub list(**@list is rw) {
-    @list
+sub list(**@list is raw) {
+    @list == 1 ?? @list[0].list !! @list
 }
-sub flat(*@flat-list is rw) {
+sub flat(*@flat-list is raw) {
     @flat-list
+}
+
+sub cache(**@list is raw) {
+    @list == 1 ?? @list[0].cache !! @list
 }
 
 proto sub infix:<xx>(|)     { * }

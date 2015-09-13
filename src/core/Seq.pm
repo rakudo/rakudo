@@ -27,6 +27,8 @@ my role PositionalBindFailover {
     method list() {
             List.from-iterator(self.iterator)
     }
+
+    method iterator() { ... }
 }
 nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
 Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover); # Multi-dispatch
@@ -409,7 +411,8 @@ sub GATHER(&block) {
     }.new(&block))
 }
 
-multi sub infix:<eqv>(Seq $a, Seq $b) {
+multi sub infix:<eqv>(Seq:D $a, Seq:D $b) {
+    return False unless $a.WHAT === $b.WHAT;
     my \ia := $a.iterator;
     my \ib := $b.iterator;
     loop {

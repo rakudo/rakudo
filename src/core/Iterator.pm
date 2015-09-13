@@ -55,7 +55,7 @@ my role Iterator {
         IterationEnd
     }
 
-    # Pushes things until we hit a lazy iterator (one whose lazy method returns
+    # Pushes things until we hit a lazy iterator (one whose is-lazy method returns
     # True). The default works well for non-composite iterators (that is, those
     # that don't trigger the evaluation of other iterators): it looks at the
     # lazy property of itself, and if it's true, does nothing, otherwise it

@@ -527,8 +527,8 @@ augment class Any {
             to-map.map(&by).iterator.push-all($transform-buffer);
         }
 
-        # Instead of sorting elements directly, we sort a Parcel of
-        # indices from 0..^$list.elems, then use that Parcel as
+        # Instead of sorting elements directly, we sort a list of
+        # indices from 0..^$list.elems, then use that list as
         # a slice into self. The JVM implementation uses a Java
         # collection sort. MoarVM has its sort algorithm implemented
         # in NQP.
@@ -705,29 +705,29 @@ proto sub infix:<min>(|) is pure { * }
 multi sub infix:<min>(Mu:D \a, Mu:U) { a }
 multi sub infix:<min>(Mu:U, Mu:D \b) { b }
 multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
-multi sub infix:<min>(*@args is rw) { @args.min }
+multi sub infix:<min>(*@args is raw) { @args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
 #proto sub min(|)     { * }
 #multi sub min(*@args) { @args.min() }
 #multi sub min(*@args, :&by!) { @args.min(&by) }
-sub min(*@args is rw, :&by = &infix:<cmp>) { @args.min(&by) }
+sub min(*@args is raw, :&by = &infix:<cmp>) { @args.min(&by) }
 
 proto sub infix:<max>(|) is pure { * }
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
-multi sub infix:<max>(*@args is rw) { @args.max }
-sub max(*@args is rw, :&by = &infix:<cmp>) { @args.max(&by) }
+multi sub infix:<max>(*@args is raw) { @args.max }
+sub max(*@args is raw, :&by = &infix:<cmp>) { @args.max(&by) }
 
 proto sub infix:<minmax>(|) is pure { * }
-multi sub infix:<minmax>(**@args is rw) { @args.minmax }
-sub minmax(**@args is rw, :&by = &infix:<cmp>) { @args.minmax(&by) }
+multi sub infix:<minmax>(**@args is raw) { @args.minmax }
+sub minmax(**@args is raw, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13
 #multi sub map(&code, @values) { @values.map(&code) }
-multi sub map(&code, *@values is rw) { @values.map(&code) }
+multi sub map(&code, *@values is raw) { @values.map(&code) }
 multi sub map(Whatever, \a)    { a }
 multi sub map(&code, Whatever) { (1..Inf).map(&code) }
 

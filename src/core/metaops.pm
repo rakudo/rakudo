@@ -69,7 +69,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     }
                 }
             }
-        }
+        }.lazy-if($Inf);
     }
 }
 
@@ -119,7 +119,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
             until (my \value = source.pull-one) =:= IterationEnd {
                 take ($result := op.($result, value));
             }
-        });
+        }).lazy-if(source.is-lazy);
     }
 }
 
@@ -160,7 +160,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
             while (my $elem := iter.pull-one) !=:= IterationEnd {
                 take $result := op.($elem, $result)
             }
-        }
+        }.lazy-if(@values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
@@ -190,15 +190,13 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
     my $ :=
 #?endif
     sub (*@values) {
-
-        my \res = GATHER({
+        GATHER({
             my @list;
             for @values -> \v {
                 @list.push(v);
                 take op.(|@list);
             }
-        });
-        @values.is-lazy ?? res.lazy !! res;
+        }).lazy-if(@values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_LIST(\op) {
@@ -218,15 +216,14 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
         return () unless p.elems;
 
         my int $i;
-        my \res = GATHER({
+        GATHER({
             my @list;
             while $i < p.elems {
                 @list.push(p[$i]);
                 $i = $i + 1;
                 take op.(|@list);
             }
-        });
-        p.is-lazy ?? res.lazy !! res;
+        }).lazy-if(p.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {
@@ -262,7 +259,7 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
                     take False;
                 }
             }
-        }
+        }.lazy-if(@values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_CHAIN(\op) {
@@ -352,7 +349,6 @@ multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
     nqp::iscont(right) ?? result.item !! result;
 }
 
-# XXX Should really be Iterable:D by spec, but then it doesn't work with Parcel
 multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
     my @result;
     X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.is-lazy;

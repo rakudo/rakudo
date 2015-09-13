@@ -221,7 +221,7 @@ my class Array { # declared in BOOTSTRAP
         multi method BIND-POS(Array:U: |c) is rw {
             self.Any::BIND-POS(|c)
         }
-        multi method BIND-POS(**@indices is rw) is rw {
+        multi method BIND-POS(**@indices is raw) is rw {
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems - 1;
@@ -293,7 +293,7 @@ my class Array { # declared in BOOTSTRAP
         self!new-internal(values, $shape)
     }
 
-    multi method new(**@values is rw, :$shape) {
+    multi method new(**@values is raw, :$shape) {
         self!new-internal(@values, $shape)
     }
 
@@ -511,7 +511,7 @@ my class Array { # declared in BOOTSTRAP
             self!push-list(value.list)
         }
     }
-    multi method push(Array:D: **@values is rw) {
+    multi method push(Array:D: **@values is raw) {
         self!ensure-allocated();
         self!push-list(@values)
    }
@@ -542,7 +542,7 @@ my class Array { # declared in BOOTSTRAP
             self!unshift-list(value.list)
         }
     }
-    multi method unshift(Array:D: **@values is rw) {
+    multi method unshift(Array:D: **@values is raw) {
         self!unshift-list(@values)
     }
     method !unshift-list(@values) {
@@ -560,7 +560,7 @@ my class Array { # declared in BOOTSTRAP
         self;
     }
 
-    method pop(Array:D:) is parcel is nodal {
+    method pop(Array:D:) is raw is nodal {
         self!ensure-allocated();
         fail X::Cannot::Lazy.new(action => 'pop from') if self.is-lazy;
 
@@ -570,7 +570,7 @@ my class Array { # declared in BOOTSTRAP
             !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
     }
 
-    method shift(Array:D:) is parcel is nodal {
+    method shift(Array:D:) is raw is nodal {
         # make sure we have at least one item, then shift+return it
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
@@ -764,7 +764,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        method new(**@values is rw) {
+        method new(**@values is raw) {
             my \arr = nqp::create(self);
             nqp::bindattr(
                 arr,

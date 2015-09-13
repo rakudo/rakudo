@@ -16,7 +16,7 @@ my $SIG_ELEM_INVOCANT            := 64;
 my $SIG_ELEM_MULTI_INVOCANT      := 128;
 my $SIG_ELEM_IS_RW               := 256;
 my $SIG_ELEM_IS_COPY             := 512;
-my $SIG_ELEM_IS_PARCEL           := 1024;
+my $SIG_ELEM_IS_RAW              := 1024;
 my $SIG_ELEM_IS_OPTIONAL         := 2048;
 my $SIG_ELEM_ARRAY_SIGIL         := 4096;
 my $SIG_ELEM_HASH_SIGIL          := 8192;
@@ -1472,8 +1472,8 @@ class Perl6::World is HLL::World {
         if %param_info<is_rw> {
             $flags := $flags + $SIG_ELEM_IS_RW;
         }
-        if %param_info<is_parcel> {
-            $flags := $flags + $SIG_ELEM_IS_PARCEL;
+        if %param_info<is_raw> {
+            $flags := $flags + $SIG_ELEM_IS_RAW;
         }
         if %param_info<is_capture> {
             $flags := $flags + $SIG_ELEM_IS_CAPTURE;
@@ -2776,7 +2776,7 @@ class Perl6::World is HLL::World {
                 nqp::push(
                     nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
                     self.create_parameter($/, hash(
-                            variable_name => '$_', is_parcel => 1,
+                            variable_name => '$_', is_raw => 1,
                             nominal_type => self.find_symbol(['Mu'])
                         )));
             }

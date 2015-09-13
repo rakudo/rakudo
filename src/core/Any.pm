@@ -299,7 +299,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-POS(|) { * }
-    multi method BIND-POS(Any:D: **@indices is rw) {
+    multi method BIND-POS(Any:D: **@indices is raw) {
         my int $elems = @indices.elems;
         my \value := @indices.AT-POS($elems - 1);
         my $final := @indices.AT-POS($elems - 2);

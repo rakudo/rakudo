@@ -1,5 +1,3 @@
-use nqp;
-
 my class IO::ArgFiles is IO::Handle {
     has $.args;
     has $.filename;

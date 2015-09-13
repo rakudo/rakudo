@@ -62,14 +62,14 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
         ();
     }
 
-    method load_module($module_name, %opts, *@GLOBALish is raw, :$line, :$file, :%chosen) {
+    method load_module($module_name, %opts, \GLOBALish is raw, :$line, :$file) {
         RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $?RAKUDO_MODULE_DEBUG;
         $lock.protect( {
         if %opts<from> {
             # See if we need to load it from elsewhere.
             if %language_module_loaders{%opts<from>}:exists {
                 return %language_module_loaders{%opts<from>}.load_module($module_name,
-                    %opts, @GLOBALish, :$line, :$file);
+                    %opts, GLOBALish, :$line, :$file);
             }
             else {
                 nqp::die("Do not know how to load code from " ~ %opts<from>);
@@ -79,7 +79,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             CompUnit.new($file.IO.absolute).load(GLOBALish, :$line);
         }
         elsif self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>)) -> ($candi) {
-            $candi.load(@GLOBALish, :$line)
+            $candi.load(GLOBALish, :$line)
         }
         elsif $file {
             nqp::die("Could not find file '$file' for module $module_name");

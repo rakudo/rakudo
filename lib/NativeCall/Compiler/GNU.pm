@@ -6,7 +6,7 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     $r.signature.set_returns($r.package)
         if $r.name eq 'new' && !$r.signature.has_returns && $r.package !~~ GLOBAL;
 
-    my $mangled = '_Z'
+    my $mangled = ($*KERNEL.name eq 'darwin' ?? '__Z' !! '_Z')
                 ~ ($r.package.REPR eq 'CPPStruct' ?? 'N' !! '')
                 ~ $symbol.split('::').map({$_ eq 'new' ?? 'C1' !! $_.chars ~ $_}).join('')
                 ~ ($r.package.REPR eq 'CPPStruct' ?? 'E' !! '');

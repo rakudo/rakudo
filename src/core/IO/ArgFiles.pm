@@ -10,7 +10,7 @@ my class IO::ArgFiles is IO::Handle {
         ! $!args && $!io.opened && $!io.eof
     }
 
-    method get() {
+    method !next-io() {
         unless $!has-args.defined {
             $!has-args = ?$!args;
         }
@@ -26,15 +26,28 @@ my class IO::ArgFiles is IO::Handle {
             $!io = open($!filename, :r, :nl($!nl)) ||
                 fail "Unable to open file '$!filename'";
         }
-        my $x = $!io.get;
-        while !$x.defined {
-            $!io.close;
-            $!io = IO::Handle;
-            fail "End of argfiles reached" unless $!args;
-            $x = self.get;
+
+        return Str unless $!io.defined and $!io.opened;
+
+        $!io;
+    }
+
+    method get() {
+        unless $!io.defined and $!io.opened {
+            (return $_ unless .defined) given self!next-io;
         }
+
+        my $line;
+        repeat {
+            $line = $!io.get;
+            unless $line.defined {
+                $!io.close;
+                $!io = IO::Handle;
+                (return $_ unless .defined) given self!next-io;
+            }
+        } until $line.defined;
         $!ins++;
-        $x;
+        $line;
     }
 
     method lines($limit = *) {

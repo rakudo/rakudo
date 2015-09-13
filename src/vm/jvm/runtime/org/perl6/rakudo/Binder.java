@@ -65,6 +65,7 @@ public final class Binder {
     private static final int HINT_ENUMMAP_storage = 0;
     private static final int HINT_CAPTURE_list = 0;
     private static final int HINT_CAPTURE_hash = 1;
+    private static final int HINT_LIST_reified = 0;
     private static final int HINT_SIG_params = 0;
 
     private static SixModelObject createBox(ThreadContext tc, RakOps.GlobalExt gcx, Object arg, int flag) {
@@ -499,9 +500,11 @@ public final class Binder {
                 if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
                     SixModelObject bindee = decontValue;
                     if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        throw ExceptionHandling.dieInternal(tc, "is copy on lists NYI after GLR");
-                        //bindee = RakOps.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
-                        //RakOps.p6store(bindee, decontValue, tc);
+                        SixModelObject BOOTArray = tc.gc.BOOTArray;
+                        bindee = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
+                        bindee.bind_attribute_boxed(tc, gcx.List, "$!reified",
+                            HINT_LIST_reified, BOOTArray.st.REPR.allocate(tc, BOOTArray.st));
+                        RakOps.p6store(bindee, decontValue, tc);
                     }
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                 }
@@ -836,7 +839,7 @@ public final class Binder {
                         curPosArg++;
                     }
 
-                    SixModelObject slurpyType = (flags & SIG_ELEM_IS_RW) != 0 ? gcx.List : gcx.Array;
+                    SixModelObject slurpyType = (flags & SIG_ELEM_IS_RAW) != 0 ? gcx.List : gcx.Array;
                     SixModelObject sm = Ops.findmethod(tc, slurpyType,
                         (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy");
                     Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });

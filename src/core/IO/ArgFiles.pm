@@ -10,7 +10,7 @@ my class IO::ArgFiles is IO::Handle {
         ! $!args && $!io.opened && $!io.eof
     }
 
-    method get() {
+    method !next-io() {
         unless $!has-args.defined {
             $!has-args = ?$!args;
         }
@@ -26,22 +26,72 @@ my class IO::ArgFiles is IO::Handle {
             $!io = open($!filename, :r, :nl($!nl)) ||
                 fail "Unable to open file '$!filename'";
         }
-        my $x = $!io.get;
-        while !$x.defined {
-            $!io.close;
-            $!io = IO::Handle;
-            fail "End of argfiles reached" unless $!args;
-            $x = self.get;
+
+        return Str unless $!io.defined and $!io.opened;
+
+        $!io;
+    }
+
+    method get() {
+        unless $!io.defined and $!io.opened {
+            (return $_ unless .defined) given self!next-io;
         }
+
+        my $line;
+        repeat {
+            $line = $!io.get;
+            unless $line.defined {
+                $!io.close;
+                $!io = IO::Handle;
+                (return $_ unless .defined) given self!next-io;
+            }
+        } until $line.defined;
         $!ins++;
-        $x;
+        $line;
     }
 
     method lines($limit = *) {
         my $l = nqp::istype($limit,Whatever) ?? Inf !! $limit;
-        gather while $l-- > 0 {
-           take $.get // last;
-        }
+        Seq.new(class :: does Iterator {
+            has $!args;
+            has $!iter;
+            has $!limit;
+            has $!next-io;
+            has $!ins;
+
+            method new(\args, \ins, \limit, \next-io) {
+                my \iter = self.CREATE;
+                nqp::bindattr(iter, self, '$!args', args);
+                nqp::bindattr(iter, self, '$!ins', ins);
+                nqp::bindattr(iter, self, '$!next-io', next-io);
+                my $io = next-io.();
+                if $io.defined {
+                    nqp::bindattr(iter, self, '$!limit', limit);
+                    nqp::bindattr(iter, self, '$!iter', $io.lines(:close).iterator);
+                }
+                else {
+                    return $io if nqp::istype($io, Failure);
+                    nqp::bindattr(iter, self, '$!limit', my $ = 0);
+                }
+                iter
+            }
+
+            method pull-one() {
+                return IterationEnd if $!limit-- <= 0;
+                my \value = $!iter.pull-one;
+                if value =:= IterationEnd {
+                    my $io = $!next-io.();
+                    return $io if nqp::istype($io, Failure);
+                    return IterationEnd unless $io.defined;
+                    $!iter := $io.lines.iterator;
+                    self.pull-one;
+                }
+                else {
+                    $!ins++;
+                    value;
+                }
+            }
+        }.new(self, $!ins, $l, -> { self!next-io }));
     }
     method slurp(IO::ArgFiles:D:) {
         my @chunks;

@@ -134,6 +134,7 @@ augment class Any {
                                     ),
                                     'LABELED', nqp::decont($!label),
                                     'NEXT', nqp::stmts(
+                                        ($!did-iterate = 1),
                                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                         ($value := $!source.pull-one()),
                                         nqp::eqaddr($value, IterationEnd)
@@ -177,6 +178,7 @@ augment class Any {
                                         ),
                                         'LABELED', nqp::decont($!label),
                                         'NEXT', nqp::stmts(
+                                            ($!did-iterate = 1),
                                             nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                             ($value := $!source.pull-one()),
                                             nqp::eqaddr($value, IterationEnd)
@@ -251,6 +253,7 @@ augment class Any {
                                     ),
                                     'LABELED', nqp::decont($!label),
                                     'NEXT', nqp::stmts(
+                                        ($!did-iterate = 1),
                                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                         (nqp::setelems($!value-buffer, 0)),
                                         nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)

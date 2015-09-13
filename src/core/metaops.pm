@@ -69,7 +69,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     }
                 }
             }
-        }
+        }.lazy-if($Inf);
     }
 }
 
@@ -190,15 +190,13 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
     my $ :=
 #?endif
     sub (*@values) {
-
-        my \res = GATHER({
+        GATHER({
             my @list;
             for @values -> \v {
                 @list.push(v);
                 take op.(|@list);
             }
-        });
-        @values.is-lazy ?? res.lazy !! res;
+        }).lazy-if(@values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_LIST(\op) {
@@ -218,15 +216,14 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
         return () unless p.elems;
 
         my int $i;
-        my \res = GATHER({
+        GATHER({
             my @list;
             while $i < p.elems {
                 @list.push(p[$i]);
                 $i = $i + 1;
                 take op.(|@list);
             }
-        });
-        p.is-lazy ?? res.lazy !! res;
+        }).lazy-if(p);
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {

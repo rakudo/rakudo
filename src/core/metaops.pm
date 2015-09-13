@@ -119,7 +119,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
             until (my \value = source.pull-one) =:= IterationEnd {
                 take ($result := op.($result, value));
             }
-        });
+        }).lazy-if(source.is-lazy);
     }
 }
 
@@ -160,7 +160,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
             while (my $elem := iter.pull-one) !=:= IterationEnd {
                 take $result := op.($elem, $result)
             }
-        }
+        }.lazy-if(@values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
@@ -223,7 +223,7 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
                 $i = $i + 1;
                 take op.(|@list);
             }
-        }).lazy-if(p);
+        }).lazy-if(p.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {
@@ -259,7 +259,7 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
                     take False;
                 }
             }
-        }
+        }.lazy-if(@values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_CHAIN(\op) {

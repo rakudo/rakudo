@@ -506,7 +506,7 @@ my class IO::Path is Cool {
         self!spurt($contents, :!bin, |c );
     }
 
-    proto method lines() { * }
+    proto method lines(|) { * }
     multi method lines(IO::Path:D: |c) {
         my $handle = self.open(|c);
         $handle && $handle.lines(:close, |c);

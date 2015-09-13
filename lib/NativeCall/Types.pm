@@ -177,7 +177,7 @@ augment class CArray {
         }
         else {
             die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-                unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
+                unless t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CUnion' | 'CPointer' | 'CArray';
             $typed := TypedCArray[t];
         }
         $typed.^inheritalize();

@@ -1008,9 +1008,10 @@ sub infix:<X>(|lol) {
     }
     else { # more than 3 dimensions
         my Mu $jsave := nqp::list_i();
+        my \source = @l[0].iterator;
         gather {
             while $i == 0 {
-                my \e = @l[0].pull-one;
+                my \e = source.pull-one;
                 if e !=:= IterationEnd {
                     nqp::bindpos($v, $i, e);
 

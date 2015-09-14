@@ -36,6 +36,26 @@ sub NORMALIZE_ENCODING(Str:D $s) {
     %map{$s} // %map{lc $s} // lc $s;
 }
 
+# XXX this can probably go when we have nqp::readlinefhchomp
+sub CHOPCRLF(\string) {
+    my int $chars = nqp::chars(string);
+    return '' if $chars == 0;
+
+    my int $last = nqp::ordat(string, $chars - 1);
+    if nqp::iseq_i($last, 10) {
+        nqp::substr(string, 0, $chars - 
+          (nqp::isgt_i($chars, 1)
+            && nqp::iseq_i(nqp::ordat(string, $chars - 2), 13) ?? 2 !! 1)
+        );
+    }
+    elsif nqp::iseq_i($last, 13) {
+        nqp::substr(string, 0, $chars - 1);
+    }
+    else {
+        string;
+    }
+}
+
 my class Str does Stringy { # declared in BOOTSTRAP
     # class Str is Cool {
     #     has str $!value is box_target;
@@ -77,25 +97,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method chomp(Str:D:) {
-        my str $sself = nqp::unbox_s(self);
-        my int $chars = nqp::chars($sself);
-        return '' if $chars == 0;
-
-        my int $last = nqp::ordat($sself, $chars - 1);
-        if $last == 10 {
-            if $chars > 1 && nqp::iseq_i(nqp::ordat($sself, $chars - 2),  13) {
-                nqp::p6box_s(nqp::substr($sself, 0, $chars - 2));
-            }
-            else {
-                nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
-            }
-        }
-        elsif $last == 13 {
-            nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
-        }
-        else {
-            self;
-        }
+        nqp::p6box_s(CHOPCRLF(nqp::unbox_s(self)));
     }
 
     method chop(Str:D: Int() $chopping = 1) {

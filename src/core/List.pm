@@ -870,12 +870,15 @@ multi infix:<,>(|) {
     result
 }
 
-# These two we'll get out of "is rw" on slurpy making List, not Array.
 sub list(**@list is raw) {
     @list == 1 ?? @list[0].list !! @list
 }
-sub flat(*@flat-list is raw) {
-    @flat-list
+
+# Use **@list and then .flat it, otherwise we'll end up remembering all the
+# things we flatten, which would be different semantics to .flat which gives
+# back a Seq.
+sub flat(**@list is raw) {
+    @list.flat
 }
 
 sub cache(**@list is raw) {

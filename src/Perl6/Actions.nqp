@@ -2817,12 +2817,7 @@ Compilation unit '$file' contained the following violations:
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
         my $outer := $*W.cur_lexpad();
-#?if jvm
-        my $clone := 1; # Workaround to unbreak NativeCall on JVM.
-#?endif
-#?if !jvm
         my $clone := !($outer =:= $*UNIT);
-#?endif
         $outer[0].push(QAST::Stmt.new($block));
 
         if $<deflongname> {

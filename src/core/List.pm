@@ -49,7 +49,7 @@ my sub permutations(Int $n) {
     gather for ^$n -> $i {
         my @i = flat 0 ..^ $i, $i ^..^ $n;
         for permutations($n - 1) {
-            take (flat $i, @i[@$_])
+            take ($i, |@i[@$_])
         }
     }
 }

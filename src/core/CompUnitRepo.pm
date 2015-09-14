@@ -75,13 +75,12 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             }
         }
         elsif $file {
-            CompUnit.new($file.IO.absolute).load(GLOBALish, :$line);
+            my $path = $file.IO;
+            $path.e ?? CompUnit.new($path.absolute).load(GLOBALish, :$line)
+                    !! nqp::die("Could not find file '$file' for module $module_name");
         }
         elsif self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>)) -> ($candi) {
             $candi.load(GLOBALish, :$line)
-        }
-        elsif $file {
-            nqp::die("Could not find file '$file' for module $module_name");
         }
         else {
             nqp::die("Could not find $module_name in any of:\n  " ~

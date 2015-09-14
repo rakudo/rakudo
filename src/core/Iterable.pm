@@ -26,17 +26,29 @@ my role Iterable {
                 iter
             }
 
+            my constant NO_RESULT_YET = Mu.CREATE;
             method pull-one() is rw {
-                my $result;
-                loop {
+                my $result := NO_RESULT_YET;
+                my $got;
+                repeat while nqp::eqaddr($result, NO_RESULT_YET) {
                     if $!nested-iter {
-                        $result := $!nested-iter.pull-one();
-                        last unless $result =:= IterationEnd;
-                        $!nested-iter := Iterator;
+                        $got := $!nested-iter.pull-one();
+                        if nqp::eqaddr($got, IterationEnd) {
+                            $!nested-iter := Iterator;
+                        }
+                        else {
+                            $result := $got;
+                        }
                     }
-                    $result := $!source.pull-one();
-                    last unless nqp::istype($result, Iterable) && !nqp::iscont($result);
-                    $!nested-iter := $result.flat.iterator;
+                    else {
+                        $got := $!source.pull-one();
+                        if nqp::istype($got, Iterable) && !nqp::iscont($got) {
+                            $!nested-iter := $got.flat.iterator;
+                        }
+                        else {
+                            $result := $got;
+                        }
+                    }
                 }
                 $result
             }

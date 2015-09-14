@@ -84,7 +84,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
         }
         else {
             nqp::die("Could not find $module_name in any of:\n  " ~
-                join("\n  ", 'XXX'));
+                join("\n  ", @*INC));
         }
     } ) }
 

@@ -143,43 +143,51 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method classify-list(|) { * }
-    # XXX GLR possibly more efficient taking an Iterable, not a @list
-    multi method classify-list( &test, @list, :&as ) {
-        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
-        if @list {
+    multi method classify-list( &test, \list, :&as ) {
+        fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
+        my $value := iter.pull-one;
+        unless $value =:= IterationEnd {
+            my $tested := test($value);
 
             # multi-level classify
-            if nqp::istype(test(@list[0]),Iterable) {
-                @list.map: -> $l {
-                    my @keys  = test($l);
+            if nqp::istype($tested, Iterable) {
+                loop {
+                    my @keys  = $tested;
                     my $last := @keys.pop;
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
                     nqp::push(
                       nqp::getattr(nqp::decont($hash{$last} //= []), List, '$!reified'),
-                      &as ?? as($l) !! $l
+                      &as ?? as($value) !! $value
                     );
-                }
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    $tested := test($value);
+                };
             }
 
             # simple classify to store a specific value
             elsif &as {
-                @list.map: {
+                loop {
                     nqp::push(
-                      nqp::getattr(nqp::decont(self{test $_} //= []), List, '$!reified'),
-                      as($_)
-                    )
-                }
+                      nqp::getattr(nqp::decont(self{$tested} //= []), List, '$!reified'),
+                      as($value)
+                    );
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    $tested := test($value);
+                };
             }
 
             # just a simple classify
             else {
-                @list.map: {
+                loop {
                     nqp::push(
-                      nqp::getattr(nqp::decont(self{test $_} //= []), List, '$!reified'),
-                      $_
-                    )
-                }
+                      nqp::getattr(nqp::decont(self{$tested} //= []), List, '$!reified'),
+                      $value
+                    );
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    $tested := test($value);
+                };
             }
         }
         self;

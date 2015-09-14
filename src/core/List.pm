@@ -936,19 +936,17 @@ sub infix:<X>(|lol) {
     }
     my int $n = lol.elems - 1;
     my $Inf = False;
-    eager my @l = do for 0..$n -> $i {
-        my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+    my @l = do for 0..$n -> $i {
+        my \elem = lol[$i];
         $Inf = True if $i and elem.is-lazy;
-        nqp::istype(elem, Iterable)
-            ?? elem.item # without this .item, a Seq would get iterated by the "for"
-            !! elem.list;
+        elem.list
     }
 
     # eagerize 2nd and subsequent lists if finite
     my Mu $end := nqp::list_i();
     if !$Inf {
         for 1 .. $n -> $i {
-            nqp::bindpos_i($end,$i,@l[$i].cache.elems);
+            nqp::bindpos_i($end,$i,@l[$i].elems);
         }
     }
 

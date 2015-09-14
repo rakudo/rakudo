@@ -198,7 +198,7 @@ class Perl6::HookActions is Perl6::Actions {
     
     method statement_control:sym<if>($/) {
         if $*DEBUG_HOOKS.has_hook('statement_cond') {
-            my $from := $<sym>.from;
+            my $from := $<sym>[0].from;
             for $<xblock> {
                 my $ast := $_.ast;
                 $ast[0] := QAST::Stmts.new(

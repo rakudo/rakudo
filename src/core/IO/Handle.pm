@@ -360,6 +360,18 @@ my class IO::Handle does IO {
                         nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
                     }
                 }
+                method push-all($target) {
+                    my int $ins;
+                    until nqp::eoffh($!PIO) {
+                        $target.push(
+                          nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
+                        );
+                        $ins = $ins + 1;
+                    }
+                    nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins );
+                    $!handle.close if $!close;
+                    IterationEnd
+                }
             }.new(self, $close));
         }
         else {
@@ -374,6 +386,16 @@ my class IO::Handle does IO {
                             nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
                         nqp::p6box_s(nqp::readlinefh($!PIO))
                     }
+                }
+                method push-all($target) {
+                    my int $ins;
+                    until nqp::eoffh($!PIO) {
+                        $target.push(nqp::readlinefh($!PIO));
+                        $ins = $ins + 1;
+                    }
+                    nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins );
+                    $!handle.close if $!close;
+                    IterationEnd
                 }
             }.new(self, $close));
         }

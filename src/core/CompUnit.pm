@@ -194,7 +194,8 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                 my $UNIT := nqp::ctxlexpad($!module_ctx);
                 if GLOBALish.^name eq 'GLOBAL' {
                     unless nqp::isnull(nqp::atkey($UNIT, 'GLOBALish')) {
-                        merge_globals(GLOBALish, nqp::atkey($UNIT, 'GLOBALish'));
+                        nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(
+                            GLOBALish, nqp::atkey($UNIT, 'GLOBALish'));
                     }
                 }
                 return $UNIT;
@@ -207,57 +208,6 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
         $*CTXSAVE := 0;
-    }
-
-    my $stub_how     := 'Perl6::Metamodel::PackageHOW';
-    my $nqp_stub_how := 'KnowHOW';
-    sub merge_globals(Mu \target is rw, Mu \source is rw) {
-        # Start off merging top-level symbols. Easy when there's no
-        # overlap. Otherwise, we need to recurse.
-        my %known_symbols;
-        for % = target.WHO {
-            %known_symbols{$_.key} := 1;
-        }
-        for % = source.WHO {
-            my $sym := $_.key;
-            my $val := nqp::decont($_.value);
-            my $tgt := (target.WHO){$sym};
-
-            if !%known_symbols{$sym} {
-                (target.WHO){$sym} := $val;
-            }
-            elsif $tgt =:= $val {
-                # No problemo; a symbol can't conflict with itself.
-            }
-            else {
-                my $source_mo      := $val.HOW;
-                my $source_is_stub := $source_mo.HOW.name($source_mo) eq $stub_how
-                                   || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
-                my $target_mo      := (target.WHO){$sym}.HOW;
-                my $target_is_stub := $target_mo.HOW.name($target_mo) eq $stub_how
-                                   || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
-                if $source_is_stub && $target_is_stub {
-                    # Both stubs. We can safely merge the symbols from
-                    # the source into the target that's importing them.
-                    merge_globals($tgt, $val);
-                }
-                elsif $source_is_stub {
-                    # The target has a real package, but the source is a
-                    # stub. Also fine to merge source symbols into target.
-                    merge_globals($tgt, $val);
-                }
-                elsif $target_is_stub {
-                    # The tricky case: here the interesting package is the
-                    # one in the module. So we merge the other way around
-                    # and install that as the result.
-                    merge_globals($val, $tgt);
-                    (target.WHO){$sym} := $val;
-                }
-                else {
-                    nqp::die("CU Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
-                }
-            }
-        }
     }
 }
 

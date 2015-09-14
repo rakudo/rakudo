@@ -21,12 +21,11 @@ class CompUnitRepo {
     my $lock     = Lock.new;
     my %modules_loaded;
 
-    my %language_module_loaders =
-        # We're using Perl6::ModuleLoader instead of NQP's here,
-        # so it can special-cases NQP wrt GLOBALish correctly.
-        'NQP' => nqp::gethllsym('perl6', 'ModuleLoader'),
-        'Perl5' => Perl5ModuleLoaderStub,
-    ;
+    my %language_module_loaders;
+    %language_module_loaders<Perl5> := Perl5ModuleLoaderStub;
+    # We're using Perl6::ModuleLoader instead of NQP's here,
+    # so it can special-cases NQP wrt GLOBALish correctly.
+    %language_module_loaders<NQP>   := nqp::gethllsym('perl6', 'ModuleLoader');
 
     method register_language_module_loader($lang, $loader, :$force) {
         nqp::die("Language loader already registered for $lang")

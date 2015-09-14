@@ -203,7 +203,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $UNIT := nqp::ctxlexpad($module_ctx);
             if +@GLOBALish {
                 unless nqp::isnull($UNIT<GLOBALish>) {
-                    merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
+                    self.merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
                 }
             }
             return $UNIT;
@@ -220,7 +220,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     # moment. We'll see how far this takes us.
     my $stub_how := 'Perl6::Metamodel::PackageHOW';
     my $nqp_stub_how := 'KnowHOW';
-    sub merge_globals($target, $source) {
+    method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
         my %known_symbols;
@@ -245,18 +245,18 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
-                    merge_globals(($target.WHO){$sym}, $_.value);
+                    self.merge_globals(($target.WHO){$sym}, $_.value);
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
-                    merge_globals(($target.WHO){$sym}, $_.value);
+                    self.merge_globals(($target.WHO){$sym}, $_.value);
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    merge_globals($_.value, ($target.WHO){$sym});
+                    self.merge_globals($_.value, ($target.WHO){$sym});
                     ($target.WHO){$sym} := $_.value;
                 }
                 else {

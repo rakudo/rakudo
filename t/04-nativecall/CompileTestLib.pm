@@ -60,5 +60,5 @@ sub compile_cpp_test_lib($name) is export {
 
 END {
 #    say "cleaning up @cleanup[]";
-    #~ unlink @cleanup;
+    unlink @cleanup;
 }

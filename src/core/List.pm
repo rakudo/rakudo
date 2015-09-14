@@ -955,8 +955,9 @@ sub infix:<X>(|lol) {
 
     if $Inf {  # general case treats all lists as potentially lazy
         return gather {
+            my @i = @l.map: *.iterator;
             while $i >= 0 {
-                my \e = @l[$i].pull-one();
+                my \e = @i[$i].pull-one();
                 if e !=:= IterationEnd {
                     nqp::bindpos($v, $i, e);
                     if $i >= $n { take nqp::clone($v) }

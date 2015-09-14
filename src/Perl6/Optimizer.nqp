@@ -927,14 +927,23 @@ class Perl6::Optimizer {
         my int $flattened := 0;
         my $result        := $block;
         if $block.blocktype eq 'immediate' && $block.arity == 0
-                && !$*DYNAMICALLY_COMPILED && !$vars_info.is_poisoned
-                && !$block.has_exit_handler {
+                && !$vars_info.is_poisoned && !$block.has_exit_handler {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
             for $block.symtable() {
                 my $name := $_.key;
                 if $name ne '$_' && $name ne '$*DISPATCHER' {
                     @sigsyms.push($name);
+                }
+            }
+
+            # If we dynamically compiled it, then it must not contain
+            # any nested blocks.
+            if $*DYNAMICALLY_COMPILED {
+                for $block[0].list {
+                    if nqp::istype($_, QAST::Block) && $_.blocktype ne 'raw' {
+                        @sigsyms.push('');
+                    }
                 }
             }
             

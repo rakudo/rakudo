@@ -88,11 +88,8 @@ M_CLEANUPS = \
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
-m-all: m-gen $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/Pod/To/Text.pm.moarvm \
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/lib.pm6.moarvm lib/Pod/To/Text.pm.moarvm \
     lib/NativeCall.pm.moarvm lib/NativeCall/Types.pm.moarvm lib/NativeCall/Compiler/GNU.pm.moarvm lib/NativeCall/Compiler/MSVC.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
-
-m-gen:
-	$(MKPATH) $(M_BUILD_DIR)
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \

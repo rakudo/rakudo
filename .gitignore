@@ -1,4 +1,4 @@
-gen/*
+src/gen/*
 nqp/
 install/
 install-jvm/

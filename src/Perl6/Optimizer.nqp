@@ -1637,6 +1637,11 @@ class Perl6::Optimizer {
             
             # See if we know the node's type; if so, check it.
             my $type := $_.returns();
+            if $type =:= NQPMu {
+                if nqp::istype($_, QAST::Want) && nqp::istype($_[0], QAST::WVal) {
+                    $type := $_[0].value.WHAT;
+                }
+            }
             my $ok_type := 0;
             try $ok_type := nqp::istype($type, $!symbols.Mu) &&
                 $type.HOW.archetypes.nominal();

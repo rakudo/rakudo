@@ -49,7 +49,7 @@ my sub permutations(Int $n) {
     gather for ^$n -> $i {
         my @i = flat 0 ..^ $i, $i ^..^ $n;
         for permutations($n - 1) {
-            take (flat $i, @i[@$_])
+            take ($i, |@i[@$_])
         }
     }
 }
@@ -870,12 +870,15 @@ multi infix:<,>(|) {
     result
 }
 
-# These two we'll get out of "is rw" on slurpy making List, not Array.
 sub list(**@list is raw) {
     @list == 1 ?? @list[0].list !! @list
 }
-sub flat(*@flat-list is raw) {
-    @flat-list
+
+# Use **@list and then .flat it, otherwise we'll end up remembering all the
+# things we flatten, which would be different semantics to .flat which gives
+# back a Seq.
+sub flat(**@list is raw) {
+    @list.flat
 }
 
 sub cache(**@list is raw) {
@@ -933,19 +936,17 @@ sub infix:<X>(|lol) {
     }
     my int $n = lol.elems - 1;
     my $Inf = False;
-    eager my @l = do for 0..$n -> $i {
-        my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+    my @l = do for 0..$n -> $i {
+        my \elem = lol[$i];
         $Inf = True if $i and elem.is-lazy;
-        nqp::istype(elem, Iterable)
-            ?? elem.item # without this .item, a Seq would get iterated by the "for"
-            !! elem.list;
+        elem.list
     }
 
     # eagerize 2nd and subsequent lists if finite
     my Mu $end := nqp::list_i();
     if !$Inf {
         for 1 .. $n -> $i {
-            nqp::bindpos_i($end,$i,@l[$i].cache.elems);
+            nqp::bindpos_i($end,$i,@l[$i].elems);
         }
     }
 

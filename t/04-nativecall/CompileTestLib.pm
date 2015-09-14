@@ -44,7 +44,7 @@ sub compile_cpp_test_lib($name) is export {
                    "clang++ -stdlib=libc++ --shared -fPIC -o $name.$so t/04-nativecall/$name.cpp",
     }
 
-    my @fails;
+    my (@fails, $succeeded);
     for @cmds -> $cmd {
         my $handle = shell("$cmd 2>&1", :out);
         my $output = $handle.out.slurp-rest;
@@ -52,10 +52,11 @@ sub compile_cpp_test_lib($name) is export {
             @fails.push: "Running '$cmd':\n$output"
         }
         else {
+            $succeeded = 1;
             last
         }
     }
-    fail @fails.join('=' x 80 ~ "\n") if @fails;
+    fail @fails.join('=' x 80 ~ "\n") unless $succeeded;
 }
 
 END {

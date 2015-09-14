@@ -507,15 +507,15 @@ my class IO::Path is Cool {
     }
 
     proto method lines(|) { * }
-    multi method lines(IO::Path:D: |c) {
+    multi method lines(IO::Path:D: $limit = *, |c) {
         my $handle = self.open(|c);
-        $handle && $handle.lines(:close, |c);
+        $handle && $handle.lines($limit, :close, |c);
     }
 
     proto method words() { * }
-    multi method words(IO::Path:D: |c) {
+    multi method words(IO::Path:D: $limit = *, |c) {
         my $handle = self.open(|c);
-        $handle && $handle.words(:close, |c);
+        $handle && $handle.words($limit, :close, |c);
     }
 
     my %t =

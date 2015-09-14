@@ -357,8 +357,7 @@ my class IO::Handle does IO {
                     else {
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
                             nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
-                        # XXX until we have nqp::readlinefhchomp
-                        CHOPCRLF(nqp::readlinefh($!PIO));
+                        nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
                     }
                 }
             }.new(self, $close));
@@ -373,7 +372,7 @@ my class IO::Handle does IO {
                     else {
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
                             nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
-                        nqp::readlinefh($!PIO);
+                        nqp::p6box_s(nqp::readlinefh($!PIO))
                     }
                 }
             }.new(self, $close));

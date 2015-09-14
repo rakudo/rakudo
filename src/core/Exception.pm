@@ -1798,9 +1798,11 @@ my class X::HyperOp::NonDWIM is Exception {
     has &.operator;
     has $.left-elems;
     has $.right-elems;
+    has $.recursing;
     method message() {
-        "Lists on either side of non-dwimmy hyperop of &.operator.name() are not of the same length\n"
-        ~ "left: $.left-elems elements, right: $.right-elems elements";
+        "Lists on either side of non-dwimmy hyperop of &.operator.name() are not of the same length"
+        ~ " while recursing" x +$.recursing
+        ~ "\nleft: $.left-elems elements, right: $.right-elems elements";
     }
 }
 

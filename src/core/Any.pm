@@ -320,7 +320,12 @@ my class Any { # declared in BOOTSTRAP
     # internals
     proto method AT-KEY(|) is nodal { * }
     multi method AT-KEY(Any:D: $key) is rw {
-        fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
+        if self ~~ Associative {
+            fail "Associative indexing implementation missing from type {self.WHAT.perl}";
+        }
+        else {
+            fail "Type {self.WHAT.perl} does not support associative indexing.";
+        }
     }
     multi method AT-KEY(Any:U \SELF: $key) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',

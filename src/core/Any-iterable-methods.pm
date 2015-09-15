@@ -653,9 +653,9 @@ augment class Any {
     proto method squish(|) is nodal {*}
     multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
-        my str $which;
+        my $which;
         my \res := gather self.map: {
-            $which = &as($_).Str;
+            $which = &as($_);
             unless with($which,$last) {
                 $last = $which;
                 take $_;

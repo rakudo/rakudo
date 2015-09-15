@@ -24,9 +24,7 @@ my role Iterator {
         my int $i = 0;
         my $pulled;
         my $no-sink;
-        while $i < $n {
-            $pulled := self.pull-one();
-            last if $pulled =:= IterationEnd;
+        while $i < $n && !(IterationEnd =:= ($pulled := self.pull-one())) {
             $no-sink := $target.push($pulled); # we may not .sink $pulled here, since it can be a Seq
             $i = $i + 1;
         }

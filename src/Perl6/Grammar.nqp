@@ -4655,6 +4655,9 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<colonpair> {
             <?[:]> <colonpair=.LANG('MAIN','colonpair')>
         }
+        token escape:sym<#> {
+            <?[#]> <.LANG('MAIN', 'comment')>
+        }
     }
 
     role to[$herelang] {

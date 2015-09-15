@@ -50,8 +50,7 @@ Built-ins/Data Structures
 2 ***   packed arrays (jnthn)
 2 **    Rat/FatRat/Rational cleanup
 2 **    sized/shaped arrays (jnthn)
-2 ***   val() (japhb)
-2 **    Correct type smiley support (:U, :D, :T, etc.) (jnthn)
+2 **    Correct type smiley support (:U, :D, etc.) (jnthn)
 3 ***   arrays with custom keys
 3 ***   complete LoL and slice context implementation
 3 ***   Cat and stream matching

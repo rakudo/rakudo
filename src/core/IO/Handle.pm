@@ -400,8 +400,8 @@ my class IO::Handle does IO {
             }.new(self, $close));
         }
     }
-    multi method lines(IO::Handle:D: $limit, :$eager, :$close) {
-        return self.lines(:$eager, :$close)
+    multi method lines(IO::Handle:D: $limit, :$close) {
+        return self.lines(:$close)
           if nqp::istype($limit,Whatever) or $limit == Inf;
 
         my Mu $rpa := nqp::list();

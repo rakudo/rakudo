@@ -32,8 +32,8 @@ throws-like( { @?INC[0] = "boom" },
   typename => $*VM.name eq 'jvm' ?? 'value' !! 'Str',
 );
 for <unshift("boom") push("boom")> -> $method {
-    throws-like( "@?INC.$method", X::Multi::NoMatch );
+    throws-like( "@?INC.$method", X::Immutable );
 }
 for <shift pop> -> $method {
-    throws-like( "@?INC.$method", X::Method::NotFound );
+    throws-like( "@?INC.$method", X::Immutable );
 }

@@ -355,18 +355,28 @@ my class IO::Handle does IO {
                         IterationEnd
                     }
                     else {
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                            nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
-                        nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
+                        my \line = nqp::readlinefh($!PIO);
+                        if nqp::eoffh($!PIO) and nqp::not_i(nqp::chars(line)) {
+                            $!handle.close if $!close;
+                            IterationEnd
+                        }
+                        else {
+                            nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                                nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
+                            nqp::p6box_s(line).chomp;
+                        }
                     }
                 }
                 method push-all($target) {
                     my int $ins;
                     until nqp::eoffh($!PIO) {
-                        $target.push(
-                          nqp::p6box_s(nqp::readlinefh($!PIO)).chomp
-                        );
-                        $ins = $ins + 1;
+                        my \line = nqp::readlinefh($!PIO);
+                        unless nqp::eoffh($!PIO) and nqp::not_i(nqp::chars(line)) {
+                            $target.push(
+                                nqp::p6box_s(nqp::p6box_s(line).chomp)
+                            );
+                            $ins = $ins + 1;
+                        }
                     }
                     nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins );
                     $!handle.close if $!close;
@@ -382,16 +392,26 @@ my class IO::Handle does IO {
                         IterationEnd
                     }
                     else {
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                            nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
-                        nqp::p6box_s(nqp::readlinefh($!PIO))
+                        my \line = nqp::readlinefh($!PIO);
+                        if nqp::eoffh($!PIO) and nqp::not_i(nqp::chars(line)) {
+                            $!handle.close if $!close;
+                            IterationEnd
+                        }
+                        else {
+                            nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                                nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
+                            nqp::p6box_s(line);
+                        }
                     }
                 }
                 method push-all($target) {
                     my int $ins;
                     until nqp::eoffh($!PIO) {
-                        $target.push(nqp::readlinefh($!PIO));
-                        $ins = $ins + 1;
+                        my \line = nqp::readlinefh($!PIO);
+                        unless nqp::eoffh($!PIO) and nqp::not_i(nqp::chars(line)) {
+                            $target.push(nqp::p6box_s(line));
+                            $ins = $ins + 1;
+                        }
                     }
                     nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins );
                     $!handle.close if $!close;

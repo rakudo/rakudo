@@ -13,11 +13,19 @@ New in 2015.09
    + `val()` and allomorphic types implemented
  + Fixes:
    + Using a Range with an infinite .max now works on substr()/.substr
+   + Parameter aliases are now handled in MAIN subroutines
+   + Fixed typo about environment access in IO::Spec::Cygwin.tmpdir
+   + Blocks like { .foo } are no longer considered to be a Hash constructor
+   + Propagate ignorecase into subrules of regular expressions
  + Incompatible changes:
    + Creating constants with a ? twigil has become a NYI for now
    + No longer allowed to create dynamic constants with "my constant $*FOO"
+   + Forbid to use the very same variable to init itself directly in declaration
  + Deprecations:
    + All Deprecations removed in preparation for Christmas release
+ + NativeCall:
+   + Added support for calling into C++ libraries and calling method on
+     C++ classes
 
 New in 2015.07
  + Features:

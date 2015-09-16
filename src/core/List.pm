@@ -218,7 +218,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             my $no-sink := nqp::push(future, nqp::iscont(consider)
                 ?? consider
                 !! nqp::istype(consider, Iterable) && consider.DEFINITE
-                    ?? nqp::decont(consider)
+                    ?? consider.list.Slip
                     !! consider);
         }
 

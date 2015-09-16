@@ -446,6 +446,41 @@ my class Binder {
             nqp::bindkey($lexpad, 'self', nqp::decont($oval));
         }
 
+        # If it has a sub-signature, bind that.
+        my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
+        unless nqp::isnull($subsig) {
+            # Turn value into a capture, unless we already have one.
+            my $capture;
+            if $flags +& $SIG_ELEM_IS_CAPTURE {
+                $capture := $oval;
+            }
+            else {
+                if nqp::can($oval, 'Capture') {
+                    $capture := $oval.Capture;
+                }
+                else {
+                    if nqp::defined($error) {
+                        $error[0] := "Could not turn argument into capture";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+
+            # Recurse into signature binder.
+            my $result := bind(make_vm_capture($capture), $subsig, $lexpad,
+                $no_nom_type_check, $error);
+            unless $result == $BIND_RESULT_OK {
+                if $error {
+                    # Note in the error message that we're in a sub-signature.
+                    $error[0] := $error[0] ~ " in sub-signature";
+                    if $has_varname {
+                        $error[0] := $error[0] ~ " of parameter " ~ $varname;
+                    }
+                }
+                return $result;
+            }
+        }
+
         # Handle any constraint types (note that they may refer to the parameter by
         # name, so we need to have bound it already).
         my $post_cons := nqp::getattr($param, Parameter, '$!post_constraints');
@@ -518,41 +553,6 @@ my class Binder {
             nqp::iscont($assignee)
                 ?? nqp::assign($assignee, $oval)
                 !! $assignee.STORE(nqp::decont($oval));
-        }
-
-        # If it has a sub-signature, bind that.
-        my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
-        unless nqp::isnull($subsig) {
-            # Turn value into a capture, unless we already have one.
-            my $capture;
-            if $flags +& $SIG_ELEM_IS_CAPTURE {
-                $capture := $oval;
-            }
-            else {
-                if nqp::can($oval, 'Capture') {
-                    $capture := $oval.Capture;
-                }
-                else {
-                    if nqp::defined($error) {
-                        $error[0] := "Could not turn argument into capture";
-                    }
-                    return $BIND_RESULT_FAIL;
-                }
-            }
-
-            # Recurse into signature binder.
-            my $result := bind(make_vm_capture($capture), $subsig, $lexpad,
-                $no_nom_type_check, $error);
-            unless $result == $BIND_RESULT_OK {
-                if $error {
-                    # Note in the error message that we're in a sub-signature.
-                    $error[0] := $error[0] ~ " in sub-signature";
-                    if $has_varname {
-                        $error[0] := $error[0] ~ " of parameter " ~ $varname;
-                    }
-                }
-                return $result;
-            }
         }
 
         # Binding of this parameter was thus successful - we're done.

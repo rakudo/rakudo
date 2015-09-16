@@ -317,7 +317,8 @@ Please refactor this code using the new Iterator / Seq interface.
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
-        warn "Use of uninitialized value {$name}of type {self.^name} in string context";
+        warn "Use of uninitialized value {$name}of type {self.^name} in string context\n" ~
+             "Any of .^name, .perl, .gist, or .say can stringify undefined things, if needed.";
         ''
     }
     multi method Str(Mu:D:) {

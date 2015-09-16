@@ -24,7 +24,7 @@ New in 2015.09
  + Deprecations:
    + All Deprecations removed in preparation for Christmas release
  + NativeCall:
-   + Added support for calling into C++ libraries and calling method on
+   + Added support for calling into C++ libraries and calling methods on
      C++ classes
 
 New in 2015.07

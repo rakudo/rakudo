@@ -233,6 +233,9 @@ multi sub trait_mod:<is>(Parameter:D $param, :$required!) {
 multi sub trait_mod:<is>(Parameter:D $param, :$raw!) {
     $param.set_raw();
 }
+multi sub trait_mod:<is>(Parameter:D $param, :$onearg!) {
+    $param.set_onearg();
+}
 multi sub trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
     SET_LEADING_DOCS($param, $leading_docs);
 }

@@ -2708,20 +2708,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <type_constraint>+
             [
-            | $<quant>=['**'|'*'] <param_var>
+            | $<quant>=['**'|'*'|'+'] <param_var>
             | $<quant>=['\\'|'|'] <param_var> {
                 $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
             }
-            | $<quant>=['\\'|'|'] <defterm>?
+            | $<quant>=['\\'|'|'|'+'] <defterm>?
 
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]
-        | $<quant>=['**'|'*'] <param_var>
+        | $<quant>=['**'|'*'|'+'] <param_var>
         | $<quant>=['\\'|'|'] <param_var> {
             $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
         }
-        | $<quant>=['\\'|'|'] <defterm>?
+        | $<quant>=['\\'|'|'|'+'] <defterm>?
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname>
             {

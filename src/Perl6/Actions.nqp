@@ -3001,7 +3001,7 @@ Compilation unit '$file' contained the following violations:
             my %info      := @params[$i];
             my $param_obj := @p_objs[$i];
             return 0 if %info<optional> || %info<is_capture> || %info<pos_slurpy> ||
-                %info<named_slurpy> || %info<pos_lol> || %info<bind_attr> ||
+                %info<named_slurpy> || %info<pos_lol> || %*PARAM_INFO<pos_onearg> || %info<bind_attr> ||
                 %info<bind_accessor> || %info<nominal_generic> || %info<named_names> ||
                 %info<type_captures> || %info<post_constraints>;
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
@@ -4076,13 +4076,14 @@ Compilation unit '$file' contained the following violations:
         %*PARAM_INFO<pos_lol>      := $quant eq '**' && %*PARAM_INFO<sigil> eq '@';
         %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
         %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
-        %*PARAM_INFO<is_raw>       := $quant eq '\\';
+        %*PARAM_INFO<is_raw>       := $quant eq '\\' || ($quant eq '+' && !%*PARAM_INFO<sigil>);
         %*PARAM_INFO<is_capture>   := $quant eq '|';
+        %*PARAM_INFO<pos_onearg>   := $quant eq '+';
 
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
 
-        if (%*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol>) && $<type_constraint> {
+        if (%*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol> || %*PARAM_INFO<pos_onearg>) && $<type_constraint> {
             $/.CURSOR.sorry("Slurpy positionals with type constraints are not supported.");
         }
 
@@ -6815,7 +6816,7 @@ Compilation unit '$file' contained the following violations:
         my int $arity := 0;
         for @params {
             last if $_<optional> || $_<named_names> ||
-               $_<pos_slurpy> || $_<named_slurpy>;
+               $_<pos_slurpy> || $_<pos_onearg> ||  $_<named_slurpy>;
             $arity := $arity + 1;
         }
         $block.arity($arity);
@@ -6972,7 +6973,7 @@ Compilation unit '$file' contained the following violations:
                     return 0;
                 }
             }
-            elsif %info<pos_slurpy> || %info<pos_lol> {
+            elsif %info<pos_slurpy> || %info<pos_lol> || %info<pos_onearg> {
                 $var.slurpy(1);
                 my $type := $*W.find_symbol(
                     [$flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
@@ -6981,7 +6982,7 @@ Compilation unit '$file' contained the following violations:
                     QAST::Var.new( :name($name), :scope('local') ),
                     QAST::Op.new(
                         :op('callmethod'),
-                        :name(%info<pos_lol> ?? 'from-slurpy' !! 'from-slurpy-flat'),
+                        :name(%info<pos_onearg> ?? 'from-slurpy-onearg' !! %info<pos_lol> ?? 'from-slurpy' !! 'from-slurpy-flat'),
                         QAST::WVal.new( :value($type) ),
                         QAST::Var.new( :name($name), :scope('local') )
                     )));

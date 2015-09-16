@@ -29,6 +29,7 @@ my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
 my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
 my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
 my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
+my $SIG_ELEM_SLURPY_ONEARG       := 16777216;
 
 sub p6ize_recursive($x) {
     if nqp::islist($x) {
@@ -1475,6 +1476,9 @@ class Perl6::World is HLL::World {
         if %param_info<is_raw> {
             $flags := $flags + $SIG_ELEM_IS_RAW;
         }
+        if %param_info<pos_onearg> {
+            $flags := $flags + $SIG_ELEM_SLURPY_ONEARG;
+        }
         if %param_info<is_capture> {
             $flags := $flags + $SIG_ELEM_IS_CAPTURE;
         }
@@ -1723,7 +1727,7 @@ class Perl6::World is HLL::World {
         while $i < $n {
             my $param := @parameters[$i];
             my int $flags := nqp::getattr_i($param, $p_type, '$!flags');
-            if $flags +& ($SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL) {
+            if $flags +& ($SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG) {
                 $count := -1;
             }
             elsif !($flags +& $SIG_ELEM_SLURPY_NAMED) &&

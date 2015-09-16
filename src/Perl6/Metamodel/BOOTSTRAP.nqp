@@ -97,7 +97,6 @@ my class Binder {
     my int $SIG_ELEM_SLURPY_POS          := 8;
     my int $SIG_ELEM_SLURPY_NAMED        := 16;
     my int $SIG_ELEM_SLURPY_LOL          := 32;
-    my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL);
     my int $SIG_ELEM_INVOCANT            := 64;
     my int $SIG_ELEM_MULTI_INVOCANT      := 128;
     my int $SIG_ELEM_IS_RW               := 256;
@@ -117,6 +116,8 @@ my class Binder {
     my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
     my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
     my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
+    my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
+    my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
 
     # Binding reuslt flags.
     my int $BIND_RESULT_OK       := 0;
@@ -141,8 +142,8 @@ my class Binder {
             }
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
             }
-            elsif $flags +& $SIG_ELEM_SLURPY_POS {
-                $count--;
+            elsif $flags +& $SIG_ELEM_SLURPY {
+                $count := -1000;  # in case a pos can sneak past a slurpy somehow
             }
             elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
                 $count++
@@ -158,7 +159,7 @@ my class Binder {
 
         if $arity == $count {
             return "$error_prefix positionals passed; expected $arity argument$s but got $num_pos_args";
-        } elsif $count == -1 {
+        } elsif $count < 0 {
             return "$error_prefix positionals passed; expected at least $arity argument$s but got only $num_pos_args";
         } else {
 	    my str $conj := $count == $arity+1 ?? "or" !! "to";
@@ -700,7 +701,7 @@ my class Binder {
             # Otherwise, maybe it's a positional.
             elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '$!named_names')) {
                 # Slurpy or LoL-slurpy?
-                if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL) {
+                if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG) {
                     # Create Perl 6 array, create VM Array of all remaining things, then
                     # store it.
                     my $temp := nqp::list();
@@ -721,9 +722,11 @@ my class Binder {
                         $cur_pos_arg++;
                     }
                     my $slurpy_type := $flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
-                    my $bindee := $flags +& $SIG_ELEM_SLURPY_POS
-                        ?? $slurpy_type.from-slurpy-flat($temp)
-                        !! $slurpy_type.from-slurpy($temp);
+                    my $bindee := $flags +& $SIG_ELEM_SLURPY_ONEARG
+			?? $slurpy_type.from-slurpy-onearg($temp)
+			!! $flags +& $SIG_ELEM_SLURPY_POS
+			    ?? $slurpy_type.from-slurpy-flat($temp)
+			    !! $slurpy_type.from-slurpy($temp);
                     $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                         0, $bindee, 0, 0.0, '');
                     return $bind_fail if $bind_fail;
@@ -1497,6 +1500,16 @@ BEGIN {
             }
             $dcself
         }));
+    Parameter.HOW.add_method(Parameter, 'set_onearg', nqp::getstaticcode(sub ($self) {
+            my $SIG_ELEM_SLURPY_ONEARG := 16777216;
+            my $dcself := nqp::decont($self);
+            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
+            unless $flags +& $SIG_ELEM_SLURPY_ONEARG {
+                nqp::bindattr_i($dcself, Parameter, '$!flags',
+                    $flags + $SIG_ELEM_SLURPY_ONEARG);
+            }
+            $dcself
+        }));
     Parameter.HOW.add_method(Parameter, 'set_coercion', nqp::getstaticcode(sub ($self, $type) {
             my $dcself := nqp::decont($self);
             nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
@@ -1694,6 +1707,7 @@ BEGIN {
             my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
             my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
             my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
+	    my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
             
             # Takes two candidates and determines if the first one is narrower
             # than the second. Returns a true value if they are.
@@ -1835,7 +1849,7 @@ BEGIN {
                     }
 
                     # Otherwise, positional or slurpy and contributes to arity.
-                    if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_IS_CAPTURE) {
+                    if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_ONEARG) {
                         $max_arity := $SLURPY_ARITY;
                         last;
                     }

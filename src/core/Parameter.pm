@@ -31,6 +31,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_CAPTURE         = 32768;
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 65536;
     my constant $SIG_ELEM_DEFINED_ONLY       = 131072;
+    my constant $SIG_ELEM_SLURPY_ONEARG      = 16777216;
 
     method name() {
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
@@ -119,7 +120,8 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::p6bool(
             $!flags +& ($SIG_ELEM_SLURPY_POS
                         +| $SIG_ELEM_SLURPY_NAMED
-                        +| $SIG_ELEM_SLURPY_LOL)
+                        +| $SIG_ELEM_SLURPY_LOL
+                        +| $SIG_ELEM_SLURPY_ONEARG)
         )
     }
 
@@ -137,6 +139,10 @@ my class Parameter { # declared in BOOTSTRAP
 
     method rw() {
         ?($!flags +& $SIG_ELEM_IS_RW)
+    }
+
+    method onearg() {
+        ?($!flags +& $SIG_ELEM_SLURPY_ONEARG)
     }
 
     method copy() {
@@ -236,7 +242,7 @@ my class Parameter { # declared in BOOTSTRAP
         }
         my $default = self.default();
         if self.slurpy {
-            $name = ($!flags +& $SIG_ELEM_SLURPY_LOL ?? "**" !! "*") ~ $name;
+            $name = ($!flags +& $SIG_ELEM_SLURPY_ONEARG ?? '+' !! ($!flags +& $SIG_ELEM_SLURPY_LOL ?? "**" !! "*") ~ $name);
         } elsif self.named {
             my $name1 := substr($name,1);
             if @(self.named_names).first({$_ && $_ eq $name1}) {

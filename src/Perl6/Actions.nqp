@@ -871,15 +871,31 @@ Compilation unit '$file' contained the following violations:
                     unless $past.ann('past_block') {
                         $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
-                    $past := QAST::Op.new(
-                            :op<callmethod>, :name<map>, :node($/),
-                            $cond,
-                            block_closure($past)
-                        );
+                    my $for-list-name := QAST::Node.unique('for-list');
+                    my $iscont := QAST::Op.new(:op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ));
+                    $iscont.named('item');
+                    my $call := QAST::Op.new(
+                        :op<callmethod>, :name<map>, :node($/),
+                        QAST::Var.new( :name($for-list-name), :scope('local') ),
+                        block_closure($past),
+                        $iscont,
+                    );
+                    my $bind := QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
+                        $cond,
+                    );
                     $past := QAST::Want.new(
-                        QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
-                        'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
-                    my $sinkee := $past[0];
+                        QAST::Stmts.new(
+                            $bind,
+                            QAST::Op.new( :op<callmethod>, :name<eager>, $call )
+                        ),
+                        'v', QAST::Stmts.new(
+                            $bind,
+                            QAST::Op.new( :op<callmethod>, :name<sink>, $call )
+                        ),
+                    );
+                    my $sinkee := $past[0][1];
                     $past.annotate('statement_level', -> { $sinkee.name('sink') });
                 }
                 else {

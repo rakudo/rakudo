@@ -206,7 +206,7 @@ Tag the release by its release month ("YYYY.MM") and its code name.
   $ git push --tags
 
 The C<-s> tells git to sign the release with your PGP/GPG key, so it will
-likely ask you for the passphrase of your secrect key.
+likely ask you for the passphrase of your secret key.
 
 If you have no PGP key, you might need to
 L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should

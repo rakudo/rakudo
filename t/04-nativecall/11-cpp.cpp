@@ -59,18 +59,23 @@ public:
         return foo + bar + p;
     }
     int Set_foo(int p);
-    virtual long All_The_Things(char c, short s, int i, long l, float f, double d) {
-        return c + s + i + l + f + d;
-    }
-    virtual long ConstInt(const int i)     { return 11; }
-    virtual long IntPtr(int *i)            { return 12; }
-    virtual long ConstIntPtr(const int *i) { return 13; }
+    virtual long All_The_Things(char c, short s, int i, long l, float f, double d);
+    virtual long ConstInt(const int i);
+    virtual long IntPtr(int *i);
+    virtual long ConstIntPtr(const int *i);
 protected:
   int bar, baz;
   Point a_point;
   char c;
   int *intptr;
 };
+
+long Derived2::All_The_Things(char c, short s, int i, long l, float f, double d) {
+    return c + s + i + l + f + d;
+}
+long Derived2::ConstInt(const int i)     { return 11; }
+long Derived2::IntPtr(int *i)            { return 12; }
+long Derived2::ConstIntPtr(const int *i) { return 13; }
 
 DLLEXPORT int SizeofDerived2() {
   return sizeof(Derived2);

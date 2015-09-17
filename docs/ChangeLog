@@ -25,6 +25,7 @@ New in 2015.09
    + A constant declaration now pays more attention to its sigil
    + The .gist and .perl methods can now deal with self-referential structures
    + andthen and orelse are now topicalizers as specced
+   + Fixed CompUnit.load, which is what use/require uses under the hood
  + Incompatible changes:
    + Creating constants with a ? twigil has become a NYI for now
    + No longer allowed to create dynamic constants with "my constant $*FOO"

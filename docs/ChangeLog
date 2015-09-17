@@ -33,6 +33,7 @@ New in 2015.09
    + Parcel is no longer a type, use List instead
    + 'is parcel' trait is now 'is raw'
    + .gist now puts brackets around lists and arrays
+   + IO::Handle::lines no longer returns an empty last line
  + Deprecations:
    + All Deprecations removed in preparation for Christmas release
  + NativeCall:

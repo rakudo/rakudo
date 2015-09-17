@@ -96,10 +96,7 @@ END {
         if Deprecation.report -> $message {
             note $message;   # q:to/TEXT/ doesn't work in settings
             note 'Please contact the author to have these occurrences of deprecated code
-adapted, so that this message will disappear!
-
-Please note that *ALL* deprecated features will be removed at the RC-0 release
-(expected September 2015).';
+adapted, so that this message will disappear!';
         }
     }
 }

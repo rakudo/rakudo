@@ -652,7 +652,7 @@ augment class Any {
     my @secret;
     proto method squish(|) is nodal {*}
     multi method squish( :&as!, :&with = &[===] ) {
-        my $last = @secret;
+        my $last = @secret.WHICH;
         my $which;
         my \res := gather self.map: {
             $which = &as($_);
@@ -664,7 +664,7 @@ augment class Any {
         self.is-lazy ?? res.lazy !! res
     }
     multi method squish( :&with = &[===] ) {
-        my $last = @secret;
+        my $last = @secret.WHICH;
         my \res := gather self.map: {
             unless with($_,$last) {
                 $last = $_;

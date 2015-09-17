@@ -209,8 +209,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         result
     }
 
-    method from-slurpy-onearg(|) {
+    method from-slurpy-onearg(|c) {
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
+        return self.from-slurpy(|c) unless nqp::elems(vm-tuple) == 1;
+        my \consider = nqp::atpos(vm-tuple, 0);
+        return consider if nqp::istype(consider, Seq);
+
         my \result := self.CREATE;
         my \buffer := IterationBuffer.CREATE;
         my \todo := List::Reifier.CREATE;
@@ -218,16 +222,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
         nqp::bindattr(todo, List::Reifier, '$!future',
-            nqp::elems(vm-tuple) != 1
-            ?? vm-tuple
-            !! do {
-                my \consider = nqp::atpos(vm-tuple, 0);
-                nqp::iscont(consider) || !nqp::istype(consider, Iterable) || !consider.DEFINITE
+            nqp::iscont(consider) || !nqp::istype(consider, Iterable) || !consider.DEFINITE
                 ?? vm-tuple
                 !! nqp::list(consider.list.Slip)
-            }
         );
-
         nqp::bindattr(todo, List::Reifier, '$!reification-target',
             result.reification-target());
         result

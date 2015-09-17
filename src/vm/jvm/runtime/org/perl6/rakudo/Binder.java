@@ -26,7 +26,6 @@ public final class Binder {
     private static final int SIG_ELEM_SLURPY_POS          = 8;
     private static final int SIG_ELEM_SLURPY_NAMED        = 16;
     private static final int SIG_ELEM_SLURPY_LOL          = 32;
-    private static final int SIG_ELEM_SLURPY              = (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED | SIG_ELEM_SLURPY_LOL);
     private static final int SIG_ELEM_INVOCANT            = 64;
     private static final int SIG_ELEM_MULTI_INVOCANT      = 128;
     private static final int SIG_ELEM_IS_RW               = 256;
@@ -46,6 +45,8 @@ public final class Binder {
     private static final int SIG_ELEM_NATIVE_NUM_VALUE    = 4194304;
     private static final int SIG_ELEM_NATIVE_STR_VALUE    = 8388608;
     private static final int SIG_ELEM_NATIVE_VALUE        = (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE);
+    private static final int SIG_ELEM_SLURPY_ONEARG       = 16777216;
+    private static final int SIG_ELEM_SLURPY              = (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG);
     
     /* Hints for Parameter attributes. */
     private static final int HINT_variable_name = 0;
@@ -99,8 +100,8 @@ public final class Binder {
                 continue;
             if ((flags & SIG_ELEM_SLURPY_NAMED) != 0)
                 continue;
-            if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
-                count = -1;
+            if ((flags & SIG_ELEM_SLURPY) != 0) {
+                count = -1000; // cargo-culted from BOOTSTRAP.nqp: "in case a pos can sneak past a slurpy somehow"
             }
             else if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
                 count++;
@@ -116,7 +117,7 @@ public final class Binder {
             return String.format(
                 "%s positionals passed; expected %d arguments but got %d",
                 fail, arity, numPosArgs);
-        else if (count == -1)
+        else if (count <= -1)
             return String.format(
                 "%s positionals passed; expected at least %d arguments but got only %d",
                 fail, arity, numPosArgs);
@@ -813,7 +814,7 @@ public final class Binder {
             /* Otherwise, maybe it's a positional of some kind. */
             else if (namedNames == null) {
                 /* Slurpy or LoL-slurpy? */
-                if ((flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL)) != 0) {
+                if ((flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG)) != 0) {
                     /* Create Perl 6 array, create VM array of all remaining things,
                      * then store it. */
                     SixModelObject slurpy = gcx.EMPTYARR.clone(tc);
@@ -837,6 +838,7 @@ public final class Binder {
 
                     SixModelObject slurpyType = (flags & SIG_ELEM_IS_RAW) != 0 ? gcx.List : gcx.Array;
                     SixModelObject sm = Ops.findmethod(tc, slurpyType,
+                        (flags & SIG_ELEM_SLURPY_ONEARG) != 0 ? "from-slurpy-onearg" :
                         (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy");
                     Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });
                     SixModelObject bindee = Ops.result_o(tc.curFrame);

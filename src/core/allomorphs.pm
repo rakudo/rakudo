@@ -10,7 +10,7 @@ my class IntStr is Int is Str {
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(IntStr:D:) { 'val(' ~ self.Str.perl ~ ')' }
+    multi method gist(IntStr:D:) { self.Str }
     multi method perl(IntStr:D:) { 'IntStr.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
@@ -26,7 +26,7 @@ my class NumStr is Num is Str {
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(NumStr:D:) { 'val(' ~ self.Str.perl ~ ')' }
+    multi method gist(NumStr:D:) { self.Str }
     multi method perl(NumStr:D:) { 'NumStr.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
@@ -43,7 +43,7 @@ my class RatStr is Rat is Str {
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(RatStr:D:) { 'val(' ~ self.Str.perl ~ ')' }
+    multi method gist(RatStr:D:) { self.Str }
     multi method perl(RatStr:D:) { 'RatStr.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
@@ -60,7 +60,7 @@ my class ComplexStr is Complex is Str {
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(ComplexStr:D:) { 'val(' ~ self.Str.perl ~ ')' }
+    multi method gist(ComplexStr:D:) { self.Str }
     multi method perl(ComplexStr:D:) { 'ComplexStr.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
@@ -92,50 +92,6 @@ multi sub infix:<cmp>(ComplexStr $a, ComplexStr $b) {
         return $_ unless $_ === Order::Same;
         $a.Str cmp $b.Str
     }
-}
-
-# these allomorphic multis are needed to use their C<.gist>s properly, lest they
-# pick the Str:D candidate.
-multi sub say(IntStr:D \x) {
-    my $out := $*OUT;
-    $out.print: x.gist;
-    $out.print-nl;
-}
-multi sub say(RatStr:D \x) {
-    my $out := $*OUT;
-    $out.print: x.gist;
-    $out.print-nl;
-}
-multi sub say(NumStr:D \x) {
-    my $out := $*OUT;
-    $out.print: x.gist;
-    $out.print-nl;
-}
-multi sub say(ComplexStr:D \x) {
-    my $out := $*OUT;
-    $out.print: x.gist;
-    $out.print-nl;
-}
-
-multi sub note(IntStr:D \x) {
-    my $err := $*ERR;
-    $err.print: x.gist;
-    $err.print-nl;
-}
-multi sub note(RatStr:D \x) {
-    my $err := $*ERR;
-    $err.print: x.gist;
-    $err.print-nl;
-}
-multi sub note(NumStr:D \x) {
-    my $err := $*ERR;
-    $err.print: x.gist;
-    $err.print-nl;
-}
-multi sub note(ComplexStr:D \x) {
-    my $err := $*ERR;
-    $err.print: x.gist;
-    $err.print-nl;
 }
 
 multi sub val(*@maybevals) {

@@ -627,7 +627,9 @@ my class Binder {
                 # Capture the arguments from this point forwards into a Capture.
                 # Of course, if there's no variable name we can (cheaply) do pretty
                 # much nothing.
-                if nqp::isnull_s($var_name) {
+                if nqp::isnull_s($var_name)
+                    && !nqp::getattr($param, Parameter, '$!sub_signature')
+                    && !nqp::getattr($param, Parameter, '$!post_constraints') {
                     $bind_fail := $BIND_RESULT_OK;
                 }
                 else {

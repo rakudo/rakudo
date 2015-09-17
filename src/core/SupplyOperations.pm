@@ -124,7 +124,7 @@ my class SupplyOperations {
 
             submethod BUILD(:$!source) { }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
@@ -145,7 +145,7 @@ my class SupplyOperations {
 
             submethod BUILD(:$!source, :$!test) { }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
@@ -171,7 +171,7 @@ my class SupplyOperations {
 
             submethod BUILD(:$!source, :&!mapper) { }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
@@ -192,7 +192,7 @@ my class SupplyOperations {
 
             submethod BUILD(:$!source, :$!scheduler) { }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
@@ -247,7 +247,7 @@ my class SupplyOperations {
                 $!lock = Lock.new;
             }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
@@ -285,7 +285,7 @@ my class SupplyOperations {
 
             submethod BUILD(:$!source, :$!time, :$!scheduler) { }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
@@ -314,7 +314,7 @@ my class SupplyOperations {
                 $!lock = Lock.new;
             }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});
@@ -355,7 +355,7 @@ my class SupplyOperations {
                 self!done;
             }
 
-            method live { $source.live }
+            method live { $!source.live }
             method tap(|c) {
                 my $source_tap;
                 my $tap = self.Supply::tap(|c, closing => {$source_tap.close});

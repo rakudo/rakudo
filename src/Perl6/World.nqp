@@ -3572,6 +3572,9 @@ class Perl6::World is HLL::World {
                               @locprepost[1] ~~ / ^ \s+ <[ ( [ { « . ]> / {
                             %opts<reason> := "Two terms in a row";
                         }
+                        elsif @locprepost[1] ~~ / ^ '<EOL>' / {
+                            %opts<reason> := "Two terms in a row across lines (missing semicolon or comma?)";
+                        }
                         elsif @locprepost[1] ~~ / ^ \S / {
                             %opts<reason> := "Bogus postfix";
                         }

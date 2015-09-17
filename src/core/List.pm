@@ -211,24 +211,31 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method from-slurpy-onearg(|c) {
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        return self.from-slurpy(|c) unless nqp::elems(vm-tuple) == 1;
-        my \consider = nqp::atpos(vm-tuple, 0);
-        return consider if nqp::istype(consider, Seq);
-
-        my \result := self.CREATE;
-        my \buffer := IterationBuffer.CREATE;
-        my \todo := List::Reifier.CREATE;
-        nqp::bindattr(result, List, '$!reified', buffer);
-        nqp::bindattr(result, List, '$!todo', todo);
-        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, List::Reifier, '$!future',
-            nqp::iscont(consider) || !nqp::istype(consider, Iterable) || !consider.DEFINITE
-                ?? vm-tuple
-                !! nqp::list(consider.list.Slip)
-        );
-        nqp::bindattr(todo, List::Reifier, '$!reification-target',
-            result.reification-target());
-        result
+        if nqp::elems(vm-tuple) != 1 {
+            self.from-slurpy(|c);
+        }
+        else {
+            my \consider = nqp::atpos(vm-tuple, 0);
+            if nqp::istype(consider, Seq) {
+                nqp::istype(self,Array) ?? consider.cache !! consider;
+            }
+            else {
+                my \result := self.CREATE;
+                my \buffer := IterationBuffer.CREATE;
+                my \todo := List::Reifier.CREATE;
+                nqp::bindattr(result, List, '$!reified', buffer);
+                nqp::bindattr(result, List, '$!todo', todo);
+                nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
+                nqp::bindattr(todo, List::Reifier, '$!future',
+                    nqp::iscont(consider) || !nqp::istype(consider, Iterable) || !consider.DEFINITE
+                        ?? vm-tuple
+                        !! nqp::list(consider.list.Slip)
+                );
+                nqp::bindattr(todo, List::Reifier, '$!reification-target',
+                    result.reification-target());
+                result
+            }
+        }
     }
 
     method from-slurpy-flat(|) {

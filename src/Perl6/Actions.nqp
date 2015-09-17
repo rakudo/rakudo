@@ -6850,9 +6850,10 @@ Compilation unit '$file' contained the following violations:
                 $need_full_binder := 0;
             }
 
-            # If there is one anonymous capture parameter, as is common with
-            # protos, then we've nothing to check or store; flag as custom
-            # bind but don't invoke the binder.
+            # If there is one anonymous capture parameter with no sub-signature
+            # or additional constraint, as is common with protos, then we've
+            # nothing to check or store; flag as custom bind but don't invoke
+            # the binder.
             elsif is_anon_capture(@params) {
                 $block.custom_args(1);
                 $need_full_binder := 0;
@@ -6893,7 +6894,9 @@ Compilation unit '$file' contained the following violations:
     sub is_anon_capture(@params) {
         if nqp::elems(@params) == 1 {
             my $only := @params[0];
-            if $only<is_capture> && !nqp::existskey($only, 'variable_name') {
+            if $only<is_capture> && !nqp::existskey($only, 'variable_name')
+                                 && !nqp::existskey($only, 'sub_signature')
+                                 && !nqp::existskey($only, 'post_constraints') {
                 if !nqp::istype($*W.find_symbol(['Capture']), $only<nominal_type>) {
                     $only<node>.CURSOR.panic("Capture parameter must have a type accepting a Capture");
                 }

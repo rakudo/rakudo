@@ -311,6 +311,12 @@ do {
         elsif ($type == nqp::const::CONTROL_TAKE) {
             X::ControlFlow.new(illegal => 'take', enclosing => 'gather', :$backtrace).throw;
         }
+        elsif ($type == nqp::const::CONTROL_EMIT) {
+            X::ControlFlow.new(illegal => 'emit', enclosing => 'supply or react', :$backtrace).throw;
+        }
+        elsif ($type == nqp::const::CONTROL_DONE) {
+            X::ControlFlow.new(illegal => 'done', enclosing => 'supply or react', :$backtrace).throw;
+        }
         else {
             X::ControlFlow.new(illegal => 'control exception', enclosing => 'handler', :$backtrace).throw;
         }

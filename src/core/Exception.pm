@@ -295,21 +295,24 @@ do {
         if ($type == nqp::const::CONTROL_LAST) {
             X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct', :$backtrace).throw;
         }
-        if ($type == nqp::const::CONTROL_NEXT) {
+        elsif ($type == nqp::const::CONTROL_NEXT) {
             X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct', :$backtrace).throw;
         }
-        if ($type == nqp::const::CONTROL_REDO) {
+        elsif ($type == nqp::const::CONTROL_REDO) {
             X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct', :$backtrace).throw;
         }
-        if ($type == nqp::const::CONTROL_PROCEED) {
+        elsif ($type == nqp::const::CONTROL_PROCEED) {
             X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause', :$backtrace).throw;
         }
-        if ($type == nqp::const::CONTROL_SUCCEED) {
+        elsif ($type == nqp::const::CONTROL_SUCCEED) {
             # XXX: should work like leave() ?
             X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause', :$backtrace).throw;
         }
-        if ($type == nqp::const::CONTROL_TAKE) {
+        elsif ($type == nqp::const::CONTROL_TAKE) {
             X::ControlFlow.new(illegal => 'take', enclosing => 'gather', :$backtrace).throw;
+        }
+        else {
+            X::ControlFlow.new(illegal => 'control exception', enclosing => 'handler', :$backtrace).throw;
         }
     }
 

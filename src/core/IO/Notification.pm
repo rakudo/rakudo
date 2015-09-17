@@ -9,6 +9,7 @@ my class IO::Notification {
         multi method gist(Change:D:) {
             "$.path: $.event";
         }
+        method IO { $!path.IO }
     }
 
     method watch-path(Str() $path, :$scheduler = $*SCHEDULER) {

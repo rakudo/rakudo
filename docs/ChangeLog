@@ -1,9 +1,10 @@
 New in 2015.09
  + Features
    + Great List Refactor
-   + with/orwith/without conditionals allow you to check for .defined but
+   + New slurpy parameter, +args or +@args, to allow for one-argument style binding
+   + New with/orwith/without conditionals allow you to check for .defined but
      topicalize to the actual value returned
-   + new `supply`, `whenever` and `react` blocks for easy reactive programming
+   + New `supply`, `whenever` and `react` blocks for easy reactive programming
    + Mu.return implemented: allows for ".return with $foo"
    + Cool.indices/indices() expands on Cool.index/index() functionality
    + Callframes now allow easy introspection of associated Code object
@@ -11,16 +12,26 @@ New in 2015.09
    + `$¢` in grammars now refers to the current cursor
    + All Unicode digits can now be part of literal numbers
    + `val()` and allomorphic types implemented
+   + Most European quoting styles are now supported
+   + The parser now detects and reports possible runaway quotes
+   + New $[...] and ${...} constructs allow prefix itemization
  + Fixes:
    + Using a Range with an infinite .max now works on substr()/.substr
    + Parameter aliases are now handled in MAIN subroutines
    + Fixed typo about environment access in IO::Spec::Cygwin.tmpdir
    + Blocks like { .foo } are no longer considered to be a Hash constructor
    + Propagate ignorecase into subrules of regular expressions
+   + eqv no longer defaults to === semantics, but snapshot (via .perl)
+   + A constant declaration now pays more attention to its sigil
+   + The .gist and .perl methods can now deal with self-referential structures
+   + andthen and orelse are now topicalizers as specced
  + Incompatible changes:
    + Creating constants with a ? twigil has become a NYI for now
    + No longer allowed to create dynamic constants with "my constant $*FOO"
    + Forbid to use the very same variable to init itself directly in declaration
+   + Parcel is no longer a type, use List instead
+   + 'is parcel' trait is now 'is raw'
+   + .gist now puts brackets around lists and arrays
  + Deprecations:
    + All Deprecations removed in preparation for Christmas release
  + NativeCall:

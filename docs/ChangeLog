@@ -15,6 +15,7 @@ New in 2015.09
    + Most European quoting styles are now supported
    + The parser now detects and reports possible runaway quotes
    + New $[...] and ${...} constructs allow prefix itemization
+   + `dd` now displays variable type
  + Fixes:
    + Using a Range with an infinite .max now works on substr()/.substr
    + Parameter aliases are now handled in MAIN subroutines

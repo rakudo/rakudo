@@ -708,20 +708,20 @@ proto sub infix:<min>(|) is pure { * }
 multi sub infix:<min>(Mu:D \a, Mu:U) { a }
 multi sub infix:<min>(Mu:U, Mu:D \b) { b }
 multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
-multi sub infix:<min>(*@args is raw) { @args.min }
+multi sub infix:<min>(+args is raw) { args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
 #proto sub min(|)     { * }
 #multi sub min(*@args) { @args.min() }
 #multi sub min(*@args, :&by!) { @args.min(&by) }
-sub min(*@args is raw, :&by = &infix:<cmp>) { @args.min(&by) }
+sub min(+args is raw, :&by = &infix:<cmp>) { args.min(&by) }
 
 proto sub infix:<max>(|) is pure { * }
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
-multi sub infix:<max>(*@args is raw) { @args.max }
-sub max(*@args is raw, :&by = &infix:<cmp>) { @args.max(&by) }
+multi sub infix:<max>(+args) { args.max }
+sub max(+args is raw, :&by = &infix:<cmp>) { args.max(&by) }
 
 proto sub infix:<minmax>(|) is pure { * }
 multi sub infix:<minmax>(**@args is raw) { @args.minmax }
@@ -735,46 +735,41 @@ multi sub map(Whatever, \a)    { a }
 multi sub map(&code, Whatever) { (1..Inf).map(&code) }
 
 proto sub grep(|) {*}
-multi sub grep(Mu $test, @values) { @values.grep($test) }
-multi sub grep(Mu $test, *@values) { @values.grep($test) }
-multi sub grep(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'grep' ) }
+multi sub grep(Mu $test, +values) { values.grep($test) }
+multi sub grep(Bool:D $t, |) { fail X::Match::Bool.new( type => 'grep' ) }
 
 proto sub grep-index(|) {*}
-multi sub grep-index(Mu $test, @values) { @values.grep-index($test) }
-multi sub grep-index(Mu $test, **@values) { @values.grep-index($test) }
-multi sub grep-index(Bool:D $t, *@v) {
+multi sub grep-index(Mu $test, +values) { values.grep-index($test) }
+multi sub grep-index(Bool:D $t, |) {
     fail X::Match::Bool.new(type => 'grep-index');
 }
 
 proto sub first(|) {*}
-multi sub first(Mu $test, @values) { @values.first($test) }
-multi sub first(Mu $test, *@values) { @values.first($test) }
-multi sub first(Bool:D $t, *@v) { fail X::Match::Bool.new( type => 'first' ) }
+multi sub first(Mu $test, +values) { values.first($test) }
+multi sub first(Bool:D $t, |) { fail X::Match::Bool.new( type => 'first' ) }
 
 proto sub first-index(|) {*}
-multi sub first-index(Mu $test, @values) { @values.first-index($test) }
-multi sub first-index(Mu $test, *@values) { @values.first-index($test) }
-multi sub first-index(Bool:D $t,*@v) {
+multi sub first-index(Mu $test, +values) { values.first-index($test) }
+multi sub first-index(Bool:D $t,|) {
     fail X::Match::Bool.new(type => 'first-index');
 }
 
 proto sub last-index(|) {*}
-multi sub last-index(Mu $test, @values) { @values.last-index($test) }
-multi sub last-index(Mu $test, *@values) { @values.last-index($test) }
-multi sub last-index(Bool:D $t, *@v) {
+multi sub last-index(Mu $test, +values) { values.last-index($test) }
+multi sub last-index(Bool:D $t, |) {
     fail X::Match::Bool.new(type => 'last-index');
 }
 
 proto sub join(|) { * }
 multi sub join($sep = '', *@values) { @values.join($sep) }
 
-sub reduce (&with, *@list)  { @list.reduce(&with) }
+sub reduce (&with, +list)  { list.reduce(&with) }
 
 proto sub unique(|) { * }
-multi sub unique(*@values, |c) { @values.unique(|c) }
+multi sub unique(+values, |c) { values.unique(|c) }
 
 proto sub squish(|) { * }
-multi sub squish(*@values, |c) { @values.squish(|c) }
+multi sub squish(+values, |c) { values.squish(|c) }
 
 proto sub sort(|) {*}
 multi sub sort(*@values)      {

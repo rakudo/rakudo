@@ -350,21 +350,15 @@ my class IO::Handle does IO {
         if $.chomp {
             Seq.new(class :: does LinesIterCommon {
                 method pull-one() {
-                    if nqp::eoffh($!PIO) {
+                    my str $line = nqp::readlinefh($!PIO);
+                    if nqp::not_i(nqp::chars($line)) {
                         $!handle.close if $!close;
                         IterationEnd
                     }
                     else {
-                        my \line = nqp::readlinefh($!PIO);
-                        if nqp::eoffh($!PIO) and nqp::not_i(nqp::chars(line)) {
-                            $!handle.close if $!close;
-                            IterationEnd
-                        }
-                        else {
-                            nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                                nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
-                            nqp::p6box_s(line).chomp;
-                        }
+                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                          nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
+                        nqp::p6box_s($line).chomp;
                     }
                 }
                 method push-all($target) {
@@ -395,21 +389,15 @@ my class IO::Handle does IO {
         else {
             Seq.new(class :: does LinesIterCommon {
                 method pull-one() {
-                    if nqp::eoffh($!PIO) {
+                    my str $line = nqp::readlinefh($!PIO);
+                    if nqp::not_i(nqp::chars($line)) {
                         $!handle.close if $!close;
-                        IterationEnd
+                        IterationEnd;
                     }
                     else {
-                        my \line = nqp::readlinefh($!PIO);
-                        if nqp::eoffh($!PIO) and nqp::not_i(nqp::chars(line)) {
-                            $!handle.close if $!close;
-                            IterationEnd
-                        }
-                        else {
-                            nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                                nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
-                            nqp::p6box_s(line);
-                        }
+                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                          nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
+                        nqp::p6box_s($line);
                     }
                 }
                 method push-all($target) {

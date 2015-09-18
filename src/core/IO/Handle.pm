@@ -336,18 +336,88 @@ my class IO::Handle does IO {
         has $!handle;
         has $!PIO;
         has $!close;
+        has $!todo;
 
-        method new(\handle, \close) {
+        method new(\handle, \close, int $first, $todo?) {
             my \iter = self.CREATE;
             nqp::bindattr(iter, self, '$!handle', handle);
-            nqp::bindattr(iter, self, '$!PIO',
-                nqp::getattr(handle, IO::Handle, '$!PIO'));
             nqp::bindattr(iter, self, '$!close', close);
+            nqp::bindattr(iter, self, '$!todo', $ = $todo);
+
+            # skip any lines to be skipped
+            my Mu $PIO := nqp::getattr(handle, IO::Handle, '$!PIO');
+            if $first {
+                my int $toskip = $first;
+                my int $ins = nqp::getattr(handle, IO::Handle, '$!ins');
+                my str $line = nqp::readlinefh($PIO);
+                while nqp::chars($line) {
+                    $ins = $ins + 1;
+                    last unless $toskip = $toskip - 1;
+                    $line = nqp::readlinefh($PIO);
+                }
+                nqp::bindattr_i(handle, IO::Handle, '$!ins', $ins);
+            }
+
+            nqp::bindattr(iter, self, '$!PIO', $PIO);
             iter
         }
     }
-    multi method lines(IO::Handle:D: :$close) {
-        if $.chomp {
+    multi method lines(IO::Handle:D: $limit = *, :$close) {
+        my int $first;
+        my $lines;
+
+        # set up first/todo settings
+        if nqp::istype($limit,Range) {
+            $first = $limit.min + $limit.excludes-min;
+            given $limit.max -> $max {
+                $lines = $max - $limit.excludes-max - $first + 1
+                  unless $max == Inf;
+            }
+        }
+        elsif nqp::istype($limit,Whatever) || $limit == Inf {
+            # default
+        }
+        else {
+            $lines = $limit.Int;
+        }
+
+        with $lines -> $todo {
+            Seq.new(class :: does LinesIterCommon {
+                method pull-one() {
+                    my str $line;
+                    $line = nqp::readlinefh($!PIO) if $!todo;
+                    if nqp::chars($line) {
+                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                          nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
+                        $!todo--;
+                        nqp::getattr($!handle, IO::Handle, '$!chomp')
+                          ?? nqp::p6box_s($line).chomp
+                          !! nqp::p6box_s($line);
+                    }
+                    else {
+                        $!handle.close if $!close;
+                        IterationEnd
+                    }
+                }
+                method push-all($target) {
+                    my str $line;
+                    my int $ins = nqp::getattr($!handle, IO::Handle, '$!ins');
+                    $line = nqp::readlinefh($!PIO) if $!todo;
+                    while nqp::chars($line) {
+                        $target.push(
+                          nqp::getattr($!handle,IO::Handle,'$!chomp')
+                            ?? nqp::p6box_s($line).chomp
+                            !! nqp::p6box_s($line)
+                        );
+                        $ins  = $ins + 1;
+                        $line = nqp::readlinefh($!PIO) if --$!todo;
+                    }
+                    nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins);
+                    IterationEnd;
+                }
+            }.new(self, $close, $first, $todo));
+        }
+        elsif $.chomp {
             Seq.new(class :: does LinesIterCommon {
                 method pull-one() {
                     my str $line = nqp::readlinefh($!PIO);
@@ -363,8 +433,7 @@ my class IO::Handle does IO {
                 }
                 method push-all($target) {
                     if $!close {   # don't bother keeping track of $!ins
-                        my str $line;
-                        $line = nqp::readlinefh($!PIO);
+                        my str $line = nqp::readlinefh($!PIO);
                         while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line).chomp);
                             $line = nqp::readlinefh($!PIO);
@@ -373,8 +442,7 @@ my class IO::Handle does IO {
                     }
                     else {
                         my int $ins;
-                        my str $line;
-                        $line = nqp::readlinefh($!PIO);
+                        my str $line = nqp::readlinefh($!PIO);
                         while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line).chomp);
                             $ins  = $ins + 1;
@@ -384,7 +452,7 @@ my class IO::Handle does IO {
                     }
                     IterationEnd;
                 }
-            }.new(self, $close));
+            }.new(self, $close, $first));
         }
         else {
             Seq.new(class :: does LinesIterCommon {
@@ -423,29 +491,8 @@ my class IO::Handle does IO {
                     }
                     IterationEnd;
                 }
-            }.new(self, $close));
+            }.new(self, $close, $first));
         }
-    }
-    multi method lines(IO::Handle:D: $limit, :$close) {
-        return self.lines(:$close)
-          if nqp::istype($limit,Whatever) or $limit == Inf;
-
-        my Mu $rpa := nqp::list();
-        my int $count = $limit + 1;
-        if $.chomp {
-            while $count = $count - 1 {
-                last if nqp::eoffh($!PIO);
-                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)).chomp );
-            }
-        }
-        else {
-            while $count = $count - 1 {
-                nqp::push($rpa, nqp::p6box_s(nqp::readlinefh($!PIO)) );
-            }
-        }
-        $!ins = nqp::elems($rpa);
-        self.close if $close;
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
     }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {

@@ -351,21 +351,21 @@ my class IO::Handle does IO {
             Seq.new(class :: does LinesIterCommon {
                 method pull-one() {
                     my str $line = nqp::readlinefh($!PIO);
-                    if nqp::not_i(nqp::chars($line)) {
-                        $!handle.close if $!close;
-                        IterationEnd
-                    }
-                    else {
+                    if nqp::chars($line) {
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
                           nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
                         nqp::p6box_s($line).chomp;
+                    }
+                    else {
+                        $!handle.close if $!close;
+                        IterationEnd
                     }
                 }
                 method push-all($target) {
                     if $!close {   # don't bother keeping track of $!ins
                         my str $line;
                         $line = nqp::readlinefh($!PIO);
-                        until nqp::not_i(nqp::chars($line)) {
+                        while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line).chomp);
                             $line = nqp::readlinefh($!PIO);
                         }
@@ -375,7 +375,7 @@ my class IO::Handle does IO {
                         my int $ins;
                         my str $line;
                         $line = nqp::readlinefh($!PIO);
-                        until nqp::not_i(nqp::chars($line)) {
+                        while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line).chomp);
                             $ins  = $ins + 1;
                             $line = nqp::readlinefh($!PIO);
@@ -390,21 +390,21 @@ my class IO::Handle does IO {
             Seq.new(class :: does LinesIterCommon {
                 method pull-one() {
                     my str $line = nqp::readlinefh($!PIO);
-                    if nqp::not_i(nqp::chars($line)) {
-                        $!handle.close if $!close;
-                        IterationEnd;
-                    }
-                    else {
+                    if nqp::chars($line) {
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
                           nqp::add_i(nqp::getattr_i($!handle, IO::Handle, '$!ins'), 1));
                         nqp::p6box_s($line);
+                    }
+                    else {
+                        $!handle.close if $!close;
+                        IterationEnd;
                     }
                 }
                 method push-all($target) {
                     if $!close {   # don't bother keeping track of $!ins
                         my str $line;
                         $line = nqp::readlinefh($!PIO);
-                        until nqp::not_i(nqp::chars($line)) {
+                        while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line));
                             $line = nqp::readlinefh($!PIO);
                         }
@@ -414,7 +414,7 @@ my class IO::Handle does IO {
                         my int $ins;
                         my str $line;
                         $line = nqp::readlinefh($!PIO);
-                        until nqp::not_i(nqp::chars($line)) {
+                        while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line));
                             $ins  = $ins + 1;
                             $line = nqp::readlinefh($!PIO);

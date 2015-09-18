@@ -74,13 +74,11 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                 nqp::die("Do not know how to load code from " ~ %opts<from>);
             }
         }
-        elsif $file {
-            my $path = $file.IO;
-            $path.e ?? CompUnit.new($path.absolute).load(GLOBALish, :$line)
-                    !! nqp::die("Could not find file '$file' for module $module_name");
-        }
-        elsif self.candidates($module_name, :auth(%opts<auth>), :ver(%opts<ver>)) -> ($candi) {
+        elsif self.candidates($module_name, :$file, :auth(%opts<auth>), :ver(%opts<ver>)) -> ($candi) {
             $candi.load(GLOBALish, :$line)
+        }
+        elsif $file {
+            nqp::die("Could not find file '$file' for module $module_name");
         }
         else {
             nqp::die("Could not find $module_name in any of:\n  " ~

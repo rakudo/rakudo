@@ -1,8 +1,5 @@
 use Test;
 
-print "1..0 # Skip: Release pending\n";
-exit 0;
-
 plan 1;
 
 use NativeCall;

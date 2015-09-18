@@ -6932,6 +6932,7 @@ Compilation unit '$file' contained the following violations:
         my @p_objs := nqp::getattr($sig, $Sig, '$!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
+        my @attrs;
         while $i < $n {
             # Some things need the full binder to do.
             my %info      := @params[$i];
@@ -7336,14 +7337,14 @@ Compilation unit '$file' contained the following violations:
                 }
             }
 
-            # If it's an attributive parameter, do the bind.
+            # If it's an attributive parameter, stash some ops for binding it
             if %info<bind_attr> {
                 # If the type given for the attr_package is generic, we're
                 # dealing with a role and have to look up what type it's
                 # supposed to grab the attribute from during run-time.
                 if %info<attr_package>.HOW.archetypes.generic {
                     my $packagename := %info<attr_package>.HOW.name(%info<attr_package>);
-                    $var.push(QAST::Op.new(
+                    @attrs.push(QAST::Op.new(
                         :op('p6store'),
                         QAST::Var.new(
                             :name(%info<variable_name>), :scope('attribute'),
@@ -7356,7 +7357,7 @@ Compilation unit '$file' contained the following violations:
                         )));
                 }
                 else {
-                    $var.push(QAST::Op.new(
+                    @attrs.push(QAST::Op.new(
                         :op('p6store'),
                         QAST::Var.new(
                             :name(%info<variable_name>), :scope('attribute'),
@@ -7375,6 +7376,8 @@ Compilation unit '$file' contained the following violations:
 
             $i++;
         }
+        # Add the attributive parameter binding code.
+        for @attrs { nqp::push(@result, $_) };
         if $clear_topic_bind {
             $clear_topic_bind.shift(); $clear_topic_bind.shift();
             $clear_topic_bind.op('null');

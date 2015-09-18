@@ -41,6 +41,23 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
               $path, :$name, :extension(''), :has-source(!$has_precomp), :$has_precomp
             ) if IO::Path.new-from-absolute-path($path).f;
         }
+        # pick a META6.json if it is there
+        elsif (my $meta = ($!IO.abspath ~ $dir-sep ~ 'META6.json').IO) && $meta.f {
+            my $json = from-json $meta.slurp;
+            if $json<provides>{$name} -> $file {
+                my $has_precomp = $file.ends-with($precomp-ext);
+                my $has_source  = !$has_precomp;
+                my $path        = $file.IO.is-absolute
+                                ?? $file
+                                !! $!IO.abspath ~ $dir-sep ~ $file;
+                $has_precomp    = ?IO::Path.new-from-absolute-path($path ~ '.' ~ $precomp-ext).f
+                    unless $has_precomp;
+
+                return %seen{$path} = CompUnit.new(
+                  $path, :$name, :extension(''), :$has_source, :$has_precomp
+                ) if IO::Path.new-from-absolute-path($path).f;
+            }
+        }
         # deduce path to compilation unit from package name
         else {
             my $base := $!IO.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';

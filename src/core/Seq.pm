@@ -77,7 +77,9 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     method elems() {
-        self.cache.elems;
+        self.is-lazy
+          ?? fail X::Cannot::Lazy.new(action => '.elems').new
+          !! self.iterator.count-only;
     }
 
     method Numeric() {

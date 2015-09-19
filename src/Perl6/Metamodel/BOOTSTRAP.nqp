@@ -119,10 +119,14 @@ my class Binder {
     my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
     my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
 
-    # Binding reuslt flags.
+    # Binding result flags.
     my int $BIND_RESULT_OK       := 0;
     my int $BIND_RESULT_FAIL     := 1;
     my int $BIND_RESULT_JUNCTION := 2;
+
+    # Behavioral tweak flags
+    my int $NO_NOM_TYPE_CHECK    := 1;
+    my int $NO_BIND_ATTRIBUTIVE  := 2;
 
     my $autothreader;
     my $Positional;
@@ -177,7 +181,7 @@ my class Binder {
     }
 
     # Binds a single parameter.
-    sub bind_one_param($lexpad, $sig, $param, int $no_nom_type_check, $error,
+    sub bind_one_param($lexpad, $sig, $param, int $tweak, $error, $attribs,
                        int $got_native, $oval, int $ival, num $nval, str $sval) {
         # Grab flags and variable name.
         my int $flags       := nqp::getattr_i($param, Parameter, '$!flags');
@@ -268,7 +272,7 @@ my class Binder {
             $oval := nqp::hllizefor($oval, 'perl6');
 
             # Skip nominal type check if not needed.
-            unless $no_nom_type_check {
+            unless $tweak +& $NO_NOM_TYPE_CHECK {
                 # Is the nominal type generic and in need of instantiation? (This
                 # can happen in (::T, T) where we didn't learn about the type until
                 # during the signature bind).
@@ -516,9 +520,9 @@ my class Binder {
                 $assignee := $self."$varname"();
             }
 
-            nqp::iscont($assignee)
-                ?? nqp::assign($assignee, $oval)
-                !! $assignee.STORE(nqp::decont($oval));
+            # Store the assignment for later, when success is assured.
+            nqp::push($attribs, $assignee);
+            nqp::push($attribs, $oval);
         }
 
         # If it has a sub-signature, bind that.
@@ -543,7 +547,7 @@ my class Binder {
 
             # Recurse into signature binder.
             my $result := bind(make_vm_capture($capture), $subsig, $lexpad,
-                $no_nom_type_check, $error);
+                $tweak, $error, $attribs);
             unless $result == $BIND_RESULT_OK {
                 if $error {
                     # Note in the error message that we're in a sub-signature.
@@ -595,7 +599,9 @@ my class Binder {
     }
 
     # Drives the overall binding process.
-    sub bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
+    sub bind($capture, $sig, $lexpad, int $tweak_ro, $error, $attribs) {
+        # Only bind attributives at top, after we know we'll succeed.
+        my $tweak := $tweak_ro +| $NO_BIND_ATTRIBUTIVE;
         # Get params.
         my @params := nqp::getattr($sig, Signature, '$!params');
         
@@ -662,7 +668,7 @@ my class Binder {
                         nqp::bindattr($capsnap, Capture, '$!hash', nqp::hash());
                     }
 
-                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                         0, $capsnap, 0, 0.0, '');
                 }
                 if ($bind_fail) {
@@ -672,6 +678,17 @@ my class Binder {
                     # Since a capture acts as "the ultimate slurpy" in a sense, if
                     # this is the last parameter in the signature we can return
                     # success right off the bat.
+
+                    # Commit any attributive parameter assignments due to default values or whatnot
+                    unless $tweak_ro +& $NO_BIND_ATTRIBUTIVE {
+                        while nqp::elems($attribs) {
+                            my $assignee := nqp::shift($attribs);
+                            my $oval := nqp::shift($attribs);
+                            nqp::iscont($assignee)
+                                ?? nqp::assign($assignee, $oval)
+                                !! $assignee.STORE(nqp::decont($oval));
+                        }
+                    }
                     return $BIND_RESULT_OK;
                 }
                 else {
@@ -691,7 +708,7 @@ my class Binder {
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
                 nqp::bindattr($hash, EnumMap, '$!storage', $named_args || Mu);
-                $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;
                 
@@ -729,7 +746,7 @@ my class Binder {
 			!! $flags +& $SIG_ELEM_SLURPY_POS
 			    ?? $slurpy_type.from-slurpy-flat($temp)
 			    !! $slurpy_type.from-slurpy($temp);
-                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                         0, $bindee, 0, 0.0, '');
                     return $bind_fail if $bind_fail;
                 }
@@ -741,19 +758,19 @@ my class Binder {
                         # Easy - just bind that.
                         $got_prim := nqp::captureposprimspec($capture, $cur_pos_arg);
                         if $got_prim == 0 {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                                 0, nqp::captureposarg($capture, $cur_pos_arg), 0, 0.0, '');
                         }
                         elsif $got_prim == 1 {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                                 $SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_i($capture, $cur_pos_arg), 0.0, '');
                         }
                         elsif $got_prim == 2 {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                                 $SIG_ELEM_NATIVE_NUM_VALUE, nqp::null(), 0, nqp::captureposarg_n($capture, $cur_pos_arg), '');
                         }
                         else {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                                 $SIG_ELEM_NATIVE_STR_VALUE, nqp::null(), 0, 0.0, nqp::captureposarg_s($capture, $cur_pos_arg));
                         }
                         return $bind_fail if $bind_fail;
@@ -764,7 +781,7 @@ my class Binder {
                         # if not, we're screwed. Note that we never nominal type check
                         # an optional with no value passed.
                         if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                                 0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
                             return $bind_fail if $bind_fail;
                         }
@@ -801,7 +818,7 @@ my class Binder {
                 if nqp::isnull($value) {
                     # Nope. We'd better hope this param was optional...
                     if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                        $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                             0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
                     }
                     elsif !$suppress_arity_fail {
@@ -813,7 +830,7 @@ my class Binder {
                     }
                 }
                 else {
-                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $tweak, $error, $attribs,
                         0, $value, 0, 0.0, '');
                 }
 
@@ -850,11 +867,22 @@ my class Binder {
         }
         
         # If we get here, we're done.
+
+        # Commit any attributive parameter assignments due to default values or whatnot
+        unless $tweak_ro +& $NO_BIND_ATTRIBUTIVE {
+            while nqp::elems($attribs) {
+                my $assignee := nqp::shift($attribs);
+                my $oval := nqp::shift($attribs);
+                nqp::iscont($assignee)
+                    ?? nqp::assign($assignee, $oval)
+                    !! $assignee.STORE(nqp::decont($oval));
+                }
+        }
         return $BIND_RESULT_OK;
     }
 
-    method bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
-        bind($capture, $sig, $lexpad, $no_nom_type_check, $error);
+    method bind($capture, $sig, $lexpad, int $tweak, $error) {
+        bind($capture, $sig, $lexpad, $tweak, $error, nqp::list());
     }
 
     method bind_sig($capture) {
@@ -865,7 +893,7 @@ my class Binder {
 
         # Call binder.
         my @error;
-        my int $bind_res := bind($capture, $sig, $lexpad, 0, @error);
+        my int $bind_res := bind($capture, $sig, $lexpad, 0, @error, nqp::list());
         if $bind_res {
             if $bind_res == $BIND_RESULT_JUNCTION {
                 my @pos_args;
@@ -915,14 +943,14 @@ my class Binder {
         }
         nqp::p6invokeunder(
             nqp::getattr($sig, Signature, '$!code'),
-            -> { bind($capture, $sig, nqp::ctxcaller(nqp::ctx()), 0, NQPMu) != $BIND_RESULT_FAIL })
+            -> { bind($capture, $sig, nqp::ctxcaller(nqp::ctx()), 0, NQPMu, nqp::list()) != $BIND_RESULT_FAIL })
     }
 
     method bind_cap_to_sig($sig, $cap) {
         my $capture := make_vm_capture($cap);
         my $lexpad  := nqp::ctxcaller(nqp::ctx());
         my @error;
-        if bind($capture, $sig, $lexpad, 0, @error) != $BIND_RESULT_OK {
+        if bind($capture, $sig, $lexpad, 0, @error, nqp::list()) != $BIND_RESULT_OK {
             nqp::isinvokable(@error[0]) ?? @error[0]() !! nqp::die(@error[0]);
         }
         $sig

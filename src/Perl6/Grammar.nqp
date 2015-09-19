@@ -2839,6 +2839,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := '';
         [
         | <value>
+        | $<value>=['-'\d+]
         | <typename>
         | where <.ws> <EXPR('i=')>
         ]

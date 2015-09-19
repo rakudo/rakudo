@@ -4367,10 +4367,14 @@ Compilation unit '$file' contained the following violations:
                 );
             }
             my $ast := $<value>.ast;
-            unless $ast.has_compile_time_value {
-                $/.CURSOR.panic('Cannot use a value type constraints whose value is unknown at compile time');
+            my $val;
+            if nqp::can($ast,'has_compile_time_value') && $ast.has_compile_time_value {
+                $val := $ast.compile_time_value;
             }
-            my $val := $ast.compile_time_value;
+            else {  # for negatives
+                my $i  := $*W.add_numeric_constant(NQPMu, 'Int', +$<value>.Str);
+                $val := $i.compile_time_value;
+            }
             %*PARAM_INFO<nominal_type> := $val.WHAT;
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];

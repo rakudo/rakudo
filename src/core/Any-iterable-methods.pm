@@ -769,10 +769,10 @@ proto sub squish(|) { * }
 multi sub squish(+values, |c) { values.squish(|c) }
 
 proto sub sort(|) {*}
-multi sub sort(*@values)      {
-    nqp::istype(@values.AT-POS(0), Callable)
-        ?? SEQ(my $cmp := @values.shift; @values.sort($cmp) )
-        !! @values.sort;
+multi sub sort($cmp, +values)      {
+    nqp::istype($cmp, Callable)
+        ?? values.sort($cmp)
+        !! (|$cmp,|values).sort;
 }
 
 # vim: ft=perl6 expandtab sw=4

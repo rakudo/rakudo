@@ -129,13 +129,17 @@ my sub MAIN_HELPER($retval = 0) {
     @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
     # If there are still some candidates left, try to dispatch to MAIN
     if +@matching_candidates {
-        return $m(|@($p), |%($n));
+        $m(|@($p), |%($n));
+        return;
     }
 
     # We could not find the correct MAIN to dispatch to!
     # Let's try to run a user defined USAGE sub
     my $h = callframe(1).my<&USAGE>;
-    return $h() if $h;
+    if $h {
+        $h();
+        return;
+    }
 
     # We could not find a user defined USAGE sub!
     # Let's display the default USAGE message

@@ -5,6 +5,8 @@ my class X::Attribute::Required      { ... }
 
 my class Mu { # declared in BOOTSTRAP
 
+    method self { self }
+
     # XXX while the GLR is fanning out to the ecosystem
     proto method gimme(|) {
         die "

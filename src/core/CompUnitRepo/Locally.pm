@@ -27,6 +27,10 @@ role CompUnitRepo::Locally {
         self.short-id ~ '#' ~ $!IO.abspath;
     }
 
+    method absolutify(CompUnitRepo::Locally: |c) {
+        $*SPEC.rel2abs(|c);
+    }
+
     # stubs
     method files(CompUnitRepo::Locally:D: $file, :$name, :$auth, :$ver)   {...}
     method candidates(CompUnitRepo::Locally:D: $name,:$file,:$auth,:$ver) {...}

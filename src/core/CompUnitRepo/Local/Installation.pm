@@ -68,7 +68,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     exit run($*EXECUTABLE-NAME, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
-    method install(:$dist!, *@files) {
+    method install(:$dist!, :$from, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
         my $repo     = %!dists{$path};
@@ -102,11 +102,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my $has-provides;
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 $has-provides = True;
                 $d.provides{ $/.ast }{ $<ext> } = {
                     :file($file-id),
-                    :time(try $file.IO.modified.Num),
+                    :time(try self.absolutify($file, $from).IO.modified.Num),
                     :$!cver
                 }
             }
@@ -130,7 +131,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 }
                 $d.files{$file} = $file-id
             }
-            copy($file, $path ~ '/' ~ $file-id);
+            copy(self.absolutify($file, $from), $path ~ '/' ~ $file-id);
             $file-id++;
         }
 

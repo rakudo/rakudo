@@ -150,8 +150,8 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
-        my \iter = @values.reverse.iterator;
+    sub (+values) {
+        my \iter = values.reverse.iterator;
         my $result := iter.pull-one;
         return () if $result =:= IterationEnd;
 
@@ -160,7 +160,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
             while (my $elem := iter.pull-one) !=:= IterationEnd {
                 take $result := op.($elem, $result)
             }
-        }.lazy-if(@values.is-lazy);
+        }.lazy-if(values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
@@ -168,8 +168,8 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
-        my \iter = @values.reverse.iterator;
+    sub (+values) {
+        my \iter = values.reverse.iterator;
         my \first = iter.pull-one;
         return op.() if first =:= IterationEnd;
 
@@ -240,9 +240,9 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
+    sub (+values) {
         my $state = True;
-        my \iter = @values.iterator;
+        my \iter = values.iterator;
         my Mu $current = iter.pull-one;
         gather {
             take $state;
@@ -256,16 +256,16 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
                     take False;
                 }
             }
-        }.lazy-if(@values.is-lazy);
+        }.lazy-if(values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_CHAIN(\op) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
+    sub (+values) {
         my $state := True;
-        my \iter = @values.iterator;
+        my \iter = values.iterator;
         my $current := iter.pull-one;
         return True if $current =:= IterationEnd;
 

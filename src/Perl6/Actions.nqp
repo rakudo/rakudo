@@ -3013,7 +3013,7 @@ Compilation unit '$file' contained the following violations:
             my %info      := @params[$i];
             my $param_obj := @p_objs[$i];
             return 0 if %info<optional> || %info<is_capture> || %info<pos_slurpy> ||
-                %info<named_slurpy> || %info<pos_lol> || %*PARAM_INFO<pos_onearg> || %info<bind_attr> ||
+                %info<named_slurpy> || %info<pos_lol> || %info<pos_onearg> || %info<bind_attr> ||
                 %info<bind_accessor> || %info<nominal_generic> || %info<named_names> ||
                 %info<type_captures> || %info<post_constraints>;
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');

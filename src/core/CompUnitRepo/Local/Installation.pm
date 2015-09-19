@@ -72,7 +72,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
         my $repo     = %!dists{$path};
-        my $file-id := $repo<file-count>;
+        my $file-id  = [max] +$repo<dists>>>{"files"}>>.values,
+            +$repo<dists>>>{"provides"}>>.values>>.values>>{"file"}>>.values;
         my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
         state $is-win //= $*DISTRO.is-win; # only look up once
         if $repo<dists>.first({ ($_<name> // '') eq  ($d.name // '') &&
@@ -101,7 +102,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         # "provides" or just "files".
         my $has-provides;
         for @files -> $file is copy {
+            # todo: if upgrading we need to delete the old files
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+            repeat { $file-id++ } while "{$path}/{$file-id}".IO.e;
+
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 $has-provides = True;
                 $d.provides{ $/.ast }{ $<ext> } = {
@@ -131,7 +135,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 $d.files{$file} = $file-id
             }
             copy($file, $path ~ '/' ~ $file-id);
-            $file-id++;
         }
 
         if !$has-provides && $d.files.keys.first(/^blib\W/) {
@@ -149,7 +152,17 @@ file location in the distribution.
 See http://design.perl6.org/S22.html#provides for more information.\n";
         }
 
-        $repo<dists>[$d.id] = $d.Hash;
+
+        with $repo<dists>.first-index({ $_<id> eq $d.id }) -> $idx {
+            $repo<dists>[$idx] = $d.hash;
+        }
+        else {
+            $repo<dists>.push($d.hash);
+        }
+
+        $repo<dist-count> = $repo<dists>.flat.elems;
+        $repo<file-count> = [+] +$repo<dists>>>{"files"}>>.values.flat.elems,
+            +$repo<dists>>>{"provides"}>>.values>>.values>>{"file"}>>.values.flat.elems;
 
         # XXX Create path if needed.
         "$path/MANIFEST".IO.spurt: to-json( $repo )
@@ -179,6 +192,30 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
             }
         }
         @candi
+    }
+
+    method uninstall($dist) {
+        $!lock.protect( {
+        my $path       = self.writeable-path or die "No writeable path found";
+        my $repo       = %!dists{$path};
+        my @candi      = self.candidates($dist.name, :auth($dist.auth), :ver($dist.ver)) or return False;
+        my $delete-idx = $repo<dists>.first-index({ $_<id> eq @candi[0]<id> });
+
+        my @delete-files = $repo<dists>[$delete-idx]<files>.values,
+            $repo<dists>[$delete-idx]<provides>.values>>.values>>{"file"}.values;
+
+        for @delete-files {
+            try unlink($_);
+        }
+
+        $repo<dists>.splice($delete-idx, 1);
+
+        $repo<dist-count> = $repo<dists>.flat.elems;
+        $repo<file-count> = [+] +$repo<dists>>>{"files"}>>.values.flat.elems,
+            +$repo<dists>>>{"provides"}>>.values>>.values>>{"file"}>>.values.flat.elems;
+
+        "$path/MANIFEST".IO.spurt: to-json( $repo )
+        } );
     }
 
     method candidates($name, :$file, :$auth, :$ver) {

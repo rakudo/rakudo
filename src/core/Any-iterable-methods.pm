@@ -725,8 +725,8 @@ multi sub infix:<max>(+args) { args.max }
 sub max(+args is raw, :&by = &infix:<cmp>) { args.max(&by) }
 
 proto sub infix:<minmax>(|) is pure { * }
-multi sub infix:<minmax>(**@args is raw) { @args.minmax }
-sub minmax(**@args is raw, :&by = &infix:<cmp>) { @args.minmax(&by) }
+multi sub infix:<minmax>(+args) { args.minmax }
+sub minmax(+args, :&by = &infix:<cmp>) { args.minmax(&by) }
 
 proto sub map(|) {*}
 # fails integration/99problems-21-to-30, test 12/13

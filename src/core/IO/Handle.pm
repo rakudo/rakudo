@@ -323,15 +323,6 @@ my class IO::Handle does IO {
     }
 
     proto method lines (|) { * }
-    multi method lines(IO::Handle:D: :$count!, :$close) {
-        return self.lines(:$close) if !$count;
-
-        until nqp::eoffh($!PIO) {
-            nqp::readlinefh($!PIO);
-            $!ins = $!ins + 1;
-        }
-        nqp::box_i($!ins, Int);
-    }
     my role LinesIterCommon does Iterator {
         has $!handle;
         has $!PIO;
@@ -360,6 +351,16 @@ my class IO::Handle does IO {
 
             nqp::bindattr(iter, self, '$!PIO', $PIO);
             iter
+        }
+        method count-only() {
+            my int $ins  = nqp::getattr($!handle, IO::Handle, '$!ins');
+            my str $line = nqp::readlinefh($!PIO);
+            while nqp::chars($line) {
+                $ins = $ins + 1;
+                $line = nqp::readlinefh($!PIO);
+            }
+            nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins);
+            $ins
         }
     }
     multi method lines(IO::Handle:D: $limit = *, :$close) {

@@ -1174,13 +1174,11 @@ Compilation unit '$file' contained the following violations:
         }
         else {
             unless $BLOCK.symbol('$_') {
-                if $*IMPLICIT {
-                    $BLOCK[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
-                }
-                else {
+                $BLOCK[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
+                unless $*IMPLICIT {
                     $BLOCK[0].push(QAST::Op.new(
                         :op('bind'),
-                        QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
+                        QAST::Var.new( :name('$_'), :scope('lexical') ),
                         QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
                     ));
                 }

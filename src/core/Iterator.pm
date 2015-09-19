@@ -71,7 +71,7 @@ my role Iterator {
     # in situations such as "foo".IO.lines.elems, where we're only interested
     # in the number of lines in the file, rather than the contents of the
     # lines.
-    method count-only($) {
+    method count-only() {
         my int $i = 0;
         $i = $i + 1 until self.pull-one() =:= IterationEnd;
         $i

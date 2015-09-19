@@ -413,7 +413,7 @@ my class IO::Handle does IO {
                         $line = --$!todo ?? nqp::readlinefh($!PIO) !! '';
                     }
                     nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins);
-                    $!handle.close if $!close and nqp::eoffh($!PIO);
+                    $!handle.close if $!close;
                     IterationEnd
                 }
             }.new(self, $close, $first, $todo));

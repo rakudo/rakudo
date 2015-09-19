@@ -13,7 +13,7 @@
 # the caller's scope.
 proto sub POSITIONS(|) { * }
 multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
-                       $idx ~~ Whatever ?? SELF.elems !! SELF.EXISTS-POS($idx)
+                       $idx ~~ Whatever ?? SELF.cache.elems !! SELF.EXISTS-POS($idx)
                     }) {
     my class IndicesReificationTarget {
         has $!target;
@@ -277,10 +277,10 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$v!, *%other) is rw {
 
 # @a[->{}]
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block ) is rw {
-    SELF[$block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)))];
+    SELF[$block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)))];
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is rw {
-    SELF[$block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)))] = assignee;
+    SELF[$block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)))] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
@@ -289,37 +289,37 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$SINK!, *%other) is rw 
     SLICE_MORE_LIST( SELF, POSITIONS(SELF,$block), :$SINK, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is rw {
-    my $pos := $block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)));
+    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
       ?? SLICE_ONE_LIST(  SELF,  $pos, :$delete, |%other )
       !! SLICE_MORE_LIST( SELF, @$pos, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$exists!,*%other) is rw {
-    my $pos := $block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)));
+    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
       ?? SLICE_ONE_LIST(  SELF,  $pos, :$exists, |%other )
       !! SLICE_MORE_LIST( SELF, @$pos, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$kv!, *%other) is rw {
-    my $pos := $block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)));
+    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
       ?? SLICE_ONE_LIST(  SELF,  $pos, :$kv, |%other )
       !! SLICE_MORE_LIST( SELF, @$pos, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$p!, *%other) is rw {
-    my $pos := $block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)));
+    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
       ?? SLICE_ONE_LIST(  SELF,  $pos, :$p, |%other )
       !! SLICE_MORE_LIST( SELF, @$pos, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$k!, *%other) is rw {
-    my $pos := $block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)));
+    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
       ?? SLICE_ONE_LIST(  SELF,  $pos, :$k, |%other )
       !! SLICE_MORE_LIST( SELF, @$pos, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$v!, *%other) is rw {
-    my $pos := $block(|(SELF.elems xx ($block.count == Inf ?? 1 !! $block.count)));
+    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
       ?? SLICE_ONE_LIST(  SELF,  $pos, :$v, |%other )
       !! SLICE_MORE_LIST( SELF, @$pos, :$v, |%other );
@@ -327,36 +327,36 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$v!, *%other) is rw {
 
 # @a[*]
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D ) is rw {
-    SELF[^SELF.elems];
+    SELF[^SELF.cache.elems];
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is rw {
-    SELF[^SELF.elems] = assignee;
+    SELF[^SELF.cache.elems] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$SINK!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$SINK, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$SINK, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$delete!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$delete, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$exists!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$exists, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$kv!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$kv, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$p!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$p, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$k!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$k, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$v!, *%other) is rw {
     %other
-      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, :$v, |%other )
-      !! SELF[^SELF.elems];
+      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$v, |%other )
+      !! SELF[^SELF.cache.elems];
 }
 
 # @a[**]
@@ -375,27 +375,27 @@ multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$SINK!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$SINK, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$SINK, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$delete!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$delete, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$exists!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$exists, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$kv!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$kv, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$p!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$p, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$k!, *%other) is rw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, :$k, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
     %other
-      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, :$v, |%other )
-      !! SELF[^SELF.elems];
+      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$v, |%other )
+      !! SELF[^SELF.cache.elems];
 }
 
 
@@ -413,12 +413,12 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is rw 
             MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
         }
         elsif nqp::istype(idx, Whatever) {
-            for ^SELF.elems {
+            for ^SELF.cache.elems {
                 MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS($_), indices, indices.AT-POS($next-dim), $next-dim, target)
             }
         }
         elsif nqp::istype(idx, Callable) {
-            MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, idx.(|(SELF.elems xx (idx.count == Inf ?? 1 !! idx.count))), $dim, target);
+            MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, idx.(|(SELF.cache.elems xx (idx.count == Inf ?? 1 !! idx.count))), $dim, target);
         }
         else  {
             MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS(idx.Int), indices, indices.AT-POS($next-dim), $next-dim, target)
@@ -434,12 +434,12 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is rw 
             nqp::push(target, SELF.AT-POS(idx))
         }
         elsif nqp::istype(idx, Whatever) {
-            for ^SELF.elems {
+            for ^SELF.cache.elems {
                 nqp::push(target, SELF.AT-POS($_))
             }
         }
         elsif nqp::istype(idx, Callable) {
-            nqp::push(target, SELF.AT-POS(idx.(|(SELF.elems xx (idx.count == Inf ?? 1 !! idx.count)))))
+            nqp::push(target, SELF.AT-POS(idx.(|(SELF.cache.elems xx (idx.count == Inf ?? 1 !! idx.count)))))
         }
         else {
             nqp::push(target, SELF.AT-POS(idx.Int))

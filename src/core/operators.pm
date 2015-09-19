@@ -223,7 +223,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         for flat @a Z @e -> $from, $to {
                             @ranges.push: $($from ... $to);
                         }
-                        .take for flat [X~] |@ranges;
+                        .take for flat [X~] @ranges;
                         $stop = 1;
                     }
                     elsif $a lt $endpoint {

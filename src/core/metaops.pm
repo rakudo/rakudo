@@ -189,21 +189,21 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) {
+    sub (+values) {
         GATHER({
             my @list;
-            for @values -> \v {
+            for values -> \v {
                 @list.push(v);
                 take op.(|@list);
             }
-        }).lazy-if(@values.is-lazy);
+        }).lazy-if(values.is-lazy);
     }
 }
 multi sub METAOP_REDUCE_LIST(\op) {
 #?if jvm
     my $ :=
 #?endif
-    sub (*@values) { op.(|@values) }
+    sub (+values) { op.(|values) }
 }
 
 proto sub METAOP_REDUCE_LISTINFIX(|) { * }
@@ -230,11 +230,8 @@ multi sub METAOP_REDUCE_LISTINFIX(\op) {
 #?if jvm
     my $ :=
 #?endif
-    sub (|values) {
-        my \p = values[0];
-        nqp::iscont(p[0])
-          ?? op.(|p.map({nqp::decont($_).list}))
-          !! op.(|p);
+    sub (+values) {
+        op.(|values.map({nqp::decont($_)}));
     }
 }
 

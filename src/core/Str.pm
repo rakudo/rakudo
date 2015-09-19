@@ -660,16 +660,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $prev-pos = .to;
                 # we don't want the dummy object
                 $elems-- ?? Slip.new($value, $_) !! $value;
-            }, matches, Match.new( :from(self.chars) );
-            #           ^-- add dummy for last
+            }, flat matches, Match.new( :from(self.chars) );
+            #                ^-- add dummy for last
         }
         else {
             map {
                 my $value = substr(self, $prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
                 $value;
-            }, matches, Match.new( :from(self.chars) );
-            #           ^-- add dummy for last
+            }, flat matches, Match.new( :from(self.chars) );
+            #                ^-- add dummy for last
         }
     }
 

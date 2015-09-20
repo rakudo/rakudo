@@ -353,14 +353,19 @@ my class IO::Handle does IO {
             iter
         }
         method count-only() {
-            my int $ins  = nqp::getattr($!handle, IO::Handle, '$!ins');
-            my str $line = nqp::readlinefh($!PIO);
+            my int $seen;
+            my str $line;
+            $line = nqp::readlinefh($!PIO);
             while nqp::chars($line) {
-                $ins = $ins + 1;
+                $seen = $seen + 1;
                 $line = nqp::readlinefh($!PIO);
             }
-            nqp::bindattr_i($!handle, IO::Handle, '$!ins', $ins);
-            $ins
+            $!close
+              ?? $!handle.close
+              !! nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                   nqp::getattr($!handle, IO::Handle, '$!ins' + $seen));
+
+            $seen
         }
     }
     multi method lines(IO::Handle:D: $limit = *, :$close) {
@@ -384,6 +389,21 @@ my class IO::Handle does IO {
 
         with $lines -> $todo {
             Seq.new(class :: does LinesIterCommon {
+                method count-only() {
+                    my int $seen;
+                    my str $line;
+                    $line = nqp::readlinefh($!PIO) if $!todo;
+                    while nqp::chars($line) {
+                        $seen = $seen + 1;
+                        $line = --$!todo ?? nqp::readlinefh($!PIO) !! '';
+                    }
+                    $!close
+                      ?? $!handle.close
+                      !! nqp::bindattr_i($!handle, IO::Handle, '$!ins',
+                           nqp::getattr($!handle, IO::Handle, '$!ins' + $seen));
+
+                    $seen
+                }
                 method pull-one() {
                     my str $line;
                     $line = nqp::readlinefh($!PIO) if $!todo;

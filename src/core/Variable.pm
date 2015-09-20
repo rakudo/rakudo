@@ -40,7 +40,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu:U $is ) {
       feature => "Variable trait 'is TypeObject'",
     );
 }
-multi sub trait_mod:<is>(Variable:D $v, :$default!) {
+multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
 

@@ -82,7 +82,7 @@ multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
 proto sub infix:<^^>(|)                   { * }
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
 multi sub infix:<^^>(Mu \a, Mu \b)        { a ^^ b }
-multi sub infix:<^^>(*@a) {
+multi sub infix:<^^>(+@a) {
     my $a = shift @a;
     while @a {
         my $b := shift @a;
@@ -108,6 +108,6 @@ multi sub infix:<or>(Mu \a, Mu \b)        { a || b }
 proto sub infix:<xor>(|)                   { * }
 multi sub infix:<xor>(Mu $x = Bool::False) { $x }
 multi sub infix:<xor>(Mu \a, Mu \b)        { a ^^ b }
-multi sub infix:<xor>(*@a)                 { &infix:<^^>(|@a); }
+multi sub infix:<xor>(|c)                 { &infix:<^^>(|c); }
 
 # vim: ft=perl6 expandtab sw=4

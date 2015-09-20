@@ -121,12 +121,12 @@ my class Hash { # declared in BOOTSTRAP
         Nil;
     }
 
-    method push(*@values) {
+    method push(+values) {
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
-          if @values.is-lazy;
+          if values.is-lazy;
         my $previous;
         my $has_previous;
-        for @values -> $e {
+        for values -> $e {
             if $has_previous {
                 self!_push_construct($previous, $e);
                 $has_previous = 0;

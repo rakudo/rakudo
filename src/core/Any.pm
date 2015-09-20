@@ -171,15 +171,15 @@ my class Any { # declared in BOOTSTRAP
 
     # auto-vivifying
     proto method push(|) is nodal { * }
-    multi method push(Any:U \SELF: *@values) {
+    multi method push(Any:U \SELF: |values) {
         SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
-        SELF.push(@values);
+        SELF.push(|values);
     }
 
     proto method unshift(|) is nodal { * }
-    multi method unshift(Any:U \SELF: *@values) {
+    multi method unshift(Any:U \SELF: |values) {
         SELF = Array.new;
-        SELF.unshift(@values);
+        SELF.unshift(|values);
     }
 
     proto method EXISTS-POS(|) is nodal { * }
@@ -401,12 +401,10 @@ multi postfix:<-->(Mu:D \a is rw) { my $b = a; a = a.pred; $b }
 multi postfix:<-->(Mu:U \a is rw) { a = -1; 0 }
 
 proto sub pick(|) { * }
-multi sub pick($n, @values) { @values.pick($n) }
-multi sub pick($n, *@values) { @values.pick($n) }
+multi sub pick($n, +values) { values.pick($n) }
 
 proto sub roll(|) { * }
-multi sub roll($n, @values) { @values.roll($n) }
-multi sub roll($n, *@values) { @values.roll($n) }
+multi sub roll($n, +values) { values.roll($n) }
 
 proto sub keys(|) { * }
 multi sub keys($x) { $x.keys }
@@ -426,22 +424,22 @@ multi sub elems($a) { $a.elems }
 proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
-sub classify( $test, *@items, *%named ) {
+sub classify( $test, +items, *%named ) {
     if %named.EXISTS-KEY("into") {
         my $into := %named.DELETE-KEY("into");
-        ( $into // $into.new).classify-list($test, @items, |%named);
+        ( $into // $into.new).classify-list($test, items, |%named);
     }
     else {
-        Hash.^parameterize(Any,Any).new.classify-list($test, @items, |%named);
+        Hash.^parameterize(Any,Any).new.classify-list($test, items, |%named);
     }
 }
-sub categorize( $test, *@items, *%named ) {
+sub categorize( $test, +items, *%named ) {
     if %named.EXISTS-KEY("into") {
         my $into := %named.DELETE-KEY("into");
-        ( $into // $into.new).categorize-list($test, @items, |%named);
+        ( $into // $into.new).categorize-list($test, items, |%named);
     }
     else {
-        Hash.^parameterize(Any,Any).new.categorize-list($test, @items, |%named);
+        Hash.^parameterize(Any,Any).new.categorize-list($test, items, |%named);
     }
 }
 

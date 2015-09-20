@@ -135,14 +135,14 @@ my class Junction { # declared in BOOTSTRAP
     }
 }
 
-sub any(+values) { Junction.new(values, :type<any>); }
-sub all(+values) { Junction.new(values, :type<all>); }
-sub one(+values) { Junction.new(values, :type<one>); }
-sub none(+values) { Junction.new(values, :type<none>); }
+sub any (+values) { values.any }
+sub all (+values) { values.all }
+sub one (+values) { values.one }
+sub none(+values) { values.none }
 
-sub infix:<|>(+values) { Junction.new(values, :type<any>); }
-sub infix:<&>(+values) { Junction.new(values, :type<all>); }
-sub infix:<^>(+values) { Junction.new(values, :type<one>); }
+sub infix:<|>(+values) { values.any }
+sub infix:<&>(+values) { values.all }
+sub infix:<^>(+values) { values.one }
 
 sub AUTOTHREAD(|c) {
     Junction.AUTOTHREAD(|c)

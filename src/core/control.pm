@@ -104,17 +104,17 @@ multi sub succeed(|) {
 
 sub proceed() { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
-my &callwith := -> *@pos, *%named {
+my &callwith := -> |c {
     my Mu $dispatcher := nqp::p6finddispatcher('callwith');
     $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_args(|@pos, |%named)
+        $dispatcher.call_with_args(|c)
 };
 
-my &nextwith := -> *@pos, *%named {
+my &nextwith := -> |c {
     my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
     unless $dispatcher.exhausted {
         nqp::p6routinereturn(nqp::p6recont_ro(
-            $dispatcher.call_with_args(|@pos, |%named)))
+            $dispatcher.call_with_args(|c)))
     }
     Nil
 };

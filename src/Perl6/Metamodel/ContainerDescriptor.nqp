@@ -19,10 +19,10 @@ class Perl6::Metamodel::ContainerDescriptor {
     method default() { $!default }
     method dynamic() { $!dynamic }
     
-    method set_of($of) { $!of := $of }
-    method set_rw($rw) { $!rw := $rw }
-    method set_default($default) { $!default := $default }
-    method set_dynamic($dynamic) { $!dynamic := $dynamic }
+    method set_of($of) { $!of := $of; self }
+    method set_rw($rw) { $!rw := $rw; self }
+    method set_default($default) { $!default := $default; self }
+    method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
     
     method is_generic() {
         $!of.HOW.archetypes.generic

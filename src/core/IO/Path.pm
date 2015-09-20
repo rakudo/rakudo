@@ -508,9 +508,9 @@ my class IO::Path is Cool {
     }
 
     proto method lines(|) { * }
-    multi method lines(IO::Path:D: $limit = *, |c) {
+    multi method lines(IO::Path:D: |c) {
         my $handle = self.open(|c);
-        $handle && $handle.lines($limit, :close, |c);
+        $handle && $handle.lines(:close);
     }
 
     proto method words(|) { * }

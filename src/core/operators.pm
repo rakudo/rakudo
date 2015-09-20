@@ -600,7 +600,7 @@ sub REQUIRE_IMPORT($package-name, *@syms) {
     }
     $package
 }
-sub infix:<andthen>(*@a) {
+sub infix:<andthen>(**@a) {
     return Bool::True unless @a;
     my Mu $current := @a.shift;
     for @a {
@@ -612,7 +612,7 @@ sub infix:<andthen>(*@a) {
     }
     $current;
 }
-sub infix:<notandthen>(*@a) {
+sub infix:<notandthen>(**@a) {
     return Bool::True unless @a;
     my Mu $current := @a.shift;
     for @a {
@@ -624,7 +624,7 @@ sub infix:<notandthen>(*@a) {
     }
     $current;
 }
-sub infix:<orelse>(*@a) {
+sub infix:<orelse>(**@a) {
     return Nil unless @a;
     my Mu $current := @a.shift;
     for @a {

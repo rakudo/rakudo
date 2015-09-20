@@ -913,9 +913,7 @@ multi infix:<,>(|) {
     result
 }
 
-sub list(**@list is raw) {
-    @list == 1 ?? @list[0].list !! @list
-}
+sub list(+l) { l }
 
 # Use **@list and then .flat it, otherwise we'll end up remembering all the
 # things we flatten, which would be different semantics to .flat which gives
@@ -924,9 +922,7 @@ sub flat(**@list is raw) {
     @list.flat
 }
 
-sub cache(**@list is raw) {
-    @list == 1 ?? @list[0].cache !! @list
-}
+sub cache(+@l) { @l }
 
 proto sub infix:<xx>(|)     { * }
 multi sub infix:<xx>()      { fail "No zero-arg meaning for infix:<xx>" }

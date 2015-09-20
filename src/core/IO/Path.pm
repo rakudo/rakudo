@@ -513,10 +513,10 @@ my class IO::Path is Cool {
         $handle && $handle.lines($limit, :close, |c);
     }
 
-    proto method words() { * }
-    multi method words(IO::Path:D: $limit = *, |c) {
+    proto method words(|) { * }
+    multi method words(IO::Path:D: |c) {
         my $handle = self.open(|c);
-        $handle && $handle.words($limit, :close, |c);
+        $handle && $handle.words(:close);
     }
 
     my %t =

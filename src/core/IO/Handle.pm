@@ -155,171 +155,141 @@ my class IO::Handle does IO {
     }
 
     proto method words (|) { * }
-    # can probably go after GLR
-    multi method words(IO::Handle:D: :$eager!, :$close) {
-        return self.words(:$close) if !$eager;
+    my role WordsIterCommon does Iterator {
+        has $!handle;
+        has $!close;
+        has str $!str;
+        has Int $!pos;   # should be int, but we haz a bug: RT #126120
 
-        my str $str;
-        my int $chars;
-        my int $pos;
-        my int $left;
-        my int $nextpos;
-        my Mu $rpa := nqp::list();
-
-        until nqp::eoffh($!PIO) {
-
-#?if moar
-            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
-#?endif
-#?if !moar
-            my Buf $buf := Buf.new;
-            nqp::readfh($!PIO, $buf, 65536);
-            $str   = $str ~ nqp::unbox_s($buf.decode);
-#?endif
-            $chars = nqp::chars($str);
-            $pos   = nqp::findnotcclass(
-              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
-
-            while ($left = $chars - $pos) > 0 {
-                $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
-                last unless $left = $chars - $nextpos; # broken word
-
-                nqp::push($rpa,
-                  nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str) );
-
-                $pos = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
-            }
-
-            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+        submethod BUILD(\handle, $!close) {
+            $!handle := handle;
+            $!str = self!readcharsfh();
+            $!pos = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $!str, 0, nqp::chars($!str));
+            self
         }
-        self.close if $close;
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
-    }
-    multi method words(IO::Handle:D: :$count!, :$close) {
-        return self.words(:$close) if !$count;
-
-        my str $str;
-        my int $chars;
-        my int $pos;
-        my int $left;
-        my int $nextpos;
-        my int $found;
-
-        until nqp::eoffh($!PIO) {
-
-#?if moar
-            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
-#?endif
-#?if !moar
-            my Buf $buf := Buf.new;
-            nqp::readfh($!PIO, $buf, 65536);
-            $str   = $str ~ nqp::unbox_s($buf.decode);
-#?endif
-            $chars = nqp::chars($str);
-            $pos   = nqp::findnotcclass(
-              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
-
-            while ($left = $chars - $pos) > 0 {
-                $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
-                last unless $left = $chars - $nextpos; # broken word
-
-                $found = $found + 1;
-
-                $pos = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
-            }
-
-            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+        method new(\handle, \close) {
+            nqp::create(self).BUILD(handle, close);
         }
-        self.close if $close;
-        nqp::box_i($found, Int);
+        method !readcharsfh() {
+            my Mu $PIO := nqp::getattr($!handle, IO::Handle, '$!PIO');
+#?if jvm
+            my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
+            nqp::readfh($PIO, $buf, 65536); # optimize for ASCII
+            nqp::unbox_s($buf.decode);
+#?endif
+#?if !jvm
+            nqp::readcharsfh($PIO, 65536); # optimize for ASCII
+#?endif
+        }
+        method !next-chunk(\chars) {
+            $!str = $!pos < chars
+              ?? nqp::concat(nqp::substr($!str,$!pos),self!readcharsfh)
+              !! self!readcharsfh;
+            chars = nqp::chars($!str);
+            $!pos = chars
+              ?? nqp::findnotcclass(
+                   nqp::const::CCLASS_WHITESPACE, $!str, 0, chars)
+              !! 0;
+        }
     }
     multi method words(IO::Handle:D: :$close) {
-        my str $str;
-        my int $chars;
-        my int $pos;
-        my int $left;
-        my int $nextpos;
+        Seq.new(class :: does WordsIterCommon {
+            method pull-one() {
+                my int $chars;
+                my int $left;
+                my int $nextpos;
 
-        gather {
-            until nqp::eoffh($!PIO) {
+                while $chars = nqp::chars($!str) {
+                    while ($left = $chars - $!pos) > 0 {
+                        $nextpos = nqp::findcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
+                        last unless $left = $chars - $nextpos; # broken word
 
-#?if moar
-                # optimize for ASCII
-                $str   = $str ~ nqp::readcharsfh($!PIO, 65536);
-#?endif
-#?if !moar
-                my Buf $buf := Buf.new;
-                nqp::readfh($!PIO, $buf, 65536);
-                $str = $str ~ nqp::unbox_s($buf.decode);
-#?endif
-                $chars = nqp::chars($str);
-                $pos   = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+                        my str $found =
+                          nqp::substr($!str, $!pos, $nextpos - $!pos);
+                        $!pos = nqp::findnotcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
 
-                while ($left = $chars - $pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
-                    last unless $left = $chars - $nextpos; # broken word
-
-                    take
-                      nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str);
-
-                    $pos = nqp::findnotcclass(
-                      nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+                        return nqp::p6box_s($found);
+                    }
+                    self!next-chunk($chars);
                 }
-
-                $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
+                $!handle.close if $!close;
+                IterationEnd
             }
-            self.close if $close;
-        }
-    }
-    multi method words(IO::Handle:D: $limit, :$eager, :$close) {
-        return self.words(:$eager,:$close)
-          if nqp::istype($limit,Whatever) or $limit == Inf;
+            method push-exactly($target, int $n) {
+                my int $found;
+                my int $chars;
+                my int $left;
+                my int $nextpos;
 
-        my str $str;
-        my int $chars;
-        my int $pos;
-        my int $left;
-        my int $nextpos;
-        my int $count = $limit;
-        my Mu $rpa := nqp::list();
+                while $chars = nqp::chars($!str) {
+                    while ($left = $chars - $!pos) > 0 {
+                        $nextpos = nqp::findcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
+                        last unless $left = $chars - $nextpos; # broken word
 
-        until nqp::eoffh($!PIO) {
+                        $target.push(nqp::p6box_s(
+                          nqp::substr($!str, $!pos, $nextpos - $!pos)
+                        ));
+                        $!pos = nqp::findnotcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
 
-#?if moar
-            $str   = $str ~ nqp::readcharsfh($!PIO, 65536); # optimize for ASCII
-#?endif
-#?if !moar
-            my Buf $buf := Buf.new;
-            nqp::readfh($!PIO, $buf, 65536);
-            $str   = $str ~ nqp::unbox_s($buf.decode);
-#?endif
-            $chars = nqp::chars($str);
-            $pos   = nqp::findnotcclass(
-              nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
-
-            while $count and ($left = $chars - $pos) > 0 {
-                $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
-                last unless $left = $chars - $nextpos; # broken word
-
-                nqp::push($rpa,
-                  nqp::box_s(nqp::substr($str, $pos, $nextpos - $pos), Str) );
-                $count = $count - 1;
-
-                $pos = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, $nextpos, $left);
+                        $found = $found + 1;
+                        return nqp::p6box_i($n) if $found == $n;
+                    }
+                    self!next-chunk($chars);
+                }
+                $!handle.close if $close;
+                nqp::p6box_i($found)
             }
+            method push-all($target) {
+                my int $chars;
+                my int $left;
+                my int $nextpos;
 
-            $str = $pos < $chars ?? nqp::substr($str,$pos) !! '';
-        }
-        self.close if $close;
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
+                while $chars = nqp::chars($!str) {
+                    while ($left = $chars - $!pos) > 0 {
+                        $nextpos = nqp::findcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
+                        last unless $left = $chars - $nextpos; # broken word
+
+                        $target.push(nqp::p6box_s(
+                          nqp::substr($!str, $!pos, $nextpos - $!pos)
+                        ));
+
+                        $!pos = nqp::findnotcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
+                    }
+                    self!next-chunk($chars);
+                }
+                $!handle.close if $close;
+                IterationEnd
+            }
+            method count-only() {
+                my int $found;
+                my int $chars;
+                my int $left;
+                my int $nextpos;
+
+                while $chars = nqp::chars($!str) {
+                    while ($left = $chars - $!pos) > 0 {
+                        $nextpos = nqp::findcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
+                        last unless $left = $chars - $nextpos; # broken word
+
+                        $found = $found + 1;
+
+                        $!pos = nqp::findnotcclass(
+                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
+                    }
+                    self!next-chunk($chars);
+                }
+                $!handle.close if $!close;
+                nqp::p6box_i($found)
+            }
+        }.new(self, $close));
     }
 
     proto method lines (|) { * }

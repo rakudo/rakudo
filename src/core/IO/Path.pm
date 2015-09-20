@@ -495,6 +495,7 @@ my class IO::Path is Cool {
           ?? $handle.write($contents)
           !! $handle.print($contents);
         $handle.close;  # can't use LEAVE in settings :-(
+        $!e = True;
         $spurt;
     }
 

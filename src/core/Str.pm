@@ -552,9 +552,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
+    role ProcessStr does Iterator {
+        has str $str;
+        has int $chars;
+        submethod BUILD(\string) {
+            $!str   = nqp::unbox_s(string);
+            $!chars = nqp::chars($!str);
+            self
+        }
+        method new(\string) { nqp::create(self).BUILD(string) }
+    }
+
     method ords(Str:D:) {
-        my str $ns = nqp::unbox_s(self);
-        (^self.chars).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
+        Seq.new(class :: does ProcessStr {
+            has int $pos;
+            method pull-one() {
+                $!pos < $!chars
+                  ?? nqp::p6box_i(nqp::ordat($!str, $!pos++))
+                  !! IterationEnd
+            }
+        }.new(self));
     }
 
     # constant ???

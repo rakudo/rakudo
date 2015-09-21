@@ -405,7 +405,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(List:D: $topic) {
-        return self unless nqp::istype($topic, Iterable);
+        unless nqp::istype($topic, Iterable) {
+            return self unless self.elems;
+            return self if nqp::istype(self[0], Match);
+            return False;
+        }
         my $sseq = self;
         my $tseq = $topic;
 

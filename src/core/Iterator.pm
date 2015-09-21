@@ -77,6 +77,14 @@ my role Iterator {
         $i
     }
 
+    # Does not push anything, but tries to consume the iterator once to find
+    # out if anything is there.  Intended to be used in situations such as
+    # if "foo".IO.lines { , where we're only interested whether there is *any*
+    # line in the file, rather than the content of the line.
+    method bool-only() {
+        self.pull-one() !=:= IterationEnd;
+    }
+
     # Consumes all of the values in the iterator for their side-effects only.
     # May be overridden by iterators to either warn about use of things in
     # sink context that should not be used that way, or to process things in

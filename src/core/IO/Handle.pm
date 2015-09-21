@@ -155,46 +155,44 @@ my class IO::Handle does IO {
     }
 
     proto method words (|) { * }
-    my role WordsIterCommon does Iterator {
-        has $!handle;
-        has $!close;
-        has str $!str;
-        has Int $!pos;   # should be int, but we haz a bug: RT #126120
+    multi method words(IO::Handle:D: :$close) {
+        Seq.new(class :: does Iterator {
+            has $!handle;
+            has $!close;
+            has str $!str;
+            has int $!pos;
 
-        submethod BUILD(\handle, $!close) {
-            $!handle := handle;
-            $!str = self!readcharsfh();
-            $!pos = nqp::findnotcclass(
-              nqp::const::CCLASS_WHITESPACE, $!str, 0, nqp::chars($!str));
-            self
-        }
-        method new(\handle, \close) {
-            nqp::create(self).BUILD(handle, close);
-        }
-        method !readcharsfh() {
-            my Mu $PIO := nqp::getattr($!handle, IO::Handle, '$!PIO');
+            submethod BUILD(\handle, $!close) {
+                $!handle := handle;
+                $!str = self!readcharsfh();
+                $!pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $!str, 0, nqp::chars($!str));
+                self
+            }
+            method new(\handle, \close) {
+                nqp::create(self).BUILD(handle, close);
+            }
+            method !readcharsfh() {
+                my Mu $PIO := nqp::getattr($!handle, IO::Handle, '$!PIO');
 #?if jvm
-            my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
-            nqp::readfh($PIO, $buf, 65536); # optimize for ASCII
-            nqp::unbox_s($buf.decode);
+                my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
+                nqp::readfh($PIO, $buf, 65536); # optimize for ASCII
+                nqp::unbox_s($buf.decode);
 #?endif
 #?if !jvm
-            nqp::readcharsfh($PIO, 65536); # optimize for ASCII
+                nqp::readcharsfh($PIO, 65536); # optimize for ASCII
 #?endif
-        }
-        method !next-chunk(\chars) {
-            $!str = $!pos < chars
-              ?? nqp::concat(nqp::substr($!str,$!pos),self!readcharsfh)
-              !! self!readcharsfh;
-            chars = nqp::chars($!str);
-            $!pos = chars
-              ?? nqp::findnotcclass(
-                   nqp::const::CCLASS_WHITESPACE, $!str, 0, chars)
-              !! 0;
-        }
-    }
-    multi method words(IO::Handle:D: :$close) {
-        Seq.new(class :: does WordsIterCommon {
+            }
+            method !next-chunk(\chars) {
+                $!str = $!pos < chars
+                  ?? nqp::concat(nqp::substr($!str,$!pos),self!readcharsfh)
+                  !! self!readcharsfh;
+                chars = nqp::chars($!str);
+                $!pos = chars
+                  ?? nqp::findnotcclass(
+                       nqp::const::CCLASS_WHITESPACE, $!str, 0, chars)
+                  !! 0;
+            }
             method pull-one() {
                 my int $chars;
                 my int $left;

@@ -284,21 +284,79 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }.new(self));
     }
-    multi method comb(Str:D: Str $pat, $limit = Inf) {
-        my $count = 0;
-        my $pos = 0;
-        my $inputsize = self.chars;
-        my $haslimit = ! (nqp::istype($limit, Whatever) || $limit == Inf);
-        while ($pos <= $inputsize) {
-            with self.index($pat, $pos) -> $found {
-                $count++;
-                last if $haslimit && $count == $limit;
-                $pos = $found + 1;
-            } else {
-                last;
+    multi method comb(Str:D: Str $pat) {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has str $!pat;
+            has int $!pos;
+            submethod BUILD(\string, \pat) {
+                $!str = nqp::unbox_s(string);
+                $!pat = nqp::unbox_s(pat);
+                self
             }
-        }
-        return $pat xx $count;
+            method new(\string, \pat) { nqp::create(self).BUILD(string, pat) }
+            method pull-one() {
+                my int $found = nqp::index($!str, $!pat, $!pos);
+                if $found < 0 {
+                    IterationEnd
+                }
+                else {
+                    $!pos = $found + 1;
+                    nqp::p6box_s($!pat)
+                }
+            }
+            method count-only() {
+                my int $seen;
+                my int $found;
+                until ($found = nqp::index($!str, $!pat, $!pos)) < 0 {
+                    $seen = $seen + 1;
+                    $!pos = $found + 1;
+                }
+                nqp::p6box_i($seen)
+            }
+        }.new(self, $pat));
+    }
+    multi method comb(Str:D: Str $pat, $limit) {
+        return self.comb($pat)
+          if nqp::istype($limit,Whatever) || $limit == Inf;
+
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has str $!pat;
+            has int $!pos;
+            has int $!todo;
+            submethod BUILD(\string, \pat, \limit) {
+                $!str  = nqp::unbox_s(string);
+                $!pat  = nqp::unbox_s(pat);
+                $!todo = nqp::unbox_i(limit.Int);
+                self
+            }
+            method new(\string, \pat, \limit) {
+                nqp::create(self).BUILD(string, pat, limit)
+            }
+            method pull-one() {
+                my int $found = nqp::index($!str, $!pat, $!pos);
+                if $found < 0 || $!todo == 0 {
+                    IterationEnd
+                }
+                else {
+                    $!pos  = $found + 1;
+                    $!todo = $!todo - 1;
+                    nqp::p6box_s($!pat)
+                }
+            }
+            method count-only() {
+                my int $seen;
+                my int $found;
+                until ($found = nqp::index($!str, $!pat, $!pos)) < 0
+                  || $!todo == 0 {
+                    $seen  = $seen + 1;
+                    $!pos  = $found + 1;
+                    $!todo = $!todo - 1;
+                }
+                nqp::p6box_i($seen)
+            }
+        }.new(self, $pat, $limit));
     }
     multi method comb(Str:D: Regex $pat, $limit = Inf, :$match) {
         my $x;

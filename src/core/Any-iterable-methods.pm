@@ -724,30 +724,30 @@ multi sub infix:<minmax>(+args) { args.minmax }
 sub minmax(+args, :&by = &infix:<cmp>) { args.minmax(&by) }
 
 proto sub map(|) {*}
-multi sub map(&code, +values) { values.map(&code) }
+multi sub map(&code, +values) { my $laze = values.is-lazy; values.map(&code).lazy-if($laze) }
 
 proto sub grep(|) {*}
-multi sub grep(Mu $test, +values) { values.grep($test) }
+multi sub grep(Mu $test, +values) { my $laze = values.is-lazy; values.grep($test).lazy-if($laze) }
 multi sub grep(Bool:D $t, |) { fail X::Match::Bool.new( type => 'grep' ) }
 
 proto sub grep-index(|) {*}
-multi sub grep-index(Mu $test, +values) { values.grep-index($test) }
+multi sub grep-index(Mu $test, +values) { my $laze = values.is-lazy; values.grep-index($test).lazy-if($laze) }
 multi sub grep-index(Bool:D $t, |) {
     fail X::Match::Bool.new(type => 'grep-index');
 }
 
 proto sub first(|) {*}
-multi sub first(Mu $test, +values) { values.first($test) }
+multi sub first(Mu $test, +values) { my $laze = values.is-lazy; values.first($test).lazy-if($laze) }
 multi sub first(Bool:D $t, |) { fail X::Match::Bool.new( type => 'first' ) }
 
 proto sub first-index(|) {*}
-multi sub first-index(Mu $test, +values) { values.first-index($test) }
+multi sub first-index(Mu $test, +values) { my $laze = values.is-lazy; values.first-index($test).lazy-if($laze) }
 multi sub first-index(Bool:D $t,|) {
     fail X::Match::Bool.new(type => 'first-index');
 }
 
 proto sub last-index(|) {*}
-multi sub last-index(Mu $test, +values) { values.last-index($test) }
+multi sub last-index(Mu $test, +values) { my $laze = values.is-lazy; values.last-index($test).lazy-if($laze) }
 multi sub last-index(Bool:D $t, |) {
     fail X::Match::Bool.new(type => 'last-index');
 }
@@ -758,10 +758,10 @@ multi sub join($sep = '', *@values) { @values.join($sep) }
 sub reduce (&with, +list)  { list.reduce(&with) }
 
 proto sub unique(|) { * }
-multi sub unique(+values, |c) { values.unique(|c) }
+multi sub unique(+values, |c) { my $laze = values.is-lazy; values.unique(|c).lazy-if($laze) }
 
 proto sub squish(|) { * }
-multi sub squish(+values, |c) { values.squish(|c) }
+multi sub squish(+values, |c) { my $laze = values.is-lazy; values.squish(|c).lazy-if($laze) }
 
 proto sub sort(|) {*}
 multi sub sort($cmp, +values)      {

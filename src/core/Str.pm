@@ -588,17 +588,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.lines[ 0 .. $limit.Int - 1 ]
     }
     multi method lines(Str:D:) {
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has int $!chars;
+        Seq.new(class :: does ProcessStr {
             has int $!pos;
-
-            submethod BUILD(\string) {
-                $!str   = nqp::unbox_s(string);
-                $!chars = nqp::chars($!str);
-                self
-            }
-            method new(\string) { nqp::create(self).BUILD(string) }
             method pull-one() {
                 my int $left;
                 my int $nextpos;

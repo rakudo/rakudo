@@ -264,8 +264,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     role ProcessStr does Iterator {
-        has str $str;
-        has int $chars;
+        has str $!str;
+        has int $!chars;
         submethod BUILD(\string) {
             $!str   = nqp::unbox_s(string);
             $!chars = nqp::chars($!str);
@@ -276,7 +276,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method comb(Str:D:) {
         Seq.new(class :: does ProcessStr {
-            has int $pos;
+            has int $!pos;
             method pull-one() {
                 $!pos < $!chars
                   ?? nqp::p6box_s(nqp::substr($!str, $!pos++, 1))
@@ -571,7 +571,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method ords(Str:D:) {
         Seq.new(class :: does ProcessStr {
-            has int $pos;
+            has int $!pos;
             method pull-one() {
                 $!pos < $!chars
                   ?? nqp::p6box_i(nqp::ordat($!str, $!pos++))

@@ -405,35 +405,42 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(List:D: $topic) {
-        return self unless nqp::istype($topic, Iterable);
+        return False unless nqp::istype($topic, Iterable);
         my $sseq = self;
         my $tseq = $topic;
 
-        my int $spos = 0;
-        my int $tpos = 0;
-        while $spos < +$sseq {
-            # if the next element is Whatever
-            if nqp::istype($sseq[$spos], Whatever) {
-                # skip over all of the Whatevers
-                $spos = $spos + 1
-                    while $spos <= +$sseq && nqp::istype($sseq[$spos], Whatever);
-                # if nothing left, we're done
-                return True if !($spos < +$sseq);
-                # find a target matching our new target
-                $tpos = $tpos + 1
-                    while ($tpos < +$tseq) && $tseq[$tpos] !== $sseq[$spos];
-                # return false if we ran out
-                return False if !($tpos < +$tseq);
+        sub tailmatch($s,$t) {
+            my int $spos = $s;
+            my int $tpos = $t;
+            while $spos < $sseq {
+                # if the next element is Whatever
+                if nqp::istype($sseq[$spos], HyperWhatever) {
+                    # skip over all of the Whatevers
+                    $spos = $spos + 1
+                        while $spos <= $sseq && nqp::istype($sseq[$spos], HyperWhatever);
+                    # if nothing left, we're done
+                    return True if $spos == $sseq;
+                    # find a target matching our new target
+                    while $tpos < $tseq {
+                        my $result = tailmatch($spos,$tpos);
+                        return True if $result;
+                        $tpos = $tpos + 1
+                    }
+                    # return false if we ran out
+                    return False;
+                }
+                elsif $tpos == $tseq or not $sseq[$spos].ACCEPTS($tseq[$tpos] ) {
+                    return False;
+                }
+                # skip matching elements
+                $spos = $spos + 1;
+                $tpos = $tpos + 1;
             }
-            elsif $tpos >= +$tseq || $tseq[$tpos] !=== $sseq[$spos] {
-                return False;
-            }
-            # skip matching elements
-            $spos = $spos + 1;
-            $tpos = $tpos + 1;
+            # If nothing left to match, we're successful.
+            $tpos >= $tseq;
         }
-        # If nothing left to match, we're successful.
-        $tpos >= +$tseq;
+
+        tailmatch(0,0);
     }
 
     multi method list(List:D:) { self }

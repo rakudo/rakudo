@@ -560,88 +560,99 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # constant ???
     my str $CRLF = nqp::unbox_s("\r\n");
 
-    multi method lines(Str:D:) {
-        my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str);
-        my int $left;
-        my int $pos;
-        my int $nextpos;
-        my int $found;
-
-        gather while ($left = $chars - $pos) > 0 {
-            $nextpos =
-              nqp::findcclass(nqp::const::CCLASS_NEWLINE, $str, $pos, $left);
-            take ($found = $nextpos - $pos)
-              ?? nqp::box_s(nqp::substr( $str, $pos, $found ), Str)
-              !! '';
-            $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
-        }
-    }
-    multi method lines(Str:D: :$eager!) {  # can probably go after GLR
-        return self.lines if !$eager;
-
-        my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str);
-        my int $left;
-        my int $pos;
-        my int $nextpos;
-        my int $found;
-        my Mu $rpa := nqp::list();
-
-        while ($left = $chars - $pos) > 0 {
-            $nextpos =
-              nqp::findcclass(nqp::const::CCLASS_NEWLINE, $str, $pos, $left);
-            nqp::push($rpa, ($found = $nextpos - $pos)
-              ?? nqp::box_s(nqp::substr( $str, $pos, $found ), Str)
-              !! ''
-            );
-            $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
-        }
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
-    }
     multi method lines(Str:D: :$count!) {
-        return self.lines if !$count;
-
-        my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str);
-        my int $left;
-        my int $pos;
-        my int $nextpos;
-        my int $lines;
-
-        while ($left = $chars - $pos) > 0 {
-            $nextpos =
-              nqp::findcclass(nqp::const::CCLASS_NEWLINE, $str, $pos, $left);
-            $lines = $lines + 1;
-            $pos   = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
-        }
-        nqp::box_i($lines, Int);
+        # we should probably deprecate this feature
+        $count ?? self.lines.elems !! self.lines;
     }
-    multi method lines(Str:D: Whatever $, :$eager) {
-        self.lines(:$eager);
+    multi method lines(Str:D: $limit) {
+        # we should probably deprecate this feature
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.lines
+          !! self.lines[ 0 .. $limit.Int - 1 ]
     }
-    multi method lines(Str:D: $limit, :$eager ) {
-        return self.lines(:$eager) if $limit == Inf;
+    multi method lines(Str:D:) {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
+            has int $!pos;
 
-        my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str);
-        my int $left;
-        my int $pos;
-        my int $nextpos;
-        my int $found;
-        my int $count = $limit + 1;
-        my Mu $rpa := nqp::list();
+            submethod BUILD(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                self
+            }
+            method new(\string) { nqp::create(self).BUILD(string) }
+            method pull-one() {
+                my int $left;
+                my int $nextpos;
+                my int $length;
 
-        while ($count = $count - 1) and ($left = $chars - $pos) > 0 {
-            $nextpos =
-              nqp::findcclass(nqp::const::CCLASS_NEWLINE, $str, $pos, $left);
-            nqp::push($rpa, ($found = $nextpos - $pos)
-              ?? nqp::box_s(nqp::substr( $str, $pos, $found ), Str)
-              !! ''
-            );
-            $pos = $nextpos + 1 + nqp::eqat($str, $CRLF, $nextpos);
-        }
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
+                while ($left = $!chars - $!pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+
+                    my str $found = ($length = $nextpos - $!pos)
+                      ?? nqp::substr($!str, $!pos, $length )
+                      !! '';
+                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+
+                    return nqp::p6box_s($found);
+                }
+                IterationEnd
+            }
+            method push-exactly($target, int $n) {
+                my int $found;
+                my int $left;
+                my int $nextpos;
+                my int $length;
+
+                while ($left = $!chars - $!pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+
+                    $target.push(nqp::p6box_s( ($length = $nextpos - $!pos)
+                      ?? nqp::substr($!str, $!pos, $length)
+                      !! ''
+                    ));
+                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+
+                    $found = $found + 1;
+                    return nqp::p6box_i($found) if $found == $n;
+                }
+                nqp::p6box_i($found)
+            }
+            method push-all($target) {
+                my int $left;
+                my int $nextpos;
+                my int $length;
+
+                while ($left = $!chars - $!pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+
+                    $target.push(nqp::p6box_s( ($length = $nextpos - $!pos)
+                      ?? nqp::substr($!str, $!pos, $length)
+                      !! ''
+                    ));
+                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+                }
+                IterationEnd
+            }
+            method count-only() {
+                my int $found;
+                my int $left;
+                my int $nextpos;
+
+                while ($left = $!chars - $!pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+
+                    $found = $found + 1;
+                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+                }
+                nqp::p6box_i($found)
+            }
+        }.new(self));
     }
 
     multi method split(Str:D: Regex $pat, $limit = *;; :$all) {

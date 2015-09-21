@@ -263,9 +263,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $result ~ '"'
     }
 
+    role ProcessStr does Iterator {
+        has str $str;
+        has int $chars;
+        submethod BUILD(\string) {
+            $!str   = nqp::unbox_s(string);
+            $!chars = nqp::chars($!str);
+            self
+        }
+        method new(\string) { nqp::create(self).BUILD(string) }
+    }
+
     multi method comb(Str:D:) {
-        my str $self = nqp::unbox_s(self);
-        (^self.chars).map({ nqp::p6box_s(nqp::substr($self, $_, 1)) });
+        Seq.new(class :: does ProcessStr {
+            has int $pos;
+            method pull-one() {
+                $!pos < $!chars
+                  ?? nqp::p6box_s(nqp::substr($!str, $!pos++, 1))
+                  !! IterationEnd
+            }
+        }.new(self));
     }
     multi method comb(Str:D: Str $pat, $limit = Inf) {
         my $count = 0;
@@ -550,17 +567,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::push_s($result,nqp::substr($str,$prev));
             nqp::p6box_s(nqp::join(nqp::unbox_s(~$replacement),$result));
         }
-    }
-
-    role ProcessStr does Iterator {
-        has str $str;
-        has int $chars;
-        submethod BUILD(\string) {
-            $!str   = nqp::unbox_s(string);
-            $!chars = nqp::chars($!str);
-            self
-        }
-        method new(\string) { nqp::create(self).BUILD(string) }
     }
 
     method ords(Str:D:) {

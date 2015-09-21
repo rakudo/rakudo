@@ -367,6 +367,8 @@ my class Any { # declared in BOOTSTRAP
 
     method nl() { "\n" }
     method print-nl() { self.print(self.nl) }
+
+    method lazy-if($flag) { self }  # no-op on non-Iterables
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

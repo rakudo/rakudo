@@ -955,19 +955,17 @@ multi sub infix:<xx>(Mu \x, Whatever) {
     GATHER({ loop { take x } }).lazy
 }
 multi sub infix:<xx>(Mu \x, Int() $n) {
-    my int $size = $n;
-
-    my Mu $rpa := nqp::list();
-    if $size > 0 {
-        nqp::setelems($rpa, $size);
+    my int $elems = $n;
+    my Mu $list := nqp::list();
+    if $elems > 0 {
         my int $i;
-        while $i < $size {
-            nqp::bindpos($rpa,$i,x);
+        nqp::setelems($list, $elems);
+        while $i < $elems {
+            nqp::bindpos($list, $i, x);
             $i = $i + 1;
         }
     }
-
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
 }
 
 sub reverse(+@a)            { @a.reverse }

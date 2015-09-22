@@ -27,6 +27,8 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
+    method has-phasers() { !nqp::isnull($!phasers) }
+
     method phasers(Str $name) {
         unless nqp::isnull($!phasers) {
             if nqp::existskey($!phasers, nqp::unbox_s($name)) {

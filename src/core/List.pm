@@ -945,8 +945,21 @@ multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
     GATHER({ loop { take x.() } }).lazy
 }
 multi sub infix:<xx>(Mu \x, Int() $n, :$thunked!) {
-    my int $todo = $n;
-    GATHER({ take x.() while ($todo = $todo - 1) >= 0 })
+    Seq.new(class :: does Iterator {
+        has Mu $!x;
+        has int $!todo;
+        submethod BUILD(\x, \todo) { $!x := x; $!todo = todo; self }
+        method new(\x, \todo) { nqp::create(self).BUILD(x, todo) }
+        method pull-one() {
+            if $!todo > 0 {
+                $!todo = $!todo - 1;
+                $!x.()
+            }
+            else {
+                IterationEnd
+            }
+        }
+    }.new(x, $n))
 }
 multi sub infix:<xx>(Mu \x, Num $n) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);

@@ -1601,6 +1601,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<PRE>   { <sym><.kok> <blorst> }
     token statement_prefix:sym<POST>  { <sym><.kok> <blorst> }
 
+    token statement_prefix:sym<race>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<hyper>   { <sym><.kok> <blorst> }
     token statement_prefix:sym<eager>   { <sym><.kok> <blorst> }
     token statement_prefix:sym<lazy>    { <sym><.kok> <blorst> }

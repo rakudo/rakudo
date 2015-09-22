@@ -3749,7 +3749,7 @@ Compilation unit '$file' contained the following violations:
             @values.push($term_ast);
         }
         else {
-            @values.push($*W.compile_time_evaluate($<term>, $<term>.ast));
+            @values := $*W.compile_time_evaluate($<term>, $<term>.ast).List.FLATTENABLE_LIST;
         }
 
         # Now we have them, we can go about computing the value

@@ -487,14 +487,20 @@ sub DELETEKEY(Mu \d, str $key) {
 
 sub dd(|) {
     my Mu $args := nqp::p6argvmarray();
-    while $args {
-        my $var  := nqp::shift($args);
-        my $name := $var.VAR.?name;
-        my $type := $var.WHAT.^name;
-        my $what := $var.?is-lazy
-          ?? $var[^10].perl.chop ~ "...Inf)"
-          !! $var.perl;
-        note $name ?? "$type $name = $what" !! $what;
+    if nqp::elems($args) {
+        while $args {
+            my $var  := nqp::shift($args);
+            my $name := $var.VAR.?name;
+            my $type := $var.WHAT.^name;
+            my $what := $var.?is-lazy
+              ?? $var[^10].perl.chop ~ "...Inf)"
+              !! $var.perl;
+            note $name ?? "$type $name = $what" !! $what;
+        }
+    }
+    else { # tell where we are
+        note .name ?? "{lc .^name} {.name}" !! "({lc .^name})"
+          with callframe(1).code;
     }
     return
 }

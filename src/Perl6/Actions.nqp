@@ -1671,6 +1671,13 @@ Compilation unit '$file' contained the following violations:
         );
     }
 
+    method statement_prefix:sym<hyper>($/) {
+        make QAST::Op.new(
+            :op('callmethod'), :name('hyper'),
+            QAST::Op.new( :op('call'), $<blorst>.ast )
+        );
+    }
+
     method statement_prefix:sym<sink>($/) {
         make QAST::Stmts.new(
             QAST::Op.new(

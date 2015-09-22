@@ -279,10 +279,10 @@ augment class Any {
     }
 
     role Grepper does Iterator {
-        has Mu $!iterator;
+        has Mu $!iter;
         has Mu $!test;
         method BUILD(\list,\test) {
-            $!iterator = as-iterable(list).iterator;
+            $!iter  = as-iterable(list).iterator;
             $!test := test;
             self
         }
@@ -297,8 +297,15 @@ augment class Any {
         Seq.new(class :: does Grepper {
             method pull-one() is rw {
                 my Mu $value;
-                until ($value := $!iterator.pull-one) =:= IterationEnd {
+                until ($value := $!iter.pull-one) =:= IterationEnd {
                     return-rw $value if $value.match($!test);
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $target.push($value) if $value.match($!test);
                 }
                 IterationEnd
             }
@@ -309,13 +316,21 @@ augment class Any {
             $test.?has-phasers
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
               !! Seq.new(class :: does Grepper {
-                  method pull-one() is rw {
-                      my Mu $value;
-                      until ($value := $!iterator.pull-one) =:= IterationEnd {
-                          return-rw $value if $!test($value);
-                      }
-                      IterationEnd   # in case of last
-                  } }.new(self, $test))
+                     method pull-one() is rw {
+                         my Mu $value;
+                         until ($value := $!iter.pull-one) =:= IterationEnd {
+                             return-rw $value if $!test($value);
+                         }
+                         IterationEnd   # in case of last
+                     }
+                     method push-all($target) {
+                         my Mu $value;
+                         until ($value := $!iter.pull-one) =:= IterationEnd {
+                             $target.push($value) if $!test($value);
+                         }
+                         IterationEnd   # in case of last
+                     }
+                 }.new(self, $test))
         } else {
             my role CheatArity {
                 has $!arity;
@@ -345,8 +360,15 @@ augment class Any {
         Seq.new(class :: does Grepper {
             method pull-one() is rw {
                 my Mu $value;
-                until ($value := $!iterator.pull-one) =:= IterationEnd {
+                until ($value := $!iter.pull-one) =:= IterationEnd {
                     return-rw $value if $value ~~ $!test;
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $target.push($value) if $value ~~ $!test;
                 }
                 IterationEnd
             }

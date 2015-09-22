@@ -306,7 +306,7 @@ augment class Any {
     }
     multi method grep(Callable:D $test) is rw {
         if ($test.count == 1) {
-            $test.has-phasers
+            $test.?has-phasers
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
               !! Seq.new(class :: does Grepper {
                   method pull-one() is rw {

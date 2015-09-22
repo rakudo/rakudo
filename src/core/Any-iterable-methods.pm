@@ -278,16 +278,44 @@ augment class Any {
         self.map(&block, :$label).flat
     }
 
+    role Grepper does Iterator {
+        has Mu $!iterator;
+        has Mu $!test;
+        method BUILD(\list,\test) {
+            $!iterator = as-iterable(list).iterator;
+            $!test := test;
+            self
+        }
+        method new(\list,\test)   { nqp::create(self).BUILD(list,test) }
+    }
+
     proto method grep(|) is nodal { * }
     multi method grep(Bool:D $t) is rw {
         fail X::Match::Bool.new( type => '.grep' );
     }
     multi method grep(Regex:D $test) is rw {
-        self.map({ next unless .match($test); $_ });
+        Seq.new(class :: does Grepper {
+            method pull-one() is rw {
+                my Mu $value;
+                until ($value := $!iterator.pull-one) =:= IterationEnd {
+                    return-rw $value if $value.match($!test);
+                }
+                IterationEnd
+            }
+        }.new(self, $test))
     }
     multi method grep(Callable:D $test) is rw {
         if ($test.count == 1) {
-            self.map({ next unless $test($_); $_ });
+            $test.has-phasers
+              ?? self.map({ next unless $test($_); $_ })  # cannot go fast
+              !! Seq.new(class :: does Grepper {
+                  method pull-one() is rw {
+                      my Mu $value;
+                      until ($value := $!iterator.pull-one) =:= IterationEnd {
+                          return-rw $value if $!test($value);
+                      }
+                      IterationEnd   # in case of last
+                  } }.new(self, $test))
         } else {
             my role CheatArity {
                 has $!arity;
@@ -314,7 +342,15 @@ augment class Any {
         }
     }
     multi method grep(Mu $test) is rw {
-        self.map({ next unless $_ ~~ $test; $_ });
+        Seq.new(class :: does Grepper {
+            method pull-one() is rw {
+                my Mu $value;
+                until ($value := $!iterator.pull-one) =:= IterationEnd {
+                    return-rw $value if $value ~~ $!test;
+                }
+                IterationEnd
+            }
+        }.new(self, $test))
     }
 
     proto method grep-index(|) is nodal { * }

@@ -2776,7 +2776,9 @@ class Perl6::World is HLL::World {
                         }
                     }
                 }
-                $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
+                else {
+                    $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
+                }
                 nqp::push(
                     nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
                     self.create_parameter($/, hash(

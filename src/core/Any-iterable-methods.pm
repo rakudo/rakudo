@@ -286,7 +286,7 @@ augment class Any {
             $!test := test;
             self
         }
-        method new(\list,\test)   { nqp::create(self).BUILD(list,test) }
+        method new(\list,\test) { nqp::create(self).BUILD(list,test) }
     }
 
     proto method grep(|) is nodal { * }
@@ -356,7 +356,7 @@ augment class Any {
             self.map(&tester);
         }
     }
-    multi method grep(Junction $test) is rw {
+    multi method grep(Junction:D $test) is rw {
         self.map({ next unless $_ ~~ $test; $_ });
     }
     multi method grep(Mu $test) is rw {

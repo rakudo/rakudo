@@ -19,6 +19,7 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
+
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
 S01-perl-5-integration/class.t              # perl5
@@ -340,6 +341,7 @@ S05-capture/match-object.t
 S05-capture/named.t
 S05-capture/subrule.t
 S05-grammar/action-stubs.t
+S05-grammar/example.t
 S05-grammar/inheritance.t
 S05-grammar/methods.t
 S05-grammar/namespace.t
@@ -640,6 +642,7 @@ S15-literals/identifiers.t
 S15-literals/numbers.t
 S15-nfg/case-change.t           # moar
 S15-nfg/concatenation.t         # moar
+S15-nfg/cgj.t                   # moar
 S15-nfg/from-buf.t              # moar
 S15-nfg/from-file.t             # moar
 S15-nfg/long-uni.t              # moar
@@ -715,6 +718,7 @@ S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/cwd.t
 S16-io/getc.t
+S16-io/note.t
 S16-io/print.t
 S16-io/say-and-ref.t
 S16-io/say.t
@@ -855,6 +859,7 @@ S32-container/stringify.t
 S32-container/zip.t
 S32-exceptions/misc.t
 S32-hash/adverbs.t
+S32-hash/antipairs.t
 S32-hash/delete.t
 S32-hash/delete-adverb.t
 S32-hash/exists.t
@@ -866,8 +871,7 @@ S32-hash/pairs.t
 S32-hash/perl.t
 S32-hash/push.t
 S32-hash/slice.t
-# flapper on moarvm; commented out for the 2015.08 release
-# S32-io/IO-Socket-Async.t
+S32-io/IO-Socket-Async.t
 S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t
@@ -880,6 +884,7 @@ S32-io/io-path-unix.t
 S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
+S32-io/move.t
 S32-io/note.t
 S32-io/other.t
 S32-io/pipe.t

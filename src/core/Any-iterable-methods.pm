@@ -356,6 +356,9 @@ augment class Any {
             self.map(&tester);
         }
     }
+    multi method grep(Junction $test) is rw {
+        self.map({ next unless $_ ~~ $test; $_ });
+    }
     multi method grep(Mu $test) is rw {
         Seq.new(class :: does Grepper {
             method pull-one() is rw {

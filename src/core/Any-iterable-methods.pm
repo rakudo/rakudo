@@ -281,12 +281,12 @@ augment class Any {
     role Grepper does Iterator {
         has Mu $!iter;
         has Mu $!test;
-        method BUILD(\list,\test) {
+        method BUILD(\list,Mu \test) {
             $!iter  = as-iterable(list).iterator;
             $!test := test;
             self
         }
-        method new(\list,\test) { nqp::create(self).BUILD(list,test) }
+        method new(\list,Mu \test) { nqp::create(self).BUILD(list,test) }
     }
 
     proto method grep(|) is nodal { * }
@@ -355,9 +355,6 @@ augment class Any {
 
             self.map(&tester);
         }
-    }
-    multi method grep(Junction:D $test) is rw {
-        self.map({ next unless $_ ~~ $test; $_ });
     }
     multi method grep(Mu $test) is rw {
         Seq.new(class :: does Grepper {

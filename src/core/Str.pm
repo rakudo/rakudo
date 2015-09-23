@@ -659,7 +659,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my int $nextpos;
                 my int $length;
 
-                while ($left = $!chars - $!pos) > 0 {
+                if ($left = $!chars - $!pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
 
@@ -905,7 +905,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my int $left;
                 my int $nextpos;
 
-                while ($left = $!chars - $!pos) > 0 {
+                if ($left = $!chars - $!pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
 

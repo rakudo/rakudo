@@ -248,7 +248,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             my $no-sink := nqp::push(future, nqp::iscont(consider)
                 ?? consider
                 !! nqp::istype(consider, Iterable) && consider.DEFINITE
-                    ?? consider.flat.Slip
+                    ?? (nqp::istype(consider, PositionalBindFailover)
+                            ?? consider.cache
+                            !! consider
+                        ).flat.Slip
                     !! consider);
             $i = $i + 1;
         }

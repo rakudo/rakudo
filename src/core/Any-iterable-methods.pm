@@ -361,14 +361,14 @@ augment class Any {
             method pull-one() is rw {
                 my Mu $value;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
-                    return-rw $value if $value ~~ $!test;
+                    return-rw $value if $!test.ACCEPTS($value);
                 }
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $target.push($value) if $value ~~ $!test;
+                    $target.push($value) if $!test.ACCEPTS($value);
                 }
                 IterationEnd
             }

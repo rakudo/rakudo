@@ -773,15 +773,39 @@ augment class Any {
         self.is-lazy ?? res.lazy !! res
     }
     multi method squish( :&with = &[===] ) {
-        my $last;
-        my \res := gather self.map: {
-            once { take $_; $last = $_; next };
-            unless with($_,$last) {
-                $last = $_;
-                take $_;
+        Seq.new(class :: does Iterator {
+            has Mu $!iter;
+            has &!with;
+            has $!last;
+            method BUILD(\list, &!with) {
+                $!iter  = as-iterable(list).iterator;
+                $!last;
+                self
             }
-        }
-        self.is-lazy ?? res.lazy !! res
+            method new(\list, &with) { nqp::create(self).BUILD(list, &with) }
+            method pull-one() {
+                my Mu $value;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    once { $!last = $value; return $value }
+                    unless with($value,$!last) {
+                        $!last = $value;
+                        return $value;
+                    }
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    once { $!last = $value; $target.push($value); next }
+                    unless with($value,$!last) {
+                        $!last = $value;
+                        $target.push($value);
+                    }
+                }
+                IterationEnd
+            }
+        }.new(self, &with))
     }
 
     proto method pairup(|) is nodal { * }

@@ -760,17 +760,45 @@ augment class Any {
 
     proto method squish(|) is nodal {*}
     multi method squish( :&as!, :&with = &[===] ) {
-        my $last;
-        my $which;
-        my \res := gather self.map: {
-            $which = as($_);
-            once { take $_; $last = $which; next };
-            unless with($which,$last) {
-                $last = $which;
-                take $_;
+        Seq.new(class :: does Iterator {
+            has Mu $!iter;
+            has &!as;
+            has &!with;
+            has $!last;
+            method BUILD(\list, &!as, &!with) {
+                $!iter  = as-iterable(list).iterator;
+                self
             }
-        }
-        self.is-lazy ?? res.lazy !! res
+            method new(\list, &as, &with) {
+                nqp::create(self).BUILD(list, &as, &with)
+            }
+            method pull-one() {
+                my Mu $value;
+                my $which;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $which = &!as($value);
+                    once { $!last = $which; return $value }
+                    unless with($which,$!last) {
+                        $!last = $which;
+                        return $value;
+                    }
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                my $which;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $which = &!as($value);
+                    once { $!last = $which; $target.push($value); next }
+                    unless with($which,$!last) {
+                        $!last = $which;
+                        $target.push($value);
+                    }
+                }
+                IterationEnd
+            }
+        }.new(self, &as, &with))
     }
     multi method squish( :&with = &[===] ) {
         Seq.new(class :: does Iterator {
@@ -779,7 +807,6 @@ augment class Any {
             has $!last;
             method BUILD(\list, &!with) {
                 $!iter  = as-iterable(list).iterator;
-                $!last;
                 self
             }
             method new(\list, &with) { nqp::create(self).BUILD(list, &with) }

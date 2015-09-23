@@ -708,15 +708,41 @@ augment class Any {
         };
     }
     multi method unique( :&as! ) {
-        my $seen := nqp::hash();
-        my str $target;
-        gather self.map: {
-            $target = &as($_).WHICH;
-            unless nqp::existskey($seen, $target) {
-                nqp::bindkey($seen, $target, 1);
-                take $_;
+        Seq.new(class :: does Iterator {
+            has Mu $!iter;
+            has &!as;
+            has $!seen;
+            method BUILD(\list, &!as) {
+                $!iter  = as-iterable(list).iterator;
+                $!seen := nqp::hash();
+                self
             }
-        }
+            method new(\list, &as) { nqp::create(self).BUILD(list, &as) }
+            method pull-one() {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s(&!as($value).WHICH);
+                    unless nqp::existskey($!seen, $needle) {
+                        nqp::bindkey($!seen, $needle, 1);
+                        return $value;
+                    }
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s(&!as($value).WHICH);
+                    unless nqp::existskey($!seen, $needle) {
+                        nqp::bindkey($!seen, $needle, 1);
+                        $target.push($value);
+                    }
+                }
+                IterationEnd
+            }
+        }.new(self, &as))
     }
     multi method unique( :&with! ) {
         nextwith() if &with === &[===]; # use optimized version

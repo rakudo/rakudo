@@ -1814,7 +1814,7 @@ Compilation unit '$file' contained the following violations:
         make block_closure($ast);
     }
     method term:sym<unquote>($/) {
-        make QAST::Unquote.new(:position(+@*UNQUOTE_ASTS));
+        make QAST::Unquote.new(:position(nqp::elems(@*UNQUOTE_ASTS)));
         @*UNQUOTE_ASTS.push($<statementlist>.ast);
     }
 

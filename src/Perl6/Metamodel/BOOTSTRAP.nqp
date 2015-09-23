@@ -1853,7 +1853,7 @@ BEGIN {
                     # Otherwise, positional or slurpy and contributes to arity.
                     if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_ONEARG) {
                         $max_arity := $SLURPY_ARITY;
-                        last;
+                        next;
                     }
                     elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
                         $max_arity++;

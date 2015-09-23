@@ -664,15 +664,40 @@ augment class Any {
 
     proto method unique(|) is nodal {*}
     multi method unique() {
-        my $seen := nqp::hash();
-        my str $target;
-        gather self.map: {
-            $target = nqp::unbox_s($_.WHICH);
-            unless nqp::existskey($seen, $target) {
-                nqp::bindkey($seen, $target, 1);
-                take $_;
+        Seq.new(class :: does Iterator {
+            has Mu $!iter;
+            has $!seen;
+            method BUILD(\list) {
+                $!iter = as-iterable(list).iterator;
+                $!seen := nqp::hash();
+                self
             }
-        }
+            method new(\list) { nqp::create(self).BUILD(list) }
+            method pull-one() {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s($value.WHICH);
+                    unless nqp::existskey($!seen, $needle) {
+                        nqp::bindkey($!seen, $needle, 1);
+                        return $value;
+                    }
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s($value.WHICH);
+                    unless nqp::existskey($!seen, $needle) {
+                        nqp::bindkey($!seen, $needle, 1);
+                        $target.push($value);
+                    }
+                }
+                IterationEnd
+            }
+        }.new(self))
     }
     multi method unique( :&as!, :&with! ) {
         my @seen;  # should be Mu, but doesn't work in settings :-(

@@ -3755,6 +3755,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <OPER=postfix>
         | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
         | <OPER=postcircumfix>
+        | '.' <?[ [ { < ]> <OPER=postcircumfix>
         | <OPER=dotty>
         | <OPER=privop>
         | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>

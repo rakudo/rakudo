@@ -1709,7 +1709,7 @@ BEGIN {
             my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
             my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
             my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
-	    my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
+            my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
             
             # Takes two candidates and determines if the first one is narrower
             # than the second. Returns a true value if they are.

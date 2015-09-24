@@ -355,7 +355,7 @@ my class IO::Handle does IO {
                     }
 
                     if $!close { # don't bother updating .ins
-                        $!handle.close;
+                        $!handle.close unless nqp::chars($line);
                     }
                     else {
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
@@ -366,8 +366,8 @@ my class IO::Handle does IO {
                     nqp::p6box_i($found);
                 }
                 method push-all($target) {
+                    my str $line = nqp::readlinefh($!PIO);
                     if $!close {   # don't bother keeping track of $!ins
-                        my str $line = nqp::readlinefh($!PIO);
                         while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line).chomp);
                             $line = nqp::readlinefh($!PIO);
@@ -376,7 +376,6 @@ my class IO::Handle does IO {
                     }
                     else {
                         my int $found;
-                        my str $line = nqp::readlinefh($!PIO);
                         while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line).chomp);
                             $found = $found + 1;
@@ -408,8 +407,8 @@ my class IO::Handle does IO {
                     }
                 }
                 method push-exactly($target, int $n) {
-                    my int $found;
                     my str $line = nqp::readlinefh($!PIO);
+                    my int $found;
                     while nqp::chars($line) {
                         $target.push(nqp::p6box_s($line));
                         $found = $found + 1;
@@ -419,7 +418,7 @@ my class IO::Handle does IO {
                     }
 
                     if $!close { # don't bother updating .ins
-                        $!handle.close;
+                        $!handle.close unless nqp::chars($line);
                     }
                     else {
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
@@ -430,9 +429,8 @@ my class IO::Handle does IO {
                     nqp::p6box_i($found);
                 }
                 method push-all($target) {
+                    my str $line = nqp::readlinefh($!PIO);
                     if $!close {   # don't bother keeping track of $!ins
-                        my str $line;
-                        $line = nqp::readlinefh($!PIO);
                         while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line));
                             $line = nqp::readlinefh($!PIO);
@@ -441,8 +439,6 @@ my class IO::Handle does IO {
                     }
                     else {
                         my int $found;
-                        my str $line;
-                        $line = nqp::readlinefh($!PIO);
                         while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line));
                             $found = $found + 1;

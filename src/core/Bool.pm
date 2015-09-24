@@ -33,10 +33,10 @@ my class Bool { # declared in BOOTSTRAP
     }
 }
 
-multi sub prefix:<++>(Bool:U \a is rw)  { a = True; }
-multi sub prefix:<-->(Bool:U \a is rw)  { a = False; }
-multi sub postfix:<++>(Bool:U \a is rw) { a = True; False; }
-multi sub postfix:<-->(Bool:U \a is rw) { a = False; }
+multi sub prefix:<++>(Bool:U $a is rw)  { $a = True; }
+multi sub prefix:<-->(Bool:U $a is rw)  { $a = False; }
+multi sub postfix:<++>(Bool:U $a is rw) { $a = True; False; }
+multi sub postfix:<-->(Bool:U $a is rw) { $a = False; }
 
 proto sub prefix:<?>(Mu $) is pure { * }
 multi sub prefix:<?>(Bool:D \a) { a }

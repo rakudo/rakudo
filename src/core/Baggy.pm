@@ -158,7 +158,7 @@ my role Baggy does QuantHash {
     }
 
     sub ROLLPICKGRABN(                                        # N times
-      $self, $count, @pairs is rw, :$keep
+      $self, $count, @pairs, :$keep
     ) {
         my Int $total = $self.total;
         my Int $rand;

@@ -50,7 +50,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 SORRY
             my %caps = :name([\'Distribution\', 12]), :auth([\'Author(ity)\', 11]), :ver([\'Version\', 7]);
             for @binaries -> $dist {
-                for %caps.kv -> $caption, @opts is rw {
+                for %caps.kv -> $caption, @opts {
                     @opts[1] = max @opts[1], ($dist{$caption} // \'\').Str.chars
                 }
             }

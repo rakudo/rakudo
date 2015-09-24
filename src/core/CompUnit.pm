@@ -99,7 +99,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
 
     proto method load(CompUnit:D: |) { * }
     multi method load(CompUnit:D: ) { self.load(Any) }
-    multi method load(CompUnit:D: \GLOBALish is rw, :$line) {
+    multi method load(CompUnit:D: \GLOBALish, :$line) {
         $global.protect( {
             RAKUDO_MODULE_DEBUG("going to load $!name") if $?RAKUDO_MODULE_DEBUG;
 

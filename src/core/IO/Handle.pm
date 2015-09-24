@@ -156,6 +156,9 @@ my class IO::Handle does IO {
 
     proto method words (|) { * }
     multi method words(IO::Handle:D: :$close) {
+        X::NYI.new(feature => "'words' without closing the file handle").throw
+          if !$close;
+
         Seq.new(class :: does Iterator {
             has $!handle;
             has $!close;

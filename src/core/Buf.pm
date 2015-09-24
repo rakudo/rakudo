@@ -268,7 +268,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           if nqp::islt_i(pos,0);
         nqp::bindpos_i(self,\pos,assignee)
     }
-    multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);

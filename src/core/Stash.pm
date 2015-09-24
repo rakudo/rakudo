@@ -1,7 +1,7 @@
 my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash {
 
-    multi method AT-KEY(Stash:D: Str() $key, :$global_fallback) is rw {
+    multi method AT-KEY(Stash:D: Str() $key, :$global_fallback) is raw {
         my Mu $storage := nqp::defined(nqp::getattr(self, Map, '$!storage')) ??
             nqp::getattr(self, Map, '$!storage') !!
             nqp::bindattr(self, Map, '$!storage', nqp::hash());

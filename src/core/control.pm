@@ -20,7 +20,7 @@ sub THROW-NIL(int $type) {
     Nil
 }
 
-sub RETURN-LIST(Mu \list) is rw {
+sub RETURN-LIST(Mu \list) is raw {
     my Mu $storage := nqp::getattr(list, List, '$!reified');
     nqp::iseq_i(nqp::elems($storage), 0)
       ?? Nil

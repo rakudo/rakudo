@@ -6,7 +6,7 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
-    multi method AT-KEY(Hash:D: \key) is rw {
+    multi method AT-KEY(Hash:D: \key) is raw {
         my Mu $storage := nqp::getattr(self, Map, '$!storage');
         $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
             unless nqp::defined($storage);
@@ -24,7 +24,7 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
 
-    multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) {
+    multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
         my Mu $storage := nqp::getattr(self, Map, '$!storage');
         $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
             unless nqp::defined($storage);
@@ -35,7 +35,7 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::p6scalarfromdesc($!descriptor) = assignval)
     }
 
-    method BIND-KEY(Hash:D: \key, Mu \bindval) is rw {
+    method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
         my Mu $storage := nqp::getattr(self, Map, '$!storage');
         $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
             unless nqp::defined($storage);
@@ -79,7 +79,7 @@ my class Hash { # declared in BOOTSTRAP
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 
-    method STORE_AT_KEY(\key, Mu $x) is rw {
+    method STORE_AT_KEY(\key, Mu $x) is raw {
         my $v := nqp::p6scalarfromdesc($!descriptor);
         nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
         $v;
@@ -258,7 +258,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     my role TypedHash[::TValue] does Associative[TValue] {
-        method AT-KEY(::?CLASS:D: Str() $key) is rw {
+        method AT-KEY(::?CLASS:D: Str() $key) is raw {
             if self.EXISTS-KEY($key) {
                 nqp::findmethod(Map, 'AT-KEY')(self, $key);
             }
@@ -271,12 +271,12 @@ my class Hash { # declared in BOOTSTRAP
                 );
             }
         }
-        method STORE_AT_KEY(Str \key, TValue $x) is rw {
+        method STORE_AT_KEY(Str \key, TValue $x) is raw {
             my $v :=
               nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
             nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
         }
-        multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) {
+        multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) is raw {
             my Mu $storage := nqp::getattr(self, Map, '$!storage');
             $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
                 unless nqp::defined($storage);
@@ -289,7 +289,7 @@ my class Hash { # declared in BOOTSTRAP
                     nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
             }
         }
-        method BIND-KEY($key, TValue \bindval) is rw {
+        method BIND-KEY($key, TValue \bindval) is raw {
             nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
                 nqp::bindattr(self, Map, '$!storage', nqp::hash());
             nqp::bindkey(
@@ -313,7 +313,7 @@ my class Hash { # declared in BOOTSTRAP
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
         method keyof () { TKey }
-        method AT-KEY(::?CLASS:D: TKey \key) is rw {
+        method AT-KEY(::?CLASS:D: TKey \key) is raw {
             my $key_which = key.WHICH;
             if self.EXISTS-KEY(key) {
                 nqp::findmethod(Map, 'AT-KEY')(self, $key_which);
@@ -339,7 +339,7 @@ my class Hash { # declared in BOOTSTRAP
                     });
             }
         }
-        method STORE_AT_KEY(TKey \key, TValue $x) is rw {
+        method STORE_AT_KEY(TKey \key, TValue $x) is raw {
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
@@ -372,7 +372,7 @@ my class Hash { # declared in BOOTSTRAP
                     nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
             }
         }
-        method BIND-KEY(TKey \key, TValue \bindval) is rw {
+        method BIND-KEY(TKey \key, TValue \bindval) is raw {
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());

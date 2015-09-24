@@ -91,7 +91,7 @@ augment class Any {
                 has $!NEXT;
                 has $!CAN_FIRE_PHASERS;
 
-                method pull-one() is rw {
+                method pull-one() is raw {
                     my int $redo = 1;
                     my $value;
                     my $result;
@@ -204,7 +204,7 @@ augment class Any {
                 has $!NEXT;
                 has $!CAN_FIRE_PHASERS;
 
-                method pull-one() is rw {
+                method pull-one() is raw {
                     $!value-buffer.DEFINITE
                         ?? nqp::setelems($!value-buffer, 0)
                         !! ($!value-buffer := IterationBuffer.new);
@@ -274,7 +274,7 @@ augment class Any {
     }
 
     proto method flatmap (|) is nodal { * }
-    multi method flatmap(&block, :$label) is rw {
+    multi method flatmap(&block, :$label) {
         self.map(&block, :$label).flat
     }
 
@@ -290,12 +290,12 @@ augment class Any {
     }
 
     proto method grep(|) is nodal { * }
-    multi method grep(Bool:D $t) is rw {
+    multi method grep(Bool:D $t) {
         fail X::Match::Bool.new( type => '.grep' );
     }
-    multi method grep(Regex:D $test) is rw {
+    multi method grep(Regex:D $test) {
         Seq.new(class :: does Grepper {
-            method pull-one() is rw {
+            method pull-one() is raw {
                 my Mu $value;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     return-rw $value if $value.match($!test);
@@ -311,12 +311,12 @@ augment class Any {
             }
         }.new(self, $test))
     }
-    multi method grep(Callable:D $test) is rw {
+    multi method grep(Callable:D $test) {
         if ($test.count == 1) {
             $test.?has-phasers
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
               !! Seq.new(class :: does Grepper {
-                     method pull-one() is rw {
+                     method pull-one() is raw {
                          my Mu $value;
                          until ($value := $!iter.pull-one) =:= IterationEnd {
                              return-rw $value if $!test($value);
@@ -356,9 +356,9 @@ augment class Any {
             self.map(&tester);
         }
     }
-    multi method grep(Mu $test) is rw {
+    multi method grep(Mu $test) {
         Seq.new(class :: does Grepper {
-            method pull-one() is rw {
+            method pull-one() is raw {
                 my Mu $value;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     return-rw $value if $!test.ACCEPTS($value);
@@ -376,7 +376,7 @@ augment class Any {
     }
 
     proto method grep-index(|) is nodal { * }
-    multi method grep-index(Bool:D $t) is rw {
+    multi method grep-index(Bool:D $t) {
         fail X::Match::Bool.new( type => '.grep-index' );
     }
     multi method grep-index(Regex:D $test) {
@@ -405,24 +405,24 @@ augment class Any {
     }
 
     proto method first(|) is nodal { * }
-    multi method first(Bool:D $t) is rw {
+    multi method first(Bool:D $t) {
         fail X::Match::Bool.new( type => '.first' );
     }
-    multi method first(Regex:D $test) is rw {
+    multi method first(Regex:D $test) is raw {
         self.map({ return-rw $_ if .match($test) });
         Nil;
     }
-    multi method first(Callable:D $test) is rw {
+    multi method first(Callable:D $test) is raw {
         self.map({ return-rw $_ if $test($_) });
         Nil;
     }
-    multi method first(Mu $test) is rw {
+    multi method first(Mu $test) is raw {
         self.map({ return-rw $_ if $_ ~~ $test });
         Nil;
     }
 
     proto method first-index(|) is nodal { * }
-    multi method first-index(Bool:D $t) is rw {
+    multi method first-index(Bool:D $t) {
         fail X::Match::Bool.new( type => '.first-index' );
     }
     multi method first-index(Regex:D $test) {
@@ -451,7 +451,7 @@ augment class Any {
     }
 
     proto method last-index(|) is nodal { * }
-    multi method last-index(Bool:D $t) is rw {
+    multi method last-index(Bool:D $t) {
         fail X::Match::Bool.new( type => '.last-index' );
     }
     multi method last-index(Regex:D $test) {

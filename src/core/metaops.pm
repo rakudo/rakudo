@@ -3,11 +3,11 @@ sub METAOP_ASSIGN(\op) {
     -> Mu \a, Mu \b { a = op.( a // op.(), b) }
 }
 
-sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is rw { lhs // (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<||>(\lhs, $rhs) is rw { lhs || (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<&&>(\lhs, $rhs) is rw { lhs && (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<andthen>(\lhs, $rhs) is rw { lhs andthen (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is rw { lhs orelse (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<||>(\lhs, $rhs) is raw { lhs || (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<&&>(\lhs, $rhs) is raw { lhs && (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<andthen>(\lhs, $rhs) is raw { lhs andthen (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is raw { lhs orelse (lhs = $rhs()) }
 
 sub METAOP_NEGATE(\op) {
     -> Mu \a, Mu \b { !op.(a ,b) }
@@ -405,7 +405,7 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
             nqp::bindattr($iter, self, '$!elems', 0);
             $iter
         }
-        method pull-one() is rw {
+        method pull-one() is raw {
             if ($!ended) {
                 if ($!whatever) {
                     $!buffer.AT-POS($!elems - 1);
@@ -497,7 +497,7 @@ multi sub deepmap(\op, \obj) {
         method is-lazy() {
             $!source.is-lazy
         }
-        method pull-one() is rw {
+        method pull-one() is raw {
             my int $redo = 1;
             my $value;
             my $result;

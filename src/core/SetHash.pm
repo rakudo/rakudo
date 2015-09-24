@@ -10,7 +10,7 @@ my class SetHash does Setty {
     }
     method SetHash { self }
 
-    multi method AT-KEY(SetHash:D: \k --> Bool) is rw {
+    multi method AT-KEY(SetHash:D: \k --> Bool) is raw {
         Proxy.new(
           FETCH => {
               %!elems.EXISTS-KEY(k.WHICH);

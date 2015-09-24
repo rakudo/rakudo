@@ -8,10 +8,10 @@ class array does Iterable is repr('VMArray') {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 
-        multi method AT-POS(array:D: int $idx) is rw {
+        multi method AT-POS(array:D: int $idx) is raw {
             nqp::atposref_i(self, $idx)
         }
-        multi method AT-POS(array:D: Int:D $idx) is rw {
+        multi method AT-POS(array:D: Int:D $idx) is raw {
             nqp::atposref_i(self, $idx)
         }
 
@@ -165,7 +165,7 @@ class array does Iterable is repr('VMArray') {
                     $iter;
                 }
 
-                method pull-one() is rw {
+                method pull-one() is raw {
                     my int $i = $!i;
                     $i < nqp::elems($!array)
                         ?? nqp::atposref_i($!array, ($!i = $i + 1) - 1)
@@ -177,10 +177,10 @@ class array does Iterable is repr('VMArray') {
 
 # please note that this role is mostly same as intarray but s/_i$/_n/
     my role numarray[::T] does Positional[T] is array_type(T) {
-        multi method AT-POS(array:D: int $idx) is rw {
+        multi method AT-POS(array:D: int $idx) is raw {
             nqp::atposref_n(self, $idx)
         }
-        multi method AT-POS(array:D: Int $idx) is rw {
+        multi method AT-POS(array:D: Int $idx) is raw {
             nqp::atposref_n(self, $idx)
         }
 
@@ -336,7 +336,7 @@ class array does Iterable is repr('VMArray') {
                     $iter;
                 }
 
-                method pull-one() is rw {
+                method pull-one() is raw {
                     my int $i = $!i;
                     $i < nqp::elems($!array)
                         ?? nqp::atposref_n($!array, ($!i = $i + 1) - 1)

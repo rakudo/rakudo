@@ -114,7 +114,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 iter
             }
 
-            method pull-one() is rw {
+            method pull-one() is raw {
                 if $!on-value {
                     $!on-value = 0;
                     nqp::iterval($!hash-iter)
@@ -142,7 +142,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 iter
             }
 
-            method pull-one() is rw {
+            method pull-one() is raw {
                 $!hash-iter
                     ?? nqp::iterval(nqp::shift($!hash-iter))
                     !! IterationEnd
@@ -156,7 +156,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.map: { (.value »=>» .key).cache.Slip }
     }
 
-    multi method AT-KEY(Map:D: \key) is rw {
+    multi method AT-KEY(Map:D: \key) is raw {
         my str $skey = nqp::unbox_s(key.Str);
         nqp::defined($!storage) && nqp::existskey($!storage, $skey)
           ?? nqp::atkey($!storage, $skey)
@@ -187,13 +187,13 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self
     }
 
-    proto method STORE_AT_KEY(|) is rw { * }
-    multi method STORE_AT_KEY(Str \key, Mu \value) is rw {
+    proto method STORE_AT_KEY(|) is raw { * }
+    multi method STORE_AT_KEY(Str \key, Mu \value) is raw {
         nqp::defined($!storage) ||
             nqp::bindattr(self, Map, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key), value)
     }
-    multi method STORE_AT_KEY(\key, Mu \value) is rw {
+    multi method STORE_AT_KEY(\key, Mu \value) is raw {
         nqp::defined($!storage) ||
             nqp::bindattr(self, Map, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)

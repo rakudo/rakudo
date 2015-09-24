@@ -153,7 +153,7 @@ my class PseudoStash is Map {
                 '$?PACKAGE')
         };
 
-    multi method AT-KEY(PseudoStash:D: Str() $key) is rw {
+    multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
         my Mu $nkey := nqp::unbox_s($key);
         if %pseudoers.EXISTS-KEY($key) {
             %pseudoers{$key}(self)
@@ -186,7 +186,7 @@ my class PseudoStash is Map {
         }
     }
 
-    method BIND-KEY(Str() $key, \value) is rw {
+    method BIND-KEY(Str() $key, \value) is raw {
         if %pseudoers.EXISTS-KEY($key) {
             X::Bind.new(target => "pseudo-package $key").throw;
         }

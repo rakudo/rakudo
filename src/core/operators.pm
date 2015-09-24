@@ -3,7 +3,7 @@
 ##   generic string operators are in Stringy.pm
 ##   Int/Rat/Num operators are in {Int|Rat|Num}.pm
 
-sub infix:<=>(Mu \a, Mu \b) is rw {
+sub infix:<=>(Mu \a, Mu \b) is raw {
     nqp::p6store(a, b)
 }
 
@@ -13,14 +13,14 @@ my class X::Does::TypeObject is Exception {
 }
 
 proto sub infix:<does>(|) { * }
-multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
+multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is raw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.^mixin($role).BUILD_LEAST_DERIVED({});
 }
-multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is raw) is rw {
+multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is raw) is raw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
@@ -28,10 +28,10 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is raw) is rw {
     my \mixedin = obj.^mixin($role, :need-mixin-attribute);
     mixedin.BUILD_LEAST_DERIVED({ substr(mixedin.^mixin_attribute.Str,2) => $value });
 }
-multi sub infix:<does>(Mu:U \obj, Mu:U \role) is rw {
+multi sub infix:<does>(Mu:U \obj, Mu:U \role) is raw {
     X::Does::TypeObject.new(type => obj).throw
 }
-multi sub infix:<does>(Mu:D \obj, **@roles) is rw {
+multi sub infix:<does>(Mu:D \obj, **@roles) is raw {
     # XXX Mutability check.
     my \real-roles = eager @roles.map: -> \rolish {
         rolish.HOW.archetypes.composable() ?? rolish !!
@@ -40,7 +40,7 @@ multi sub infix:<does>(Mu:D \obj, **@roles) is rw {
     }
     obj.^mixin(|real-roles).BUILD_LEAST_DERIVED({});
 }
-multi sub infix:<does>(Mu:U \obj, **@roles) is rw {
+multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
     X::Does::TypeObject.new(type => obj).throw
 }
 
@@ -80,7 +80,7 @@ sub GENERATE-ROLE-FROM-VALUE($val) {
       -> |c { nqp::list($role, nqp::hash('$?CLASS', c<$?CLASS>)) });
     $role.^compose;
 }
-multi sub infix:<but>(Mu \obj, Mu:D $val) is rw {
+multi sub infix:<but>(Mu \obj, Mu:D $val) is raw {
     obj.clone.^mixin(GENERATE-ROLE-FROM-VALUE($val));
 }
 multi sub infix:<but>(Mu:D \obj, **@roles) {
@@ -496,11 +496,11 @@ multi sub infix:<…>(|c) { infix:<...>(|c) }
 proto sub infix:<…^>(|) { * }
 multi sub infix:<…^>(|c) { infix:<...^>(|c) }
 
-multi sub undefine(Mu \x) is rw { x = Nil }
-multi sub undefine(Array \x) is rw { x = Empty }
-multi sub undefine(Hash \x) is rw { x = Empty }
+multi sub undefine(Mu \x) is raw { x = Nil }
+multi sub undefine(Array \x) is raw { x = Empty }
+multi sub undefine(Hash \x) is raw { x = Empty }
 
-sub prefix:<temp>(\cont) is rw {
+sub prefix:<temp>(\cont) is raw {
     my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');
     my int $i = nqp::elems($temp_restore);
     while $i > 0 {
@@ -525,7 +525,7 @@ sub prefix:<temp>(\cont) is rw {
     cont
 }
 
-sub prefix:<let>(\cont) is rw {
+sub prefix:<let>(\cont) is raw {
     my $let_restore := nqp::getlexcaller('!LET-RESTORE');
     my int $i = nqp::elems($let_restore);
     while $i > 0 {
@@ -552,7 +552,7 @@ sub prefix:<let>(\cont) is rw {
 
 # not sure where this should go
 # this implements the ::() indirect lookup
-sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
+sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     # note that each part of @chunks itself can
     # contain double colons. That's why joining and
     # re-splitting is necessary

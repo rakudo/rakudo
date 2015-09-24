@@ -26,23 +26,23 @@ my class Attribute { # declared in BOOTSTRAP
                 if self.rw {
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
-                        method (Mu:D \fles:) is rw {
+                        method (Mu:D \fles:) is raw {
                             nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 1))
                         ??
-                        method (Mu:D \fles:) is rw {
+                        method (Mu:D \fles:) is raw {
                             nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
                         nqp::p6bool(nqp::iseq_i($attr_type, 2))
                         ??
-                        method (Mu:D \fles:) is rw {
+                        method (Mu:D \fles:) is raw {
                             nqp::getattrref_n(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        method (Mu:D \fles:) is rw {
+                        method (Mu:D \fles:) is raw {
                             nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
                         }
                 } else {
@@ -108,7 +108,7 @@ my class Attribute { # declared in BOOTSTRAP
         }
     }
 
-    method container() is rw { nqp::isnull($!auto_viv_container) ?? Mu !! $!auto_viv_container }
+    method container() is raw { nqp::isnull($!auto_viv_container) ?? Mu !! $!auto_viv_container }
     method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }
     method package() { $!package }

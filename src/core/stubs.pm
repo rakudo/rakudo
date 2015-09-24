@@ -23,7 +23,7 @@ my role Mixy { ... }
 my class Mix { ... }
 my class MixHash { ... }
 
-sub DYNAMIC(\name) is rw {
+sub DYNAMIC(\name) is raw {
     my Mu \x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull(x) {
         my str $pkgname = nqp::replace(nqp::unbox_s(name), 1, 1, '');

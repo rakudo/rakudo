@@ -334,7 +334,7 @@ Please refactor this code using the new Iterator / Seq interface.
     }
     multi method Stringy(Mu:D $:) { self.Str }
 
-    method item(Mu \item:) is rw { item }
+    method item(Mu \item:) is raw { item }
 
     proto method say(|) { * }
     multi method say() { say(self) }
@@ -499,11 +499,11 @@ Please refactor this code using the new Iterator / Seq interface.
     }
 
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \SELF: $var, |c) is rw {
+    method dispatch:<var>(Mu \SELF: $var, |c) is raw {
         $var(SELF, |c)
     }
 
-    method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is rw {
+    method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {
         unless nqp::istype(SELF, $type) {
             X::Method::InvalidQualifier.new(
                     method          => $name,
@@ -515,7 +515,7 @@ Please refactor this code using the new Iterator / Seq interface.
         self.^find_method_qualified($type, $name)(SELF, |c)
     }
 
-    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw {
+    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is raw {
         my $meth := $type.^find_private_method($name);
         $meth ??
             $meth(SELF, |c) !!
@@ -527,16 +527,16 @@ Please refactor this code using the new Iterator / Seq interface.
             ).throw;
     }
 
-    method dispatch:<.^>(Mu \SELF: $name, |c) is rw {
+    method dispatch:<.^>(Mu \SELF: $name, |c) is raw {
         self.HOW."$name"(SELF, |c)
     }
 
-    method dispatch:<.=>(\mutate: $name, |c) is rw {
+    method dispatch:<.=>(\mutate: $name, |c) is raw {
         $/ := nqp::getlexcaller('$/');
         mutate = mutate."$name"(|c)
     }
 
-    method dispatch:<.?>(Mu \SELF: $name, |c) is rw {
+    method dispatch:<.?>(Mu \SELF: $name, |c) is raw {
         nqp::can(SELF, $name) ??
             SELF."$name"(|c) !!
             Nil

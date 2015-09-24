@@ -27,7 +27,7 @@ my role Iterable {
             }
 
             my constant NO_RESULT_YET = Mu.CREATE;
-            method pull-one() is rw {
+            method pull-one() is raw {
                 my $result := NO_RESULT_YET;
                 my $got;
                 repeat while nqp::eqaddr($result, NO_RESULT_YET) {
@@ -74,7 +74,7 @@ my role Iterable {
                 iter
             }
 
-            method pull-one() is rw {
+            method pull-one() is raw {
                 unless $!iterator.DEFINITE {
                     $!iterator := $!iterable.iterator;
                 }

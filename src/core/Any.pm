@@ -145,9 +145,9 @@ my class Any { # declared in BOOTSTRAP
     method join($separator = '') is nodal { self.list.join($separator) }
 
     # XXX GLR should move these
-    method nodemap(&block) is rw is nodal { nodemap(&block, self) }
-    method duckmap(&block) is rw is nodal { duckmap(&block, self) }
-    method deepmap(&block) is rw is nodal { deepmap(&block, self) }
+    method nodemap(&block) is nodal { nodemap(&block, self) }
+    method duckmap(&block) is nodal { duckmap(&block, self) }
+    method deepmap(&block) is nodal { deepmap(&block, self) }
 
     # XXX GLR Do we need tree post-GLR?
     proto method tree(|) is nodal { * }
@@ -185,7 +185,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method EXISTS-POS(|) is nodal { * }
     multi method EXISTS-POS(Any:U: Any:D $) { False }
-    multi method EXISTS-POS(Any:U: Any:U $pos) is rw {
+    multi method EXISTS-POS(Any:U: Any:U $pos) {
         die "Cannot use '{$pos.^name}' as an index";
     }
 
@@ -217,49 +217,49 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method AT-POS(|) is nodal {*}
-    multi method AT-POS(Any:U \SELF: int \pos) is rw {
+    multi method AT-POS(Any:U \SELF: int \pos) is raw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Array.new);
                  SELF.BIND-POS(pos, $v) });
         $v
     }
-    multi method AT-POS(Any:U \SELF: Int:D \pos) is rw {
+    multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Array.new);
                  SELF.BIND-POS(nqp::unbox_i(pos), $v) });
         $v
     }
-    multi method AT-POS(Any:U: Num:D \pos) is rw {
+    multi method AT-POS(Any:U: Num:D \pos) is raw {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method AT-POS(Any:U: Any:D \pos) is rw {
+    multi method AT-POS(Any:U: Any:D \pos) is raw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method AT-POS(Any:D: int \pos) is rw {
+    multi method AT-POS(Any:D: int \pos) is raw {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           unless nqp::not_i(pos);
         self;
     }
-    multi method AT-POS(Any:D: Int:D \pos) is rw {
+    multi method AT-POS(Any:D: Int:D \pos) is raw {
         fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
           if pos != 0;
         self;
     }
-    multi method AT-POS(Any:D: Num:D \pos) is rw {
+    multi method AT-POS(Any:D: Num:D \pos) is raw {
         fail X::Item.new(aggregate => self, index => pos)
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method AT-POS(Any:D: Any:D \pos) is rw {
+    multi method AT-POS(Any:D: Any:D \pos) is raw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method AT-POS(Any:   Any:U \pos) is rw {
+    multi method AT-POS(Any:   Any:U \pos) is raw {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method AT-POS(**@indices) is rw {
+    multi method AT-POS(**@indices) is raw {
         my $result := self;
         for @indices {
             $result := $result.AT-POS($_);
@@ -300,7 +300,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-POS(|) { * }
-    multi method BIND-POS(Any:D: **@indices is raw) {
+    multi method BIND-POS(Any:D: **@indices is raw) is raw {
         my int $elems = @indices.elems;
         my \value := @indices.AT-POS($elems - 1);
         my $final := @indices.AT-POS($elems - 2);
@@ -320,7 +320,7 @@ my class Any { # declared in BOOTSTRAP
 
     # internals
     proto method AT-KEY(|) is nodal { * }
-    multi method AT-KEY(Any:D: $key) is rw {
+    multi method AT-KEY(Any:D: $key) is raw {
         if self ~~ Associative {
             fail "Associative indexing implementation missing from type {self.WHAT.perl}";
         }
@@ -328,7 +328,7 @@ my class Any { # declared in BOOTSTRAP
             fail "Type {self.WHAT.perl} does not support associative indexing.";
         }
     }
-    multi method AT-KEY(Any:U \SELF: $key) is rw {
+    multi method AT-KEY(Any:U \SELF: $key) is raw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || (SELF = Hash.new);
                  SELF.BIND-KEY($key, $v) });
@@ -336,17 +336,17 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) is nodal { * }
-    multi method BIND-KEY(Any:D: \k, \v) is rw {
+    multi method BIND-KEY(Any:D: \k, \v) is raw {
         fail X::Bind.new(target => self.^name);
     }
-    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is rw {
+    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is raw {
         SELF = Hash.new;
         SELF.BIND-KEY($key, $BIND);
         $BIND
     }
 
     proto method ASSIGN-KEY(|) is nodal { * }
-    multi method ASSIGN-KEY(\SELF: \key, Mu \assignee) {
+    multi method ASSIGN-KEY(\SELF: \key, Mu \assignee) is raw {
         SELF.AT-KEY(key) = assignee;
     }
 

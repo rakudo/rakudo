@@ -314,7 +314,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::elems($!reified)
     }
 
-    multi method AT-POS(List:D: Int $pos) is rw {
+    multi method AT-POS(List:D: Int $pos) is raw {
         self!ensure-allocated;
         my int $ipos = nqp::unbox_i($pos);
         $ipos < nqp::elems($!reified) && $ipos >= 0
@@ -322,14 +322,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! self!AT-POS-SLOWPATH($ipos);
     }
 
-    multi method AT-POS(List:D: int $pos) is rw {
+    multi method AT-POS(List:D: int $pos) is raw {
         self!ensure-allocated;
         $pos < nqp::elems($!reified) && $pos >= 0
             ?? nqp::atpos($!reified, $pos)
             !! self!AT-POS-SLOWPATH($pos);
     }
 
-    method !AT-POS-SLOWPATH(int $pos) is rw {
+    method !AT-POS-SLOWPATH(int $pos) is raw {
         fail X::OutOfRange.new(:what<Index>, :got($pos), :range<0..Inf>)
             if $pos < 0;
         $!todo.DEFINITE && $!todo.reify-at-least($pos + 1) > $pos
@@ -373,14 +373,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 $iter
             }
 
-            method pull-one() is rw {
+            method pull-one() is raw {
                 my int $i = $!i;
                 $i < nqp::elems($!reified)
                     ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), Any)
                     !! self!reify-and-pull-one()
             }
 
-            method !reify-and-pull-one() is rw {
+            method !reify-and-pull-one() is raw {
                 my int $i = $!i;
                 $!todo.DEFINITE && $i < $!todo.reify-at-least($i + 1)
                     ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), Any)

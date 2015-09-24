@@ -86,11 +86,11 @@ my class Array { # declared in BOOTSTRAP
     my role ShapedArray[::TValue] does Positional[TValue] {
         has $.shape;
 
-        proto method AT-POS(|) is rw {*}
-        multi method AT-POS(Array:U: |c) is rw {
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(Array:U: |c) is raw {
             self.Any::AT-POS(|c)
         }
-        multi method AT-POS(Array:D: **@indices) is rw {
+        multi method AT-POS(Array:D: **@indices) is raw {
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems;
@@ -114,11 +114,11 @@ my class Array { # declared in BOOTSTRAP
             }
         }
 
-        proto method ASSIGN-POS(|) is rw {*}
-        multi method ASSIGN-POS(Array:U: |c) is rw {
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(Array:U: |c) {
             self.Any::ASSIGN-POS(|c)
         }
-        multi method ASSIGN-POS(**@indices) is rw {
+        multi method ASSIGN-POS(**@indices) {
             my \value = @indices.pop;
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
@@ -184,7 +184,7 @@ my class Array { # declared in BOOTSTRAP
             }
         }
 
-        proto method DELETE-POS(|) is rw {*}
+        proto method DELETE-POS(|) {*}
         multi method DELETE-POS(Array:U: |c) {
             self.Any::DELETE-POS(|c)
         }
@@ -217,11 +217,11 @@ my class Array { # declared in BOOTSTRAP
             }
         }
 
-        proto method BIND-POS(|) is rw {*}
-        multi method BIND-POS(Array:U: |c) is rw {
+        proto method BIND-POS(|) is raw {*}
+        multi method BIND-POS(Array:U: |c) is raw {
             self.Any::BIND-POS(|c)
         }
-        multi method BIND-POS(**@indices is raw) is rw {
+        multi method BIND-POS(**@indices is raw) is raw {
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems - 1;
@@ -392,14 +392,14 @@ my class Array { # declared in BOOTSTRAP
 
     method shape() { (*,) }
 
-    multi method AT-POS(Array:D: int $ipos) is rw {
+    multi method AT-POS(Array:D: int $ipos) is raw {
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0
             ?? nqp::ifnull(nqp::atpos(reified, $ipos),
                     self!AT-POS-SLOWPATH($ipos))
             !! self!AT-POS-SLOWPATH($ipos)
     }
-    multi method AT-POS(Array:D: Int:D $pos) is rw {
+    multi method AT-POS(Array:D: Int:D $pos) is raw {
         my int $ipos = nqp::unbox_i($pos);
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0
@@ -407,7 +407,7 @@ my class Array { # declared in BOOTSTRAP
                     self!AT-POS-SLOWPATH($ipos))
             !! self!AT-POS-SLOWPATH($ipos)
     }
-    method !AT-POS-SLOWPATH(int $ipos) is rw {
+    method !AT-POS-SLOWPATH(int $ipos) is raw {
         fail X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>)
           if nqp::islt_i($ipos, 0);
         self!ensure-allocated();
@@ -426,7 +426,7 @@ my class Array { # declared in BOOTSTRAP
             !! value
     }
 
-    multi method ASSIGN-POS(Array:D: int $ipos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Array:D: int $ipos, Mu \assignee) {
         X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>).throw
           if nqp::islt_i($ipos, 0);
         my Mu \reified := nqp::getattr(self, List, '$!reified');
@@ -436,7 +436,7 @@ my class Array { # declared in BOOTSTRAP
                 !! (nqp::atpos(reified, $ipos) = assignee)
             !! self!ASSIGN-POS-SLOWPATH($ipos, assignee)
     }
-    multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is rw {
+    multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) {
         my int $ipos = nqp::unbox_i($pos);
         X::OutOfRange.new(:what<Index>,:got($pos),:range<0..Inf>).throw
           if nqp::islt_i($ipos, 0);
@@ -447,7 +447,7 @@ my class Array { # declared in BOOTSTRAP
                 !! (nqp::atpos(reified, $ipos) = assignee)
             !! self!ASSIGN-POS-SLOWPATH($ipos, assignee)
     }
-    method !ASSIGN-POS-SLOWPATH(int $ipos, Mu \assignee) is rw {
+    method !ASSIGN-POS-SLOWPATH(int $ipos, Mu \assignee) {
         fail X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>)
           if nqp::islt_i($ipos, 0);
         self!ensure-allocated();
@@ -461,14 +461,14 @@ my class Array { # declared in BOOTSTRAP
             !! (nqp::atpos(reified, $ipos) = assignee)
     }
 
-    multi method BIND-POS(Int $pos, Mu \bindval) is rw {
+    multi method BIND-POS(Int $pos, Mu \bindval) is raw {
         self!ensure-allocated();
         my int $ipos = $pos;
         my $todo := nqp::getattr(self, List, '$!todo');
         $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
         nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval);
     }
-    multi method BIND-POS(int $pos, Mu \bindval) is rw {
+    multi method BIND-POS(int $pos, Mu \bindval) is raw {
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
         $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
@@ -744,13 +744,13 @@ my class Array { # declared in BOOTSTRAP
             arr.STORE(@values);
             arr
         }
-        multi method BIND-POS(Int $pos, TValue \bindval) is rw {
+        multi method BIND-POS(Int $pos, TValue \bindval) is raw {
             my int $ipos = $pos;
             my $todo := nqp::getattr(self, List, '$!todo');
             $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
             nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval)
         }
-        multi method BIND-POS(int $pos, TValue \bindval) is rw {
+        multi method BIND-POS(int $pos, TValue \bindval) is raw {
             my $todo := nqp::getattr(self, List, '$!todo');
             $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
             nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval)

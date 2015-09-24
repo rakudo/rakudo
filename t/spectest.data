@@ -718,6 +718,7 @@ S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/cwd.t
 S16-io/getc.t
+S16-io/lines.t
 S16-io/note.t
 S16-io/print.t
 S16-io/say-and-ref.t

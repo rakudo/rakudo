@@ -1464,9 +1464,13 @@ BEGIN {
             my $SIG_ELEM_IS_RW       := 256;
             my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := nqp::decont($self);
-            my int $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
+            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
                 nqp::die("Cannot use 'is rw' on an optional parameter");
+            }
+            my str $varname := nqp::getattr_s($dcself, Parameter, '$!variable_name');
+            unless nqp::isnull_s($varname) || nqp::eqat($varname, '$', 0) {
+                nqp::die("Can only use 'is rw' on a scalar ('$' sigil) parameter");
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if nqp::defined($cd) { $cd.set_rw(1) }

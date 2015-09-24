@@ -20,13 +20,11 @@ sub METAOP_REVERSE(\op) {
 sub METAOP_CROSS(\op, &reduce) {
     return &infix:<X> if op === &infix:<,>;
 
-    -> |lol {
+    -> +lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
-        my $Inf = False;
-        my @loi = eager for ^lol.elems -> $i {
-            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
-            $Inf = True if elem.is-lazy;
-
+        my $laze = False;
+        my @loi = eager for lol -> \elem {
+            $laze = True if elem.is-lazy;
             nqp::iscont(elem) ?? (elem,).iterator
               !! nqp::istype(elem, Iterable)
                 ?? elem.iterator
@@ -69,17 +67,17 @@ sub METAOP_CROSS(\op, &reduce) {
                     }
                 }
             }
-        }.lazy-if($Inf);
+        }.lazy-if($laze);
     }
 }
 
 sub METAOP_ZIP(\op, &reduce) {
-    -> |lol {
+   -> +lol {
         my $arity = lol.elems;
         my $rop = $arity == 2 ?? op !! &reduce(op);
-        my @loi = eager for ^lol.elems -> $i {
-            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
-
+        my $laze = True;
+        my @loi = eager for lol -> \elem {
+            $laze = False unless elem.is-lazy;
             nqp::istype(elem, Iterable)
                 ?? elem.iterator
                 !! elem.list.iterator;
@@ -96,7 +94,7 @@ sub METAOP_ZIP(\op, &reduce) {
                 last if $z.elems < $arity;
                 take-rw $arity == 2 ?? $rop(|$z) !! $rop(@$z);
             }
-        }
+        }.lazy-if($laze);
     }
 }
 

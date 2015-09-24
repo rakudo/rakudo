@@ -980,31 +980,20 @@ multi sub infix:<cmp>(@a, @b) {
     (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b
 }
 
-sub infix:<X>(|lol) {
-    if lol.hash {
-        my $op = lol.hash<with>;
-        return METAOP_CROSS($op, find-reducer-for-op($op))(|lol.list) if $op;
-    }
+sub infix:<X>(+lol, :$with) {
+    return METAOP_CROSS($with, find-reducer-for-op($with))(|lol.list) with $with;
     my int $n = lol.elems - 1;
-    my $Inf = False;
+    my $laze = False;
     my @l = do for 0..$n -> $i {
         my \elem = lol[$i];
-        $Inf = True if $i and elem.is-lazy;
+        $laze = True if $i and elem.is-lazy;
         elem.list
-    }
-
-    # eagerize 2nd and subsequent lists if finite
-    my Mu $end := nqp::list_i();
-    if !$Inf {
-        for 1 .. $n -> $i {
-            nqp::bindpos_i($end,$i,@l[$i].elems);
-        }
     }
 
     my Mu $v := nqp::list();
     my int $i = 0;
 
-    if $Inf {  # general case treats all lists as potentially lazy
+    if $laze {  # general case treats all lists as potentially lazy
         return gather {
             my @i = @l.map: *.iterator;
             while $i >= 0 {
@@ -1020,10 +1009,18 @@ sub infix:<X>(|lol) {
                 }
                 else { $i = $i - 1 }
             }
-        }
+        }.lazy;
     }
+
+    # eagerize 2nd and subsequent lists if finite
+    my Mu $end := nqp::list_i();
+    for 1 .. $n -> $i {
+        nqp::bindpos_i($end,$i,@l[$i].elems);
+    }
+    $laze = True if @l[0].is-lazy;  # check pass-thru on the 1st one too
+
     # optimize for 2D and 3D crosses
-    elsif $n == 1 { # 2-dimensional
+    if $n == 1 { # 2-dimensional
         gather {
             my int $e = nqp::atpos_i($end,1);
             my $l0 = @l[0];
@@ -1036,7 +1033,7 @@ sub infix:<X>(|lol) {
                     take nqp::clone($v);
                 }
             }
-        }
+        }.lazy-if($laze);
     }
     elsif $n == 2 { # 3-dimensional
         gather {
@@ -1056,7 +1053,7 @@ sub infix:<X>(|lol) {
                     }
                 }
             }
-        }
+        }.lazy-if($laze);
     }
     else { # more than 3 dimensions
         my Mu $jsave := nqp::list_i();
@@ -1091,21 +1088,20 @@ sub infix:<X>(|lol) {
                 }
                 else { $i = $i - 1 }
             }
-        }
+        }.lazy-if($laze);
     }
 }
 
 my &cross = &infix:<X>;
 
-sub infix:<Z>(|lol) {
-    if lol.hash {
-        my $op = lol.hash<with>;
-        return METAOP_ZIP($op, find-reducer-for-op($op))(|lol.list) if $op;
-    }
+sub infix:<Z>(+lol, :$with) {
+    return METAOP_ZIP($with, find-reducer-for-op($with))(|lol.list) with $with;
     my $arity = lol.elems;
+    my $laze = True;
     return () if $arity == 0;
     eager my @l = (^$arity).map: -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+            $laze = False unless elem.is-lazy;
             nqp::istype(elem, Iterable)
                 ?? elem.iterator
                 !! elem.list.iterator;
@@ -1122,13 +1118,14 @@ sub infix:<Z>(|lol) {
             last if l.elems < $arity;
             take-rw l;
         }
-    }
+    }.lazy-if($laze);
 }
 
 my &zip := &infix:<Z>;
 
 sub roundrobin(**@lol) {
     my @iters = @lol.map: { nqp::istype($_, Iterable) ?? .iterator !! .list.iterator };
+    my $laze = so any(@lol).is-lazy;
     gather {
         while @iters {
             my @new-iters;
@@ -1143,7 +1140,7 @@ sub roundrobin(**@lol) {
             take @values if @values;
             @iters = @new-iters;
         }
-    }
+    }.lazy-if($laze);
 }
 
 # vim: ft=perl6 expandtab sw=4

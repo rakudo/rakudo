@@ -8304,32 +8304,48 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method metachar:sym<rakvar>($/) {
         my $varast := $<var>.ast;
-        my int $is-str;
         if nqp::istype($varast, QAST::Var) {
+            # See if it's a constant Scalar, in which case we can turn it to
+            # a Str and use the value as a literal, so we get LTM.
+            if nqp::substr($varast.name, 0, 1) eq '$' {
+                my $constant;
+                try {
+                    my $found := $*W.find_symbol([$varast.name]);
+                    $constant := $found.Str if nqp::isconcrete($found);
+                }
+                if nqp::isconcrete($constant) {
+                    make self.apply_literal_modifiers(QAST::Regex.new(
+                        nqp::unbox_s($constant), :rxtype<literal>, :node($/)
+                    ));
+                    return;
+                }
+            }
+
+            # If it's a variable, but statically typed as a string, we know
+            # it's a simple interpolation; use LITERAL.
             if nqp::istype($varast.returns, $*W.find_symbol(['Str'])) {
-                $is-str := 1;
+                make QAST::Regex.new(QAST::NodeList.new(
+                        QAST::SVal.new( :value('!LITERAL') ),
+                        $varast,
+                        QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) )
+                    ),
+                    :rxtype<subrule>, :subtype<method>, :node($/));
+                return;
             }
         }
-        if $is-str {
-            # We know it's a simple interpolation; use LITERAL.
-            make QAST::Regex.new( QAST::NodeList.new(
-                                        QAST::SVal.new( :value('!LITERAL') ),
-                                        $varast,
-                                        QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
-                                :rxtype<subrule>, :subtype<method>, :node($/));
-        }
-        else {
-            make QAST::Regex.new( QAST::NodeList.new(
-                                    QAST::SVal.new( :value('INTERPOLATE') ),
-                                    $varast,
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ) ),
-                                    QAST::Op.new( :op<callmethod>, :name<new>,
-                                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
-                                    ),
-                              :rxtype<subrule>, :subtype<method>, :node($/));
-        }
+
+        # Otherwise, slow path that checks what we have.
+        make QAST::Regex.new(QAST::NodeList.new(
+                QAST::SVal.new( :value('INTERPOLATE') ),
+                $varast,
+                QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
+                QAST::IVal.new( :value($*SEQ ?? 1 !! 0) )
+            ),
+            QAST::Op.new( :op<callmethod>, :name<new>,
+                QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+            ),
+            :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<{ }>($/) {

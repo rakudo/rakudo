@@ -980,8 +980,11 @@ multi sub infix:<cmp>(@a, @b) {
     (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b
 }
 
-sub infix:<X>(+lol, :$with) {
-    return METAOP_CROSS($with, find-reducer-for-op($with))(|lol.list) with $with;
+proto sub infix:<X>(|) {*}
+multi sub infix:<X>(+lol, :$with!) {
+    METAOP_CROSS($with, find-reducer-for-op($with))(|lol.list);
+}
+multi sub infix:<X>(+lol) {
     my int $n = lol.elems - 1;
     my $laze = False;
     my @l = do for 0..$n -> $i {
@@ -1094,8 +1097,11 @@ sub infix:<X>(+lol, :$with) {
 
 my &cross = &infix:<X>;
 
-sub infix:<Z>(+lol, :$with) {
-    return METAOP_ZIP($with, find-reducer-for-op($with))(|lol.list) with $with;
+proto sub infix:<Z>(|) {*}
+multi sub infix:<Z>(+lol, :$with!) {
+    METAOP_ZIP($with, find-reducer-for-op($with))(|lol.list);
+}
+multi sub infix:<Z>(+lol) {
     my $arity = lol.elems;
     my $laze = True;
     return () if $arity == 0;

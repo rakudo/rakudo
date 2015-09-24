@@ -1742,8 +1742,12 @@ BEGIN {
                     my $type_obj_b := %b<types>[$i];
                     if nqp::eqaddr($type_obj_a, $type_obj_b) {
                         # Same type; narrower if first has constraints and other doesn't;
-                        # tied if neither has constraints or both have constraints. */
+                        # narrower if first is rw and second isn't; tied if neither has
+                        # constraints or both have constraints.
                         if %a<constraints>[$i] && !%b<constraints>[$i] {
+                            $narrower++;
+                        }
+                        elsif nqp::atpos_i(%a<rwness>, $i) > nqp::atpos_i(%b<rwness>, $i) {
                             $narrower++;
                         }
                         elsif (!%a<constraints>[$i] && !%b<constraints>[$i])

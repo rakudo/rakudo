@@ -1701,6 +1701,7 @@ BEGIN {
             my int $SIG_ELEM_SLURPY_NAMED        := 16;
             my int $SIG_ELEM_SLURPY_LOL          := 32;
             my int $SIG_ELEM_MULTI_INVOCANT      := 128;
+            my int $SIG_ELEM_IS_RW               := 256;
             my int $SIG_ELEM_IS_OPTIONAL         := 2048;
             my int $SIG_ELEM_IS_CAPTURE          := 32768;
             my int $SIG_ELEM_UNDEFINED_ONLY      := 65536;
@@ -1814,7 +1815,8 @@ BEGIN {
                     'signature',    $sig,
                     'types',        [],
                     'type_flags',   nqp::list_i(),
-                    'constraints',  []
+                    'constraints',  [],
+                    'rwness',       nqp::list_i()
                 );
                 my int $significant_param := 0;
                 my int $min_arity         := 0;
@@ -1878,6 +1880,9 @@ BEGIN {
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                         $num_types++;
+                    }
+                    if $flags +& $SIG_ELEM_IS_RW {
+                        nqp::bindpos_i(%info<rwness>, $significant_param, 1);
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY {
                         nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_DEFINED);

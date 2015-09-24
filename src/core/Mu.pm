@@ -348,6 +348,9 @@ Please refactor this code using the new Iterator / Seq interface.
     proto method perl(|) { * }
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "{self.^name}_{self.WHERE}" }
+        %*perlseen{self.WHICH} = 1;
         my @attrs;
         for self.^attributes().flat.grep: { .has_accessor } -> $attr {
             my $name := substr($attr.Str,2);
@@ -355,7 +358,9 @@ Please refactor this code using the new Iterator / Seq interface.
                         ~ ' => '
                         ~ $attr.get_value(self).perl
         }
-        self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
+        my $result = self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs);
+        $result = "(my \\{self.^name}_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+        $result;
     }
 
     proto method DUMP(|) { * }

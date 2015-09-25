@@ -908,8 +908,8 @@ my class X::Parameter::Default does X::Comp {
 }
 
 my class X::Parameter::Default::TypeCheck does X::Comp {
-    has $.got;
-    has $.expected;
+    has $.got is default(Nil);
+    has $.expected is default(Nil);
     method message() {
         "Default value '$.got.gist()' will never bind to a parameter of type $.expected.^name()"
     }
@@ -1557,7 +1557,7 @@ my class X::Str::Numeric is Exception {
 }
 
 my class X::Str::Match::x is Exception {
-    has $.got;
+    has $.got is default(Nil);
     method message() {
         "in Str.match, got invalid value of type {$.got.^name} for :x, must be Int or Range"
     }
@@ -1570,14 +1570,14 @@ my class X::Str::Trans::IllegalKey is Exception {
     }
 }
 my class X::Str::Trans::InvalidArg is Exception {
-    has $.got;
+    has $.got is default(Nil);
     method message() {
         "Only Pair objects are allowed as arguments to Str.trans, got {$.got.^name}";
     }
 }
 
 my class X::Range::InvalidArg is Exception {
-    has $.got;
+    has $.got is default(Nil);
     method message() {
         "{$.got.^name} objects are not valid endpoints for Ranges";
     }
@@ -1644,8 +1644,8 @@ my class X::Composition::NotComposable does X::Comp {
 
 my class X::TypeCheck is Exception {
     has $.operation;
-    has $.got;
-    has $.expected;
+    has $.got is default(Nil);
+    has $.expected is default(Nil);
     method gotn()      { (try $!got.^name)      // "?" }
     method expectedn() { (try $!expected.^name) // "?" }
     method priors() {

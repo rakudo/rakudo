@@ -7560,7 +7560,7 @@ Compilation unit '$file' contained the following violations:
             );
         }
         my $param_obj := $*W.create_parameter($/, $param);
-        if $copy { $param_obj.set_copy() } else { $param_obj.set_rw() }
+        if $copy { $param_obj.set_copy() } else { $param_obj.set_raw() }
         my $sig := $*W.create_signature(nqp::hash('parameter_objects', [$param_obj]));
         add_signature_binding_code($block, $sig, [$param]);
         reference_to_code_object(

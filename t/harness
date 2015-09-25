@@ -20,11 +20,9 @@ GetOptions(
     'fudge'             => \my $do_fudge,
     'verbosity=i'       => \$Test::Harness::verbose,
     'jobs:1'            => \my $jobs,
-    'icu:1'             => \my $do_icu,
     'long:1'            => \my $do_long,
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
-    'parrot_revision=s' => \my $parrot_revision,
     'jvm'               => \my $jvm,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
@@ -38,7 +36,7 @@ my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "p");
+$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = join ',', qw/ lib . /;
 
 if ($list_file) {
@@ -55,7 +53,6 @@ if ($list_file) {
         s/\s+\z//;
         my ($fn, $fudgespec) = split /\s+#\s*/;
         if ($fudgespec) {
-            next if ($fudgespec =~ m/icu/)    && !$do_icu && !$jvm && !$moar;
             next if ($fudgespec =~ m/perl5/)  && !$perl5;
             next if ($fudgespec =~ m/long/)   && !$do_long;
             next if ($fudgespec =~ m/stress/) && !$do_stress;
@@ -161,7 +158,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.parrot');
+    my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.moar');
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
@@ -182,7 +179,6 @@ Options:
     --fudge - fudge (?)
     --verbosity=[level] - set the verbosity level.
     --jobs - number of jobs.
-    --icu - do icu.
     --long - do long.
     --stress - perform the stress tests/
     --archive=[archive] - write to an archive.

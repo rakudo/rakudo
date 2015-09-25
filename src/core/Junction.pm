@@ -60,9 +60,8 @@ my class Junction { # declared in BOOTSTRAP
             self, |c);
     }
 
-    method sink(Junction:D:) {
+    method sink(Junction:D: --> Nil) {
         .?sink for $!storage.list;
-        Nil;
     }
 
     method AUTOTHREAD(&call, |args) {
@@ -73,12 +72,11 @@ my class Junction { # declared in BOOTSTRAP
             my @states := nqp::getattr(nqp::decont($arg), Junction, '$!storage');
 
             my Mu $res := nqp::list();
-            @states.map: -> \st {
+            @states.map: -> \st --> Nil {
                 # Next line is Officially Naughty, since captures are meant to be
                 # immutable. But hey, it's our capture to be naughty with...
                 nqp::bindpos($pos_rpa, $i, st);
                 nqp::push($res, call(|args));
-                Nil;
             }
             my $res_junc := nqp::clone(nqp::decont($arg));
             nqp::bindattr($res_junc, Junction, '$!storage',
@@ -118,10 +116,9 @@ my class Junction { # declared in BOOTSTRAP
                 my @states := nqp::getattr(nqp::decont($v), Junction, '$!storage');
                 my $type   := nqp::getattr(nqp::decont($v), Junction, '$!type');
                 my Mu $res := nqp::list();
-                @states.map: -> \st {
+                @states.map: -> \st --> Nil {
                     nqp::bindkey($nam_hash, $k, st);
                     nqp::push($res, call(|args));
-                    Nil;
                 }
                 my $res_junc := nqp::clone(nqp::decont($v));
                 nqp::bindattr($res_junc, Junction, '$!storage',

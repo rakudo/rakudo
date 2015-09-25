@@ -707,7 +707,6 @@ sub sleep($seconds = Inf --> Nil) {
     elsif $seconds > 0 {
         nqp::sleep($seconds.Num);
     }
-    Nil;
 }
 
 sub sleep-timer(Real() $seconds = Inf --> Duration) {

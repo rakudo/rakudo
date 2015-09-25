@@ -13,25 +13,22 @@ my class SupplyOperations {
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.
     my role PrivatePublishing {
-        method !emit(\msg) {
+        method !emit(\msg --> Nil) {
             for self.tappers {
                 .emit().(msg)
             }
-            Nil;
         }
 
-        method !done() {
+        method !done(--> Nil) {
             for self.tappers {
                 if .done { .done().() }
             }
-            Nil;
         }
 
-        method !quit($ex) {
+        method !quit($ex --> Nil) {
             for self.tappers {
                 if .quit { .quit().($ex) }
             }
-            Nil;
         }
     }
 

@@ -455,9 +455,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     proto method Seq(|) is nodal { * }
     multi method Seq(List:D:) { Seq.new(self.iterator) }
 
-    method sink() {
-        Nil;
-    }
+    method sink(--> Nil) { }
 
     multi method values(List:D:) {
         Seq.new(self.iterator)

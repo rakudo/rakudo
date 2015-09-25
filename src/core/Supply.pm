@@ -58,30 +58,27 @@ my role Supply {
         @tappers
     }
 
-    method emit(Supply:D: \msg) {
+    method emit(Supply:D: \msg --> Nil) {
         if self.tappers -> \tappers {
             .emit().(msg) for tappers;
         }
         elsif !$!been_tapped {
             $!tappers_lock.protect({ @!paused.push: msg });
         }
-        Nil;
     }
 
-    method done(Supply:D:) {
+    method done(Supply:D: --> Nil) {
         for self.tappers -> $t {
             my $l = $t.done();
             $l() if $l;
         }
-        Nil;
     }
 
-    method quit(Supply:D: $ex) {
+    method quit(Supply:D: $ex --> Nil) {
         for self.tappers -> $t {
             my $f = $t.quit();
             $f($ex) if $f;
         }
-        Nil;
     }
 
     method taps(Supply:D:) { +@!tappers }
@@ -904,25 +901,22 @@ sub on(&setup) {
             $sub
         }
 
-        method emit(\msg) {
+        method emit(\msg --> Nil) {
             for self.tappers {
                 .emit().(msg)
             }
-            Nil;
         }
 
-        method done() {
+        method done( --> Nil) {
             for self.tappers {
                 if .done -> $l { $l() }
             }
-            Nil;
         }
 
-        method quit($ex) {
+        method quit($ex --> Nil) {
             for self.tappers {
                 if .quit -> $t { $t($ex) }
             }
-            Nil;
         }
     }
 

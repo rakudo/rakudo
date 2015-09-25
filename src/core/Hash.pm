@@ -113,12 +113,11 @@ my class Hash { # declared in BOOTSTRAP
         );
         $val;
     }
-    multi method DELETE-KEY(Str() \key, :$SINK!) {
+    multi method DELETE-KEY(Str() \key, :$SINK! --> Nil) {
         nqp::deletekey(
             nqp::getattr(self, Map, '$!storage'),
             nqp::unbox_s(key)
         );
-        Nil;
     }
 
     method push(+values) {

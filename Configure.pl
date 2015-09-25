@@ -16,7 +16,8 @@ use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config
 my $lang = 'Rakudo';
 my $lclang = lc $lang;
 my $uclang = uc $lang;
-my $slash  = $^O eq 'MSWin32' ? '\\' : '/';
+my $win    = $^O eq 'MSWin32';
+my $slash  = $win ? '\\' : '/';
 
 
 MAIN: {
@@ -125,12 +126,12 @@ MAIN: {
     $config{slash}  = $slash;
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
-    $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
-    $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
-    $config{'runner_suffix'} = $^O eq 'MSWin32' ? '.bat' : '';
+    $config{'cpsep'} = $win ? ';' : ':';
+    $config{'shell'} = $win ? 'cmd' : 'sh';
+    $config{'runner_suffix'} = $win ? '.bat' : '';
 
     my $make = 'make';
-    if ($^O eq 'MSWin32') {
+    if ($win) {
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
         my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
         my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
@@ -191,7 +192,7 @@ MAIN: {
     my %errors;
     if ($backends{jvm}) {
         $config{j_nqp} = $impls{jvm}{bin};
-        $config{j_nqp} =~ s{/}{\\}g if $^O eq 'MSWin32';
+        $config{j_nqp} =~ s{/}{\\}g if $win;
         my %nqp_config;
         if ( $impls{jvm}{ok} ) {
             %nqp_config = %{ $impls{jvm}{config} };
@@ -221,7 +222,7 @@ MAIN: {
             $config{'nqp_prefix'}    = $nqp_config{'jvm::prefix'};
             $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
             $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
-            $config{'j_runner'}      = $^O eq 'MSWin32' ? 'perl6-j.bat' : 'perl6-j';
+            $config{'j_runner'}      = $win ? 'perl6-j.bat' : 'perl6-j';
 
 
             fill_template_file('tools/build/Makefile-JVM.in', $MAKEFILE, %config);
@@ -229,7 +230,7 @@ MAIN: {
     }
     if ($backends{moar}) {
         $config{m_nqp} = $impls{moar}{bin};
-        $config{m_nqp} =~ s{/}{\\}g if $^O eq 'MSWin32';
+        $config{m_nqp} =~ s{/}{\\}g if $win;
         my %nqp_config;
         if ( $impls{moar}{ok} ) {
             %nqp_config = %{ $impls{moar}{config} };
@@ -243,7 +244,7 @@ MAIN: {
 
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
-        unless ($^O eq 'MSWin32') {
+        unless ($win) {
             $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
             $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_VALGRIND_RUNNER)';
             $config{'m_install'}  = '	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
@@ -257,7 +258,7 @@ MAIN: {
             
             # Add moar library to link command
             # TODO: Get this from Moar somehow
-            $config{'moarimplib'} = $^O =~ /^MSWin32|darwin$/
+            $config{'moarimplib'} = $win || $^O eq 'darwin'
                                   ? $nqp_config{'moar::libdir'} . '/' . $nqp_config{'moar::sharedlib'}
                                   : '';
 

@@ -758,6 +758,99 @@ augment class Any {
         }
     }
 
+    proto method repeated(|) is nodal {*}
+    multi method repeated() {
+        Seq.new(class :: does Iterator {
+            has Mu $!iter;
+            has $!seen;
+            method BUILD(\list) {
+                $!iter = as-iterable(list).iterator;
+                $!seen := nqp::hash();
+                self
+            }
+            method new(\list) { nqp::create(self).BUILD(list) }
+            method pull-one() {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s($value.WHICH);
+                    nqp::existskey($!seen, $needle)
+                      ?? return $value
+                      !! nqp::bindkey($!seen, $needle, 1);
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s($value.WHICH);
+                    nqp::existskey($!seen, $needle)
+                      ?? $target.push($value)
+                      !! nqp::bindkey($!seen, $needle, 1);
+                }
+                IterationEnd
+            }
+        }.new(self))
+    }
+    multi method repeated( :&as!, :&with! ) {
+        my @seen;  # should be Mu, but doesn't work in settings :-(
+        my Mu $target;
+        gather self.map: {
+            $target = &as($_);
+            first( { with($target,$_) }, @seen ) =:= Nil
+              ?? @seen.push($target)
+              !! take $_;
+        };
+    }
+    multi method repeated( :&as! ) {
+        Seq.new(class :: does Iterator {
+            has Mu $!iter;
+            has &!as;
+            has $!seen;
+            method BUILD(\list, &!as) {
+                $!iter  = as-iterable(list).iterator;
+                $!seen := nqp::hash();
+                self
+            }
+            method new(\list, &as) { nqp::create(self).BUILD(list, &as) }
+            method pull-one() {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s(&!as($value).WHICH);
+                    nqp::existskey($!seen, $needle)
+                      ?? return $value
+                      !! nqp::bindkey($!seen, $needle, 1);
+                }
+                IterationEnd
+            }
+            method push-all($target) {
+                my Mu $value;
+                my str $needle;
+                until ($value := $!iter.pull-one) =:= IterationEnd {
+                    $needle = nqp::unbox_s(&!as($value).WHICH);
+                    nqp::existskey($!seen, $needle)
+                      ?? $target.push($value)
+                      !! nqp::bindkey($!seen, $needle, 1);
+                }
+                IterationEnd
+            }
+        }.new(self, &as))
+    }
+    multi method repeated( :&with! ) {
+        nextwith() if &with === &[===]; # use optimized version
+
+        my @seen;  # should be Mu, but doesn't work in settings :-(
+        my Mu $target;
+        gather self.map: {
+            $target := $_;
+            first( { with($target,$_) }, @seen ) =:= Nil
+              ?? @seen.push($target.item)
+              !! take $_;
+        }
+    }
+
     proto method squish(|) is nodal {*}
     multi method squish( :&as!, :&with = &[===] ) {
         Seq.new(class :: does Iterator {

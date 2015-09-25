@@ -116,6 +116,7 @@ if (eval "require $tap_harness_class;") {
         jobs        => $jobs || $ENV{TEST_JOBS} || 1,
         ignore_exit => 1,
         merge       => 1,
+        trap        => 1,
         $archive ? ( archive => $archive ) : (),
         $extra_properties ? ( extra_properties => $extra_properties ) : (),
     );

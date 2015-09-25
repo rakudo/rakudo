@@ -393,7 +393,7 @@ my class Binder {
             
             # Otherwise it's some objecty case.
             elsif $is_rw {
-                if nqp::iscont($oval) {
+                if nqp::isrwcont($oval) {
                     nqp::bindkey($lexpad, $varname, $oval);
                 }
                 else {

@@ -7136,7 +7136,7 @@ Compilation unit '$file' contained the following violations:
                 }
                 if $is_rw {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                        :op('iscont'),
+                        :op('isrwcont'),
                         QAST::Var.new( :name($name), :scope('local') )
                     )));
                 }

@@ -15,6 +15,9 @@ use Pod::Usage;
 use Test::Harness;
 $Test::Harness::switches = '';
 
+my $win   = $^O eq 'MSWin32';
+my $slash = $win ? '\\' : '/';
+
 GetOptions(
     'tests-from-file=s' => \my $list_file,
     'fudge'             => \my $do_fudge,
@@ -26,7 +29,7 @@ GetOptions(
     'jvm'               => \my $jvm,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
-    'slow'              => \my $slow,
+    'slow'              => \(my $slow = !$win),
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -37,7 +40,6 @@ $jobs = $jobs || $ENV{TEST_JOBS} || 1;
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
-my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 $ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = join ',', qw/ lib . /;
 
@@ -202,5 +204,5 @@ Options:
     --stress - perform the stress tests/
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
-    --slow - spread tests marked "slow" equally over the run
+    --slow - spread tests marked "slow" equally over the run (on on non-Win)
 

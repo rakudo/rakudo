@@ -1654,8 +1654,8 @@ my class X::TypeCheck is Exception {
     has $.operation;
     has $.got is default(Nil);
     has $.expected is default(Nil);
-    method gotn()      { (try $!got.^name)      // "?" }
-    method expectedn() { (try $!expected.^name) // "?" }
+    method gotn()      { (try $!got.^name eq $!expected.^name ?? $!got.perl      !! $!got.^name)      // "?" }
+    method expectedn() { (try $!got.^name eq $!expected.^name ?? $!expected.perl !! $!expected.^name) // "?" }
     method priors() {
         my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
             "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n ";
@@ -1665,7 +1665,7 @@ my class X::TypeCheck is Exception {
     }
     method message() {
         self.priors() ~
-        "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
+        "Type check failed in $.operation; expected $.expectedn but got $.gotn";
 
     }
 }
@@ -1676,10 +1676,10 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     method message() {
         if $.symbol {
             self.priors() ~
-            "Type check failed in $.operation $.symbol; expected '$.expectedn' but got '$.gotn'";
+            "Type check failed in $.operation $.symbol; expected $.expectedn but got $.gotn";
         } else {
             self.priors() ~
-            "Type check failed in $.operation; expected '$.expectedn' but got '$.gotn'";
+            "Type check failed in $.operation; expected $.expectedn but got $.gotn";
         }
     }
 }
@@ -1687,7 +1687,7 @@ my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
         self.priors() ~
-        "Type check failed for return value; expected '$.expectedn' but got '$.gotn'";
+        "Type check failed for return value; expected $.expectedn but got $.gotn";
     }
 }
 my class X::TypeCheck::Assignment is X::TypeCheck {
@@ -1696,8 +1696,8 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         self.priors() ~
         $.symbol.defined
-            ?? "Type check failed in assignment to '$.symbol'; expected '$.expectedn' but got '$.gotn'"
-            !! "Type check failed in assignment; expected '$.expectedn' but got '$.gotn'";
+            ?? "Type check failed in assignment to $.symbol; expected $.expectedn but got $.gotn"
+            !! "Type check failed in assignment; expected $.expectedn but got $.gotn";
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {
@@ -1719,7 +1719,7 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
     has $.action;
     method message {
         self.priors() ~
-        "Type check failed in {$.action}; expected '$.expectedn' but got '$.gotn'";
+        "Type check failed in {$.action}; expected $.expectedn but got $.gotn";
     }
 
 }

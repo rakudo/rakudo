@@ -1072,6 +1072,8 @@ Compilation unit '$file' contained the following violations:
 
     sub statementlist_with_handlers($/) {
         my $past := $<statementlist>.ast;
+        my $ret := %*SIG_INFO<returns>;
+        $past.push(QAST::WVal.new(:value($ret))) if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil';
         if %*HANDLERS {
             $past := QAST::Op.new( :op('handle'), $past );
             for %*HANDLERS {
@@ -4029,8 +4031,6 @@ Compilation unit '$file' contained the following violations:
 
     method signature($/) {
         # Fix up parameters with flags according to the separators.
-        # TODO: Handle $<typename>, which contains the return type declared
-        # with the --> syntax.
         my %signature;
         my @parameter_infos;
         my int $param_idx := 0;
@@ -4049,6 +4049,9 @@ Compilation unit '$file' contained the following violations:
         %signature<parameters> := @parameter_infos;
         if $<typename> {
             %signature<returns> := $<typename>.ast;
+        }
+        elsif $<value> {
+            %signature<returns> := $<value>.ast.compile_time_value;
         }
 
         # Mark current block as having a signature.
@@ -4841,7 +4844,7 @@ Compilation unit '$file' contained the following violations:
             make $past;
         }
         else {
-            my $past := capture_or_raw($<args>.ast, ~$<identifier>);
+            my $past := capture_or_raw($/,$<args>.ast, ~$<identifier>);
             $past.name('&' ~ $<identifier>);
             $past.node($/);
             make $past;
@@ -4937,7 +4940,7 @@ Compilation unit '$file' contained the following violations:
                 });
             }
             else {
-                $past := capture_or_raw($<args>.ast, ~$<longname>);
+                $past := capture_or_raw($/,$<args>.ast, ~$<longname>);
                 if +@name == 1 {
                     $past.name(@name[0]);
                     if +$past.list == 1 && %commatrap{@name[0]} {
@@ -7772,8 +7775,16 @@ Compilation unit '$file' contained the following violations:
     # has a signature of the form :(\|$raw), in which case we don't promote
     # the raw object to a Capture when calling it. For now, we just worry about the
     # special case, return.
-    sub capture_or_raw($args, $name) {
+    sub capture_or_raw($/,$args, $name) {
         if $name eq 'return' {
+            my $ret := %*SIG_INFO<returns>;
+            if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil' {
+                if nqp::elems($args) {
+                    $*W.throw($/, 'X::Comp::AdHoc',
+                        payload => "No return arguments allowed when return value {$ret.perl} is already specified in the signature");
+                }
+                $args.push(QAST::WVal.new( :value($ret) ));
+            }
             # Need to demote pairs again.
             my $raw := QAST::Op.new( :op('call') );
             for @($args) {
@@ -7972,6 +7983,8 @@ Compilation unit '$file' contained the following violations:
     }
 
     sub wrap_return_type_check($wrappee, $code_obj) {
+        my $ret := %*SIG_INFO<returns>;
+        return $wrappee if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil';
         QAST::Op.new(
             :op('p6typecheckrv'),
             $wrappee,

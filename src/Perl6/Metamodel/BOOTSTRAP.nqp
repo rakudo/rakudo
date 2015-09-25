@@ -398,7 +398,7 @@ my class Binder {
                 }
                 else {
                     if nqp::defined($error) {
-                        $error[0] := "Parameter '$varname' expected a container, but got an " ~
+                        $error[0] := "Parameter '$varname' expected a writable container, but got an " ~
                             ~ $oval.HOW.name($oval) ~ " value";
                     }
                     return $BIND_RESULT_FAIL;

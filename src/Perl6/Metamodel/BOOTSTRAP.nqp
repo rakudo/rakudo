@@ -393,9 +393,16 @@ my class Binder {
             
             # Otherwise it's some objecty case.
             elsif $is_rw {
-                # XXX TODO Check if rw flag is set; also need to have a
-                # wrapper container that carries extra constraints.
-                nqp::bindkey($lexpad, $varname, $oval);
+                if nqp::iscont($oval) {
+                    nqp::bindkey($lexpad, $varname, $oval);
+                }
+                else {
+                    if nqp::defined($error) {
+                        $error[0] := "Parameter '$varname' expected a container, but got an " ~
+                            ~ $oval.HOW.name($oval) ~ " value";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
             }
             elsif $flags +& $SIG_ELEM_IS_RAW {
                 # Just bind the thing as is into the lexpad.

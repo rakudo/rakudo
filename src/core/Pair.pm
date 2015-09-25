@@ -85,11 +85,11 @@ multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {
     (a.key cmp b.key) || (a.value cmp b.value)
 }
 
-sub infix:«=>»($key, Mu \value) {
+sub infix:«=>»(Mu $key, Mu \value) {
     Pair.new($key, value)
 }
 
-sub pair($key, \value) {
+sub pair(Mu $key, \value) {
     Pair.new($key, value)
 }
 

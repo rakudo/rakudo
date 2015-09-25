@@ -1346,15 +1346,29 @@ my class Str does Stringy { # declared in BOOTSTRAP
         warn "Asked to remove $outdent spaces, but the shortest indent is $common-prefix spaces"
             if $outdent > $common-prefix;
 
-        # Work backwards from the right end of the indent whitespace, removing
+        # Work forwards from the left end of the indent whitespace, removing
         # array elements up to # (or over, in the case of tab-explosion)
         # the specified outdent amount.
-        @lines.map({
+        @lines.map(-> $l {
             my $pos = 0;
-            while $_<indent-chars> and $pos < $outdent {
-                $pos += $_<indent-chars>.pop.value;
+            while $l<indent-chars> and $pos < $outdent {
+                if $l<indent-chars>.shift.key eq "\t" {
+                    $pos -= $pos % $?TABSTOP;
+                    $pos += $?TABSTOP;
+                } else {
+                    $pos++
+                }
             }
-            $_<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $_<rest>;
+            if $l<indent-chars> and $pos % $?TABSTOP {
+                my $check = $?TABSTOP - $pos % $?TABSTOP;
+                $check = $l<indent-chars>[0..^$check].first-index({$_.key eq "\t"});
+                if $check.defined {
+                    $l<indent-chars>.shift for 0..$check;
+                    $pos -= $pos % $?TABSTOP;
+                    $pos += $?TABSTOP;
+                }
+            }
+            $l<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $l<rest>;
         }).join;
     }
 

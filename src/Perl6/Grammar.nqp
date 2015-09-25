@@ -539,7 +539,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('whitespace')
         <!ww>
         [
-        | <.vws> <.heredoc>
+        | \v <.heredoc>
         | <.unv>
         | <.unsp>
         | $ <?MOREINPUT>

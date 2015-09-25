@@ -31,7 +31,8 @@ GetOptions(
 
 $do_long = 1 unless defined $do_long;
 $do_stress = 0 unless defined $do_stress;
-
+$jobs = $jobs || $ENV{TEST_JOBS} || 1;
+ 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
@@ -39,6 +40,7 @@ my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 $ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = join ',', qw/ lib . /;
 
+my @slow;
 if ($list_file) {
     my $perl5 = not system $ENV{HARNESS_PERL} . ' -e "exit !try { require Inline::Perl5 }"';
     print "Inline::Perl5 not installed: not running Perl 5 integration tests\n"
@@ -60,10 +62,13 @@ if ($list_file) {
             next if ($fudgespec =~ m/moar/)   && !$moar;
             next if ($fudgespec =~ m/conc/)   && !($moar || $jvm);
         }
+
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s{/}{$slash}g;
         if ( -r $fn ) {
-            push @files, $fn;
+            $fudgespec && $fudgespec =~ m/slow/
+              ? push @slow, $fn
+              : push @files, $fn;
         } else {
             warn "Missing test file: $fn\n";
         }
@@ -74,17 +79,20 @@ if ($list_file) {
 my @tfiles = $randomize
   ? shuffle map { all_in($_) } @files
   : map { all_in($_) } sort @files;
+if (@slow) {
+    @slow = map { all_in($_) } @slow;
+
+    if ($jobs > 1) {
+        @tfiles = batch( @tfiles/(@slow + 1), @tfiles );
+        @tfiles = map { (@slow ? shift(@slow) : ()), @$_ } @tfiles;
+    }
+    else {
+        unshift @tfiles, map { all_in($_) } @slow;
+    }
+}
 
 if ($do_fudge) {
-    sub batch {
-        my @batches;
-        while (@_) {
-            my @batch = splice @_, 0, 200;
-            push @batches, \@batch;
-        }
-        @batches
-    }
-    @tfiles = map { fudge(@$_) } batch @tfiles;
+    @tfiles = map { fudge(@$_) } batch( 200, @tfiles );
 }
 
 my $tap_harness_class = 'TAP::Harness';
@@ -110,7 +118,7 @@ if (eval "require $tap_harness_class;") {
     my %harness_options = (
         exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : [$ENV{HARNESS_PERL}],
         verbosity   => 0+$Test::Harness::verbose,
-        jobs        => $jobs || $ENV{TEST_JOBS} || 1,
+        jobs        => $jobs,
         ignore_exit => 1,
         merge       => 1,
         trap        => 1,
@@ -124,6 +132,16 @@ elsif ($archive) {
 }
 else {
     runtests(@tfiles);
+}
+
+sub batch {
+    my $size = shift;
+    my @batches;
+    while (@_) {
+        my @batch = splice @_, 0, $size;
+        push @batches, \@batch;
+    }
+    @batches
 }
 
 # adapted to return only files ending in '.t'

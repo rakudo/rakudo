@@ -1,14 +1,14 @@
 my class Pair does Associative {
-    has $.key;
-    has $.value is rw;
+    has $.key is default(Nil);
+    has $.value is rw is default(Nil);
 
-    multi method new($key, Mu \value) {
+    multi method new(Mu $key, Mu \value) {
         nqp::create(self).BUILD($key, value)
     }
-    multi method new(:$key, Mu :$value) {
+    multi method new(Mu :$key, Mu :$value) {
         nqp::create(self).BUILD($key, $value)
     }
-    method BUILD($!key, Mu \value) {
+    method BUILD(Mu $!key, Mu \value) {
         nqp::bindattr(self, Pair, '$!value', value);
         self
     }

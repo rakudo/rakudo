@@ -979,6 +979,14 @@ my class X::Parameter::InvalidType does X::Comp {
     }
 }
 
+my class X::Parameter::RW is Exception {
+    has $.got;
+    has $.symbol;
+    method message() {
+        "Parameter '$.symbol' expected a writable container, but got $.got.^name() value"
+    }
+}
+
 my class X::Signature::NameClash does X::Comp {
     has $.name;
     method message() {
@@ -2029,6 +2037,9 @@ my class X::Inheritance::NotComposed does X::MOP {
     %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) {
         X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
     }
+    %c_ex{'X::Parameter::RW'} := sub (Mu $got, $symbol) {
+            X::Parameter::RW.new(:$got, :$symbol).throw;
+        };
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, Map, '$!storage'));
 
     0;

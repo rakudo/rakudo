@@ -398,8 +398,13 @@ my class Binder {
                 }
                 else {
                     if nqp::defined($error) {
-                        $error[0] := "Parameter '$varname' expected a writable container, but got an " ~
-                            ~ $oval.HOW.name($oval) ~ " value";
+                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
+                            $error[0] := "Parameter '$varname' expected a writable container, but got an " ~
+                                ~ $oval.HOW.name($oval) ~ " value";
+                        } else {
+                            $error[0] := { nqp::atkey(%ex, 'X::Parameter::RW')($oval, $varname) };
+                        }
                     }
                     return $BIND_RESULT_FAIL;
                 }

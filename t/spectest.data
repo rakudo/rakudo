@@ -886,6 +886,7 @@ S32-io/io-path-unix.t
 S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
+S32-io/IO-Socket-INET.t
 S32-io/move.t
 S32-io/note.t
 S32-io/other.t
@@ -1118,4 +1119,3 @@ integration/variables-in-do.t
 integration/weird-errors.t
 rosettacode/greatest_element_of_a_list.t  
 rosettacode/sierpinski_triangle.t
-S32-io/IO-Socket-INET.t  # last to prevent load interference

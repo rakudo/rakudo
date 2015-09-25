@@ -26,6 +26,7 @@ GetOptions(
     'jvm'               => \my $jvm,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
+    'slow'              => \my $slow,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -66,7 +67,7 @@ if ($list_file) {
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s{/}{$slash}g;
         if ( -r $fn ) {
-            $fudgespec && $fudgespec =~ m/slow/
+            $slow && $fudgespec && $fudgespec =~ m/slow/
               ? push @slow, $fn
               : push @files, $fn;
         } else {
@@ -201,4 +202,5 @@ Options:
     --stress - perform the stress tests/
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
+    --slow - spread tests marked "slow" equally over the run
 

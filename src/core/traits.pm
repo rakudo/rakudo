@@ -114,6 +114,9 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
 multi sub trait_mod:<is>(Attribute $attr, :$required!) {
     $attr.set_required();
 }
+multi sub trait_mod:<is>(Attribute $attr, :$default!) {
+    $attr.container_descriptor.set_default(nqp::decont($default));
+}
 multi sub trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
 }

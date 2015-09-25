@@ -94,7 +94,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
     # Handles any object repossession conflicts that occurred during module load,
     # or complains about any that cannot be resolved.
     method resolve_repossession_conflicts(@conflicts) {
-        for @conflicts -> $orig is rw, $current is rw {
+        for @conflicts -> $orig is raw, $current is raw {
             # If it's a Stash in conflict, we make sure any original entries get
             # appropriately copied.
             if $orig.HOW.name($orig) eq 'Stash' {

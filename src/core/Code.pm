@@ -31,6 +31,14 @@ my class Code does Callable { # declared in BOOTSTRAP
     multi method new(Code:) {
         die "Cannot make a {self.^name} object using .new";
     }
+
+    method file(Code:D:) {
+        nqp::getcodelocation($!do)<file>;
+    }
+
+    method line(Code:D:) {
+        nqp::getcodelocation($!do)<line>;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

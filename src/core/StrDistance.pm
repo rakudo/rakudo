@@ -20,8 +20,8 @@ my class StrDistance is Cool {
 
     multi method Int(StrDistance:D:) {
         $!distance //= do {
-            my @s = *, $.before.comb;
-            my @t = *, $.after.comb;
+            my @s = *, |$.before.comb;
+            my @t = *, |$.after.comb;
             my @d;
             @d[$_][ 0] = $_ for ^@s.end;
             @d[ 0][$_] = $_ for ^@t.end;

@@ -29,7 +29,7 @@ my role Rational[::NuT, ::DeT] does Real {
         $new;
     }
 
-    method nude() { $!numerator, $!denominator }
+    method nude() { self.REDUCE-ME; $!numerator, $!denominator }
     method Num() {
         $!denominator == 0
           ?? ($!numerator < 0 ?? -Inf !! Inf)
@@ -171,6 +171,16 @@ my role Rational[::NuT, ::DeT] does Real {
         $!denominator == 1
             ?? $!numerator
             !! self;
+    }
+
+    method REDUCE-ME() {
+        if $!denominator > 1 {
+            my $gcd = $!denominator gcd $!numerator;
+            if $gcd > 1 {
+                nqp::bindattr(self, self.WHAT, '$!numerator',     $!numerator   div $gcd);
+                nqp::bindattr(self, self.WHAT, '$!denominator',   $!denominator div $gcd);
+            }
+        }
     }
 }
 

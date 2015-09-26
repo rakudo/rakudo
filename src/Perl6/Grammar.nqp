@@ -154,6 +154,19 @@ role STD {
         token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ [\r\n | \v]? }
     }
 
+    role hereactions {
+        # avoid outdent on embedded escape sequences
+        method escape:sym<\\>($/) {
+            my $e := $<item>.ast;
+            if (nqp::isstr($e) || nqp::istype($e, $*W.find_symbol(['Str']))) && $e ~~ /\v/ {
+                make QAST::Op.new(:op('call'), :name('&infix:<~>'), QAST::SVal.new(:value($e)))
+            }
+            else {
+                make $e;
+            }
+        }
+    }
+
     method heredoc () {
         if @herestub_queue {
             my $here := self.'!cursor_start_cur'();
@@ -162,7 +175,7 @@ role STD {
                 my $herestub := nqp::shift(@herestub_queue);
                 my $*DELIM := $herestub.delim;
                 my $lang := $herestub.lang.HOW.mixin($herestub.lang, herestop);
-                my $doc := $here.nibble($lang);
+                my $doc := $here.nibble($lang, hereactions);
                 if $doc {
                     # Match stopper.
                     my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
@@ -212,12 +225,18 @@ role STD {
         }
     }
 
-    method nibble($lang) {
+    method nibble($lang, $mix_actions?) {
         my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
         my $*ACTIONS;
         for %*LANG {
             if nqp::istype($lang, $_.value) {
-                $*ACTIONS := %*LANG{$_.key ~ '-actions'};
+                if !nqp::istype($mix_actions, Nil) {
+                    $*ACTIONS := %*LANG{$_.key ~ '-actions'};
+                    $*ACTIONS := $*ACTIONS.HOW.mixin($*ACTIONS, $mix_actions);
+                }
+                else {
+                    $*ACTIONS := %*LANG{$_.key ~ '-actions'};
+                }
                 last;
             }
         }

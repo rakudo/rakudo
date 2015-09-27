@@ -3608,6 +3608,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<x=>, :assoc<unary>, :dba<autoincrement>', '%autoincrement');
         Perl6::Grammar.O(':prec<w=>, :assoc<right>, :dba<exponentiation>', '%exponentiation');
         Perl6::Grammar.O(':prec<v=>, :assoc<unary>, :dba<symbolic unary>', '%symbolic_unary');
+        Perl6::Grammar.O(':prec<v=>, :assoc<left>, :dba<dotty infix>, :nextterm<dottyopish>, :sub<z=>', '%dottyinfix');
         Perl6::Grammar.O(':prec<u=>, :assoc<left>, :dba<multiplicative>',  '%multiplicative');
         Perl6::Grammar.O(':prec<t=>, :assoc<left>, :dba<additive>',  '%additive');
         Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication>',  '%replication');
@@ -3621,7 +3622,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>',  '%tight_or');
         Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>', '%conditional');
         Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>', '%item_assignment');
-        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>, :nextterm<dottyopish>, :sub<z=>', '%dottyinfix');
         Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<list assignment>, :sub<e=>, :fiddly<1>', '%list_assignment');
         Perl6::Grammar.O(':prec<h=>, :assoc<unary>, :dba<loose unary>', '%loose_unary');
         Perl6::Grammar.O(':prec<g=>, :assoc<list>, :dba<comma>, :nextterm<nulltermish>, :fiddly<1>',  '%comma');

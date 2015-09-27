@@ -666,13 +666,13 @@ multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
 
-proto sub infix:<=:=>(Mu $?, Mu $?) { * }
+proto sub infix:<=:=>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) {
     nqp::p6bool(nqp::eqaddr(a, b));
 }
 
-proto sub infix:<eqv>(Any $?, Any $?) { * }
+proto sub infix:<eqv>(Any $?, Any $?) is pure { * }
 multi sub infix:<eqv>($?)            { Bool::True }
 multi sub infix:<eqv>(Any $a, Any $b) {
     # Last ditch snapshot semantics.  We shouldn't come here too often, so

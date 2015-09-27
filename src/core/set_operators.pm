@@ -1,5 +1,5 @@
 
-proto sub infix:<(elem)>($, $ --> Bool) {*}
+proto sub infix:<(elem)>($, $ --> Bool) is pure {*}
 multi sub infix:<(elem)>($a, Any $b --> Bool) {
     $a (elem) $b.Set(:view);
 }
@@ -15,7 +15,7 @@ only sub infix:<∉>($a, $b --> Bool) {
     $a !(elem) $b;
 }
 
-proto sub infix:<(cont)>($, $ --> Bool) {*}
+proto sub infix:<(cont)>($, $ --> Bool) is pure {*}
 multi sub infix:<(cont)>(Any $a, $b --> Bool) {
     $a.Set(:view) (cont) $b;
 }
@@ -152,7 +152,7 @@ only sub infix:<⊖>($a, $b --> Setty) {
 #     $a == $b and so $a.keys.all (elem) $b
 # }
 
-proto sub infix:<<(<=)>>($, $ --> Bool) {*}
+proto sub infix:<<(<=)>>($, $ --> Bool) is pure {*}
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
     $a.Set(:view) (<=) $b.Set(:view);
 }
@@ -168,7 +168,7 @@ only sub infix:<⊈>($a, $b --> Bool) {
     $a !(<=) $b;
 }
 
-proto sub infix:<<(<)>>($, $ --> Bool) {*}
+proto sub infix:<<(<)>>($, $ --> Bool) is pure {*}
 multi sub infix:<<(<)>>(Any $a, Any $b --> Bool) {
     $a.Set(:view) (<) $b.Set(:view);
 }
@@ -184,7 +184,7 @@ only sub infix:<⊄>($a, $b --> Bool) {
     $a !(<) $b;
 }
 
-proto sub infix:<<(>=)>>($, $ --> Bool) {*}
+proto sub infix:<<(>=)>>($, $ --> Bool) is pure {*}
 multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool) {
     $a.Set(:view) (>=) $b.Set(:view);
 }
@@ -200,7 +200,7 @@ only sub infix:<⊉>($a, $b --> Bool) {
     $a !(>=) $b;
 }
 
-proto sub infix:<<(>)>>($, $ --> Bool) {*}
+proto sub infix:<<(>)>>($, $ --> Bool) is pure {*}
 multi sub infix:<<(>)>>(Any $a, Any $b --> Bool) {
     $a.Set(:view) (>) $b.Set(:view);
 }
@@ -274,7 +274,7 @@ only sub infix:<⊎>(|p) {
     infix:<(+)>(|p);
 }
 
-proto sub infix:<<(<+)>>($, $ --> Bool) {*}
+proto sub infix:<<(<+)>>($, $ --> Bool) is pure {*}
 multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool) {
     if nqp::istype($a, Mixy) or nqp::istype($b, Mixy) {
         $a.Mix(:view) (<+) $b.Mix(:view);
@@ -293,7 +293,7 @@ only sub infix:<≼>($a, $b --> Bool) {
     $a (<+) $b;
 }
 
-proto sub infix:<<(>+)>>($, $ --> Bool) {*}
+proto sub infix:<<(>+)>>($, $ --> Bool) is pure {*}
 multi sub infix:<<(>+)>>(Baggy $a, Baggy $b --> Bool) {
     for $b.keys {
         return False if $b{$_} > $a{$_};

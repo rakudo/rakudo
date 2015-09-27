@@ -44,7 +44,7 @@ multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
     X::Does::TypeObject.new(type => obj).throw
 }
 
-proto sub infix:<but>(|) { * }
+proto sub infix:<but>(|) is pure { * }
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!

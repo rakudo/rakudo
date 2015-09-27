@@ -894,13 +894,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 }
 
 # The , operator produces a List.
-proto infix:<,>(|) {*}
-multi infix:<,>() {
+proto sub infix:<,>(|) {*}
+multi sub infix:<,>() {
     my \result = List.CREATE;
     nqp::bindattr(result, List, '$!reified', BEGIN IterationBuffer.CREATE);
     result
 }
-multi infix:<,>(|) {
+multi sub infix:<,>(|) {
     my \result  = List.CREATE;
     my \in      = nqp::p6argvmarray();
     my \reified = IterationBuffer.CREATE;
@@ -978,7 +978,7 @@ multi sub infix:<cmp>(@a, @b) {
     (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b
 }
 
-proto sub infix:<X>(|) {*}
+proto sub infix:<X>(|) is pure {*}
 multi sub infix:<X>(+lol, :$with!) {
     METAOP_CROSS($with, find-reducer-for-op($with))(|lol.list);
 }
@@ -1095,7 +1095,7 @@ multi sub infix:<X>(+lol) {
 
 my &cross = &infix:<X>;
 
-proto sub infix:<Z>(|) {*}
+proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :$with!) {
     METAOP_ZIP($with, find-reducer-for-op($with))(|lol.list);
 }

@@ -13,9 +13,9 @@ multi sub prefix:<~>(num $a)      { nqp::p6box_s($a) }
 
 proto sub infix:<~>(|) is pure { * }
 multi sub infix:<~>($x = '')       { $x.Stringy }
-multi sub infix:<~>(\a, \b)      { a.Stringy ~ b.Stringy }
+multi sub infix:<~>(\a, \b)        { a.Stringy ~ b.Stringy }
 
-proto sub infix:<x>(Mu $?, Mu $?)        { * }
+proto sub infix:<x>(Mu $?, Mu $?)  is pure { * }
 multi sub infix:<x>()              { fail "No zero-arg meaning for infix:<x>" }
 multi sub infix:<x>($x)            { $x.Stringy }
 multi sub infix:<x>($s, Num:D $n) {

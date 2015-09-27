@@ -4004,6 +4004,10 @@ Compilation unit '$file' contained the following violations:
         make $<dottyopish><term>.ast;
     }
 
+    method initializer:sym<.>($/) {
+        make $<dottyopish><term>.ast;
+    }
+
     method capterm($/) {
         my $past := $<termish>
             ?? QAST::Op.new( $<termish>.ast )
@@ -5507,6 +5511,10 @@ Compilation unit '$file' contained the following violations:
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
+            return 1;
+        }
+        if !$past && $sym eq '.' {
+            make make_dot($/[0].ast, $/[1].ast);
             return 1;
         }
         elsif $past && nqp::eqat($past.name, '&METAOP_TEST_ASSIGN', 0) {
@@ -7649,6 +7657,13 @@ Compilation unit '$file' contained the following violations:
         $call.unshift($*W.add_string_constant($call.name));
         $call.unshift($target);
         $call.name('dispatch:<.=>');
+        $call.op('callmethod');
+        $call;
+    }
+
+    sub make_dot($target, $call) {
+        $*W.add_string_constant($call.name);
+        $call.unshift($target);
         $call.op('callmethod');
         $call;
     }

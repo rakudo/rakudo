@@ -3621,6 +3621,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>',  '%tight_or');
         Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>', '%conditional');
         Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>', '%item_assignment');
+        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>, :nextterm<dottyopish>, :sub<z=>', '%dottyinfix');
         Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<list assignment>, :sub<e=>, :fiddly<1>', '%list_assignment');
         Perl6::Grammar.O(':prec<h=>, :assoc<unary>, :dba<loose unary>', '%loose_unary');
         Perl6::Grammar.O(':prec<g=>, :assoc<list>, :dba<comma>, :nextterm<nulltermish>, :fiddly<1>',  '%comma');
@@ -4036,7 +4037,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<xx>    { <sym> >> <O('%replication')> }
 
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
-    token infix:sym<.>    { <sym> <[\]\)\},:\s\$"']>  <.obs('. to concatenate strings', '~')> }
+    token infix:sym<.>    { <sym> <.ws>
+        [<-alpha>  <.obs('. to concatenate strings', '~')>]?
+        <O('%dottyinfix')>
+    }
 
     token infix:sym<&>   { <sym> <O('%junctive_and, :iffy<1>')> }
     token infix:sym<(&)> { <sym> <O('%junctive_and')> }
@@ -4176,7 +4180,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym>  <O('%item_assignment')>
     }
 
-    token infix:sym<.=> { <sym> <O('%item_assignment, :nextterm<dottyopish>')> }
+    token infix:sym<.=> { <sym> <O('%dottyinfix')> }
 
     # Should probably have <!after '='> to agree w/spec, but after NYI.
     # Modified infix != below instead to prevent misparse

@@ -488,10 +488,16 @@ augment class Any {
         Nil;
     }
 
-    role Listerer does Iterator {
-        has Mu $!iter;
-        method BUILD(\list) { $!iter = as-iterable(list).iterator; self }
-        method new(\list)   { nqp::create(self).BUILD(list) }
+    method !first-concrete(\i,\todo,\found) {
+        my $value;
+        while nqp::islt_i(i,todo) {
+            $value := self.AT-POS(i);
+            i = i + 1;
+            if nqp::isconcrete($value) {
+                found = $value;
+                last;
+            }
+        }
     }
 
     proto method min (|) is nodal { * }
@@ -501,21 +507,14 @@ augment class Any {
 
         my $value;
         my $min;
-        my int $last = $elems;
+        my int $todo = $elems;
         my int $index;
 
-        while nqp::islt_i($index,$last) {
+        self!first-concrete($index,$todo,$min);
+        while nqp::islt_i($index,$todo) {
             $value := self.AT-POS($index);
             $index  = $index + 1;
-            if nqp::isconcrete($value) {
-                $min := $value;
-                last;
-            }
-        }
-        while nqp::islt_i($index,$last) {
-            $value := self.AT-POS($index);
-            $index  = $index + 1;
-            $min   := $value
+            $min    = $value
               if nqp::isconcrete($value) && $value cmp $min < 0;
         }
         $min // Inf;
@@ -527,21 +526,14 @@ augment class Any {
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
         my $value;
         my $min;
-        my int $last = $elems;
+        my int $todo = $elems;
         my int $index;
 
-        while nqp::islt_i($index,$last) {
+        self!first-concrete($index,$todo,$min);
+        while nqp::islt_i($index,$todo) {
             $value := self.AT-POS($index);
             $index  = $index + 1;
-            if nqp::isconcrete($value) {
-                $min := $value;
-                last;
-            }
-        }
-        while nqp::islt_i($index,$last) {
-            $value := self.AT-POS($index);
-            $index  = $index + 1;
-            $min   := $value
+            $min    = $value
               if nqp::isconcrete($value) && $cmp($value,$min) < 0;
         }
         $min // Inf;
@@ -549,17 +541,39 @@ augment class Any {
 
     proto method max (|) is nodal { * }
     multi method max() {
+        my $elems = self.cache.elems;
+        die "Cannot .max on an infinite list" if $elems == Inf;
+
+        my $value;
         my $max;
-        self.map: {
-            $max = $_ if .defined and !$max.defined || $_ cmp $max > 0;
+        my int $todo = $elems;
+        my int $index;
+
+        self!first-concrete($index,$todo,$max);
+        while nqp::islt_i($index,$todo) {
+            $value := self.AT-POS($index);
+            $index  = $index + 1;
+            $max    = $value
+              if nqp::isconcrete($value) && $value cmp $max > 0;
         }
         $max // -Inf;
     }
     multi method max(&by) {
+        my $elems = self.cache.elems;
+        die "Cannot .max on an infinite list" if $elems == Inf;
+
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
+        my $value;
         my $max;
-        self.map: {
-            $max = $_ if .defined and !$max.defined || $cmp($_, $max) > 0;
+        my int $todo = $elems;
+        my int $index;
+
+        self!first-concrete($index,$todo,$max);
+        while nqp::islt_i($index,$todo) {
+            $value := self.AT-POS($index);
+            $index  = $index + 1;
+            $max    = $value
+              if nqp::isconcrete($value) && $cmp($value,$max) > 0;
         }
         $max // -Inf;
     }

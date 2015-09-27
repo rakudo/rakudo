@@ -298,7 +298,7 @@ role ExplicitlyManagedString {
     has $.cstr is rw;
 }
 
-multi explicitly-manage(Str $x is rw, :$encoding = 'utf8') is export(:DEFAULT,
+multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
 :utils) {
     $x does ExplicitlyManagedString;
     my $class = class CStr is repr('CStr') { method encoding() { $encoding; } };

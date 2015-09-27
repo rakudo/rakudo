@@ -1480,7 +1480,7 @@ class Perl6::World is HLL::World {
             $flags := $flags + $SIG_ELEM_SLURPY_ONEARG;
         }
         if %param_info<is_capture> {
-            $flags := $flags + $SIG_ELEM_IS_CAPTURE;
+            $flags := $flags + $SIG_ELEM_IS_CAPTURE + $SIG_ELEM_IS_RAW;
         }
         if %param_info<undefined_only> {
             $flags := $flags + $SIG_ELEM_UNDEFINED_ONLY;

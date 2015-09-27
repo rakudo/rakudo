@@ -488,19 +488,61 @@ augment class Any {
         Nil;
     }
 
+    role Listerer does Iterator {
+        has Mu $!iter;
+        method BUILD(\list) { $!iter = as-iterable(list).iterator; self }
+        method new(\list)   { nqp::create(self).BUILD(list) }
+    }
+
     proto method min (|) is nodal { * }
     multi method min() {
+        my $elems = self.cache.elems;
+        die "Cannot .min on an infinite list" if $elems == Inf;
+
+        my $value;
         my $min;
-        self.map: {
-            $min = $_ if .defined and !$min.defined || $_ cmp $min < 0;
+        my int $last = $elems;
+        my int $index;
+
+        while nqp::islt_i($index,$last) {
+            $value := self.AT-POS($index);
+            $index  = $index + 1;
+            if nqp::isconcrete($value) {
+                $min := $value;
+                last;
+            }
+        }
+        while nqp::islt_i($index,$last) {
+            $value := self.AT-POS($index);
+            $index  = $index + 1;
+            $min   := $value
+              if nqp::isconcrete($value) && $value cmp $min < 0;
         }
         $min // Inf;
     }
     multi method min(&by) {
+        my $elems = self.cache.elems;
+        die "Cannot .min on an infinite list" if $elems == Inf;
+
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
+        my $value;
         my $min;
-        self.map: {
-            $min = $_ if .defined and !$min.defined || $cmp($_, $min) < 0;
+        my int $last = $elems;
+        my int $index;
+
+        while nqp::islt_i($index,$last) {
+            $value := self.AT-POS($index);
+            $index  = $index + 1;
+            if nqp::isconcrete($value) {
+                $min := $value;
+                last;
+            }
+        }
+        while nqp::islt_i($index,$last) {
+            $value := self.AT-POS($index);
+            $index  = $index + 1;
+            $min   := $value
+              if nqp::isconcrete($value) && $cmp($value,$min) < 0;
         }
         $min // Inf;
     }

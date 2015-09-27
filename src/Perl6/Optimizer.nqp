@@ -541,6 +541,12 @@ my class BlockVarOptimizer {
                 nqp::deletekey(%!decls, '$!');
             }
         }
+        if nqp::existskey(%!decls, '$¢') {
+            if !nqp::existskey(%!usages_flat, '$¢') && !nqp::existskey(%!usages_inner, '$¢') {
+                %kill<$¢> := 1;
+                nqp::deletekey(%!decls, '$¢');
+            }
+        }
         if nqp::existskey(%!decls, '$_') {
             my str $decl := %!decls<$_>.decl;
             if $decl eq 'var' || $decl eq 'contvar' {

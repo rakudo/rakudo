@@ -202,11 +202,18 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                                 unless $candi<provides>{$ln}{$type}<file> ~~ /^$path/
                         }
                     }
-                    @candi.push: $candi;
+                    my $loader = $candi<provides>{$name}<pm6><file>;
+                    my $vers   = Version.new($candi<provides>{$name}{$*VM.precomp-ext}<cver>);
+                    if $*PERL<compiler>.version eqv $vers {
+                      return CompUnit.new($loader, :has_precomp($candi<provides>{$name}{$*VM.precomp-ext}<file>));
+                    } else {
+                      warn "Precomp for $name not available for {$*VM.name} version {$*PERL<compiler>.version}";
+                    }
+                    return CompUnit.new($loader);
                 }
             }
         }
-        @candi
+        +@candi ?? @candi[0] !! ();
     }
 
     method short-id() { 'inst' }

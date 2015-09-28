@@ -577,21 +577,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $result;
     }
 
-    # XXX GLR
-    #multi method DUMP(List:D: :$indent-step = 4, :%ctx?) {
-    #    return DUMP(self, :$indent-step) unless %ctx;
-    #
-    #    my $flags    := ("\x221e" if self.infinite);
-    #    my Mu $attrs := nqp::list();
-    #    nqp::push($attrs, '$!flattens');
-    #    nqp::push($attrs,  $!flattens );
-    #    nqp::push($attrs, '$!items'   );
-    #    nqp::push($attrs,  $!items    );
-    #    nqp::push($attrs, '$!nextiter');
-    #    nqp::push($attrs,  $!nextiter );
-    #    self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
-    #}
-
     multi method List(List:D:) { self }
 
     multi method Slip(List:D:) {

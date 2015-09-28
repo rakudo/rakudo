@@ -580,27 +580,6 @@ my class Array { # declared in BOOTSTRAP
             !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
     }
 
-    # XXX GLR
-    #method plan(Array:D: |args) is nodal {
-    #    nqp::p6listitems(self);
-    #    my $elems = self.gimme(*);
-    #    fail X::Cannot::Lazy.new(:action('.plan to')) if $!nextiter.defined;
-    #
-#   #     # need type checks?
-#   #     my $of := self.of;
-#   #
-#   #     unless $of =:= Mu {
-#   #         X::TypeCheck.new(
-#   #           operation => '.push',
-#   #           expected  => $of,
-#   #           got       => $_,
-#   #         ).throw unless nqp::istype($_, $of) for @values;
-#   #     }
-    #
-    #    nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list(args.list), self));
-    #    Nil;
-    #}
-
     proto method splice(|) is nodal { * }
     multi method splice(Array:D \SELF: :$SINK) {
         if $SINK {

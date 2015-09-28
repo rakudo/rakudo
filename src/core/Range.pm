@@ -86,46 +86,6 @@ my class Range is Cool does Iterable does Positional {
         nextsame;
     }
 
-    # XXX GLR steal this logic into the (to be written) iterator for ranges.
-    #method reify($n) {
-    #    my $count;
-    #    my $cmpstop = $!excludes-max ?? 0 !! 1;
-    #    my $realmax = nqp::istype($!min, Numeric) && !nqp::istype($!max, Callable) && !nqp::istype($!max, Whatever)
-    #                  ?? $!max.Numeric
-    #                  !! $!max;
-    #
-    #    if nqp::istype($value, Num) {
-    #        # optimized for num ranges
-    #        $value = $value.Num;
-    #        my $max = $!max.Num;
-    #        my $box_int = nqp::p6bool(nqp::istype($!min, Int));
-    #        my num $nvalue = $value;
-    #        my num $ncount = $count;
-    #        my num $nmax = $max;
-    #        my int $icmpstop = $cmpstop;
-    #        my int $ibox_int = $box_int;
-    #        nqp::while(
-    #            (nqp::isgt_n($ncount, 0e0) && nqp::islt_i(nqp::cmp_n($nvalue, $nmax), $icmpstop)),
-    #            nqp::stmts(
-    #                nqp::push($rpa, $ibox_int
-    #                    ?? nqp::p6box_i($nvalue)
-    #                    !! nqp::p6box_n($nvalue)),
-    #                ($nvalue = nqp::add_n($nvalue, 1e0)),
-    #                ($ncount = nqp::sub_n($ncount, 1e0))
-    #            ));
-    #        $value = nqp::p6box_i($nvalue);
-    #    }
-    #    else {
-    #      SEQ(nqp::push($rpa, $value++); $count--)
-    #          while $count > 0 && ($value cmp $realmax) < $cmpstop;
-    #    }
-    #    if ($value cmp $!max) < $cmpstop {
-    #        nqp::push($rpa,
-    #            ($value.succ cmp $!max < $cmpstop)
-    #               ?? nqp::create(self).BUILD($value, $!max, 0, $!excludes-max)
-    #               !! $value);
-    #    }
-    #}
     method iterator() {
         # Obtain starting value.
         my $value = $!excludes-min ?? $!min.succ !! $!min;

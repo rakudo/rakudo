@@ -202,7 +202,7 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                                 unless $candi<provides>{$ln}{$type}<file> ~~ /^$path/
                         }
                     }
-                    my $loader = $candi<provides>{$name}<pm6><file>;
+                    my $loader = $candi<provides>{$name}<pm pm6>.first(*.so)<file>;
                     my $vers   = Version.new($candi<provides>{$name}{$*VM.precomp-ext}<cver>);
                     if $*PERL<compiler>.version eqv $vers {
                         return CompUnit.new($loader, :has_precomp($candi<provides>{$name}{$*VM.precomp-ext}<file>));

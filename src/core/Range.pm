@@ -286,10 +286,7 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method clone-with-op(&op, $value) {
-        my \SELF = self.clone;
-        nqp::bindattr(SELF, Range, '$!min', $!min [&op] $value);
-        nqp::bindattr(SELF, Range, '$!max', $!max [&op] $value);
-        SELF;
+        self.clone( :min($!min [&op] $value), :max($!max [&op] $value) );
     }
 }
 

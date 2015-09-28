@@ -1280,9 +1280,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        self.comb(/:r ^^ \N* \n?/).map({
+        self.comb(/:r ^^ \N* \v?/).map({
             given $_.Str {
-                when /^ \n? $ / {
+                when /^ \v? $ / {
                     $_;
                 }
                 # Use the existing space character if they're all the same

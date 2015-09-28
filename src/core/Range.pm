@@ -284,6 +284,13 @@ my class Range is Cool does Iterable does Positional {
         my $floor := $diff.floor;
         $floor + 1 - ($floor == $diff ?? $.excludes-max !! 0);
     }
+
+    method clone-with-op(&op, $value) {
+        my \SELF = self.clone;
+        nqp::bindattr(SELF, Range, '$!min', $!min [&op] $value);
+        nqp::bindattr(SELF, Range, '$!max', $!max [&op] $value);
+        SELF;
+    }
 }
 
 sub infix:<..>($min, $max) is pure {
@@ -308,5 +315,12 @@ multi sub infix:<eqv>(Range:D \a, Range:D \b) {
     && a.excludes-min eqv b.excludes-min
     && a.excludes-max eqv b.excludes-max
 }
+
+multi sub infix:<+>(Range:D \a, Real:D \b) { a.clone-with-op(&[+], b) }
+multi sub infix:<+>(Real:D \a, Range:D \b) { b.clone-with-op(&[+], a) }
+multi sub infix:<->(Range:D \a, Real:D \b) { a.clone-with-op(&[-], b) }
+multi sub infix:<*>(Range:D \a, Real:D \b) { a.clone-with-op(&[*], b) }
+multi sub infix:<*>(Real:D \a, Range:D \b) { b.clone-with-op(&[*], a) }
+multi sub infix:</>(Range:D \a, Real:D \b) { a.clone-with-op(&[/], b) }
 
 # vim: ft=perl6 expandtab sw=4

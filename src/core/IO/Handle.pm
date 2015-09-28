@@ -464,7 +464,7 @@ my class IO::Handle does IO {
         $buf;
     }
 
-    method supply(IO::Handle:D: :$size = 65536, :$bin) {
+    method Supply(IO::Handle:D: :$size = 65536, :$bin --> Supply:D) {
         if $bin {
             supply {
                 my $buf := buf8.new;

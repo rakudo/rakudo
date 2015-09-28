@@ -464,6 +464,30 @@ my class IO::Handle does IO {
         $buf;
     }
 
+    method supply(IO::Handle:D: :$size = 65536, :$bin) {
+        if $bin {
+            supply {
+                my $buf := buf8.new;
+                my int $bytes = $size;
+                nqp::readfh($!PIO, $buf, $bytes);
+                while nqp::elems($buf) {
+                    emit $buf;
+                    nqp::readfh($!PIO, $buf, $bytes);
+                }
+            }
+        }
+        else {
+            supply {
+                my int $chars = $size;
+                my str $str = nqp::readcharsfh($!PIO,$chars);
+                while nqp::chars($str) {
+                    emit nqp::p6box_s($str);
+                    $str = nqp::readcharsfh($!PIO,$chars);
+                }
+            }
+        }
+    }
+
     # second arguemnt should probably be an enum
     # valid values for $whence:
     #   0 -- seek from beginning of file

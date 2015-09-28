@@ -213,7 +213,7 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                 }
             }
         }
-        +@candi ?? @candi[0] !! ();
+        ();
     }
 
     method short-id() { 'inst' }

@@ -1315,60 +1315,65 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     sub outdent($obj, $steps) {
-        # Loop through all lines to get as much info out of them as possible
-        my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
-            # Split the line into indent and content
-            my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
 
-            # Split the indent into characters and annotate them
-            # with their visual size
-            my $indent-size = 0;
-            my @indent-chars = $indent.comb.map(-> $char {
-                my $width = $char eq "\t"
-                    ?? $?TABSTOP - ($indent-size mod $?TABSTOP)
-                    !! 1;
-                $indent-size += $width;
-                $char => $width;
-            }).eager;
-
-            { :$indent-size, :@indent-chars, :rest(~$rest) };
-        });
+        # Split the leading whitespace on tabstops
+        my @lines = $obj ~~ m:g{ ^^ (
+             :my $vl = 0;
+             ( <+[\h] -[\t]> ** { 0..$?TABSTOP-1 }
+                 [  $<tab>=(<?before \t>) \t { $vl += $?TABSTOP; make +$vl }
+                 || \h { $vl += $/.CURSOR.pos - $/.CURSOR.from; make +$vl } ]
+             )*
+             $<rest>=((\V*) [ \v | $$ ]
+             { make +$vl if $vl or $0.chars }))};
 
         # Figure out the amount * should outdent by, we also use this for warnings
-        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
+        my $common-prefix = min @lines.map({ .[0].<rest>.ast }).grep({ .defined });
         return $obj if $common-prefix === Inf;
 
         # Set the actual outdent amount here
         my Int $outdent = nqp::istype($steps,Whatever)
           ?? $common-prefix
           !! -$steps;
+        return $obj unless +$outdent;
 
         warn "Asked to remove $outdent spaces, but the shortest indent is $common-prefix spaces"
             if $outdent > $common-prefix;
 
-        # Work forwards from the left end of the indent whitespace, removing
-        # array elements up to # (or over, in the case of tab-explosion)
-        # the specified outdent amount.
-        @lines.map(-> $l {
-            my $pos = 0;
-            while $l<indent-chars> and $pos < $outdent {
-                if $l<indent-chars>.shift.key eq "\t" {
-                    $pos -= $pos % $?TABSTOP;
-                    $pos += $?TABSTOP;
-                } else {
-                    $pos++
+        # Work forwards from the left removing full tabstops, then deal
+        # with the remainder, if any.
+        my $jut := $outdent % $?TABSTOP;
+	my $aligned := $outdent - $jut;
+        @lines.map(-> $m {
+            my $l = $m[0];
+            if ($l<rest>.ast // 0) < $outdent {
+                $l<rest>;
+            }
+            else {
+                # skip past full tabstops, they just get removed
+                my $from := ($l[0].first-index({ .ast == $aligned }) // -1) + 1;
+                if $jut { # outdent fell mid-tabstop
+                    my $tab1 = $l[0][$from..*].first-index({.EXISTS-KEY('tab')});
+                    if $tab1.defined { # Notch or explode the tab
+                        $tab1 += $from;
+                        my $moot := ($l[0][$tab1]<tab>.from - $l.from) % $?TABSTOP;
+                        my $pad := " " x $?TABSTOP - $jut;
+                        my $start;
+                        if $tab1 == $from { # Explode, trim and pad
+                            $start := $l[0][$from].to;
+                        }
+                        else { # Trim to notch, then pad
+                            $start := $l[0][$from].from + $moot + 1;
+                        }
+                        ($obj.substr($start, $l<rest>.from - $start), $pad, $l<rest>).Slip
+                    }
+                    else { # No tab, just remove spaces
+                        $l.substr($l[0][$from].from - $l.from + $jut)
+                    }
+                }
+                else { # Cut cleanly on a tabstop
+                    $l[0][$from].defined ?? $l.substr($l[0][$from].from - $l.from) !! $l<rest>;
                 }
             }
-            if $l<indent-chars> and $pos % $?TABSTOP {
-                my $check = $?TABSTOP - $pos % $?TABSTOP;
-                $check = $l<indent-chars>[0..^$check].first-index({$_.key eq "\t"});
-                if $check.defined {
-                    $l<indent-chars>.shift for 0..$check;
-                    $pos -= $pos % $?TABSTOP;
-                    $pos += $?TABSTOP;
-                }
-            }
-            $l<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $l<rest>;
         }).join;
     }
 

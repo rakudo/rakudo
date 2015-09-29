@@ -45,6 +45,12 @@ class Perl6::Compiler is HLL::Compiler {
     has $!linenoise_add_history;
     has $!completions;
 
+    method compilation-id() {
+        my class IDHolder { }
+        BEGIN { (IDHolder.WHO)<$ID> := $*W.handle }
+        $IDHolder::ID
+    }
+
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';

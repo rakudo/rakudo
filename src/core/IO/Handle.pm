@@ -179,6 +179,7 @@ my class IO::Handle does IO {
                 my Mu $PIO := nqp::getattr($!handle, IO::Handle, '$!PIO');
 #?if jvm
                 my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
+                # we only get half the number of chars, but that's ok
                 nqp::readfh($PIO, $buf, 65536); # optimize for ASCII
                 nqp::unbox_s($buf.decode);
 #?endif
@@ -186,6 +187,7 @@ my class IO::Handle does IO {
                 nqp::readcharsfh($PIO, 65536); # optimize for ASCII
 #?endif
             }
+
             method !next-chunk(\chars) {
                 $!str = $!pos < chars
                   ?? nqp::concat(nqp::substr($!str,$!pos),self!readcharsfh)
@@ -464,6 +466,17 @@ my class IO::Handle does IO {
         $buf;
     }
 
+    method !readcharsfh(int $chars) {
+#?if jvm
+        my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
+        nqp::readfh($!PIO, $buf, $chars + $chars); # a char = 2 bytes
+        nqp::unbox_s($buf.decode);
+#?endif
+#?if !jvm
+        nqp::readcharsfh($!PIO, $chars);
+#?endif
+    }
+
     method Supply(IO::Handle:D: :$size = 65536, :$bin --> Supply:D) {
         if $bin {
             supply {
@@ -479,10 +492,10 @@ my class IO::Handle does IO {
         else {
             supply {
                 my int $chars = $size;
-                my str $str = nqp::readcharsfh($!PIO,$chars);
+                my str $str = self!readcharsfh($chars);
                 while nqp::chars($str) {
                     emit nqp::p6box_s($str);
-                    $str = nqp::readcharsfh($!PIO,$chars);
+                    $str = self!readcharsfh($chars);
                 }
             }
         }

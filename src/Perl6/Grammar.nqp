@@ -3982,6 +3982,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym<**>   { <sym>  <O('%exponentiation')> }
+    token infix:sym<∘>   { <sym>  <O('%exponentiation')> }
+    token infix:sym<o>   { <sym>  <O('%exponentiation')> }
 
     token prefix:sym<+>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~~>  { <sym> <.dupprefix('~~')> <O('%symbolic_unary')> }

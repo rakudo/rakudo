@@ -1,3 +1,5 @@
+my constant $?COMPILATION-ID := $*W.handle;
+
 multi sub INITIALIZE_DYNAMIC('$*RAKUDO_MODULE_DEBUG') {
     PROCESS::<$RAKUDO_MODULE_DEBUG> := +?%*ENV<RAKUDO_MODULE_DEBUG>;
 }

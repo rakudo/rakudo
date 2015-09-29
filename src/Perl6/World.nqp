@@ -757,7 +757,7 @@ class Perl6::World is HLL::World {
             %*PRAGMAS<trace> := $on;
         }
         else {
-            $DEBUG("'$name' is not a valid pragma") if $DEBUG;
+            $DEBUG("  '$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module
         }
 
@@ -804,6 +804,8 @@ class Perl6::World is HLL::World {
         my %cp;
         my $arglist;
 
+        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+
         if $thisname {
             $name := $thisname;
         }
@@ -819,7 +821,9 @@ class Perl6::World is HLL::World {
         }
 
         if $use {
+            $DEBUG("Attempting to load '$name'") if $DEBUG;
             my $module := self.load_module($/, $name, %cp, $*GLOBALish);
+            $DEBUG("Performing imports for '$name'") if $DEBUG;
             self.do_import($/, $module, $name, $arglist);
             self.import_EXPORTHOW($/, $module);
         }
@@ -831,6 +835,9 @@ class Perl6::World is HLL::World {
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
     method load_module_early($/, $module_name, %opts, $cur_GLOBALish) {
+        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+        $DEBUG("  Early loading '$module_name'") if $DEBUG;
+
         # Immediate loading.
         my $line   := self.current_line($/);
         my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, %opts,
@@ -838,6 +845,7 @@ class Perl6::World is HLL::World {
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
+            $DEBUG("  Pre-compiling '$module_name'") if $DEBUG;
             my $opt_hash := QAST::Op.new( :op('hash') );
             for %opts {
                 self.add_object($_.value);
@@ -868,6 +876,9 @@ class Perl6::World is HLL::World {
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
     method load_module($/, $module_name, %opts, $cur_GLOBALish) {
+        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+        $DEBUG("  Late loading '$module_name'") if $DEBUG;
+
         # Immediate loading.
         my $line   := self.current_line($/);
         my $module := self.find_symbol(['CompUnitRepo']).load_module($module_name, %opts,
@@ -875,6 +886,7 @@ class Perl6::World is HLL::World {
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
+            $DEBUG("  Pre-compiling '$module_name'") if $DEBUG;
             my $opt_hash := QAST::Op.new( :op('hash') );
             for %opts {
                 self.add_object($_.value);

@@ -132,14 +132,14 @@ my class Junction { # declared in BOOTSTRAP
     }
 }
 
-sub any (+values) { values.any }
-sub all (+values) { values.all }
-sub one (+values) { values.one }
-sub none(+values) { values.none }
+sub any (+values) is pure { values.any }
+sub all (+values) is pure { values.all }
+sub one (+values) is pure { values.one }
+sub none(+values) is pure { values.none }
 
-sub infix:<|>(+values) { values.any }
-sub infix:<&>(+values) { values.all }
-sub infix:<^>(+values) { values.one }
+sub infix:<|>(+values) is pure { values.any }
+sub infix:<&>(+values) is pure { values.all }
+sub infix:<^>(+values) is pure { values.one }
 
 sub AUTOTHREAD(|c) {
     Junction.AUTOTHREAD(|c)

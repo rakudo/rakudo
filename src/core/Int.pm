@@ -91,8 +91,8 @@ my class Int does Real { # declared in BOOTSTRAP
     method expmod(Int:D: Int:D \base, Int:D \mod) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }
-    method is-prime(Int:D: Int:D $tries = 100) returns Bool:D {
-        nqp::p6bool(nqp::isprime_I(self, nqp::unbox_i($tries)));
+    method is-prime(Int:D:) returns Bool:D {
+        nqp::p6bool(nqp::isprime_I(self, nqp::unbox_i(100)));
     }
 
     method floor(Int:D:) { self }
@@ -374,12 +374,12 @@ multi sub chr(int $x) returns str {
     nqp::chr($x);
 }
 
-proto sub is-prime($, $?) is pure  {*}
-multi sub is-prime(Int:D \i, Int:D $tries = 100) {
-    nqp::p6bool(nqp::isprime_I(nqp::decont(i), nqp::unbox_i($tries)));
+proto sub is-prime($) is pure  {*}
+multi sub is-prime(Int:D \i) {
+    nqp::p6bool(nqp::isprime_I(nqp::decont(i), nqp::unbox_i(100)));
 }
-multi sub is-prime(\i, $tries = 100) {
-    nqp::p6bool(nqp::isprime_I(nqp::decont(i.Int), nqp::unbox_i($tries.Int)));
+multi sub is-prime(\i) {
+    nqp::p6bool(nqp::isprime_I(nqp::decont(i.Int), nqp::unbox_i(100)));
 }
 
 proto sub expmod($, $, $) is pure  {*}

@@ -7,7 +7,7 @@
     if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
 
 RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
-  if $?RAKUDO_MODULE_DEBUG;
+  if $*RAKUDO_MODULE_DEBUG;
 
         @INC = specs.split(','); # assume well formed strings
     }

@@ -50,7 +50,7 @@ class CompUnitRepo {
         for @*INC -> $spec {
 
 RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
-  if $?RAKUDO_MODULE_DEBUG;
+  if $*RAKUDO_MODULE_DEBUG;
 
             if INCLUDE-SPEC2CUR($spec) -> $cur {
                 if $cur.candidates($name, :$file,:$auth,:$ver).list -> @candi {
@@ -62,7 +62,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
     }
 
     method load_module($module_name, %opts, \GLOBALish is raw, :$line, :$file) {
-        RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $?RAKUDO_MODULE_DEBUG;
+        RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $*RAKUDO_MODULE_DEBUG;
         $lock.protect( {
         if %opts<from> {
             # See if we need to load it from elsewhere.
@@ -192,7 +192,7 @@ sub PARSE-INCLUDE-SPECS(Str:D $specs) {
     my $default-short-id = 'file';
 
 RAKUDO_MODULE_DEBUG("Parsing specs: $specs")
-  if $?RAKUDO_MODULE_DEBUG;
+  if $*RAKUDO_MODULE_DEBUG;
 
     # for all possible specs
     for $specs.split(/ \s* ',' \s* /) -> $spec {

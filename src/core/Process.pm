@@ -1,3 +1,7 @@
+multi sub INITIALIZE_DYNAMIC('$*RAKUDO_MODULE_DEBUG') {
+    PROCESS::<$RAKUDO_MODULE_DEBUG> := +?%*ENV<RAKUDO_MODULE_DEBUG>;
+}
+
 multi sub INITIALIZE_DYNAMIC('$*PID') {
     PROCESS::<$PID> := nqp::p6box_i(nqp::getpid());
 }

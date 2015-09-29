@@ -77,7 +77,7 @@ class CompUnit {
         %*ENV<RAKUDO_PRECOMP_WITH> = CREATE-INCLUDE-SPECS(@$INC);
 
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
-  if $?RAKUDO_MODULE_DEBUG;
+  if $*RAKUDO_MODULE_DEBUG;
 
         my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path";
         my $proc = shell("$cmd 2>&1", :out, :!chomp);
@@ -101,7 +101,8 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
     multi method load(CompUnit:D: ) { self.load(Any) }
     multi method load(CompUnit:D: \GLOBALish, :$line) {
         $global.protect( {
-            RAKUDO_MODULE_DEBUG("going to load $!name") if $?RAKUDO_MODULE_DEBUG;
+            my int $DEBUG = $*RAKUDO_MODULE_DEBUG;
+            RAKUDO_MODULE_DEBUG("going to load $!name") if $DEBUG;
 
             my %chosen;
             %chosen<pm>   = ~$!path           if $!has-source;
@@ -115,7 +116,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                 }
             }
 
-            if $?RAKUDO_MODULE_DEBUG {
+            if $DEBUG {
                 my $text := "chosen:";
                 for %chosen {
                     $text := $text ~ "\n " ~ $_.key ~ ' => ' ~ $_.value;
@@ -142,13 +143,13 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
 
                 if %chosen<load> {
                     $trace<precompiled> = %chosen<load>;
-                    RAKUDO_MODULE_DEBUG("loading ", %chosen<load>) if $?RAKUDO_MODULE_DEBUG;
+                    RAKUDO_MODULE_DEBUG("loading ", %chosen<load>) if $DEBUG;
                     my %*COMPILING := nqp::hash();
                     my $*CTXSAVE := self;
                     my $*MAIN_CTX;
                     nqp::loadbytecode(%chosen<load>);
                     $!module_ctx := $*MAIN_CTX;
-                    RAKUDO_MODULE_DEBUG("done loading ", %chosen<load>) if $?RAKUDO_MODULE_DEBUG;
+                    RAKUDO_MODULE_DEBUG("  done: ", %chosen<load>) if $DEBUG;
                 }
                 else {
                     # If we're doing module pre-compilation, we should only
@@ -160,7 +161,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                     }
 
                     # Read source file.
-                    RAKUDO_MODULE_DEBUG("loading ", %chosen<pm>) if $?RAKUDO_MODULE_DEBUG;
+                    RAKUDO_MODULE_DEBUG("loading ", %chosen<pm>) if $DEBUG;
                     my $fh := nqp::open(%chosen<pm>, 'r');
                     nqp::setencoding($fh, 'utf8');
                     my $source := nqp::readallfh($fh);
@@ -174,7 +175,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                     my $*MAIN_CTX;
                     $eval();
                     $!module_ctx := $*MAIN_CTX;
-                    RAKUDO_MODULE_DEBUG("done loading ", %chosen<pm>) if $?RAKUDO_MODULE_DEBUG;
+                    RAKUDO_MODULE_DEBUG("done: ", %chosen<pm>) if $DEBUG;
                 }
 
                 nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);

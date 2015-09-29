@@ -2155,9 +2155,6 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
-        elsif $name eq '$?RAKUDO_MODULE_DEBUG' {
-            $past := $*W.add_constant('Int','int',+nqp::ifnull(nqp::atkey(nqp::getenvhash(),'RAKUDO_MODULE_DEBUG'),0));
-        }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
         }

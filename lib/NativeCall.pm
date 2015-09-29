@@ -216,22 +216,24 @@ my role Native[Routine $r, $libname where Str|Callable] {
     has Mu $!rettype;
     has $!cpp-name-mangler;
 
+    method !setup() {
+        my $guessed_libname = guess_library_name($libname);
+        $!cpp-name-mangler  = %lib{$guessed_libname} //
+            (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        my Mu $arg_info := param_list_for($r.signature, $r);
+        my str $conv = self.?native_call_convention || '';
+        nqp::buildnativecall(self,
+            nqp::unbox_s($guessed_libname),                           # library name
+            nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
+            nqp::unbox_s($conv),        # calling convention
+            $arg_info,
+            return_hash_for($r.signature, $r));
+        $!setup = 1;
+        $!rettype := nqp::decont(map_return_type($r.returns));
+    }
+
     method CALL-ME(|args) {
-        unless $!setup {
-            my $guessed_libname = guess_library_name($libname);
-            $!cpp-name-mangler  = %lib{$guessed_libname} //
-                (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
-            my Mu $arg_info := param_list_for($r.signature, $r);
-            my str $conv = self.?native_call_convention || '';
-            nqp::buildnativecall(self,
-                nqp::unbox_s($guessed_libname),                           # library name
-                nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
-                nqp::unbox_s($conv),        # calling convention
-                $arg_info,
-                return_hash_for($r.signature, $r));
-            $!setup = 1;
-            $!rettype := nqp::decont(map_return_type($r.returns));
-        }
+        self!setup unless $!setup;
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '$!list');
         if nqp::elems($args) != $r.signature.arity {

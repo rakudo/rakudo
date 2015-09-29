@@ -7,11 +7,11 @@ multi sub infix:<(elem)>($a, Set $b --> Bool) {
     $b.EXISTS-KEY($a);
 }
 # U+2208 ELEMENT OF
-only sub infix:<∈>($a, $b --> Bool) {
+only sub infix:<∈>($a, $b --> Bool) is pure {
     $a (elem) $b;
 }
 # U+2209 NOT AN ELEMENT OF
-only sub infix:<∉>($a, $b --> Bool) {
+only sub infix:<∉>($a, $b --> Bool) is pure {
     $a !(elem) $b;
 }
 
@@ -23,15 +23,15 @@ multi sub infix:<(cont)>(Set $a, $b --> Bool) {
     $a.EXISTS-KEY($b);
 }
 # U+220B CONTAINS AS MEMBER
-only sub infix:<∋>($a, $b --> Bool) {
+only sub infix:<∋>($a, $b --> Bool) is pure {
     $a (cont) $b;
 }
 # U+220C DOES NOT CONTAIN AS MEMBER
-only sub infix:<∌>($a, $b --> Bool) {
+only sub infix:<∌>($a, $b --> Bool) is pure {
     $a !(cont) $b;
 }
 
-only sub infix:<(|)>(**@p) {
+only sub infix:<(|)>(**@p) is pure {
     if @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
@@ -53,11 +53,11 @@ only sub infix:<(|)>(**@p) {
     }
 }
 # U+222A UNION
-only sub infix:<∪>(|p) {
+only sub infix:<∪>(|p) is pure {
     infix:<(|)>(|p);
 }
 
-only sub infix:<(&)>(**@p) {
+only sub infix:<(&)>(**@p) is pure {
     return set() unless @p;
 
     if @p.first(Mixy) {
@@ -93,11 +93,11 @@ only sub infix:<(&)>(**@p) {
     }
 }
 # U+2229 INTERSECTION
-only sub infix:<∩>(|p) {
+only sub infix:<∩>(|p) is pure {
     infix:<(&)>(|p);
 }
 
-only sub infix:<(-)>(**@p) {
+only sub infix:<(-)>(**@p) is pure {
     return set() unless @p;
 
     if @p.first(Mixy) {
@@ -133,14 +133,14 @@ only sub infix:<(-)>(**@p) {
     }
 }
 # U+2216 SET MINUS
-only sub infix:<∖>(|p) {
+only sub infix:<∖>(|p) is pure {
     infix:<(-)>(|p);
 }
-only sub infix:<(^)>(**@p) {
+only sub infix:<(^)>(**@p) is pure {
     Set.new(BagHash.new(@p.map(*.Set(:view).keys.Slip)).pairs.map({.key if .value == 1}));
 }
 # U+2296 CIRCLED MINUS
-only sub infix:<⊖>($a, $b --> Setty) {
+only sub infix:<⊖>($a, $b --> Setty) is pure {
     $a (^) $b;
 }
 
@@ -160,11 +160,11 @@ multi sub infix:<<(<=)>>(Setty $a, Setty $b --> Bool) {
     $a <= $b and so $a.keys.all (elem) $b
 }
 # U+2286 SUBSET OF OR EQUAL TO
-only sub infix:<⊆>($a, $b --> Bool) {
+only sub infix:<⊆>($a, $b --> Bool) is pure {
     $a (<=) $b;
 }
 # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
-only sub infix:<⊈>($a, $b --> Bool) {
+only sub infix:<⊈>($a, $b --> Bool) is pure {
     $a !(<=) $b;
 }
 
@@ -176,11 +176,11 @@ multi sub infix:<<(<)>>(Setty $a, Setty $b --> Bool) {
     $a < $b and so $a.keys.all (elem) $b;
 }
 # U+2282 SUBSET OF
-only sub infix:<⊂>($a, $b --> Bool) {
+only sub infix:<⊂>($a, $b --> Bool) is pure {
     $a (<) $b;
 }
 # U+2284 NOT A SUBSET OF
-only sub infix:<⊄>($a, $b --> Bool) {
+only sub infix:<⊄>($a, $b --> Bool) is pure {
     $a !(<) $b;
 }
 
@@ -192,11 +192,11 @@ multi sub infix:<<(>=)>>(Setty $a, Setty $b --> Bool) {
     $a >= $b and so $b.keys.all (elem) $a;
 }
 # U+2287 SUPERSET OF OR EQUAL TO
-only sub infix:<⊇>($a, $b --> Bool) {
+only sub infix:<⊇>($a, $b --> Bool) is pure {
     $a (>=) $b;
 }
 # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
-only sub infix:<⊉>($a, $b --> Bool) {
+only sub infix:<⊉>($a, $b --> Bool) is pure {
     $a !(>=) $b;
 }
 
@@ -208,15 +208,15 @@ multi sub infix:<<(>)>>(Setty $a, Setty $b --> Bool) {
     $a > $b and so $b.keys.all (elem) $a;
 }
 # U+2283 SUPERSET OF
-only sub infix:<⊃>($a, $b --> Bool) {
+only sub infix:<⊃>($a, $b --> Bool) is pure {
     $a (>) $b;
 }
 # U+2285 NOT A SUPERSET OF
-only sub infix:<⊅>($a, $b --> Bool) {
+only sub infix:<⊅>($a, $b --> Bool) is pure {
     $a !(>) $b;
 }
 
-only sub infix:<(.)>(**@p) {
+only sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
 
     if @p.first(Mixy) {
@@ -244,11 +244,11 @@ only sub infix:<(.)>(**@p) {
     }
 }
 # U+228D MULTISET MULTIPLICATION
-only sub infix:<⊍>(|p) {
+only sub infix:<⊍>(|p) is pure {
     infix:<(.)>(|p);
 }
 
-only sub infix:<(+)>(**@p) {
+only sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 
     if @p.first(Mixy) {
@@ -270,7 +270,7 @@ only sub infix:<(+)>(**@p) {
     }
 }
 # U+228E MULTISET UNION
-only sub infix:<⊎>(|p) {
+only sub infix:<⊎>(|p) is pure {
     infix:<(+)>(|p);
 }
 
@@ -289,7 +289,7 @@ multi sub infix:<<(<+)>>(QuantHash $a, QuantHash $b --> Bool) {
     True;
 }
 # U+227C PRECEDES OR EQUAL TO
-only sub infix:<≼>($a, $b --> Bool) {
+only sub infix:<≼>($a, $b --> Bool) is pure {
     $a (<+) $b;
 }
 
@@ -308,7 +308,7 @@ multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool) {
     }
 }
 # U+227D SUCCEEDS OR EQUAL TO
-only sub infix:<≽>($a, $b --> Bool) {
+only sub infix:<≽>($a, $b --> Bool) is pure {
     $a (>+) $b;
 }
 

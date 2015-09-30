@@ -20,8 +20,6 @@ my class Routine { # declared in BOOTSTRAP
     #     has Mu $!dispatch_order;
     #     has Mu $!dispatch_cache;
 
-    method of() { self.signature.returns }
-    method returns() { self.signature.returns }
     method onlystar() { nqp::p6bool($!onlystar) }
 
     method candidates() {

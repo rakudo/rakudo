@@ -3,6 +3,9 @@ my class Block { # declared in BOOTSTRAP
     #     has Mu $!phasers;
     #     has Mu $!why;
 
+    method of(Block:D:)      { nqp::getattr(self,Code,'$!signature').returns }
+    method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
+
     method add_phaser(Str $name, &block) {
         nqp::isnull($!phasers) &&
             nqp::bindattr(self, Block, '$!phasers', nqp::hash());
@@ -40,7 +43,7 @@ my class Block { # declared in BOOTSTRAP
     }
 
     method assuming(Block:D $self: |primers) {
-        my $sig = $self.signature;
+        my $sig = nqp::getattr($self,Code,'$!signature');
 
         # A ::() that does not throw.  Also does not need to deal
         # with chunks or sigils.

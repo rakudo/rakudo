@@ -35,7 +35,7 @@ class CompUnit {
         my $VM = $*VM;
         my $precomp-path = $path ~ '.' ~ $VM.precomp-ext;  # XXX temporary
         $precomp-path = 
-          $VM.precomp-dir ~ '/' ~ "$name.$extension." ~ $VM.precomp-ext
+          $VM.precomp-dir ~ '/' ~ $name ~ '.' ~ $VM.precomp-ext
           unless $precomp-path.IO.f;
         $has-source  //= ?$path.IO.f;
         $has-precomp //= ?$precomp-path.IO.f;

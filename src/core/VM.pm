@@ -1,11 +1,18 @@
+my constant $?COMPILATION-ID :=
+  nqp::sha1(nqp::concat(
+    $*W.handle,
+    nqp::getcomp('perl6').compilation-id
+  ));
+
 class VM does Systemic {
     has $.config;
 #?if jvm
     has $.properties;
 #?endif
+    has $.prefix;
     has $.precomp-ext;
     has $.precomp-target;
-    has $.prefix;
+    has $.precomp-dir;
 
     submethod BUILD (
       :$!config,
@@ -18,18 +25,19 @@ class VM does Systemic {
         $!name           = 'moar';
         $!auth           = "The MoarVM Team";
         $!version        = Version.new($!config<version> // "unknown");
+        $!prefix         = $!config<prefix>;
         $!precomp-ext    = "moarvm";
         $!precomp-target = "mbc";
-        $!prefix         = $!config<prefix>;
 #?endif
 #?if jvm
         $!name           = 'jvm';
         $!auth           = $!properties<java.vendor> // "unknown";
         $!version        = Version.new($!properties<java.specification.version> // "unknown");
+        $!prefix         = $!properties<perl6.prefix>;
         $!precomp-ext    = "jar";
         $!precomp-target = "jar";
-        $!prefix         = $!properties<perl6.prefix>;
 #?endif
+        $!precomp-dir    = $!prefix ~ '/' ~ '.precomp' ~ '/' ~ $?COMPILATION-ID;
 # add new backends here please
     }
 }

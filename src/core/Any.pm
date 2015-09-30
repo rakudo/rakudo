@@ -171,16 +171,28 @@ my class Any { # declared in BOOTSTRAP
     }
 
     # auto-vivifying
-    proto method push(|) is nodal { * }
+    proto method push(|) is nodal {*}
     multi method push(Any:U \SELF: |values) {
         SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
         SELF.push(|values);
+    }
+
+    proto method append(|) is nodal { * }
+    multi method append(Any:U \SELF: |values) {
+        SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
+        SELF.append(|values);
     }
 
     proto method unshift(|) is nodal { * }
     multi method unshift(Any:U \SELF: |values) {
         SELF = Array.new;
         SELF.unshift(|values);
+    }
+
+    proto method prepend(|) is nodal { * }
+    multi method prepend(Any:U \SELF: |values) {
+        SELF = Array.new;
+        SELF.prepend(|values);
     }
 
     proto method EXISTS-POS(|) is nodal { * }

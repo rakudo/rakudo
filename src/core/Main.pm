@@ -33,7 +33,7 @@ my sub MAIN_HELPER($retval = 0) {
                 }
             } else {
                 @args.unshift($passed-value) unless $passed-value eq '--';
-                @positional-arguments.push: @args.map: &val;
+                @positional-arguments.append: @args.map: &val;
                 last;
             }
         }

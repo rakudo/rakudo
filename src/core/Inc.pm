@@ -19,24 +19,24 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
             if nqp::islist($I) {
                 my Mu $iter := nqp::iterator($I);
                 while $iter {
-                    @INC.push: PARSE-INCLUDE-SPECS(nqp::shift($iter));
+                    @INC.append: PARSE-INCLUDE-SPECS(nqp::shift($iter));
                 }
            }
             else {
-                @INC.push: PARSE-INCLUDE-SPECS(nqp::p6box_s($I));
+                @INC.append: PARSE-INCLUDE-SPECS(nqp::p6box_s($I));
             }
         }
 
         if %ENV<RAKUDOLIB> -> $rakudolib {
-            @INC.push: PARSE-INCLUDE-SPECS($rakudolib);
+            @INC.append: PARSE-INCLUDE-SPECS($rakudolib);
         }
         if %ENV<PERL6LIB> -> $perl6lib {
-            @INC.push: PARSE-INCLUDE-SPECS($perl6lib);
+            @INC.append: PARSE-INCLUDE-SPECS($perl6lib);
         }
 
 #?if jvm
         for nqp::hllize(nqp::jvmclasspaths()) -> $path {
-            @INC.push: PARSE-INCLUDE-SPECS($path);
+            @INC.append: PARSE-INCLUDE-SPECS($path);
         }
 #?endif
 
@@ -75,11 +75,11 @@ RAKUDO_MODULE_DEBUG("Init @INC with {specs}")
                   // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
                     my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
                     my $path := "$home/.perl6/$ver";
-                    @INC.push: "file#$path/lib", "inst#$path";
+                    @INC.append: "file#$path/lib", "inst#$path";
                     %CUSTOM_LIB<home> = $path;
                 }
             }
-            @INC.push:
+            @INC.append:
               "file#$prefix/lib",
               "file#$prefix/vendor/lib",
               "file#$prefix/site/lib",

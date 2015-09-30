@@ -107,12 +107,12 @@ my class Cursor does NQPCursorRole {
                             if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                 $list := nqp::list() unless nqp::isconcrete($list);
                                 $needs_list
-                                    ?? nqp::atpos($list, nqp::fromstr_I(nqp::unbox_s($name), Int)).push($submatch)
+                                    ?? nqp::atpos($list, nqp::fromstr_I(nqp::unbox_s($name), Int)).append($submatch)
                                     !! nqp::bindpos($list, nqp::fromstr_I(nqp::unbox_s($name), Int), $submatch);
                             }
                             else {
                                 $needs_list
-                                    ?? nqp::atkey($hash, $name).push($submatch)
+                                    ?? nqp::atkey($hash, $name).append($submatch)
                                     !! nqp::bindkey($hash, $name, $submatch);
                             }
                         }
@@ -133,12 +133,12 @@ my class Cursor does NQPCursorRole {
                                 if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                     $list := nqp::list() unless nqp::isconcrete($list);
                                     $needs_list
-                                        ?? nqp::atpos($list, nqp::fromstr_I($name, Int)).push($submatch)
+                                        ?? nqp::atpos($list, nqp::fromstr_I($name, Int)).append($submatch)
                                         !! nqp::bindpos($list, nqp::fromstr_I($name, Int), $submatch);
                                 }
                                 else {
                                     $needs_list
-                                        ?? nqp::atkey($hash, $name).push($submatch)
+                                        ?? nqp::atkey($hash, $name).append($submatch)
                                         !! nqp::bindkey($hash, $name, $submatch);
                                 }
                             }

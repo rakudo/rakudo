@@ -22,10 +22,10 @@ my class Pod::Block {
                 @chunks.push: pod-gist($c, $level + 2);
             }
             elsif nqp::istype($c,Positional) {
-                @chunks.push: $c>>.Str.perl.indent($level + 2), "\n";
+                @chunks.append: $c>>.Str.perl.indent($level + 2), "\n";
             }
             else {
-                @chunks.push: $c.Str.indent($level + 2), "\n";
+                @chunks.append: $c.Str.indent($level + 2), "\n";
             }
         }
         @chunks.join;

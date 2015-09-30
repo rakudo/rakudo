@@ -249,11 +249,11 @@ my class Array { # declared in BOOTSTRAP
             }
         }
 
-        multi method push(::?CLASS:D: $) {
+        multi method push(::?CLASS:D: |) {
             X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
         }
-        multi method push(::?CLASS:D: *@) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
+        multi method append(::?CLASS:D: |) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'append').throw
         }
 
         multi method pop(::?CLASS:D:) {
@@ -264,11 +264,11 @@ my class Array { # declared in BOOTSTRAP
             X::IllegalOnFixedDimensionArray.new(operation => 'shift').throw
         }
 
-        multi method unshift(::?CLASS:D: $) {
+        multi method unshift(::?CLASS:D: |) {
             X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
         }
-        multi method unshift(::?CLASS:D: *@) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
+        multi method prepend(::?CLASS:D: |) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'prepend').throw
         }
 
         multi method splice(::?CLASS:D: *@) {
@@ -496,13 +496,15 @@ my class Array { # declared in BOOTSTRAP
         $value;
     }
 
-    proto method pushlol(|) {*}
-    multi method pushlol(Array:D: **@values is raw) {
+    # Note, do not add a variant for a single value unless you also handle Slip right.
+    # SEQ depends on being able to @tail.push(value) and let the sequence op iterator
+    # slip in multiple values.
+    multi method push(Array:D: **@values is raw) {
         self!ensure-allocated();
-        self!push-list(@values)
+        self!append-list(@values)
     }
 
-    multi method push(Array:D: \value) {
+    multi method append(Array:D: \value) {
         self!ensure-allocated();
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
@@ -514,14 +516,14 @@ my class Array { # declared in BOOTSTRAP
             self
         }
         else {
-            self!push-list(value.list)
+            self!append-list(value.list)
         }
     }
-    multi method push(Array:D: **@values is raw) {
+    multi method append(Array:D: **@values is raw) {
         self!ensure-allocated();
-        self!push-list(@values)
+        self!append-list(@values)
     }
-    method !push-list(@values) {
+    method !append-list(@values) {
         fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
 
         my \values-iter = @values.iterator;
@@ -534,7 +536,12 @@ my class Array { # declared in BOOTSTRAP
         self
     }
 
-    multi method unshift(Array:D: \value) {
+    multi method unshift(Array:D: **@values is raw) {
+        self!ensure-allocated();
+        self!prepend-list(@values)
+    }
+
+    multi method prepend(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();
 
@@ -545,13 +552,13 @@ my class Array { # declared in BOOTSTRAP
             self
         }
         else {
-            self!unshift-list(value.list)
+            self!prepend-list(value.list)
         }
     }
-    multi method unshift(Array:D: **@values is raw) {
-        self!unshift-list(@values)
+    multi method prepend(Array:D: **@values is raw) {
+        self!prepend-list(@values)
     }
-    method !unshift-list(@values) {
+    method !prepend-list(@values) {
         my \containers := IterationBuffer.CREATE;
         my \target := ArrayReificationTarget.new(containers,
             nqp::decont($!descriptor));
@@ -812,13 +819,10 @@ multi sub pop(@a) { @a.pop }
 proto sub shift(@) {*}
 multi sub shift(@a) { @a.shift }
 
-proto sub unshift(|) {*}
-multi sub unshift(\a, \elem)    { a.unshift: elem }
-multi sub unshift(\a, **@elems) { a.unshift: @elems }
-
-proto sub push(|) {*}
-multi sub push(\a, \elem)    { a.push: elem }
-multi sub push(\a, **@elems) { a.push: @elems }
+sub push   (\a, |elems) { a.push:    |elems }
+sub append (\a, |elems) { a.append:  |elems }
+sub unshift(\a, |elems) { a.unshift: |elems }
+sub prepend(\a, |elems) { a.prepend: |elems }
 
 sub splice(@arr, |c)         { @arr.splice(|c) }
 

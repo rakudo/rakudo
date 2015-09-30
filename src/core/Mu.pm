@@ -599,7 +599,7 @@ Please refactor this code using the new Iterator / Seq interface.
         elsif $breadth {
             my @search_list = self.WHAT;
             while @search_list {
-                push @classes, @search_list;
+                append @classes, @search_list;
                 my @new_search_list;
                 for @search_list -> $current {
                     for flat $current.^parents(:local) -> $next {

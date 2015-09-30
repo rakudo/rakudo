@@ -165,17 +165,17 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                     splice @bytes, 0, $pa;
                 }
                 when 'C' {
-                    @fields.push: @bytes.splice(0, $pa);
+                    @fields.append: @bytes.splice(0, $pa);
                 }
                 when 'S' | 'v' {
                     for ^$pa {
-                        @fields.push: shift(@bytes)
+                        @fields.append: shift(@bytes)
                                     + (shift(@bytes) +< 0x08);
                     }
                 }
                 when 'L' | 'V' {
                     for ^$pa {
-                        @fields.push: shift(@bytes)
+                        @fields.append: shift(@bytes)
                                     + (shift(@bytes) +< 0x08)
                                     + (shift(@bytes) +< 0x10)
                                     + (shift(@bytes) +< 0x18);
@@ -183,13 +183,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 }
                 when 'n' {
                     for ^$pa {
-                        @fields.push: (shift(@bytes) +< 0x08)
+                        @fields.append: (shift(@bytes) +< 0x08)
                                     + shift(@bytes);
                     }
                 }
                 when 'N' {
                     for ^$pa {
-                        @fields.push: (shift(@bytes) +< 0x18)
+                        @fields.append: (shift(@bytes) +< 0x18)
                                     + (shift(@bytes) +< 0x10)
                                     + (shift(@bytes) +< 0x08)
                                     + shift(@bytes);
@@ -278,8 +278,11 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method push(Buf:D: Mu $value) {
         nqp::push_i(self, $value);
     }
+    multi method push(Buf:D: *@values) {
+        self.append(@values);
+    }
 
-    multi method push(Buf:D: @values is copy) {
+    multi method append(Buf:D: @values is copy) {
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
           if @values.is-lazy;
 
@@ -289,8 +292,8 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::splice(self, @splicees, $length, 0);
     }
 
-    multi method push(Buf:D: *@values) {
-        self.push(@values);
+    multi method append(Buf:D: *@values) {
+        self.append(@values);
     }
 }
 
@@ -338,7 +341,7 @@ multi sub pack(Str $template, *@items) {
                 if $hexstring.chars % 2 {
                     $hexstring ~= '0';
                 }
-                @bytes.push: map { :16($_) }, $hexstring.comb(/../);
+                @bytes.append: map { :16($_) }, $hexstring.comb(/../);
             }
             when 'x' {
                 if $amount eq '*' {
@@ -347,7 +350,7 @@ multi sub pack(Str $template, *@items) {
                 elsif $amount eq '' {
                     $amount = 1;
                 }
-                @bytes.push: 0x00 xx $amount;
+                @bytes.append: 0x00 xx $amount;
             }
             when 'C' {
                 my $number = shift(@items);
@@ -355,20 +358,20 @@ multi sub pack(Str $template, *@items) {
             }
             when 'S' | 'v' {
                 my $number = shift(@items);
-                @bytes.push: ($number, $number +> 0x08) >>%>> 0x100;
+                @bytes.append: ($number, $number +> 0x08) >>%>> 0x100;
             }
             when 'L' | 'V' {
                 my $number = shift(@items);
-                @bytes.push: ($number, $number +> 0x08,
+                @bytes.append: ($number, $number +> 0x08,
                               $number +> 0x10, $number +> 0x18) >>%>> 0x100;
             }
             when 'n' {
                 my $number = shift(@items);
-                @bytes.push: ($number +> 0x08, $number) >>%>> 0x100;
+                @bytes.append: ($number +> 0x08, $number) >>%>> 0x100;
             }
             when 'N' {
                 my $number = shift(@items);
-                @bytes.push: ($number +> 0x18, $number +> 0x10,
+                @bytes.append: ($number +> 0x18, $number +> 0x10,
                               $number +> 0x08, $number) >>%>> 0x100;
             }
             X::Buf::Pack.new(:$directive).throw;
@@ -410,24 +413,24 @@ multi sub prefix:<~^>(Blob:D $a) {
 multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
     my $minlen := $a.elems min $b.elems;
     my @anded-contents = $a.list[^$minlen] >>+&<< $b.list[^$minlen];
-    @anded-contents.push: 0 xx ($a.elems - @anded-contents.elems);
-    @anded-contents.push: 0 xx ($b.elems - @anded-contents.elems);
+    @anded-contents.append: 0 xx ($a.elems - @anded-contents.elems);
+    @anded-contents.append: 0 xx ($b.elems - @anded-contents.elems);
     ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@anded-contents);
 }
 
 multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
     my $minlen = $a.elems min $b.elems;
     my @ored-contents = $a.list[^$minlen] «+|» $b.list[^$minlen];
-    @ored-contents.push: $a.list[@ored-contents.elems ..^ $a.elems];
-    @ored-contents.push: $b.list[@ored-contents.elems ..^ $b.elems];
+    @ored-contents.append: $a.list[@ored-contents.elems ..^ $a.elems];
+    @ored-contents.append: $b.list[@ored-contents.elems ..^ $b.elems];
     ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@ored-contents);
 }
 
 multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
     my $minlen = $a.elems min $b.elems;
     my @xored-contents = $a.list[^$minlen] «+^» $b.list[^$minlen];
-    @xored-contents.push: $a.list[@xored-contents.elems ..^ $a.elems];
-    @xored-contents.push: $b.list[@xored-contents.elems ..^ $b.elems];
+    @xored-contents.append: $a.list[@xored-contents.elems ..^ $a.elems];
+    @xored-contents.append: $b.list[@xored-contents.elems ..^ $b.elems];
     ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
 }
 

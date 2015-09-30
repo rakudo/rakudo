@@ -686,7 +686,7 @@ augment class Any {
                 return if $val =:= IterationEnd;
                 my @args = $val;
                 while (my \current = iter.pull-one) !=:= IterationEnd {
-                    @args.unshift: current;
+                    @args.prepend: current;
                     if @args.elems == $count {
                         $val := with(|@args);
                         @args = $val;
@@ -702,7 +702,7 @@ augment class Any {
                 return if $val =:= IterationEnd;
                 my @args = $val;
                 while (my \current = iter.pull-one) !=:= IterationEnd {
-                    @args.push: current;
+                    @args.append: current;
                     if @args.elems == $count {
                         $val := with(|@args);
                         @args = $val;
@@ -808,7 +808,7 @@ augment class Any {
         gather self.map: {
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target.item);
+                @seen.push($target);
                 take $_;
             }
         }
@@ -902,7 +902,7 @@ augment class Any {
         gather self.map: {
             $target := $_;
             first( { with($target,$_) }, @seen ) =:= Nil
-              ?? @seen.push($target.item)
+              ?? @seen.push($target)
               !! take $_;
         }
     }

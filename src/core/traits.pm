@@ -259,7 +259,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;
         }
-        @export_packages.push: .WHO<EXPORT>;
+        @export_packages.append: .WHO<EXPORT>;
     }
     for @export_packages -> $p {
         for @tags -> $tag {

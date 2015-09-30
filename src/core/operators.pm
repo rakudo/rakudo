@@ -171,22 +171,22 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             $looped = True;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
-                @end_tail.pushlol(value);
+                @end_tail.push(value);
                 if +@end_tail >= $end_code_arity {
                     @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
                     if $endpoint(|@end_tail) {
                         $stop = 1;
-                        @tail.pushlol(value) unless $exclude_end;
+                        @tail.push(value) unless $exclude_end;
                         last;
                     }
                 }
             }
             elsif value ~~ $endpoint {
                 $stop = 1;
-                @tail.pushlol(value) unless $exclude_end;
+                @tail.push(value) unless $exclude_end;
                 last;
             }
-            @tail.pushlol(value);
+            @tail.push(value);
         }
         X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
           unless $looped;
@@ -221,7 +221,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         my @e = $endpoint.comb;
                         my @ranges;
                         for flat @a Z @e -> $from, $to {
-                            @ranges.pushlol: $($from ... $to);
+                            @ranges.push: $($from ... $to);
                         }
                         .take for flat [X~] @ranges;
                         $stop = 1;
@@ -392,7 +392,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     @tail.shift while @tail.elems > $count;
                     my \value = $code(|@tail);
                     if $end_code_arity != 0 {
-                        @end_tail.pushlol(value);
+                        @end_tail.push(value);
                         if @end_tail.elems >= $end_code_arity {
                             @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
                             if $endpoint(|@end_tail) {
@@ -408,7 +408,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
 
                     if $stop { }
                     else {
-                        @tail.pushlol(value);
+                        @tail.push(value);
                         value.take;
                     }
                 }

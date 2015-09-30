@@ -3,8 +3,10 @@ class array does Iterable is repr('VMArray') {
     proto method STORE(|) { * }
     multi method STORE(array:D: *@values) { self.STORE(@values) }
 
-    multi method push(array:D: *@values)    { self.push(@values) }
+    multi method push(array:D: *@values)  { self.append(@values) }
+    multi method append(array:D: *@values)  { self.append(@values) }
     multi method unshift(array:D: *@values) { self.unshift(@values) }
+    multi method prepend(array:D: *@values) { self.prepend(@values) }
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 
@@ -70,7 +72,7 @@ class array does Iterable is repr('VMArray') {
             nqp::push_i(self, $value);
             self
         }
-        multi method push(array:D: @values) {
+        multi method append(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_i(self, $_) for flat @values;
@@ -241,7 +243,7 @@ class array does Iterable is repr('VMArray') {
             nqp::push_n(self, $value);
             self
         }
-        multi method push(array:D: @values) {
+        multi method append(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_n(self, $_) for flat @values;

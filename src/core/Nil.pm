@@ -15,7 +15,9 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method ASSIGN-KEY(*@) { die "Attempted to ASSIGN-KEY to Nil." }
     method STORE(*@)      { die "Attempted to STORE to Nil." }
     method push(*@)       { die "Attempted to push to Nil." }
+    method append(*@)     { die "Attempted to append to Nil." }
     method unshift(*@)    { die "Attempted to unshift to Nil." }
+    method prepend(*@)    { die "Attempted to prepend to Nil." }
     method FALLBACK(*@)   { Nil }
 }
 

@@ -191,7 +191,7 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
         GATHER({
             my @list;
             for values -> \v {
-                @list.push(v);
+                @list.append(v);
                 take op.(|@list);
             }
         }).lazy-if(values.is-lazy);
@@ -217,7 +217,7 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
         GATHER({
             my @list;
             while $i < p.elems {
-                @list.push(p[$i]);
+                @list.append(p[$i]);
                 $i = $i + 1;
                 take op.(|@list);
             }

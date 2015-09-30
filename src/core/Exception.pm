@@ -549,13 +549,13 @@ my class X::Comp::Group is Exception {
     method message() {
         my @m;
         for @.sorrows {
-            @m.push(.message);
+            @m.append(.message);
         }
         if $.panic {
-            @m.push($.panic.message);
+            @m.append($.panic.message);
         }
         for @.worries {
-            @m.push(.message);
+            @m.append(.message);
         }
         @m.join("\n")
     }

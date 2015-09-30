@@ -1,15 +1,15 @@
 class CompUnit {
-    has Lock     $!lock;
-    has Str      $.from;
-    has Str      $.name;
-    has Str      $.extension;
-    has Str      $.precomp-ext;
-    has IO::Path $.path;
-    has Str      $!WHICH;
-    has Bool     $.has-source;
-    has Bool     $.has-precomp;
-    has Bool     $.is-loaded;
-    has Mu       $!module_ctx;
+    has Lock $!lock;
+    has Str  $.from;
+    has Str  $.name;
+    has Str  $.extension;
+    has Str  $.path;
+    has Str  $.precomp-path;
+    has Str  $!WHICH;
+    has Bool $.has-source;
+    has Bool $.has-precomp;
+    has Bool $.is-loaded;
+    has Mu   $!module_ctx;
 
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';
@@ -32,17 +32,19 @@ class CompUnit {
         }
 
         # sanity test
-        my $precomp-ext = $*VM.precomp-ext;
+        my $VM = $*VM;
+        my $precomp-path =
+          $VM.precomp-dir ~ '/' ~ "$name.$extension." ~ $VM.precomp-ext;
         $has-source  //= ?$path.IO.f;
-        $has-precomp //= ?"$path.$precomp-ext".IO.f;
+        $has-precomp //= ?$precomp-path.IO.f;
         return Nil unless $has-source or $has-precomp;
 
         $global.protect( { %instances{$path} //= self.bless(
-          :path(IO::Path.new-from-absolute-path($path)),
+          :$path,
           :lock(Lock.new),
           :$name,
           :$extension,
-          :$precomp-ext,
+          :$precomp-path,
           :$from,
           :$has-source,
           :$has-precomp,
@@ -55,10 +57,8 @@ class CompUnit {
     multi method gist(CompUnit:D: --> Str) { "{self.name}:{$!path.abspath}" }
 
     method key(CompUnit:D: --> Str) {
-        $!has-precomp ?? $!precomp-ext !! $!extension;
+        $!has-precomp ?? $*VM.precomp-ext !! $!extension;
     }
-
-    method precomp-path(CompUnit:D: --> Str) { "$!path.$!precomp-ext" }
 
     method precomp(CompUnit:D:
       $out  = self.precomp-path,

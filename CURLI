@@ -1,0 +1,230 @@
+The CompUnitRepo::Local::Installation class (or short: CURLI) is a class
+that is part of the Perl 6 core for installing modules from any source,
+as described in S22.  What S22 does not describe, is directory and file
+layout.  I'll try to explain in this post how I think we should do this,
+having had the experiences (and problems) with panda and the current
+implementation of CURLI.
+
+
+CompUnitRepo::Local::File
+=========================
+Technically, the CURLF is not much of a CompUnitRepo, as it doesn't support
+installing of modules as such.  It is basically just a frontend to the
+module loader that supports Perl 5 like module loading semantics (aka,
+without any from / auth / version / api support) on files that happen to be
+living at a certain location on a file system.  Therefore, a CURLF should
+*never* need to handle precompilation of modules.  A CURLF is intended for
+a development situation, *not* for a production environment.
+
+
+Pluggability / Composability
+============================
+S11 / S22 describe an API.  That API will need to be further defined as
+we get further into implementing CURLI.  The idea should always be that
+*anybody* should be able to create their own CompUnitRepo module (think
+packagers, or companies, or TPF) to their wishes.  So anything CURLI can
+do, should be possible to other developers as well.
+
+
+CURLI Prerequisites
+===================
+- modules are installable from a Distribution object.  Typically a tar-file,
+as already is being used in the panda ecosystem.  A distribution may
+contain 0 or more loadable modules (something a "use", "need" or "require"
+can find) and associated meta-information and/or data.
+- a distribution contains several types of meta-data.  Some parts of these
+will be necessary to select a module for loading (e.g. the auth / version /
+api parts needed for the "candidates" method).  Other parts are only needed
+when actually loading the module (e.g. the %?RESOURCE hash).  Still other
+parts only needed during introspection-like actions at runtime (e.g. calling
+.WHY on a code object, if set up in a non-standard way.  Or finding out
+the actual textual description of the distribution).
+- installed modules need to "survive" a rakudo update/upgrade.  In the
+previous panda implementation, modules needed to be re-installed (over
+the internet) after *every* rakudo update (and that includes *any* rakudo
+recompile).  This becomes very tiresome for core developers and is
+therefore one of reasons why some (bad) changes in rakudo are not seen
+in the ecosystem until it is too late.
+- precompiled modules may need to continue to exist for different versions
+of rakudo.  Think switching between different versions of rakudo using
+rakudobrew: for a given installed base of modules, you don't want to have
+to recompile again and again when switching: you should only need to
+precompile *once* for any rakudo compilation.
+- precompiling all installed (source) modules should be simple, fast and
+possibly asynchronous.  This will allow core developers to more easily do
+a sanity check on changes in rakudo.  It could even become part of
+"make install".
+- the core libraries (such as Test.pm, NativeCall.pm) should be installed
+using the CURLI install process.  It's really a matter of eating your own
+dogfood.  And in the long run should simplify matters.
+- having a large number of modules installed, should have *no* effect on
+bare startup time, either for starting the REPL, or doing a -e.
+- only when a CURLI is asked to look up a module through .candidates,
+should it load the necessary meta-info for satisfying the selection of
+a module only.  This should probably be in some file with a dedicated
+(rakudo version independent) data-format that contains this meta-info for
+*all* installed modules in this CURLI.  For performance, this meta-data
+should probably also live in the form of a precompiled hash that would be
+much faster to load, as no parsing would be needed.
+- the CURLI object for a given base directory, should be a sentinel
+object.  It is free to install distributions asynchronously if so required
+(perhaps the .install method should allow for a number of distributions to
+be installed, instead of just one).  Since the CURLI object is a
+sentinel, it can keep all necessary meta-info for selection of a module
+in memory, and update both the memory copy, as the one on disk when
+installing a distribution.
+- the meta-information of a given distribution, can be considered frozen,
+as the distribution itself (for a given name / auth / version / api).
+Therefore any module related (other than needed for module selection) data
+should live in a rakudo version independent format.  With possibly a
+precompiled version for performance.
+
+
+CompUnit prerequisites
+======================
+- there should only be one sentinel CompUnit object for a given compilation
+unit.  Even if two threads are doing a .candidates simultaneously and return
+the same compilation unit, both threads should share the same CompUnit
+object.
+- when rakudo is asked to load a CompUnit object, it will first determine
+whether the CompUnit object is already loaded (by checking if its .WHICH is
+known).  If it is not known to have been loaded already, it will call the
+.load method on the object.  After which the object should be able to
+provide pertinent information to rakudo about namespaces created, etc. etc.
+(this needs to be worked out further).
+- an implementation of CompUnit only needs to be able to .load it: rakudo
+should take care of all related issues to prevent circularities and double
+loading.
+
+
+Implementation implications
+===========================
+- all precompiled code is bound to a specific rakudo version (compilation,
+actually).  To make management of rakudo versions more easy for helper
+applications such as rakudobrew, all precompiled files that are associated
+with a given CURLI should live in a single directory inside the base
+directory of the CURLI: removal of a rakudo version (compilation, actually)
+would then just mean removing the directory for that compilation.
+- S11 stipulates that limitations of the file system (most notably,
+case-insensitivity nowadays) should not be able to affect the naming of
+modules in any way (so if someone would like to give their module a
+Japanese name, that should Just Work(TM)).  This implies some name
+mangling from the language visible name, to the actual file on the file
+system.  The current CURLI implementation uses numbered files: one could
+argue that some SHA might be better.  But since all installation of modules
+*should* be handled by a single sentinel CURLI object (even across processes,
+so some file system type locking / semaphoring will be needed) it would
+seem that simple numbering is adequate, as having SHA's as filenames would
+not add much information from a file system (ls) point of view anyway.
+
+
+Directory layout
+================
+The rakudo install directory, as well as any CURLI base-directory, may live
+anywhere on a file system to which the user has access.  Only executable
+components need to be installed in system directories such as /usr/local/bin.
+
+Should one wish to have a global, system supplied rakudo, only then it seems
+warranted to actually have the rakudo install directories, as well as any
+CURLI base-directories, at a system location, under protection of sudo/root.
+
+rakudo install directory 
+ |
+ \-- .precomp
+       |
+       \-- (compilation ID: one for each SHA of rakudo)
+             |
+             |-- perl6.moarvm (BOOTSTRAP)
+             |
+             |-- CORE.setting.moarvm
+             |
+             |-- RESTRICTED.setting.moarvm
+             |
+             |-- installed modules meta info (needed for .candidates)
+             |
+             |-- (distribution ID: one for each installed distribution)
+             |     |
+             |     \-- (compunit ID: one for each compunit in the dist)
+             |           |
+             |           |-- runtime meta info if any (e.g. %?RESOURCE)
+             |           |
+             |           |-- precompiled file
+             |           |
+             |           \-- other precompilable data
+             |
+             \-- lib
+                   |
+                   \-- (compunit ID: one for each of Test, NativeCall, etc.)
+                         |
+                         \-- precompiled file
+
+
+(base-directory: one for each CURLI)
+ |
+ \-- (distribution ID: one for each installed distribution)
+       |
+       |-- module meta data for .candidates
+       |
+       \-- (compunit ID: one for each compunit in the dist)
+             |
+             |-- runtime meta info needed for loading
+             |
+             \-- .dist
+                   |
+                   * original distribution files name mangled
+
+
+Cleanup considerations
+======================
+- removing support for a compilation ID of rakudo:
+  rm -rf rakudo install directory/.precomp/(compilation ID)
+- uninstalling a distribution ID:
+  rm -rf base-directory/(distribution ID)
+  rm -rf rakudo install directory/.precomp/(distribution ID)
+
+
+Rakudo loading process (on MoarVM)
+==================================
+- "perl6" is a script that loads moarvm in the install/bin directory.
+  - it passes the name of the script as execname
+  - it passes a libpath to the nqp/lib
+  - it passes a libpath to .
+  - specifies perl6.moarvm (main.nqp) to be run with the given parameters
+    - this loads nqp modules Perl6::Grammar & Perl6::Actions
+      - Perl6::Grammar loads Perl6::World
+    - sets up a Perl6 compiler
+    - calls it with the given (and generated) parameters
+      - token comp_unit then loads the settings (CORE.settings.moarvm)
+    - runs the indicated code
+    - runs the END blocks
+
+From -use- to actual loading
+============================
+- the use/need/require statements should simply generate code that will
+call the appropriate settings sub (e.g. USE/NEED/REQUIRE).  This will move
+most of the higher logic of compunit loading to the Perl 6 level, where it
+is more easily maintained.  Since the actual loading for standard compunits
+will still happen at nqp level, the performance consequences should be
+minimal.
+- to further facilitate development and maintenance, the USE/NEED/REQUIRE
+should probably be multis, with at least different candidates for :from.
+This should allow loading of compunits to become even more pluggable,
+provided a different :from is used.  Such a candidate could even be
+exported by a module (think auto-generated code from a WDSL template
+that you could simply access by saying 'use FooBar:from<wdsl>, where
+the FooBar file would contain the indicated template).
+- the default implementation of USE/NEED will simply go through @?INC
+and ask for .candidates to each of the CUR's.  The first CUR to return
+any CompUnit objects, will stop the search.  If more than one CompUnit
+is returned, a tie-breaking mechanism will be employed.  If this does
+not result in only one remaining CompUnit, then error should occur
+(think a class consuming two roles, where each role is supplying a method
+with the same name: the class will need to resolve this by supplying its
+own method with that name).  In the case of more than one CompUnit, the
+issue should be resolved by supplying a stricter -use-/-need- statement.
+- the tie-breaking logic of USE/NEED can be governed by pragma's in the
+future.  For now, the tie-breaking logic is as follows: if the CompUnits
+are of different auth's, the tie-break will fail.  If the CompUnits have
+different "api" values, the tie-break will fail.  If all CompUnits have
+the same "api" value, then the CompUnit with the highest version will
+be selected.

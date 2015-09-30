@@ -140,18 +140,6 @@ rakudo install directory
              |
              |-- RESTRICTED.setting.moarvm
              |
-             |-- installed modules meta info (needed for .candidates)
-             |
-             |-- (distribution ID: one for each installed distribution)
-             |     |
-             |     \-- (compunit ID: one for each compunit in the dist)
-             |           |
-             |           |-- runtime meta info if any (e.g. %?RESOURCE)
-             |           |
-             |           |-- precompiled file
-             |           |
-             |           \-- other precompilable data
-             |
              \-- lib
                    |
                    \-- (compunit ID: one for each of Test, NativeCall, etc.)
@@ -160,6 +148,22 @@ rakudo install directory
 
 
 (base-directory: one for each CURLI)
+ |
+ |-- .precomp
+ |     |
+ |     \-- (compilation ID: one for each SHA of rakudo)
+ |           |
+ |           \-- (distribution ID: one for each installed distribution)
+ |                 |
+ |                 |-- installed modules meta info (needed for .candidates)
+ |                 |
+ |                 \-- (compunit ID: one for each compunit in the dist)
+ |                       |
+ |                       |-- runtime meta info if any (e.g. %?RESOURCE)
+ |                       |
+ |                       |-- precompiled file
+ |                       |
+ |                       \-- other precompilable data
  |
  \-- (distribution ID: one for each installed distribution)
        |
@@ -178,6 +182,7 @@ Cleanup considerations
 ======================
 - removing support for a compilation ID of rakudo:
   rm -rf rakudo install directory/.precomp/(compilation ID)
+  rm -rf base-directory/(distribution ID)
 - uninstalling a distribution ID:
   rm -rf base-directory/(distribution ID)
   rm -rf rakudo install directory/.precomp/(distribution ID)

@@ -110,43 +110,48 @@ augment class Any {
                         $result := $value
                     }
                     else {
-                        nqp::while(
-                            $redo,
+                      nqp::while(
+                        $redo,
+                        nqp::stmts(
+                          $redo = 0,
+                          nqp::handle(
                             nqp::stmts(
-                                $redo = 0,
-                                nqp::handle(
+                              ($result := &!block($value)),
+                              ($!did-iterate = 1),
+                              nqp::if(
+                                nqp::istype($result, Slip),
+                                nqp::stmts(
+                                  ($result := self.start-slip($result)),
+                                  nqp::if(
+                                    nqp::eqaddr($result, IterationEnd),
                                     nqp::stmts(
-                                        ($result := &!block($value)),
-                                        ($!did-iterate = 1),
-                                        nqp::if(
-                                            nqp::istype($result, Slip),
-                                            nqp::stmts(
-                                                ($result := self.start-slip($result)),
-                                                nqp::if(
-                                                    nqp::eqaddr($result, IterationEnd),
-                                                    nqp::stmts(
-                                                        ($value := $!source.pull-one()),
-                                                        ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
-                                                ))
-                                            )
-                                        ),
-                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                    ),
-                                    'LABELED', nqp::decont($!label),
-                                    'NEXT', nqp::stmts(
-                                        ($!did-iterate = 1),
-                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                        ($value := $!source.pull-one()),
-                                        nqp::eqaddr($value, IterationEnd)
-                                            ?? ($result := IterationEnd)
-                                            !! ($redo = 1)),
-                                    'REDO', $redo = 1,
-                                    'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                                      ($value := $!source.pull-one()),
+                                      ($redo = 1
+                                        unless nqp::eqaddr($value,IterationEnd))
+                                    )
+                                  )
                                 )
+                              ),
+                              nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                             ),
-                            :nohandler);
+                            'LABELED', nqp::decont($!label),
+                            'NEXT', nqp::stmts(
+                               ($!did-iterate = 1),
+                               nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                               ($value := $!source.pull-one()),
+                               nqp::eqaddr($value, IterationEnd)
+                                 ?? ($result := IterationEnd)
+                                 !! ($redo = 1)),
+                             'REDO', $redo = 1,
+                             'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                          )
+                        ),
+                      :nohandler);
                     }
-                    &!block.fire_phasers('LAST') if $!CAN_FIRE_PHASERS && $!did-iterate && nqp::eqaddr($result, IterationEnd);
+                    &!block.fire_phasers('LAST')
+                      if $!CAN_FIRE_PHASERS
+                      && $!did-iterate
+                      && nqp::eqaddr($result,IterationEnd);
                     $result
                 }
 
@@ -167,30 +172,33 @@ augment class Any {
                         else {
                             $redo = 1;
                             nqp::while(
-                                $redo,
-                                nqp::stmts(
-                                    $redo = 0,
-                                    nqp::handle(
-                                        nqp::stmts(
-                                            ($result := &!block($value)),
-                                            ($!did-iterate = 1),
-                                            nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                        ),
-                                        'LABELED', nqp::decont($!label),
-                                        'NEXT', nqp::stmts(
-                                            ($!did-iterate = 1),
-                                            nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                            ($value := $!source.pull-one()),
-                                            nqp::eqaddr($value, IterationEnd)
-                                                ?? ($result := IterationEnd)
-                                                !! ($redo = 1)),
-                                        'REDO', $redo = 1,
-                                        'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
-                                    )
-                                ),
-                                :nohandler);
+                              $redo,
+                              nqp::stmts(
+                                $redo = 0,
+                                nqp::handle(
+                                  nqp::stmts(
+                                    ($result := &!block($value)),
+                                    ($!did-iterate = 1),
+                                    nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                  ),
+                                  'LABELED', nqp::decont($!label),
+                                  'NEXT', nqp::stmts(
+                                    ($!did-iterate = 1),
+                                    nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                    ($value := $!source.pull-one()),
+                                    nqp::eqaddr($value, IterationEnd)
+                                      ?? ($result := IterationEnd)
+                                      !! ($redo = 1)),
+                                  'REDO', $redo = 1,
+                                  'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                                )
+                              ),
+                            :nohandler);
                         }
-                        &!block.fire_phasers('LAST') if $!CAN_FIRE_PHASERS && $!did-iterate && nqp::eqaddr($result, IterationEnd);
+                        &!block.fire_phasers('LAST')
+                          if $!CAN_FIRE_PHASERS
+                          && $!did-iterate
+                          && nqp::eqaddr($result, IterationEnd);
                     }
                     IterationEnd
                 }
@@ -227,46 +235,51 @@ augment class Any {
                     }
                     else {
                         nqp::while(
-                            $redo,
-                            nqp::stmts(
-                                $redo = 0,
-                                nqp::handle(
-                                    nqp::stmts(
-                                        ($result := nqp::p6invokeflat(&!block, $!value-buffer)),
-                                        ($!did-iterate = 1),
-                                        nqp::if(
-                                            nqp::istype($result, Slip),
-                                            nqp::stmts(
-                                                ($result := self.start-slip($result)),
-                                                nqp::if(
-                                                    nqp::eqaddr($result, IterationEnd),
-                                                    nqp::stmts(
-                                                        (nqp::setelems($!value-buffer, 0)),
-                                                        ($redo = 1 unless nqp::eqaddr(
-                                                                $!source.push-exactly($!value-buffer, $!count),
-                                                                IterationEnd)
-                                                            && nqp::elems($!value-buffer) == 0)
-                                                ))
-                                            )
-                                        ),
-                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                    ),
-                                    'LABELED', nqp::decont($!label),
-                                    'NEXT', nqp::stmts(
-                                        ($!did-iterate = 1),
-                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                          $redo,
+                          nqp::stmts(
+                            $redo = 0,
+                            nqp::handle(
+                              nqp::stmts(
+                                ($result := nqp::p6invokeflat(&!block, $!value-buffer)),
+                                ($!did-iterate = 1),
+                                nqp::if(
+                                  nqp::istype($result, Slip),
+                                  nqp::stmts(
+                                    ($result := self.start-slip($result)),
+                                    nqp::if(
+                                      nqp::eqaddr($result, IterationEnd),
+                                      nqp::stmts(
                                         (nqp::setelems($!value-buffer, 0)),
-                                        nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
-                                                && nqp::elems($!value-buffer) == 0
-                                            ?? ($result := IterationEnd)
-                                            !! ($redo = 1)),
-                                    'REDO', $redo = 1,
-                                    'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
-                                )
-                            ),
-                            :nohandler);
+                                        ($redo = 1
+                                          unless nqp::eqaddr(
+                                            $!source.push-exactly($!value-buffer, $!count),
+                                            IterationEnd)
+                                          && nqp::elems($!value-buffer) == 0)
+                                      )
+                                    )
+                                  )
+                                ),
+                                nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                              ),
+                              'LABELED', nqp::decont($!label),
+                              'NEXT', nqp::stmts(
+                                ($!did-iterate = 1),
+                                nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                  (nqp::setelems($!value-buffer, 0)),
+                                  nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
+                                  && nqp::elems($!value-buffer) == 0
+                                    ?? ($result := IterationEnd)
+                                    !! ($redo = 1)),
+                              'REDO', $redo = 1,
+                              'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                            )
+                          ),
+                        :nohandler);
                     }
-                    &!block.fire_phasers('LAST') if $!CAN_FIRE_PHASERS && $!did-iterate && nqp::eqaddr($result, IterationEnd);
+                    &!block.fire_phasers('LAST')
+                      if $!CAN_FIRE_PHASERS
+                      && $!did-iterate
+                      && nqp::eqaddr($result, IterationEnd);
                     $result
                 }
             }.new(&block, source, $count, $label));

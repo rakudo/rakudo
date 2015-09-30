@@ -496,6 +496,12 @@ my class Array { # declared in BOOTSTRAP
         $value;
     }
 
+    proto method pushlol(|) {*}
+    multi method pushlol(Array:D: **@values is raw) {
+        self!ensure-allocated();
+        self!push-list(@values)
+    }
+
     multi method push(Array:D: \value) {
         self!ensure-allocated();
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
@@ -514,8 +520,8 @@ my class Array { # declared in BOOTSTRAP
     multi method push(Array:D: **@values is raw) {
         self!ensure-allocated();
         self!push-list(@values)
-   }
-   method !push-list(@values) {
+    }
+    method !push-list(@values) {
         fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
 
         my \values-iter = @values.iterator;

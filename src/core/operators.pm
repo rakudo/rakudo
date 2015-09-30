@@ -171,22 +171,22 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             $looped = True;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
-                @end_tail.push(value);
+                @end_tail.pushlol(value);
                 if +@end_tail >= $end_code_arity {
                     @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
                     if $endpoint(|@end_tail) {
                         $stop = 1;
-                        @tail.push(value) unless $exclude_end;
+                        @tail.pushlol(value) unless $exclude_end;
                         last;
                     }
                 }
             }
             elsif value ~~ $endpoint {
                 $stop = 1;
-                @tail.push(value) unless $exclude_end;
+                @tail.pushlol(value) unless $exclude_end;
                 last;
             }
-            @tail.push(value);
+            @tail.pushlol(value);
         }
         X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
           unless $looped;
@@ -221,7 +221,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         my @e = $endpoint.comb;
                         my @ranges;
                         for flat @a Z @e -> $from, $to {
-                            @ranges.push: $($from ... $to);
+                            @ranges.pushlol: $($from ... $to);
                         }
                         .take for flat [X~] @ranges;
                         $stop = 1;
@@ -385,37 +385,31 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
 
             if $stop { }
             elsif $code.defined {
-                take $_ for @tail;
+                .take for @tail;
                 my $count = $code.count;
 
                 until $stop {
                     @tail.shift while @tail.elems > $count;
                     my \value = $code(|@tail);
                     if $end_code_arity != 0 {
-                        @end_tail.push(|value);
+                        @end_tail.pushlol(value);
                         if @end_tail.elems >= $end_code_arity {
                             @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
                             if $endpoint(|@end_tail) {
-                                (.take for value) unless $exclude_end;
+                                value.take unless $exclude_end;
                                 $stop = 1;
                             }
                         }
                     }
                     elsif value ~~ $endpoint {
-                        (.take for value) unless $exclude_end;
+                        value.take unless $exclude_end;
                         $stop = 1;
                     }
 
                     if $stop { }
-                    elsif nqp::iscont(value) {
-                        @tail.push(value);
-                        take value;
-                    }
                     else {
-                        for value -> \v {
-                            @tail.push(v);
-                            v.take;
-                        }
+                        @tail.pushlol(value);
+                        value.take;
                     }
                 }
             }

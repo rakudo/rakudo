@@ -1,4 +1,8 @@
-my constant $?COMPILATION-ID := nqp::getcomp('perl6').compilation-id;
+my constant $?COMPILATION-ID :=
+  nqp::sha1(nqp::concat(
+    $*W.handle,
+    nqp::getcomp('perl6').compilation-id
+  ));
 
 multi sub INITIALIZE_DYNAMIC('$*RAKUDO_MODULE_DEBUG') {
     PROCESS::<$RAKUDO_MODULE_DEBUG> := +?%*ENV<RAKUDO_MODULE_DEBUG>;

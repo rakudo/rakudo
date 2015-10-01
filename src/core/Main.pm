@@ -45,13 +45,20 @@ my sub MAIN_HELPER($retval = 0) {
     my sub gen-usage() {
         my @help-msgs;
 
+        my $is-win = $*DISTRO.is-win;
+        my $is-insensitive = $is-win or $*DISTRO ~~ /^macosx/;
         my sub strip_path_prefix($name) {
             my $SPEC := $*SPEC;
             my ($vol, $dir, $base) = $SPEC.splitpath($name);
             $dir = $SPEC.canonpath($dir);
             for $SPEC.path() -> $elem {
-                if $SPEC.catpath($vol, $elem, $base).IO.x {
-                    return $base if $SPEC.canonpath($elem) eq $dir;
+                my $io = $SPEC.join("", $SPEC.rel2abs($elem), $base).IO;
+                if $io.x or ($is-win and $io.e) {
+                    if $is-insensitive {
+                        return $base if lc $SPEC.canonpath($elem) eq lc "$vol$dir";
+                    } else {
+                        return $base if $SPEC.canonpath($elem) eq "$vol$dir";
+                    }
                     # Shadowed command found in earlier PATH element
                     return $name;
                 }

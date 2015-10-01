@@ -496,9 +496,21 @@ my class Array { # declared in BOOTSTRAP
         $value;
     }
 
-    # Note, do not add a variant for a single value unless you also handle Slip right.
-    # SEQ depends on being able to @tail.push(value) and let the sequence op iterator
-    # slip in multiple values.
+    # MUST have a separate Slip variant
+    multi method push(Array:D: Slip \value) {
+        self!ensure-allocated();
+        self!append-list(value);
+    }
+    multi method push(Array:D: \value) {
+        self!ensure-allocated();
+        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
+
+        nqp::push(
+          nqp::getattr(self, List, '$!reified'),
+          nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
+        );
+        self
+    }
     multi method push(Array:D: **@values is raw) {
         self!ensure-allocated();
         self!append-list(@values)

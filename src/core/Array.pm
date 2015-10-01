@@ -548,11 +548,22 @@ my class Array { # declared in BOOTSTRAP
         self
     }
 
+    multi method unshift(Array:D: Slip \value) {
+        self!ensure-allocated();
+        self!prepend-list(value)
+    }
+    multi method unshift(Array:D: \value) {
+        self!ensure-allocated();
+        nqp::unshift(
+            nqp::getattr(self, List, '$!reified'),
+            nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
+        );
+        self
+    }
     multi method unshift(Array:D: **@values is raw) {
         self!ensure-allocated();
         self!prepend-list(@values)
     }
-
     multi method prepend(Array:D: \value) {
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             self!ensure-allocated();

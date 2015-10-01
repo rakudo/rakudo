@@ -7830,6 +7830,8 @@ Compilation unit '$file' contained the following violations:
         %curried{'&infix:<=>'}    := 0;
         %curried{'&infix:<:=>'}   := 0;
         %curried{'&infix:<~~>'}   := 1;
+        %curried{'&infix:<∘>'}   := 1;
+        %curried{'&infix:<o>'}   := 1;
         %curried{'&infix:<..>'}   := 2;
         %curried{'&infix:<..^>'}  := 2;
         %curried{'&infix:<^..>'}  := 2;

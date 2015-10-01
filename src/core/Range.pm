@@ -274,7 +274,7 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method Numeric(Range:D:) {
-        nextsame unless nqp::istype($.max,Numeric) && nqp::istype($.min,Numeric);
+        return self.flat.elems unless nqp::istype($.max,Numeric) && nqp::istype($.min,Numeric);
 
         my $diff := $.max - $.min - $.excludes-min;
 

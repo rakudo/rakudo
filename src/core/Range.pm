@@ -105,21 +105,28 @@ my class Range is Cool does Iterable does Positional {
                 has int $!i;
                 has int $!n;
 
-                method new(int $i, int $n) {
-                    my \iter = self.CREATE;
-                    nqp::bindattr_i(iter, self, '$!i', $i);
-                    nqp::bindattr_i(iter, self, '$!n', $n);
-                    iter
-                }
+                method BUILD(int $i, int $n) { $!i = $i - 1; $!n = $n; self }
+                method new(\i,\n) { nqp::create(self).BUILD(i,n) }
 
                 method pull-one() {
-                    my int $i = $!i;
-                    $!i = $i + 1;
-                    $i <= $!n ?? $i !! IterationEnd
+                    ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
                 }
-
-                # XXX GLR implement push-exactly and push-at-least for the
-                # performance win!
+                method push-exactly($target, int $n) {
+                    my int $i;
+                    $target.push(nqp::p6box_i($!i))
+                      while (  $i =  $i + 1 ) <= $n   # not done all requested
+                        &&  ( $!i = $!i + 1 ) <= $!n; # value in range
+                    $!i < $!n ?? $i - 1 !! IterationEnd
+                }
+                method push-all($target) {
+                    $target.push(nqp::p6box_i($!i))
+                      while ( $!i = $!i + 1 ) <= $!n;
+                    IterationEnd
+                }
+                method sink-all() {
+                    $!i = $!n;
+                    IterationEnd
+                }
             }.new($value, $!excludes-max ?? $!max - 1 !! $!max)
         }
 

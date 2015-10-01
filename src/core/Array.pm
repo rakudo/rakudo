@@ -496,9 +496,10 @@ my class Array { # declared in BOOTSTRAP
         $value;
     }
 
-    # MUST have a separate Slip variant
+    # MUST have a separate Slip variant to have it slip
     multi method push(Array:D: Slip \value) {
         self!ensure-allocated();
+        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
         self!append-list(value);
     }
     multi method push(Array:D: \value) {
@@ -513,14 +514,14 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method push(Array:D: **@values is raw) {
         self!ensure-allocated();
+        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
         self!append-list(@values)
     }
 
     multi method append(Array:D: \value) {
         self!ensure-allocated();
+        fail X::Cannot::Lazy.new(action => 'append to') if self.is-lazy;
         if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
-            fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
-
             nqp::push(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -533,11 +534,10 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method append(Array:D: **@values is raw) {
         self!ensure-allocated();
+        fail X::Cannot::Lazy.new(action => 'append to') if self.is-lazy;
         self!append-list(@values)
     }
     method !append-list(@values) {
-        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
-
         my \values-iter = @values.iterator;
         my \reified := nqp::getattr(self, List, '$!reified');
         my \target := ArrayReificationTarget.new(reified,

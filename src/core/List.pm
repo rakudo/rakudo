@@ -652,71 +652,93 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     proto method pick(|) is nodal { * }
-    multi method pick() {
+    multi method pick(List:D:) {
         fail X::Cannot::Lazy.new(:action('.pick from'))
             if self.is-lazy;
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
     }
-    multi method pick(Whatever, :$eager!) {
-        return self.pick(*) if !$eager;
-
+    multi method pick(List:D: Whatever) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
-
         my Int $elems = self.elems;
         return () unless $elems;
 
-        my Mu $picked := nqp::clone($!reified);
-        my int $i;
-        my Mu $val;
-        while $elems {
-            $i     = $elems.rand.floor;
-            $elems = $elems - 1;
-            # switch them
-            $val  := nqp::atpos($picked,$i);
-            nqp::bindpos($picked,$i,nqp::atpos($picked,nqp::unbox_i($elems)));
-            nqp::bindpos($picked,nqp::unbox_i($elems),$val);
-        }
-        $picked;
+        Seq.new(class :: does Iterator {
+            has Int $!elems;
+            has $!list;
+
+            submethod BUILD(\list,$!elems) {
+                $!list := nqp::clone(nqp::getattr(list,List,'$!reified'));
+                self
+            }
+            method new(\list,\elems) { nqp::create(self).BUILD(list,elems) }
+            method pull-one() {
+                my int $i;
+                if $!elems {
+                    my \tmp = nqp::atpos($!list,$i = $!elems.rand.floor);
+                    nqp::bindpos(
+                      $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
+                    tmp
+                }
+                else {
+                    IterationEnd
+                }
+            }
+            method push-all($target) {
+                my int $i;
+                while $!elems {
+                    $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
+                    nqp::bindpos(
+                      $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
+                }
+                IterationEnd
+            }
+        }.new(self,$elems))
     }
-    multi method pick(Whatever) {
+    multi method pick(List:D: Int() $number) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
-
         my Int $elems = self.elems;
         return () unless $elems;
 
-        my Mu $clone := nqp::clone($!reified);
-        my int $i;
-        gather while $elems {
-            $i     = $elems.rand.floor;
-            $elems = $elems - 1;
-            take-rw nqp::atpos($clone,$i);
-            # replace selected element with last unpicked one
-            nqp::bindpos($clone,$i,nqp::atpos($clone,nqp::unbox_i($elems)));
-        }
-    }
-    multi method pick(\number) {
-        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
+        $number >= $elems
+         ?? self.pick(*)
+         !! Seq.new(class :: does Iterator {
+                has $!list;
+                has Int $!elems;
+                has int $!number;
 
-        ## We use a version of Fisher-Yates shuffle here to
-        ## replace picked elements with elements from the end
-        ## of the list, resulting in an O(n) algorithm.
-
-        my Int $elems = self.elems;
-        return () unless $elems;
-
-        my int $n = number > $elems ?? $elems !! number.Int;
-
-        my Mu $clone := nqp::clone($!reified);
-        my int $i;
-        gather while $n {
-            $i     = $elems.rand.floor;
-            $elems = $elems - 1;
-            $n     = $n - 1;
-            take-rw nqp::atpos($clone,$i);
-            # replace selected element with last unpicked one
-            nqp::bindpos($clone,$i,nqp::atpos($clone,nqp::unbox_i($elems)));
-        }
+                submethod BUILD(\list,$!elems,\number) {
+                    $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
+                    $!number = number;
+                    self
+                }
+                method new(\list,\elems,\number) {
+                    nqp::create(self).BUILD(list,elems,number)
+                }
+                method pull-one() {
+                    my int $i;
+                    if $!number {
+                        my \tmp = nqp::atpos($!list,$i = $!elems.rand.floor);
+                        nqp::bindpos(
+                          $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
+                        $!number = $!number - 1;
+                        tmp
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+                method push-all($target) {
+                    my int $i;
+                    while $!number {
+                        $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
+                        nqp::bindpos(
+                          $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
+                        $!number = $!number - 1;
+                    }
+                    IterationEnd
+                }
+            }.new(self,$elems,$number))
     }
 
     proto method roll(|) is nodal { * }

@@ -67,7 +67,7 @@ my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Map metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Bool metaclass Perl6::Metamodel::EnumHOW { ... };
 my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
@@ -2741,13 +2741,23 @@ BEGIN {
     Junction.HOW.add_attribute(Junction, scalar_attr('$!type', Mu, Junction));
     Junction.HOW.compose_repr(Junction);
     
-    # class Bool is Cool {
+    # class Bool is Int {
+    #     has str $!key;
     #     has int $!value;
-    Bool.HOW.add_parent(Bool, Cool);
-    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1), :package(Bool)));
+    Bool.HOW.set_base_type(Bool, Int);
+    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!key>, :type(str), :package(Bool)));
+    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :package(Bool)));
     Bool.HOW.set_boolification_mode(Bool, 1);
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
+    Bool.HOW.add_method(Bool, 'key', nqp::getstaticcode(sub ($self) {
+            nqp::getattr_s(nqp::decont($self),
+                Bool, '$!key');
+        }));
+    Bool.HOW.add_method(Bool, 'value', nqp::getstaticcode(sub ($self) {
+            nqp::getattr_i(nqp::decont($self),
+                Bool, '$!value');
+        }));
 
     # class ObjAt is Any {
     #     has str $!value;
@@ -2810,7 +2820,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Map);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(Capture);
-    Perl6::Metamodel::ClassHOW.add_stash(Bool);
+    Perl6::Metamodel::EnumHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
@@ -2852,10 +2862,16 @@ BEGIN {
 
     # Bool::False and Bool::True.
     my $false := nqp::create(Bool);
+    nqp::bindattr_s($false, Bool, '$!key', 'False');
     nqp::bindattr_i($false, Bool, '$!value', 0);
+    nqp::bindattr_i($false, Int, '$!value', 0);
+    Bool.HOW.add_enum_value(Bool, $false);
     (Bool.WHO)<False> := $false;
     my $true := nqp::create(Bool);
+    nqp::bindattr_s($true, Bool, '$!key', 'True');
     nqp::bindattr_i($true, Bool, '$!value', 1);
+    nqp::bindattr_i($true, Int, '$!value', 1);
+    Bool.HOW.add_enum_value(Bool, $true);
     (Bool.WHO)<True> := $true;
 
     # Setup some regexy/grammary bits.

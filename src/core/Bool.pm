@@ -1,49 +1,72 @@
-my class Bool { # declared in BOOTSTRAP
-    # class Bool is Cool {
-    #     has int $!value;
+# enum Bool declared in BOOTSTRAP
+BEGIN {
+    Bool.^add_method('Bool',    my proto method Bool(|)    { * });
+    Bool.^add_method('gist',    my proto method gist(|)    { * });
+    Bool.^add_method('Str',     my proto method Str(|)     { * });
+    Bool.^add_method('Numeric', my proto method Numeric(|) { * });
+    Bool.^add_method('ACCEPTS', my proto method ACCEPTS(|) { * });
+    Bool.^add_method('pick',    my proto method pick(|) { * });
+    Bool.^add_method('roll',    my proto method roll(|) { * });
+    Bool.^add_method('perl',    my proto method perl(|) { * });
+}
+BEGIN {
+    Bool.^add_multi_method('Bool',    my multi method Bool(Bool:D:)    { self });
+    Bool.^add_multi_method('gist',    my multi method gist(Bool:D:)    { self ?? 'True' !! 'False' });
+    Bool.^add_multi_method('Str',     my multi method Str(Bool:D:)     { self ?? 'True' !! 'False' });
+    Bool.^add_multi_method('Numeric', my multi method Numeric(Bool:D:) { self ?? 1 !! 0 });
+    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:D: Mu \topic ) { self });
+    Bool.^add_multi_method('perl', my multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' });
 
-    multi method Bool(Bool:D:)    { self }
-    multi method Numeric(Bool:D:) { self ?? 1 !! 0 }
-    multi method Str(Bool:D:)     { self ?? 'True' !! 'False' }
-    multi method gist(Bool:D:)    { self ?? 'True' !! 'False' }
-    multi method DUMP(Bool:D:)    { self.Str }
+    Bool.^add_multi_method('pick', my multi method pick(Bool:U:)    { nqp::p6bool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
+    Bool.^add_multi_method('roll', my multi method roll(Bool:U:)    { nqp::p6bool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
+}
+BEGIN {
+    Bool.^add_multi_method('Bool',    my multi method Bool(Bool:U:)    { Bool::False });
+    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: Mu \topic ) { nqp::istype(topic, Bool) });
+    Bool.^add_multi_method('gist',    my multi method gist(Bool:U:)    { '(Bool)' });
+    Bool.^add_multi_method('perl', my multi method perl(Bool:U:) { 'Bool' });
 
-    method Int()     { self ?? 1 !! 0 }
+    Bool.^add_multi_method('pick', my multi method pick(Bool:U: $n) { (Bool::True,Bool::False).pick($n) });
+    Bool.^add_multi_method('roll', my multi method roll(Bool:U: $n) { (Bool::True,Bool::False).roll($n) });
 
-    method pred() { Bool::False }
-    method succ() { Bool::True }
+    Bool.^add_method('pred',  my method pred() { Bool::False });
+    Bool.^add_method('succ',  my method succ() { Bool::True });
 
-    method key() { self.Str }
-    method value() { self.Numeric }
-
-    proto method pick(|) { * }
-    multi method pick(Bool:U:)    { nqp::p6bool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) }
-    multi method pick(Bool:U: $n) { (Bool::True,Bool::False).pick($n) }
-
-    proto method roll(|) { * }
-    multi method roll(Bool:U:)    { nqp::p6bool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) }
-    multi method roll(Bool:U: $n) { (Bool::True,Bool::False).roll($n) }
-
-    multi method ACCEPTS(Bool:D: Mu \topic ) { self }
-
-    multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' }
-
-    method enums() {
-        my % = False => 0, True => 1
-    }
+    Bool.^compose;
 }
 
-multi sub prefix:<++>(Bool:U $a is rw)  { $a = True; }
-multi sub prefix:<-->(Bool:U $a is rw)  { $a = False; }
+multi sub prefix:<++>(Bool $a is rw)  { $a = True; }
+multi sub prefix:<-->(Bool $a is rw)  { $a = False; }
 multi sub postfix:<++>(Bool:U $a is rw) { $a = True; False; }
 multi sub postfix:<-->(Bool:U $a is rw) { $a = False; }
 
+multi sub postfix:<++>(Bool:D $a is rw) {
+    if $a {
+        True
+    }
+    else {
+        $a = True;
+        False
+    }
+}
+multi sub postfix:<-->(Bool:D $a is rw) {
+    if $a {
+        $a = False;
+        True
+    }
+    else {
+        False
+    }
+}
+
 proto sub prefix:<?>(Mu $) is pure { * }
 multi sub prefix:<?>(Bool:D \a) { a }
+multi sub prefix:<?>(Bool:U \a) { Bool::False }
 multi sub prefix:<?>(Mu \a) { a.Bool }
 
 proto sub prefix:<so>(Mu $) is pure { * }
 multi sub prefix:<so>(Bool:D \a) { a }
+multi sub prefix:<so>(Bool:U \a) { Bool::False }
 multi sub prefix:<so>(Mu \a) { a.Bool }
 
 proto sub prefix:<!>(Mu $) is pure { * }

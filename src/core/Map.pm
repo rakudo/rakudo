@@ -59,18 +59,25 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method iterator(Map:) { self.pairs.iterator }
     method list(Map:) { self.pairs.cache }
 
+    my role MapIterator does Iterator { # needs to be my for some reason
+        has $!hash-storage;
+        has $!hash-iter;
+
+        method BUILD(\hash) {
+            $!hash-storage := nqp::getattr(hash, Map, '$!storage');
+            $!hash-storage := nqp::hash() unless $!hash-storage.DEFINITE;
+            $!hash-iter    := nqp::iterator($!hash-storage);
+            self
+        }
+        method new(\hash) { nqp::create(self).BUILD(hash) }
+        method count-only() {
+            $!hash-iter := Mu;
+            nqp::p6box_i(nqp::elems($!hash-storage))
+        }
+    }
+
     multi method pairs(Map:D:) {
-        $!storage := nqp::hash() unless $!storage.DEFINITE;
-        Seq.new(class :: does Iterator {
-            has $!hash-iter;
-
-            method new(\hash) {
-                my \iter = self.CREATE;
-                nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
-                iter
-            }
-
+        Seq.new(class :: does MapIterator {
             method pull-one() {
                 if $!hash-iter {
                     my \tmp = nqp::shift($!hash-iter);
@@ -80,39 +87,33 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     IterationEnd
                 }
             }
+            method push-all($target) {
+                while $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    $target.push(
+                      Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp)));
+                }
+                IterationEnd
+            }
         }.new(self))
     }
     multi method keys(Map:D:) {
-        $!storage := nqp::hash() unless $!storage.DEFINITE;
-        Seq.new(class :: does Iterator {
-            has $!hash-iter;
-
-            method new(\hash) {
-                my \iter = self.CREATE;
-                nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
-                iter
-            }
-
+        Seq.new(class :: does MapIterator {
             method pull-one() {
                 $!hash-iter
                     ?? nqp::iterkey_s(nqp::shift($!hash-iter))
                     !! IterationEnd
             }
+            method push-all($target) {
+                $target.push(nqp::iterkey_s(nqp::shift($!hash-iter)))
+                  while $!hash-iter;
+                IterationEnd
+            }
         }.new(self))
     }
     multi method kv(Map:D:) {
-        $!storage := nqp::hash() unless $!storage.DEFINITE;
-        Seq.new(class :: does Iterator {
-            has $!hash-iter;
+        Seq.new(class :: does MapIterator {
             has int $!on-value;
-
-            method new(\hash) {
-                my \iter = self.CREATE;
-                nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
-                iter
-            }
 
             method pull-one() is raw {
                 if $!on-value {
@@ -128,29 +129,50 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     IterationEnd
                 }
             }
+            method push-all($target) {
+                while $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    $target.push(nqp::iterkey_s(tmp));
+                    $target.push(nqp::iterval(tmp));
+                }
+                IterationEnd
+            }
         }.new(self))
     }
     multi method values(Map:D:) {
-        $!storage := nqp::hash() unless $!storage.DEFINITE;
-        Seq.new(class :: does Iterator {
-            has $!hash-iter;
-
-            method new(\hash) {
-                my \iter = self.CREATE;
-                nqp::bindattr(iter, self, '$!hash-iter',
-                    nqp::iterator(nqp::getattr(hash, Map, '$!storage')));
-                iter
-            }
-
+        Seq.new(class :: does MapIterator {
             method pull-one() is raw {
                 $!hash-iter
                     ?? nqp::iterval(nqp::shift($!hash-iter))
                     !! IterationEnd
             }
+            method push-all($target) {
+                $target.push(nqp::iterval(nqp::shift($!hash-iter)))
+                  while $!hash-iter;
+                IterationEnd
+            }
         }.new(self))
     }
     multi method antipairs(Map:D:) {
-        self.map: { .value => .key }
+        Seq.new(class :: does MapIterator {
+            method pull-one() {
+                if $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) )
+                }
+                else {
+                    IterationEnd
+                }
+            }
+            method push-all($target) {
+                while $!hash-iter {
+                    my \tmp = nqp::shift($!hash-iter);
+                    $target.push(
+                      Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) ));
+                }
+                IterationEnd
+            }
+        }.new(self))
     }
     multi method invert(Map:D:) {
         self.map: { (.value »=>» .key).cache.Slip }

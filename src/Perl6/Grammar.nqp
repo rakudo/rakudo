@@ -3608,7 +3608,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<x=>, :assoc<unary>, :dba<autoincrement>', '%autoincrement');
         Perl6::Grammar.O(':prec<w=>, :assoc<right>, :dba<exponentiation>', '%exponentiation');
         Perl6::Grammar.O(':prec<v=>, :assoc<unary>, :dba<symbolic unary>', '%symbolic_unary');
-        Perl6::Grammar.O(':prec<v=>, :assoc<left>, :dba<dotty infix>, :nextterm<dottyopish>, :sub<z=>', '%dottyinfix');
+        Perl6::Grammar.O(':prec<v=>, :assoc<left>, :dba<dotty infix>, :nextterm<dottyopish>, :sub<z=>, :fiddly<1>', '%dottyinfix');
         Perl6::Grammar.O(':prec<u=>, :assoc<left>, :dba<multiplicative>',  '%multiplicative');
         Perl6::Grammar.O(':prec<t=>, :assoc<left>, :dba<additive>',  '%additive');
         Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication>',  '%replication');
@@ -4040,6 +4040,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
     token infix:sym<.>    { <sym> <.ws>
+        <!{ $*IN_REDUCE }>
         [<-alpha>  <.obs('. to concatenate strings', '~')>]?
         <O('%dottyinfix')>
     }

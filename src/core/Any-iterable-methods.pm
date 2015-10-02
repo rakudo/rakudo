@@ -141,9 +141,13 @@ augment class Any {
                                ($value := $!source.pull-one()),
                                nqp::eqaddr($value, IterationEnd)
                                  ?? ($result := IterationEnd)
-                                 !! ($redo = 1)),
-                             'REDO', $redo = 1,
-                             'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                                 !! ($redo = 1)
+                            ),
+                            'REDO', $redo = 1,
+                            'LAST', nqp::stmts(
+                              ($!did-iterate = 1),
+                              ($result := IterationEnd)
+                            )
                           )
                         ),
                       :nohandler);
@@ -190,7 +194,10 @@ augment class Any {
                                       ?? ($result := IterationEnd)
                                       !! ($redo = 1)),
                                   'REDO', $redo = 1,
-                                  'LAST', nqp::stmts(($!did-iterate = 1), ($result := IterationEnd))
+                                  'LAST', nqp::stmts(
+                                    ($!did-iterate = 1),
+                                    ($result := IterationEnd)
+                                  )
                                 )
                               ),
                             :nohandler);

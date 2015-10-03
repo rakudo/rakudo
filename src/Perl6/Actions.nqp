@@ -7651,7 +7651,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     sub make_dot_equals($target, $call) {
-        $call.unshift($*W.add_string_constant($call.name));
+        $call.unshift($*W.add_string_constant($call.name)) if $call.name || !$call.list;
         $call.unshift($target);
         $call.name('dispatch:<.=>');
         $call.op('callmethod');

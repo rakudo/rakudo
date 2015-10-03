@@ -658,17 +658,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my $elems = self.elems;
         $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
     }
-    multi method pick(List:D: Whatever) {
+    multi method pick(List:D: $number is copy) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
         my Int $elems = self.elems;
-        $elems ?? self!pick($elems,$elems) !! ()
-    }
-    multi method pick(List:D: Int() $number) {
-        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
-        my Int $elems = self.elems;
-        $elems ?? self!pick($elems,$number min $elems) !! ()
-    }
-    method !pick(\elems,\number) {
+        return () unless $elems;
+
+        $number = nqp::istype($number,Whatever) || $number == Inf
+          ?? $elems
+          !! $number.Int min $elems;
         Seq.new(class :: does Iterator {
             has $!list;
             has Int $!elems;
@@ -705,7 +702,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 }
                 IterationEnd
             }
-        }.new(self,elems,number))
+        }.new(self,$elems,$number))
     }
 
     proto method roll(|) is nodal { * }

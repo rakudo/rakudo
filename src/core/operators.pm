@@ -254,7 +254,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
                     if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) && nqp::istype($c,Real) {
-                        if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 $stop = 1 if $a > $endpoint;
                                 $code = -> $x {
@@ -284,7 +284,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     $ab = $b / $a;
                     if $ab == $c / $b {
                         $ab = $ab.Int if nqp::istype($ab,Rat) && $ab.denominator == 1;
-                        if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 if $ab > 1  {
                                     $stop = 1 if $a > $endpoint;
@@ -328,7 +328,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             elsif @tail.elems == 2 {
                 my $ab = $b - $a;
                 if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
-                    if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                    if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
                         if $ab > 0 {
                             $stop = 1 if $a > $endpoint;
                             $code = -> $x {
@@ -359,7 +359,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 if nqp::istype($endpoint,Code) or not nqp::isconcrete($endpoint) {
                     $code = { $^x.succ }
                 }
-                elsif nqp::istype($endpoint, Real) and nqp::istype($a, Real) {
+                elsif nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::istype($a, Real) {
                     if $a < $endpoint {
                         $code = -> $x {
                             my $new = $x.succ;

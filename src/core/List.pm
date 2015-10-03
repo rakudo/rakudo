@@ -661,23 +661,34 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method pick(List:D: Whatever) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
         my Int $elems = self.elems;
-        return () unless $elems;
-
+        $elems ?? self!pick($elems,$elems) !! ()
+    }
+    multi method pick(List:D: Int() $number) {
+        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
+        my Int $elems = self.elems;
+        $elems ?? self!pick($elems,$number min $elems) !! ()
+    }
+    method !pick(\elems,\number) {
         Seq.new(class :: does Iterator {
-            has Int $!elems;
             has $!list;
+            has Int $!elems;
+            has int $!number;
 
-            submethod BUILD(\list,$!elems) {
-                $!list := nqp::clone(nqp::getattr(list,List,'$!reified'));
+            submethod BUILD(\list,$!elems,\number) {
+                $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
+                $!number = number;
                 self
             }
-            method new(\list,\elems) { nqp::create(self).BUILD(list,elems) }
+            method new(\list,\elems,\number) {
+                nqp::create(self).BUILD(list,elems,number)
+            }
             method pull-one() {
                 my int $i;
-                if $!elems {
+                if $!number {
                     my \tmp = nqp::atpos($!list,$i = $!elems.rand.floor);
                     nqp::bindpos(
                       $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
+                    $!number = $!number - 1;
                     tmp
                 }
                 else {
@@ -686,59 +697,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my int $i;
-                while $!elems {
+                while $!number {
                     $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
                     nqp::bindpos(
                       $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
+                    $!number = $!number - 1;
                 }
                 IterationEnd
             }
-        }.new(self,$elems))
-    }
-    multi method pick(List:D: Int() $number) {
-        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
-        my Int $elems = self.elems;
-        return () unless $elems;
-
-        $number >= $elems
-         ?? self.pick(*)
-         !! Seq.new(class :: does Iterator {
-                has $!list;
-                has Int $!elems;
-                has int $!number;
-
-                submethod BUILD(\list,$!elems,\number) {
-                    $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
-                    $!number = number;
-                    self
-                }
-                method new(\list,\elems,\number) {
-                    nqp::create(self).BUILD(list,elems,number)
-                }
-                method pull-one() {
-                    my int $i;
-                    if $!number {
-                        my \tmp = nqp::atpos($!list,$i = $!elems.rand.floor);
-                        nqp::bindpos(
-                          $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
-                        $!number = $!number - 1;
-                        tmp
-                    }
-                    else {
-                        IterationEnd
-                    }
-                }
-                method push-all($target) {
-                    my int $i;
-                    while $!number {
-                        $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
-                        nqp::bindpos(
-                          $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
-                        $!number = $!number - 1;
-                    }
-                    IterationEnd
-                }
-            }.new(self,$elems,$number))
+        }.new(self,elems,number))
     }
 
     proto method roll(|) is nodal { * }

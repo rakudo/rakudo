@@ -151,84 +151,60 @@ my role Baggy does QuantHash {
     sub ROLLPICKGRAB1($self,@pairs) { # one time
         my Int $rand = $self.total.rand.Int;
         my Int $seen = 0;
-        for @pairs -> $pair {
-            return $pair.key if ( $seen += $pair.value ) > $rand;
-        }
+        return .key if ( $seen += .value ) > $rand for @pairs;
         Nil;
     }
 
-    sub ROLLPICKGRABN(                                        # N times
-      $self, $count, @pairs, :$keep
-    ) {
-        my Int $total = $self.total;
-        my Int $rand;
-        my Int $seen;
-        my int $todo = ($keep ?? $count !! ($total min $count)) + 1;
+    sub ROLLPICKGRABN($self, \count, @pairs, :$keep) { # N times
+        Seq.new(class :: does Iterator {
+            has Int $!total;
+            has @!pairs;
+            has int $!todo;
+            has int $!keep;
 
-#?if jvm
-        map {
-            my $selected is default(Nil);
-#?endif
-#?if !jvm
-        gather while $todo = $todo - 1 {
-#?endif
-            $rand = $total.rand.Int;
-            $seen = 0;
-            for @pairs -> $pair {
-                next if ( $seen += $pair.value ) <= $rand;
-
-#?if jvm
-                $selected = $pair.key;
-#?endif
-#?if !jvm
-                take $pair.key;
-#?endif
-                last if $keep;
-
-                $pair.value--;
-                $total = $total - 1;
-                last;
+            method BUILD($!total, @!pairs, \keep, \todo) {
+                $!todo = todo;
+                $!keep = +?keep;
+                self
             }
-#?if jvm
-            $selected;
-        }, 2..$todo;
-#?endif
-#?if !jvm
-        }
-#?endif
+            method new(\total,\pairs,\keep,\count) {
+                nqp::create(self).BUILD(
+                  total, pairs, keep, keep ?? count !! (total min count))
+            }
+
+            method pull-one() {
+                if $!todo {
+                    my Int $rand = $!total.rand.Int;
+                    my Int $seen = 0;
+                    $!todo = $!todo - 1;
+                    for @!pairs {
+                        if ( $seen += .value ) > $rand {
+                            .value--, $!total-- unless $!keep;
+                            return .key;
+                        }
+                    }
+                }
+                IterationEnd
+            }
+        }.new($self.total,@pairs,$keep,count))
     }
 
     sub ROLLPICKGRABW($self,@pairs) { # keep going
-        my Int $total = $self.total;
-        my Int $rand;
-        my Int $seen;
+        Seq.new(class :: does Iterator {
+            has Int $!total;
+            has @!pairs;
 
-#?if jvm
-        map {
-            my $selected is default(Nil);
-#?endif
-#?if !jvm
-        gather loop {
-#?endif
-            $rand = $total.rand.Int;
-            $seen = 0;
-            for @pairs -> $pair {
-                next if ( $seen += $pair.value ) <= $rand;
-#?if jvm
-                $selected = $pair.key;
-#?endif
-#?if !jvm
-                take $pair.key;
-#?endif
-                last;
+            method BUILD($!total, @!pairs) { self }
+            method new(\total,\pairs) { nqp::create(self).BUILD(total,pairs) }
+            method is-lazy() { True }
+
+            method pull-one() {
+                my Int $rand = $!total.rand.Int;
+                my Int $seen = 0;
+                return .key if ( $seen += .value ) > $rand for @!pairs;
+                IterationEnd
             }
-#?if jvm
-            $selected;
-        }, *;
-#?endif
-#?if !jvm
-        }
-#?endif
+        }.new($self.total,@pairs))
     }
 
     proto method classify-list(|) { * }

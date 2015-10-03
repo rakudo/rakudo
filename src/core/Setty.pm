@@ -20,13 +20,7 @@ my role Setty does QuantHash {
         %e;
     }
 
-    multi method new(Setty: \value) {
-      nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))
-        ?? self!new([value])
-        !! self!new([|value])
-    }
-    multi method new(Setty: **@args) { self!new(@args) }
-    method !new(@args) {
+    multi method new(Setty: +@args) {
         my %e;
         %e{$_.WHICH} = $_ for @args;
         self.bless(:elems(%e))

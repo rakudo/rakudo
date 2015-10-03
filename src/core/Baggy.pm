@@ -18,13 +18,7 @@ my role Baggy does QuantHash {
 
     method hash(Baggy:D: --> Hash) { %!elems.values.hash }
 
-    multi method new(Baggy: \value) {
-      nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))
-        ?? self!new([value]) 
-        !! self!new([|value])
-    }
-    multi method new(Baggy: **@args) { self!new(@args) }
-    method !new(@args) {
+    multi method new(Baggy: +@args) {
         my %e;
         # need explicit signature because of #119609
         -> $_ { (%e{$_.WHICH} //= ($_ => my $ = 0)).value++ } for @args;

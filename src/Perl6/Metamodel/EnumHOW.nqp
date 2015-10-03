@@ -147,7 +147,11 @@ class Perl6::Metamodel::EnumHOW
         }
         $!role
     }
-    
+
+    method is_composed($obj) {
+        $!composed
+    }
+
     method does_list($obj) {
         @!does_list
     }

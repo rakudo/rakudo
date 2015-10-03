@@ -7,8 +7,9 @@ my class Failure {
         self.bless(:$exception);
     }
     multi method new($payload =
-        (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
-         ?? CALLER::CALLER::('$!') !! 'Failed') {
+        nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx))).EXISTS-KEY('$!')
+        && nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!').DEFINITE
+            ?? nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!') !! "Died") {
         if ($payload ~~ Exception) {
             self.bless(:exception($payload));
         }
@@ -78,8 +79,9 @@ multi sub fail(Exception:U $e) {
     $fail
 }
 multi sub fail($payload =
-    (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
-     ?? CALLER::CALLER::('$!') !! 'Failed') {
+        nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx))).EXISTS-KEY('$!')
+        && nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!').DEFINITE
+            ?? nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!') !! "Died") {
 
     my Mu $return := nqp::getlexcaller('RETURN');
 

@@ -172,8 +172,9 @@ multi sub die(Exception:U $e) {
     X::AdHoc.new(:payload("Died with undefined " ~ $e.^name)).throw;
 }
 multi sub die($payload =
-    (CALLER::CALLER::.EXISTS-KEY('$!') and CALLER::CALLER::('$!').DEFINITE)
-     ?? CALLER::CALLER::('$!') !! "Died") {
+        nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx))).EXISTS-KEY('$!')
+        && nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!').DEFINITE
+            ?? nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!') !! "Died") {
     if $payload ~~ Exception {
         $payload.throw;
     }

@@ -81,8 +81,12 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             nqp::die("Could not find file '$file' for module $module_name");
         }
         else {
+            my $from-hint := "";
+            if nqp::substr(~$module_name, nqp::rindex(~$module_name, ":") + 1) eq "from" {
+                $from-hint := "\nUse a single colon to include a module from another language.";
+            }
             nqp::die("Could not find $module_name in any of:\n  " ~
-                join("\n  ", @*INC));
+                join("\n  ", @*INC) ~ $from-hint);
         }
     } ) }
 

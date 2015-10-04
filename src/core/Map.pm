@@ -1,5 +1,22 @@
 my class X::Hash::Store::OddNumber { ... }
 
+my role MapIterator does Iterator { # needs to be my for some reason
+    has $!hash-storage;
+    has $!hash-iter;
+
+    method BUILD(\hash) {
+        $!hash-storage := nqp::getattr(hash, Map, '$!storage');
+        $!hash-storage := nqp::hash() unless $!hash-storage.DEFINITE;
+        $!hash-iter    := nqp::iterator($!hash-storage);
+        self
+    }
+    method new(\hash) { nqp::create(self).BUILD(hash) }
+    method count-only() {
+        $!hash-iter := Mu;
+        nqp::p6box_i(nqp::elems($!hash-storage))
+    }
+}
+
 my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # my class Map is Iterable is Cool {
     #   has Mu $!storage;
@@ -58,23 +75,6 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method iterator(Map:) { self.pairs.iterator }
     method list(Map:) { self.pairs.cache }
-
-    my role MapIterator does Iterator { # needs to be my for some reason
-        has $!hash-storage;
-        has $!hash-iter;
-
-        method BUILD(\hash) {
-            $!hash-storage := nqp::getattr(hash, Map, '$!storage');
-            $!hash-storage := nqp::hash() unless $!hash-storage.DEFINITE;
-            $!hash-iter    := nqp::iterator($!hash-storage);
-            self
-        }
-        method new(\hash) { nqp::create(self).BUILD(hash) }
-        method count-only() {
-            $!hash-iter := Mu;
-            nqp::p6box_i(nqp::elems($!hash-storage))
-        }
-    }
 
     multi method pairs(Map:D:) {
         Seq.new(class :: does MapIterator {

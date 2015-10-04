@@ -3,19 +3,20 @@ my class Failure {
     has $.backtrace;
     has $!handled;
 
+    multi method new() {
+        my $stash := CALLER::CALLER::;
+        my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
+        self.bless(:exception( $payload ~~ Exception
+          ?? $payload !! X::AdHoc.new(:$payload)
+        ))
+    }
     multi method new(Exception $exception) {
         self.bless(:$exception);
     }
-    multi method new($payload =
-        nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx))).EXISTS-KEY('$!')
-        && nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!').DEFINITE
-            ?? nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!') !! "Died") {
-        if ($payload ~~ Exception) {
-            self.bless(:exception($payload));
-        }
-        else {
-            self.bless(:exception(X::AdHoc.new(:$payload)));
-        }
+    multi method new($payload) {
+        self.bless(:exception( $payload ~~ Exception
+          ?? $payload !! X::AdHoc.new(:$payload)
+        ))
     }
     multi method new(|cap (*@msg)) {
          self.bless(:exception(X::AdHoc.from-slurpy(|cap)));
@@ -70,6 +71,18 @@ my class Failure {
 }
 
 proto sub fail(|) {*};
+multi sub fail() {
+    my $stash := CALLER::CALLER::;
+    my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
+
+    my $fail := Failure.new( $payload ~~ Exception
+      ?? $payload !! X::AdHoc.new(:$payload));
+
+    my Mu $return := nqp::getlexcaller('RETURN');
+    $return($fail) unless nqp::isnull($return);
+
+    $fail
+}
 multi sub fail(Exception:U $e) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
@@ -78,29 +91,16 @@ multi sub fail(Exception:U $e) {
     $return($fail) unless nqp::isnull($return);
     $fail
 }
-multi sub fail($payload =
-        nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx))).EXISTS-KEY('$!')
-        && nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!').DEFINITE
-            ?? nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!') !! "Died") {
+multi sub fail($payload) {
+    my $fail := Failure.new( $payload ~~ Exception
+      ?? $payload
+      !! X::AdHoc.new(:$payload)
+    );
 
     my Mu $return := nqp::getlexcaller('RETURN');
+    $return($fail) unless nqp::isnull($return);
 
-    # Strange behavior alert:
-    # If you try to if(...) { $fail := ... } else { $fail := ... }
-    # here it behaves sort of as if "use fatal" were in effect even
-    # when it is not, except that's not what is going on because
-    # "die" does not get hit AFAICT.  That took me 4 hours of
-    # fumbling around to figure out what was wrong.
-    if ($payload ~~ Exception) {
-        my $fail := Failure.new($payload);
-        $return($fail) unless nqp::isnull($return);
-        $fail
-    }
-    else {
-        my $fail := Failure.new(X::AdHoc.new(:$payload));
-        $return($fail) unless nqp::isnull($return);
-        $fail
-    }
+    $fail
 }
 multi sub fail(|cap (*@msg)) {
     my $fail := Failure.new(X::AdHoc.from-slurpy(|cap));

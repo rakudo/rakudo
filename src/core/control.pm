@@ -168,19 +168,20 @@ sub done() {
 }
 
 proto sub die(|) {*};
+multi sub die() {
+    my $stash  := CALLER::CALLER::;
+    my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
+    $payload ~~ Exception
+      ?? $payload.throw
+      !! X::AdHoc.new(:$payload).throw
+}
 multi sub die(Exception:U $e) {
     X::AdHoc.new(:payload("Died with undefined " ~ $e.^name)).throw;
 }
-multi sub die($payload =
-        nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx))).EXISTS-KEY('$!')
-        && nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!').DEFINITE
-            ?? nqp::ctxlexpad(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx)))('$!') !! "Died") {
-    if $payload ~~ Exception {
-        $payload.throw;
-    }
-    else {
-        X::AdHoc.new(:$payload).throw
-    }
+multi sub die($payload) {
+    $payload ~~ Exception
+      ?? $payload.throw
+      !! X::AdHoc.new(:$payload).throw
 }
 multi sub die(|cap ( *@msg )) {
     X::AdHoc.from-slurpy(|cap).throw

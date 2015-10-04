@@ -10,9 +10,6 @@ my class Mix does Mixy {
     multi method pairs(Mix:D:) {    # copy values else we can change the Mix
         %!elems.values.map: { Pair.new(:key(.key),:value(.value)) };
     }
-    multi method antipairs(Mix:D:) { # copy values else we can change the Mix
-        %!elems.values.map: { Pair.new(:key(.value),:value(.key)) };
-    }
 
     method total (--> Real) { $!total //= [+] self.values }
 

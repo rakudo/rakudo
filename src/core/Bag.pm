@@ -13,9 +13,6 @@ my class Bag does Baggy {
     multi method pairs(Bag:D:) {    # must copy, else we would change the Bag
         %!elems.values.map: { Pair.new(:key(.key),:value(.value)) };
     }
-    multi method antipairs(Bag:D:) { # must copy, else we would change the Bag
-        %!elems.values.map: { Pair.new(:key(.value),:value(.key)) };
-    }
     multi method grab(Bag:D: $count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }

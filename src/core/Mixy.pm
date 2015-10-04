@@ -2,14 +2,22 @@ my role Mixy does Baggy  {
     method default(--> Real) { 0 }
     method total(--> Real) { [+] self.values }
 
+    multi method new(Mixy: +@args) {
+        my %e;
+        # need explicit signature because of #119609
+        -> $_ { (%e{$_.WHICH} //= ($_ => my Real $ = 0)).value++ } for @args;
+        self.bless(:elems(%e));
+    }
     method new-from-pairs(*@pairs --> Mixy) {
         my %e;
         for @pairs {
             when Pair {
-                (%e.AT-KEY($_.key.WHICH) //= ($_.key => my $ = 0)).value += $_.value;
+                (%e.AT-KEY($_.key.WHICH) //=
+                  ($_.key => my Real $ = 0)).value += $_.value;
             }
             default {
-                (%e.AT-KEY($_.WHICH) //= ($_ => my $ = 0)).value++;
+                (%e.AT-KEY($_.WHICH) //=
+                  ($_ => my Real $ = 0)).value++;
             }
         }
         for %e -> $p {

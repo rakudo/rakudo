@@ -145,17 +145,17 @@ my role Baggy does QuantHash {
     multi method new(Baggy: +@args) {
         my %e;
         # need explicit signature because of #119609
-        -> $_ { (%e{$_.WHICH} //= ($_ => my $ = 0)).value++ } for @args;
+        -> $_ { (%e{$_.WHICH} //= ($_ => my Int $ = 0)).value++ } for @args;
         self.bless(:elems(%e));
     }
     method new-from-pairs(*@pairs) {
         my %e;
         for @pairs {
             when Pair {
-                (%e.AT-KEY($_.key.WHICH) //= ($_.key => my $ = 0)).value += $_.value.Int;
+                (%e.AT-KEY($_.key.WHICH) //= ($_.key => my Int $ = 0)).value += $_.value.Int;
             }
             default {
-                (%e.AT-KEY($_.WHICH) //= ($_ => my $ = 0)).value++;
+                (%e.AT-KEY($_.WHICH) //= ($_ => my Int $ = 0)).value++;
             }
         }
         my @toolow;

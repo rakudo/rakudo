@@ -2362,7 +2362,18 @@ class Perl6::World is HLL::World {
                         nqp::push(@pieces, nqp::unbox_s($_.compile_time_value));
                     }
                     else {
-                        $/.CURSOR.panic($mkerr());
+                        if nqp::istype($_, QAST::Var) {
+                            my $result;
+                            {
+                                $result := self.compile_time_evaluate($/, $_);
+                                CATCH {
+                                    $/.CURSOR.panic($mkerr());
+                                }
+                            }
+                            nqp::push(@pieces, nqp::unbox_s($result));
+                        } else {
+                            $/.CURSOR.panic($mkerr());
+                        }
                     }
                 }
                 return join(' ', @pieces);
@@ -2371,7 +2382,18 @@ class Perl6::World is HLL::World {
                 # anyway) and focus on what's inside the val (which could be a
                 # single thing or a list of things, as done above)
                 self.nibble_to_str($/, $ast[0], $mkerr);
+            } else {
+                $/.CURSOR.panic($mkerr());
             }
+        } elsif nqp::istype($ast, QAST::Var) {
+            my $result;
+            {
+                $result := self.compile_time_evaluate($/, $ast);
+                CATCH {
+                    $/.CURSOR.panic($mkerr());
+                }
+            }
+            return nqp::unbox_s($result);
         } else {
             $/.CURSOR.panic($mkerr());
         }
@@ -2379,7 +2401,11 @@ class Perl6::World is HLL::World {
 
     method colonpair_nibble_to_str($/, $nibble) {
         self.nibble_to_str($/, $nibble.ast,
-            -> { "Colon pair value '$nibble' too complex to use in name" });
+            -> {
+                self.throw($/, ['X', 'Syntax', 'Extension', 'TooComplex'],
+                  name       => ~$nibble,
+                );
+            });
     }
 
     # Takes a declarator name and locates the applicable meta-object for it.

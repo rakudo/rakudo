@@ -1418,6 +1418,13 @@ my class X::Syntax::Extension::Null does X::Syntax {
     }
 }
 
+my class X::Syntax::Extension::TooComplex does X::Syntax {
+    has $.name;
+    method message() {
+        "Colon pair value '$.name' too complex to use in name";
+    }
+}
+
 my class X::Syntax::Extension::SpecialForm does X::Syntax {
     has $.category;
     has $.opname;

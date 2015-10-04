@@ -2498,7 +2498,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 # need to tweak into the grammar.
                 my $category := $<deflongname><name>.Str;
                 my $opname := $cf<circumfix>
-                    ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
+                    ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble> // $cf<circumfix><semilist>)
                     !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);

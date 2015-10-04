@@ -4,14 +4,138 @@ my role Baggy does QuantHash {
     submethod BUILD (:%!elems) { }
     method default(--> Int) { 0 }
 
-    multi method keys(Baggy:D:)     { %!elems.values.map( {.key} ) }
-    multi method kv(Baggy:D:)       { %!elems.values.map( {.key, .value} ) }
-    multi method values(Baggy:D:)   { %!elems.values.map( {.value} ) }
-    multi method pairs(Baggy:D:)    { %!elems.values.map: { (.key => .value) } }
-    multi method antipairs(Baggy:D:) { %!elems.values.map: { (.value => .key) } }
-    multi method invert(Baggy:D:)   { %!elems.values.map: { (.value => .key) } } # NB value can't be listy
+    multi method pairs(Baggy:D:) {
+        Seq.new(class :: does MapIterator {
+            method pull-one() {
+                if $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    Pair.new(tmp.key, tmp.value)
+                }
+                else {
+                    IterationEnd
+                }
+            }
+            method push-all($target) {
+                while $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    $target.push(Pair.new(tmp.key, tmp.value));
+                }
+                IterationEnd
+            }
+        }.new(%!elems))
+    }
+    multi method keys(Baggy:D:) {
+        Seq.new(class :: does MapIterator {
+            method pull-one() {
+                $!hash-iter
+                  ?? nqp::iterval(nqp::shift($!hash-iter)).key
+                  !! IterationEnd
+            }
+            method push-all($target) {
+                $target.push(nqp::iterval(nqp::shift($!hash-iter)).key)
+                  while $!hash-iter;
+                IterationEnd
+            }
+        }.new(%!elems))
+    }
+    multi method kv(Baggy:D:) {
+        Seq.new(class :: does MapIterator {
+            has Mu $!value;
 
-    method kxxv(Baggy:D:) { %!elems.values.map( {.key xx .value} ) }
+            method pull-one() is raw {
+                if $!value.DEFINITE {
+                    my \tmp = $!value;
+                    $!value := Mu;
+                    tmp
+                }
+                elsif $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    $!value := tmp.value;
+                    tmp.key
+                }
+                else {
+                    IterationEnd
+                }
+            }
+            method push-all($target) {
+                while $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    $target.push(tmp.key);
+                    $target.push(tmp.value);
+                }
+                IterationEnd
+            }
+        }.new(%!elems))
+    }
+    multi method values(Baggy:D:) {
+        Seq.new(class :: does MapIterator {
+            method pull-one() is raw {
+                $!hash-iter
+                    ?? nqp::iterval(nqp::shift($!hash-iter)).value
+                    !! IterationEnd
+            }
+            method push-all($target) {
+                $target.push(nqp::iterval(nqp::shift($!hash-iter)).value)
+                  while $!hash-iter;
+                IterationEnd
+            }
+        }.new(%!elems))
+    }
+    multi method antipairs(Baggy:D:) {
+        Seq.new(class :: does MapIterator {
+            method pull-one() {
+                if $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    Pair.new(tmp.value, tmp.key)
+                }
+                else {
+                    IterationEnd
+                }
+            }
+            method push-all($target) {
+                while $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    $target.push(Pair.new(tmp.value, tmp.key));
+                }
+                IterationEnd
+            }
+        }.new(%!elems))
+    }
+    method kxxv(Baggy:D:) {
+        Seq.new(class :: does MapIterator {
+            has Mu $!key;
+            has int $!times;
+
+            method pull-one() is raw {
+                if $!times {
+                    $!times = $!times - 1;
+                    $!key
+                }
+                elsif $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    $!key   = tmp.key;
+                    $!times = tmp.value - 1;
+                    $!key
+                }
+                else {
+                    IterationEnd
+                }
+            }
+            method push-all($target) {
+                while $!hash-iter {
+                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
+                    $!key   = tmp.key;
+                    $!times = tmp.value + 1;
+                    $target.push($!key) while $!times = $!times - 1;
+                }
+                IterationEnd
+            }
+        }.new(%!elems))
+    }
+
+    multi method invert(Baggy:D:) {
+        %!elems.values.map: { (.value »=>» .key).cache.Slip }
+    }
     method elems(Baggy:D: --> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
     method Bool(Baggy:D:) { %!elems.Bool }

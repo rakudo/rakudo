@@ -1702,7 +1702,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method operation { 'assignment' }
     method message {
         self.priors() ~
-        $.symbol.defined
+        $.symbol.defined && $.symbol ne '$'
             ?? "Type check failed in assignment to $.symbol; expected $.expectedn but got $.gotn"
             !! "Type check failed in assignment; expected $.expectedn but got $.gotn";
     }

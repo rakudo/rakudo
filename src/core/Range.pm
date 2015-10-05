@@ -79,7 +79,7 @@ my class Range is Cool does Iterable does Positional {
     method elems {
         return Inf if $!min === -Inf || $!max === Inf;
         if nqp::istype($!min, Int) && nqp::istype($!max, Int) {
-            my Int:D $least =
+            my Int $least =
               $!excludes-min ?? $!min + 1 !! $!min;
             return 1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
         }
@@ -226,9 +226,9 @@ my class Range is Cool does Iterable does Positional {
         return self.list.roll
           unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
 
-        my Int:D $least =
+        my Int $least =
           $!excludes-min ?? $!min + 1 !! $!min;
-        my Int:D $elems =
+        my Int $elems =
           1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
         $elems ?? ($least + nqp::rand_I(nqp::decont($elems), Int)) !! Any;
     }
@@ -236,9 +236,9 @@ my class Range is Cool does Iterable does Positional {
         return self.list.roll($num)
           unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
 
-        my Int:D $least =
+        my Int $least =
           $!excludes-min ?? $!min + 1 !! $!min;
-        my Int:D $elems =
+        my Int $elems =
           1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
 
         my int $todo = nqp::unbox_i($num.Int);
@@ -260,9 +260,9 @@ my class Range is Cool does Iterable does Positional {
         return self.list.pick($n)
           unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
 
-        my Int:D $least =
+        my Int $least =
           $!excludes-min ?? $!min + 1 !! $!min;
-        my Int:D $elems =
+        my Int $elems =
           1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
         my int $todo = nqp::unbox_i($n.Int);
 

@@ -198,7 +198,7 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
 
         my sub parse-int-frac-exp() {
             # Integer part, if any
-            my Int:D $int := 0;
+            my Int $int := 0;
             if nqp::isne_i($ch, 46) {  # '.'
                 parse_fail "Cannot convert radix of $radix (max 36)"
                     if $radix > 36;
@@ -218,8 +218,8 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
             }
 
             # Fraction, if any
-            my Int:D $frac := 0;
-            my Int:D $base := 0;
+            my Int $frac := 0;
+            my Int $base := 0;
             if nqp::iseq_i($ch, 46) {  # '.'
                 $pos    = nqp::add_i($pos, 1);
                 $parse := nqp::radix_I($radix, $str, $pos,
@@ -279,7 +279,7 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
             return $int unless $base;
 
             # Otherwise, return a Rat
-            my Int:D $numerator := $int * $base + $frac;
+            my Int $numerator := $int * $base + $frac;
             return Rat.new($numerator, $base);
         }
 
@@ -321,8 +321,8 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
             }
             elsif nqp::iseq_i($ch, 91) {  # '['
                 $pos = nqp::add_i($pos, 1);
-                my Int:D $result := 0;
-                my Int:D $digit  := 0;
+                my Int $result := 0;
+                my Int $digit  := 0;
                 while nqp::islt_i($pos, $eos)
                    && nqp::isne_i(nqp::ord($str, $pos), 93) {  # ']'
                     $parse := nqp::radix_I(10, $str, $pos, 0, Int);

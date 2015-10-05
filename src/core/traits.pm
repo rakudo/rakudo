@@ -356,7 +356,6 @@ multi sub trait_mod:<as>(Parameter:D $param, $type) {
     $param.set_coercion($type);
 }
 
-my class Pair { ... }
 proto sub trait_mod:<handles>(|) { * }
 multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target does role {

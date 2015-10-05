@@ -5,7 +5,7 @@ my role Baggy does QuantHash {
     method default(--> Int) { 0 }
 
     multi method pairs(Baggy:D:) {
-        Seq.new(class :: does MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MapIterator {
             method pull-one() {
                 if $!hash-iter {
                     my \tmp = nqp::iterval(nqp::shift($!hash-iter));
@@ -25,7 +25,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method keys(Baggy:D:) {
-        Seq.new(class :: does MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MapIterator {
             method pull-one() {
                 $!hash-iter
                   ?? nqp::iterval(nqp::shift($!hash-iter)).key
@@ -39,7 +39,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method kv(Baggy:D:) {
-        Seq.new(class :: does MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MapIterator {
             has Mu $!value;
 
             method pull-one() is raw {
@@ -68,7 +68,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method values(Baggy:D:) {
-        Seq.new(class :: does MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MapIterator {
             method pull-one() is raw {
                 $!hash-iter
                     ?? nqp::iterval(nqp::shift($!hash-iter)).value
@@ -82,7 +82,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method antipairs(Baggy:D:) {
-        Seq.new(class :: does MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MapIterator {
             method pull-one() {
                 if $!hash-iter {
                     my \tmp = nqp::iterval(nqp::shift($!hash-iter));
@@ -102,7 +102,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     method kxxv(Baggy:D:) {
-        Seq.new(class :: does MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MapIterator {
             has Mu $!key;
             has int $!times;
 

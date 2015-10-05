@@ -27,10 +27,6 @@ class Perl does Systemic {
 multi sub INITIALIZE_DYNAMIC('$*PERL') {
     PROCESS::<$PERL> := Perl.new;
 }
-multi sub postcircumfix:<{ }> (Perl $d, "name" )   {
-    DEPRECATED('$*PERL.name', |<2014.06 2015.06>, :what('$*PERL<name>') );
-    $d.name
-}
 multi sub postcircumfix:<{ }> (Perl $d, "compiler" )   {
     # allow this silently, as we will catch it on accessing the Compiler object
     $d.compiler

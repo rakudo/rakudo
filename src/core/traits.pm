@@ -304,26 +304,10 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
     $sig.set_returns($type)
 }
 
-multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
-    DEPRECATED(
-      'is hidden-from-backtrace',
-      |<2015.03 2016.03>,
-      :what<Routine trait "is hidden_from_backtrace">,
-    );
-    $r.^mixin( role { method is-hidden-from-backtrace { True } } );
-}
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
     $r.^mixin( role { method is-hidden-from-backtrace { True } } );
 }
 
-multi sub trait_mod:<is>(Routine:D $r, :$hidden_from_USAGE!) {
-    DEPRECATED(
-      'is hidden-from-USAGE',
-      |<2015.03 2016.03>,
-      :what<Routine trait "is hidden_from_USAGE">,
-    );
-    $r.^mixin( role { method is-hidden-from-USAGE { True } });
-}
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
     $r.^mixin( role {
         method is-hidden-from-USAGE { True }

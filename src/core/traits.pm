@@ -220,54 +220,25 @@ my $!;
 my $/;
 my $_;
 
-sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
-    my @export_packages = $*EXPORT;
-    for flat nqp::hllize(@*PACKAGES) {
-        unless .WHO.EXISTS-KEY('EXPORT') {
-            .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
-            .WHO<EXPORT>.^compose;
-        }
-        @export_packages.append: .WHO<EXPORT>;
-    }
-    for @export_packages -> $p {
-        for @tags -> $tag {
-            my $install_in;
-            if $p.WHO.EXISTS-KEY($tag) {
-                $install_in := $p.WHO.{$tag};
-            }
-            else {
-                $install_in := Metamodel::PackageHOW.new_type(:name($tag));
-                $install_in.^compose;
-                $p.WHO{$tag} := $install_in;
-            }
-            if $install_in.WHO.EXISTS-KEY(exp_name) {
-                unless ($install_in.WHO){exp_name} =:= sym {
-                    X::Export::NameClash.new(symbol => exp_name).throw;
-                }
-            }
-            $install_in.WHO{exp_name} := sym;
-        }
-    }
-    0;
-}
 multi sub trait_mod:<is>(Routine:D \r, :$export!) {
     my $to_export := r.multi ?? r.dispatcher !! r;
     my $exp_name  := '&' ~ r.name;
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    EXPORT_SYMBOL($exp_name, @tags, $to_export);
+    Rakudo::Internals::EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^name;
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    EXPORT_SYMBOL($exp_name, @tags, type);
+    Rakudo::Internals::EXPORT_SYMBOL($exp_name, @tags, type);
     if nqp::istype(type.HOW, Metamodel::EnumHOW) {
         type.^set_export_callback( {
             for type.^enum_values.keys -> $value_name {
-                EXPORT_SYMBOL($value_name, @tags, type.WHO{$value_name});
+                Rakudo::Internals::EXPORT_SYMBOL(
+                  $value_name, @tags, type.WHO{$value_name});
             }
         });
     }
@@ -277,7 +248,7 @@ multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    EXPORT_SYMBOL($SYMBOL, @tags, sym);
+    Rakudo::Internals::EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
 
 multi sub trait_mod:<is>(Block:D $r, :$leading_docs!) {

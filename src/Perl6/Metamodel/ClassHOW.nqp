@@ -136,7 +136,7 @@ class Perl6::Metamodel::ClassHOW
         if !nqp::isnull($FALLBACK) && nqp::defined($FALLBACK) {
             self.add_fallback($obj,
                 sub ($obj, str $name) {
-                    $name ne 'sink' && $name ne 'CALL-ME' && $name ne 'postcircumfix:<( )>'
+                    $name ne 'sink' && $name ne 'CALL-ME'
                 },
                 sub ($obj, str $name) {
                     -> $inv, *@pos, *%named { $FALLBACK($inv, $name, |@pos, |%named) }

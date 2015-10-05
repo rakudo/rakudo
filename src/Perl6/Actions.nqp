@@ -2993,7 +2993,7 @@ Compilation unit '$file' contained the following violations:
             if %*PRAGMAS<soft> {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
-            elsif !nqp::can($code, 'CALL-ME') && !nqp::can($code, 'postcircumfix:<( )>') {
+            elsif !nqp::can($code, 'CALL-ME') {
                 my $phasers :=
                   nqp::getattr($code,$*W.find_symbol(['Block']),'$!phasers');
                 if nqp::isnull($phasers) || !nqp::p6bool($phasers) {

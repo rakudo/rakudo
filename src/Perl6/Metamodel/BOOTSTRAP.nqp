@@ -2772,7 +2772,7 @@ BEGIN {
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
-            if !nqp::isconcrete($self) && !nqp::can($self, 'CALL-ME') && !nqp::can($self, 'postcircumfix:<( )>') {
+            if !nqp::isconcrete($self) && !nqp::can($self, 'CALL-ME') {
                 my $coercer_name := $self.HOW.name($self);
                 nqp::die("Cannot coerce to $coercer_name with named arguments")
                   if +%named;

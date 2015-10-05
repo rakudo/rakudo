@@ -1,25 +1,50 @@
 my role Baggy does QuantHash {
     has %!elems; # key.WHICH => (key,value)
 
-    submethod BUILD (:%!elems) { }
+    method PAIR(\key) { Pair.new(key, my Int $ = 0 ) }
+    method SANITY(%elems --> Nil) {
+        my @toolow;
+        for %elems -> $p {
+            my $pair  := $p.value;
+            my $value := $pair.value;
+            @toolow.push( $pair.key ) if $value <  0;
+            %elems.DELETE-KEY($p.key) if $value <= 0;
+        }
+        fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
+    }
+    multi method new(Baggy: +@args) {
+        my %elems;
+        for @args {
+            (%elems{.WHICH} //= self.PAIR($_)).value++
+        } 
+        nqp::create(self).BUILD(%elems)
+    }
+    method new-from-pairs(*@pairs) {
+        my %elems;
+        for @pairs {
+            when Pair {
+                (%elems.AT-KEY(.key.WHICH) //= self.PAIR(.key)).value += .value;
+            }
+            default {
+                (%elems.AT-KEY(.WHICH) //= self.PAIR($_)).value++;
+            }
+        }
+        self.SANITY(%elems);
+        nqp::create(self).BUILD(%elems)
+    }
+
     method default(--> Int) { 0 }
 
     multi method pairs(Baggy:D:) {
         Seq.new(class :: does Rakudo::Internals::MapIterator {
             method pull-one() {
-                if $!hash-iter {
-                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
-                    Pair.new(tmp.key, tmp.value)
-                }
-                else {
-                    IterationEnd
-                }
+                $!hash-iter
+                  ?? nqp::iterval(nqp::shift($!hash-iter))
+                  !! IterationEnd
             }
             method push-all($target) {
-                while $!hash-iter {
-                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
-                    $target.push(Pair.new(tmp.key, tmp.value));
-                }
+                $target.push(nqp::iterval(nqp::shift($!hash-iter)))
+                  while $!hash-iter;
                 IterationEnd
             }
         }.new(%!elems))
@@ -44,14 +69,15 @@ my role Baggy does QuantHash {
 
             method pull-one() is raw {
                 if $!value.DEFINITE {
-                    my \tmp = $!value;
+                    my \tmp  = $!value;
                     $!value := Mu;
                     tmp
                 }
                 elsif $!hash-iter {
-                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
-                    $!value := tmp.value;
-                    tmp.key
+                    my \tmp =
+                      nqp::decont(nqp::iterval(nqp::shift($!hash-iter)));
+                    $!value := nqp::getattr(tmp,Pair,'$!value');
+                    nqp::getattr(tmp,Pair,'$!key')
                 }
                 else {
                     IterationEnd
@@ -59,9 +85,10 @@ my role Baggy does QuantHash {
             }
             method push-all($target) {
                 while $!hash-iter {
-                    my \tmp = nqp::iterval(nqp::shift($!hash-iter));
-                    $target.push(tmp.key);
-                    $target.push(tmp.value);
+                    my \tmp =
+                      nqp::decont(nqp::iterval(nqp::shift($!hash-iter)));
+                    $target.push(nqp::getattr(tmp,Pair,'$!key'));
+                    $target.push(nqp::getattr(tmp,Pair,'$!value'));
                 }
                 IterationEnd
             }
@@ -71,12 +98,14 @@ my role Baggy does QuantHash {
         Seq.new(class :: does Rakudo::Internals::MapIterator {
             method pull-one() is raw {
                 $!hash-iter
-                    ?? nqp::iterval(nqp::shift($!hash-iter)).value
+                    ?? nqp::getattr(nqp::decont(
+                         nqp::iterval(nqp::shift($!hash-iter))),Pair,'$!value')
                     !! IterationEnd
             }
             method push-all($target) {
-                $target.push(nqp::iterval(nqp::shift($!hash-iter)).value)
-                  while $!hash-iter;
+                $target.push(nqp::getattr(nqp::decont(
+                  nqp::iterval(nqp::shift($!hash-iter))),Pair,'$!value'
+                )) while $!hash-iter;
                 IterationEnd
             }
         }.new(%!elems))
@@ -113,7 +142,7 @@ my role Baggy does QuantHash {
                 }
                 elsif $!hash-iter {
                     my \tmp = nqp::iterval(nqp::shift($!hash-iter));
-                    $!key   = tmp.key;
+                    $!key  := tmp.key;
                     $!times = tmp.value - 1;
                     $!key
                 }
@@ -124,7 +153,7 @@ my role Baggy does QuantHash {
             method push-all($target) {
                 while $!hash-iter {
                     my \tmp = nqp::iterval(nqp::shift($!hash-iter));
-                    $!key   = tmp.key;
+                    $!key  := tmp.key;
                     $!times = tmp.value + 1;
                     $target.push($!key) while $!times = $!times - 1;
                 }
@@ -141,32 +170,6 @@ my role Baggy does QuantHash {
     method Bool(Baggy:D:) { %!elems.Bool }
 
     method hash(Baggy:D: --> Hash) { %!elems.values.hash }
-
-    multi method new(Baggy: +@args) {
-        my %e;
-        # need explicit signature because of #119609
-        -> $_ { (%e{$_.WHICH} //= ($_ => my Int $ = 0)).value++ } for @args;
-        self.bless(:elems(%e));
-    }
-    method new-from-pairs(*@pairs) {
-        my %e;
-        for @pairs {
-            when Pair {
-                (%e.AT-KEY($_.key.WHICH) //= ($_.key => my Int $ = 0)).value += $_.value.Int;
-            }
-            default {
-                (%e.AT-KEY($_.WHICH) //= ($_ => my Int $ = 0)).value++;
-            }
-        }
-        my @toolow;
-        for %e -> $p {
-            my $pair := $p.value;
-            @toolow.push( $pair.key ) if $pair.value <  0;
-            %e.DELETE-KEY($p.key)     if $pair.value <= 0;
-        }
-        fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
-        self.bless(:elems(%e));
-    }
 
     method ACCEPTS($other) {
         self.defined

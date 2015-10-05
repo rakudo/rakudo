@@ -2,13 +2,12 @@ my class Mix does Mixy {
     has Real $!total;
     has $!WHICH;
 
+    method BUILD(%!elems) { .freeze for %!elems.values; self }
+
     multi method WHICH (Mix:D:) {
         $!WHICH //= self.^name
           ~ '|'
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
-    }
-    multi method pairs(Mix:D:) {    # copy values else we can change the Mix
-        %!elems.values.map: { Pair.new(:key(.key),:value(.value)) };
     }
 
     method total (--> Real) { $!total //= [+] self.values }

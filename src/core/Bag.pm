@@ -2,7 +2,7 @@ my class Bag does Baggy {
     has Int $!total;
     has $!WHICH;
 
-    method total (--> Int) { $!total //= [+] self.values }
+    method BUILD(%!elems) { .freeze for %!elems.values; self }
 
     multi method WHICH (Bag:D:) {
         $!WHICH //= self.^name
@@ -10,9 +10,8 @@ my class Bag does Baggy {
           ~ %!elems.keys.sort.map( { $_ ~ '(' ~ %!elems{$_}.value ~ ')' } );
     }
 
-    multi method pairs(Bag:D:) {    # must copy, else we would change the Bag
-        %!elems.values.map: { Pair.new(:key(.key),:value(.value)) };
-    }
+    method total (--> Int) { $!total //= [+] self.values }
+
     multi method grab(Bag:D: $count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }

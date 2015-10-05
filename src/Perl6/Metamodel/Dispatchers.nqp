@@ -1,7 +1,7 @@
 class Perl6::Metamodel::BaseDispatcher {
     has @!candidates;
     has $!idx;
-    
+
     method candidates() { @!candidates }
     
     method exhausted() { $!idx >= +@!candidates }
@@ -32,6 +32,14 @@ class Perl6::Metamodel::BaseDispatcher {
 
 class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
     has $!obj;
+
+    method new(:@candidates, :$idx, :$obj) {
+        my $disp := nqp::create(self);
+        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '@!candidates', @candidates);
+        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!idx', $idx);
+        nqp::bindattr($disp, Perl6::Metamodel::MethodDispatcher, '$!obj', $obj);
+        $disp
+    }
     
     method vivify_for($sub, $lexpad, $args) {
         my $obj      := $lexpad<self>;
@@ -56,6 +64,15 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
 class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
     has $!has_invocant;
     has $!invocant;
+
+    method new(:@candidates, :$idx, :$invocant, :$has_invocant) {
+        my $disp := nqp::create(self);
+        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '@!candidates', @candidates);
+        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!idx', $idx);
+        nqp::bindattr($disp, Perl6::Metamodel::MultiDispatcher, '$!invocant', $invocant);
+        nqp::bindattr($disp, Perl6::Metamodel::MultiDispatcher, '$!has_invocant', $has_invocant);
+        $disp
+    }
     
     method vivify_for($sub, $lexpad, $args) {
         my $disp         := $sub.dispatcher();
@@ -71,8 +88,11 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
 }
 
 class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
-    method new() {
-        self.bless(:candidates([]), :idx(1))
+    method new(:@candidates, :$idx, :$invocant, :$has_invocant) {
+        my $disp := nqp::create(self);
+        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '@!candidates', @candidates);
+        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!idx', 1);
+        $disp
     }
 
     method has_invocant() { 0 }

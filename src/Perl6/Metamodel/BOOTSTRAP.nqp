@@ -2786,7 +2786,7 @@ BEGIN {
                 }
             }
             else {
-                nqp::can($self, 'CALL-ME') ?? $self.CALL-ME(|@pos, |%named) !! $self.postcircumfix:<( )>(|@pos, |%named);
+                $self.CALL-ME(|@pos, |%named)
             }
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);

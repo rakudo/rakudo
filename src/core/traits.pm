@@ -9,38 +9,6 @@ my class X::Inheritance::SelfInherit { ... }
 my class X::Comp::Trait::Unknown { ... }
 my class Pod::Block::Declarator { ... }
 
-sub SET_LEADING_DOCS($obj, $docs) {
-    my $current_why := $obj.WHY;
-
-    if $current_why {
-        my $end := nqp::elems($*POD_BLOCKS) - 1;
-        my $i   := $end;
-
-        while $i >= 0 {
-            if $docs === nqp::atpos($*POD_BLOCKS, $i) {
-                nqp::splice($*POD_BLOCKS, nqp::list(), $i, 1);
-                last;
-            }
-            $i := $i - 1;
-        }
-
-        $current_why._add_leading(~$docs);
-    } else {
-        $obj.set_why($docs);
-    }
-}
-
-sub SET_TRAILING_DOCS($obj, $docs) {
-    my $current_why := $obj.WHY;
-
-    if $current_why {
-        $current_why._add_trailing(~$docs);
-    } else {
-        $obj.set_why($docs);
-        $*POD_BLOCKS.push($docs);
-    }
-}
-
 proto sub trait_mod:<is>(|) { * }
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
@@ -125,11 +93,11 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 # to the (possibly auto-generated) accessor method.
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
-    SET_LEADING_DOCS($attr, $leading_docs);
+    Rakudo::Internals::SET_LEADING_DOCS($attr, $leading_docs);
 }
 
 multi sub trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
-    SET_TRAILING_DOCS($attr, $trailing_docs);
+    Rakudo::Internals::SET_TRAILING_DOCS($attr, $trailing_docs);
 }
 
 multi sub trait_mod:<is>(Routine:D $r, |c ) {
@@ -240,10 +208,10 @@ multi sub trait_mod:<is>(Parameter:D $param, :$onearg!) {
     $param.set_onearg();
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
-    SET_LEADING_DOCS($param, $leading_docs);
+    Rakudo::Internals::SET_LEADING_DOCS($param, $leading_docs);
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
-    SET_TRAILING_DOCS($param, $trailing_docs);
+    Rakudo::Internals::SET_TRAILING_DOCS($param, $trailing_docs);
 }
 
 # Declare these, as setting mainline doesn't get them automatically (as the
@@ -313,27 +281,27 @@ multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
 }
 
 multi sub trait_mod:<is>(Block:D $r, :$leading_docs!) {
-    SET_LEADING_DOCS($r, $leading_docs);
+    Rakudo::Internals::SET_LEADING_DOCS($r, $leading_docs);
 }
 multi sub trait_mod:<is>(Block:D $r, :$trailing_docs!) {
-    SET_TRAILING_DOCS($r, $trailing_docs);
+    Rakudo::Internals::SET_TRAILING_DOCS($r, $trailing_docs);
 }
 
 # this should be identical to Mu:D, :leading_docs, otherwise the fallback Block:D, |c
 # will catch it and declare "leading_docs" to be an unknown trait.  This is why
 # we need this redundant form in spite of having a Block:D candidate above
 multi sub trait_mod:<is>(Routine:D $r, :$leading_docs!) {
-    SET_LEADING_DOCS($r, $leading_docs);
+    Rakudo::Internals::SET_LEADING_DOCS($r, $leading_docs);
 }
 multi sub trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
-    SET_TRAILING_DOCS($r, $trailing_docs);
+    Rakudo::Internals::SET_TRAILING_DOCS($r, $trailing_docs);
 }
 
 multi sub trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
-    SET_LEADING_DOCS($docee, $leading_docs);
+    Rakudo::Internals::SET_LEADING_DOCS($docee, $leading_docs);
 }
 multi sub trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
-    SET_TRAILING_DOCS($docee.HOW, $trailing_docs);
+    Rakudo::Internals::SET_TRAILING_DOCS($docee.HOW, $trailing_docs);
 }
 
 proto sub trait_mod:<does>(|) { * }

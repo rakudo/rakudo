@@ -13,6 +13,9 @@ my role Callable { ... }
 my role Iterable { ... }
 my role PositionalBindFailover { ... }
 
+# for the internals
+my module Rakudo::Internals { ... }
+
 # Set up Empty, which is a Slip created with an empty IterationBuffer (which
 # we also stub here). This is needed in a bunch of simple constructs (like if
 # with only one branch).

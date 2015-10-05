@@ -2961,6 +2961,7 @@ nqp::sethllconfig('perl6', nqp::hash(
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
             my @keeps  := nqp::atkey(%phasers, 'KEEP');
             my @undos  := nqp::atkey(%phasers, 'UNDO');
+            my @exceptions;
             unless nqp::isnull(@leaves) {
                 my int $n := nqp::elems(@leaves);
                 my int $i := 0;
@@ -2996,6 +2997,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if moar
                         nqp::p6capturelexwhere($phaser.clone())();
 #?endif
+                        CATCH { nqp::push(@exceptions, $_) }
                     }
                     $i++;
                 }
@@ -3013,8 +3015,19 @@ nqp::sethllconfig('perl6', nqp::hash(
                     nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
                         nqp::ifnull($resultish, Mu));
 #?endif
+                    CATCH { nqp::push(@exceptions, $_); last; }
                     $i++;
                 }
+            }
+
+            if @exceptions {
+                if nqp::elems(@exceptions) > 1 {
+                    my %ex := nqp::gethllsym('perl6', 'P6EX');
+                    if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::PhaserExceptions') {
+                        nqp::atkey(%ex, 'X::PhaserExceptions')(@exceptions);
+                    }
+                }
+                nqp::rethrow(@exceptions[0]);
             }
         }
     },

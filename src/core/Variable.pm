@@ -19,9 +19,9 @@ my class Variable {
         $*W.throw( self.slash, |c );
     }
 
-    submethod willdo(&block, $caller-levels = 2) {
-        $caller-levels == 2
-            ?? -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx())), self.name)) }
+    submethod willdo(&block, $caller-levels = 3) {
+        $caller-levels == 3
+            ?? -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx()))), self.name)) }
             !! -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctx()), self.name)) }
     }
 }

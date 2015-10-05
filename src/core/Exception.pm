@@ -2009,6 +2009,18 @@ my class X::Inheritance::NotComposed does X::MOP {
     }
 }
 
+my class X::PhaserExceptions is Exception {
+    has @.exceptions;
+    method message() {
+        "Multiple exceptions were thrown by LEAVE/POST phasers"
+    }
+    method gist(X::PhaserExceptions:D:) {
+        join "\n", flat
+            "Multiple exceptions were thrown by LEAVE/POST phasers\n",
+            @!exceptions>>.gist>>.indent(4)
+    }
+}
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) {
@@ -2046,6 +2058,10 @@ my class X::Inheritance::NotComposed does X::MOP {
     }
     %c_ex{'X::Parameter::RW'} := sub (Mu $got, $symbol) {
             X::Parameter::RW.new(:$got, :$symbol).throw;
+        };
+    %c_ex{'X::PhaserExceptions'} := sub (@exceptions) {
+            X::PhaserExceptions.new(exceptions =>
+                @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
         };
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, Map, '$!storage'));
 

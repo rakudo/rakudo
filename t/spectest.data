@@ -719,6 +719,7 @@ S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
 S16-io/basic-open.t
+S16-io/bom.t
 S16-io/cwd.t
 S16-io/getc.t
 S16-io/lines.t

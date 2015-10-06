@@ -93,11 +93,11 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 # to the (possibly auto-generated) accessor method.
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
-    Rakudo::Internals::SET_LEADING_DOCS($attr, $leading_docs);
+    Rakudo::Internals.SET_LEADING_DOCS($attr, $leading_docs);
 }
 
 multi sub trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
-    Rakudo::Internals::SET_TRAILING_DOCS($attr, $trailing_docs);
+    Rakudo::Internals.SET_TRAILING_DOCS($attr, $trailing_docs);
 }
 
 multi sub trait_mod:<is>(Routine:D $r, |c ) {
@@ -208,10 +208,10 @@ multi sub trait_mod:<is>(Parameter:D $param, :$onearg!) {
     $param.set_onearg();
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
-    Rakudo::Internals::SET_LEADING_DOCS($param, $leading_docs);
+    Rakudo::Internals.SET_LEADING_DOCS($param, $leading_docs);
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
-    Rakudo::Internals::SET_TRAILING_DOCS($param, $trailing_docs);
+    Rakudo::Internals.SET_TRAILING_DOCS($param, $trailing_docs);
 }
 
 # Declare these, as setting mainline doesn't get them automatically (as the
@@ -226,18 +226,18 @@ multi sub trait_mod:<is>(Routine:D \r, :$export!) {
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    Rakudo::Internals::EXPORT_SYMBOL($exp_name, @tags, $to_export);
+    Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^name;
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    Rakudo::Internals::EXPORT_SYMBOL($exp_name, @tags, type);
+    Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, type);
     if nqp::istype(type.HOW, Metamodel::EnumHOW) {
         type.^set_export_callback( {
             for type.^enum_values.keys -> $value_name {
-                Rakudo::Internals::EXPORT_SYMBOL(
+                Rakudo::Internals.EXPORT_SYMBOL(
                   $value_name, @tags, type.WHO{$value_name});
             }
         });
@@ -248,31 +248,31 @@ multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    Rakudo::Internals::EXPORT_SYMBOL($SYMBOL, @tags, sym);
+    Rakudo::Internals.EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
 
 multi sub trait_mod:<is>(Block:D $r, :$leading_docs!) {
-    Rakudo::Internals::SET_LEADING_DOCS($r, $leading_docs);
+    Rakudo::Internals.SET_LEADING_DOCS($r, $leading_docs);
 }
 multi sub trait_mod:<is>(Block:D $r, :$trailing_docs!) {
-    Rakudo::Internals::SET_TRAILING_DOCS($r, $trailing_docs);
+    Rakudo::Internals.SET_TRAILING_DOCS($r, $trailing_docs);
 }
 
 # this should be identical to Mu:D, :leading_docs, otherwise the fallback Block:D, |c
 # will catch it and declare "leading_docs" to be an unknown trait.  This is why
 # we need this redundant form in spite of having a Block:D candidate above
 multi sub trait_mod:<is>(Routine:D $r, :$leading_docs!) {
-    Rakudo::Internals::SET_LEADING_DOCS($r, $leading_docs);
+    Rakudo::Internals.SET_LEADING_DOCS($r, $leading_docs);
 }
 multi sub trait_mod:<is>(Routine:D $r, :$trailing_docs!) {
-    Rakudo::Internals::SET_TRAILING_DOCS($r, $trailing_docs);
+    Rakudo::Internals.SET_TRAILING_DOCS($r, $trailing_docs);
 }
 
 multi sub trait_mod:<is>(Mu:U $docee, :$leading_docs!) {
-    Rakudo::Internals::SET_LEADING_DOCS($docee, $leading_docs);
+    Rakudo::Internals.SET_LEADING_DOCS($docee, $leading_docs);
 }
 multi sub trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
-    Rakudo::Internals::SET_TRAILING_DOCS($docee.HOW, $trailing_docs);
+    Rakudo::Internals.SET_TRAILING_DOCS($docee.HOW, $trailing_docs);
 }
 
 proto sub trait_mod:<does>(|) { * }

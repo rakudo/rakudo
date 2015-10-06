@@ -5,6 +5,7 @@ my class HyperWhatever { ... }
 my class WhateverCode { ... }
 my class Cursor { ... }
 my class Failure { ... }
+my class Rakudo::Internals { ... }
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }
@@ -12,9 +13,6 @@ my role Associative { ... }
 my role Callable { ... }
 my role Iterable { ... }
 my role PositionalBindFailover { ... }
-
-# for the internals
-my module Rakudo::Internals { ... }
 
 # Set up Empty, which is a Slip created with an empty IterationBuffer (which
 # we also stub here). This is needed in a bunch of simple constructs (like if

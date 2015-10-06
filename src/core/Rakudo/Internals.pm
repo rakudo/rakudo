@@ -1,6 +1,6 @@
 my role Iterator { ... }
 
-my module Rakudo::Internals {
+my class Rakudo::Internals {
 
     our role MapIterator does Iterator {
         has $!hash-storage;
@@ -19,7 +19,7 @@ my module Rakudo::Internals {
         }
     }
 
-    our sub SET_LEADING_DOCS($obj, $docs) {
+    method SET_LEADING_DOCS($obj, $docs) {
         my $current_why := $obj.WHY;
 
         if $current_why {
@@ -40,7 +40,7 @@ my module Rakudo::Internals {
         }
     }
 
-    our sub SET_TRAILING_DOCS($obj, $docs) {
+    method SET_TRAILING_DOCS($obj, $docs) {
         my $current_why := $obj.WHY;
 
         if $current_why {
@@ -51,7 +51,7 @@ my module Rakudo::Internals {
         }
     }
 
-    our sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
+    method EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
         my @export_packages = $*EXPORT;
         for flat nqp::hllize(@*PACKAGES) {
             unless .WHO.EXISTS-KEY('EXPORT') {
@@ -82,7 +82,7 @@ my module Rakudo::Internals {
         0;
     }
 
-    our sub THE_END {
+    method THE_END {
         my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
             nqp::getcurhllsym("@END_PHASERS"));
         for @END -> $end { $end() };

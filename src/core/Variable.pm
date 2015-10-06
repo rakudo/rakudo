@@ -93,7 +93,7 @@ multi sub trait_mod:<is>(Variable:D $v, :$export!) {
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    Rakudo::Internals::EXPORT_SYMBOL($var.VAR.name, @tags, $var);
+    Rakudo::Internals.EXPORT_SYMBOL($var.VAR.name, @tags, $var);
 }
 
 # does trait

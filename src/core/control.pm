@@ -241,7 +241,7 @@ sub exit($status = 0) {
     $exit = $status;
 
     once {
-        Rakudo::Internals::THE_END();
+        Rakudo::Internals.THE_END();
         nqp::exit(nqp::unbox_i($exit.Int));
     }
     $exit;

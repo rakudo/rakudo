@@ -638,7 +638,8 @@ class Perl6::World is HLL::World {
                             self.import($/, self.stash_hash($EXPORT{$tag}), $package_source_name);
                         }
                         else {
-                            nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
+                            self.throw($/, ['X', 'Import', 'NoSuchTag'],
+                                source-package => $package_source_name, :$tag)
                         }
                     }
                     else {
@@ -667,8 +668,8 @@ class Perl6::World is HLL::World {
             }
             else {
                 if +@positional_imports {
-                    nqp::die("Error while importing from '$package_source_name':
- no EXPORT sub, but you provided positional argument in the 'use' statement");
+                    self.throw($/, ['X', 'Import', 'Positional'],
+                        source-package => $package_source_name)
                 }
             }
         }

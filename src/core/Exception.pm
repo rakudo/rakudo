@@ -1885,6 +1885,22 @@ my class X::Import::MissingSymbols is Exception {
     }
 }
 
+my class X::Import::NoSuchTag is Exception {
+    has $.source-package;
+    has $.tag;
+    method message() {
+        "Error while importing from '$.source-package': no such tag '$.tag'"
+    }
+}
+
+my class X::Import::Positional is Exception {
+    has $.source-package;
+    method message() {
+        "Error while importing from '$.source-package':\n"
+        ~ "no EXPORT sub, but you provided positional argument in the 'use' statement"
+    }
+}
+
 my class X::Numeric::Real is Exception {
     has $.target;
     has $.reason;
@@ -2140,6 +2156,13 @@ my class X::InvalidType does X::Comp {
             $msg := $msg ~ ". Did you mean '" ~ @.suggestions.join("', '") ~ "'?";
         }
         $msg;
+    }
+}
+
+my class X::InvalidTypeSmiley does X::Comp {
+    has $.name;
+    method message() {
+        "Invalid type smiley '$.name' used in type name";
     }
 }
 

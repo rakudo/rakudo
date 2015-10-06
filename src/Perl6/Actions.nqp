@@ -2718,7 +2718,8 @@ Compilation unit '$file' contained the following violations:
                         $U := 1;
                     }
                     else {
-                        nqp::die("Unsupported type smiley '" ~ $_<identifier>.Str ~ "' used in type name");
+                        $*W.throw($/, ['X', 'InvalidTypeSmiley'],
+                            name => $_<identifier>.Str)
                     }
                 }
             }

@@ -527,8 +527,9 @@ static MVMuint8 s_p6inpre[] = {
     MVM_operand_int64 | MVM_operand_write_reg
 };
 static void p6inpre(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    if (tc->cur_frame->flags & RAKUDO_FRAME_PRE_FLAG) {
-        tc->cur_frame->flags ^= RAKUDO_FRAME_PRE_FLAG;
+    MVMFrame *test_frame = tc->cur_frame->caller;
+    if (test_frame && test_frame->flags & RAKUDO_FRAME_PRE_FLAG) {
+        test_frame->flags ^= RAKUDO_FRAME_PRE_FLAG;
         GET_REG(tc, 0).i64 = 1;
     }
     else {

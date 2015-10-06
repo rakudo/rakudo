@@ -719,7 +719,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::isnull($d) ?? Bool !! so $d.dynamic;
     }
     multi method perl(Array:D \SELF:) {
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
+        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }
         if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
         %*perlseen{self.WHICH} = 1;
         my $result = '$' x nqp::iscont(SELF) ~

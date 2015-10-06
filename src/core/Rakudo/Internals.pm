@@ -81,6 +81,12 @@ my module Rakudo::Internals {
         }
         0;
     }
+
+    our sub THE_END {
+        my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
+            nqp::getcurhllsym("@END_PHASERS"));
+        for @END -> $end { $end() };
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

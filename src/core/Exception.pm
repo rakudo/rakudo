@@ -272,7 +272,7 @@ do {
                 nqp::printfh($err, $e.Str);
                 nqp::printfh($err, "\n");
             }
-            THE_END();
+            Rakudo::Internals::THE_END();
             CONTROL { when CX::Warn { .resume } }
         }
         if $! {

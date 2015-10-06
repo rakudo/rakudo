@@ -241,16 +241,10 @@ sub exit($status = 0) {
     $exit = $status;
 
     once {
-        THE_END();
+        Rakudo::Internals::THE_END();
         nqp::exit(nqp::unbox_i($exit.Int));
     }
     $exit;
-}
-
-sub THE_END {
-    my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-        nqp::getcurhllsym("@END_PHASERS"));
-    for @END -> $end { $end() };
 }
 
 constant Inf = nqp::p6box_n(nqp::inf());

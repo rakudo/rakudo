@@ -84,8 +84,7 @@ my class IO::Handle does IO {
             $truncate  ?? 't' !! '',
             $exclusive ?? 'x' !! '';
 
-#?if !moar
-        # don't use new modes on anything but MoarVM
+#?if parrot
         # TODO: check what else can be made to work on Parrot
         #       cf io/utilities.c, Parrot_io_parse_open_flags()
         #          platform/generic/io.c, convert_flags_to_unix()

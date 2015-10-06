@@ -759,6 +759,7 @@ my class Array { # declared in BOOTSTRAP
             arr.STORE(@values);
             arr
         }
+        proto method BIND-POS(|) { * }
         multi method BIND-POS(Int $pos, TValue \bindval) is raw {
             my int $ipos = $pos;
             my $todo := nqp::getattr(self, List, '$!todo');

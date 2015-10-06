@@ -84,22 +84,6 @@ my class IO::Handle does IO {
             $truncate  ?? 't' !! '',
             $exclusive ?? 'x' !! '';
 
-#?if parrot
-        # TODO: check what else can be made to work on Parrot
-        #       cf io/utilities.c, Parrot_io_parse_open_flags()
-        #          platform/generic/io.c, convert_flags_to_unix()
-        #          platform/win32/io.c, convert_flags_to_win32 ()
-        $llmode = do given $llmode {
-            when 'r'   { 'r' }
-            when '-ct' { 'w' }
-            when '-ca' { 'wa' }
-            default {
-                die "Backend { $*VM.name
-                    } does not support opening files in mode '$llmode'";
-            }
-        }
-#?endif
-
         # TODO: catch error, and fail()
         $!PIO := nqp::open(
           nqp::unbox_s($!path.abspath),

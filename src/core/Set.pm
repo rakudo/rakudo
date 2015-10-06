@@ -2,6 +2,8 @@ my class Set does Setty {
     has Int $!total;
     has $!WHICH;
 
+    method ISINSET(\key) { True }
+
     method total (--> Int) { $!total //= %!elems.elems }
     multi method WHICH (Set:D:) {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;

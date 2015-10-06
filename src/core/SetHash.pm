@@ -1,5 +1,15 @@
 my class SetHash does Setty {
 
+    method ISINSET(\key) {
+        Proxy.new(
+          FETCH => { %!elems.EXISTS-KEY(key) },
+          STORE => -> $, \value {
+              %!elems.DELETE-KEY(key) unless value;
+              value;
+          }
+        );
+    }
+
     method Set (:$view) {
         if $view {
             Set.bless( :elems(%!elems) );

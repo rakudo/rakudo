@@ -4,9 +4,21 @@ my role Setty does QuantHash {
     submethod BUILD (:%!elems)  { }
     method default(--> Bool) { False }
 
-    multi method keys(Setty:D:)   { %!elems.values }
-    multi method kv(Setty:D:)     { flat %!elems.values X, True }
-    multi method values(Setty:D:) { True xx %!elems.elems }
+    multi method keys(Setty:D:) {
+        %!elems.values
+    }
+    multi method kv(Setty:D:) {
+        %!elems.values.map: -> \key { |(key,self.ISINSET(key.WHICH)) }
+    }
+    multi method values(Setty:D:) {
+        %!elems.values.map: -> \key { self.ISINSET(key.WHICH) }
+    }
+    multi method pairs(Setty:D:) {
+        %!elems.values.map: -> \key { Pair.new(key,self.ISINSET(key.WHICH)) }
+    }
+    multi method antipairs(Setty:D:) {
+        %!elems.values.map: -> \key { Pair.new(True,key) }
+    }
 
     method elems(Setty:D: --> Int) { %!elems.elems }
     method total(Setty:D: --> Int) { %!elems.elems }
@@ -60,8 +72,6 @@ my role Setty does QuantHash {
         ~ ')';
     }
 
-    multi method pairs(Setty:D:)    { %!elems.values.map: { $_ => True } }
-    multi method antipairs(Setty:D:) { %!elems.values.map: { True => $_ } }
     method grab(Setty:D: $count = 1) {
         (%!elems{ %!elems.keys.pick($count) }:delete).cache;
     }

@@ -301,7 +301,8 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
     X::Redeclaration.new(what => 'return type for', symbol => $target,
         postfix => " (previous return type was {$sig.returns.^name})").throw
         if $sig.has_returns;
-    $sig.set_returns($type)
+    $sig.set_returns($type);
+    $target.^mixin(Callable.^parameterize($type))
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
@@ -332,7 +333,8 @@ multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     X::Redeclaration.new(what => 'return type for', symbol => $target,
         postfix => " (previous return type was {$sig.returns.^name})").throw
         if $sig.has_returns;
-    $sig.set_returns($type)
+    $sig.set_returns($type);
+    $target.^mixin(Callable.^parameterize($type))
 }
 
 proto sub trait_mod:<as>(|) { * }

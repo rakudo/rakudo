@@ -631,7 +631,9 @@ sub infix:<orelse>(**@a) {
     $current;
 }
 
-sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }
+multi sub infix:<∘> () { *.self }
+multi sub infix:<∘> (&f) { &f }
+multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }
 my &infix:<o> := &infix:<∘>;
 
 # vim: ft=perl6 expandtab sw=4

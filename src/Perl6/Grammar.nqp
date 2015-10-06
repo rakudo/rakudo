@@ -3981,8 +3981,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym<**>   { <sym>  <O('%exponentiation')> }
-    token infix:sym<∘>   { <sym>  <O('%exponentiation')> }
-    token infix:sym<o>   { <sym>  <O('%exponentiation')> }
 
     token prefix:sym<+>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~~>  { <sym> <.dupprefix('~~')> <O('%symbolic_unary')> }
@@ -4043,6 +4041,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [<-alpha>  <.obs('. to concatenate strings', '~')>]?
         <O('%dottyinfix')>
     }
+    token infix:sym<∘>   { <sym>  <O('%concatenation')> }
+    token infix:sym<o>   { <sym>  <O('%concatenation')> }
 
     token infix:sym<&>   { <sym> <O('%junctive_and, :iffy<1>')> }
     token infix:sym<(&)> { <sym> <O('%junctive_and')> }

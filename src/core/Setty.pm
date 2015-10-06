@@ -5,7 +5,7 @@ my role Setty does QuantHash {
     method default(--> Bool) { False }
 
     multi method keys(Setty:D:)   { %!elems.values }
-    multi method kv(Setty:D:)     { %!elems.values X, True }
+    multi method kv(Setty:D:)     { flat %!elems.values X, True }
     multi method values(Setty:D:) { True xx %!elems.elems }
 
     method elems(Setty:D: --> Int) { %!elems.elems }

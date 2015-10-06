@@ -2309,8 +2309,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
           [
-          || <?{ $*SCOPE eq 'has' }> <.newpad> [ <.ws> <initializer> ]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
-          || [ <.ws> <initializer> ]?
+          || <?{ $*SCOPE eq 'has' }> <.newpad>
+                [
+                || <.ws> <initializer>
+                || <?{ $*OFTYPE<colonpairs><D> }> { self.typed_panic: "X::Syntax::Variable::MissingInitializer", type => ~$*OFTYPE }
+                ]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
+          || <.ws> <initializer>
+          || <?{ $*OFTYPE<colonpairs><D> }> { self.typed_panic: "X::Syntax::Variable::MissingInitializer", type => ~$*OFTYPE }
+          || <?>
           ]
         | '(' ~ ')' <signature('variable')> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
@@ -3333,6 +3339,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token bare_complex_number { <?before <[\-+0..9<>:.eEboxdInfNa\\]>+? 'i'> <re=.signed-number> <?[\-+]> <im=.signed-number> \\? 'i' }
 
     token typename {
+        :my %colonpairs;
         [
         | '::?'<identifier> <colonpair>*    # parse ::?CLASS as special case
         | <longname>
@@ -3347,6 +3354,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
+        {
+            for ($<longname> ?? $<longname><colonpair> !! $<colonpair>) {
+                if $_<identifier> {
+                    my $name := $_<identifier>.Str;
+                    if $name eq 'D' || $name eq 'U' {
+                        %colonpairs{$name} := 1;
+                    }
+                    else {
+                        $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
+                    }
+                }
+            }
+        }
+        [<?{ %colonpairs }> <colonpairs=.AS_MATCH(%colonpairs)>]?
     }
 
     token typo_typename($panic = 0) {
@@ -3714,14 +3735,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> }
             ]?
         ]
-        <OPER=.asOPER($*OPER)>
-    }
-
-    method asOPER($OPER) {
-        my $cur  := self.'!cursor_start_cur'();
-        $cur.'!cursor_pass'(self.pos());
-        nqp::bindattr($cur, NQPCursor, '$!match', $OPER);
-        $cur
+        <OPER=.AS_MATCH($*OPER)>
     }
 
     token fake_infix {
@@ -3831,24 +3845,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
         <.can_meta($<infixish>, "hyper with")>
-        {} <O=.copyO($<infixish>)>
+        {} <O=.AS_MATCH($<infixish><OPER><O>)>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish('HYPER')>
         $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
-        {} <O=.copyO($<infixish>)>
+        {} <O=.AS_MATCH($<infixish><OPER><O>)>
     }
 
-    method copyO($from) {
-        my $O   := $from<OPER><O>;
-        my $cur := self.'!cursor_start_cur'();
+    method AS_MATCH($v) {
+        my $cur  := self.'!cursor_start_cur'();
         $cur.'!cursor_pass'(self.pos());
-        nqp::bindattr($cur, NQPCursor, '$!match', $O);
+        nqp::bindattr($cur, NQPCursor, '$!match', $v);
         $cur
     }
-
     method revO($from) {
         my $O   := nqp::clone($from<OPER><O>);
         my $cur := self.'!cursor_start_cur'();
@@ -4142,7 +4154,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
-        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
+        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.AS_MATCH($<infixish><OPER><O>)>
         || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
         ]
     }
@@ -4156,7 +4168,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix_prefix_meta_operator:sym<S> {
         <sym> <infixish('S')> {}
         <.can_meta($<infixish>, "sequence the args of")>
-        <O=.copyO($<infixish>)>
+        <O=.AS_MATCH($<infixish><OPER><O>)>
     }
 
     token infix_prefix_meta_operator:sym<X> {

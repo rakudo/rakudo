@@ -2562,7 +2562,7 @@ Compilation unit '$file' contained the following violations:
                 $/.CURSOR.panic("Cannot declare an anonymous attribute");
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
@@ -2632,7 +2632,7 @@ Compilation unit '$file' contained the following violations:
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info  := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 
@@ -2702,47 +2702,6 @@ Compilation unit '$file' contained the following violations:
         }
 
         $past
-    }
-
-    sub container_type_info($/, $sigil, @value_type, $shape, :@post) {
-        if @value_type {
-            my $of := @value_type[0].ast;
-            my $D;
-            my $U;
-            for (@value_type[0]<longname> ?? @value_type[0]<longname><colonpair> !! @value_type[0]<colonpair>) {
-                if $_<identifier> {
-                    if $_<identifier>.Str eq 'D' {
-                        $D := 1;
-                    }
-                    elsif $_<identifier>.Str eq 'U' {
-                        $U := 1;
-                    }
-                    else {
-                        $*W.throw($/, ['X', 'InvalidTypeSmiley'],
-                            name => $_<identifier>.Str)
-                    }
-                }
-            }
-
-            if $D {
-                my $Pair := $*W.find_symbol(['Pair']);
-                @post.push($Pair.new('defined', 1));
-                $*W.container_type_info($/, $sigil, [$of], $shape, :@post,
-                    :subset_name(~@value_type[0]), :default_value($of.new()));
-            }
-            elsif $U {
-                my $Pair := $*W.find_symbol(['Pair']);
-                @post.push($Pair.new('defined', 0));
-                $*W.container_type_info($/, $sigil, [$of], $shape, :@post,
-                    :subset_name(~@value_type[0]));
-            }
-            else {
-                $*W.container_type_info($/, $sigil, [$of], $shape, :@post);
-            }
-        }
-        else {
-            $*W.container_type_info($/, $sigil, [], $shape, :@post);
-        }
     }
 
     sub add_lexical_accessor($/, $var_past, $meth_name, $install_in) {
@@ -4404,16 +4363,8 @@ Compilation unit '$file' contained the following violations:
                 }
                 %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
                 %*PARAM_INFO<of_type_match> := $<typename>;
-                for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
-                    if $_<identifier> {
-                        if $_<identifier>.Str eq 'D' {
-                            %*PARAM_INFO<defined_only> := 1;
-                        }
-                        elsif $_<identifier>.Str eq 'U' {
-                            %*PARAM_INFO<undefined_only> := 1;
-                        }
-                    }
-                }
+                %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs><D>;
+                %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs><U>;
             }
         }
         elsif $<value> {

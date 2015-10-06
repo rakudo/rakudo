@@ -1387,6 +1387,11 @@ my class X::Syntax::Term::MissingInitializer does X::Syntax {
     method message { 'Term definition requires an initializer' }
 }
 
+my class X::Syntax::Variable::MissingInitializer does X::Syntax {
+    has $.type;
+    method message { "Variable definition of type $.type requires an initializer" }
+}
+
 my class X::Syntax::AddCategorical::TooFewParts does X::Syntax {
     has $.category;
     has $.needs;

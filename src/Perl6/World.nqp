@@ -1222,10 +1222,25 @@ class Perl6::World is HLL::World {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    method container_type_info($/, $sigil, @value_type, $shape?, :@post, :$subset_name, :$default_value) {
+    method container_type_info($/, $sigil, @value_type, $shape?, :@post) {
         my %info;
         %info<sigil> := $sigil;
-        @value_type[0] := nqp::decont(@value_type[0]) if @value_type;
+        my $subset_name;
+
+        if @value_type {
+            if @value_type[0]<colonpairs><D> {
+                my $subset_name := ~@value_type[0];
+                my $Pair        := $*W.find_symbol(['Pair']);
+                @post.push($Pair.new('defined', 1));
+            }
+            elsif @value_type[0]<colonpairs><U> {
+                my $subset_name := ~@value_type[0];
+                my $Pair        := $*W.find_symbol(['Pair']);
+                @post.push($Pair.new('defined', 0));
+            }
+            @value_type[0] := nqp::decont(@value_type[0].ast);
+        }
+
         for @post -> $con {
             @value_type[0] := self.create_subset(self.resolve_mo($/, 'subset'),
                 @value_type ?? @value_type[0] !! self.find_symbol(['Mu']),
@@ -1320,7 +1335,7 @@ class Perl6::World is HLL::World {
             if @value_type {
                 %info<bind_constraint> := @value_type[0];
                 %info<value_type>      := @value_type[0];
-                %info<default_value>   := $default_value // @value_type[0];
+                %info<default_value>   := @value_type[0];
             }
             else {
                 %info<bind_constraint> := self.find_symbol(['Mu']);
@@ -1442,7 +1457,7 @@ class Perl6::World is HLL::World {
         my $varast     := $var.ast;
         my $name       := $varast.name;
         my $BLOCK      := self.cur_lexpad();
-        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
+        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>, $*OFTYPE ?? [$*OFTYPE] !! []);
         my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,

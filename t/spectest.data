@@ -275,6 +275,7 @@ S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
 S04-declarations/our.t
+S04-declarations/smiley.t
 S04-declarations/state.t
 S04-declarations/will.t
 S04-exception-handlers/catch.t
@@ -542,6 +543,7 @@ S12-attributes/instance.t
 S12-attributes/mutators.t
 S12-attributes/native.t
 S12-attributes/recursive.t
+S12-attributes/smiley.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t
 S12-class/attributes.t

@@ -3361,7 +3361,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     if $name eq 'D' || $name eq 'U' {
                         %colonpairs{$name} := 1;
                     }
-                    else {
+                    elsif $name ne '_' {
                         $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
                     }
                 }

@@ -23,7 +23,7 @@ my class Failure {
     }
 
     submethod BUILD (:$!exception) {
-        $!backtrace = $!exception.backtrace() || Backtrace.new(9);
+        $!backtrace = $!exception.backtrace() || Backtrace.new(8);
         $!exception.reset-backtrace;
     }
 

@@ -160,6 +160,26 @@ my class X::Pragma::NoArgs is Exception {
     method message { "The '$.name' pragma does not take any arguments." }
 }
 
+my class X::Pragma::CannotNo is Exception {
+    has $.name;
+    method message { "'no $.name' is not an option." }
+}
+my class X::Pragma::MustOneOf is Exception {
+    has $.name;
+    has $.alternatives;
+    method message { "'$.name' pragma expects one parameter out of $.alternatives." }
+}
+my class X::Pragma::UnknownArg is Exception {
+    has $.name;
+    has $.arg;
+    method message { "Unknown argument '{$.arg.perl}' specified with the '$.name' pragma." }
+}
+
+my class X::Pragma::OnlyOne is Exception {
+    has $.name;
+    method message { "The '$.name' pragma only takes one argument." }
+}
+
 my role X::Control is Exception {
 }
 my class CX::Next does X::Control {

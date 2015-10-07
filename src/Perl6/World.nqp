@@ -757,6 +757,34 @@ class Perl6::World is HLL::World {
             }
             %*PRAGMAS<trace> := $on;
         }
+        elsif $name eq 'parameters' || $name eq 'variables' || $name eq 'invocant' {
+            unless $on {
+                self.throw($/, 'X::Pragma::CannotNo', :$name)
+            }
+            unless nqp::defined($arglist) {
+                self.throw($/, 'X::Pragma::MustOneOf', :$name, :alternatives(':D, :U or :_'));
+            }
+
+            my $Pair := self.find_symbol(['Pair']);
+            my $Bool := self.find_symbol(['Bool']);
+            my $type;
+            for $arglist -> $arg {
+                if $type {
+                    self.throw($/, 'X::Pragma::OnlyOne', :$name);
+                }
+                elsif nqp::istype($arg,$Pair) {
+                    my $value := $arg.value;
+                    if nqp::istype($value,$Bool) && $value {
+                        $type := $arg.key;
+                        if $type eq 'D' || $type eq 'U' || $type eq '_' {
+                            %*PRAGMAS{$name} := $type;
+                            next;
+                        }
+                    }
+                }
+                self.throw($/, 'X::Pragma::UnknownArg', :$name, :$arg);
+            }
+        }
         else {
             $DEBUG("  '$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module

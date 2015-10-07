@@ -392,25 +392,25 @@ multi sub infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-proto sub infix:<before>(Mu $, Mu $?)  is pure { * }
+proto sub infix:<before>(Mu $?, Mu $?)  is pure { * }
 multi sub infix:<before>($?)      { Bool::True }
 multi sub infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-proto sub infix:<after>(Mu $, Mu $?) is pure { * }
+proto sub infix:<after>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<after>($x?)       { Bool::True }
 multi sub infix:<after>(\a, \b)    { (a cmp b) > 0 }
 
-proto prefix:<++>(|)             { * }
+proto prefix:<++>(Mu)             { * }
 multi prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
 multi prefix:<++>(Mu:U $a is rw) { $a = 1 }
-proto prefix:<-->(|)             { * }
+proto prefix:<-->(Mu)             { * }
 multi prefix:<-->(Mu:D $a is rw) { $a = $a.pred }
 multi prefix:<-->(Mu:U $a is rw) { $a = -1 }
 
-proto postfix:<++>(|)             { * }
+proto postfix:<++>(Mu)             { * }
 multi postfix:<++>(Mu:D $a is rw) { my $b = $a; $a = $a.succ; $b }
 multi postfix:<++>(Mu:U $a is rw) { $a = 1; 0 }
-proto postfix:<-->(|)             { * }
+proto postfix:<-->(Mu)             { * }
 multi postfix:<-->(Mu:D $a is rw) { my $b = $a; $a = $a.pred; $b }
 multi postfix:<-->(Mu:U $a is rw) { $a = -1; 0 }
 

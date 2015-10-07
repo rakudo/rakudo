@@ -909,9 +909,7 @@ sub flat(**@list is raw) {
 
 sub cache(+@l) { @l }
 
-proto sub infix:<xx>(|)     { * }
-multi sub infix:<xx>()      { fail "No zero-arg meaning for infix:<xx>" }
-multi sub infix:<xx>(Mu \x) { x }
+proto sub infix:<xx>(Mu $, $, *%) { * }
 multi sub infix:<xx>(Mu \x, Num $n, :$thunked!) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int, :$thunked);
 }

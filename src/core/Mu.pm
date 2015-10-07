@@ -661,7 +661,7 @@ Please refactor this code using the new Iterator / Seq interface.
 proto sub defined(Mu) is pure { * }
 multi sub defined(Mu \x) { x.defined }
 
-proto sub infix:<~~>(|) { * }
+proto sub infix:<~~>(Mu \topic, Mu \matcher) { * }
 multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
@@ -756,7 +756,9 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 }
 
 # These must collapse Junctions
+proto sub so(Mu $) {*}
 multi sub so(Mu $x)  { ?$x }
+proto sub not(Mu $) {*}
 multi sub not(Mu $x) { !$x }
 
 Metamodel::ClassHOW.exclude_parent(Mu);

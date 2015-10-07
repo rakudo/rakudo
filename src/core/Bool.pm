@@ -57,15 +57,15 @@ multi sub prefix:<not>(Mu \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
 proto sub prefix:<?^>(Mu $) is pure { * }
 multi sub prefix:<?^>(Mu \a) { not a }
 
-proto sub infix:<?&>(|) is pure          { * }
+proto sub infix:<?&>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<?&>(Mu $x = Bool::True) { $x.Bool }
 multi sub infix:<?&>(Mu \a, Mu \b)       { a.Bool && b.Bool }
 
-proto sub infix:<?|>(|) is pure           { * }
+proto sub infix:<?|>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<?|>(Mu $x = Bool::False) { $x.Bool }
 multi sub infix:<?|>(Mu \a, Mu \b)        { a.Bool || b.Bool }
 
-proto sub infix:<?^>(|) is pure           { * }
+proto sub infix:<?^>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<?^>(Mu $x = Bool::False) { $x.Bool }
 multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::p6bool(nqp::ifnull(nqp::xor(a.Bool,b.Bool), 0)) }
 
@@ -105,7 +105,7 @@ proto sub infix:<or>(|)                   { * }
 multi sub infix:<or>(Mu $x = Bool::False) { $x }
 multi sub infix:<or>(Mu \a, Mu \b)        { a || b }
 
-proto sub infix:<xor>(|)                   { * }
+proto sub infix:<xor>(|)                  { * }
 multi sub infix:<xor>(Mu $x = Bool::False) { $x }
 multi sub infix:<xor>(Mu \a, Mu \b)        { a ^^ b }
 multi sub infix:<xor>(|c)                 { &infix:<^^>(|c); }

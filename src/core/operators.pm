@@ -631,7 +631,7 @@ sub infix:<orelse>(**@a) {
     $current;
 }
 
-proto sub infix:<∘> (|) {*}
+proto sub infix:<∘> (&?, &?) {*}
 multi sub infix:<∘> () { *.self }
 multi sub infix:<∘> (&f) { &f }
 multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }

@@ -434,7 +434,7 @@ multi sub infix:<===>(Complex:D \a, Complex:D \b) returns Bool:D {
     a.WHAT =:= b.WHAT && a == b
 }
 
-proto sub postfix:<i>(|) returns Complex:D is pure { * }
+proto sub postfix:<i>(\a) returns Complex:D is pure { * }
 multi sub postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }
 multi sub postfix:<i>(Complex:D \a) returns Complex:D { Complex.new(-a.im, a.re) }
 multi sub postfix:<i>(Numeric   \a) returns Complex:D { a * Complex.new(0e0, 1e0) }

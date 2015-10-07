@@ -2429,7 +2429,7 @@ Compilation unit '$file' contained the following violations:
                     }
                 }
                 else {
-                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! []);
+                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! [], :pragma<parameters>);
                     $list.push($*W.build_container_past(
                       %cont_info,
                       $*W.create_container_descriptor(
@@ -2562,7 +2562,7 @@ Compilation unit '$file' contained the following violations:
                 $/.CURSOR.panic("Cannot declare an anonymous attribute");
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post, :pragma<attributes>);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
@@ -2632,7 +2632,7 @@ Compilation unit '$file' contained the following violations:
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post, :pragma<variables>);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 

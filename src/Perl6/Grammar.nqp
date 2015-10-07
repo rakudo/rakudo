@@ -3358,10 +3358,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             for ($<longname> ?? $<longname><colonpair> !! $<colonpair>) {
                 if $_<identifier> {
                     my $name := $_<identifier>.Str;
-                    if $name eq 'D' || $name eq 'U' {
+                    if $name eq 'D' || $name eq 'U' || $name eq '_' {
                         %colonpairs{$name} := 1;
                     }
-                    elsif $name ne '_' {
+                    else {
                         $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
                     }
                 }

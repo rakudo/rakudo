@@ -1255,7 +1255,7 @@ class Perl6::World is HLL::World {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    method container_type_info($/, $sigil, @value_type, $shape?, :@post, :$pragma) {
+    method container_type_info($/, $sigil, @value_type, $shape?, :@post, :$pragma!) {
         my %info;
         %info<sigil> := $sigil;
         my $subset_name;
@@ -1284,12 +1284,10 @@ class Perl6::World is HLL::World {
                 }
             }
 
-            # need to check a specific pragma
-            if $pragma {
+            # no specific smiley, so need to check pragma
+            unless nqp::defined($smiley) {
                 if %*PRAGMAS{$pragma} -> $default {
-                    if nqp::isnull($smiley) || $smiley eq '_' {
-                        $smiley := $default;
-                    }
+                    $smiley := $default;
                 }
             }
 
@@ -1517,7 +1515,7 @@ class Perl6::World is HLL::World {
         my $varast     := $var.ast;
         my $name       := $varast.name;
         my $BLOCK      := self.cur_lexpad();
-        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>, $*OFTYPE ?? [$*OFTYPE] !! []);
+        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>, $*OFTYPE ?? [$*OFTYPE] !! [], :pragma<variables>);
         my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,

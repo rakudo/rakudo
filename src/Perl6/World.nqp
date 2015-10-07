@@ -1257,13 +1257,13 @@ class Perl6::World is HLL::World {
 
         if @value_type {
             if @value_type[0]<colonpairs><D> {
-                my $subset_name := ~@value_type[0];
-                my $Pair        := $*W.find_symbol(['Pair']);
+                $subset_name := ~@value_type[0];
+                my $Pair     := $*W.find_symbol(['Pair']);
                 @post.push($Pair.new('defined', 1));
             }
             elsif @value_type[0]<colonpairs><U> {
-                my $subset_name := ~@value_type[0];
-                my $Pair        := $*W.find_symbol(['Pair']);
+                $subset_name := ~@value_type[0];
+                my $Pair     := $*W.find_symbol(['Pair']);
                 @post.push($Pair.new('defined', 0));
             }
             @value_type[0] := nqp::decont(@value_type[0].ast);

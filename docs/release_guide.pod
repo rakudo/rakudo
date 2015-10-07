@@ -14,7 +14,7 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-10-22   Rakudo #92
+  2015-10-22   Rakudo #92 (Coke)
   2015-11-19   Rakudo #93
   2015-12-17   Rakudo #94
 

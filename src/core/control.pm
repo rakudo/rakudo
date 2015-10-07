@@ -169,7 +169,7 @@ sub done() {
 
 proto sub die(|) {*};
 multi sub die() {
-    my $stash  := CALLER::CALLER::;
+    my $stash  := CALLER::;
     my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
     $payload ~~ Exception
       ?? $payload.throw

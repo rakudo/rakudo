@@ -757,7 +757,7 @@ class Perl6::World is HLL::World {
             }
             %*PRAGMAS<trace> := $on;
         }
-        elsif $name eq 'parameters' || $name eq 'variables' || $name eq 'invocant' {
+        elsif $name eq 'parameters' || $name eq 'variables' || $name eq 'attributes' || $name eq 'invocant' {
             unless $on {
                 self.throw($/, 'X::Pragma::CannotNo', :$name)
             }

@@ -776,8 +776,12 @@ class Perl6::World is HLL::World {
                     my $value := $arg.value;
                     if nqp::istype($value,$Bool) && $value {
                         $type := $arg.key;
-                        if $type eq 'D' || $type eq 'U' || $type eq '_' {
+                        if $type eq 'D' || $type eq 'U' {
                             %*PRAGMAS{$name} := $type;
+                            next;
+                        }
+                        elsif $type eq '_' {
+                            nqp::deletekey(%*PRAGMAS,$name);
                             next;
                         }
                     }

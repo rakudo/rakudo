@@ -781,6 +781,7 @@ class Perl6::World is HLL::World {
                             next;
                         }
                     }
+                    self.throw($/, 'X::InvalidTypeSmiley', :name($arg.key));
                 }
                 self.throw($/, 'X::Pragma::UnknownArg', :$name, :$arg);
             }

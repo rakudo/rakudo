@@ -1255,21 +1255,48 @@ class Perl6::World is HLL::World {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    method container_type_info($/, $sigil, @value_type, $shape?, :@post) {
+    method container_type_info($/, $sigil, @value_type, $shape?, :@post, :$pragma) {
         my %info;
         %info<sigil> := $sigil;
         my $subset_name;
 
+        my $Pair := $*W.find_symbol(['Pair']);
+        my $Bool := $*W.find_symbol(['Bool']);
         if @value_type {
-            if @value_type[0]<colonpairs><D> {
-                $subset_name := ~@value_type[0];
-                my $Pair     := $*W.find_symbol(['Pair']);
-                @post.push($Pair.new('defined', 1));
+            my $smiley;
+
+            # we have a type smiley
+            if @value_type[0]<colonpairs> -> $pairs {
+                if nqp::elems($pairs) > 1 {
+                    nqp::die("may only specify one smiley"); # XXX
+                }
+                elsif $pairs<D> {
+                    $smiley := 'D';
+                }
+                elsif $pairs<U> {
+                    $smiley := 'U';
+                }
+                elsif $pairs<_> {
+                    $smiley := '_';
+                }
+                else {
+                    nqp::die("cannot handle this"); # XXX can this fire ever?
+                }
             }
-            elsif @value_type[0]<colonpairs><U> {
+
+            # need to check a specific pragma
+            if $pragma {
+                if %*PRAGMAS{$pragma} -> $default {
+                    if nqp::isnull($smiley) || $smiley eq '_' {
+                        $smiley := $default;
+                    }
+                }
+            }
+
+            # set up subset info
+            if $smiley && $smiley ne '_' {
                 $subset_name := ~@value_type[0];
-                my $Pair     := $*W.find_symbol(['Pair']);
-                @post.push($Pair.new('defined', 0));
+                @post.push($Pair.new('defined', $smiley eq 'D' ?? 1 !! 0));
             }
             @value_type[0] := nqp::decont(@value_type[0].ast);
         }

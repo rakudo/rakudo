@@ -411,7 +411,7 @@ class Perl6::World is HLL::World {
 
         # Tag UNIT with a magical lexical. Also if we're compiling CORE,
         # give it such a tag too.
-        my $name := %*COMPILING<%?OPTIONS><setting> eq 'NULL'
+        my $name := $*COMPILING_CORE_SETTING
           ?? '!CORE_MARKER'
           !! '!UNIT_MARKER';
         my $marker := self.pkg_create_mo($/, %*HOW<package>, :$name);
@@ -3195,11 +3195,7 @@ class Perl6::World is HLL::World {
         for $longname<colonpair> {
             if $_<coloncircumfix> && !$_<identifier> {
                 my $cp_str;
-                if %*COMPILING<%?OPTIONS><setting> ne 'NULL' {
-                    # Safe to evaluate it directly; no bootstrap issues.
-                    $cp_str := ':<' ~ ~self.compile_time_evaluate($_, $_.ast) ~ '>';
-                }
-                else {
+                if $*COMPILING_CORE_SETTING {
                     my $ast := $_.ast;
 
                     # XXX hackish for dealing with <longname> stuff, which
@@ -3212,6 +3208,11 @@ class Perl6::World is HLL::World {
                     $cp_str := nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal)
                         ?? ':<' ~ $ast[2].value ~ '>'
                         !! ~$_;
+                }
+
+                # Safe to evaluate it directly; no bootstrap issues.
+                else {
+                    $cp_str := ':<' ~ ~self.compile_time_evaluate($_, $_.ast) ~ '>';
                 }
                 @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
             }

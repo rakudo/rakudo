@@ -2471,15 +2471,40 @@ class Perl6::World is HLL::World {
                     # if we have something here, it's probably a Slip,
                     # which stringifies fine but has to be split at ','
                     # and potentially whitespace-corrected
-                    $result := join(' ', nqp::split(',', ~$result));
-                    while nqp::eqat($result, " ", 2) {
-                        $result := nqp::replace($result, 2, nqp::chars($result) - 2, nqp::substr($result, 3));
-                    }
-                    if nqp::chars($result) > 3 {
+                    my @parts := nqp::split(',', ~$result);
+                    if +@parts > 2 {
                         # there's no foofix that allows more than two parts
                         $/.CURSOR.panic($mkerr());
                     }
-                    return $result;
+                    my $l-delim;
+                    my $r-delim;
+                    my @delims;
+                    for @parts -> $part {
+                        my $l-ws := 0;
+                        my $r-ws := nqp::chars($part);
+                        my $l-done := 0;
+                        my $r-done := 0;
+                        while 1 {
+                            last if $l-done && $r-done;
+                            if nqp::eqat($part, ' ', $l-ws) {
+                                $l-ws := $l-ws + 1;
+                            }
+                            else {
+                                $l-done := 1;
+                            }
+                            if nqp::eqat($part, ' ', $r-ws) {
+                                $r-ws := $r-ws - 1;
+                            }
+                            else {
+                                $r-done := 1;
+                            }
+                        }
+                        $part := nqp::substr($part, $l-ws, $r-ws);
+                        nqp::push(@delims, $part);
+                        $/.CURSOR.panic($mkerr()) if nqp::index($part, ' ') != -1;
+                    }
+                    nqp::say("got: " ~ nqp::join(" ", @delims) ~ ".");
+                    return nqp::join(" ", @delims);
                     CONTROL {
                         # we might get a warning from evaluating a Block
                         $/.CURSOR.panic($mkerr());

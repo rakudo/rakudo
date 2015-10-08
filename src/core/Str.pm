@@ -1435,6 +1435,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str
     }
 
+    proto method fc(|) { * }
+    multi method fc(Str:D:) {
+        nqp::p6box_s(nqp::fc($!value));
+    }
+    multi method fc(Str:U:) {
+        self.Str;
+    }
+
     proto method tclc(|) { * }
     multi method tclc(Str:D:) {
         nqp::p6box_s(nqp::tclc($!value))

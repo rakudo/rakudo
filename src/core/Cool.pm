@@ -100,6 +100,10 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.tc
     }
 
+    method fc() {
+        self.Str.fc
+    }
+
     method tclc() {
         self.Str.tclc
     }
@@ -347,6 +351,7 @@ sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }
 sub uc(Cool $s)                    { $s.uc }
 sub tc(Cool $s)                    { $s.tc }
+sub fc(Cool $s)                    { $s.fc }
 sub tclc(Cool $s)                  { $s.tclc }
 
 sub indices(Cool $s,$needle,$pos=0,:$overlap) {

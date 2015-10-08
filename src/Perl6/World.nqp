@@ -2456,7 +2456,34 @@ class Perl6::World is HLL::World {
                 # single thing or a list of things, as done above)
                 self.nibble_to_str($/, $ast[0], $mkerr);
             } else {
-                $/.CURSOR.panic($mkerr());
+                # check if there's something in $ast that probably wont work
+                # as a compile time value
+                my $inspect := $ast;
+                while nqp::istype($inspect, QAST::Op) {
+                    $inspect := $inspect[0];
+                }
+                if nqp::istype($inspect, QAST::WVal) {
+                    $/.CURSOR.panic($mkerr());
+                }
+                else {
+                    my $result;
+                    $result := self.compile_time_evaluate($/, $ast);
+                    # if we have something here, it's probably a Slip,
+                    # which stringifies fine but has to be split at ','
+                    # and potentially whitespace-corrected
+                    $result := join(' ', nqp::split(',', ~$result));
+                    while nqp::eqat($result, " ", 2) {
+                        $result := nqp::replace($result, 2, nqp::chars($result) - 2, nqp::substr($result, 3));
+                    }
+                    if nqp::chars($result) > 3 {
+                        # there's no foofix that allows more than two parts
+                        $/.CURSOR.panic($mkerr());
+                    }
+                    return $result;
+                    CATCH {
+                        $/.CURSOR.panic($mkerr());
+                    }
+                }
             }
         } elsif nqp::istype($ast, QAST::Var) {
             my $result;

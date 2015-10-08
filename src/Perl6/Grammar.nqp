@@ -1359,6 +1359,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token terminator:sym<for>    { 'for'    <.kok> }
     token terminator:sym<given>  { 'given'  <.kok> }
     token terminator:sym<when>   { 'when'   <.kok> }
+    token terminator:sym<with>   { 'with'   <.kok> }
+    token terminator:sym<without> { 'without' <.kok> }
     token terminator:sym<arrow>  { '-->' }
 
 

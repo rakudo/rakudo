@@ -4469,6 +4469,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         my @parts := nqp::split(' ', $opname);
 
+# The settings should only have 1 grammar, otherwise it will slow down
+# loading of rakudo significantly on *every* run.  This is a canary that
+# will let itself be known should someone make changes to the setting that
+# would cause a grammar change, and thus a slowdown.
+if $*COMPILING_CORE_SETTING {
+    self.panic("don't change grammar in the setting, please!");
+}
+
         if $is_term {
             my role Term[$meth_name, $op] {
                 token ::($meth_name) { $<sym>=[$op] }

@@ -1292,7 +1292,7 @@ class Perl6::World is HLL::World {
             # set up subset info
             if $smiley && $smiley ne '_' {
                 $subset_name := ~@value_type[0];
-                my $Pair := $*W.find_symbol(['Pair']);
+                my $Pair := self.find_symbol(['Pair']);
                 @post.push($Pair.new('defined', $smiley eq 'D' ?? 1 !! 0));
             }
             @value_type[0] := nqp::decont(@value_type[0].ast);
@@ -2754,10 +2754,11 @@ class Perl6::World is HLL::World {
                 if nqp::isconcrete($!resolved) {
                     my int $added_update := 0;
                     try {
-                        my $cur_handle := $*W.handle;
+                        my $W := $*W;
+                        my $cur_handle := $W.handle;
                         if $cur_handle ne $!resolver {
-                            $*W.add_object($code);
-                            $*W.add_fixup_task(:deserialize_ast(QAST::Op.new(
+                            $W.add_object($code);
+                            $W.add_fixup_task(:deserialize_ast(QAST::Op.new(
                                 :op('callmethod'), :name('update'),
                                 QAST::WVal.new( :value(self) ),
                                 QAST::WVal.new( :value($code) )

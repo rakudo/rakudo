@@ -367,8 +367,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # A temporary routine for differential testing of .match overhead.
-    # This can only be used for a single non-multi match, and does not
-    # set $/.
+    # This can only be used for a single non-multi match.
     method simplematch($pat) {
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
@@ -376,9 +375,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $patrx := nqp::istype($pat,Code) ?? $pat !! / "$pat": /;
         my $cur := $patrx(Cursor.'!cursor_init'(self, |%opts));
 
-        $cur.pos >= 0
+        my \result = $cur.pos >= 0
             ?? $cur.MATCH_SAVE
             !! Nil;
+        $caller_dollar_slash = result;
+        result;
     }
 
     method match($pat,

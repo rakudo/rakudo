@@ -2462,7 +2462,7 @@ class Perl6::World is HLL::World {
                 while nqp::istype($inspect, QAST::Op) {
                     $inspect := $inspect[0];
                 }
-                if nqp::istype($inspect, QAST::WVal) {
+                if nqp::istype($inspect, QAST::WVal) && !nqp::istype($inspect.value, self.find_symbol(["Block"])) {
                     $/.CURSOR.panic($mkerr());
                 }
                 else {
@@ -2480,6 +2480,10 @@ class Perl6::World is HLL::World {
                         $/.CURSOR.panic($mkerr());
                     }
                     return $result;
+                    CONTROL {
+                        # we might get a warning from evaluating a Block
+                        $/.CURSOR.panic($mkerr());
+                    }
                     CATCH {
                         $/.CURSOR.panic($mkerr());
                     }

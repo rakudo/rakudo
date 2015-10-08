@@ -1260,8 +1260,6 @@ class Perl6::World is HLL::World {
         %info<sigil> := $sigil;
         my $subset_name;
 
-        my $Pair := $*W.find_symbol(['Pair']);
-        my $Bool := $*W.find_symbol(['Bool']);
         if @value_type {
             my $smiley;
 
@@ -1294,6 +1292,7 @@ class Perl6::World is HLL::World {
             # set up subset info
             if $smiley && $smiley ne '_' {
                 $subset_name := ~@value_type[0];
+                my $Pair := $*W.find_symbol(['Pair']);
                 @post.push($Pair.new('defined', $smiley eq 'D' ?? 1 !! 0));
             }
             @value_type[0] := nqp::decont(@value_type[0].ast);

@@ -1291,7 +1291,7 @@ class Perl6::World is HLL::World {
 
             # set up subset info
             if $smiley && $smiley ne '_' {
-                $subset_name := ~@value_type[0];
+                $subset_name := ~@value_type[0] ~ " (with implicit :$smiley)";
                 my $Pair := self.find_symbol(['Pair']);
                 @post.push($Pair.new('defined', $smiley eq 'D' ?? 1 !! 0));
             }

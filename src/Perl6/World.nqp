@@ -810,6 +810,27 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method handle_OFTYPE_for_pragma($/, $pragma) {
+        my $colonpairs := $*OFTYPE<colonpairs>;
+        if $colonpairs<D> {
+            self.throw($/, 'X::Syntax::Variable::MissingInitializer',
+              type => ~$*OFTYPE,
+            );
+        }
+        elsif $colonpairs<U> || $colonpairs<_> { 
+        }
+
+        # no specific smiley found, check for default
+        elsif %*PRAGMAS{$pragma} -> $default {
+            if $default eq 'D' {
+                self.throw($/, 'X::Syntax::Variable::MissingInitializer',
+                  type => $*OFTYPE ~ ' (with implicit :D)',
+                );
+            }
+        }
+        1
+    }
+
     method current_file() {
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isnull($file) {

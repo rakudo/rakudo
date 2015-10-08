@@ -940,7 +940,7 @@ augment class Any {
             has Mu $!iter;
             has &!as;
             has &!with;
-            has $!last;
+            has $!last = IterationEnd; # can never match real value
             method BUILD(\list, &!as, &!with) {
                 $!iter  = as-iterable(list).iterator;
                 self
@@ -953,7 +953,6 @@ augment class Any {
                 my $which;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $which = &!as($value);
-                    once { $!last = $which; return $value }
                     unless with($which,$!last) {
                         $!last = $which;
                         return $value;
@@ -980,7 +979,7 @@ augment class Any {
         Seq.new(class :: does Iterator {
             has Mu $!iter;
             has &!with;
-            has $!last;
+            has $!last = IterationEnd; # can never match real value
             method BUILD(\list, &!with) {
                 $!iter  = as-iterable(list).iterator;
                 self
@@ -989,7 +988,6 @@ augment class Any {
             method pull-one() {
                 my Mu $value;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
-                    once { $!last = $value; return $value }
                     unless with($value,$!last) {
                         $!last = $value;
                         return $value;

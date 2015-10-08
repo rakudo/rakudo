@@ -2314,7 +2314,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           || <?{ $*SCOPE eq 'has' }> <.newpad>
                 [
                 || <.ws> <initializer>
-                || <?{ $*OFTYPE<colonpairs><D> }> { self.typed_panic: "X::Syntax::Variable::MissingInitializer", type => ~$*OFTYPE }
+                || { my $colonpairs := $*OFTYPE<colonpairs>;
+                     if $colonpairs<D> {
+                         self.typed_panic: "X::Syntax::Variable::MissingInitializer", type => ~$*OFTYPE;
+                     }
+                     elsif $colonpairs<U> || $colonpairs<_> {
+                     }
+                     elsif %*PRAGMAS<attributes> -> $default {
+                         if $default eq 'D' {
+                             self.typed_panic: "X::Syntax::Variable::MissingInitializer", type => ~$*OFTYPE ~ ' (with implicit :D)';
+                         }
+                     }
+                     1;
+                   }
                 ]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
           || <.ws> <initializer>
           || <?{ $*OFTYPE<colonpairs><D> }> { self.typed_panic: "X::Syntax::Variable::MissingInitializer", type => ~$*OFTYPE }

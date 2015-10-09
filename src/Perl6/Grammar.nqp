@@ -3055,10 +3055,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule trait {
         :my $*IN_DECL := '';
-        [
-        | <trait_mod>
-        | <colonpair>
-        ]
+        <trait_mod>
     }
 
     proto rule trait_mod { <...> }

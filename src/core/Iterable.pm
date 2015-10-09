@@ -75,16 +75,12 @@ my role Iterable {
             }
 
             method pull-one() is raw {
-                unless $!iterator.DEFINITE {
-                    $!iterator := $!iterable.iterator;
-                }
+                $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
                 $!iterator.pull-one
             }
 
             method push-exactly($target, int $n) {
-                unless $!iterator.DEFINITE {
-                    $!iterator := $!iterable.iterator;
-                }
+                $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
                 $!iterator.push-exactly($target, $n);
             }
 

@@ -173,6 +173,12 @@ class array does Iterable is repr('VMArray') {
                       ?? nqp::atposref_i($!array,$!i)
                       !! IterationEnd
                 }
+                method push-all($target) {
+                    my int $elems = nqp::elems($!array);
+                    $target.push(nqp::atposref_i($!array,$!i))
+                      while ($!i = $!i + 1) < $elems;
+                    IterationEnd
+                }
             }.new(self)
         }
     }
@@ -343,6 +349,12 @@ class array does Iterable is repr('VMArray') {
                     ($!i = $!i + 1) < nqp::elems($!array)
                       ?? nqp::atposref_n($!array,$!i)
                       !! IterationEnd
+                }
+                method push-all($target) {
+                    my int $elems = nqp::elems($!array);
+                    $target.push(nqp::atposref_n($!array,$!i))
+                      while ($!i = $!i + 1) < $elems;
+                    IterationEnd
                 }
             }.new(self)
         }

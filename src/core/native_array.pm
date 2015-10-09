@@ -173,6 +173,22 @@ class array does Iterable is repr('VMArray') {
                       ?? nqp::atposref_i($!array,$!i)
                       !! IterationEnd
                 }
+                method push-exactly($target, int $n) {
+                    my int $elems = nqp::elems($!array);
+                    my int $left  = $elems - $!i - 1;
+                    if $n >= $left {
+                        $target.push(nqp::atposref_i($!array,$!i))
+                          while ($!i = $!i + 1) < $elems;
+                        IterationEnd
+                    }
+                    else {
+                        my int $end = $!i + 1 + $n;
+                        $target.push(nqp::atposref_i($!array,$!i))
+                          while ($!i = $!i + 1) < $end;
+                        $!i = $!i - 1; # did one too many
+                        $n
+                    }
+                }
                 method push-all($target) {
                     my int $elems = nqp::elems($!array);
                     $target.push(nqp::atposref_i($!array,$!i))
@@ -349,6 +365,22 @@ class array does Iterable is repr('VMArray') {
                     ($!i = $!i + 1) < nqp::elems($!array)
                       ?? nqp::atposref_n($!array,$!i)
                       !! IterationEnd
+                }
+                method push-exactly($target, int $n) {
+                    my int $elems = nqp::elems($!array);
+                    my int $left  = $elems - $!i - 1;
+                    if $n >= $left {
+                        $target.push(nqp::atposref_n($!array,$!i))
+                          while ($!i = $!i + 1) < $elems;
+                        IterationEnd
+                    }
+                    else {
+                        my int $end = $!i + 1 + $n;
+                        $target.push(nqp::atposref_n($!array,$!i))
+                          while ($!i = $!i + 1) < $end;
+                        $!i = $!i - 1; # did one too many
+                        $n
+                    }
                 }
                 method push-all($target) {
                     my int $elems = nqp::elems($!array);

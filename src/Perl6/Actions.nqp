@@ -2402,6 +2402,19 @@ Compilation unit '$file' contained the following violations:
                     $past.annotate('nosink', 1);
                 }
             }
+            # No initializer, check that the (specified) type accepts the default value.
+            elsif $<variable_declarator><variable><sigil> eq '$' {
+                if nqp::istype($past, QAST::Var) {
+                    if $*W.cur_lexpad.symbol($past.name) -> %sym {
+                        check_default_value_type($/, %sym<descriptor>, %sym<type>, 'variables');
+                    }
+                }
+                elsif $past.ann('metaattr') -> $attr {
+                    unless $attr.required {
+                        check_default_value_type($/, $attr.container_descriptor, $attr.type, 'attributes');
+                    }
+                }
+            }
             make $past;
         }
         elsif $<signature> {
@@ -2429,7 +2442,8 @@ Compilation unit '$file' contained the following violations:
                     }
                 }
                 else {
-                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! [], :pragma<parameters>);
+                    $*W.handle_OFTYPE_for_pragma($/,'parameters');
+                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! []);
                     $list.push($*W.build_container_past(
                       %cont_info,
                       $*W.create_container_descriptor(
@@ -2498,6 +2512,17 @@ Compilation unit '$file' contained the following violations:
         }
     }
 
+    sub check_default_value_type($/, $descriptor, $bind_constraint, $what) {
+        unless nqp::istype($descriptor.default, $bind_constraint) {
+            $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
+                type => nqp::how($bind_constraint).name($bind_constraint),
+                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs><D> && !$*OFTYPE<colonpairs><U>
+                         ?? ':' ~ %*PRAGMAS{$what} ~ ' by pragma'
+                         !! 0
+            );
+        }
+    }
+
     method multi_declarator:sym<multi>($/) { make $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast }
     method multi_declarator:sym<proto>($/) { make $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast }
     method multi_declarator:sym<only>($/)  { make $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast }
@@ -2539,7 +2564,7 @@ Compilation unit '$file' contained the following violations:
 
         if $*OFTYPE {
             my $archetypes := $*OFTYPE.ast.HOW.archetypes;
-            unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic {
+            unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic || $archetypes.definite {
                 $*OFTYPE.CURSOR.typed_sorry('X::Syntax::Variable::BadType', type => $*OFTYPE.ast);
             }
         }
@@ -2561,8 +2586,11 @@ Compilation unit '$file' contained the following violations:
             if $desigilname eq '' {
                 $/.CURSOR.panic("Cannot declare an anonymous attribute");
             }
+
+            $*W.handle_OFTYPE_for_pragma($/,'attributes');
+
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post, :pragma<attributes>);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
@@ -2630,9 +2658,11 @@ Compilation unit '$file' contained the following violations:
                 $varname := $sigil;
             }
 
+            $*W.handle_OFTYPE_for_pragma($/,'variables');
+
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE] !! [], $shape, :@post, :pragma<variables>);
+            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 
@@ -4346,6 +4376,9 @@ Compilation unit '$file' contained the following violations:
                     %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
                     %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
                 }
+                elsif $type.HOW.archetypes.definite {
+                    %*PARAM_INFO<nominal_type> := $type.HOW.base_type($type);
+                }
                 elsif $type.HOW.archetypes.generic {
                     %*PARAM_INFO<nominal_type> := $type;
                     %*PARAM_INFO<nominal_generic> := 1;
@@ -5013,6 +5046,21 @@ Compilation unit '$file' contained the following violations:
             # Names ending in :: really want .WHO.
             if $*longname.get_who {
                 $past := QAST::Op.new( :op('who'), $past );
+            }
+
+            if $<colonpairs><D> {
+                unless nqp::istype($past, QAST::WVal) {
+                    $/.CURSOR.panic("Type too complex to form a definite type");
+                }
+                my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 1);
+                $past    := QAST::WVal.new( :value($type) );
+            }
+            elsif $<colonpairs><U> {
+                unless nqp::istype($past, QAST::WVal) {
+                    $/.CURSOR.panic("Type too complex to form a definite type");
+                }
+                my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 0);
+                $past    := QAST::WVal.new( :value($type) );
             }
 
             # If needed, try to form a coercion type.
@@ -6503,6 +6551,14 @@ Compilation unit '$file' contained the following violations:
                     $type := $*W.handle-begin-time-exceptions($/, "parameterizing $str_longname",
                         { $*W.parameterize_type($type, $<arglist>.ast, $/) });
                 }
+
+                if $<colonpairs><D> {
+                    $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 1);
+                }
+                elsif $<colonpairs><U> {
+                    $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 0);
+                }
+
                 if $<accept> || $<accept_any> {
                     if $<typename> {
                         $/.CURSOR.panic("Cannot put 'of' constraint on a coercion type");

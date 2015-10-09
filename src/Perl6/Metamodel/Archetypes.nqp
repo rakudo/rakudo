@@ -44,7 +44,10 @@ class Perl6::Metamodel::Archetypes {
 
     # Is it a coercive type?
     has $!coercive;
-    
+
+    # Is it a definite type?
+    has $!definite;
+
     # Are we allowed to augment the type?
     has $!augmentable;
     
@@ -57,5 +60,6 @@ class Perl6::Metamodel::Archetypes {
     method generic() { $!generic // 0 }
     method parametric() { $!parametric // 0 }
     method coercive() { $!coercive // 0 }
+    method definite() { $!definite // 0 }
     method augmentable() { $!augmentable // 0 }
 }

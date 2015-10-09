@@ -1409,7 +1409,12 @@ my class X::Syntax::Term::MissingInitializer does X::Syntax {
 
 my class X::Syntax::Variable::MissingInitializer does X::Syntax {
     has $.type;
-    method message { "Variable definition of type $.type requires an initializer" }
+    has $.implicit;
+    method message {
+        $.implicit ??
+            "Variable definition of type $.type (implicit $.implicit) requires an initializer" !!
+            "Variable definition of type $.type requires an initializer"
+    }
 }
 
 my class X::Syntax::AddCategorical::TooFewParts does X::Syntax {

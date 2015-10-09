@@ -812,20 +812,25 @@ class Perl6::World is HLL::World {
 
     method handle_OFTYPE_for_pragma($/, $pragma) {
         my $colonpairs := $*OFTYPE<colonpairs>;
-        if $colonpairs<D> {
-            self.throw($/, 'X::Syntax::Variable::MissingInitializer',
-              type => ~$*OFTYPE,
-            );
-        }
-        elsif $colonpairs<U> || $colonpairs<_> { 
+        if $colonpairs<D> || $colonpairs<U> || $colonpairs<_> {
+            # This is handled in typename and value:sym<name> directly.
         }
 
         # no specific smiley found, check for default
         elsif %*PRAGMAS{$pragma} -> $default {
-            if $default eq 'D' {
-                self.throw($/, 'X::Syntax::Variable::MissingInitializer',
-                  type => $*OFTYPE ~ ' (with implicit :D)',
-                );
+            my class FakeOfType { has $!type; method ast() { $!type } }
+            if $default ne '_' {
+                if $*OFTYPE {
+                    $*OFTYPE.make(
+                        self.create_definite_type($*W.resolve_mo($/, 'definite'),
+                            $*OFTYPE.ast, $default eq 'D')
+                    )
+                }
+                else {
+                    $*OFTYPE := FakeOfType.new(type => self.create_definite_type(
+                        $*W.resolve_mo($/, 'definite'), self.find_symbol(['Any']),
+                        $default eq 'D'));
+                }
             }
         }
         1
@@ -1276,53 +1281,16 @@ class Perl6::World is HLL::World {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    method container_type_info($/, $sigil, @value_type, $shape?, :@post, :$pragma!) {
+    method container_type_info($/, $sigil, @value_type, $shape?, :@post) {
         my %info;
         %info<sigil> := $sigil;
-        my $subset_name;
 
-        if @value_type {
-            my $smiley;
-
-            # we have a type smiley
-            if @value_type[0]<colonpairs> -> $pairs {
-                if nqp::elems($pairs) > 1 {
-                    nqp::die("may only specify one smiley"); # XXX
-                }
-                elsif $pairs<D> {
-                    $smiley := 'D';
-                }
-                elsif $pairs<U> {
-                    $smiley := 'U';
-                }
-                elsif $pairs<_> {
-                    $smiley := '_';
-                }
-                else {
-                    nqp::die("cannot handle this"); # XXX can this fire ever?
-                }
-            }
-
-            # no specific smiley, so need to check pragma
-            unless nqp::defined($smiley) {
-                if %*PRAGMAS{$pragma} -> $default {
-                    $smiley := $default;
-                }
-            }
-
-            # set up subset info
-            if $smiley && $smiley ne '_' {
-                $subset_name := ~@value_type[0] ~ " (with implicit :$smiley)";
-                my $Pair := self.find_symbol(['Pair']);
-                @post.push($Pair.new('defined', $smiley eq 'D' ?? 1 !! 0));
-            }
-            @value_type[0] := nqp::decont(@value_type[0].ast);
-        }
+        @value_type[0] := nqp::decont(@value_type[0]) if @value_type;
 
         for @post -> $con {
             @value_type[0] := self.create_subset(self.resolve_mo($/, 'subset'),
                 @value_type ?? @value_type[0] !! self.find_symbol(['Mu']),
-                $con,  :name($subset_name));
+                $con);
         }
         if $sigil eq '@' {
             %info<bind_constraint> := self.find_symbol(['Positional']);
@@ -1535,7 +1503,8 @@ class Perl6::World is HLL::World {
         my $varast     := $var.ast;
         my $name       := $varast.name;
         my $BLOCK      := self.cur_lexpad();
-        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>, $*OFTYPE ?? [$*OFTYPE] !! [], :pragma<variables>);
+        self.handle_OFTYPE_for_pragma($/,'variables');
+        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
         my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
@@ -2697,6 +2666,15 @@ class Perl6::World is HLL::World {
         my %args := hash(:refinee($refinee), :refinement($refinement));
         if nqp::defined($name) { %args<name> := $name; }
         my $mo := $how.new_type(|%args);
+        self.add_object($mo);
+        return $mo;
+    }
+
+    # Gets a definite type (possibly freshly created, possibly an
+    # interned one).
+    method create_definite_type($how, $base_type, $definite) {
+       # Create the meta-object and add to root objects.
+        my $mo := $how.new_type(:$base_type, :$definite);
         self.add_object($mo);
         return $mo;
     }

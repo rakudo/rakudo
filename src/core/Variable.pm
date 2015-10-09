@@ -59,7 +59,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
     my $of := $descriptor.of;
     $v.throw( 'X::Parameter::Default::TypeCheck',
       :expected($var.WHAT), :got($default =:= Nil ?? 'Nil' !! $default) )
-      unless nqp::istype($default.WHAT, $of) or $default =:= Nil or $of =:= Mu;
+      unless nqp::istype($default, $of) or $default =:= Nil or $of =:= Mu;
     $descriptor.set_default(nqp::decont($default));
 
     # make sure we start with the default if a scalar

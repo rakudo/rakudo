@@ -15,4 +15,5 @@ my module EXPORTHOW {
     ($?PACKAGE.WHO)<subset>       := Perl6::Metamodel::SubsetHOW;
     ($?PACKAGE.WHO)<enum>         := Perl6::Metamodel::EnumHOW;
     ($?PACKAGE.WHO)<coercion>     := Perl6::Metamodel::CoercionHOW;
+    ($?PACKAGE.WHO)<definite>     := Perl6::Metamodel::DefiniteHOW;
 }

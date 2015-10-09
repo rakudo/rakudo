@@ -1,6 +1,6 @@
 my role Rational[::NuT, ::DeT] does Real {
-    has NuT $.numerator;
-    has DeT $.denominator;
+    has NuT $.numerator   = 0;
+    has DeT $.denominator = 1;
 
     multi method WHICH(Rational:D:) {
         nqp::box_s(

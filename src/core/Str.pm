@@ -282,6 +282,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   ?? nqp::p6box_s(nqp::substr($!str, $!pos++, 1))
                   !! IterationEnd
             }
+            method count-only() { nqp::p6box_i($!pos = $!chars) }
         }.new(self));
     }
     multi method comb(Str:D: Str $pat) {

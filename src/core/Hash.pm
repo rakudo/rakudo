@@ -429,8 +429,6 @@ my class Hash { # declared in BOOTSTRAP
                 }
 
                 method pull-one() {
-                    if $!hash-iter {
-                    }
                     if $!on-value {
                         $!on-value = 0;
                         $!current-value

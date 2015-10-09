@@ -917,6 +917,7 @@ S32-list/map.t
 S32-list/minmax.t
 S32-list/permutations.t
 S32-list/pick.t
+S32-list/produce.t
 S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t

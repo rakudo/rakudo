@@ -161,17 +161,17 @@ class array does Iterable is repr('VMArray') {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method new($array) {
-                    my $iter := self.CREATE;
-                    nqp::bindattr($iter, self, '$!array', nqp::decont($array));
-                    $iter;
+                method BUILD(\array) {
+                    $!array := nqp::decont(array);
+                    $!i = -1;
+                    self
                 }
+                method new(\array) { nqp::create(self).BUILD(array) }
 
                 method pull-one() is raw {
-                    my int $i = $!i;
-                    $i < nqp::elems($!array)
-                        ?? nqp::atposref_i($!array, ($!i = $i + 1) - 1)
-                        !! IterationEnd
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                      ?? nqp::atposref_i($!array,$!i)
+                      !! IterationEnd
                 }
             }.new(self)
         }
@@ -332,17 +332,17 @@ class array does Iterable is repr('VMArray') {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method new($array) {
-                    my $iter := self.CREATE;
-                    nqp::bindattr($iter, self, '$!array', nqp::decont($array));
-                    $iter;
+                method BUILD(\array) {
+                    $!array := nqp::decont(array);
+                    $!i = -1;
+                    self
                 }
+                method new(\array) { nqp::create(self).BUILD(array) }
 
                 method pull-one() is raw {
-                    my int $i = $!i;
-                    $i < nqp::elems($!array)
-                        ?? nqp::atposref_n($!array, ($!i = $i + 1) - 1)
-                        !! IterationEnd
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                      ?? nqp::atposref_n($!array,$!i)
+                      !! IterationEnd
                 }
             }.new(self)
         }

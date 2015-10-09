@@ -2493,13 +2493,10 @@ class Perl6::World is HLL::World {
                     # which stringifies fine but has to be split at ','
                     # and potentially whitespace-corrected
                     my @parts := nqp::split(' ', ~$result);
-                    if +@parts > 2 {
-                        # there's no foofix that allows more than two parts
-                        $/.CURSOR.panic($mkerr());
-                    }
                     return nqp::join(" ", @parts);
                     CONTROL {
-                        # we might get a warning from evaluating a Block
+                        # we might get a warning from evaluating a Block like
+                        # "undefined value ..." which is reason enough to die
                         $/.CURSOR.panic($mkerr());
                     }
                     CATCH {

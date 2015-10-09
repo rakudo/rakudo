@@ -112,15 +112,25 @@ my class Range is Cool does Iterable does Positional {
                     ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
                 }
                 method push-exactly($target, int $n) {
-                    my int $i;
-                    $target.push(nqp::p6box_i($!i))
-                      while (  $i =  $i + 1 ) <= $n   # not done all requested
-                        &&  ( $!i = $!i + 1 ) <= $!n; # value in range
-                    $!i < $!n ?? $i - 1 !! IterationEnd
+                    my int $left = $!n - $!i - 1;
+                    if $n >= $left {
+                        $target.push(nqp::p6box_i($!i))
+                          while ($!i = $!i + 1) <= $!n;
+                       IterationEnd
+                    }
+                    else {
+                        my int $end = $!i + 1 + $n;
+                        $target.push(nqp::p6box_i($!i))
+                          while ($!i = $!i + 1) < $end;
+                        $!i = $!i - 1; # did one too many
+                        $n
+                    }
                 }
                 method push-all($target) {
-                    $target.push(nqp::p6box_i($!i))
-                      while ( $!i = $!i + 1 ) <= $!n;
+                    my int $i = $!i;
+                    my int $n = $!n;
+                    $target.push(nqp::p6box_i($i)) while ($i = $i + 1) <= $n;
+                    $!i = $i;
                     IterationEnd
                 }
                 method sink-all() {

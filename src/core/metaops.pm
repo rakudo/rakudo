@@ -407,12 +407,10 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
         }
         method pull-one() is raw {
             if ($!ended) {
-                if ($!whatever) {
-                    $!buffer.AT-POS($!elems - 1);
-                }
-                else {
-                    $!buffer.AT-POS((($!i := $!i + 1) - 1) % $!elems);
-                }
+                $!buffer.AT-POS( $!whatever
+                  ?? $!elems - 1
+                  !! (($!i := $!i + 1) - 1) % $!elems
+                );
             }
             else {
                 my \value := $!source.pull-one;

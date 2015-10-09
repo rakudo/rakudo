@@ -2506,11 +2506,9 @@ class Perl6::World is HLL::World {
             }
         } elsif nqp::istype($ast, QAST::Var) {
             my $result;
-            {
-                $result := self.compile_time_evaluate($/, $ast);
-                CATCH {
-                    $/.CURSOR.panic($mkerr());
-                }
+            $result := self.compile_time_evaluate($/, $ast);
+            CATCH {
+                $/.CURSOR.panic($mkerr());
             }
             return nqp::unbox_s($result);
         } else {

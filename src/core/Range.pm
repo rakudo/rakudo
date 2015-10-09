@@ -113,7 +113,7 @@ my class Range is Cool does Iterable does Positional {
                 }
                 method push-exactly($target, int $n) {
                     my int $left = $!n - $!i - 1;
-                    if $n >= $left {
+                    if $n > $left {
                         $target.push(nqp::p6box_i($!i))
                           while ($!i = $!i + 1) <= $!n;
                        IterationEnd

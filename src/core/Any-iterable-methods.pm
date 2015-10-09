@@ -324,16 +324,14 @@ augment class Any {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
                 my Mu $value;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    return-rw $value if $value.match($!test);
-                }
+                return-rw $value if $value.match($!test)
+                  until ($value := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $target.push($value) if $value.match($!test);
-                }
+                $target.push($value) if $value.match($!test)
+                  until ($value := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
         }.new(self, $test))
@@ -345,16 +343,14 @@ augment class Any {
               !! Seq.new(class :: does Grepper {
                      method pull-one() is raw {
                          my Mu $value;
-                         until ($value := $!iter.pull-one) =:= IterationEnd {
-                             return-rw $value if $!test($value);
-                         }
+                         return-rw $value if $!test($value)
+                           until ($value := $!iter.pull-one) =:= IterationEnd;
                          IterationEnd   # in case of last
                      }
                      method push-all($target) {
                          my Mu $value;
-                         until ($value := $!iter.pull-one) =:= IterationEnd {
-                             $target.push($value) if $!test($value);
-                         }
+                         $target.push($value) if $!test($value)
+                           until ($value := $!iter.pull-one) =:= IterationEnd;
                          IterationEnd   # in case of last
                      }
                  }.new(self, $test))
@@ -387,16 +383,14 @@ augment class Any {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
                 my Mu $value;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    return-rw $value if $!test.ACCEPTS($value);
-                }
+                return-rw $value if $!test.ACCEPTS($value)
+                  until ($value := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $target.push($value) if $!test.ACCEPTS($value);
-                }
+                $target.push($value) if $!test.ACCEPTS($value)
+                  until ($value := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
         }.new(self, $test))

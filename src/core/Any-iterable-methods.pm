@@ -736,6 +736,12 @@ augment class Any {
         $reducer(&with)(self) if $reducer;
     }
 
+    proto method produce(|) { * }
+    multi method produce(&with) is nodal {
+        my $reducer := find-reducer-for-op(&with);
+        $reducer(&with,1)(self) if $reducer;
+    }
+
     proto method unique(|) is nodal {*}
     multi method unique() {
         Seq.new(class :: does Iterator {
@@ -1084,6 +1090,7 @@ proto sub join(|) { * }
 multi sub join($sep = '', *@values) { @values.join($sep) }
 
 sub reduce (&with, +list)  { list.reduce(&with) }
+sub produce (&with, +list)  { list.produce(&with) }
 
 proto sub unique(|) { * }
 multi sub unique(+values, |c) { my $laze = values.is-lazy; values.unique(|c).lazy-if($laze) }

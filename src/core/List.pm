@@ -363,27 +363,27 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             has int $!i;
             has $!reified;
             has $!todo;
+            has $!oftype;
 
-            method new(\list) {
-                my $iter := self.CREATE;
-                nqp::bindattr($iter, self, '$!reified',
-                    nqp::getattr(list, List, '$!reified'));
-                nqp::bindattr($iter, self, '$!todo',
-                    nqp::getattr(list, List, '$!todo'));
-                $iter
+            method BUILD(\list, Mu \oftype) {
+                $!reified := nqp::getattr(list, List, '$!reified');
+                $!todo    := nqp::getattr(list, List, '$!todo');
+                $!oftype  := oftype =:= Mu ?? Any !! oftype;
+                self
             }
+            method new(\list) { nqp::create(self).BUILD(list,list.of) }
 
             method pull-one() is raw {
                 my int $i = $!i;
                 $i < nqp::elems($!reified)
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), Any)
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), $!oftype)
                     !! self!reify-and-pull-one()
             }
 
             method !reify-and-pull-one() is raw {
                 my int $i = $!i;
                 $!todo.DEFINITE && $i < $!todo.reify-at-least($i + 1)
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), Any)
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), $!oftype)
                     !! IterationEnd
             }
 
@@ -394,7 +394,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 my int $i = $!i;
                 my $no-sink;
                 while $i < $n {
-                    $no-sink := $target.push(nqp::ifnull(nqp::atpos($!reified, $i), Any));
+                    $no-sink := $target.push(nqp::ifnull(nqp::atpos($!reified, $i), $!oftype));
                     $i = $i + 1;
                 }
                 $!i = $n;

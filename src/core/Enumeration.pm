@@ -59,7 +59,7 @@ my role StringyEnumeration {
     }
 }
 
-sub ANON_ENUM(*@args) {
+sub ENUM_VALUES(*@args) {
     my Mu $prev = -1;
     my %res;
     for @args {

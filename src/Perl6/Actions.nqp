@@ -3697,17 +3697,11 @@ Compilation unit '$file' contained the following violations:
     }
 
     method type_declarator:sym<enum>($/) {
-        # If it's an anonymous enum, just call anonymous enum former
-        # and we're done.
-        unless $<longname> || $<variable> {
-            make QAST::Op.new( :op('call'), :name('&ANON_ENUM'), $<term>.ast );
-            return 1;
-        }
-
         # Get, or find, enumeration base type and create type object with
         # correct base type.
-        my $longname  := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
-        my $name      := $<longname> ?? $longname.name() !! $<variable><desigilname>;
+        my $longname   := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
+        my $name       := $<longname> ?? $longname.name() !! $<variable><desigilname> || '';
+        my @name_parts := $<longname> ?? $longname.type_name_parts('enum name', :decl(1)) !! [];
 
         my $type_obj;
         my sub make_type_obj($base_type) {
@@ -3835,20 +3829,18 @@ Compilation unit '$file' contained the following violations:
             my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value);
             $cur_key    := nqp::unbox_s($cur_key);
             $*W.install_package_symbol_unchecked($type_obj, $cur_key, $val_obj);
-            if $*SCOPE ne 'anon' {
-                if $block.symbol($cur_key) {
-                    nqp::push(@redecl, $cur_key);
-                    $*W.install_lexical_symbol($block, $cur_key,
-                        $*W.find_symbol(['Failure']).new(
-                            $*W.find_symbol(['X', 'PoisonedAlias']).new(
-                                :alias($cur_key), :package-type<enum>, :package-name($name)
-                            )
+            if $block.symbol($cur_key) {
+                nqp::push(@redecl, $cur_key);
+                $*W.install_lexical_symbol($block, $cur_key,
+                    $*W.find_symbol(['Failure']).new(
+                        $*W.find_symbol(['X', 'PoisonedAlias']).new(
+                            :alias($cur_key), :package-type<enum>, :package-name($name)
                         )
-                    );
-                }
-                else {
-                    $*W.install_lexical_symbol($block, $cur_key, $val_obj);
-                }
+                    )
+                );
+            }
+            else {
+                $*W.install_lexical_symbol($block, $cur_key, $val_obj);
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
                 $*W.install_package_symbol_unchecked($*PACKAGE, $cur_key, $val_obj);
@@ -3872,7 +3864,7 @@ Compilation unit '$file' contained the following violations:
         # create a type object even for empty enums
         make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
 
-        $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
+        $*W.install_package($/, @name_parts,
             ($*SCOPE || 'our'), 'enum', $*PACKAGE, $block, $type_obj);
 
         # Compose the added enum values.
@@ -3886,8 +3878,10 @@ Compilation unit '$file' contained the following violations:
         # Set it up for trailing declarations
         $*PRECEDING_DECL := $type_obj;
 
-        # We evaluate to the enum type object.
-        make QAST::WVal.new( :value($type_obj) );
+        # We evaluate to the enums values, if we need to.
+        my $ast := QAST::Op.new( :op('call'), :name('&ENUM_VALUES'), $term_ast );
+        $ast.annotate('sink_ast', QAST::Op.new( :op('null') ));
+        make $ast;
     }
 
     method type_declarator:sym<subset>($/) {
@@ -5052,7 +5046,7 @@ Compilation unit '$file' contained the following violations:
                 unless nqp::istype($past, QAST::WVal) {
                     $/.CURSOR.panic("Type too complex to form a definite type");
                 }
-                my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 1);
+                my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 1); # XXX add constants
                 $past    := QAST::WVal.new( :value($type) );
             }
             elsif $<colonpairs><U> {

@@ -3014,7 +3014,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         [
         | '\\'? <defterm>
-        | <variable>
+        | <variable> { $¢.add_variable(~$<variable>) } # for new &infix:<foo> synonyms
         | <?>
         ]
         { $*IN_DECL := ''; }

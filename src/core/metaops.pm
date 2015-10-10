@@ -78,9 +78,11 @@ sub METAOP_ZIP(\op, &reduce) {
         my $laze = True;
         my @loi = eager for lol -> \elem {
             $laze = False unless elem.is-lazy;
-            nqp::istype(elem, Iterable)
-                ?? elem.iterator
-                !! elem.list.iterator;
+            Rakudo::Internals::WhateverIterator.new(
+                nqp::istype(elem, Iterable)
+                    ?? elem.iterator
+                    !! elem.list.iterator
+            )
         }
         gather {
             loop {

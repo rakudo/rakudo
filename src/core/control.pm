@@ -196,7 +196,7 @@ multi sub warn(*@msg) {
     0;
 }
 
-proto sub EVAL(Cool $code, :$lang = 'perl6', PseudoStash :$context) {
+proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context) {
     # First look in compiler registry.
     my $compiler := nqp::getcomp($lang);
     if nqp::isnull($compiler) {

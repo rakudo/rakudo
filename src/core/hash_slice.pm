@@ -108,9 +108,6 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is raw {
 }
 
 # %h{}
-multi sub postcircumfix:<{ }>( \SELF ) is raw {
-    SELF.ZEN-KEY;
-}
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
@@ -139,6 +136,9 @@ multi sub postcircumfix:<{ }>(\SELF, :$v!, *%other) is raw {
     %other
       ?? SLICE_MORE_HASH( SELF, SELF.keys.list, :$v, |%other )
       !! SELF{SELF.keys.list};
+}
+multi sub postcircumfix:<{ }>( \SELF, *%other ) is raw {
+    SELF.ZEN-KEY(|%other);
 }
 
 

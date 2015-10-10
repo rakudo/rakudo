@@ -368,9 +368,6 @@ multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
 }
 
 # @a[]
-multi sub postcircumfix:<[ ]>( \SELF ) is raw {
-    SELF.ZEN-POS;
-}
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
@@ -397,7 +394,9 @@ multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is raw {
       ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$v, |%other )
       !! SELF[^SELF.cache.elems];
 }
-
+multi sub postcircumfix:<[ ]>(\SELF, *%other) is raw {
+    SELF.ZEN-POS(|%other);
+}
 
 proto sub postcircumfix:<[; ]>(|) is nodal { * }
 

@@ -109,7 +109,7 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is raw {
 
 # %h{}
 multi sub postcircumfix:<{ }>( \SELF ) is raw {
-    nqp::decont(SELF);
+    SELF.ZEN-KEY;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;

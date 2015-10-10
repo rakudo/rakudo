@@ -369,7 +369,7 @@ multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
 
 # @a[]
 multi sub postcircumfix:<[ ]>( \SELF ) is raw {
-    nqp::decont(SELF);
+    SELF.ZEN-POS;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;

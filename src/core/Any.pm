@@ -279,6 +279,12 @@ my class Any { # declared in BOOTSTRAP
         $result
     }
 
+    proto method ZEN-POS(|) { * }
+    multi method ZEN-POS() { self }
+
+    proto method ZEN-KEY(|) { * }
+    multi method ZEN-KEY() { self }
+
     proto method ASSIGN-POS(|) is nodal { * }
     multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check

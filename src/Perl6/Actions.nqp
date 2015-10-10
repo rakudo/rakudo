@@ -2410,7 +2410,7 @@ Compilation unit '$file' contained the following violations:
                     }
                 }
                 elsif $past.ann('metaattr') -> $attr {
-                    unless $attr.required {
+                    if !$attr.required && !$attr.type.HOW.archetypes.generic {
                         check_default_value_type($/, $attr.container_descriptor, $attr.type, 'attributes');
                     }
                 }

@@ -1,6 +1,5 @@
 src/core/core_prologue.pm
 src/core/traits.pm
-src/core/Rakudo/Internals.pm
 src/core/Positional.pm
 src/core/Associative.pm
 src/core/Callable.pm
@@ -12,6 +11,7 @@ src/core/Stringy.pm
 src/core/Any.pm
 src/core/Attribute.pm
 src/core/Iterator.pm
+src/core/Rakudo/Internals.pm
 src/core/SlippyIterator.pm
 src/core/HyperIterator.pm
 src/core/Iterable.pm

@@ -1075,11 +1075,13 @@ multi sub infix:<Z>(+lol) {
     my $laze = True;
     return () if $arity == 0;
     eager my @l = (^$arity).map: -> $i {
-            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
-            $laze = False unless elem.is-lazy;
+        my \elem = lol[$i];
+        $laze = False unless elem.is-lazy;
+        Rakudo::Internals::WhateverIterator.new(
             nqp::istype(elem, Iterable)
                 ?? elem.iterator
-                !! elem.list.iterator;
+                !! elem.list.iterator
+        )
     };
 
     gather {

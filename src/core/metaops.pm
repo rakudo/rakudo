@@ -495,59 +495,8 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
     X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right-iterator.is-lazy and
         (not $dwim-right or $dwim-left);
 
-    my class DwimIterator does Iterator {
-        has $!source;
-        has $!buffer;
-        has $!ended;
-        has $!whatever;
-        has $!i;
-        has $!elems;
-        method new(\source) {
-            my $iter := self.CREATE;
-            nqp::bindattr($iter, self, '$!source', source);
-            nqp::bindattr($iter, self, '$!buffer', IterationBuffer.new);
-            nqp::bindattr($iter, self, '$!ended', False);
-            nqp::bindattr($iter, self, '$!whatever', False);
-            nqp::bindattr($iter, self, '$!i', 0);
-            nqp::bindattr($iter, self, '$!elems', 0);
-            $iter
-        }
-        method pull-one() is raw {
-            if ($!ended) {
-                $!buffer.AT-POS( $!whatever
-                  ?? $!elems - 1
-                  !! (($!i := $!i + 1) - 1) % $!elems
-                );
-            }
-            else {
-                my \value := $!source.pull-one;
-                if value =:= IterationEnd {
-                    $!ended := True;
-                    $!elems == 0 ?? value !! self.pull-one()
-                }
-                elsif nqp::istype(value, Whatever) {
-                    $!whatever := True;
-                    $!ended := True;
-                    self.pull-one()
-                }
-                else {
-                    $!elems := $!elems + 1;
-                    $!buffer.push(value);
-                    value
-                }
-            }
-        }
-        method ended() { $!ended }
-        method count-elems() {
-            unless ($!ended) {
-                $!elems := $!elems + 1 until $!source.pull-one =:= IterationEnd;
-            }
-            $!elems
-        }
-    }
-
-    my \lefti  :=  DwimIterator.new(left-iterator);
-    my \righti :=  DwimIterator.new(right-iterator);
+    my \lefti  := Rakudo::Internals::DwimIterator.new(left-iterator);
+    my \righti := Rakudo::Internals::DwimIterator.new(right-iterator);
 
     my \result := IterationBuffer.new;
     loop {

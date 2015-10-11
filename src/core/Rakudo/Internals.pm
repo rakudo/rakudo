@@ -15,6 +15,10 @@ my class Rakudo::Internals {
             $!hash-iter := Mu;
             nqp::p6box_i(nqp::elems($!hash-storage))
         }
+        method sink-all() {
+            $!hash-iter := Mu;
+            IterationEnd
+        }
     }
 
     our class WhateverIterator does Iterator {

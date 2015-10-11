@@ -19,16 +19,22 @@ my class MixHash does Mixy {
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(
           FETCH => {
-              my \v := %!elems.AT-KEY(k.WHICH);
-              nqp::istype(v,Pair) ?? v.value !! 0;
+              my $hash := nqp::getattr(%!elems,Map,'$!storage');
+              my str $which = nqp::unbox_s(k.WHICH);
+              nqp::existskey($hash,$which)
+                ?? nqp::getattr(nqp::decont(nqp::atkey($hash,$which)),Pair,'$!value')
+                !! 0
           },
           STORE => -> $, $value is copy {
-              if $value != 0 {
-                  (%!elems.AT-KEY(k.WHICH) //=
-                    ((k) => my Real $ = 0)).value = $value;
+              my $hash := nqp::getattr(%!elems,Map,'$!storage');
+              my str $which = nqp::unbox_s(k.WHICH);
+              if nqp::existskey($hash,$which) {
+                  $value == 0
+                    ?? nqp::deletekey($hash,$which)
+                    !! (nqp::getattr(nqp::decont(nqp::atkey($hash,$which)),Pair,'$!value') = $value);
               }
-              else {
-                  %!elems.DELETE-KEY(k.WHICH);
+              elsif $value {
+                  nqp::bindkey($hash,$which,self.PAIR(k,$value));
               }
               $value;
           }

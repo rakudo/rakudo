@@ -26,8 +26,11 @@ my class Mix does Mixy {
 
     # identical to Bag.pm
     multi method AT-KEY(Mix:D: \k) {
-        my \v := %!elems.AT-KEY(k.WHICH);
-        nqp::istype(v,Pair) ?? v.value !! 0;
+        my $hash := nqp::getattr(%!elems,Map,'$!storage');
+        my str $which = nqp::unbox_s(k.WHICH);
+        nqp::existskey($hash,$which)
+          ?? nqp::getattr(nqp::decont(nqp::atkey($hash,$which)),Pair,'$!value')
+          !! 0
     }
     multi method ASSIGN-KEY(Mix:D: \k,\v) {
         X::Assignment::RO.new(typename => self.^name).throw;

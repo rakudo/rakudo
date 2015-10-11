@@ -1,7 +1,7 @@
 my role Baggy does QuantHash {
     has %!elems; # key.WHICH => (key,value)
 
-    method PAIR(\key) { Pair.new(key, my Int $ = 0 ) }
+    method PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
     method SANITY(%elems --> Nil) {
         my @toolow;
         for %elems -> $p {
@@ -14,19 +14,47 @@ my role Baggy does QuantHash {
     }
     multi method new(Baggy: +@args) {
         my %elems;
+        my $hash := nqp::bindattr(%elems,Map,'$!storage',nqp::hash());
+        my str $which;
         for @args {
-            (%elems{.WHICH} //= self.PAIR($_)).value++
-        } 
+            $which = nqp::unbox_s(.WHICH);
+            if nqp::existskey($hash,$which) {
+                my $value :=
+                  nqp::getattr(nqp::atkey($hash,$which),Pair,'$!value');
+                $value = $value + 1;
+            }
+            else {
+                nqp::bindkey($hash,$which,self.PAIR($_,1));
+            }
+        }
         nqp::create(self).BUILD(%elems)
     }
     method new-from-pairs(*@pairs) {
         my %elems;
+        my $hash := nqp::bindattr(%elems,Map,'$!storage',nqp::hash());
+        my str $which;
         for @pairs {
             when Pair {
-                (%elems.AT-KEY(.key.WHICH) //= self.PAIR(.key)).value += .value;
+                $which = nqp::unbox_s(.key.WHICH);
+                if nqp::existskey($hash,$which) {
+                    my $value :=
+                      nqp::getattr(nqp::atkey($hash,$which),Pair,'$!value');
+                    $value = $value + .value;
+                }
+                else {
+                    nqp::bindkey($hash,$which,self.PAIR(.key,.value));
+                }
             }
             default {
-                (%elems.AT-KEY(.WHICH) //= self.PAIR($_)).value++;
+                $which = nqp::unbox_s(.WHICH);
+                if nqp::existskey($hash,$which) {
+                    my $value :=
+                      nqp::getattr(nqp::atkey($hash,$which),Pair,'$!value');
+                    $value = $value + 1;
+                }
+                else {
+                    nqp::bindkey($hash,$which,self.PAIR($_,1));
+                }
             }
         }
         self.SANITY(%elems);

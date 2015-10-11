@@ -44,11 +44,12 @@ my role Baggy does QuantHash {
             }
             method push-exactly($target, int $n) {
                 my int $done;
-                while $!hash-iter {
+                while $done < $n {
+                    return IterationEnd unless $!hash-iter;
                     $target.push(nqp::iterval(nqp::shift($!hash-iter)));
-                    return $done unless ($done = $done + 1) < $n;
+                    $done = $done + 1;
                 }
-                IterationEnd
+                $done
             }
             method push-all($target) {
                 $target.push(nqp::iterval(nqp::shift($!hash-iter)))
@@ -66,11 +67,12 @@ my role Baggy does QuantHash {
             }
             method push-exactly($target, int $n) {
                 my int $done;
-                while $!hash-iter {
+                while $done < $n {
+                    return IterationEnd unless $!hash-iter;
                     $target.push(nqp::iterval(nqp::shift($!hash-iter)).key);
-                    return $done unless ($done = $done + 1) < $n;
+                    $done = $done + 1;
                 }
-                IterationEnd
+                $done
             }
             method push-all($target) {
                 $target.push(nqp::iterval(nqp::shift($!hash-iter)).key)
@@ -101,14 +103,15 @@ my role Baggy does QuantHash {
             }
             method push-exactly($target, int $n) {
                 my int $done;
-                while $!hash-iter {
+                while $done < $n {
+                    return IterationEnd unless $!hash-iter;
                     my \tmp =
                       nqp::decont(nqp::iterval(nqp::shift($!hash-iter)));
                     $target.push(nqp::getattr(tmp,Pair,'$!key'));
                     $target.push(nqp::getattr(tmp,Pair,'$!value'));
-                    return $done unless ($done = $done + 1) < $n;
+                    $done = $done + 1;
                 }
-                IterationEnd
+                $done
             }
             method push-all($target) {
                 while $!hash-iter {
@@ -131,12 +134,13 @@ my role Baggy does QuantHash {
             }
             method push-exactly($target, int $n) {
                 my int $done;
-                while $!hash-iter {
+                while $done < $n {
+                    return IterationEnd unless $!hash-iter;
                     $target.push(nqp::getattr(nqp::decont(
                       nqp::iterval(nqp::shift($!hash-iter))),Pair,'$!value'));
-                    return $done unless ($done = $done + 1) < $n;
+                    $done = $done + 1;
                 }
-                IterationEnd
+                $done
             }
             method push-all($target) {
                 $target.push(nqp::getattr(nqp::decont(
@@ -159,10 +163,11 @@ my role Baggy does QuantHash {
             }
             method push-exactly($target, int $n) {
                 my int $done;
-                while $!hash-iter {
+                while $done < $n {
+                    return IterationEnd unless $!hash-iter;
                     my \tmp = nqp::iterval(nqp::shift($!hash-iter));
                     $target.push(Pair.new(tmp.value, tmp.key));
-                    return $done unless ($done = $done + 1) < $n;
+                    $done = $done + 1;
                 }
                 IterationEnd
             }

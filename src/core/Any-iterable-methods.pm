@@ -768,6 +768,20 @@ augment class Any {
                 }
                 IterationEnd
             }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my str $needle;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    $needle = nqp::unbox_s($value.WHICH);
+                    unless nqp::existskey($!seen, $needle) {
+                        nqp::bindkey($!seen, $needle, 1);
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
+                    }
+                }
+                IterationEnd
+            }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
@@ -812,6 +826,20 @@ augment class Any {
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
                         return $value;
+                    }
+                }
+                IterationEnd
+            }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my str $needle;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    $needle = nqp::unbox_s(&!as($value).WHICH);
+                    unless nqp::existskey($!seen, $needle) {
+                        nqp::bindkey($!seen, $needle, 1);
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
                     }
                 }
                 IterationEnd
@@ -866,6 +894,22 @@ augment class Any {
                 }
                 IterationEnd
             }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my str $needle;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    $needle = nqp::unbox_s($value.WHICH);
+                    if nqp::existskey($!seen, $needle) {
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
+                    }
+                    else {
+                        nqp::bindkey($!seen, $needle, 1);
+                    }
+                }
+                IterationEnd
+            }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
@@ -908,6 +952,22 @@ augment class Any {
                     nqp::existskey($!seen, $needle)
                       ?? return $value
                       !! nqp::bindkey($!seen, $needle, 1);
+                }
+                IterationEnd
+            }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my str $needle;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    $needle = nqp::unbox_s(&!as($value).WHICH);
+                    if nqp::existskey($!seen, $needle) {
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
+                    }
+                    else {
+                        nqp::bindkey($!seen, $needle, 1);
+                    }
                 }
                 IterationEnd
             }
@@ -963,6 +1023,20 @@ augment class Any {
                 }
                 IterationEnd
             }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my $which;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    $which = &!as($value);
+                    unless with($which,$!last) {
+                        $!last = $which;
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
+                    }
+                }
+                IterationEnd
+            }
             method push-all($target) {
                 my Mu $value;
                 my $which;
@@ -994,6 +1068,18 @@ augment class Any {
                     unless with($value,$!last) {
                         $!last = $value;
                         return $value;
+                    }
+                }
+                IterationEnd
+            }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    unless with($value,$!last) {
+                        $!last = $value;
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
                     }
                 }
                 IterationEnd

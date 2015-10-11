@@ -1,3 +1,35 @@
+New in 2015.10:
+ + Features
+    + Types with type smilies (like `Int:D` and `Int:U`) are now first class,
+      and supported in constraints for variables, for example
+    + New pragmata `use variables :D`, `use attributes :D` for defaulting type constraints to `:D`
+    + The `constant` declarator now supports syntactic constructs, so you can
+      alias with `my constant &infix:<plus> := &infix:<+>;`
+    + New operator `infix o` for function composition
+    + New method `produce` for triangle reduce
+    + `fc` for Unicode-correct case folding implemented
+    + `<?same>` assertion in regexes implemented
+    + Methods `file` and `line` in `Code` point to the location of the
+       declaration
+  + Incompatible Changes
+    + Array.push is now used for pushing one element (mostly); Array.append
+    + Basic arithmetic operations (`+`, `*`, `-`, `/`) on Range objects
+      that work on the end points while maintaing exclusion of end points
+      exists for pushing multiple values. Same for `unshift`/`prepend`
+    + `is rw` now only works on scalars (was a noop), and actually requires
+      a writable container. Parameters of the form `\x` enable the old
+      behavior
+ + Speedups:
+    + Many built-in methods that return iterables are now much faster
+    + `Bag` and `Mix` are now faster
+ + Fixes:
+    + Better error messages when comparing version strings with numbers
+    + Several error messages that were lacking line numbers now include them
+    + anonymous types now compare correctly under `infix:<===>`
+    + Fixed `once` block semantics (RT #126293)
+    + A dying `LEAVE` block doesn't prevent other `LEAVE` blocks from running
+      anymore
+
 New in 2015.09
  + Features
    + Great List Refactor
@@ -35,6 +67,7 @@ New in 2015.09
    + 'is parcel' trait is now 'is raw'
    + .gist now puts brackets around lists and arrays
    + IO::Handle::lines no longer returns an empty last line
+   + The `Enum` type is gone; use `Pair` instead.
  + Deprecations:
    + All Deprecations removed in preparation for Christmas release
  + NativeCall:

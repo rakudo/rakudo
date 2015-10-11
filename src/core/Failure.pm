@@ -5,7 +5,7 @@ my class Failure {
 
     multi method new() {
         my $stash := CALLER::;
-        my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
+        my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
         self.bless(:exception( $payload ~~ Exception
           ?? $payload !! X::AdHoc.new(:$payload)
         ))
@@ -73,7 +73,7 @@ my class Failure {
 proto sub fail(|) {*};
 multi sub fail() {
     my $stash := CALLER::;
-    my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
+    my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
 
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload !! X::AdHoc.new(:$payload));

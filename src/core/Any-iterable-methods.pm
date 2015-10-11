@@ -324,9 +324,9 @@ augment class Any {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
                 my Mu $value;
-                return-rw $value if $value.match($!test)
-                  until ($value := $!iter.pull-one) =:= IterationEnd;
-                IterationEnd
+                1 until ($value := $!iter.pull-one) =:= IterationEnd
+                  || $value.match($!test);
+                $value
             }
             method push-exactly($target, int $n) {
                 my Mu $value;
@@ -356,9 +356,9 @@ augment class Any {
               !! Seq.new(class :: does Grepper {
                      method pull-one() is raw {
                          my Mu $value;
-                         return-rw $value if $!test($value)
-                           until ($value := $!iter.pull-one) =:= IterationEnd;
-                         IterationEnd   # in case of last
+                         1 until ($value := $!iter.pull-one) =:= IterationEnd
+                           || $!test($value);
+                         $value
                      }
                      method push-exactly($target, int $n) {
                          my Mu $value;
@@ -415,9 +415,9 @@ augment class Any {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
                 my Mu $value;
-                return-rw $value if $!test.ACCEPTS($value)
-                  until ($value := $!iter.pull-one) =:= IterationEnd;
-                IterationEnd
+                1 until ($value := $!iter.pull-one) =:= IterationEnd
+                  || $!test.ACCEPTS($value);
+                $value
             }
             method push-exactly($target, int $n) {
                 my Mu $value;

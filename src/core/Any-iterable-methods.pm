@@ -328,6 +328,17 @@ augment class Any {
                   until ($value := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    if $value.match($!test) {
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
+                    }
+                }
+                IterationEnd
+            }
             method push-all($target) {
                 my Mu $value;
                 $target.push($value) if $value.match($!test)
@@ -347,11 +358,28 @@ augment class Any {
                            until ($value := $!iter.pull-one) =:= IterationEnd;
                          IterationEnd   # in case of last
                      }
+                     method push-exactly($target, int $n) {
+                         my Mu $value;
+                         my int $done;
+                         until IterationEnd =:= ($value := $!iter.pull-one) {
+                             if $!test($value) {
+                                 $target.push($value);
+                                 return $done unless ($done = $done + 1) < $n;
+                             }
+                         }
+                         IterationEnd
+                     }
                      method push-all($target) {
                          my Mu $value;
                          $target.push($value) if $!test($value)
                            until ($value := $!iter.pull-one) =:= IterationEnd;
-                         IterationEnd   # in case of last
+                         IterationEnd
+                     }
+                     method sink-all() {
+                         my Mu $value;
+                         $!test($value)
+                           until ($value := $!iter.pull-one) =:= IterationEnd;
+                         IterationEnd
                      }
                  }.new(self, $test))
         } else {
@@ -385,6 +413,17 @@ augment class Any {
                 my Mu $value;
                 return-rw $value if $!test.ACCEPTS($value)
                   until ($value := $!iter.pull-one) =:= IterationEnd;
+                IterationEnd
+            }
+            method push-exactly($target, int $n) {
+                my Mu $value;
+                my int $done;
+                until IterationEnd =:= ($value := $!iter.pull-one) {
+                    if $!test.ACCEPTS($value) {
+                        $target.push($value);
+                        return $done unless ($done = $done + 1) < $n;
+                    }
+                }
                 IterationEnd
             }
             method push-all($target) {

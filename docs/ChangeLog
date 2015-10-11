@@ -13,9 +13,9 @@ New in 2015.10:
        declaration
   + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
+      exists for pushing multiple values. Same for `unshift`/`prepend`
     + Basic arithmetic operations (`+`, `*`, `-`, `/`) on Range objects
       that work on the end points while maintaing exclusion of end points
-      exists for pushing multiple values. Same for `unshift`/`prepend`
     + `is rw` now only works on scalars (was a noop), and actually requires
       a writable container. Parameters of the form `\x` enable the old
       behavior

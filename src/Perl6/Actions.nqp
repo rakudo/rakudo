@@ -2920,11 +2920,14 @@ Compilation unit '$file' contained the following violations:
             }
             else {
                 # Install.
-                if $outer.symbol($name) {
-                    $*W.throw($/, ['X', 'Redeclaration'],
-                            symbol => ~$<deflongname>.ast,
-                            what   => 'routine',
-                    );
+                my $predeclared := $outer.symbol($name);
+                if $predeclared {
+                    unless nqp::getattr_i($predeclared<value>, $*W.find_symbol(['Routine']), '$!yada') {
+                        $*W.throw($/, ['X', 'Redeclaration'],
+                                symbol => ~$<deflongname>.ast,
+                                what   => 'routine',
+                        );
+                    }
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);

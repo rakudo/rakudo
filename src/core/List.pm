@@ -773,6 +773,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method rotor(List:D: *@cycle, :$partial) is nodal {
+        self!ensure-allocated;
         die "Must specify *how* to rotor a List"
           unless @cycle.is-lazy || @cycle;
 

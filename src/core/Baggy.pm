@@ -103,13 +103,23 @@ my role Baggy does QuantHash {
             }
             method push-exactly($target, int $n) {
                 my int $done;
+                if $!value.DEFINITE {
+                    $target.push($!value);
+                    $!value := Mu;
+                    $done = $done + 1;
+                }
                 while $done < $n {
                     return IterationEnd unless $!hash-iter;
                     my \tmp =
                       nqp::decont(nqp::iterval(nqp::shift($!hash-iter)));
                     $target.push(nqp::getattr(tmp,Pair,'$!key'));
-                    $target.push(nqp::getattr(tmp,Pair,'$!value'));
-                    $done = $done + 1;
+                    if ($done = $done + 1) < $n {
+                        $target.push(nqp::getattr(tmp,Pair,'$!value'));
+                        $done = $done + 1;
+                    }
+                    else {
+                        $!value := nqp::getattr(tmp,Pair,'$!value');
+                    }
                 }
                 $done
             }

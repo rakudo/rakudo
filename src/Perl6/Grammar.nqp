@@ -1504,15 +1504,29 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
-        | <version> [ <?{ ~$<version><vnum>[0] eq '5' }> {
-                        my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
-                        do_import($/, $module, 'Perl5');
-                        $*W.import_EXPORTHOW($/, $module);
-                    } ]?
-                    [ <?{ ~$<version><vnum>[0] eq '6' }> {
-                        $*MAIN   := 'MAIN';
-                        $*STRICT := 1 if $*begin_compunit;
-                    } ]?
+        | <version> [
+                    ||  <?{ $<version><vnum>[0] == 5 }> {
+                            my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
+                            do_import($/, $module, 'Perl5');
+                            $/.CURSOR.import_EXPORTHOW($/, $module);
+                        }
+                    ||  <?{ $<version><vnum>[0] == 6 }> {
+                            my $version_parts := $<version><vnum>;
+                            my $tokens := +$version_parts;
+                            my $position := 1;
+                            while $position < $tokens {
+                                if $version_parts[$position] != 0 {
+                                    $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
+                                }
+                                $position++;
+                            }
+                            $*MAIN   := 'MAIN';
+                            $*STRICT := 1 if $*begin_compunit;
+                        }
+                    ||  {
+                            $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
+                        }
+                    ]
         | <module_name>
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>

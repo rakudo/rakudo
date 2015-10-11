@@ -2230,4 +2230,11 @@ my class X::NotEnoughDimensions is Exception {
     }
 }
 
+my class X::Language::Unsupported is Exception {
+    has $.version;
+    method message() {
+        "No compiler available for Perl $.version"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

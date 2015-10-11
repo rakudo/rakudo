@@ -7,6 +7,9 @@ proto sub await(|) { * }
 multi sub await() {
     die "Must specify a Promise or Channel to await on (got an empty list)";
 }
+multi sub await(Any $x) {
+    die "Must specify a Promise or Channel to await on (got a $x.^name())";
+}
 multi sub await(Promise:D $p) {
     $p.result
 }

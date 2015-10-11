@@ -1029,11 +1029,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token install_doc_phaser { <?> }
 
     token vnum {
-        \d+ | '*'
+        \w+ | '*'
     }
 
     token version {
-        <?before v\d+> 'v' $<vstr>=[<vnum>+ % '.' '+'?]
+        <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' '+'?]
         <!before '-'|\'> # cheat because of LTM fail
     }
 

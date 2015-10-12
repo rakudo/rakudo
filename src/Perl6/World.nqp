@@ -1072,10 +1072,10 @@ class Perl6::World is HLL::World {
         for %to_install {
             my $v := $_.value;
             self.add_object_if_no_sc($v);
-            my $categorical := match($_.key, /^ '&' (\w+) ':<' (.+) '>' $/);
+            my $categorical := match($_.key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
             if $categorical {
                 $/.CURSOR.add_categorical(~$categorical[0], ~$categorical[1],
-                    ~$categorical[0] ~ ':sym<' ~$categorical[1] ~ '>',
+                    ~$categorical[0] ~ ':sym' ~ self.canonicalize_opname($categorical[1]),
                     nqp::substr($_.key, 1), $v);
             }
         }
@@ -3200,13 +3200,13 @@ class Perl6::World is HLL::World {
                         $ast := $ast[0];
                     }
                     $cp_str := nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal)
-                        ?? ':<' ~ $ast[2].value ~ '>'
+                        ?? ':' ~ self.canonicalize_opname($ast[2].value)
                         !! ~$_;
                 }
 
-                # Safe to evaluate it directly; no bootstrap issues.
                 else {
-                    $cp_str := ':<' ~ ~self.compile_time_evaluate($_, $_.ast) ~ '>';
+                    # Safe to evaluate it directly; no bootstrap issues.
+                    $cp_str := ':' ~ self.canonicalize_opname(self.compile_time_evaluate($_, $_.ast));
                 }
                 @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
             }
@@ -3913,6 +3913,24 @@ class Perl6::World is HLL::World {
             self.add_object($obj);
         }
         $obj
+    }
+
+    method canonicalize_opname($opname) {
+        if $opname ~~ /<[ < > ]>/ && !($opname ~~ /<[ « » $ \\ " ' ]>/) {
+            '«' ~ $opname ~ '»'
+        }
+        else {
+            my $op := '';
+            my int $i := 0;
+            my int $e := nqp::chars($opname);
+            while $i < $e {
+                my $ch := nqp::substr($opname,$i,1);
+                $op := $op ~ '\\' if $ch eq '<' || $ch eq '>';
+                $op := $op ~ $ch;
+                ++$i;
+            }
+            '<' ~ $op ~ '>';
+        }
     }
 }
 

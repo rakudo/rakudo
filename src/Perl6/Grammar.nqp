@@ -480,8 +480,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my $opname := $cf<circumfix>
                         ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
                         !! '';
-                    my $canname  := $category ~ ":sym<" ~ $opname ~ ">";
-                    my $termname := $category ~ ":<" ~ $opname ~ ">";
+                    my $cname := $*W.canonicalize_opname($opname);
+                    my $canname  := $category ~ ":sym" ~ $cname;
+                    my $termname := $category ~ ":" ~ $cname;
                     $/.CURSOR.add_categorical($category, $opname, $canname, $termname, :defterm);
                 }
             }
@@ -2513,7 +2514,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $opname := $cf<circumfix>
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble> // $cf<circumfix><semilist>)
                     !! '';
-                my $canname := $category ~ ":sym<" ~ $opname ~ ">";
+                my $canname := $category ~ ":sym" ~ $*W.canonicalize_opname($opname);
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
@@ -2638,7 +2639,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $opname := $cf<circumfix>
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
                     !! '';
-                my $canname := $category ~ ":sym<" ~ $opname ~ ">";
+                my $canname := $category ~ ":sym" ~ $*W.canonicalize_opname($opname);
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
@@ -4402,10 +4403,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method add_variable($name) {
-        my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
+        my $categorical := $name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         if $categorical {
             self.add_categorical(~$categorical[0][0], ~$categorical[0][1],
-                ~$categorical[0][0] ~ ':sym<' ~ ~$categorical[0][1] ~ '>',
+                ~$categorical[0][0] ~ ':sym' ~ $*W.canonicalize_opname($categorical[0][1]),
                 ~$categorical[0]);
         }
     }

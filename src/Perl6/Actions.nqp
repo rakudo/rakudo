@@ -206,8 +206,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $<colonpair>[0]<coloncircumfix> -> $cf {
                 if $cf<circumfix> -> $op_name {
-                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str(
-                        $/, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>) ~ '>';
+                    $name := $name ~ $*W.canonicalize_opname($*W.colonpair_nibble_to_str(
+                        $/, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>));
                 }
                 else {
                     $name := $name ~ '<>';
@@ -258,7 +258,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $<colonpair>[0]<coloncircumfix> -> $cf {
                 if $cf<circumfix> -> $op_name {
-                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name<nibble>) ~ '>';
+                    $name := $name ~ $*W.canonicalize_opname($*W.colonpair_nibble_to_str($/, $op_name<nibble>));
                 }
                 else {
                     $name := $name ~ '<>';
@@ -1917,7 +1917,7 @@ Compilation unit '$file' contained the following violations:
             $past := $<contextualizer>.ast;
         }
         elsif $<infixish> {
-            my $name := '&infix:<' ~ $<infixish>.Str ~ '>';
+            my $name := '&infix:' ~ $*W.canonicalize_opname($<infixish>.Str);
             $past := QAST::Op.new(
                 :op('ifnull'),
                 QAST::Var.new( :name($name), :scope('lexical') ),
@@ -3211,8 +3211,8 @@ Compilation unit '$file' contained the following violations:
                 }
                 if $ln<colonpair>[0]<coloncircumfix> -> $cf {
                     if $cf<circumfix> -> $op_name {
-                        $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str(
-                            $ln, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>) ~ '>';
+                        $name := $name ~ $*W.canonicalize_opname($*W.colonpair_nibble_to_str(
+                            $ln, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>));
                     }
                     else {
                         $name := $name ~ '<>';
@@ -4557,10 +4557,10 @@ Compilation unit '$file' contained the following violations:
     method postop($/) {
         if $<postfix> {
             make $<postfix>.ast
-                 || QAST::Op.new( :name('&postfix:<' ~ $<postfix>.Str ~ '>'), :op<call> )
+                 || QAST::Op.new( :name('&postfix:' ~ $*W.canonicalize_opname($<postfix>.Str)), :op<call> )
         } else {
             make $<postcircumfix>.ast
-                 || QAST::Op.new( :name('&postcircumfix:<' ~ $<postcircumfix>.Str ~ '>'), :op<call> );
+                 || QAST::Op.new( :name('&postcircumfix:' ~ $*W.canonicalize_opname($<postcircumfix>.Str)), :op<call> );
         }
     }
 
@@ -4577,7 +4577,7 @@ Compilation unit '$file' contained the following violations:
         else {
             $past.unshift($*W.add_string_constant($past.name))
                 if $past.name ne '';
-            $past.name('dispatch:<' ~ ~$<sym> ~ '>');
+            $past.name('dispatch:' ~ $*W.canonicalize_opname(~$<sym>));
         }
         make $past;
     }
@@ -4593,10 +4593,10 @@ Compilation unit '$file' contained the following violations:
             if $<colonpair><identifier> eq "" && $<colonpair><coloncircumfix> -> $cf {
                 if $cf<circumfix> -> $op_name {
                     make QAST::Op.new( :op<call>, :node($/),
-                    :name('&prefix:<' ~
-                    $*W.colonpair_nibble_to_str(
+                    :name('&prefix:' ~
+                    $*W.canonicalize_opname($*W.colonpair_nibble_to_str(
                         $/, $op_name<nibble> // $op_name<semilist> // $op_name<pblock>
-                    ) ~ '>'));
+                    ))));
                 }
             } else {
                 make $<colonpair>.ast;
@@ -5405,13 +5405,13 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             if $elem ~~ QAST::Op
-                    && (istype($elem.returns, $Pair) || $elem.name eq '&infix:<=>>') {
+                    && (istype($elem.returns, $Pair) || $elem.name eq '&infix:«=>»') {
                 # first item is a pair
                 $is_hash := 1;
             }
             elsif $elem ~~ QAST::Op && $elem.op eq 'call' &&
                     $elem[0] ~~ QAST::Op && $elem[0].name eq '&METAOP_REVERSE' &&
-                    $elem[0][0] ~~ QAST::Var && $elem[0][0].name eq '&infix:<=>>' {
+                    $elem[0][0] ~~ QAST::Var && $elem[0][0].name eq '&infix:«=>»' {
                 # first item is a pair constructed with R=>
                 $is_hash := 1;
             }
@@ -5592,7 +5592,7 @@ Compilation unit '$file' contained the following violations:
                 my $name;
                 if $past.isa(QAST::Op) && !$past.name {
                     if $key eq 'LIST' { $key := 'infix'; }
-                    $name := nqp::lc($key) ~ ':<' ~ $<OPER><sym> ~ '>';
+                    $name := nqp::lc($key) ~ ':' ~ $*W.canonicalize_opname($<OPER><sym>);
                     $past.name('&' ~ $name);
                 }
                 my $macro := find_macro_routine(['&' ~ $name]);
@@ -5940,7 +5940,7 @@ Compilation unit '$file' contained the following violations:
     sub mixin_op($/, $sym) {
         my $rhs  := $/[1].ast;
         my $past := QAST::Op.new(
-            :op('call'), :name('&infix:<' ~ $sym ~ '>'),
+            :op('call'), :name('&infix:' ~ $*W.canonicalize_opname($sym)),
             $/[0].ast);
         if $rhs.isa(QAST::Op) && $rhs.op eq 'call' {
             if $rhs.name && +@($rhs) == 1 {
@@ -6144,7 +6144,7 @@ Compilation unit '$file' contained the following violations:
             make QAST::Op.new( :node($/),
                      :name<&METAOP_HYPER_PREFIX>,
                      :op<call>,
-                     QAST::Var.new( :name('&prefix:<' ~ $<OPER>.Str ~ '>'),
+                     QAST::Var.new( :name('&prefix:' ~ $*W.canonicalize_opname($<OPER>.Str)),
                                     :scope<lexical> ));
         }
     }
@@ -6181,7 +6181,7 @@ Compilation unit '$file' contained the following violations:
             my $basesym  := ~$base<OPER>;
             my $basepast := $base.ast
                               ?? $base.ast[0]
-                              !! QAST::Var.new(:name("&infix:<$basesym>"),
+                              !! QAST::Var.new(:name("&infix:" ~ $*W.canonicalize_opname($basesym)),
                                                :scope<lexical>);
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
@@ -6211,13 +6211,13 @@ Compilation unit '$file' contained the following violations:
             }
             if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' || $basesym eq 'orelse' || $basesym eq 'andthen' {
                 $ast := QAST::Op.new( :op<call>,
-                        :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
+                        :name('&METAOP_TEST_ASSIGN:' ~ $*W.canonicalize_opname($basesym)) );
             }
             else {
                 $ast := QAST::Op.new( :node($/), :op<call>,
                     QAST::Op.new( :op<call>, :name<&METAOP_ASSIGN>,
                         ($ast[0] // QAST::Var.new(
-                            :name("&infix:<$basesym>"), :scope('lexical') ))));
+                            :name("&infix:" ~ $*W.canonicalize_opname($basesym)), :scope('lexical') ))));
             }
         }
 
@@ -6228,7 +6228,7 @@ Compilation unit '$file' contained the following violations:
         my $base     := $<op>;
         my $basepast := $base.ast
                           ?? $base.ast[0]
-                          !! QAST::Var.new(:name("&infix:<" ~ $base<OPER><sym> ~ ">"),
+                          !! QAST::Var.new(:name("&infix:" ~ $*W.canonicalize_opname($base<OPER><sym>)),
                                            :scope<lexical>);
         my $metaop   := baseop_reduce($base<OPER><O>);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), $basepast);
@@ -6258,7 +6258,7 @@ Compilation unit '$file' contained the following violations:
         my $basesym  := ~ $base<OPER>;
         my $basepast := $base.ast
                           ?? $base.ast[0]
-                          !! QAST::Var.new(:name("&infix:<$basesym>"),
+                          !! QAST::Var.new(:name("&infix:" ~ $*W.canonicalize_opname($basesym)),
                                            :scope<lexical>);
         my $hpast    := QAST::Op.new(:op<call>, :name<&METAOP_HYPER>, $basepast);
         if $<opening> eq '<<' || $<opening> eq '«' {
@@ -6276,7 +6276,7 @@ Compilation unit '$file' contained the following violations:
 
     method postfixish($/) {
         if $<postfix_prefix_meta_operator> {
-            my $past := $<OPER>.ast || QAST::Op.new( :name('&postfix:<' ~ $<OPER>.Str ~ '>'),
+            my $past := $<OPER>.ast || QAST::Op.new( :name('&postfix:' ~ $*W.canonicalize_opname($<OPER>.Str)),
                                                      :op<call> );
             if $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
                 if $past.name -> $name {

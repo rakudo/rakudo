@@ -178,7 +178,7 @@ class Perl6::HookActions is Perl6::Actions {
         if $*ST_DEPTH <= 1 && $<EXPR> && interesting_expr($<EXPR>) {
             my $stmt := $/.ast;
             my $pot_hash := nqp::istype($stmt, QAST::Op) &&
-                ($stmt.name eq '&infix:<,>' || $stmt.name eq '&infix:<=>>');
+                ($stmt.name eq '&infix:<,>' || $stmt.name eq '&infix:«=>»');
             my $nil := nqp::istype($stmt, QAST::Var) && $stmt.name eq 'Nil';
             if !$pot_hash && !$nil && $*DEBUG_HOOKS.has_hook('statement_simple') {
                 $/.'!make'(QAST::Stmts.new(

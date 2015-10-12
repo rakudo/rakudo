@@ -1512,13 +1512,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         }
                     ||  <?{ $<version><vnum>[0] == 6 }> {
                             my $version_parts := $<version><vnum>;
-                            my $tokens := +$version_parts;
-                            my $position := 1;
-                            while $position < $tokens {
-                                if $version_parts[$position] != 0 {
-                                    $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
-                                }
-                                $position++;
+                            my $vwant := $<version>.ast.compile_time_value;
+                            my $vhave := $*W.find_symbol(['Version']).new('6.b');  # XXX need to use same source as Version.pm
+                            my $sm := $*W.find_symbol(['&infix:<~~>']);
+                            if !$sm($vhave,$vwant) {
+                                $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
                             }
                             $*MAIN   := 'MAIN';
                             $*STRICT := 1 if $*begin_compunit;

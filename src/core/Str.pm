@@ -1430,7 +1430,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method tc(|) { * }
     multi method tc(Str:D:) {
-        nqp::p6box_s(nqp::uc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1));
+        nqp::p6box_s(nqp::tc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1));
     }
     multi method tc(Str:U:) {
         self.Str

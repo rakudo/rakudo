@@ -20,7 +20,7 @@ sub MAIN(*@ARGS) {
     }
     my $stderr := nqp::getstderr();
     for @ARGS -> $file {
-        say("# From '$file'\n");
+        say("#line 1 $file\n");
         my $fh := open($file, :r);
         my int $in_cond := 0;
         my int $in_omit := 0;

@@ -1230,11 +1230,17 @@ class Perl6::Optimizer {
                     }
                     nqp::substr($m.orig, $from, $to - $from);
                 }
-                if $op.node && $!void_context && !$!in_declaration {
-                    my str $op_txt := nqp::escape($op.node.Str);
-                    my str $expr   := nqp::escape(widen($op.node));
-                    $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
-                }
+		if !$!in_declaration {
+		    if $op.name eq '&infix:<,>' {
+			# keep void setting to distribute sink warnings
+			try self.visit_children($op);
+		    }
+		    elsif $op.node && $!void_context {
+			my str $op_txt := nqp::escape($op.node.Str);
+			my str $expr   := nqp::escape(widen($op.node));
+			$!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
+		    }
+		}
                 # check if all arguments are known at compile time
                 my int $all_args_known := 1;
                 my @args := [];
@@ -1995,3 +2001,5 @@ class Perl6::Optimizer {
         }
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

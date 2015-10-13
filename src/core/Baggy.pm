@@ -64,7 +64,7 @@ my role Baggy does QuantHash {
     method default(--> Int) { 0 }
 
     multi method pairs(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
                 $!hash-iter
                   ?? nqp::iterval(nqp::shift($!hash-iter))
@@ -87,7 +87,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method keys(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
                 $!hash-iter
                   ?? nqp::iterval(nqp::shift($!hash-iter)).key
@@ -110,7 +110,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method kv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MappyIterator {
             has Mu $!value;
 
             method pull-one() is raw {
@@ -163,7 +163,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method values(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() is raw {
                 $!hash-iter
                     ?? nqp::getattr(nqp::decont(
@@ -189,7 +189,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method antipairs(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
                 if $!hash-iter {
                     my \tmp = nqp::iterval(nqp::shift($!hash-iter));
@@ -220,7 +220,7 @@ my role Baggy does QuantHash {
     }
     proto method kxxv(|) { * }
     multi method kxxv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MapIterator {
+        Seq.new(class :: does Rakudo::Internals::MappyIterator {
             has Mu $!key;
             has int $!times;
 

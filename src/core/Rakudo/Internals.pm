@@ -1,6 +1,6 @@
 my class Rakudo::Internals {
 
-    our role MapIterator does Iterator {
+    our role MappyIterator does Iterator {
         has $!hash-storage;
         has $!hash-iter;
 

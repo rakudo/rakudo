@@ -218,7 +218,8 @@ my role Baggy does QuantHash {
             }
         }.new(%!elems))
     }
-    method kxxv(Baggy:D:) {
+    proto method kxxv(|) { * }
+    multi method kxxv(Baggy:D:) {
         Seq.new(class :: does Rakudo::Internals::MapIterator {
             has Mu $!key;
             has int $!times;

@@ -62,9 +62,9 @@ my role Real does Numeric {
     }
     method isNaN { Bool::False }
 
-    method polymod(Real:D: *@mods) {
+    method polymod(Real:D: +@mods) {
         my $more = self;
-        my $inf = @mods.elems == Inf;
+        my $inf = @mods.is-lazy;
         fail X::OutOfRange.new(
           what => 'invocant to polymod', got => $more, range => "0..*"
         ) if $more < 0;

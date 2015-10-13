@@ -1017,54 +1017,51 @@ augment class Any {
             has Mu $!iter;
             has &!as;
             has &!with;
-            has $!last = IterationEnd; # can never match real value
+            has $!last;
+            has int $!first;
             method BUILD(\list, &!as, &!with) {
                 $!iter  = as-iterable(list).iterator;
+                $!first = 1;
                 self
             }
             method new(\list, &as, &with) {
                 nqp::create(self).BUILD(list, &as, &with)
             }
             method pull-one() {
-                my Mu $value;
-                my $which;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $which = &!as($value);
-                    unless with($which,$!last) {
-                        $!last = $which;
-                        return $value;
+                my Mu $value := $!iter.pull-one;
+                my $which = &!as($value);
+                if $!first {
+                    $!first = 0;
+                }
+                else {
+                    until IterationEnd =:= $value || !with($which,$!last) {
+                        $value := $!iter.pull-one;
+                        $which = &!as($value);
                     }
                 }
-                IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my Mu $value;
-                my $which;
-                my int $done;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    $which = &!as($value);
-                    unless with($which,$!last) {
-                        $!last = $which;
-                        $target.push($value);
-                        $done = $done + 1;
-                    }
-                }
-                $done
+                $!last = $which;
+                $value
             }
             method push-all($target) {
-                my Mu $value;
-                my $which;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $which = &!as($value);
-                    once { $!last = $which; $target.push($value); next }
-                    unless with($which,$!last) {
-                        $!last = $which;
+                my Mu $value := $!iter.pull-one;
+                my $which = &!as($value);
+                if $!first {
+                    $!first = 0;
+                    unless IterationEnd =:= $value {
                         $target.push($value);
+                        $!last = $which;
+                        $value := $!iter.pull-one;
                     }
                 }
-                IterationEnd
+                until IterationEnd =:= $value {
+                    $which = &!as($value);
+                    unless with($which,$!last) {
+                        $target.push($value);
+                        $!last = $which;
+                    }
+                    $value := $!iter.pull-one;
+                }
+                $value
             }
         }.new(self, &as, &with))
     }
@@ -1072,46 +1069,43 @@ augment class Any {
         Seq.new(class :: does Iterator {
             has Mu $!iter;
             has &!with;
-            has $!last = IterationEnd; # can never match real value
+            has Mu $!last;
+            has int $!first;
             method BUILD(\list, &!with) {
                 $!iter  = as-iterable(list).iterator;
+                $!first = 1;
                 self
             }
             method new(\list, &with) { nqp::create(self).BUILD(list, &with) }
             method pull-one() {
-                my Mu $value;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    unless with($value,$!last) {
-                        $!last = $value;
-                        return $value;
-                    }
+                my Mu $value := $!iter.pull-one;
+                if $!first {
+                    $!first = 0;
                 }
-                IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my Mu $value;
-                my int $done;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    unless with($value,$!last) {
-                        $!last = $value;
-                        $target.push($value);
-                        $done = $done + 1;
-                    }
+                else {
+                    $value := $!iter.pull-one
+                      until IterationEnd =:= $value || !with($value,$!last);
                 }
-                $done
+                $!last = $value
             }
             method push-all($target) {
-                my Mu $value;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    once { $!last = $value; $target.push($value); next }
-                    unless with($value,$!last) {
-                        $!last = $value;
+                my Mu $value := $!iter.pull-one;
+                if $!first {
+                    $!first = 0;
+                    unless IterationEnd =:= $value {
                         $target.push($value);
+                        $!last = $value;
+                        $value := $!iter.pull-one;
                     }
                 }
-                IterationEnd
+                until IterationEnd =:= $value {
+                    unless with($value,$!last) {
+                        $target.push($value);
+                        $!last = $value;
+                    }
+                    $value := $!iter.pull-one;
+                }
+                $value
             }
         }.new(self, &with))
     }

@@ -323,30 +323,27 @@ augment class Any {
     multi method grep(Regex:D $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                my Mu $value;
-                1 until ($value := $!iter.pull-one) =:= IterationEnd
-                  || $value.match($!test);
-                $value
+                1 until ($_ := $!iter.pull-one) =:= IterationEnd
+                  || $_.match($!test);
+                $_
             }
             method push-exactly($target, int $n) {
-                my Mu $value;
                 my int $done;
                 my $no-sink;
                 while $done < $n {
                     return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    if $value.match($!test) {
-                        $no-sink := $target.push($value);
+                      if IterationEnd =:= ($_ := $!iter.pull-one);
+                    if $_.match($!test) {
+                        $no-sink := $target.push($_);
                         $done = $done + 1;
                     }
                 }
                 $done
             }
             method push-all($target) {
-                my Mu $value;
                 my $no-sink;
-                $no-sink := $target.push($value) if $value.match($!test)
-                  until ($value := $!iter.pull-one) =:= IterationEnd;
+                $no-sink := $target.push($_) if $_.match($!test)
+                  until ($_ := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
         }.new(self, $test))
@@ -357,36 +354,32 @@ augment class Any {
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
               !! Seq.new(class :: does Grepper {
                      method pull-one() is raw {
-                         my Mu $value;
-                         1 until ($value := $!iter.pull-one) =:= IterationEnd
-                           || $!test($value);
-                         $value
+                         1 until ($_ := $!iter.pull-one) =:= IterationEnd
+                           || $!test($_);
+                         $_
                      }
                      method push-exactly($target, int $n) {
-                         my Mu $value;
                          my int $done;
                          my $no-sink;
                          while $done < $n {
                              return IterationEnd
-                               if IterationEnd =:= ($value := $!iter.pull-one);
-                             if $!test($value) {
-                                 $no-sink := $target.push($value);
+                               if IterationEnd =:= ($_ := $!iter.pull-one);
+                             if $!test($_) {
+                                 $no-sink := $target.push($_);
                                  $done = $done + 1;
                              }
                          }
                          $done
                      }
                      method push-all($target) {
-                         my Mu $value;
                          my $no-sink;
-                         $no-sink := $target.push($value) if $!test($value)
-                           until ($value := $!iter.pull-one) =:= IterationEnd;
+                         $no-sink := $target.push($_) if $!test($_)
+                           until ($_ := $!iter.pull-one) =:= IterationEnd;
                          IterationEnd
                      }
                      method sink-all() {
-                         my Mu $value;
-                         $!test($value)
-                           until ($value := $!iter.pull-one) =:= IterationEnd;
+                         $!test($_)
+                           until ($_ := $!iter.pull-one) =:= IterationEnd;
                          IterationEnd
                      }
                  }.new(self, $test))
@@ -418,30 +411,27 @@ augment class Any {
     multi method grep(Mu $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                my Mu $value;
-                1 until ($value := $!iter.pull-one) =:= IterationEnd
-                  || $!test.ACCEPTS($value);
-                $value
+                1 until ($_ := $!iter.pull-one) =:= IterationEnd
+                  || $!test.ACCEPTS($_);
+                $_
             }
             method push-exactly($target, int $n) {
-                my Mu $value;
                 my int $done;
                 my $no-sink;
                 while $done < $n {
                     return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    if $!test.ACCEPTS($value) {
-                        $no-sink := $target.push($value);
+                      if IterationEnd =:= ($_ := $!iter.pull-one);
+                    if $!test.ACCEPTS($_) {
+                        $no-sink := $target.push($_);
                         $done = $done + 1;
                     }
                 }
                 $done
             }
             method push-all($target) {
-                my Mu $value;
                 my $no-sink;
-                $no-sink := $target.push($value) if $!test.ACCEPTS($value)
-                  until ($value := $!iter.pull-one) =:= IterationEnd;
+                $no-sink := $target.push($_) if $!test.ACCEPTS($_)
+                  until ($_ := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
         }.new(self, $test))

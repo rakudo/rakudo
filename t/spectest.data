@@ -940,6 +940,7 @@ S32-num/log.t
 S32-num/narrow.t
 S32-num/pi.t
 S32-num/polar.t
+S32-num/polymod.t
 S32-num/power.t
 S32-num/rand.t
 S32-num/rat.t

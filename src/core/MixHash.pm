@@ -34,7 +34,7 @@ my class MixHash does Mixy {
                     !! (nqp::getattr(nqp::decont(nqp::atkey($hash,$which)),Pair,'$!value') = $value);
               }
               elsif $value {
-                  nqp::bindkey($hash,$which,self.PAIR(k,$value));
+                  nqp::bindkey($hash,$which,self!PAIR(k,$value));
               }
               $value;
           }

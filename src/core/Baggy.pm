@@ -1,8 +1,8 @@
 my role Baggy does QuantHash {
     has %!elems; # key.WHICH => (key,value)
 
-    method PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
-    method SANITY(%elems --> Nil) {
+    method !PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
+    method !SANITY(%elems --> Nil) {
         my @toolow;
         for %elems -> $p {
             my $pair  := $p.value;
@@ -24,7 +24,7 @@ my role Baggy does QuantHash {
                 $value = $value + 1;
             }
             else {
-                nqp::bindkey($hash,$which,self.PAIR($_,1));
+                nqp::bindkey($hash,$which,self!PAIR($_,1));
             }
         }
         nqp::create(self).BUILD(%elems)
@@ -42,7 +42,7 @@ my role Baggy does QuantHash {
                     $value = $value + .value;
                 }
                 else {
-                    nqp::bindkey($hash,$which,self.PAIR(.key,.value));
+                    nqp::bindkey($hash,$which,self!PAIR(.key,.value));
                 }
             }
             default {
@@ -53,11 +53,11 @@ my role Baggy does QuantHash {
                     $value = $value + 1;
                 }
                 else {
-                    nqp::bindkey($hash,$which,self.PAIR($_,1));
+                    nqp::bindkey($hash,$which,self!PAIR($_,1));
                 }
             }
         }
-        self.SANITY(%elems);
+        self!SANITY(%elems);
         nqp::create(self).BUILD(%elems)
     }
 

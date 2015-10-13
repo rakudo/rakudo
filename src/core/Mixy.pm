@@ -1,7 +1,7 @@
 my role Mixy does Baggy  {
 
-    method PAIR(\key,\value) { Pair.new(key, my Real $ = value ) }
-    method SANITY(%elems --> Nil) {
+    method !PAIR(\key,\value) { Pair.new(key, my Real $ = value ) }
+    method !SANITY(%elems --> Nil) {
         for %elems -> $p {
             %elems.DELETE-KEY($p.key) if $p.value.value == 0;
         }

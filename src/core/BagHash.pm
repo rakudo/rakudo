@@ -34,7 +34,7 @@ my class BagHash does Baggy {
                     !! nqp::deletekey($hash,$which);
               }
               elsif $value > 0 {
-                  nqp::bindkey($hash,$which,self.PAIR(k,$value));
+                  nqp::bindkey($hash,$which,self!PAIR(k,$value));
               }
               $value < 0 ?? 0 !! $value;
           }

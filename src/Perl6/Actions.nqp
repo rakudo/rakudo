@@ -1428,6 +1428,7 @@ Compilation unit '$file' contained the following violations:
         my $xblock := $<xblock>.ast;
         my $sm_exp := $xblock.shift;
         my $pblock := $xblock.shift;
+        check_smartmatch($/,$sm_exp);
 
         # Handle the smart-match.
         my $match_past := QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
@@ -1775,9 +1776,11 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_mod_cond:sym<when>($/) {
+        my $pat := $<modifier_expr>.ast;
+        check_smartmatch($/,$pat);
         make QAST::Op.new( :op<if>,
             QAST::Op.new( :name('ACCEPTS'), :op('callmethod'),
-                          $<modifier_expr>.ast,
+                          $pat,
                           QAST::Var.new( :name('$_'), :scope('lexical') ) ),
             :node($/)
         );
@@ -5718,6 +5721,12 @@ Compilation unit '$file' contained the following violations:
         $result
     }
 
+    sub check_smartmatch($/,$pat) {
+        if nqp::istype($pat,QAST::Op) && $pat.name eq '&infix:<=>' && $pat[1].name eq 'subst' {
+            $/.CURSOR.worry("Smartmatch with S/// can never succeed because the subsequent string match will fail");
+        }
+    }
+
     sub make_smartmatch($/, $negated) {
         my $lhs := $/[0].ast;
         my $rhs := $/[1].ast;
@@ -5727,6 +5736,7 @@ Compilation unit '$file' contained the following violations:
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
+        check_smartmatch($/,$rhs);
 
         # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
         $sm_call := QAST::Op.new(
@@ -7636,6 +7646,7 @@ Compilation unit '$file' contained the following violations:
 
         # Build a block that'll smartmatch the topic against the
         # expression.
+        check_smartmatch($/,$expr);
         my $past := QAST::Block.new(
             QAST::Stmts.new(
                 QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )

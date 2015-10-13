@@ -71,9 +71,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 }
             }
             method push-all($target) {
+                my $no-sink;
                 while $!hash-iter {
                     my \tmp = nqp::shift($!hash-iter);
-                    $target.push(
+                    $no-sink := $target.push(
                       Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp)));
                 }
                 IterationEnd
@@ -88,8 +89,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     !! IterationEnd
             }
             method push-all($target) {
-                $target.push(nqp::iterkey_s(nqp::shift($!hash-iter)))
-                  while $!hash-iter;
+                my $no-sink;
+                $no-sink :=
+                  $target.push(nqp::iterkey_s(nqp::shift($!hash-iter)))
+                    while $!hash-iter;
                 IterationEnd
             }
         }.new(self))
@@ -113,10 +116,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 }
             }
             method push-all($target) {
+                my $no-sink;
                 while $!hash-iter {
                     my \tmp = nqp::shift($!hash-iter);
-                    $target.push(nqp::iterkey_s(tmp));
-                    $target.push(nqp::iterval(tmp));
+                    $no-sink := $target.push(nqp::iterkey_s(tmp));
+                    $no-sink := $target.push(nqp::iterval(tmp));
                 }
                 IterationEnd
             }
@@ -130,7 +134,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     !! IterationEnd
             }
             method push-all($target) {
-                $target.push(nqp::iterval(nqp::shift($!hash-iter)))
+                my $no-sink;
+                $no-sink := $target.push(nqp::iterval(nqp::shift($!hash-iter)))
                   while $!hash-iter;
                 IterationEnd
             }
@@ -148,9 +153,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 }
             }
             method push-all($target) {
+                my $no-sink;
                 while $!hash-iter {
                     my \tmp = nqp::shift($!hash-iter);
-                    $target.push(
+                    $no-sink := $target.push(
                       Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) ));
                 }
                 IterationEnd

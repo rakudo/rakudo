@@ -694,8 +694,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my int $i;
+                my $no-sink;
                 while $!number {
-                    $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
+                    $no-sink :=
+                      $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
                     nqp::bindpos(
                       $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
                     $!number = $!number - 1;

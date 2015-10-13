@@ -331,11 +331,12 @@ augment class Any {
             method push-exactly($target, int $n) {
                 my Mu $value;
                 my int $done;
+                my $no-sink;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($value := $!iter.pull-one);
                     if $value.match($!test) {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $done = $done + 1;
                     }
                 }
@@ -343,7 +344,8 @@ augment class Any {
             }
             method push-all($target) {
                 my Mu $value;
-                $target.push($value) if $value.match($!test)
+                my $no-sink;
+                $no-sink := $target.push($value) if $value.match($!test)
                   until ($value := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
@@ -363,11 +365,12 @@ augment class Any {
                      method push-exactly($target, int $n) {
                          my Mu $value;
                          my int $done;
+                         my $no-sink;
                          while $done < $n {
                              return IterationEnd
                                if IterationEnd =:= ($value := $!iter.pull-one);
                              if $!test($value) {
-                                 $target.push($value);
+                                 $no-sink := $target.push($value);
                                  $done = $done + 1;
                              }
                          }
@@ -375,7 +378,8 @@ augment class Any {
                      }
                      method push-all($target) {
                          my Mu $value;
-                         $target.push($value) if $!test($value)
+                         my $no-sink;
+                         $no-sink := $target.push($value) if $!test($value)
                            until ($value := $!iter.pull-one) =:= IterationEnd;
                          IterationEnd
                      }
@@ -422,11 +426,12 @@ augment class Any {
             method push-exactly($target, int $n) {
                 my Mu $value;
                 my int $done;
+                my $no-sink;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($value := $!iter.pull-one);
                     if $!test.ACCEPTS($value) {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $done = $done + 1;
                     }
                 }
@@ -434,7 +439,8 @@ augment class Any {
             }
             method push-all($target) {
                 my Mu $value;
-                $target.push($value) if $!test.ACCEPTS($value)
+                my $no-sink;
+                $no-sink := $target.push($value) if $!test.ACCEPTS($value)
                   until ($value := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
@@ -778,13 +784,14 @@ augment class Any {
                 my Mu $value;
                 my str $needle;
                 my int $done;
+                my $no-sink;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($value := $!iter.pull-one);
                     $needle = nqp::unbox_s($value.WHICH);
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $done = $done + 1;
                     }
                 }
@@ -793,11 +800,12 @@ augment class Any {
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
+                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s($value.WHICH);
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                     }
                 }
                 IterationEnd
@@ -842,13 +850,14 @@ augment class Any {
                 my Mu $value;
                 my str $needle;
                 my int $done;
+                my $no-sink;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($value := $!iter.pull-one);
                     $needle = nqp::unbox_s(&!as($value).WHICH);
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $done = $done + 1;
                     }
                 }
@@ -857,11 +866,12 @@ augment class Any {
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
+                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s(&!as($value).WHICH);
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                     }
                 }
                 IterationEnd
@@ -908,12 +918,13 @@ augment class Any {
                 my Mu $value;
                 my str $needle;
                 my int $done;
+                my $no-sink;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($value := $!iter.pull-one);
                     $needle = nqp::unbox_s($value.WHICH);
                     if nqp::existskey($!seen, $needle) {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $done = $done + 1;
                     }
                     else {
@@ -925,10 +936,11 @@ augment class Any {
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
+                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s($value.WHICH);
                     nqp::existskey($!seen, $needle)
-                      ?? $target.push($value)
+                      ?? ($no-sink := $target.push($value))
                       !! nqp::bindkey($!seen, $needle, 1);
                 }
                 IterationEnd
@@ -971,12 +983,13 @@ augment class Any {
                 my Mu $value;
                 my str $needle;
                 my int $done;
+                my $no-sink;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($value := $!iter.pull-one);
                     $needle = nqp::unbox_s(&!as($value).WHICH);
                     if nqp::existskey($!seen, $needle) {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $done = $done + 1;
                     }
                     else {
@@ -988,10 +1001,11 @@ augment class Any {
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
+                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s(&!as($value).WHICH);
                     nqp::existskey($!seen, $needle)
-                      ?? $target.push($value)
+                      ?? ($no-sink := $target.push($value))
                       !! nqp::bindkey($!seen, $needle, 1);
                 }
                 IterationEnd
@@ -1045,10 +1059,11 @@ augment class Any {
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
                 my $which = &!as($value);
+                my $no-sink;
                 if $!first {
                     $!first = 0;
                     unless IterationEnd =:= $value {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $!last = $which;
                         $value := $!iter.pull-one;
                     }
@@ -1056,7 +1071,7 @@ augment class Any {
                 until IterationEnd =:= $value {
                     $which = &!as($value);
                     unless with($which,$!last) {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $!last = $which;
                     }
                     $value := $!iter.pull-one;
@@ -1090,17 +1105,18 @@ augment class Any {
             }
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
+                my $no-sink;
                 if $!first {
                     $!first = 0;
                     unless IterationEnd =:= $value {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $!last = $value;
                         $value := $!iter.pull-one;
                     }
                 }
                 until IterationEnd =:= $value {
                     unless with($value,$!last) {
-                        $target.push($value);
+                        $no-sink := $target.push($value);
                         $!last = $value;
                     }
                     $value := $!iter.pull-one;

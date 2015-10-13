@@ -2,6 +2,7 @@ class Version {
     has @.parts;
     has Bool $.plus = False;
 
+    multi method new(Whatever) { self.bless(:parts(*)) }
     multi method new(Str() $s) {
         my @parts = $s.comb(/:r '*' || \d+ || <.alpha>+/);
         for @parts {

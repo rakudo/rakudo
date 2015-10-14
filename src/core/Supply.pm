@@ -792,6 +792,43 @@ my role Supply {
             }
         }
     }
+
+    method throttle(Supply:D $self:
+      Int()  $elems,
+      Real() $seconds,
+      Real() $delay  = 0,
+      :$scheduler    = $*SCHEDULER,
+    ) {
+        my $timer = Supply.interval($seconds,$delay,:$scheduler);
+        my @buffer;
+        my int $allowed = $elems;
+        on -> $res {
+            $timer => { 
+                emit => -> \tick {
+                    if +@buffer -> \buffered {
+                        my int $todo = buffered > $elems ?? $elems !! buffered;
+                        $res.emit(@buffer.shift) for ^$todo;
+                        $allowed = $elems - $todo;
+                    }
+                    else {
+                        $allowed = $elems;
+                    }
+                },
+            },
+            $self => {
+                emit => -> \val {
+                    if $allowed {
+                        $res.emit(val);
+                        $allowed = $allowed - 1;
+                    }
+                    else {
+                        @buffer.push(val);
+                    }
+                },
+                done => { $res.done; },  # also stops the timer ??
+            },
+        }
+    }
 }
 
 # The on meta-combinator provides a mechanism for implementing thread-safe

@@ -203,11 +203,10 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                         }
                     }
                     my $loader = $candi<provides>{$name}<pm pm6>.first(*.so)<file>;
-                    my $vers   = Version.new($candi<provides>{$name}{$*VM.precomp-ext}<cver>);
-                    if $*PERL<compiler>.version eqv $vers {
-                        return CompUnit.new($loader, :has_precomp($candi<provides>{$name}{$*VM.precomp-ext}<file>));
-                    } else {
-                        warn "Precomp for $name not available for {$*VM.name} version {$*PERL<compiler>.version}";
+                    with $candi<provides>{$name}{$*VM.precomp-ext} -> $pc {
+                        if $*PERL<compiler>.version eqv $pc<cver> {
+                            return CompUnit.new($loader, :has_precomp($pc<file>));
+                        }
                     }
                     return CompUnit.new($loader);
                 }

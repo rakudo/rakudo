@@ -1,21 +1,6 @@
 my class BagHash does Baggy {
 
-    method BUILD(%!elems) { self }
-
-    method Bag(:$view) {
-        if $view {
-            my \bag = nqp::create(Bag);
-            nqp::bindattr(bag,Bag,'%!elems',%!elems);
-            bag
-        }
-        else {
-           Bag.new-from-pairs(%!elems.values)
-        }
-    }
-    method BagHash { self }
-    method Mix     { Mix.new-from-pairs(%!elems.values) }
-    method MixHash { MixHash.new-from-pairs(%!elems.values) }
-
+#--- interface methods
     multi method AT-KEY(BagHash:D: \k) is raw {
         Proxy.new(
           FETCH => {
@@ -40,6 +25,21 @@ my class BagHash does Baggy {
           }
         );
     }
+
+#--- introspection methods
+    method Bag(:$view) {
+        if $view {
+            my \bag = nqp::create(Bag);
+            nqp::bindattr(bag,Bag,'%!elems',%!elems);
+            bag
+        }
+        else {
+           Bag.new-from-pairs(%!elems.values)
+        }
+    }
+    method BagHash { self }
+    method Mix     { Mix.new-from-pairs(%!elems.values) }
+    method MixHash { MixHash.new-from-pairs(%!elems.values) }
 }
 
 # vim: ft=perl6 expandtab sw=4

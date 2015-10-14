@@ -1,68 +1,155 @@
 my role Baggy does QuantHash {
+
+# A Bag/BagHash/Mix/MixHash consists of a single hash with Pairs.
+# The keys of the hash, are the .WHICH strings of the original object key.
+# The values are Pairs containing the original object key and value.
+
     has %!elems; # key.WHICH => (key,value)
 
+# The Baggy role takes care of all mutable and immutable aspects that are
+# shared between Bag,BagHash,Mix,MixHash.  Any specific behaviour for
+# mutable and immutable aspects of Mix/MixHash need to live in Mixy.
+# Immutables aspects of Bag/Mix, need to live to Bag/Mix respectively.
+
+#--- private methods
+    method !WHICH() {
+        self.^name
+          ~ '|'
+          ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } );
+    }
     method !PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
-    method !SANITY(%elems --> Nil) {
+    method !TOTAL() {
+        my $total = 0;
+        my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
+        $total += nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+          while $iter;
+        $total;
+    }
+    method !SANITY(%hash --> Nil) {
         my @toolow;
-        for %elems -> $p {
-            my $pair  := $p.value;
-            my $value := $pair.value;
-            @toolow.push( $pair.key ) if $value <  0;
-            %elems.DELETE-KEY($p.key) if $value <= 0;
+        my $elems := nqp::getattr(%hash,Map,'$!storage');
+        my $iter  := nqp::iterator($elems);
+        while $iter {
+            my \tmp   := nqp::shift($iter);
+            my \pair  := nqp::iterval(tmp);
+            my $value := pair.value;
+            @toolow.push( pair.key )                   if $value <  0;
+            nqp::deletekey($elems,nqp::iterkey_s(tmp)) if $value <= 0;
         }
         fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
     }
-    multi method new(Baggy: +@args) {
-        my %elems;
-        my $hash := nqp::bindattr(%elems,Map,'$!storage',nqp::hash());
+    method !LISTIFY(&formatter) {
+        my $elems := nqp::getattr(%!elems,Map,'$!storage');
+        my $list  := nqp::list();
+        nqp::setelems($list,nqp::elems($elems));  # presize
+        nqp::setelems($list,0);
+
+        my $iter := nqp::iterator($elems);
+        while $iter {
+            my \pair = nqp::iterval(nqp::shift($iter));
+            nqp::push($list,formatter(pair.key,pair.value));
+        }
+        $list
+    }
+
+#--- interface methods
+    method BUILD(Baggy:D: Mu \elems) {
+        %!elems := elems;
+
+        if self.^name.chars == 3 { # shoddy heuristic for Bag/Mix
+            my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
+            while $iter {
+                my \pair = nqp::iterval(nqp::shift($iter));
+                nqp::bindattr(pair,Pair,'$!value',
+                  nqp::decont(nqp::getattr(pair,Pair,'$!value'))
+                );
+            }
+        }
+        self
+    }
+    method ACCEPTS(Baggy:_: $other) {
+        self.defined
+          ?? $other (<+) self && self (<+) $other
+          !! $other.^does(self);
+    }
+    multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
+        my $elems    := nqp::getattr(%!elems,Map,'$!storage');
+        my str $which = nqp::unbox_s(k.WHICH);
+        nqp::existskey($elems,$which)
+          ?? nqp::getattr(nqp::decont(nqp::atkey($elems,$which)),Pair,'$!value')
+          !! 0
+    }
+    multi method DELETE-KEY(Baggy:D: \k) {
+        my $elems    := nqp::getattr(%!elems,Map,'$!storage');
+        my str $which = nqp::unbox_s(k.WHICH);
+        if nqp::existskey($elems,$which) {
+            my \v = nqp::getattr(
+              nqp::decont(nqp::atkey($elems,$which)),
+              Pair,'$!value');
+            nqp::deletekey($elems,$which);
+            v
+        }
+        else {
+            0
+        }
+    }
+    multi method EXISTS-KEY(Baggy:D: \k) {
+        nqp::p6bool(
+          nqp::existskey(
+            nqp::getattr(%!elems,Map,'$!storage'),nqp::unbox_s(k.WHICH)));
+    }
+
+#--- object creation methods
+    multi method new(Baggy:_: +@args) {
+        my $elems := nqp::hash();
         my str $which;
         for @args {
             $which = nqp::unbox_s(.WHICH);
-            if nqp::existskey($hash,$which) {
+            if nqp::existskey($elems,$which) {
                 my $value :=
-                  nqp::getattr(nqp::atkey($hash,$which),Pair,'$!value');
+                  nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
                 $value = $value + 1;
             }
             else {
-                nqp::bindkey($hash,$which,self!PAIR($_,1));
+                nqp::bindkey($elems,$which,self!PAIR($_,1));
             }
         }
-        nqp::create(self).BUILD(%elems)
+        nqp::create(self).BUILD($elems)
     }
     method new-from-pairs(*@pairs) {
-        my %elems;
-        my $hash := nqp::bindattr(%elems,Map,'$!storage',nqp::hash());
+        my $elems := nqp::hash();
         my str $which;
+        my int $seen-pair;
         for @pairs {
             when Pair {
+                $seen-pair = 1;
                 $which = nqp::unbox_s(.key.WHICH);
-                if nqp::existskey($hash,$which) {
+                if nqp::existskey($elems,$which) {
                     my $value :=
-                      nqp::getattr(nqp::atkey($hash,$which),Pair,'$!value');
+                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
                     $value = $value + .value;
                 }
                 else {
-                    nqp::bindkey($hash,$which,self!PAIR(.key,.value));
+                    nqp::bindkey($elems,$which,self!PAIR(.key,.value));
                 }
             }
             default {
                 $which = nqp::unbox_s(.WHICH);
-                if nqp::existskey($hash,$which) {
+                if nqp::existskey($elems,$which) {
                     my $value :=
-                      nqp::getattr(nqp::atkey($hash,$which),Pair,'$!value');
+                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
                     $value = $value + 1;
                 }
                 else {
-                    nqp::bindkey($hash,$which,self!PAIR($_,1));
+                    nqp::bindkey($elems,$which,self!PAIR($_,1));
                 }
             }
         }
-        self!SANITY(%elems);
-        nqp::create(self).BUILD(%elems)
+        self!SANITY($elems) if $seen-pair;
+        nqp::create(self).BUILD($elems)
     }
 
-    method default(--> Int) { 0 }
-
+#--- iterator methods
     multi method pairs(Baggy:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
@@ -265,42 +352,37 @@ my role Baggy does QuantHash {
             }
         }.new(%!elems))
     }
-
     multi method invert(Baggy:D:) {
         %!elems.values.map: { (.value »=>» .key).cache.Slip }
     }
+
+#--- introspection methods
+    multi method WHICH(Baggy:D:)   { self!WHICH }
+    method total(Baggy:D:)         { self!TOTAL }
     method elems(Baggy:D: --> Int) { %!elems.elems }
-    method total(--> Int) { [+] self.values }
-    method Bool(Baggy:D:) { %!elems.Bool }
-
+    method Bool(Baggy:D: --> Bool) {
+        nqp::p6bool(nqp::elems(nqp::getattr(%!elems,Map,'$!storage')))
+    }
     method hash(Baggy:D: --> Hash) { %!elems.values.hash }
+    method default(Baggy:D:)       { 0 }
 
-    method ACCEPTS($other) {
-        self.defined
-          ?? $other (<+) self && self (<+) $other
-          !! $other.^does(self);
+    multi method Str(Baggy:D: --> Str) {
+        join(' ', self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
     }
-
-    multi method Str(Baggy:D $ : --> Str) {
-        ~ %!elems.values.map( {
-              .value == 1 ?? .key.gist !! "{.key.gist}({.value})"
-          } );
-    }
-    multi method gist(Baggy:D $ : --> Str) {
-        my $name := self.^name;
-        ( $name eq 'Bag' ?? 'bag' !! "$name.new" )
+    multi method gist(Baggy:D: --> Str) {
+        my str $name = nqp::unbox_s(self.^name);
+        ( nqp::chars($name) == 3 ?? nqp::lc($name) !! "$name.new" )
         ~ '('
-        ~ %!elems.values.map( {
-              .value == 1 ?? .key.gist !! "{.key.gist}({.value})"
-          } ).join(', ')
-        ~ ')';
+        ~ join(', ',self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
+        ~ ')'
     }
-    multi method perl(Baggy:D $ : --> Str) {
+    multi method perl(Baggy:D: --> Str) {
         '('
-        ~ %!elems.values.map( {"{.key.perl}=>{.value}"} ).join(',')
+        ~ join(',', self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"} ))
         ~ ").{self.^name}"
     }
 
+#--- selection methods
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
         %!elems.DELETE-KEY(%!elems.keys.pick);
@@ -432,6 +514,7 @@ my role Baggy does QuantHash {
         }.new($self.total,@pairs))
     }
 
+#--- classification method
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
         fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
@@ -496,15 +579,9 @@ my role Baggy does QuantHash {
         self.categorize-list( { @test[$^a] }, @list );
     }
 
+#--- coercion methods
     method Set()     {     Set.new(self.keys) }
     method SetHash() { SetHash.new(self.keys) }
-
-    # all read/write candidates, to be shared with Mixes
-    multi method DELETE-KEY(Baggy:D: \k) {
-        my \v := %!elems.DELETE-KEY(k.WHICH);
-        nqp::istype(v,Pair) ?? v.value !! 0;
-    }
-    multi method EXISTS-KEY(Baggy:D: \k)    { %!elems.EXISTS-KEY(k.WHICH) }
 }
 
 # vim: ft=perl6 expandtab sw=4

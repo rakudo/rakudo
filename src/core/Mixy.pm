@@ -7,20 +7,6 @@ my role Mixy does Baggy  {
         }
     }
 
-    method default(--> Real) { 0 }
-    method total(--> Real) { [+] self.values }
-
-    multi method gist(Mixy:D $ : --> Str) {
-        my $name := self.^name;
-        ( $name eq 'Mix' ?? 'mix' !! "$name.new" )
-        ~ '('
-#        ~ %!elems.values.map( {
-        ~ self.pairs.map( {
-              .value == 1 ?? .key.gist !! "{.key.gist}({.value})"
-          } ).join(', ')
-        ~ ')';
-    }
-
     multi method kxxv(Mixy:D:) {
         fail ".kxxv is not supported on a {self.^name}";
     }
@@ -31,6 +17,14 @@ my role Mixy does Baggy  {
 
     multi method pick(Mixy:D: $count?) {
         fail ".pick is not supported on a {self.^name}";
+    }
+
+    multi method roll(Mixy:D:) {
+        Rakudo::Internals::WeightedRoll.new(self).roll
+    }
+    multi method roll(Mixy:D: $count) {
+        my $roller = Rakudo::Internals::WeightedRoll.new(self);
+        map { $roller.roll }, 1 .. $count;
     }
 }
 

@@ -103,6 +103,29 @@ my class Rakudo::Internals {
         }
     }
 
+    our class WeightedRoll {
+        has @!pairs;
+        has $!total;
+
+        method BUILD(\list-of-pairs) {
+            $!total = 0;
+            for list-of-pairs.pairs {
+                my $value := .value;
+                if $value > 0 {
+                    @!pairs.push($_);
+                    $!total = $!total + $value;
+                }
+            }
+            self
+        }
+        method new(\list-of-pairs) { nqp::create(self).BUILD(list-of-pairs) }
+        method roll() {
+            my $rand = $!total.rand;
+            my $seen = 0;
+            return .key if ( $seen = $seen + .value ) > $rand for @!pairs;
+        }
+    }
+
     method SET_LEADING_DOCS($obj, $docs) {
         my $current_why := $obj.WHY;
 

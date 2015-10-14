@@ -307,20 +307,22 @@ my role Supply {
     method squish(Supply:D $self: :&as, :&with is copy) {
         &with //= &[===];
         on -> $res {
-            my @secret;
             $self => do {
-                my Mu $last = @secret;
+                my int $first = 1;
+                my Mu $last;
                 my Mu $target;
                 &as
                   ?? -> \val {
                       $target = &as(val);
-                      unless &with($target,$last) {
-                          $last = $target;
+                      if $first || !&with($target,$last) {
+                          $first = 0;
+                          $last  = $target;
                           $res.emit(val);
                       }
                   }
                   !! -> \val {
-                      unless &with(val,$last) {
+                      if $first || !&with(val,$last) {
+                          $first = 0;
                           $last = val;
                           $res.emit(val);
                       }

@@ -796,7 +796,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 if $m >= 0 and ($l = $l - 1) {
                     my \value = nqp::p6box_s(nqp::substr($self-string, $c, $m - $c));
                     $c = $m + $width;
-                    $all ?? (value, $match-string) !! value;
+                    $all ?? Slip.new(value, $match-string) !! value;
                 }
                 else {
                     $done = 1;

@@ -1034,18 +1034,19 @@ my class X::Adverb::Slice is Exception {
     has $.what;
     has @.unexpected;
     has @.nogo;
+    has $.type;
     method message {
         my $text = '';
         if @!unexpected.elems -> $elems {
             $text = $elems > 1
-              ?? "$elems unexpected adverbs (@!unexpected[])"
+              ?? "$elems unexpected adverbs (@!unexpected.sort())"
               !! "Unexpected adverb '@!unexpected[0]'"
         }
         if @!nogo {
             $text ~= $text ?? " and u" !! "U";
-            $text ~= "nsupported combination of adverbs (@!nogo[])";
+            $text ~= "nsupported combination of adverbs (@!nogo.sort())";
         }
-        $text ~ " passed to slice on $!what";
+        $text ~ " passed to{" $!type" if $!type} slice on $!what";
     }
 }
 

@@ -471,16 +471,19 @@ augment class Any {
         fail X::Match::Bool.new( type => '.first' );
     }
     multi method first(Regex:D $test) is raw {
-        self.map({ return-rw $_ if .match($test) });
-        Nil;
+        my $iter := as-iterable(self).iterator;
+        1 until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
+        $_ =:= IterationEnd ?? Nil !! $_;
     }
     multi method first(Callable:D $test) is raw {
-        self.map({ return-rw $_ if $test($_) });
-        Nil;
+        my $iter := as-iterable(self).iterator;
+        1 until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
+        $_ =:= IterationEnd ?? Nil !! $_;
     }
     multi method first(Mu $test) is raw {
-        self.map({ return-rw $_ if $_ ~~ $test });
-        Nil;
+        my $iter := as-iterable(self).iterator;
+        1 until ($_ := $iter.pull-one) =:= IterationEnd || $_ ~~ $test;
+        $_ =:= IterationEnd ?? Nil !! $_;
     }
 
     proto method first-index(|) is nodal { * }
@@ -488,28 +491,25 @@ augment class Any {
         fail X::Match::Bool.new( type => '.first-index' );
     }
     multi method first-index(Regex:D $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            return nqp::box_i($index,Int) if .match($test);
-        };
-        Nil;
+        my $iter := as-iterable(self).iterator;
+        my int $index;
+        $index = $index + 1
+          until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
+        $_ =:= IterationEnd ?? Nil !! nqp::p6box_i($index)
     }
     multi method first-index(Callable:D $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            return nqp::box_i($index,Int) if $test($_);
-        };
-        Nil;
+        my $iter := as-iterable(self).iterator;
+        my int $index;
+        $index = $index + 1
+          until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
+        $_ =:= IterationEnd ?? Nil !! nqp::p6box_i($index)
     }
     multi method first-index(Mu $test) {
-        my int $index = -1;
-        self.map: {
-            $index = $index + 1;
-            return nqp::box_i($index,Int) if $_ ~~ $test;
-        };
-        Nil;
+        my $iter := as-iterable(self).iterator;
+        my int $index;
+        $index = $index + 1
+          until ($_ := $iter.pull-one) =:= IterationEnd || $_ ~~ $test;
+        $_ =:= IterationEnd ?? Nil !! nqp::p6box_i($index)
     }
 
     proto method last-index(|) is nodal { * }

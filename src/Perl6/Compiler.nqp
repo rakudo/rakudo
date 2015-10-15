@@ -106,7 +106,7 @@ class Perl6::Compiler is HLL::Compiler {
 
             $!completions := nqp::list();
 
-            my $core_keys := self.eval('CORE::.keys', :outer_ctx(nqp::null()));
+            my $core_keys := self.eval('CORE::.keys.list', :outer_ctx(nqp::null()));
 
             my int $i := 0;
             my $core_elems := $core_keys.elems();

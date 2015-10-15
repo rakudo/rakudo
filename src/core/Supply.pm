@@ -25,7 +25,8 @@ my role Supply {
     has $!been_tapped;
     has @!paused;
 
-    method tap(Supply:D: &emit = -> $ { }, :&done,:&quit={die $_},:&closing) {
+    method tap(Supply:D:
+    &emit = -> $ { }, :&done,:&quit={die $_},:&closing) {
         my $tap = Tap.new(:&emit, :&done, :&quit, :&closing, :supply(self));
         $!tappers_lock.protect({
             @!tappers.push($tap);
@@ -798,20 +799,27 @@ my role Supply {
       Real() $seconds,
       Real() $delay  = 0,
       :$scheduler    = $*SCHEDULER,
+      :$control,
+      :$status,
+      :$bleed,
     ) {
         my $timer = Supply.interval($seconds,$delay,:$scheduler);
         my @buffer;
-        my int $allowed = $elems;
+        my int $limit   = $elems;
+        my int $allowed = $limit;
+        my int $emitted;
+        my int $bled;
         on -> $res {
             $timer => { 
                 emit => -> \tick {
                     if +@buffer -> \buffered {
-                        my int $todo = buffered > $elems ?? $elems !! buffered;
+                        my int $todo = buffered > $limit ?? $limit !! buffered;
                         $res.emit(@buffer.shift) for ^$todo;
-                        $allowed = $elems - $todo;
+                        $emitted = $emitted + $todo;
+                        $allowed = $limit   - $todo;
                     }
                     else {
-                        $allowed = $elems;
+                        $allowed = $limit;
                     }
                 },
             },
@@ -825,8 +833,46 @@ my role Supply {
                         @buffer.push(val);
                     }
                 },
-                done => { $res.done; },  # also stops the timer ??
+                done => {
+                    $res.done;  # also stops the timer ??
+                    $control.done if $control;
+                    $status.done  if $status;
+                    if $bleed && @buffer {
+                        $bleed.emit(@buffer.shift) while @buffer;
+                        $bleed.done;
+                    }
+                },
             },
+            $control
+              ?? $control => {
+                   emit => -> \val {
+                       my $type  = val.key;
+                       my $value = val.value;
+
+                       if $type eq 'limit' {
+                           my int $extra = $value - $limit;
+                           $allowed = $extra > 0 || $allowed + $extra >= 0
+                             ?? $allowed + $extra
+                             !! 0;
+                           $limit = $value;
+                       }
+                       elsif $type eq 'bleed' && $bleed {
+                           my int $todo = $value min +@buffer;
+                           $bleed.emit(@buffer.shift) for ^$todo;
+                           $bled = $bled + $todo;
+                       }
+                       elsif $type eq 'status' && $status {
+                           $status.emit( {
+                             :$allowed,
+                             :$bled,
+                             :buffered(+@buffer),
+                             :$emitted,
+                             :$limit,
+                           } );
+                       }
+                   },
+                 }
+              !! |()
         }
     }
 }

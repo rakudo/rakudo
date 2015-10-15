@@ -17,7 +17,7 @@ augment class Any {
         }
     }
 
-    proto method map(|) { * }
+    proto method map(|) is nodal { * }
 
     multi method map(\SELF: &block;; :$label, :$item) {
         sequential-map(as-iterable($item ?? (SELF,) !! SELF).iterator, &block, :$label);

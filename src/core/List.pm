@@ -855,16 +855,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
     }
 
-    method push(|) {
+    method push(|) is nodal {
         X::Immutable.new( method => 'push',    typename => 'List' ).throw;
     }
-    method pop(|) {
+    method pop(|) is nodal {
         X::Immutable.new( method => 'pop',     typename => 'List' ).throw;
     }
-    method shift(|) {
+    method shift(|) is nodal {
         X::Immutable.new( method => 'shift',   typename => 'List' ).throw;
     }
-    method unshift(|) {
+    method unshift(|) is nodal {
         X::Immutable.new( method => 'unshift', typename => 'List' ).throw;
     }
 }

@@ -1364,13 +1364,19 @@ proto sub map(|) {*}
 multi sub map(&code, +values) { my $laze = values.is-lazy; values.map(&code).lazy-if($laze) }
 
 proto sub grep(|) {*}
-multi sub grep(Mu $test, +values) { my $laze = values.is-lazy; values.grep($test).lazy-if($laze) }
+multi sub grep(Mu $test, +values, *%a) {
+    my $laze = values.is-lazy;
+    values.grep($test,|%a).lazy-if($laze)
+}
 multi sub grep(Bool:D $t, |) { fail X::Match::Bool.new( type => 'grep' ) }
 
 proto sub grep-index(|) {*}
-multi sub grep-index(Mu $test, +values) { my $laze = values.is-lazy; values.grep-index($test).lazy-if($laze) }
 multi sub grep-index(Bool:D $t, |) {
     fail X::Match::Bool.new(type => 'grep-index');
+}
+multi sub grep-index(Mu $test, +values) {
+    my $laze = values.is-lazy;
+    values.grep($test,:k).lazy-if($laze)
 }
 
 proto sub first(|) {*}

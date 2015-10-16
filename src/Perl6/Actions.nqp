@@ -5,6 +5,17 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
+sub block_closure($code) {
+    my $closure := QAST::Op.new(
+        :op('callmethod'), :name('clone'),
+        $code
+    );
+    $closure := QAST::Op.new( :op('p6capturelex'), $closure);
+    $closure.annotate('past_block', $code.ann('past_block'));
+    $closure.annotate('code_object', $code.ann('code_object'));
+    $closure
+}
+
 register_op_desugar('p6callmethodhow', -> $qast {
     $qast   := $qast.shallow_clone();
     my $inv := $qast.shift;
@@ -45,6 +56,31 @@ register_op_desugar('p6fatalize', -> $qast {
                 QAST::Var.new( :name($tmp), :scope('local') )
             )
         ))
+});
+register_op_desugar('p6for', -> $qast {
+    my $xblock := $qast[0];
+    my $label := $qast[1];
+    my $for-list-name := QAST::Node.unique('for-list');
+    my $iscont := QAST::Op.new(:op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ));
+    $iscont.named('item');
+    my $call := QAST::Op.new(
+        :op<callmethod>, :name<map>, :node($qast),
+        QAST::Var.new( :name($for-list-name), :scope('local') ),
+        block_closure($xblock[1]),
+        $iscont,
+    );
+    if $label {
+        $call.push($label);
+    }
+    my $bind := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
+        $xblock[0],
+    );
+    QAST::Stmts.new(
+        $bind,
+        QAST::Op.new( :op<callmethod>, :name($qast.ann('context')), $call )
+    );
 });
 
 role STDActions {
@@ -1240,35 +1276,29 @@ Compilation unit '$file' contained the following violations:
 
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
-        my $for-list-name := QAST::Node.unique('for-list');
-        my $iscont := QAST::Op.new(:op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ));
-        $iscont.named('item');
-        my $call := QAST::Op.new(
-            :op<callmethod>, :name<map>, :node($/),
-            QAST::Var.new( :name($for-list-name), :scope('local') ),
-            block_closure($xblock[1]),
-            $iscont,
-        );
-        if $*LABEL {
-            $call.push(QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') ));
-        }
-        my $bind := QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
-            $xblock[0],
+        QAST::Op.new(
+            :op<p6for>, :node($/),
+            $xblock,
         );
         my $past := QAST::Want.new(
-            QAST::Stmts.new(
-                $bind,
-                QAST::Op.new( :op<callmethod>, :name<eager>, $call )
+            QAST::Op.new(
+                :op<p6for>, :node($/),
+                $xblock,
             ),
-            'v', QAST::Stmts.new(
-                $bind,
-                QAST::Op.new( :op<callmethod>, :name<sink>, $call )
+            'v', QAST::Op.new(
+                :op<p6for>, :node($/),
+                $xblock,
             ),
         );
-        my $sinkee := $past[0][1];
-        $past.annotate('statement_level', -> { $sinkee.name('sink') });
+        if $*LABEL {
+            my $label := QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') );
+            $past[0].push($label);
+            $past[2].push($label);
+        }
+        $past[0].annotate('context', 'eager');
+        $past[2].annotate('context', 'sink');
+        my $sinkee := $past[0];
+        $past.annotate('statement_level', -> { $sinkee.annotate('context', 'sink') });
         make $past;
     }
 
@@ -7589,17 +7619,6 @@ Compilation unit '$file' contained the following violations:
         $ref.annotate('past_block', $past_block);
         $ref.annotate('code_object', $code_obj);
         $ref
-    }
-
-    sub block_closure($code) {
-        my $closure := QAST::Op.new(
-            :op('callmethod'), :name('clone'),
-            $code
-        );
-        $closure := QAST::Op.new( :op('p6capturelex'), $closure);
-        $closure.annotate('past_block', $code.ann('past_block'));
-        $closure.annotate('code_object', $code.ann('code_object'));
-        $closure
     }
 
     sub make_thunk_ref($to_thunk, $/) {

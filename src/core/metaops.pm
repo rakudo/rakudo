@@ -399,6 +399,11 @@ multi sub METAOP_HYPER_POSTFIX(\obj, \op) {
         ?? nodemap(op, obj)
         !! deepmap(op, obj);
 }
+multi sub METAOP_HYPER_POSTFIX(\obj, @args, \op) {
+    op.?nodal
+        ?? nodemap( -> \o { op.(o,@args) }, obj )
+        !! deepmap( -> \o { op.(o,@args) }, obj );
+}
 multi sub METAOP_HYPER_POSTFIX(\obj, \args, \op) {
     op.?nodal
         ?? nodemap( -> \o { op.(o,|args) }, obj )

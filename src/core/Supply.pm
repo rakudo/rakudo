@@ -844,7 +844,7 @@ my role Supply {
                 },
             },
             $control
-              ?? $control => {
+              ?? ($control => {
                    emit => -> \val {
                        my $type  = val.key;
                        my $value = val.value;
@@ -871,7 +871,7 @@ my role Supply {
                            } );
                        }
                    },
-                 }
+                 })
               !! |()
         }
     }

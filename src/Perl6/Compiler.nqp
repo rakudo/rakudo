@@ -95,6 +95,30 @@ class Perl6::Compiler is HLL::Compiler {
         }
     }
 
+    method get-completions() {
+        my @completions := nqp::list();
+
+        my $core_keys := self.eval('CORE::.keys.list', :outer_ctx(nqp::null()));
+
+        my int $i := 0;
+        my $core_elems := $core_keys.elems();
+
+        while $i < $core_elems {
+            my $e := $core_keys.AT-POS($i);
+            $i := $i + 1;
+
+            my $m := $e ~~ /^ "&"? $<word>=[\w+] $/;
+            if $m {
+                my $word := $m<word>;
+                unless $word ~~ /^ "&" <.upper>+ $/ {
+                    sorted_set_insert(@completions, $word);
+                }
+            }
+        }
+
+        @completions
+    }
+
     method interactive(*%adverbs) {
         my @symbols;
         try {
@@ -110,26 +134,7 @@ class Perl6::Compiler is HLL::Compiler {
                 my $linenoise_set_completion_callback := @symbols[2];
                 my $linenoise_add_completion := @symbols[3];
 
-                $!completions := nqp::list();
-
-                my $core_keys := self.eval('CORE::.keys.list', :outer_ctx(nqp::null()));
-
-                my int $i := 0;
-                my $core_elems := $core_keys.elems();
-
-                while $i < $core_elems {
-                    my $e := $core_keys.AT-POS($i);
-                    $i := $i + 1;
-
-                    my $m := $e ~~ /^ "&"? $<word>=[\w+] $/;
-                    if $m {
-                        my $word := $m<word>;
-                        unless $word ~~ /^ "&" <.upper>+ $/ {
-                            sorted_set_insert($!completions, $word);
-                        }
-                    }
-                }
-
+                $!completions := self.get-completions();
                 $linenoise_set_completion_callback(sub ($line, $c) {
                     my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 

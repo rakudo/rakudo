@@ -585,6 +585,38 @@ augment class Any {
         }.new(self, $test))
     }
 
+    method !index-result(\index,\value,$what,%a) is raw {
+        if %a {
+            if %a == 1 {
+                if %a<k> {
+                    nqp::p6box_i(index)
+                }
+                elsif %a<p> {
+                    Pair.new(index,value)
+                }
+                elsif %a<v> {
+                    value
+                }
+                else {
+                    fail X::Adverb.new(
+                      :$what,
+                      :source(try { self.VAR.name } // self.WHAT.perl),
+                      :unexpected(%a.keys))
+                }
+            }
+            else {
+                fail X::Adverb.new(
+                  :$what,
+                  :source(try { self.VAR.name } // self.WHAT.perl),
+                  :nogo(%a.keys.grep: /k|v|p/)
+                  :unexpected(%a.keys.grep: { !.match(/k|v|p/) } ))
+            }
+        }
+        else {
+            value
+        }
+    }
+
     proto method grep(|) is nodal { * }
     multi method grep(Bool:D $t) {
         fail X::Match::Bool.new( type => '.grep' );
@@ -654,96 +686,72 @@ augment class Any {
         }
     }
 
-    proto method grep-index(|) is nodal { * }
-    multi method grep-index(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.grep-index' );
-    }
-    multi method grep-index(Regex:D \t)    { self!grep-k({$_.match(t)}) }
-    multi method grep-index(Callable:D \t) { self!grep-k(t) }
-    multi method grep-index(Mu \t)         { self!grep-k({t.ACCEPTS($_)}) }
-
     proto method first(|) is nodal { * }
     multi method first(Bool:D $t) {
         fail X::Match::Bool.new( type => '.first' );
     }
-    multi method first(Regex:D $test) is raw {
-        my $iter := as-iterable(self).iterator;
-        1 until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
-        $_ =:= IterationEnd ?? Nil !! $_;
-    }
-    multi method first(Callable:D $test) is raw {
-        my $iter := as-iterable(self).iterator;
-        1 until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
-        $_ =:= IterationEnd ?? Nil !! $_;
-    }
-    multi method first(Mu $test) is raw {
-        my $iter := as-iterable(self).iterator;
-        1 until ($_ := $iter.pull-one) =:= IterationEnd || $_ ~~ $test;
-        $_ =:= IterationEnd ?? Nil !! $_;
-    }
-
-    proto method first-index(|) is nodal { * }
-    multi method first-index(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.first-index' );
-    }
-    multi method first-index(Regex:D $test) {
-        my $iter := as-iterable(self).iterator;
-        my int $index;
-        $index = $index + 1
-          until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
-        $_ =:= IterationEnd ?? Nil !! nqp::p6box_i($index)
-    }
-    multi method first-index(Callable:D $test) {
-        my $iter := as-iterable(self).iterator;
-        my int $index;
-        $index = $index + 1
-          until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
-        $_ =:= IterationEnd ?? Nil !! nqp::p6box_i($index)
-    }
-    multi method first-index(Mu $test) {
-        my $iter := as-iterable(self).iterator;
-        my int $index;
-        $index = $index + 1
-          until ($_ := $iter.pull-one) =:= IterationEnd || $_ ~~ $test;
-        $_ =:= IterationEnd ?? Nil !! nqp::p6box_i($index)
-    }
-
-    proto method last-index(|) is nodal { * }
-    multi method last-index(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.last-index' );
-    }
-    multi method last-index(Regex:D $test) {
-        my $elems = self.elems;
-        return Inf if $elems == Inf;
-
-        my int $index = $elems;
-        while $index {
-            $index = $index - 1;
-            return nqp::box_i($index,Int) if self.AT-POS($index).match($test);
+    multi method first(Regex:D $test, :$end, *%a) is raw {
+        if $end {
+            my $elems = self.elems;
+            if $elems && !($elems == Inf) {
+                my int $index = $elems;
+                return self!index-result($index,$_,'first :end',%a)
+                  if ($_ := self.AT-POS($index)).match($test)
+                    while $index--;
+            }
+            Nil
         }
-        Nil;
-    }
-    multi method last-index(Callable:D $test) {
-        my $elems = self.elems;
-        return Inf if $elems == Inf;
-
-        my int $index = $elems;
-        while $index {
-            $index = $index - 1;
-            return nqp::box_i($index,Int) if $test(self.AT-POS($index));
+        else {
+            my $iter := as-iterable(self).iterator;
+            my int $index;
+            $index = $index + 1
+              until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
+            $_ =:= IterationEnd
+              ?? Nil
+              !! self!index-result($index,$_,'first',%a)
         }
-        Nil;
     }
-    multi method last-index(Mu $test) {
-        my $elems = self.elems;
-        return Inf if $elems == Inf;
-
-        my int $index = $elems;
-        while $index {
-            $index = $index - 1;
-            return nqp::box_i($index,Int) if self.AT-POS($index) ~~ $test;
+    multi method first(Callable:D $test, :$end, *%a is copy) is raw {
+        if $end {
+            my $elems = self.elems;
+            if $elems && !($elems == Inf) {
+                my int $index = $elems;
+                return self!index-result($index,$_,'first :end',%a)
+                  if $test($_ := self.AT-POS($index))
+                    while $index--;
+            }
+            Nil
         }
-        Nil;
+        else {
+            my $iter := as-iterable(self).iterator;
+            my int $index;
+            $index = $index + 1
+              until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
+            $_ =:= IterationEnd
+              ?? Nil
+              !! self!index-result($index,$_,'first',%a)
+        }
+    }
+    multi method first(Mu $test, :$end, *%a) is raw {
+        if $end {
+            my $elems = self.elems;
+            if $elems && !($elems == Inf) {
+                my int $index = $elems;
+                return self!index-result($index,$_,'first :end',%a)
+                  if $test.ACCEPTS($_ := self.AT-POS($index))
+                    while $index--;
+            }
+            Nil
+        }
+        else {
+            my $iter := as-iterable(self).iterator;
+            my int $index;
+            $index = $index + 1
+              until (($_ := $iter.pull-one) =:= IterationEnd) || $test.ACCEPTS($_);
+            $_ =:= IterationEnd
+              ?? Nil
+              !! self!index-result($index,$_,'first',%a)
+        }
     }
 
     method !first-concrete(\i,\todo,\found) {
@@ -1338,6 +1346,27 @@ augment class Any {
             }
         }
     }
+
+    # DEPRECATE ???
+    proto method grep-index(|) is nodal { * }
+    multi method grep-index(Bool:D $t) {
+        fail X::Match::Bool.new( type => '.grep-index' );
+    }
+    multi method grep-index(Regex:D \t)    { self!grep-k({$_.match(t)}) }
+    multi method grep-index(Callable:D \t) { self!grep-k(t) }
+    multi method grep-index(Mu \t)         { self!grep-k({t.ACCEPTS($_)}) }
+
+    proto method first-index(|) is nodal { * }
+    multi method first-index(Bool:D $ ) {
+        fail X::Match::Bool.new( type => '.first-index' );
+    }
+    multi method first-index(Mu \test) { self.first(test,:k) }
+
+    proto method last-index(|) is nodal { * }
+    multi method last-index(Bool:D $ ) {
+        fail X::Match::Bool.new( type => '.last-index' );
+    }
+    multi method last-index(Mu \test) { self.first(test,:end,:k) }
 }
 
 BEGIN Attribute.^compose;
@@ -1370,29 +1399,11 @@ multi sub grep(Mu $test, +values, *%a) {
 }
 multi sub grep(Bool:D $t, |) { fail X::Match::Bool.new( type => 'grep' ) }
 
-proto sub grep-index(|) {*}
-multi sub grep-index(Bool:D $t, |) {
-    fail X::Match::Bool.new(type => 'grep-index');
-}
-multi sub grep-index(Mu $test, +values) {
-    my $laze = values.is-lazy;
-    values.grep($test,:k).lazy-if($laze)
-}
-
 proto sub first(|) {*}
-multi sub first(Mu $test, +values) { my $laze = values.is-lazy; values.first($test).lazy-if($laze) }
 multi sub first(Bool:D $t, |) { fail X::Match::Bool.new( type => 'first' ) }
-
-proto sub first-index(|) {*}
-multi sub first-index(Mu $test, +values) { my $laze = values.is-lazy; values.first-index($test).lazy-if($laze) }
-multi sub first-index(Bool:D $t,|) {
-    fail X::Match::Bool.new(type => 'first-index');
-}
-
-proto sub last-index(|) {*}
-multi sub last-index(Mu $test, +values) { my $laze = values.is-lazy; values.last-index($test).lazy-if($laze) }
-multi sub last-index(Bool:D $t, |) {
-    fail X::Match::Bool.new(type => 'last-index');
+multi sub first(Mu $test, +values, *%a) {
+    my $laze = values.is-lazy;
+    values.first($test,|%a).lazy-if($laze)
 }
 
 proto sub join(|) { * }
@@ -1412,6 +1423,34 @@ multi sub sort($cmp, +values)      {
     nqp::istype($cmp, Callable)
         ?? values.sort($cmp)
         !! (|$cmp,|values).sort;
+}
+
+# DEPRECATE ???
+proto sub grep-index(|) {*}
+multi sub grep-index(Bool:D $t, |) {
+    fail X::Match::Bool.new(type => 'grep-index');
+}
+multi sub grep-index(Mu $test, +values) {
+    my $laze = values.is-lazy;
+    values.grep($test,:k).lazy-if($laze)
+}
+
+proto sub first-index(|) {*}
+multi sub first-index(Bool:D $ , |) {
+    fail X::Match::Bool.new(type => 'first-index');
+}
+multi sub first-index(Mu $test, +values) {
+    my $laze = values.is-lazy;
+    values.first($test,:k).lazy-if($laze)
+}
+
+proto sub last-index(|) {*}
+multi sub last-index(Bool:D $ , |) {
+    fail X::Match::Bool.new(type => 'last-index');
+}
+multi sub last-index(Mu $test, +values) {
+    my $laze = values.is-lazy;
+    values.first($test,:end,:k).lazy-if($laze)
 }
 
 # vim: ft=perl6 expandtab sw=4

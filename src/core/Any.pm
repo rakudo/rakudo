@@ -1,6 +1,6 @@
 my class Pair                   { ... }
 my class Range                  { ... }
-my class X::Adverb::Slice       { ... }
+my class X::Adverb              { ... }
 my class X::Bind                { ... }
 my class X::Bind::Slice         { ... }
 my class X::Bind::ZenSlice      { ... }
@@ -282,9 +282,9 @@ my class Any { # declared in BOOTSTRAP
     proto method ZEN-POS(|) { * }
     multi method ZEN-POS(*%unexpected) {
         %unexpected
-          ?? fail X::Adverb::Slice.new(
-               :what(try { self.VAR.name } // self.WHAT.perl),
-               :type<[]>,
+          ?? fail X::Adverb.new(
+               :what('[] slice'),
+               :source(try { self.VAR.name } // self.WHAT.perl),
                :unexpected(%unexpected.keys))
           !! self
     }
@@ -292,9 +292,9 @@ my class Any { # declared in BOOTSTRAP
     proto method ZEN-KEY(|) { * }
     multi method ZEN-KEY(*%unexpected) {
         %unexpected
-          ?? fail X::Adverb::Slice.new(
-               :what(try { self.VAR.name } // self.WHAT.perl),
-               :type<{}>,
+          ?? fail X::Adverb.new(
+               :what('{} slice'),
+               :source(try { self.VAR.name } // self.WHAT.perl),
                :unexpected(%unexpected.keys))
           !! self
     }
@@ -499,8 +499,9 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
         }
     }
 
-    fail X::Adverb::Slice.new(
-      :what(try { SELF.VAR.name } // SELF.WHAT.perl),
+    fail X::Adverb.new(
+      :what<slice>,
+      :source(try { SELF.VAR.name } // SELF.WHAT.perl),
       :unexpected(%d.keys),
       :nogo(@nogo),
     );

@@ -152,7 +152,9 @@ my role Rational[::NuT, ::DeT] does Real {
             push @quotients, $nu div $de;
         }
         @quotients.=map(*.base($base));
-        my @cycle = $nu ?? splice(@quotients, @remainders.first-index($nu) + 1) !! ();
+        my @cycle = $nu
+          ?? splice(@quotients, @remainders.first($nu,:k) + 1)
+          !! ();
         splice @quotients, 1, 0, '.';
         '-' x (self < 0) ~ @quotients.join, @cycle.join;
     }

@@ -1378,8 +1378,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             if $l<indent-chars> and $pos % $?TABSTOP {
                 my $check = $?TABSTOP - $pos % $?TABSTOP;
-                $check = $l<indent-chars>[0..^$check].first-index({$_.key eq "\t"});
-                if $check.defined {
+                $check = $l<indent-chars>[0..^$check].first(*.key eq "\t",:k);
+                with $check {
                     $l<indent-chars>.shift for 0..$check;
                     $pos -= $pos % $?TABSTOP;
                     $pos += $?TABSTOP;

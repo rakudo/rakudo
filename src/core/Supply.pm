@@ -210,8 +210,8 @@ my role Supply {
                               my $now := now;
                               $target = &as(val);
                               my $index =
-                                @seen.first-index({&with($target,$_[0])});
-                              if $index.defined {
+                                @seen.first({&with($target,$_[0])},:k);
+                              with $index {
                                   if $now > @seen[$index][1] {  # expired
                                       @seen[$index][1] = $now+$expires;
                                       $res.emit(val);
@@ -225,8 +225,8 @@ my role Supply {
                           !! -> \val {
                               my $now := now;
                               my $index =
-                                @seen.first-index({&with(val,$_[0])});
-                              if $index.defined {
+                                @seen.first({&with(val,$_[0])},:k);
+                              with $index {
                                   if $now > @seen[$index][1] {  # expired
                                       @seen[$index][1] = $now+$expires;
                                       $res.emit(val);

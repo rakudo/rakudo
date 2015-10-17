@@ -58,15 +58,16 @@ register_op_desugar('p6fatalize', -> $qast {
         ))
 });
 register_op_desugar('p6for', -> $qast {
-    my $xblock := $qast[0];
-    my $label := $qast[1];
+    my $cond := $qast[0];
+    my $block := $qast[1];
+    my $label := $qast[2];
     my $for-list-name := QAST::Node.unique('for-list');
     my $iscont := QAST::Op.new(:op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ));
     $iscont.named('item');
     my $call := QAST::Op.new(
         :op<callmethod>, :name<map>, :node($qast),
         QAST::Var.new( :name($for-list-name), :scope('local') ),
-        block_closure($xblock[1]),
+        block_closure($block),
         $iscont,
     );
     if $label {
@@ -75,7 +76,7 @@ register_op_desugar('p6for', -> $qast {
     my $bind := QAST::Op.new(
         :op('bind'),
         QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
-        $xblock[0],
+        $cond,
     );
     QAST::Stmts.new(
         $bind,
@@ -907,32 +908,22 @@ Compilation unit '$file' contained the following violations:
                     unless $past.ann('past_block') {
                         $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
-                    my $for-list-name := QAST::Node.unique('for-list');
-                    my $iscont := QAST::Op.new(:op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ));
-                    $iscont.named('item');
-                    my $call := QAST::Op.new(
-                        :op<callmethod>, :name<map>, :node($/),
-                        QAST::Var.new( :name($for-list-name), :scope('local') ),
-                        block_closure($past),
-                        $iscont,
-                    );
-                    my $bind := QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
-                        $cond,
-                    );
                     $past := QAST::Want.new(
-                        QAST::Stmts.new(
-                            $bind,
-                            QAST::Op.new( :op<callmethod>, :name<eager>, $call )
+                        QAST::Op.new(
+                            :op<p6for>, :node($/),
+                            $cond,
+                            $past,
                         ),
-                        'v', QAST::Stmts.new(
-                            $bind,
-                            QAST::Op.new( :op<callmethod>, :name<sink>, $call )
+                        'v', QAST::Op.new(
+                            :op<p6for>, :node($/),
+                            $cond,
+                            $past,
                         ),
                     );
-                    my $sinkee := $past[0][1];
-                    $past.annotate('statement_level', -> { $sinkee.name('sink') });
+                    $past[0].annotate('context', 'eager');
+                    $past[2].annotate('context', 'sink');
+                    my $sinkee := $past[0];
+                    $past.annotate('statement_level', -> { $sinkee.annotate('context', 'sink') });
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -1276,18 +1267,16 @@ Compilation unit '$file' contained the following violations:
 
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
-        QAST::Op.new(
-            :op<p6for>, :node($/),
-            $xblock,
-        );
         my $past := QAST::Want.new(
             QAST::Op.new(
                 :op<p6for>, :node($/),
-                $xblock,
+                $xblock[0],
+                $xblock[1],
             ),
             'v', QAST::Op.new(
                 :op<p6for>, :node($/),
-                $xblock,
+                $xblock[0],
+                $xblock[1],
             ),
         );
         if $*LABEL {

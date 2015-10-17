@@ -1381,16 +1381,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule statement_control:sym<if> {
         $<sym>=[if|with]<.kok>
-        <xblock>
+        <xblock($<sym>[0] eq 'with')>
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elif' { $/.CURSOR.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
             | $<sym>='elsif' <xblock>
-            | $<sym>='orwith' <xblock>
+            | $<sym>='orwith' <xblock(1)>
             ]
         ]*
-        [ 'else' <else=.pblock> ]?
+        [ 'else' <else=.pblock(~$<sym>[-1] ~~ /with/)> ]?
     }
 
     rule statement_control:sym<unless> {

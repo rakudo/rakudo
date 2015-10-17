@@ -11,6 +11,9 @@ New in 2015.10:
     + `<?same>` assertion in regexes implemented
     + Methods `file` and `line` in `Code` point to the location of the
        declaration
+    + grep now accepts :k, :v, :kv, :p attributes
+    + first now accepts :k, :v, :p attributes
+    + first also accepts :end attribute to indicate searching from end of list
   + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
       exists for pushing multiple values. Same for `unshift`/`prepend`
@@ -29,6 +32,10 @@ New in 2015.10:
     + Fixed `once` block semantics (RT #126293)
     + A dying `LEAVE` block doesn't prevent other `LEAVE` blocks from running
       anymore
+ + Deprecations:
+    + grep-index() deprecated in favour of grep(:k)
+    + first-index() deprecated in favour of first(:k)
+    + last-index() deprecated in fevour of first(:end,:k)
 
 New in 2015.09
  + Features

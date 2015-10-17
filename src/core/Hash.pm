@@ -142,6 +142,28 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
+    method append(+values) {
+        fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+          if values.is-lazy;
+        my $previous;
+        my $has_previous;
+        for values -> $e {
+            if $has_previous {
+                self!_append_construct($previous, $e);
+                $has_previous = 0;
+            } elsif $e.^isa(Pair) {
+                self!_append_construct($e.key, $e.value);
+            } else {
+                $previous = $e;
+                $has_previous = 1;
+            }
+        }
+        if $has_previous {
+            warn "Trailing item in Hash.append";
+        }
+        self
+    }
+
     proto method classify-list(|) { * }
     multi method classify-list( &test, \list, :&as ) {
         fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
@@ -244,15 +266,28 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     # push a value onto a hash slot, constructing an array if necessary
-    method !_push_construct(Mu $key, Mu $value) {
+    method !_push_construct(Mu $key, Mu \value) {
         if self.EXISTS-KEY($key) {
             if self.{$key}.^isa(Array) {
-                self.{$key}.push($value);
+                self.{$key}.push(value);
             } else {
-                self.{$key} = [ self.{$key}, $value ];
+                self.{$key} = [ self.{$key}, value ];
             }
         } else {
-            self.{$key} = $value;
+            self.{$key} = value;
+        }
+    }
+
+    # append values into a hash slot, constructing an array if necessary
+    method !_append_construct(Mu $key, Mu \value) {
+        if self.EXISTS-KEY($key) {
+            if self.{$key}.^isa(Array) {
+                self.{$key}.append(|value);
+            } else {
+                self.{$key} = [ |self.{$key}, |value ];
+            }
+        } else {
+            self.{$key} = value;
         }
     }
 

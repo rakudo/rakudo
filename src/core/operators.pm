@@ -635,7 +635,7 @@ sub infix:<orelse>(**@a) {
 # so early in the setting compunit
 multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
     if (my $i = nqp::index($r.name, ':')) > 0 {
-        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ $equiv ~ '>';
+        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($equiv) ~ '>';
         trait_mod:<is>($r, equiv => ::(nm));
         return;
     } 
@@ -644,7 +644,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
 
 multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
     if (my $i = nqp::index($r.name, ':')) > 0 {
-        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ $tighter ~ '>';
+        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($tighter) ~ '>';
         trait_mod:<is>($r, tighter => ::(nm));
         return;
     } 
@@ -653,7 +653,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
 
 multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
     if (my $i = nqp::index($r.name, ':')) > 0 {
-        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ $looser ~ '>';
+        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($looser) ~ '>';
         trait_mod:<is>($r, looser => ::(nm));
         return;
     } 

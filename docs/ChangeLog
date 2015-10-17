@@ -14,6 +14,9 @@ New in 2015.10:
     + grep now accepts :k, :v, :kv, :p attributes
     + first now accepts :k, :v, :p attributes
     + first also accepts :end attribute to indicate searching from end of list
+    + `is equiv<+>` as shortcut for `is equiv(&infix:<+>)`. Same for `tighter`
+       and `looser`.
+    + `Supply.throttle` for rate-limiting
   + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
       exists for pushing multiple values. Same for `unshift`/`prepend`
@@ -32,6 +35,7 @@ New in 2015.10:
     + Fixed `once` block semantics (RT #126293)
     + A dying `LEAVE` block doesn't prevent other `LEAVE` blocks from running
       anymore
+    + `Str.tc` now does an actual Unicode title case operation
  + Deprecations:
     + grep-index() deprecated in favour of grep(:k)
     + first-index() deprecated in favour of first(:k)

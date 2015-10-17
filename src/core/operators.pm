@@ -631,6 +631,35 @@ sub infix:<orelse>(**@a) {
     $current;
 }
 
+# next three sub would belong to traits.pm if PseudoStash were available
+# so early in the setting compunit
+multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
+    if (my $i = nqp::index($r.name, ':')) > 0 {
+        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ $equiv ~ '>';
+        trait_mod:<is>($r, equiv => ::(nm));
+        return;
+    } 
+    die "Routine given to equiv does not appear to be an operator";;
+}
+
+multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
+    if (my $i = nqp::index($r.name, ':')) > 0 {
+        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ $tighter ~ '>';
+        trait_mod:<is>($r, tighter => ::(nm));
+        return;
+    } 
+    die "Routine given to tighter does not appear to be an operator";;
+}
+
+multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
+    if (my $i = nqp::index($r.name, ':')) > 0 {
+        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ $looser ~ '>';
+        trait_mod:<is>($r, looser => ::(nm));
+        return;
+    } 
+    die "Routine given to looser does not appear to be an operator";;
+}
+
 proto sub infix:<∘> (&?, &?) {*}
 multi sub infix:<∘> () { *.self }
 multi sub infix:<∘> (&f) { &f }

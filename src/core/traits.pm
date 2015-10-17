@@ -148,6 +148,7 @@ multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     }
     0;
 }
+# three other trait_mod sub for equiv/tighter/looser in operators.pm
 multi sub trait_mod:<is>(Routine $r, :&equiv!) {
     nqp::can(&equiv, 'prec')
         ?? trait_mod:<is>($r, :prec(&equiv.prec))

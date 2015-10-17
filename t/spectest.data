@@ -909,11 +909,11 @@ S32-list/create.t
 S32-list/combinations.t
 S32-list/end.t
 S32-list/first.t
-S32-list/first-index.t
+S32-list/first-end-k.t
+S32-list/first-k.t
 S32-list/grep.t
-S32-list/grep-index.t
+S32-list/grep-k.t
 S32-list/join.t
-S32-list/last-index.t
 S32-list/map_function_return_values.t
 S32-list/map.t
 S32-list/minmax.t

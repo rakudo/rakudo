@@ -120,14 +120,14 @@ my role Supply {
         $p
     }
 
-    method wait(Supply:D:) {
+    method await(Supply:D:) {
         my $l = Lock.new;
         my $p = Promise.new;
         my $t = self.tap( -> \val {},
           done => {
               $l.protect( {
                   if $p.status == Planned {
-                      $p.keep(True);
+                      $p.keep(self);
                       $t.close()
                   }
               } );
@@ -141,8 +141,10 @@ my role Supply {
               } );
           },
         );
-        $p.result
+        $p
     }
+
+    method wait(Supply:D:) { self.await.result }
 
     method list(Supply:D:) {
         # Use a Channel to handle any asynchrony.

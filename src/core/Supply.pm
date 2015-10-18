@@ -794,7 +794,8 @@ my role Supply {
         }
     }
 
-    method throttle(Supply:D $self:
+    proto method throttle(|) { * }
+    multi method throttle(Supply:D $self:
       Int()  $elems,
       Real() $seconds,
       Real() $delay  = 0,
@@ -809,6 +810,11 @@ my role Supply {
         my int $allowed = $limit;
         my int $emitted;
         my int $bled;
+        sub emit-status($id) {
+           $status.emit(
+             { :$allowed, :$bled, :buffered(+@buffer),
+               :$emitted, :$id,   :$limit } );
+        }
         on -> $res {
             $timer => { 
                 emit => -> \tick {
@@ -838,6 +844,10 @@ my role Supply {
                     $res.done;  # also stops the timer ??
                     $control.done if $control;
                     $status.done  if $status;
+                    if $status {
+                        emit-status("done");
+                        $status.done;
+                    }
                     if $bleed && @buffer {
                         $bleed.emit(@buffer.shift) while @buffer;
                         $bleed.done;
@@ -863,13 +873,7 @@ my role Supply {
                            $bled = $bled + $todo;
                        }
                        elsif $type eq 'status' && $status {
-                           $status.emit( {
-                             :$allowed,
-                             :$bled,
-                             :buffered(+@buffer),
-                             :$emitted,
-                             :$limit,
-                           } );
+                           emit-status($value);
                        }
                    },
                  })

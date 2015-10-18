@@ -827,6 +827,7 @@ my role Supply {
                 emit => -> \val {
                     if $allowed {
                         $res.emit(val);
+                        $emitted = $emitted + 1;
                         $allowed = $allowed - 1;
                     }
                     else {

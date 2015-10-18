@@ -1267,7 +1267,10 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_control:sym<unless>($/) {
-        my $past := xblock_immediate( $<xblock>.ast );
+        my $past := $<sym> eq 'without'
+            ?? xblock_immediate_with( $<xblock>.ast )
+            !! xblock_immediate( $<xblock>.ast );
+        $past.push(QAST::WVal.new( :value($*W.find_symbol(['Empty'])) ));
         $past.op(~$<sym>);
         make $past;
     }

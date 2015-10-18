@@ -1390,6 +1390,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | $<sym>='orwith' <xblock(1)>
             ]
         ]*
+        {}
         [ 'else' <else=.pblock(so ~$<sym>[-1] ~~ /with/)> ]?
     }
 

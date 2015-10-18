@@ -1380,8 +1380,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto rule statement_control { <...> }
 
     rule statement_control:sym<if> {
-        $<sym>=[if|with]<.kok>
-        <xblock($<sym>[0] eq 'with')>
+        $<sym>=[if|with]<.kok> {}
+        <xblock(so ~$<sym>[0] ~~ /with/)>
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
@@ -1390,7 +1390,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | $<sym>='orwith' <xblock(1)>
             ]
         ]*
-        [ 'else' <else=.pblock(~$<sym>[-1] ~~ /with/)> ]?
+        [ 'else' <else=.pblock(so ~$<sym>[-1] ~~ /with/)> ]?
     }
 
     rule statement_control:sym<unless> {

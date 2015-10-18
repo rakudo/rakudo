@@ -218,9 +218,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         nqp::atpos($res, 0);
     }
 
+    sub xblock_immediate_with($xblock) {
+        $xblock[1] := pblock_immediate_with($xblock[1]);
+        $xblock;
+    }
+
     sub xblock_immediate($xblock) {
         $xblock[1] := pblock_immediate($xblock[1]);
         $xblock;
+    }
+
+    sub pblock_immediate_with($pblock) {
+        my $pb := block_immediate($pblock.ann('uninstall_if_immediately_used').shift);
+        $pb.arity(1);  # gotta force this, or Block node gets optimized away
+        $pb;
     }
 
     sub pblock_immediate($pblock) {
@@ -1221,19 +1232,35 @@ Compilation unit '$file' contained the following violations:
 
     method statement_control:sym<if>($/) {
         my $count := +$<xblock> - 1;
-        my $past := xblock_immediate( $<xblock>[$count].ast );
-        $past.op(~$<sym>[$count] ~~ /with/ ?? 'with' !! 'if');
-        # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
-        $past.push( $<else>
-                    ?? pblock_immediate( $<else>.ast )
-                    !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
-        );
+        my $past;
+        if ~$<sym>[$count] ~~ /with/ {
+            $past := xblock_immediate_with( $<xblock>[$count].ast );
+            $past.op('with');
+            $past.push( $<else>
+                        ?? pblock_immediate_with( $<else>.ast )
+                        !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
+            );
+        }
+        else {
+            $past := xblock_immediate( $<xblock>[$count].ast );
+            $past.op('if');
+            $past.push( $<else>
+                        ?? pblock_immediate( $<else>.ast )
+                        !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
+            );
+        }
         # build if/then/elsif structure
         while $count > 0 {
             $count--;
             my $else := $past;
-            $past := xblock_immediate( $<xblock>[$count].ast );
-            $past.op(~$<sym>[$count] ~~ /with/ ?? 'with' !! 'if');
+            if ~$<sym>[$count] ~~ /with/ {
+                $past := xblock_immediate_with( $<xblock>[$count].ast );
+                $past.op('with');
+            }
+            else {
+                $past := xblock_immediate( $<xblock>[$count].ast );
+                $past.op('if');
+            }
             $past.push($else);
         }
         make $past;

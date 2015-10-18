@@ -17,6 +17,9 @@ New in 2015.10:
     + `is equiv<+>` as shortcut for `is equiv(&infix:<+>)`. Same for `tighter`
        and `looser`.
     + `Supply.throttle` for rate-limiting
+    + `Hash.append` added, now that Hash.push doesn't flatten
+    + Internal methods ZEN-POS/ZEN-KEY added, for handling zen-slices
+    + Promise.start now passes on any extra parameters to async block
   + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
       exists for pushing multiple values. Same for `unshift`/`prepend`
@@ -36,6 +39,11 @@ New in 2015.10:
     + A dying `LEAVE` block doesn't prevent other `LEAVE` blocks from running
       anymore
     + `Str.tc` now does an actual Unicode title case operation
+    + polymod has not been GLRified yet
+    + List/Supply.squish did not properly handle single element lists/supplies
+    + Several fixes to the REPL, e.g. with regards to completions
+    + with/without now topicalize properly
+    + fix usage of match variable in replacement part of substitution
  + Deprecations:
     + grep-index() deprecated in favour of grep(:k)
     + first-index() deprecated in favour of first(:k)

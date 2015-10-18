@@ -155,11 +155,11 @@ my class Promise {
         }
     }
 
-    method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER) {
+    method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER, |c) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
         $scheduler.cue(
-            { $vow.keep(code()) },
+            { $vow.keep(code(|c)) },
             :catch(-> $ex { catch($ex) if &catch; $vow.break($ex); }) );
         $p
     }

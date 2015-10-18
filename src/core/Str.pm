@@ -502,12 +502,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             @matches := $matches.list;
         }
         if $multi {
-            if nqp::istype($pat, Regex) {
-                try $caller_dollar_slash = +@matches
-                    ?? @matches[ +@matches - 1 ]
-                    !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start_cur'().MATCH;
-            }
-            $caller_dollar_slash = @matches;
+            try $caller_dollar_slash = @matches;
             @matches
         }
         else {
@@ -517,11 +512,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method subst-mutate($self is rw: $matcher, $replacement,
-                       :ii(:$samecase), :ss(:$samespace),
-                       :$SET_CALLER_DOLLAR_SLASH, *%options) {
+                       :ii(:$samecase), :ss(:$samespace), *%options) {
         my $global = %options<g> || %options<global>;
         my $caller_dollar_slash := nqp::getlexcaller('$/');
-        my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
+        my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
 
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches              = self.match($matcher, |%options);
@@ -560,10 +554,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method subst(Str:D: $matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
-                       :$SET_CALLER_DOLLAR_SLASH, *%options) {
+                       *%options) {
 
         my $caller_dollar_slash := nqp::getlexcaller('$/');
-        my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
+        my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
 
         # nothing to do
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;

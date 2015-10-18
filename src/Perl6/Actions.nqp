@@ -6899,11 +6899,14 @@ Compilation unit '$file' contained the following violations:
     }
 
     method quote:sym<s>($/) {
+        # We are emulating Str.subst/subst-mutate here, by calling match, assigning the result to
+        # a temporary variable etc.
+
         # Build the regex.
         my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1)) if $<sibble><left>.ast;
+            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
 
         # Quote needs to be closure-i-fied.
         my $infixish := $<sibble><infixish>;
@@ -6922,30 +6925,133 @@ Compilation unit '$file' contained the following violations:
         }
         my $closure := block_closure(make_thunk_ref($right, $<sibble><right>));
 
-        # make $/ = $_.subst-mutate(...)
-        my $past := QAST::Op.new(
-            :node($/),
-            :op('callmethod'), :name($<sym> eq 'S' ?? 'subst' !! 'subst-mutate'),
+        # self.match($rx_coderef, |%options);
+        my $past := QAST::Op.new( :node($/), :op('callmethod'), :name('match'),
             QAST::Var.new( :name('$_'), :scope('lexical') ),
-            $rx_coderef, $closure
+            $rx_coderef
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
         if $/[0] {
             $past.push(QAST::IVal.new(:named('samespace'), :value(1)));
         }
-        $past.push(QAST::IVal.new(:named('SET_CALLER_DOLLAR_SLASH'), :value(1)));
 
-        $past := make QAST::Op.new(
-            :node($/),
-            :op('call'),
-            :name('&infix:<=>'),
-            QAST::Var.new(:name('$/'), :scope('lexical')),
-            $past
+        my $samecase := 0;
+        my $global   := 0;
+        for $<rx_adverbs>.ast {
+            if $_.named eq 'samecase' || $_.named eq 'ii' {
+                $samecase := 1;
+            }
+            elsif $_.named eq 'global' || $_.named eq 'g' {
+                $global := 1;
+            }
+        }
+
+        my $result        := $past.unique('subst_result');
+        my $global_result := $past.unique('subst_global_result');
+        my $List          := $*W.find_symbol(['List']);
+
+        my $apply_matches := QAST::Op.new( :op('callmethod'), :name('dispatch:<!>'),
+            QAST::Op.new( :op('callmethod'),  :name('Str'),
+                QAST::Var.new( :name('$_'), :scope('lexical') ) ),
+            QAST::SVal.new( :value('APPLY-MATCHES') ),
+            QAST::WVal.new( :value($*W.find_symbol(['Str'])) ),
+            QAST::Var.new( :name($result), :scope('local') ),
+            $closure,
+            QAST::Var.new( :name('$/'), :scope('lexical') ), # caller dollar slash
+            QAST::IVal.new( :value(1) ),                     # set dollar slash
+            QAST::IVal.new( :value($samecase) ),             # samecase
+            QAST::IVal.new( :value($/[0] ?? 1 !! 0) ),       # samespace
         );
 
-        $past.annotate('is_subst', 1);
-        $past
-}
+        make QAST::Op.new( :op('locallifetime'), :node($/),
+            QAST::Stmt.new(
+
+                # my $result;
+                QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
+
+                # $result := self.match(...
+                QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :name($result), :scope('local') ),
+                    $past
+                ),
+
+                # ($/,) = $result - We do this so the replacement closure can close
+                # over the current match.
+                QAST::Op.new( :op('p6store'),
+                    QAST::Op.new( :op('call'), :name('&infix:<,>'),
+                        QAST::Var.new( :name('$/'), :scope('lexical') ) ),
+                    QAST::Var.new( :name($result), :scope('local') ),
+                ),
+
+                # It matched something. Either a single item or a list of matches.
+                QAST::Op.new( :op('if'),
+                    QAST::Op.new( :op('unless'),# :name('&infix:<||>'),
+                        QAST::Op.new( :op('istype'),
+                            QAST::Var.new( :name($result), :scope('local') ),
+                            QAST::WVal.new( :value($*W.find_symbol(['Match'])) )
+                        ),
+                        QAST::Op.new( :op('if'),
+                            QAST::Op.new( :op('istype'),
+                                QAST::Var.new( :name($result), :scope('local') ),
+                                QAST::WVal.new( :value($*W.find_symbol(['Positional'])) )
+                            ),
+                            QAST::Op.new( :op('callmethod'), :name('elems'),
+                                QAST::Var.new( :name($result), :scope('local') )
+                            )
+                        )
+                    ),
+
+                    ($<sym> eq 's' ??
+                        # $_ = $_!APPLY-MATCHES()
+                        QAST::Op.new( :op('call'), :name('&infix:<=>'),
+                            QAST::Var.new( :name('$_'), :scope('lexical') ),
+                            $apply_matches
+                        ) !!
+                        # $_!APPLY-MATCHES()
+                        $apply_matches
+                    )
+                ),
+
+                # It will return a list of matches when we match globally, and a single
+                # match otherwise.
+                (
+                    $global ??
+                    QAST::Op.new( :op('p6store'),
+                        QAST::Var.new( :name('$/'), :scope('lexical') ),
+                        QAST::Stmts.new(
+                            QAST::Op.new( :op('bind'),
+                                QAST::Var.new( :name($global_result), :scope('local'), :decl('var') ),
+                                QAST::Op.new( :op('callmethod'), :name('CREATE'),
+                                    QAST::WVal.new( :value($List) )
+                                )
+                            ),
+                            QAST::Op.new( :op('bindattr'),
+                                QAST::Var.new( :name($global_result), :scope('local') ),
+                                QAST::WVal.new( :value($List) ),
+                                QAST::SVal.new( :value('$!reified') ),
+                                QAST::Op.new( :op('getattr'),
+                                    QAST::Var.new( :name($result), :scope('local') ),
+                                    QAST::WVal.new( :value($List) ),
+                                    QAST::SVal.new( :value('$!reified') )
+                                )
+                            ),
+                            QAST::Var.new( :name($global_result), :scope('local') )
+                        )
+                    ) !!
+                    QAST::Op.new( :op('p6store'),
+                        QAST::Op.new( :op('call'), :name('&infix:<,>'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') ) ),
+                        QAST::Var.new( :name($result), :scope('local') )
+                    )
+                ),
+
+                # The result of this operation.
+                QAST::Var.new( :name('$/'), :scope('lexical') )
+            ),
+            $result,
+            $global_result,
+        );
+    }
 
     method quote:sym<quasi>($/) {
         my $ast_class := $*W.find_symbol(['AST']);

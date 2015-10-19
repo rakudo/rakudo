@@ -1,49 +1,80 @@
 New in 2015.10:
  + Features
-    + Types with type smilies (like `Int:D` and `Int:U`) are now first class,
+    + We are now officially in beta!
+    + There is now an infix:<.> operator that does method calls with slightly
+      looser precedence than the postfix unary method call.
+    + Definite return values are now allowed, and force final statement to sink
+    + Types with type smilies (like 'Int:D' and 'Int:U') are now first class,
       and supported in constraints for variables, for example
-    + New pragmata `use variables :D`, `use attributes :D` for defaulting type constraints to `:D`
-    + The `constant` declarator now supports syntactic constructs, so you can
-      alias with `my constant &infix:<plus> := &infix:<+>;`
-    + New operator `infix o` for function composition
-    + New method `produce` for triangle reduce
-    + `fc` for Unicode-correct case folding implemented
-    + `<?same>` assertion in regexes implemented
-    + Methods `file` and `line` in `Code` point to the location of the
+    + New pragmata 'use variables :D', 'use attributes :D' for defaulting type
+      constraints to ':D'
+    + The 'constant' declarator now supports syntactic constructs, so you can
+      alias with 'my constant &infix:<plus> := &infix:<+>;'
+    + New operator 'infix o' for function composition
+    + New method 'produce' for triangle reduce
+    + 'fc' for Unicode-correct case folding implemented
+    + '<?same>' assertion in regexes implemented
+    + Methods 'file' and 'line' in 'Code' point to the location of the
        declaration
     + grep now accepts :k, :v, :kv, :p attributes
     + first now accepts :k, :v, :p attributes
     + first also accepts :end attribute to indicate searching from end of list
-    + `is equiv<+>` as shortcut for `is equiv(&infix:<+>)`. Same for `tighter`
-       and `looser`.
-    + `Supply.throttle` for rate-limiting
-    + `Hash.append` added, now that Hash.push doesn't flatten
+    + 'is equiv<+>' as shortcut for 'is equiv(&infix:<+>)'. Same for 'tighter'
+       and 'looser'.
+    + 'Supply.throttle' for rate-limiting
+    + 'Hash.append' added, now that Hash.push doesn't flatten
     + Internal methods ZEN-POS/ZEN-KEY added, for handling zen-slices
     + Promise.start now passes on any extra parameters to async block
+    + Use of comma in sink context now distributes sink to its parts
+    + Attribute containers may now have defaults
+    + The new .self method is the identity method on anything
+    + Negative integers are now allowed in the parameter slot
   + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
-      exists for pushing multiple values. Same for `unshift`/`prepend`
-    + Basic arithmetic operations (`+`, `*`, `-`, `/`) on Range objects
-      that work on the end points while maintaing exclusion of end points
-    + `is rw` now only works on scalars (was a noop), and actually requires
-      a writable container. Parameters of the form `\x` enable the old
+      exists for pushing multiple values. Same for 'unshift'/'prepend'
+    + Basic arithmetic operations ('+', '*', '-', '/') on Range objects
+      that shift or scale the end points while maintaining exclusions
+    + 'is rw' now only works on scalars (was a noop), and actually requires
+      a writable container. Parameters of the form '\x' enable the old
       behavior
+    + The v notation now allows alphabetic components: v1.2.beta.  (Incompatible
+      because method calls on a version must be protected by \ or () now.)
+    + 'use v6b+;' notation is now recognized and enforced
+    + Many list functions no longer flatten, or use one-arg flattening only
+    + The sequence operator no longer flattens sublists, so you must use slip
+      to get that effect
+    + The precedence of infix:<.=> is now tighter to match new infix:<.>
+    + Smartmatch with List now recursively uses smartmatch
+    + Smartmatch with list now globs using '**' rather than '*'
+    + callwith/nextwith no longer flatten
  + Speedups:
     + Many built-in methods that return iterables are now much faster
-    + `Bag` and `Mix` are now faster
+    + 'Bag' and 'Mix' are now faster
+    + Rat addition/subtraction is now faster due to lazy reduction when
+      consistent denominators are used ("cents stay cents")
  + Fixes:
     + Better error messages when comparing version strings with numbers
     + Several error messages that were lacking line numbers now include them
-    + anonymous types now compare correctly under `infix:<===>`
-    + Fixed `once` block semantics (RT #126293)
-    + A dying `LEAVE` block doesn't prevent other `LEAVE` blocks from running
+    + Anonymous types now compare correctly under 'infix:<===>'
+    + Fixed 'once' block semantics (RT #126293)
+    + A dying 'LEAVE' block doesn't prevent other 'LEAVE' blocks from running
       anymore
-    + `Str.tc` now does an actual Unicode title case operation
-    + polymod has not been GLRified yet
+    + 'Str.tc' now does an actual Unicode title case operation
+    + polymod had not been GLRified yet
     + List/Supply.squish did not properly handle single element lists/supplies
     + Several fixes to the REPL, e.g. with regards to completions
     + with/without now topicalize properly
-    + fix usage of match variable in replacement part of substitution
+    + Fix usage of match variable in replacement part of substitution
+    + ».[1;1] (hyper on multidim subscript) now works
+    + Methods map, push, pop, shift, unshift, append, prepend now properly
+      marked as nodal
+    + Attempt to smartmatch with S/// now warns
+    + grep { /foo/ } now dwims again
+    + Operator names now canonicalize internally to legal Perl names
+    + Reduction ops now generalize to N-ary functions
+    + Extra list comma is now allowed before any statement modifier
+    + Various multisubs now report .arity more accurately
+    + Exceptions can now correctly report the Nil type
  + Deprecations:
     + grep-index() deprecated in favour of grep(:k)
     + first-index() deprecated in favour of first(:k)
@@ -55,18 +86,18 @@ New in 2015.09
    + New slurpy parameter, +args or +@args, to allow for one-argument style binding
    + New with/orwith/without conditionals allow you to check for .defined but
      topicalize to the actual value returned
-   + New `supply`, `whenever` and `react` blocks for easy reactive programming
+   + New 'supply', 'whenever' and 'react' blocks for easy reactive programming
    + Mu.return implemented: allows for ".return with $foo"
    + Cool.indices/indices() expands on Cool.index/index() functionality
    + Callframes now allow easy introspection of associated Code object
-   + Test.pm now has a `does-ok` function for testing role conformance
-   + `$¢` in grammars now refers to the current cursor
+   + Test.pm now has a 'does-ok' function for testing role conformance
+   + '$¢' in grammars now refers to the current cursor
    + All Unicode digits can now be part of literal numbers
-   + `val()` and allomorphic types implemented
+   + 'val()' and allomorphic types implemented
    + Most European quoting styles are now supported
    + The parser now detects and reports possible runaway quotes
    + New $[...] and ${...} constructs allow prefix itemization
-   + `dd` now displays variable type
+   + 'dd' now displays variable type
  + Fixes:
    + Using a Range with an infinite .max now works on substr()/.substr
    + Parameter aliases are now handled in MAIN subroutines
@@ -86,7 +117,7 @@ New in 2015.09
    + 'is parcel' trait is now 'is raw'
    + .gist now puts brackets around lists and arrays
    + IO::Handle::lines no longer returns an empty last line
-   + The `Enum` type is gone; use `Pair` instead.
+   + The 'Enum' type is gone; use 'Pair' instead.
  + Deprecations:
    + All Deprecations removed in preparation for Christmas release
  + NativeCall:
@@ -216,6 +247,7 @@ New in 2015.05
    + Fix scoping bugs with statement modifier for and given.
    + Make { 1 R=> 'a' } and { %*h } construct hashes.
    + Fix lexical context of regex interpolations
+   + Various list ops now report .is-lazy correctly
  + Speedups:
    + generating backtraces is now lazy, improving the speed of e.g. warnings
    + Make List.pick about 3% faster, List.pick(*) about 7% faster
@@ -1358,7 +1390,7 @@ New in 2011.09
 
 New in 2011.07
 + fractional powers of negative numbers now result in Complex numbers
-+ obtain spectests from a specific branch of the `roast' repo
++ obtain spectests from a specific branch of the 'roast' repo
 + fix bug that prevented build on systems with little RAM
 
 New in 2011.06

@@ -585,7 +585,7 @@ augment class Any {
         }.new(self, $test))
     }
 
-    method !index-result(\index,\value,$what,%a) is raw {
+    method !first-result(\index,\value,$what,%a) is raw {
         if %a {
             if %a == 1 {
                 if %a<k> {
@@ -598,10 +598,19 @@ augment class Any {
                     value
                 }
                 else {
-                    fail X::Adverb.new(
-                      :$what,
-                      :source(try { self.VAR.name } // self.WHAT.perl),
-                      :unexpected(%a.keys))
+                    my ($k) = %a.keys;
+                    if $k eq 'k' || $k eq 'p' {
+                        value
+                    }
+                    elsif $k eq 'v' {
+                        fail "Doesn't make sense to specify a negated :v adverb"
+                    }
+                    else {
+                        fail X::Adverb.new(
+                          :$what,
+                          :source(try { self.VAR.name } // self.WHAT.perl),
+                          :unexpected(%a.keys))
+                    }
                 }
             }
             else {
@@ -695,7 +704,7 @@ augment class Any {
             my $elems = self.elems;
             if $elems && !($elems == Inf) {
                 my int $index = $elems;
-                return self!index-result($index,$_,'first :end',%a)
+                return self!first-result($index,$_,'first :end',%a)
                   if ($_ := self.AT-POS($index)).match($test)
                     while $index--;
             }
@@ -708,7 +717,7 @@ augment class Any {
               until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
             $_ =:= IterationEnd
               ?? Nil
-              !! self!index-result($index,$_,'first',%a)
+              !! self!first-result($index,$_,'first',%a)
         }
     }
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
@@ -716,7 +725,7 @@ augment class Any {
             my $elems = self.elems;
             if $elems && !($elems == Inf) {
                 my int $index = $elems;
-                return self!index-result($index,$_,'first :end',%a)
+                return self!first-result($index,$_,'first :end',%a)
                   if $test($_ := self.AT-POS($index))
                     while $index--;
             }
@@ -729,7 +738,7 @@ augment class Any {
               until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
             $_ =:= IterationEnd
               ?? Nil
-              !! self!index-result($index,$_,'first',%a)
+              !! self!first-result($index,$_,'first',%a)
         }
     }
     multi method first(Mu $test, :$end, *%a) is raw {
@@ -737,7 +746,7 @@ augment class Any {
             my $elems = self.elems;
             if $elems && !($elems == Inf) {
                 my int $index = $elems;
-                return self!index-result($index,$_,'first :end',%a)
+                return self!first-result($index,$_,'first :end',%a)
                   if $test.ACCEPTS($_ := self.AT-POS($index))
                     while $index--;
             }
@@ -750,7 +759,7 @@ augment class Any {
               until (($_ := $iter.pull-one) =:= IterationEnd) || $test.ACCEPTS($_);
             $_ =:= IterationEnd
               ?? Nil
-              !! self!index-result($index,$_,'first',%a)
+              !! self!first-result($index,$_,'first',%a)
         }
     }
 

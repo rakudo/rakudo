@@ -757,9 +757,12 @@ class Perl6::World is HLL::World {
             }
             %*PRAGMAS<trace> := $on;
         }
-        elsif $name eq 'parameters' || $name eq 'variables' || $name eq 'attributes' || $name eq 'invocant' {
+        elsif $name eq 'invocant' || $name eq 'parameters' || $name eq 'variables' || $name eq 'attributes' {
             unless $on {
-                self.throw($/, 'X::Pragma::CannotNo', :$name)
+                self.throw($/, 'X::Pragma::CannotNo', :$name);
+            }
+            if $name eq 'invocant' || $name eq 'parameters' {  # XXX temporary
+                self.throw($/, 'X::NYI', :feature("use $name"));
             }
             unless nqp::defined($arglist) {
                 self.throw($/, 'X::Pragma::MustOneOf', :$name, :alternatives(':D, :U or :_'));

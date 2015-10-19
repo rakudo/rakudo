@@ -913,6 +913,9 @@ S32-list/first-end-k.t
 S32-list/first-k.t
 S32-list/grep.t
 S32-list/grep-k.t
+S32-list/grep-kv.t
+S32-list/grep-p.t
+S32-list/grep-v.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t

@@ -1400,6 +1400,10 @@ my class X::Syntax::Regex::SolitaryQuantifier does X::Syntax {
     method message { 'Quantifier quantifies nothing' }
 }
 
+my class X::Syntax::Regex::NonQuantifiable does X::Syntax {
+    method message { 'Can only quantify a construct that produces a match' }
+}
+
 my class X::Syntax::Regex::SolitaryBacktrackControl does X::Syntax {
     method message { "Backtrack control ':' does not seem to have a preceding atom to control" }
 }

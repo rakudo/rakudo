@@ -443,7 +443,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ||  <?before '(' | <alpha> >
             [
             | <identifier>
-            | :dba('indirect name') '(' ~ ')' <EXPR>
+            | :dba('indirect name') '(' ~ ')' [ <.ws> <EXPR> ]
             ]
         || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
         || $<bad>=[<.sigil><.identifier>] { my $b := $<bad>; self.malformed("lookup of ::$b; please use ::('$b'), ::\{'$b'\}, or ::<$b>") }

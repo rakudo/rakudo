@@ -1692,18 +1692,7 @@ my class X::TypeCheck is Exception {
     has $.operation;
     has $.got is default(Nil);
     has $.expected is default(Nil);
-    method gotn()      {
-        if nqp::istype($!got,Failure) {
-            my $ex = $!got.exception;
-            "Failure with $ex.^name():\n $ex.message()"
-        }
-        else {
-            (try $!got.^name eq $!expected.^name
-              ?? $!got.perl
-              !! $!got.^name)
-            // "?"
-        }
-    }
+    method gotn()      { (try $!got.^name eq $!expected.^name ?? $!got.perl      !! $!got.^name)      // "?" }
     method expectedn() { (try $!got.^name eq $!expected.^name ?? $!expected.perl !! $!expected.^name) // "?" }
     method priors() {
         my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
@@ -1743,8 +1732,8 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     has $.symbol;
     method operation { 'assignment' }
     method message {
-        self.priors() ~
-        $.symbol.defined && $.symbol ne '$'
+        self.priors() ~ do
+            $.symbol.defined && $.symbol ne '$'
             ?? "Type check failed in assignment to $.symbol; expected $.expectedn but got $.gotn"
             !! "Type check failed in assignment; expected $.expectedn but got $.gotn";
     }

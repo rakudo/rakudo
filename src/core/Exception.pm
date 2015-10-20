@@ -160,9 +160,10 @@ my class X::Pragma::NoArgs is Exception {
     method message { "The '$.name' pragma does not take any arguments." }
 }
 
-my class X::Pragma::CannotNo is Exception {
+my class X::Pragma::CannotWhat is Exception {
+    has $.what;
     has $.name;
-    method message { "'no $.name' is not an option." }
+    method message { "'$.what $.name' is not an option." }
 }
 my class X::Pragma::MustOneOf is Exception {
     has $.name;

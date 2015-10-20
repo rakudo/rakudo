@@ -177,7 +177,6 @@ my class X::Pragma::UnknownArg is Exception {
     has $.arg;
     method message { "Unknown argument '{$.arg.perl}' specified with the '$.name' pragma." }
 }
-
 my class X::Pragma::OnlyOne is Exception {
     has $.name;
     method message { "The '$.name' pragma only takes one argument." }
@@ -1611,6 +1610,10 @@ my class X::Match::Bool is Exception {
     method message() { "Cannot use Bool as Matcher with '" ~ $.type ~ "'.  Did you mean to use \$_ inside a block?" }
 }
 
+my class X::Package::UseLib does X::Comp {
+    has $.what;
+    method message { "Cannot 'use lib' inside a $.what" }
+}
 my class X::Package::Stubbed does X::Comp {
     has @.packages;
     # TODO: suppress display of line number

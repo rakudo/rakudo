@@ -701,23 +701,53 @@ class Perl6::World is HLL::World {
         self.install_lexical_symbol(self.cur_lexpad,'@?INC',$INC);
     }
 
+    # pragmas without args
+    my %no_args_pragma := nqp::hash(
+      'fatal',          1,
+      'internals',      1,
+      'MONKEY-TYPING',  1,
+      'nqp',            1,
+      'strict',         1,
+      'trace',          1,
+      'worries',        1,
+    );
+
+    # pragmas without args that just set %*PRAGMAS
+    my %just_set_pragma := nqp::hash(
+      'fatal',          1,
+      'internals',      1,
+      'MONKEY-TYPING',  1,
+      'nqp',            1,
+      'trace',          1,
+      'worries',        1,
+    );
+
+    # not yet implemented pragmas
+    my %nyi_pragma := nqp::hash(
+      'internals',  1,
+      'invocant',   1,
+      'parameters', 1,
+    );
+
     method do_pragma($/,$name,$on,$arglist) {
 
         my $DEBUG := self.RAKUDO_MODULE_DEBUG;
         $DEBUG("Attempting '$name' as a pragma") if $DEBUG;
 
-        # XXX maybe we need a hash with code to execute
-        if $name eq 'MONKEY-TYPING' {
+        if %nyi_pragma{$name} {
+            self.throw($/,
+              'X::NYI',
+              :feature(($on ?? 'use' !! 'no') ~ " $name"),
+            );
+        } 
+        elsif %no_args_pragma{$name} {
             if nqp::islist($arglist) {
                 self.throw($/, 'X::Pragma::NoArgs', :$name)
             }
-            %*PRAGMAS<MONKEY-TYPING> := $on;
         }
-        elsif $name eq 'fatal' {
-            if nqp::islist($arglist) {
-                self.throw($/, 'X::Pragma::NoArgs', :$name)
-            }
-            %*PRAGMAS<fatal> := $on;
+
+        if %just_set_pragma{$name} {
+            %*PRAGMAS{$name} := $on;
         }
         elsif $name eq 'cur' {   # temporary, will become 'lib'
             self.use_lib($arglist);
@@ -728,41 +758,14 @@ class Perl6::World is HLL::World {
             }
             $*STRICT  := $on;
         }
-        elsif $name eq 'nqp' {
-            if nqp::islist($arglist) {
-                self.throw($/, 'X::Pragma::NoArgs', :$name)
-            }
-            %*PRAGMAS<nqp> := $on;
-        }
-        elsif $name eq 'internals' {
-            if nqp::islist($arglist) {
-                self.throw($/, 'X::Pragma::NoArgs', :$name)
-            }
-            %*PRAGMAS<internals> := $on;
-        }
-        elsif $name eq 'worries' {
-            if nqp::islist($arglist) {
-                self.throw($/, 'X::Pragma::NoArgs', :$name)
-            }
-            %*PRAGMAS<no-worries> := !$on;
-        }
         elsif $name eq 'soft' {
             # This is an approximation; need to pay attention to
             # argument list really.
             %*PRAGMAS<soft> := $on;
         }
-        elsif $name eq 'trace' {
-            if nqp::islist($arglist) {
-                self.throw($/, 'X::Pragma::NoArgs', :$name)
-            }
-            %*PRAGMAS<trace> := $on;
-        }
         elsif $name eq 'invocant' || $name eq 'parameters' || $name eq 'variables' || $name eq 'attributes' {
             unless $on {
-                self.throw($/, 'X::Pragma::CannotNo', :$name);
-            }
-            if $name eq 'invocant' || $name eq 'parameters' {  # XXX temporary
-                self.throw($/, 'X::NYI', :feature("use $name"));
+                self.throw($/, 'X::Pragma::CannotWhat', :what<no>, :$name);
             }
             unless nqp::defined($arglist) {
                 self.throw($/, 'X::Pragma::MustOneOf', :$name, :alternatives(':D, :U or :_'));

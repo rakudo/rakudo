@@ -233,3 +233,5 @@ multi sub postcircumfix:<{ }> (CompUnit:D \c, "key" ) {
 multi sub postcircumfix:<{ }> (CompUnit:D \c, "ver" ) {
     Version.new('0');
 }
+
+# vim: ft=perl6 expandtab sw=4

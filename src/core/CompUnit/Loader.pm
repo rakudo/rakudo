@@ -20,3 +20,5 @@ class CompUnit::Loader is repr('Uninstantiable') {
         ... # XXX this one needs MoarVM/JVM backends to expose a new API
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

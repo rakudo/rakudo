@@ -24,3 +24,5 @@ class CompUnit::Handle {
         ...
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -813,6 +813,9 @@ class Perl6::World is HLL::World {
             if self.is_precompilation_mode {
                 self.throw($/, 'X::Pragma::CannotPrecomp', :what("'use lib'") );
             }
+            elsif $*PKGDECL {
+                self.throw($/, 'X::Package::UseLib', :what($*PKGDECL) );
+            }
             return 0; # XXX carry on, while "lib" is still an actual file
         }
         else {

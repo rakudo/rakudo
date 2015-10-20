@@ -177,6 +177,7 @@ multi sub infix:</>(Rational \a, Int \b) {
 }
 
 multi sub infix:</>(Int \a, Rational \b) {
+    b.REDUCE-ME; # RT #126391: [BUG] Bad "divide by 0" error message
     DIVIDE_NUMBERS
         b.denominator * a,
         b.numerator,

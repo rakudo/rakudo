@@ -806,6 +806,15 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::Pragma::UnknownArg', :$name, :$arg);
             }
         }
+        elsif $name eq 'lib' {
+            unless $on {
+                self.throw($/, 'X::Pragma::CannotWhat', :what<no>, :$name);
+            }
+            if self.is_precompilation_mode {
+                self.throw($/, 'X::Pragma::CannotPrecomp', :what("'use lib'") );
+            }
+            return 0; # XXX carry on, while "lib" is still an actual file
+        }
         else {
             $DEBUG("  '$name' is not a valid pragma") if $DEBUG;
             return 0;                        # go try module

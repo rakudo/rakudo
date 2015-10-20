@@ -5,7 +5,12 @@ my class Regex { # declared in BOOTSTRAP
     #     has Mu $!alt_nfas;
     #     has Mu $!source;
 
-    multi method ACCEPTS(Regex:D \SELF: Mu \topic) {
+    proto method ACCEPTS(|) { * }
+    multi method ACCEPTS(Regex:D: Mu:U \a) { False }
+    multi method ACCEPTS(Regex:U: Any \topic) { # use of Any on topic to force autothreading
+        nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
+    }
+    multi method ACCEPTS(Regex:D \SELF: Any \topic) {
         my $dollar_slash := nqp::getlexrelcaller(
             nqp::ctxcallerskipthunks(nqp::ctx()),
             '$/');

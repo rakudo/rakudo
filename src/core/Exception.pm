@@ -158,7 +158,9 @@ my class X::Pragma::NoArgs is Exception {
     has $.name;
     method message { "The '$.name' pragma does not take any arguments." }
 }
-
+my class X::Pragma::CannotPrecomp is Exception {
+    method message { "This compilation unit may not be pre-compiled" }
+}
 my class X::Pragma::CannotWhat is Exception {
     has $.what;
     has $.name;

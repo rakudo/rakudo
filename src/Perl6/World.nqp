@@ -707,6 +707,7 @@ class Perl6::World is HLL::World {
       'internals',      1,
       'MONKEY-TYPING',  1,
       'nqp',            1,
+      'precompilation', 1,
       'strict',         1,
       'trace',          1,
       'worries',        1,
@@ -762,6 +763,15 @@ class Perl6::World is HLL::World {
             # This is an approximation; need to pay attention to
             # argument list really.
             %*PRAGMAS<soft> := $on;
+        }
+        elsif $name eq 'precompilation' {
+            if $on {
+                self.throw($/, 'X::Pragma::CannotWhat', :what<use>, :$name);
+            }
+            if self.is_precompilation_mode {
+                self.throw($/, 'X::Pragma::CannotPrecomp');
+            }
+            # no further action needed
         }
         elsif $name eq 'invocant' || $name eq 'parameters' || $name eq 'variables' || $name eq 'attributes' {
             unless $on {

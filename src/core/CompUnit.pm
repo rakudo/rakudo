@@ -10,6 +10,7 @@ class CompUnit {
     has Bool $.has-precomp;
     has Bool $.is-loaded;
     has Mu   $!module_ctx;
+    has CompUnit::Repository $.repo is required;
 
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';
@@ -22,6 +23,7 @@ class CompUnit {
       :$from = $default-from,
       :$has-source is copy,
       :$has-precomp is copy,
+      :$repo,
     ) {
 
         # set name / extension if not already given
@@ -50,6 +52,7 @@ class CompUnit {
           :$from,
           :$has-source,
           :$has-precomp,
+          :$repo,
           :!is-loaded,
         ) } );
     }

@@ -1,4 +1,4 @@
-class CompUnitRepo::Local::File does CompUnitRepo::Locally {
+class CompUnitRepo::Local::File does CompUnitRepo::Locally does CompUnit::Repository {
 
     my %extensions =
       Perl6 => <pm6 pm>,
@@ -38,7 +38,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
                     !! $!IO.abspath ~ $dir-sep ~ $file;
 
             return %seen{$path} = CompUnit.new(
-              $path, :$name, :extension(''), :has-source(!$has_precomp), :$has_precomp
+              $path, :$name, :extension(''), :has-source(!$has_precomp), :$has_precomp, :repo(self)
             ) if IO::Path.new-from-absolute-path($path).f;
         }
         # pick a META6.json if it is there
@@ -54,7 +54,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
                     unless $has_precomp;
 
                 return %seen{$path} = CompUnit.new(
-                  $path, :$name, :extension(''), :$has_source, :$has_precomp
+                  $path, :$name, :extension(''), :$has_source, :$has_precomp, :repo(self)
                 ) if IO::Path.new-from-absolute-path($path).f;
             }
         }
@@ -70,10 +70,10 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
                 for @extensions -> $extension {
                     my $path = $base ~ $extension;
                     return %seen{$base} = CompUnit.new(
-                      $path, :$name, :$extension, :has-source
+                      $path, :$name, :$extension, :has-source, :repo(self)
                     ) if IO::Path.new-from-absolute-path($path).f;
                     return %seen{$base} = CompUnit.new(
-                      $path, :$name, :$extension, :!has-source, :has-precomp
+                      $path, :$name, :$extension, :!has-source, :has-precomp, :repo(self)
                     ) if IO::Path.new-from-absolute-path($path ~ '.' ~ $precomp-ext).f;
                 }
             }
@@ -81,7 +81,7 @@ class CompUnitRepo::Local::File does CompUnitRepo::Locally {
             # no extensions to check, just check compiled version
             elsif $base ~ $precomp-ext -> $path {
                 return %seen{$base} = CompUnit.new(
-                  $path, :$name, :extension(''), :!has-source, :has-precomp
+                  $path, :$name, :extension(''), :!has-source, :has-precomp, :repo(self)
                 ) if IO::Path.new-from-absolute-path($path).f;
             }
         }

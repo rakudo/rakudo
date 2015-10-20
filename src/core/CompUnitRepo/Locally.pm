@@ -31,4 +31,15 @@ role CompUnitRepo::Locally {
     method files(CompUnitRepo::Locally:D: $file, :$name, :$auth, :$ver)   {...}
     method candidates(CompUnitRepo::Locally:D: $name,:$file,:$auth,:$ver) {...}
     method short-id(CompUnitRepo::Locally:D:)                             {...}
+
+    method need(CompUnit::DependencySpecification $spec,
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository())
+        returns CompUnit:D
+    {
+        self.candidates($spec.short-name, :auth($spec.auth-matcher), :ver($spec.version-matcher));
+    }
+
+    method loaded() returns Iterable {
+        return ();
+    }
 }

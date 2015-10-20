@@ -1,4 +1,4 @@
-class CompUnitRepo::Local::Installation does CompUnitRepo::Locally {
+class CompUnitRepo::Local::Installation does CompUnitRepo::Locally does CompUnit::Repository {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
 
@@ -205,10 +205,10 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                     my $loader = $candi<provides>{$name}<pm pm6>.first(*.so)<file>;
                     with $candi<provides>{$name}{$*VM.precomp-ext} -> $pc {
                         if $*PERL<compiler>.version eqv $pc<cver> {
-                            return CompUnit.new($loader, :has_precomp($pc<file>));
+                            return CompUnit.new($loader, :has_precomp($pc<file>), :repo(self));
                         }
                     }
-                    return CompUnit.new($loader);
+                    return CompUnit.new($loader, :repo(self));
                 }
             }
         }

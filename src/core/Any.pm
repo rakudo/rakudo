@@ -482,13 +482,6 @@ multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
-sub RWPAIR(\k, \v) {   # internal fast pair creation
-    my \p := nqp::create(Pair);
-    nqp::bindattr(p, Pair, '$!key', k);
-    nqp::bindattr(p, Pair, '$!value', v);
-    p
-}
-
 sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');

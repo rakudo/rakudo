@@ -44,7 +44,7 @@ sub SLICE_ONE_LIST(\SELF,$one,*%adv) {
                     my $p := DELETEKEY($d,'p');
                     if nqp::elems($d) == 0 {
                         !$p || $wasthere
-                          ?? RWPAIR($one, !($wasthere ?^ $exists) )
+                          ?? Pair.new($one, !($wasthere ?^ $exists) )
                           !! ();
                     }
                     else {
@@ -70,7 +70,7 @@ sub SLICE_ONE_LIST(\SELF,$one,*%adv) {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {
                     !$p || SELF.EXISTS-POS($one)
-                      ?? RWPAIR($one, SELF.DELETE-POS($one))
+                      ?? Pair.new($one, SELF.DELETE-POS($one))
                       !! ();
                 }
                 else {
@@ -124,7 +124,7 @@ sub SLICE_ONE_LIST(\SELF,$one,*%adv) {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {
                     !$p || $wasthere
-                      ?? RWPAIR($one, !( $wasthere ?^ $exists ))
+                      ?? Pair.new($one, !( $wasthere ?^ $exists ))
                       !! ();
                 }
                 else {
@@ -150,7 +150,7 @@ sub SLICE_ONE_LIST(\SELF,$one,*%adv) {
             my $p := DELETEKEY($d,'p');
             if nqp::elems($d) == 0 {           # :!delete?:p(0|1)
                 !$p || SELF.EXISTS-POS($one)
-                  ?? RWPAIR($one, SELF.AT-POS($one))
+                  ?? Pair.new($one, SELF.AT-POS($one))
                   !! ();
             }
             else {
@@ -232,7 +232,7 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                         $more.cache.flatmap( {
                             SELF.DELETE-POS($_) if $wasthere = SELF.EXISTS-POS($_);
                             next unless !$p || $wasthere;
-                            RWPAIR($_,!($wasthere ?^ $exists));
+                            Pair.new($_,!($wasthere ?^ $exists));
                         } ).eager.list;
                     }
                     else {
@@ -265,10 +265,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                     $p
                       ?? $more.cache.flatmap( {
                              next unless SELF.EXISTS-POS($_);
-                             RWPAIR($_, SELF.DELETE-POS($_));
+                             Pair.new($_, SELF.DELETE-POS($_));
                          } ).eager.list
                       !! $more.cache.flatmap( {
-                             RWPAIR($_, SELF.DELETE-POS($_))
+                             Pair.new($_, SELF.DELETE-POS($_))
                          } ).eager.list;
                 }
                 else {
@@ -338,10 +338,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                     $p
                       ?? $more.cache.flatmap( {
                              next unless SELF.EXISTS-POS($_);
-                             RWPAIR( $_, $exists );
+                             Pair.new( $_, $exists );
                          } ).eager.list
                       !! $more.cache.flatmap( {
-                             RWPAIR( $_, !( SELF.EXISTS-POS($_) ?^ $exists ) )
+                             Pair.new( $_, !( SELF.EXISTS-POS($_) ?^ $exists ) )
                          } ).eager.list;
                 }
                 else {
@@ -374,10 +374,10 @@ sub SLICE_MORE_LIST(\SELF,$more,*%adv) {
                 $p
                   ?? $more.cache.flatmap( {
                          next unless SELF.EXISTS-POS($_);
-                         RWPAIR($_, SELF.AT-POS($_));
+                         Pair.new($_, SELF.AT-POS($_));
                      } ).eager.list
                   !! $more.cache.flatmap( {
-                         RWPAIR( $_, SELF.AT-POS($_) )
+                         Pair.new( $_, SELF.AT-POS($_) )
                      } ).eager.list;
             }
             else {
@@ -461,7 +461,7 @@ sub SLICE_ONE_HASH(\SELF,$one,*%adv) {
                     my $p := DELETEKEY($d,'p');
                     if nqp::elems($d) == 0 {
                         !$p || $wasthere
-                          ?? RWPAIR($one, !($wasthere ?^ $exists) )
+                          ?? Pair.new($one, !($wasthere ?^ $exists) )
                           !! ();
                     }
                     else {
@@ -487,7 +487,7 @@ sub SLICE_ONE_HASH(\SELF,$one,*%adv) {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {
                     !$p || SELF.EXISTS-KEY($one)
-                      ?? RWPAIR($one, SELF.DELETE-KEY($one))
+                      ?? Pair.new($one, SELF.DELETE-KEY($one))
                       !! ();
                 }
                 else {
@@ -541,7 +541,7 @@ sub SLICE_ONE_HASH(\SELF,$one,*%adv) {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {
                     !$p || $wasthere
-                      ?? RWPAIR($one, !( $wasthere ?^ $exists ))
+                      ?? Pair.new($one, !( $wasthere ?^ $exists ))
                       !! ();
                 }
                 else {
@@ -567,7 +567,7 @@ sub SLICE_ONE_HASH(\SELF,$one,*%adv) {
             my $p := DELETEKEY($d,'p');
             if nqp::elems($d) == 0 {           # :!delete?:p(0|1)
                 !$p || SELF.EXISTS-KEY($one)
-                  ?? RWPAIR($one, SELF.AT-KEY($one))
+                  ?? Pair.new($one, SELF.AT-KEY($one))
                   !! ();
             }
             else {
@@ -649,7 +649,7 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                         $more.cache.flatmap( {
                             SELF.DELETE-KEY($_) if $wasthere = SELF.EXISTS-KEY($_);
                             next unless !$p || $wasthere;
-                            RWPAIR($_,!($wasthere ?^ $exists));
+                            Pair.new($_,!($wasthere ?^ $exists));
                         } ).eager.list;
                     }
                     else {
@@ -682,10 +682,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                     $p
                       ?? $more.cache.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
-                             RWPAIR($_, SELF.DELETE-KEY($_));
+                             Pair.new($_, SELF.DELETE-KEY($_));
                          } ).eager.list
                       !! $more.cache.flatmap( {
-                             RWPAIR($_, SELF.DELETE-KEY($_))
+                             Pair.new($_, SELF.DELETE-KEY($_))
                          } ).eager.list;
                 }
                 else {
@@ -755,10 +755,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                     $p
                       ?? $more.cache.flatmap( {
                              next unless SELF.EXISTS-KEY($_);
-                             RWPAIR( $_, $exists );
+                             Pair.new( $_, $exists );
                          } ).eager.list
                       !! $more.cache.flatmap( {
-                             RWPAIR( $_, !( SELF.EXISTS-KEY($_) ?^ $exists ) )
+                             Pair.new( $_, !( SELF.EXISTS-KEY($_) ?^ $exists ) )
                          } ).eager.list;
                 }
                 else {
@@ -791,10 +791,10 @@ sub SLICE_MORE_HASH(\SELF,$more,*%adv) {
                 $p
                   ?? $more.cache.flatmap( {
                          next unless SELF.EXISTS-KEY($_);
-                         RWPAIR($_, SELF.AT-KEY($_));
+                         Pair.new($_, SELF.AT-KEY($_));
                      } ).eager.list
                   !! $more.cache.flatmap( {
-                         RWPAIR( $_, SELF.AT-KEY($_) )
+                         Pair.new( $_, SELF.AT-KEY($_) )
                      } ).eager.list;
             }
             else {

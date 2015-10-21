@@ -2,15 +2,17 @@ my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
 
-    multi method new(Mu $key, Mu \value) {
-        nqp::create(self).BUILD($key, value)
+    multi method new(Mu \key, Mu \value) {
+        my \p := nqp::create(self);
+        nqp::bindattr(p, Pair, '$!key', nqp::decont(key));
+        nqp::bindattr(p, Pair, '$!value', value);
+        p
     }
     multi method new(Mu :$key, Mu :$value) {
-        nqp::create(self).BUILD($key, $value)
-    }
-    method BUILD(Mu $!key, Mu \value) {
-        nqp::bindattr(self, Pair, '$!value', value);
-        self
+        my \p := nqp::create(self);
+        nqp::bindattr(p, Pair, '$!key', $key);
+        nqp::bindattr(p, Pair, '$!value', $value);
+        p
     }
 
     multi method ACCEPTS(Pair:D: %h) {

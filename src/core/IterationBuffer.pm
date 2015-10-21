@@ -23,10 +23,10 @@ my class IterationBuffer {
         nqp::push(self, value)
     }
 
-    multi method AT-POS(IterationBuffer:D: int $pos) {
+    multi method AT-POS(IterationBuffer:D: int $pos) is raw {
         nqp::atpos(self, $pos)
     }
-    multi method AT-POS(IterationBuffer:D: Int $pos) {
+    multi method AT-POS(IterationBuffer:D: Int $pos) is raw {
         nqp::atpos(self, $pos)
     }
 

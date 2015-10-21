@@ -251,12 +251,12 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 }
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
-    multi method AT-POS(Buf:D: int \pos) {
+    multi method AT-POS(Buf:D: int \pos) is raw {
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i(pos,0);
         nqp::atposref_i(self, pos);
     }
-    multi method AT-POS(Buf:D: Int:D \pos) {
+    multi method AT-POS(Buf:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
         fail X::OutOfRange.new(:what<Index>,:got(pos),:range<0..Inf>)
           if nqp::islt_i($pos,0);

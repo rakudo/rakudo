@@ -40,6 +40,10 @@ multi sub INITIALIZE_DYNAMIC('$*TOLERANCE') {
     PROCESS::<$TOLERANCE> := item 1e-15;
 }
 
+multi sub INITIALIZE_DYNAMIC('$*REPO') {
+    PROCESS::<$REPO> := CompUnitRepo.new(@*INC[0]);
+}
+
 multi sub INITIALIZE_DYNAMIC('$*HOME') {
     my $HOME;
 

@@ -1,5 +1,3 @@
-role CompUnit::PrecompilationRepository { ... }
-
 role CompUnit::Repository {
     # Resolves a dependency specification to a concrete dependency. If the
     # dependency was not already loaded, loads it. Returns a CompUnit

@@ -36,7 +36,7 @@ role CompUnitRepo::Locally {
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository())
         returns CompUnit:D
     {
-        self.candidates($spec.short-name, :auth($spec.auth-matcher), :ver($spec.version-matcher));
+        self.candidates($spec.short-name, :auth($spec.auth-matcher), :ver($spec.version-matcher))[0];
     }
 
     method loaded() returns Iterable {

@@ -951,6 +951,8 @@ my role Supply {
                        if $type eq 'limit' {
                            $allowed = $allowed + $value - $limit;
                            $limit   = $value;
+                           start-process(@buffer.shift)
+                             while $allowed > 0 && @buffer;
                        }
                        elsif $type eq 'bleed' && $bleed {
                            my int $todo = $value min +@buffer;

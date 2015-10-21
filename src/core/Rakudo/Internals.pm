@@ -194,6 +194,39 @@ my class Rakudo::Internals {
             nqp::getcurhllsym("@END_PHASERS"));
         for @END -> $end { $end() };
     }
+
+    # fast whitespace trim: str to trim, str to store trimmed str
+    method TRIM(\string, \trimmed --> Nil) {
+        my int $pos  = nqp::chars(string) - 1;
+        my int $left =
+          nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, string, 0, $pos + 1);
+        $pos = $pos - 1
+          while nqp::isge_i($pos, $left)
+            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, string, $pos);
+        trimmed = nqp::islt_i($pos, $left)
+          ?? ''
+          !! nqp::substr(string, $left, $pos + 1 - $left);
+        Nil
+    }
+
+    # fast key:value split: Str to split, str to store key, str to store value
+    method KEY_COLON_VALUE(Str $command, \key, \value --> Nil) {
+        my str $str   = nqp::unbox_s($command);
+        my int $index = nqp::index($str,':');
+        if nqp::isgt_i($index,0) {
+            self.TRIM(nqp::substr($str,0,$index),key);
+            self.TRIM(nqp::substr($str,$index + 1,nqp::chars($str) - $index),value);
+        }
+        elsif nqp::islt_i($index,0) {
+            self.TRIM($str,key);
+            value = '';
+        }
+        else {
+            key = '';
+            self.TRIM(nqp::substr($str,1,nqp::chars($str) - 1),value);
+        }
+        Nil
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

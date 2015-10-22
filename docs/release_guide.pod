@@ -28,7 +28,7 @@ canʼt think of one with any particular significance to Perl
 
 There is a rudimentary tool for discerning available Perl Monger group
 names that have not already been used for a release in 
-F<tools/available-pm-names.p6>
+F<tools/available-pm-names.pl6>
 
 =head2 Steps to create a release (for release managers)
 

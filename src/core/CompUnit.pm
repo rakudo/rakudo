@@ -10,7 +10,11 @@ class CompUnit {
     has Bool $.has-precomp;
     has Bool $.is-loaded;
     has Mu   $!module_ctx;
+
+    # The CompUnit::Repository that loaded this CompUnit.
     has CompUnit::Repository $.repo is required;
+    # That repository's identifier for the compilation unit. This is not globally unique.
+    # has Str:D $.repo-id is required;
 
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';

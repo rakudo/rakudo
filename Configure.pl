@@ -33,7 +33,8 @@ MAIN: {
 
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s',
-                'backends=s', 'no-clean!',
+               'sysroot=s', 'sdkroot=s',
+               'backends=s', 'no-clean!',
                'gen-nqp:s',
                'gen-moar:s', 'moar-option=s@',
                'git-protocol=s',
@@ -51,9 +52,9 @@ MAIN: {
     }
 
     unless (defined $options{prefix}) {
-        my $dir = getcwd;
-        print "ATTENTION: no --prefix supplied, building and installing to $dir/install\n";
-        $options{prefix} = 'install';
+	my $default = defined($options{sysroot}) ? '/usr' : File::Spec->catdir(getcwd, 'install');
+        print "ATTENTION: no --prefix supplied, building and installing to $default\n";
+        $options{prefix} = $default;
     }
     $options{prefix} = File::Spec->rel2abs($options{prefix});
     my $prefix         = $options{'prefix'};
@@ -123,6 +124,8 @@ MAIN: {
     }
 
     $config{prefix} = $prefix;
+    $config{sdkroot} = $options{sdkroot};
+    $config{sysroot} = $options{sysroot};
     $config{slash}  = $slash;
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
@@ -321,6 +324,9 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir; also look for executables there
+    --sdkroot=dir      When given, use for searching build tools here, e.g.
+                       nqp, java etc.
+    --sysroot=dir      When given, use for searching runtime components here
     --backends=jvm,moar
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]

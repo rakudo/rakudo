@@ -235,7 +235,6 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
     else { # The assumption for now is this must be Iterable
         # Lazy list assignment.  This is somewhat experimental and
         # semantics may change.
-        my $empty := False;
         my $target := SELF.iterator;
         my sub eagerize ($idx) {
             once $target := $target.cache.iterator;

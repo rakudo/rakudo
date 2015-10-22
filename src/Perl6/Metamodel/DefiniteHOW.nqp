@@ -23,7 +23,7 @@ class Perl6::Metamodel::DefiniteHOW
     #~ does Perl6::Metamodel::REPRComposeProtocol
     #~ does Perl6::Metamodel::InvocationProtocol
 {
-    my $archetypes := Perl6::Metamodel::Archetypes.new(:definite);
+    my $archetypes := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable(1));
     method archetypes() {
         $archetypes
     }
@@ -81,6 +81,13 @@ class Perl6::Metamodel::DefiniteHOW
         #~ }
         #~ @parents
     #~ }
+
+    method nominalize($obj) {
+        my $base_type := $obj.HOW.base_type($obj);
+        $base_type.HOW.archetypes.nominal ??
+            $base_type !!
+            $base_type.HOW.nominalize($base_type)
+    }
 
     #~ # Should have the same methods of the base type that we refine.
     #~ # (For the performance win, work out a way to steal its method cache.)

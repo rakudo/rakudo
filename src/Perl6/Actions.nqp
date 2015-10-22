@@ -5696,7 +5696,11 @@ Compilation unit '$file' contained the following violations:
         if $past.op eq 'xor' {
             $past.push(QAST::WVal.new( :named<false>, :value($*W.find_symbol(['Nil'])) ));
         }
-        if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' || ($key eq 'LIST' && $past.name ne '&infix:<,>') {
+#        if nqp::atkey(nqp::getenvhash,'RAKUDO_EXPR') {
+#            note("$key $sym");
+#            note($past.dump) if $past;
+#        }
+        if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' || ($key eq 'LIST' && $past.name ne '&infix:<,>' && $past.name ne '&infix:<:>') {
             $past := self.whatever_curry($/, (my $orig := $past), $key eq 'LIST' ?? +$/.list !! $key eq 'INFIX' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
                 $past := QAST::Op.new($past,

@@ -7001,20 +7001,16 @@ Compilation unit '$file' contained the following violations:
                         )
                     ),
 
-                    ($<sym> eq 's' ??
-                        # $_ = $_!APPLY-MATCHES()
-                        QAST::Op.new( :op('call'), :name('&infix:<=>'),
-                            QAST::Var.new( :name('$_'), :scope('lexical') ),
-                            $apply_matches
-                        ) !!
-                        # $_!APPLY-MATCHES()
+                    QAST::Op.new( :op('call'), :name('&infix:<=>'),
+                        QAST::Var.new( :name($<sym> eq 's' ?? '$_' !! '$/'), :scope('lexical') ),
                         $apply_matches
                     )
+
                 ),
 
                 # It will return a list of matches when we match globally, and a single
                 # match otherwise.
-                (
+                $<sym> eq 's' ?? (
                     $global ??
                     QAST::Op.new( :op('p6store'),
                         QAST::Var.new( :name('$/'), :scope('lexical') ),
@@ -7043,13 +7039,11 @@ Compilation unit '$file' contained the following violations:
                             QAST::Var.new( :name('$/'), :scope('lexical') ) ),
                         QAST::Var.new( :name($result), :scope('local') )
                     )
-                ),
+                ) !! QAST::Stmt.new(),
 
                 # The result of this operation.
                 QAST::Var.new( :name('$/'), :scope('lexical') )
             ),
-            $result,
-            $global_result,
         );
     }
 

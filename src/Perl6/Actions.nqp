@@ -5643,8 +5643,9 @@ Compilation unit '$file' contained the following violations:
             if $<OPER><sym> {
                 my $name;
                 if $past.isa(QAST::Op) && !$past.name {
-                    if $key eq 'LIST' { $key := 'infix'; }
-                    $name := nqp::lc($key) ~ ':' ~ $*W.canonicalize_opname($<OPER><sym>);
+                    my $k := $key;
+                    if $k eq 'LIST' { $k := 'infix'; }
+                    $name := nqp::lc($k) ~ ':' ~ $*W.canonicalize_opname($<OPER><sym>);
                     $past.name('&' ~ $name);
                 }
                 my $macro := find_macro_routine(['&' ~ $name]);
@@ -5695,8 +5696,8 @@ Compilation unit '$file' contained the following violations:
         if $past.op eq 'xor' {
             $past.push(QAST::WVal.new( :named<false>, :value($*W.find_symbol(['Nil'])) ));
         }
-        if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
-            $past := self.whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
+        if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' || ($key eq 'LIST' && $past.name ne '&infix:<,>') {
+            $past := self.whatever_curry($/, (my $orig := $past), $key eq 'LIST' ?? +$/.list !! $key eq 'INFIX' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
                 $past := QAST::Op.new($past,
                     :op('hllize'), :returns($past.returns()));
@@ -8073,16 +8074,17 @@ Compilation unit '$file' contained the following violations:
 
         while $i < $upto_arity {
             my $check := $past[$i];
+            $i++;
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) ||
                                     nqp::istype($check, QAST::Stmt)) &&
                                    +@($check) == 1;
+            next unless nqp::can($check,'returns');
             $whatevers++ if nqp::bitand_i($curried, 1) && istype($check.returns, $Whatever) && nqp::isconcrete($check.value)
                          || nqp::bitand_i($curried, 2) && istype($check.returns, $WhateverCode) && $check ~~ QAST::Op;
             if nqp::bitand_i($curried, 1) && istype($check.returns, $HyperWhatever) {
                 $hyperwhatever := 1;
                 $whatevers++;
             }
-            $i++;
         }
         if $whatevers {
             if $hyperwhatever && $whatevers > 1 {
@@ -8099,7 +8101,9 @@ Compilation unit '$file' contained the following violations:
                 $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
                                     nqp::istype($old, QAST::Stmt)) &&
                                    +@($old) == 1;
-                if nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && $old ~~ QAST::Op {
+                if !nqp::can($old,'returns') {
+                }
+                elsif nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && $old ~~ QAST::Op {
                     my $new;
                     if $was_chain && $old.has_ann("chain_args") {
                         $new := QAST::Op.new( :op<chain>, :name($old.ann('chain_name')), :node($/) );

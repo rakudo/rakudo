@@ -205,22 +205,32 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
 
     if nqp::istype(SELF, Positional) {
         # For Positionals, preserve established/expected evaluation order.
-        my @target;
+        my $list   := List.new;
+        my $target := nqp::getattr($list,List,'$!reified');
+
         # We try to reify indices eagerly first, in case doing so
         # manipulates SELF.  If pos is lazy or contains Whatevers/closures,
         # the SELF may start to reify as well.
         my \indices := POSITIONS(SELF, pos);
         indices.iterator.sink-all;
+
         # Extract the values/containers which will be assigned to, in case
         # reifying the rhs does crazy things like splicing SELF.
-        my $p = 0;
-        for indices { @target[$p++] := SELF[$_] }
+        my int $p = 0;
+        for indices {
+            nqp::bindpos($target,$p,SELF[$_]);
+            $p = $p + 1;
+        }
 
         rvlist.EXISTS-POS($p);
         my \rviter := rvlist.iterator;
         $p = 0;
-        for 0..^+@target { @target[$p++] = rviter.pull-one }
-        @target[0..^*];
+        my $elems = nqp::elems($target);
+        while $p < $elems {
+            nqp::atpos($target,$p) = rviter.pull-one;
+            $p = $p + 1;
+        }
+        $list
     }
     else { # The assumption for now is this must be Iterable
         # Lazy list assignment.  This is somewhat experimental and

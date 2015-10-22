@@ -2,12 +2,12 @@
 
 =head1 release_guide.pod - guide to Rakudo releases
 
-Rakudo's development release cycle is the Thursday following the
+Rakudo’s development release cycle is the Thursday following the
 third Tuesday of each month (This historically allowed Rakudo to
-follow Parrot's release cycle).
+follow Parrot’s release cycle).
 
 Each development release is given a sequential number and a code name
-based on an active Perl Mongers group.  Rakudo's February 2009 release
+based on an active Perl Mongers group.  Rakudo’s February 2009 release
 was #14; prior releases were bundled as part of monthly Parrot releases.
 For releases made so far, see the list of development releases at the
 end of this document.
@@ -22,8 +22,8 @@ end of this document.
 
 =head2 Suggested .pm group names for future releases
 
-Names can be gotten from L<http://www.pm.org> if you 
-can't think of one with any particular significance to Perl 
+Names can be gotten from L<http://www.pm.org> if you
+can’t think of one with any particular significance to Perl
 6 or Rakudo.
 
 =head2 Steps to create a release (for release managers)
@@ -32,7 +32,7 @@ can't think of one with any particular significance to Perl
 
 =item 1.
 
-A few days before the Rakudo release, it's a good idea to...
+A few days before the Rakudo release, it’s a good idea to...
 
 =over 4
 
@@ -52,8 +52,8 @@ any occurrences, remove the code and make sure the spectest is still ok.
 =item *
 
 Review the RT queue for tickets that might need resolving
-prior to the release, addressing them as needed.  "Tickets
-that need resolving" is left your discretion.  Any problem
+prior to the release, addressing them as needed.  “Tickets
+that need resolving” is left your discretion.  Any problem
 that has a large impact on users is worth addressing either
 as a fix or as prominent documentation (the README and/or
 the release announcement).
@@ -61,7 +61,7 @@ the release announcement).
 =item *
 
 Create a draft release announcement in docs/announce/YYYY.MM.md in
-markdown format.  You can often use the previous release's file as a
+markdown format.  You can often use the previous release’s file as a
 starting point, updating the release number, version information, name,
 etc. as appropriate.
 
@@ -70,17 +70,17 @@ etc. as appropriate.
 
 =item *
 
-If it's a month relatively early in the calendar year, 
-double-check that the copyright date in the README file includes 
-the current year.  (It's not necessary to update copyright dates 
+If it’s a month relatively early in the calendar year,
+double-check that the copyright date in the README file includes
+the current year.  (It’s not necessary to update copyright dates
 in other files, unless you know that a given file has been modified
-in a year not reflected by the file's copyright notice.)
+in a year not reflected by the file’s copyright notice.)
 
 =back
 
 =item 2.
 
-Update Rakudo's leap-second tables:
+Update Rakudo’s leap-second tables:
 
   $ perl tools/update-tai-utc.pl src/core/tai-utc.pm
 
@@ -89,7 +89,7 @@ commit the new version:
 
   $ git commit src/core/tai-utc.pm
 
-But probably there won't be any new leap seconds, in which case the file
+But probably there won’t be any new leap seconds, in which case the file
 will be unchanged.
 
 B<Note>: this program requires the perl modules L<Time::y2038>,
@@ -99,17 +99,19 @@ L<LWP::Simple> and L<File::Slurp> to be installed.
 
 As the actual release date nears, review the git log history
 to see if any additional items need to be added to the ChangeLog.
-This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
+This can be conveniently done with
 
-  $ git commit docs/ChangeLog
+  $ git log --since=yyyy-mm-dd --reverse # find commits
+  # update ChangeLog
+  $ git commit docs/ChangeLog # commit changes
 
 =item 4.
 
-When it's time to cut the release, finalize the new release 
-announcement in docs/announce/YYYY.MM.md .  (If one hasn't already
-been created, see step 1 above.) Highlight areas in which the 
-new release is significant.  If possible, also give some small 
-details about the choice of release name.  (If the details 
+When it’s time to cut the release, finalize the new release
+announcement in docs/announce/YYYY.MM.md .  (If one hasn’t already
+been created, see step 1 above.) Highlight areas in which the
+new release is significant.  If possible, also give some small
+details about the choice of release name.  (If the details
 are a bit lengthy, this can often best be done as a separate
 section at the bottom of the announcement.)
 
@@ -134,7 +136,7 @@ you find any steps that are missing.
 =item 6.
 
 Create an NQP release with the same C<YYYY.MM> version number
-as Rakudo. Follow NQP's C<docs/release_guide.pod> file to do that.
+as Rakudo. Follow NQP’s C<docs/release_guide.pod> file to do that.
 
 =item 7.
 
@@ -229,13 +231,13 @@ masak, tadzik, moritz, PerlJam,  [Coke], lizmat, timotimo, fsergot)) on #perl6 t
 
 =item 16.
 
-To avoid public confusion with Rakudo Star releases, we now publish 
-compiler release announcements ONLY to perl6-compiler@perl.org.  
-(We may restart widespread announcements of compiler releases 
+To avoid public confusion with Rakudo Star releases, we now publish
+compiler release announcements ONLY to perl6-compiler@perl.org.
+(We may restart widespread announcements of compiler releases
 once they are known, or we may begin publishing a single
 announcement for both.)
 
-Don't send out any announcements until the files are actually available
+Don’t send out any announcements until the files are actually available
 per step 14 above.
 
 =item 17.
@@ -244,7 +246,7 @@ Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
 =item 18.
 
-You're done!  Celebrate with the appropriate amount of fun.
+You’re done!  Celebrate with the appropriate amount of fun.
 
 =back
 

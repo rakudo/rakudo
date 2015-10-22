@@ -8074,17 +8074,16 @@ Compilation unit '$file' contained the following violations:
 
         while $i < $upto_arity {
             my $check := $past[$i];
-            $i++;
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) ||
                                     nqp::istype($check, QAST::Stmt)) &&
                                    +@($check) == 1;
-            next unless nqp::can($check,'returns');
             $whatevers++ if nqp::bitand_i($curried, 1) && istype($check.returns, $Whatever) && nqp::isconcrete($check.value)
                          || nqp::bitand_i($curried, 2) && istype($check.returns, $WhateverCode) && $check ~~ QAST::Op;
             if nqp::bitand_i($curried, 1) && istype($check.returns, $HyperWhatever) {
                 $hyperwhatever := 1;
                 $whatevers++;
             }
+            $i++;
         }
         if $whatevers {
             if $hyperwhatever && $whatevers > 1 {
@@ -8101,9 +8100,7 @@ Compilation unit '$file' contained the following violations:
                 $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
                                     nqp::istype($old, QAST::Stmt)) &&
                                    +@($old) == 1;
-                if !nqp::can($old,'returns') {
-                }
-                elsif nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && $old ~~ QAST::Op {
+                if nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && $old ~~ QAST::Op {
                     my $new;
                     if $was_chain && $old.has_ann("chain_args") {
                         $new := QAST::Op.new( :op<chain>, :name($old.ann('chain_name')), :node($/) );
@@ -8175,6 +8172,7 @@ Compilation unit '$file' contained the following violations:
         }
         $past
     }
+
     sub remove_block($from, $block) {
         # Remove the QAST::Block $block from $from[0]; die if not found.
         my @decls := $from[0].list;

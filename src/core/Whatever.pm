@@ -1,7 +1,6 @@
 my class Whatever {
     multi method ACCEPTS(Whatever:D: $topic) { True }
     multi method perl(Whatever:D:) { '*' }
-    multi method Numeric(Whatever:D:) { Inf }
 }
 
 my class HyperWhatever {

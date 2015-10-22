@@ -2,12 +2,12 @@
 
 =head1 release_guide.pod - guide to Rakudo releases
 
-Rakudo’s development release cycle is the Thursday following the
+Rakudoʼs development release cycle is the Thursday following the
 third Tuesday of each month (This historically allowed Rakudo to
-follow Parrot’s release cycle).
+follow Parrotʼs release cycle).
 
 Each development release is given a sequential number and a code name
-based on an active Perl Mongers group.  Rakudo’s February 2009 release
+based on an active Perl Mongers group.  Rakudoʼs February 2009 release
 was #14; prior releases were bundled as part of monthly Parrot releases.
 For releases made so far, see the list of development releases at the
 end of this document.
@@ -23,8 +23,12 @@ end of this document.
 =head2 Suggested .pm group names for future releases
 
 Names can be gotten from L<http://www.pm.org> if you
-can’t think of one with any particular significance to Perl
+canʼt think of one with any particular significance to Perl
 6 or Rakudo.
+
+There is a rudimentary tool for discerning available Perl Monger group
+names that have not already been used for a release in 
+F<tools/available-pm-names.p6>
 
 =head2 Steps to create a release (for release managers)
 
@@ -32,7 +36,7 @@ can’t think of one with any particular significance to Perl
 
 =item 1.
 
-A few days before the Rakudo release, it’s a good idea to...
+A few days before the Rakudo release, itʼs a good idea to...
 
 =over 4
 
@@ -61,7 +65,7 @@ the release announcement).
 =item *
 
 Create a draft release announcement in docs/announce/YYYY.MM.md in
-markdown format.  You can often use the previous release’s file as a
+markdown format.  You can often use the previous releaseʼs file as a
 starting point, updating the release number, version information, name,
 etc. as appropriate.
 
@@ -70,17 +74,17 @@ etc. as appropriate.
 
 =item *
 
-If it’s a month relatively early in the calendar year,
+If itʼs a month relatively early in the calendar year,
 double-check that the copyright date in the README file includes
-the current year.  (It’s not necessary to update copyright dates
+the current year.  (Itʼs not necessary to update copyright dates
 in other files, unless you know that a given file has been modified
-in a year not reflected by the file’s copyright notice.)
+in a year not reflected by the fileʼs copyright notice.)
 
 =back
 
 =item 2.
 
-Update Rakudo’s leap-second tables:
+Update Rakudoʼs leap-second tables:
 
   $ perl tools/update-tai-utc.pl src/core/tai-utc.pm
 
@@ -89,7 +93,7 @@ commit the new version:
 
   $ git commit src/core/tai-utc.pm
 
-But probably there won’t be any new leap seconds, in which case the file
+But probably there wonʼt be any new leap seconds, in which case the file
 will be unchanged.
 
 B<Note>: this program requires the perl modules L<Time::y2038>,
@@ -107,8 +111,8 @@ This can be conveniently done with
 
 =item 4.
 
-When it’s time to cut the release, finalize the new release
-announcement in docs/announce/YYYY.MM.md .  (If one hasn’t already
+When itʼs time to cut the release, finalize the new release
+announcement in docs/announce/YYYY.MM.md .  (If one hasnʼt already
 been created, see step 1 above.) Highlight areas in which the
 new release is significant.  If possible, also give some small
 details about the choice of release name.  (If the details
@@ -136,7 +140,7 @@ you find any steps that are missing.
 =item 6.
 
 Create an NQP release with the same C<YYYY.MM> version number
-as Rakudo. Follow NQP’s C<docs/release_guide.pod> file to do that.
+as Rakudo. Follow NQPʼs C<docs/release_guide.pod> file to do that.
 
 =item 7.
 
@@ -237,7 +241,7 @@ compiler release announcements ONLY to perl6-compiler@perl.org.
 once they are known, or we may begin publishing a single
 announcement for both.)
 
-Don’t send out any announcements until the files are actually available
+Donʼt send out any announcements until the files are actually available
 per step 14 above.
 
 =item 17.
@@ -246,7 +250,7 @@ Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
 =item 18.
 
-You’re done!  Celebrate with the appropriate amount of fun.
+Youʼre done!  Celebrate with the appropriate amount of fun.
 
 =back
 

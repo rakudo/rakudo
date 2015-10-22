@@ -5661,6 +5661,7 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
+        my $arity := 0;
         if $key eq 'POSTFIX' {
             # If may be an adverb.
             if $<colonpair> {
@@ -5691,7 +5692,7 @@ Compilation unit '$file' contained the following violations:
             }
         }
         else {
-            for $/.list { if $_.ast { $past.push($_.ast); } }
+            for $/.list { if $_.ast { $past.push($_.ast); ++$arity; } }
         }
         if $past.op eq 'xor' {
             $past.push(QAST::WVal.new( :named<false>, :value($*W.find_symbol(['Nil'])) ));
@@ -5701,7 +5702,7 @@ Compilation unit '$file' contained the following violations:
 #            note($past.dump) if $past;
 #        }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' || ($key eq 'LIST' && $past.name ne '&infix:<,>' && $past.name ne '&infix:<:>') {
-            $past := self.whatever_curry($/, (my $orig := $past), $key eq 'LIST' ?? +$/.list !! $key eq 'INFIX' ?? 2 !! 1);
+            $past := self.whatever_curry($/, (my $orig := $past), $key eq 'LIST' ?? $arity !! $key eq 'INFIX' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
                 $past := QAST::Op.new($past,
                     :op('hllize'), :returns($past.returns()));
@@ -8068,7 +8069,10 @@ Compilation unit '$file' contained the following violations:
 
         return $past unless $curried;
 
-        my int $i := 0;
+        my int $offset := 0;
+        $offset := nqp::elems($past) - $upto_arity if $past.op eq 'call' && !nqp::eqat($past.name,"&postcircumfix:",0);
+        my int $i := $offset;
+        my int $e := $upto_arity + $offset;
         my int $whatevers := 0;
         my int $hyperwhatever := 0;
 
@@ -8076,7 +8080,7 @@ Compilation unit '$file' contained the following violations:
         my $WhateverCode := $*W.find_symbol(['WhateverCode']);
         my $HyperWhatever := $*W.find_symbol(['HyperWhatever']);
 
-        while $i < $upto_arity {
+        while $i < $e {
             my $check := $past[$i];
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) ||
                                     nqp::istype($check, QAST::Stmt)) &&
@@ -8099,7 +8103,7 @@ Compilation unit '$file' contained the following violations:
             my @old_args;
             my $block := QAST::Block.new(QAST::Stmts.new(), $past);
             $*W.cur_lexpad()[0].push($block);
-            while $i < $upto_arity {
+            while $i < $e {
                 my $old := $past[$i];
                 $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
                                     nqp::istype($old, QAST::Stmt)) &&

@@ -5771,7 +5771,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     sub check_smartmatch($/,$pat) {
-        if nqp::istype($pat,QAST::Op) && $pat.name eq '&infix:<=>' && $pat[1].name eq 'subst' {
+        if $pat.ann('is_S') {
             $/.CURSOR.worry("Smartmatch with S/// can never succeed because the subsequent string match will fail");
         }
     }
@@ -6963,7 +6963,7 @@ Compilation unit '$file' contained the following violations:
             QAST::IVal.new( :value($/[0] ?? 1 !! 0) ),       # samespace
         );
 
-        make QAST::Op.new( :op('locallifetime'), :node($/),
+        $past := QAST::Op.new( :op('locallifetime'), :node($/),
             QAST::Stmt.new(
 
                 # my $result;
@@ -7045,6 +7045,8 @@ Compilation unit '$file' contained the following violations:
                 QAST::Var.new( :name('$/'), :scope('lexical') )
             ),
         );
+        $past.annotate('is_S', $<sym> eq 'S');
+        make $past;
     }
 
     method quote:sym<quasi>($/) {

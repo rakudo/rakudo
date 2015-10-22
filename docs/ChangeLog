@@ -29,6 +29,7 @@ New in 2015.10:
     + Attribute containers may now have defaults
     + The new .self method is the identity method on anything
     + Negative integers are now allowed in the parameter slot
+    + List associative operators can now be autoprimed, including Xop and Zop
   + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
       exists for pushing multiple values. Same for 'unshift'/'prepend'

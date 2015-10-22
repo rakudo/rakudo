@@ -511,7 +511,7 @@ sub DELETEKEY(Mu \d, str $key) {
     }
 } #DELETEKEY
 
-sub dd(*@p, *%n) {
+sub dd(**@p, *%n) {
     if @p || %n {
         for @p -> $var {
             my $name := $var.VAR.?name;

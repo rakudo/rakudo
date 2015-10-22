@@ -68,7 +68,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) {
                     my $p := DELETEKEY($d,'p');
                     if nqp::elems($d) == 0 {
                         !$p || $wasthere
-                          ?? RWPAIR($one, !($wasthere ?^ $exists) )
+                          ?? Pair.new($one, !($wasthere ?^ $exists) )
                           !! ();
                     }
                     else {
@@ -94,7 +94,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {
                     !$p || SELF.@EXISTS[]$one)
-                      ?? RWPAIR($one, SELF.@DELETE[]$one))
+                      ?? Pair.new($one, SELF.@DELETE[]$one))
                       !! ();
                 }
                 else {
@@ -148,7 +148,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) {
                 my $p := DELETEKEY($d,'p');
                 if nqp::elems($d) == 0 {
                     !$p || $wasthere
-                      ?? RWPAIR($one, !( $wasthere ?^ $exists ))
+                      ?? Pair.new($one, !( $wasthere ?^ $exists ))
                       !! ();
                 }
                 else {
@@ -174,7 +174,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) {
             my $p := DELETEKEY($d,'p');
             if nqp::elems($d) == 0 {           # :!delete?:p(0|1)
                 !$p || SELF.@EXISTS[]$one)
-                  ?? RWPAIR($one, SELF.@AT[]$one))
+                  ?? Pair.new($one, SELF.@AT[]$one))
                   !! ();
             }
             else {
@@ -256,7 +256,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                         $more.cache.flatmap( {
                             SELF.@DELETE[]$_) if $wasthere = SELF.@EXISTS[]$_);
                             next unless !$p || $wasthere;
-                            RWPAIR($_,!($wasthere ?^ $exists));
+                            Pair.new($_,!($wasthere ?^ $exists));
                         } ).eager.list;
                     }
                     else {
@@ -289,10 +289,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                     $p
                       ?? $more.cache.flatmap( {
                              next unless SELF.@EXISTS[]$_);
-                             RWPAIR($_, SELF.@DELETE[]$_));
+                             Pair.new($_, SELF.@DELETE[]$_));
                          } ).eager.list
                       !! $more.cache.flatmap( {
-                             RWPAIR($_, SELF.@DELETE[]$_))
+                             Pair.new($_, SELF.@DELETE[]$_))
                          } ).eager.list;
                 }
                 else {
@@ -362,10 +362,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                     $p
                       ?? $more.cache.flatmap( {
                              next unless SELF.@EXISTS[]$_);
-                             RWPAIR( $_, $exists );
+                             Pair.new( $_, $exists );
                          } ).eager.list
                       !! $more.cache.flatmap( {
-                             RWPAIR( $_, !( SELF.@EXISTS[]$_) ?^ $exists ) )
+                             Pair.new( $_, !( SELF.@EXISTS[]$_) ?^ $exists ) )
                          } ).eager.list;
                 }
                 else {
@@ -398,10 +398,10 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
                 $p
                   ?? $more.cache.flatmap( {
                          next unless SELF.@EXISTS[]$_);
-                         RWPAIR($_, SELF.@AT[]$_));
+                         Pair.new($_, SELF.@AT[]$_));
                      } ).eager.list
                   !! $more.cache.flatmap( {
-                         RWPAIR( $_, SELF.@AT[]$_) )
+                         Pair.new( $_, SELF.@AT[]$_) )
                      } ).eager.list;
             }
             else {
@@ -450,3 +450,5 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
 
 SOURCE
 }
+
+say "# vim: set ft=perl6 nomodifiable :";

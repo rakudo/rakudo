@@ -138,9 +138,6 @@ my class IO::Handle does IO {
     }
 
     multi method split(IO::Handle:D: :$close, :$COMB) {
-        X::NYI.new(feature => "'split' without closing the file handle").throw
-          if !$close;
-
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
             has int $!close;
@@ -224,9 +221,6 @@ my class IO::Handle does IO {
     multi method split(IO::Handle:D: $splitter, :$close, :$COMB) {
         return self.split(:$close,:$COMB)
           if nqp::istype($splitter,Cool) && $splitter.Str.chars == 0;
-
-        X::NYI.new(feature => "'split' without closing the file handle").throw
-          if !$close;
 
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
@@ -347,9 +341,6 @@ my class IO::Handle does IO {
 
     proto method words (|) { * }
     multi method words(IO::Handle:D: :$close) {
-        X::NYI.new(feature => "'words' without closing the file handle").throw
-          if !$close;
-
         Seq.new(class :: does Iterator {
             has $!handle;
             has $!close;

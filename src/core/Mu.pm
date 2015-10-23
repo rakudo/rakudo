@@ -17,15 +17,6 @@ have code that was using that unsupported rakudo internal API.
 Please refactor this code using the new Iterator / Seq interface.
 "
     }
-    proto method munch(|) {
-        die "
-The 'munch' method was an internal method used by rakudo before the Great
-List Refactor.  The fact that you are seeing this message, means that you
-have code that was using that unsupported rakudo internal API.
-
-Please refactor this code using the new Iterator / Seq interface.
-"
-    }
 
     proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Mu:U: Any \topic) {

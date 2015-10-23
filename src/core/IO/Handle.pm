@@ -101,7 +101,7 @@ my class IO::Handle does IO {
           FETCH => {
               $!nl
           },
-          STORE => -> $, $nl is copy {
+          STORE => -> $, $nl {
             nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
           }
         );

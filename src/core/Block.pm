@@ -43,7 +43,7 @@ my class Block { # declared in BOOTSTRAP
     }
 
     method assuming(Block:D $self: |primers) {
-        my $sig = nqp::getattr($self,Code,'$!signature');
+        my $sig = nqp::getattr(nqp::decont($self), Code, '$!signature');
 
         # A ::() that does not throw.  Also does not need to deal
         # with chunks or sigils.

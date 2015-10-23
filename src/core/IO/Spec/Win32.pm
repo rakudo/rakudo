@@ -1,4 +1,4 @@
-my class IO::Spec::Win32 is IO::Spec::Unix {
+my class IO::Spec::Win32 is IO::Spec does IO::Spec::Any {
 
     # Some regexes we use for path splitting
     my $slash       = regex {  <[\/ \\]> }

@@ -169,12 +169,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 }
                 when 'S' | 'v' {
                     for ^$pa {
+                        last if @bytes.elems < 2;
                         @fields.append: shift(@bytes)
                                     + (shift(@bytes) +< 0x08);
                     }
                 }
                 when 'L' | 'V' {
                     for ^$pa {
+                        last if @bytes.elems < 4;
                         @fields.append: shift(@bytes)
                                     + (shift(@bytes) +< 0x08)
                                     + (shift(@bytes) +< 0x10)
@@ -183,12 +185,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 }
                 when 'n' {
                     for ^$pa {
+                        last if @bytes.elems < 2;
                         @fields.append: (shift(@bytes) +< 0x08)
                                     + shift(@bytes);
                     }
                 }
                 when 'N' {
                     for ^$pa {
+                        last if @bytes.elems < 4;
                         @fields.append: (shift(@bytes) +< 0x18)
                                     + (shift(@bytes) +< 0x10)
                                     + (shift(@bytes) +< 0x08)

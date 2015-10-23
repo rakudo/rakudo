@@ -14,7 +14,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-10-22   Rakudo #92 (Coke)
   2015-11-19   Rakudo #93
   2015-12-17   Rakudo #94
 
@@ -341,6 +340,7 @@ You’re done!  Celebrate with the appropriate amount of fun.
   2015-07-24   2015.07.1                       (masak)
   2015-07-25   2015.07.2                       (moritz)
   2015-09-17   Rakudo #91 "Zürich"             (Coke)
+  2015-10-22   Rakudo #92 "Niceville"          (Coke) # v6.b
 
 =head1 COPYRIGHT
 

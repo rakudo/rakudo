@@ -77,7 +77,7 @@ my class IO::Spec::Unix is IO::Spec {
         }
     }
 
-    method split (Cool:D $path is copy ) {
+    multi method split(IO::Spec::Unix: Cool:D $path is copy ) {
         $path  ~~ s/<?after .> '/'+ $ //;
 
         $path  ~~ m/^ ( [ .* \/ ]? ) (<-[\/]>*) /;

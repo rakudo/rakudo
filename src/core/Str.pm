@@ -738,7 +738,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }.new(self));
     }
 
-    multi method split(Str:D: Regex $pat, $limit = *;; :$all) {
+    multi method split(Str:D: Regex:D $pat, $limit = *;; :$all) {
         return ().list
           if nqp::istype($limit,Numeric) && $limit <= 0;
         my \matches = nqp::istype($limit, Whatever)
@@ -767,7 +767,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method split(Str:D: Cool $delimiter, $limit = *;; :$all) {
+    multi method split(Str:D: Cool:D $delimiter, $limit = *;; :$all) {
         my $delim-str        = $delimiter.Str;
         my str $self-string  = self;
         my str $match-string = $delim-str;

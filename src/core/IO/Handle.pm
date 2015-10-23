@@ -137,7 +137,6 @@ my class IO::Handle does IO {
         $c;
     }
 
-    proto method split(|) { * }
     multi method split(IO::Handle:D: :$close, :$COMB) {
         X::NYI.new(feature => "'split' without closing the file handle").throw
           if !$close;

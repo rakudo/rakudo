@@ -262,11 +262,10 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
 
-    proto method split(|) {*}
-    multi method split(Regex $pat, $limit = Inf;; :$all) {
+    multi method split(Cool: Regex:D $pat, $limit = Inf;; :$all) {
         self.Stringy.split($pat, $limit, :$all);
     }
-    multi method split(Cool $pat, $limit = Inf;; :$all) {
+    multi method split(Cool: Cool:D $pat, $limit = Inf;; :$all) {
         self.Stringy.split($pat.Stringy, $limit, :$all);
     }
     proto method match(|) {*}

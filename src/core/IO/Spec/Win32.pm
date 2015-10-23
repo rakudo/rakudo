@@ -65,7 +65,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         so $path ~~ /^ [ <$driveletter> <$slash> | <$slash> | <$UNCpath> ]/
     }
 
-    method split (Str() $path is copy) {
+    multi method split(IO::Spec::Win32: Cool:D $path is copy) {
         $path ~~ s[ <$slash>+ $] = ''                       #=
             unless $path ~~ /^ <$driveletter>? <$slash>+ $/;
 

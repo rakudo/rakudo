@@ -513,7 +513,6 @@ my class IO::Path is Cool {
         $handle && $handle.lines(:close);
     }
 
-    proto method split(|) { * }
     multi method split(IO::Path:D: Str:D $splitter = "", |c) {
         my $handle = self.open(|c);
         $handle && $handle.split($splitter, :close);

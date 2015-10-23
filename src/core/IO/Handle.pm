@@ -137,6 +137,215 @@ my class IO::Handle does IO {
         $c;
     }
 
+    proto method split(|) { * }
+    multi method split(IO::Handle:D: :$close, :$COMB) {
+        X::NYI.new(feature => "'split' without closing the file handle").throw
+          if !$close;
+
+        Seq.new(class :: does Iterator {
+            has Mu  $!handle;
+            has int $!close;
+            has int $!COMB;
+            has str $!str;
+            has int $!first;
+            has int $!last;
+            has int $index;
+            has int $chars;
+
+            submethod BUILD(\handle, \close, \COMB) {
+                $!handle := handle;
+                $!close   = close;
+                $!COMB    = ?COMB;
+                self!next-chunk();
+                $!first = $!last = 1 if $!chars && !$!COMB;
+                self
+            }
+            method new(\handle, \close, \COMB) {
+                nqp::create(self).BUILD(handle, close, COMB);
+            }
+            method !readcharsfh() {
+                my Mu $PIO := nqp::getattr($!handle, IO::Handle, '$!PIO');
+#?if jvm
+                my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
+                # we only get half the number of chars, but that's ok
+                nqp::readfh($PIO, $buf, 65536); # optimize for ASCII
+                nqp::unbox_s($buf.decode);
+#?endif
+#?if !jvm
+                nqp::readcharsfh($PIO, 65536); # optimize for ASCII
+#?endif
+            }
+            method !next-chunk(--> Nil) {
+                $!str   = self!readcharsfh;
+                $!index = 0;
+                $!chars = nqp::chars($!str);
+                Nil
+            }
+            method pull-one() {
+                self!next-chunk if !$!index == $!chars;
+                if $!first {
+                    $!first = 0;
+                    ''
+                }
+                elsif $!index < $!chars {
+                    nqp::p6box_s(nqp::substr($!str,$!index++,1))
+                }
+                elsif $!last {
+                    $!last = 0;
+                    ''
+                }
+                else {
+                    $!handle.close if $!close;
+                    IterationEnd;
+                }
+            }
+            method push-all($target) {
+                $target.push('') if $!first;
+                while $!index < $!chars {
+                    $target.push(
+                      nqp::p6box_s(nqp::substr($!str,$!index++,1)))
+                        while $!index < $!chars;
+                    self!next-chunk();
+                }
+                $target.push('') if $!last;
+                $!handle.close if $!close;
+                IterationEnd
+            }
+            method count-only() {
+                my int $found = $!first + $!last;
+                while $!chars {
+                    $found = $found + $!chars;
+                    self!next-chunk();
+                }
+                $!handle.close if $!close;
+                nqp::p6box_i($found)
+            }
+        }.new(self, +$close, $COMB));
+    }
+    multi method split(IO::Handle:D: $splitter, :$close, :$COMB) {
+        return self.split(:$close,:$COMB)
+          if nqp::istype($splitter,Cool) && $splitter.Str.chars == 0;
+
+        X::NYI.new(feature => "'split' without closing the file handle").throw
+          if !$close;
+
+        Seq.new(class :: does Iterator {
+            has Mu  $!handle;
+            has Mu  $!regex;
+            has str $!splitter;
+            has int $!close;
+            has str $!str;
+            has str $!left;
+            has Mu  $!strings;
+            has int $!elems;
+            has int $!done;
+
+            submethod BUILD(\handle, \splitter, \close) {
+                $!handle := handle;
+                nqp::istype(splitter,Regex)
+                  ?? ($!regex   := splitter)
+                  !! ($!splitter = nqp::unbox_s(splitter.Str));
+                $!close = close;
+                $!left  = '';
+                self!next-chunk until $!elems || $!done;
+                self
+            }
+            method new(\handle, \splitter, \close) {
+                nqp::create(self).BUILD(handle, splitter, close);
+            }
+            method !readcharsfh() {
+                my Mu $PIO := nqp::getattr($!handle, IO::Handle, '$!PIO');
+#?if jvm
+                my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
+                # we only get half the number of chars, but that's ok
+                nqp::readfh($PIO, $buf, 65536); # optimize for ASCII
+                nqp::unbox_s($buf.decode);
+#?endif
+#?if !jvm
+                nqp::readcharsfh($PIO, 65536); # optimize for ASCII
+#?endif
+            }
+
+            method !next-chunk(--> Nil) {
+                my int $chars = nqp::chars($!left);
+                $!str = nqp::concat($!left,self!readcharsfh);
+                if nqp::chars($!str) == $chars { # nothing read anymore
+                    $!done = 2;
+                }
+                else {
+                    with $!regex {
+                        my \matches   = $!str.match($!regex, :g);
+                        my int $elems = matches.elems;
+                        my Mu $strings := nqp::list();
+                        nqp::setelems($strings,$elems);
+                        my int $i;
+                        my Mu $match;
+                        my int $from;
+                        while $i < $elems {
+                            $match := matches[$i];
+                            nqp::bindpos($strings,$i,
+                              nqp::substr($!str,$from,$match.from - $from));
+                            $from = $match.to;
+                            $i    = $i + 1;
+                        }
+                        $!left = nqp::substr(
+                          $!str,$from,nqp::chars($!str) - $from);
+                        $!strings := $strings; # lexical natives faster
+                    }
+                    else {
+                        $!strings := nqp::split($!splitter,$!str);
+                        $!left =
+                          nqp::elems($!strings) ?? nqp::pop($!strings) !! '';
+                    }
+                    $!elems = nqp::elems($!strings);
+                }
+                Nil
+            }
+            method pull-one() {
+                if $!elems {
+                    $!elems = $!elems - 1;
+                    nqp::p6box_s(nqp::shift($!strings));
+                }
+                else {
+                    self!next-chunk until $!elems || $!done;
+                    if $!elems {
+                        $!elems = $!elems - 1;
+                        nqp::p6box_s(nqp::shift($!strings));
+                    }
+                    elsif $!done == 2 {
+                        $!done = 1;
+                        nqp::p6box_s($!str);
+                    }
+                    else {
+                        $!handle.close if $!close;
+                        IterationEnd;
+                    }
+                }
+            }
+            method push-all($target) {
+                while $!elems {
+                    while $!elems {
+                        $target.push(nqp::p6box_s(nqp::shift($!strings)));
+                        $!elems = $!elems - 1;
+                    }
+                    self!next-chunk until $!elems || $!done;
+                }
+                $target.push(nqp::p6box_s($!str));
+                $!handle.close if $!close;
+                IterationEnd
+            }
+            method count-only() {
+                my int $found = 1;
+                while $!elems {
+                    $found = $found + $!elems;
+                    self!next-chunk until $!elems || $!done;
+                }
+                $!handle.close if $!close;
+                nqp::p6box_i($found)
+            }
+        }.new(self, $splitter, +$close));
+    }
+
     proto method words (|) { * }
     multi method words(IO::Handle:D: :$close) {
         X::NYI.new(feature => "'words' without closing the file handle").throw

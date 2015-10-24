@@ -513,6 +513,20 @@ my class IO::Path is Cool {
         $handle && $handle.lines(:close);
     }
 
+    proto method comb(|) { * }
+    multi method comb(IO::Path:D: Cool:D $comber = "", |c) {
+        my $handle = self.open(|c);
+        $handle && $handle.comb($comber, :close);
+    }
+    multi method comb(IO::Path:D: Int:D $size, |c) {
+        my $handle = self.open(|c);
+        $handle && $handle.comb($size, :close);
+    }
+    multi method comb(IO::Path:D: Regex:D $comber, |c) {
+        my $handle = self.open(|c);
+        $handle && $handle.comb($comber, :close);
+    }
+
     multi method split(IO::Path:D: Str:D $splitter = "", |c) {
         my $handle = self.open(|c);
         $handle && $handle.split($splitter, :close);

@@ -45,6 +45,7 @@ Please refactor this code using the new Iterator / Seq interface.
     }
 
     proto method split(|) { * }
+    proto method comb(|)  { * }
 
     method take {
         take self;

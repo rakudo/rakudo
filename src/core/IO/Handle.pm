@@ -21,7 +21,6 @@ my class IO::Handle does IO {
       :$chomp = True,
       :$enc   = 'utf8',
       :$nl    = "\n",
-      :$nodepr,
     ) {
 
         $mode //= do {

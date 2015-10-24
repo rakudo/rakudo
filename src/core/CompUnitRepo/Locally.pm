@@ -36,10 +36,15 @@ role CompUnitRepo::Locally {
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository())
         returns CompUnit:D
     {
-        self.candidates($spec.short-name, :auth($spec.auth-matcher), :ver($spec.version-matcher))[0];
+        my @candidates = self.candidates($spec.short-name, :auth($spec.auth-matcher), :ver($spec.version-matcher));
+        return @candidates[0] if @candidates;
+        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        nqp::die("Could not find $spec in $.Str");
     }
 
     method loaded() returns Iterable {
         return ();
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

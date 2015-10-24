@@ -41,7 +41,9 @@ multi sub INITIALIZE_DYNAMIC('$*TOLERANCE') {
 }
 
 multi sub INITIALIZE_DYNAMIC('$*REPO') {
-    PROCESS::<$REPO> := CompUnitRepo.new(@*INC[0]);
+    my CompUnit::Repository $next-repo;
+    $next-repo := CompUnitRepo.new($_, :$next-repo) for @*INC.reverse;
+    PROCESS::<$REPO> := $next-repo;
 }
 
 multi sub INITIALIZE_DYNAMIC('$*HOME') {

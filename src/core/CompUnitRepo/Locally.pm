@@ -5,12 +5,12 @@ role CompUnitRepo::Locally {
 
     my %instances;
 
-    method new(CompUnitRepo::Locally: $dir) {
+    method new(CompUnitRepo::Locally: $dir, CompUnit::Repository :$next-repo) {
         my $abspath := $*SPEC.rel2abs($dir);
         my $IO      := IO::Path.new-from-absolute-path($abspath);
 
         %instances{$abspath} //=
-          self.bless(:$IO,:lock(Lock.new),:WHICH(self.^name ~ '|' ~ $abspath));
+          self.bless(:$IO, :lock(Lock.new), :WHICH(self.^name ~ '|' ~ $abspath), :$next-repo);
     }
 
     multi method Str(CompUnitRepo::Locally:D:) { $!IO.abspath }

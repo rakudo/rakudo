@@ -33,7 +33,9 @@ class CompUnitRepo {
         %language_module_loaders{$lang} := $loader;
     }
 
-    method new(Str $spec) { INCLUDE-SPEC2CUR($spec) }
+    method new(Str $spec, CompUnit::Repository :$next-repo) {
+        INCLUDE-SPEC2CUR($spec, :$next-repo)
+    }
 
     method files($file, :$name, :$auth, :$ver) {
         for @*INC -> $spec {
@@ -154,7 +156,7 @@ sub SHORT-ID2CLASS(Str:D $short-id) {
 SHORT-ID2CLASS('file') = 'CompUnitRepo::Local::File';
 SHORT-ID2CLASS('inst') = 'CompUnitRepo::Local::Installation';
 
-sub INCLUDE-SPEC2CUR(Str:D $spec) {
+sub INCLUDE-SPEC2CUR(Str:D $spec, CompUnit::Repository :$next-repo) {
     state %INCLUDE-SPEC2CUR;
     state $lock = Lock.new;
 
@@ -165,6 +167,7 @@ sub INCLUDE-SPEC2CUR(Str:D $spec) {
 
     my $abspath = $class.?absolutify($path) // $path;
     my $id      = "$short-id#$abspath";
+    %options<next-repo> = $next-repo if $next-repo;
     $lock.protect( {
         %INCLUDE-SPEC2CUR{$id}:exists
           ?? %INCLUDE-SPEC2CUR{$id}

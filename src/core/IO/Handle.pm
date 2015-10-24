@@ -147,18 +147,11 @@ my class IO::Handle does IO {
             has Mu  $!handle;
             has Mu  $!size;
             has int $!close;
-            has str $!str;
-            has str $!left;
-            has Mu  $!strings;
-            has int $!elems;
-            has int $!done;
 
             submethod BUILD(\handle, \size, \close) {
                 $!handle := handle;
                 $!size    = size.Int;
-                $!close = close;
-                $!left  = '';
-                self!next-chunk until $!elems || $!done;
+                $!close   = close;
                 self
             }
             method new(\handle, \size, \close) {
@@ -168,76 +161,43 @@ my class IO::Handle does IO {
                 my Mu $PIO := nqp::getattr($!handle, IO::Handle, '$!PIO');
 #?if jvm
                 my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
-                # we only get half the number of chars, but that's ok
-                nqp::readfh($PIO, $buf, 65536); # optimize for ASCII
+                # we only get half the number of chars
+                nqp::readfh($PIO, $buf, $!size + $!size);
                 nqp::unbox_s($buf.decode);
 #?endif
 #?if !jvm
-                nqp::readcharsfh($PIO, 65536); # optimize for ASCII
+                nqp::readcharsfh($PIO, $!size);
 #?endif
             }
 
-            method !next-chunk(--> Nil) {
-                my int $chars = nqp::chars($!left);
-                $!str = nqp::concat($!left,self!readcharsfh);
-                if nqp::chars($!str) == $chars { # nothing read anymore
-                    $!done = 2 - ($chars == 0);
-                }
-                else {
-                    $!strings := nqp::list();
-                    my int $pos;
-                    my int $found;
-                    my int $chars = nqp::chars($!str);
-                    while $pos + $size <= $chars {
-                        nqp::push($!strings,nqp::substr($!str,$pos,$size));
-                        $pos = $pos + $size;
-                    }
-                    $!left  = nqp::substr($!str,$pos);
-                    $!elems = nqp::elems($!strings);
-                }
-                Nil
-            }
             method pull-one() {
-                if $!elems {
-                    $!elems = $!elems - 1;
-                    nqp::p6box_s(nqp::shift($!strings));
+                my str $str = self!readcharsfh;
+                if nqp::chars($str) {
+                    nqp::p6box_s($str)
                 }
                 else {
-                    self!next-chunk until $!elems || $!done;
-                    if $!elems {
-                        $!elems = $!elems - 1;
-                        nqp::p6box_s(nqp::shift($!strings));
-                    }
-                    elsif $!done = 2 {
-                        $!done = 1;
-                        nqp::p6box_s($!str);
-                    }
-                    else {
-                        $!handle.close if $!close;
-                        IterationEnd;
-                    }
+                    $!handle.close if $!close;
+                    IterationEnd
                 }
             }
             method push-all($target) {
-                while $!elems {
-                    while $!elems {
-                        $target.push(nqp::p6box_s(nqp::shift($!strings)));
-                        $!elems = $!elems - 1;
-                    }
-                    self!next-chunk until $!elems || $!done;
+                my str $str = self!readcharsfh;
+                while nqp::chars($str) == $size {
+                    $target.push(nqp::p6box_s($str));
+                    $str = self!readcharsfh;
                 }
-                $target.push(nqp::p6box_s($!str)) if $!done == 2;
+                $target.push(nqp::p6box_s($str)) if nqp::chars($str);
                 $!handle.close if $!close;
                 IterationEnd
             }
             method count-only() {
                 my int $found;
-                while $!elems {
-                    $found  = $found + $!elems;
-                    $!elems = 0;
-                    self!next-chunk until $!elems || $!done;
+                my str $str = self!readcharsfh;
+                while nqp::chars($str) == $size {
+                    $found = $found + 1;
+                    $str   = self!readcharsfh;
                 }
-                $found = $found + ($!done == 2);
+                $found = $found + 1 if nqp::chars($str);
                 $!handle.close if $!close;
                 nqp::p6box_i($found)
             }

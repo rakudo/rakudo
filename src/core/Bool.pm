@@ -26,8 +26,8 @@ BEGIN {
     Bool.^add_multi_method('gist',    my multi method gist(Bool:U:)    { '(Bool)' });
     Bool.^add_multi_method('perl', my multi method perl(Bool:U:) { 'Bool' });
 
-    Bool.^add_multi_method('pick', my multi method pick(Bool:U: $n) { (Bool::True,Bool::False).pick($n) });
-    Bool.^add_multi_method('roll', my multi method roll(Bool:U: $n) { (Bool::True,Bool::False).roll($n) });
+    Bool.^add_multi_method('pick', my multi method pick(Bool:U: $n) { self.^enum_value_list.pick($n) });
+    Bool.^add_multi_method('roll', my multi method roll(Bool:U: $n) { self.^enum_value_list.roll($n) });
 
     Bool.^add_method('pred',  my method pred() { Bool::False });
     Bool.^add_method('succ',  my method succ() { Bool::True });

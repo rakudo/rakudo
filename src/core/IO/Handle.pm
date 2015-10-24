@@ -136,7 +136,7 @@ my class IO::Handle does IO {
         $c;
     }
 
-    multi method split(IO::Handle:D: :$close, :$COMB) {
+    multi method split(IO::Handle:D: :$close = False, :$COMB) {
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
             has int $!close;
@@ -217,7 +217,7 @@ my class IO::Handle does IO {
             }
         }.new(self, +$close, $COMB));
     }
-    multi method split(IO::Handle:D: $splitter, :$close, :$COMB) {
+    multi method split(IO::Handle:D: $splitter, :$close = False, :$COMB) {
         return self.split(:$close,:$COMB)
           if nqp::istype($splitter,Cool) && $splitter.Str.chars == 0;
 

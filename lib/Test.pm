@@ -541,7 +541,7 @@ sub done-testing() is export {
         $output.say: $indents ~ "1..$num_of_tests_planned";
     }
 
-    if ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
+    if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
         diag("Looks like you planned $num_of_tests_planned test{ $num_of_tests_planned == 1 ?? '' !! 's'}, but ran $num_of_tests_run");
     }
     if ($num_of_tests_failed) {
@@ -605,10 +605,10 @@ END {
         $handle.?close;
     }
 
-    if $num_of_tests_failed > 0 {
+    if $num_of_tests_failed and $num_of_tests_failed > 0 {
         exit($num_of_tests_failed min 254);
     }
-    elsif !$no_plan && $num_of_tests_planned != $num_of_tests_run {
+    elsif !$no_plan && ($num_of_tests_planned or $num_of_tests_run) && $num_of_tests_planned != $num_of_tests_run {
         exit(255);
     }
     else {

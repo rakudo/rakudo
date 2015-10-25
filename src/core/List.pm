@@ -911,29 +911,72 @@ sub flat(**@list is raw) {
 
 sub cache(+@l) { @l }
 
+role XX-Whatever does Iterator {
+    has Mu $!x;
+    submethod BUILD($!x) { self }
+    method new(\x) { nqp::create(self).BUILD(x) }
+    method is-lazy() { True }
+}
+
 proto sub infix:<xx>(Mu $, $, *%) { * }
+multi sub infix:<xx>()      { fail "No zero-arg meaning for infix:<xx>" }
+multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(Mu \x, Num $n, :$thunked!) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int, :$thunked);
 }
 multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
-    GATHER({ loop { take x.() } }).lazy
+    Seq.new(class :: does XX-Whatever {
+        has @!slipped;
+        method pull-one() {
+            if @!slipped {
+                @!slipped.shift
+            }
+            else {
+                my $pulled := $!x.();
+                if nqp::istype($pulled,Slip) {
+                    @!slipped = $pulled;
+                    @!slipped.shift
+                }
+                else {
+                    $pulled
+                }
+            }
+        }
+    }.new(x))
 }
 multi sub infix:<xx>(Mu \x, Int() $n, :$thunked!) {
     my int $todo = $n;
-    GATHER({ take x.() while ($todo = $todo - 1) >= 0 })
+    my Mu $pulled;
+    my Mu $list := nqp::list();
+    while $todo {
+        $pulled := x.();
+        if nqp::istype($pulled,Slip) {
+            nqp::push($list, $_) for $pulled;
+        }
+        elsif nqp::istype($pulled,Seq) {
+            nqp::push($list, $_) for $pulled.cache;
+        }
+        else {
+            nqp::push($list, $pulled);
+        }
+        $todo = $todo - 1;
+    }
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
 }
 multi sub infix:<xx>(Mu \x, Num $n) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    GATHER({ loop { take x } }).lazy
+    Seq.new(class :: does XX-Whatever {
+        method pull-one() { $!x }
+    }.new(x))
 }
-multi sub infix:<xx>(Mu \x, Int() $n) {
+multi sub infix:<xx>(Mu \x, Int() $n) is pure {
     my int $elems = $n;
     my Mu $list := nqp::list();
     if $elems > 0 {
+        nqp::setelems($list, $elems);  # presize
         my int $i;
-        nqp::setelems($list, $elems);
         while $i < $elems {
             nqp::bindpos($list, $i, x);
             $i = $i + 1;

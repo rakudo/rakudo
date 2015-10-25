@@ -16,6 +16,35 @@ multi sub await(Channel:D $c)  { $c.receive }
 multi sub await(Supply:D $s)   { $s.await }
 multi sub await(*@awaitables)  { @awaitables.eager.map({await $_}) }
 
+sub awaiterator(@awaitables) {
+    Seq.new(class :: does Iterator {
+        has @!todo;
+        has @!done;
+        method BUILD(\todo) { @!todo = todo; self }
+        method new(\todo) { nqp::create(self).BUILD(todo) }
+        method pull-one() {
+            if @!done {
+                @!done.shift
+            }
+            elsif @!todo {
+                Promise.anyof(@!todo).result;
+                my @next;
+                while @!todo {
+                    my $promise = @!todo.shift;
+                    $promise.status == Planned
+                      ?? @next.push($promise)
+                      !! @!done.push($promise.result);
+                }
+                @!todo := @next;
+                @!done.shift
+            }
+            else {
+                IterationEnd
+            }
+        }
+    }.new(@awaitables))
+}
+
 sub cas (\val,&code) { val = code(val) } # naive implementation of cas
 
 sub INVOKE_KV(&block, $key, $value?) {

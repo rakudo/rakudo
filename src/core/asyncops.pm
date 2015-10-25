@@ -29,12 +29,10 @@ sub awaiterator(@awaitables) {
             elsif @!todo {
                 Promise.anyof(@!todo).result;
                 my @next;
-                while @!todo {
-                    my $promise = @!todo.shift;
-                    $promise.status == Planned
-                      ?? @next.push($promise)
-                      !! @!done.push($promise.result);
-                }
+                .status == Planned
+                  ?? @next.push($_)
+                  !! @!done.push($_.result)
+                    for @!todo;
                 @!todo := @next;
                 @!done.shift
             }

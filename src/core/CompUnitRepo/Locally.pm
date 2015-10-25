@@ -37,7 +37,10 @@ role CompUnitRepo::Locally {
         returns CompUnit:D
     {
         my @candidates = self.candidates($spec.short-name, :auth($spec.auth-matcher), :ver($spec.version-matcher));
-        return @candidates[0] if @candidates;
+        if @candidates {
+            @candidates[0].load;
+            return @candidates[0];
+        }
         return self.next-repo.need($spec, $precomp) if self.next-repo;
         nqp::die("Could not find $spec in $.Str");
     }

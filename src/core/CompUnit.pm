@@ -10,6 +10,7 @@ class CompUnit {
     has Bool $.has-precomp;
     has Bool $.is-loaded;
     has Mu   $!module_ctx;
+    has      $.unit;
 
     # The CompUnit::Repository that loaded this CompUnit.
     has CompUnit::Repository $.repo is required;
@@ -208,10 +209,10 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                             GLOBALish, nqp::atkey($UNIT, 'GLOBALish'));
                     }
                 }
-                return $UNIT;
+                $!unit := $UNIT;
             }
             else {
-                return {};
+                $!unit := {};
             }
     } ) }
 

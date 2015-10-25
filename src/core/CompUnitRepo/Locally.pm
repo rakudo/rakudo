@@ -32,16 +32,20 @@ role CompUnitRepo::Locally {
     method candidates(CompUnitRepo::Locally:D: $name,:$file,:$auth,:$ver) {...}
     method short-id(CompUnitRepo::Locally:D:)                             {...}
 
-    method need(CompUnit::DependencySpecification $spec,
-        CompUnit::PrecompilationRepository $precomp = self.precomp-repository())
+    method need(
+        CompUnit::DependencySpecification $spec,
+        \GLOBALish is raw = Any,
+        CompUnit::PrecompilationRepository :$precomp = self.precomp-repository(),
+        :$line
+    )
         returns CompUnit:D
     {
         my @candidates = self.candidates($spec.short-name, :auth($spec.auth-matcher), :ver($spec.version-matcher));
         if @candidates {
-            @candidates[0].load;
+            @candidates[0].load(GLOBALish, :$line);
             return @candidates[0];
         }
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        return self.next-repo.need($spec, GLOBALish, :$precomp, :$line) if self.next-repo;
         nqp::die("Could not find $spec in $.Str");
     }
 

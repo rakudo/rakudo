@@ -76,20 +76,28 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                 nqp::die("Do not know how to load code from " ~ %opts<from>);
             }
         }
-        elsif self.candidates($module_name, :$file, :auth(%opts<auth>), :ver(%opts<ver>)) -> ($candi) {
-            $candi.load(GLOBALish, :$line)
-        }
-        elsif $file {
-            nqp::die("Could not find file '$file' for module $module_name");
-        }
         else {
-            my $from-hint := "";
-            if nqp::substr(~$module_name, nqp::rindex(~$module_name, ":") + 1) eq "from" {
-                $from-hint := "\nUse a single colon to include a module from another language.";
-            }
-            nqp::die("Could not find $module_name in any of:\n  " ~
-                join("\n  ", @*INC) ~ $from-hint);
+            return $*REPO.need(
+                CompUnit::DependencySpecification.new(
+                    :short-name($module_name),
+                    :auth-matcher(%opts<auth>),
+                    :version-matcher(%opts<ver>),
+                ),
+                GLOBALish,
+                :$line,
+            ).unit;
         }
+#        elsif $file {
+#            nqp::die("Could not find file '$file' for module $module_name");
+#        }
+#        else {
+#            my $from-hint := "";
+#            if nqp::substr(~$module_name, nqp::rindex(~$module_name, ":") + 1) eq "from" {
+#                $from-hint := "\nUse a single colon to include a module from another language.";
+#            }
+#            nqp::die("Could not find $module_name in any of:\n  " ~
+#                join("\n  ", @*INC) ~ $from-hint);
+#        }
     } ) }
 
     method ctxsave() {

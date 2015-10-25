@@ -33,8 +33,12 @@ for 1, 0 -> $array {  # 1 = [], 0 = {}
 
     say Q:a:to/SOURCE/;
 # internal 1 element @TYPE[].chop.lc() access with adverbs
-sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) {
-    my $d := CLONE-HASH-DECONTAINERIZED(%adv);
+sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
+    my Mu $d := nqp::clone(nqp::getattr(%adv,Map,'$!storage'));
+    nqp::bindkey($d,
+      nqp::unbox_s(nqp::getattr(nqp::decont($pair),Pair,'$!key')),
+      nqp::decont(nqp::getattr(nqp::decont($pair),Pair,'$!value')),
+    );
 
     my @nogo;
     my \result = do {
@@ -214,8 +218,12 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,*%adv) {
 } #SLICE_ONE_@TYPE[].chop()
 
 # internal >1 element @TYPE[].chop.lc() access with adverbs
-sub SLICE_MORE_@TYPE[]\SELF,$more,*%adv) {
-    my $d := CLONE-HASH-DECONTAINERIZED(%adv);
+sub SLICE_MORE_@TYPE[]\SELF,$more,$pair,%adv) {
+    my Mu $d := nqp::clone(nqp::getattr(%adv,Map,'$!storage'));
+    nqp::bindkey($d,
+      nqp::unbox_s(nqp::getattr(nqp::decont($pair),Pair,'$!key')),
+      nqp::decont(nqp::getattr(nqp::decont($pair),Pair,'$!value')),
+    );
     my @nogo;
 
     my \result = do {

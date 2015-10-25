@@ -92,25 +92,25 @@ multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$SINK, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$SINK), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$delete!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$delete, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$exists!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$exists, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$kv!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$kv, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$p!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$p, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$k!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$k, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$v, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$v), %other );
 }
 
 # @a[Int 1]
@@ -124,25 +124,25 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$SINK, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$SINK), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$delete!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$delete, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$exists!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$exists, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$kv!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$kv, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$p!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$p, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$k!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$k, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$v!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, :$v, |%other );
+    SLICE_ONE_LIST( SELF, $pos, (:$v), %other );
 }
 
 # @a[$x]
@@ -156,25 +156,25 @@ multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS(pos.Int, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, :$SINK, |%other );
+    SLICE_ONE_LIST( SELF, pos.Int, (:$SINK), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$delete!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, :$delete, |%other );
+    SLICE_ONE_LIST( SELF, pos.Int, (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$exists!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, :$exists, |%other );
+    SLICE_ONE_LIST( SELF, pos.Int, (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$kv!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, :$kv, |%other );
+    SLICE_ONE_LIST( SELF, pos.Int, (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$p!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, :$p, |%other );
+    SLICE_ONE_LIST( SELF, pos.Int, (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$k!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, :$k, |%other );
+    SLICE_ONE_LIST( SELF, pos.Int, (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, :$v, |%other );
+    SLICE_ONE_LIST( SELF, pos.Int, (:$v), %other );
 }
 
 # @a[@i]
@@ -263,25 +263,25 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$SINK!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$SINK, |%other );
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$SINK), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$delete!,*%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$delete, |%other );
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$exists!,*%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$exists, |%other );
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$kv!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$kv, |%other );
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$p!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$p, |%other );
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$k!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$k, |%other );
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$v!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), :$v, |%other );
+   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$v), %other );
 }
 
 # @a[->{}]
@@ -295,43 +295,43 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$SINK!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, POSITIONS(SELF,$block), :$SINK, |%other );
+    SLICE_MORE_LIST( SELF, POSITIONS(SELF,$block), (:$SINK), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is raw {
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, :$delete, |%other )
-      !! SLICE_MORE_LIST( SELF, @$pos, :$delete, |%other );
+      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$delete), %other )
+      !! SLICE_MORE_LIST( SELF, @$pos, (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$exists!,*%other) is raw {
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, :$exists, |%other )
-      !! SLICE_MORE_LIST( SELF, @$pos, :$exists, |%other );
+      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$exists), %other )
+      !! SLICE_MORE_LIST( SELF, @$pos, (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$kv!, *%other) is raw {
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, :$kv, |%other )
-      !! SLICE_MORE_LIST( SELF, @$pos, :$kv, |%other );
+      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$kv), %other )
+      !! SLICE_MORE_LIST( SELF, @$pos, (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$p!, *%other) is raw {
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, :$p, |%other )
-      !! SLICE_MORE_LIST( SELF, @$pos, :$p, |%other );
+      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$p), %other )
+      !! SLICE_MORE_LIST( SELF, @$pos, (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$k!, *%other) is raw {
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, :$k, |%other )
-      !! SLICE_MORE_LIST( SELF, @$pos, :$k, |%other );
+      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$k), %other )
+      !! SLICE_MORE_LIST( SELF, @$pos, (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$v!, *%other) is raw {
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, :$v, |%other )
-      !! SLICE_MORE_LIST( SELF, @$pos, :$v, |%other );
+      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$v), %other )
+      !! SLICE_MORE_LIST( SELF, @$pos, (:$v), %other );
 }
 
 # @a[*]
@@ -345,26 +345,26 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$SINK!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$SINK, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$SINK), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$delete!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$delete, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$exists!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$exists, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$kv!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$kv, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$p!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$p, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$k!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$k, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$v!, *%other) is raw {
     %other
-      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$v, |%other )
+      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$v), %other )
       !! SELF[^SELF.cache.elems];
 }
 
@@ -381,26 +381,26 @@ multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$SINK!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$SINK, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$SINK), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$delete!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$delete, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$exists!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$exists, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$kv!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$kv, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$p!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$p, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$k!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$k, |%other );
+    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is raw {
     %other
-      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, :$v, |%other )
+      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, (:$v), %other )
       !! SELF[^SELF.cache.elems];
 }
 multi sub postcircumfix:<[ ]>(\SELF, *%other) is raw {

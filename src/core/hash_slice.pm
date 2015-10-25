@@ -13,25 +13,25 @@ multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is raw) is raw {
     SELF.BIND-KEY(key, $BIND);
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$SINK!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, :$SINK, |%other );
+    SLICE_ONE_HASH( SELF, key, (:$SINK), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$delete!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, :$delete, |%other );
+    SLICE_ONE_HASH( SELF, key, (:$delete), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$exists!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, :$exists, |%other );
+    SLICE_ONE_HASH( SELF, key, (:$exists), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$kv!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, :$kv, |%other );
+    SLICE_ONE_HASH( SELF, key, (:$kv), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$p!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, :$p, |%other );
+    SLICE_ONE_HASH( SELF, key, (:$p), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$k!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, :$k, |%other );
+    SLICE_ONE_HASH( SELF, key, (:$k), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, :$v, |%other );
+    SLICE_ONE_HASH( SELF, key, (:$v), %other );
 }
 
 # %h<a b c>
@@ -49,25 +49,25 @@ multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$SINK!,*%other) is raw {
-    SLICE_MORE_HASH( SELF, key, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, key, (:$SINK), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$delete!,*%other) is raw {
-    SLICE_MORE_HASH( SELF, key, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, key, (:$delete), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$exists!,*%other) is raw {
-    SLICE_MORE_HASH( SELF, key, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, key, (:$exists), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$kv!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, key, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, key, (:$kv), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, key, :$p, |%other );
+    SLICE_MORE_HASH( SELF, key, (:$p), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$k!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, key, :$k, |%other );
+    SLICE_MORE_HASH( SELF, key, (:$k), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$v!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, key, :$v, |%other );
+    SLICE_MORE_HASH( SELF, key, (:$v), %other );
 }
 
 # %h{*}
@@ -81,29 +81,29 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$SINK), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$delete!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$delete), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$exists!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$exists), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$kv!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$kv), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$k!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$k), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is raw {
     %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, :$v, |%other )
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, (:$v), %other )
       !! SELF{SELF.keys.list};
 }
 
@@ -112,29 +112,29 @@ multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$SINK, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$SINK), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$delete!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$delete, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$delete), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$exists!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$exists, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$exists), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$kv!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$kv, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$kv), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$k!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$k, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$k), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, :$p, |%other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$v!, *%other) is raw {
     %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, :$v, |%other )
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, (:$v), %other )
       !! SELF{SELF.keys.list};
 }
 multi sub postcircumfix:<{ }>( \SELF, *%other ) is raw {

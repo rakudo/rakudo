@@ -1141,7 +1141,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
-    multi method trans(Pair:D \what, *%n) {
+    multi method trans(Str:D: Pair:D \what, *%n) {
         my $from = what.key;
         my $to   = what.value;
         $/ := CALLERS::('$/');

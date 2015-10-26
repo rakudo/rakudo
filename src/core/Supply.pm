@@ -805,6 +805,7 @@ my role Supply {
       :$control,
       :$status,
       :$bleed,
+      :$vent-at,
     ) {
         my $timer = Supply.interval($seconds,$delay,:$scheduler);
         my @buffer;
@@ -812,10 +813,11 @@ my role Supply {
         my int $allowed = $limit;
         my int $emitted;
         my int $bled;
+        my int $vent = $vent-at if $bleed;;
         sub emit-status($id) {
            $status.emit(
              { :$allowed, :$bled, :buffered(+@buffer),
-               :$emitted, :$id,   :$limit } );
+               :$emitted, :$id,   :$limit,  :$vent-at } );
         }
         on -> $res {
             $timer => { 
@@ -837,6 +839,9 @@ my role Supply {
                         $res.emit(val);
                         $emitted = $emitted + 1;
                         $allowed = $allowed - 1;
+                    }
+                    elsif $vent && +@buffer >= $vent {
+                        $bleed.emit(val);
                     }
                     else {
                         @buffer.push(val);
@@ -878,6 +883,13 @@ my role Supply {
                        elsif $type eq 'status' && $status {
                            emit-status($value);
                        }
+                       elsif $type eq 'vent-at' && $bleed {
+                           $vent = $value;
+                           if $vent && +@buffer > $vent {
+                               $bleed.emit(@buffer.shift)
+                                 until !@buffer || +@buffer == $vent;
+                           }
+                       }
                    },
                  })
               !! |()
@@ -891,6 +903,7 @@ my role Supply {
       :$control,
       :$status,
       :$bleed,
+      :$vent-at,
     ) {
         sleep $delay if $delay;
         my @buffer;
@@ -900,6 +913,7 @@ my role Supply {
         my int $emitted;
         my int $bled;
         my int $done;
+        my int $vent = $vent-at if $bleed;
         my $ready = Supply.new;
         sub start-process(\val) {
             my $p = Promise.start( $process, :$scheduler, val );
@@ -915,7 +929,11 @@ my role Supply {
         on -> $res {
             $self => {
                 emit => -> \val {
-                    $allowed > 0 ?? start-process(val) !! @buffer.push(val);
+                    $allowed > 0
+                      ?? start-process(val)
+                      !! $vent && $vent == +@buffer
+                        ?? $bleed.emit(val)
+                        !! @buffer.push(val);
                 },
                 done => {
                     $done = 1;
@@ -963,6 +981,13 @@ my role Supply {
                        }
                        elsif $type eq 'status' && $status {
                            emit-status($value);
+                       }
+                       elsif $type eq 'vent-at' && $bleed {
+                           $vent = $value;
+                           if $vent && +@buffer > $vent {
+                               $bleed.emit(@buffer.shift)
+                                 until !@buffer || +@buffer == $vent;
+                           }
                        }
                    },
                  })

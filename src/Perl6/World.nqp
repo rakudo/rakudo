@@ -339,6 +339,8 @@ class Perl6::World is HLL::World {
               $*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
                 %*LANG{$_.key} := $_.value;
             }
+        } elsif $setting_name ne 'NULL' {
+            self.install_lexical_symbol($*UNIT,'%?LANG',self.p6ize_recursive(%*LANG));
         }
         if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
             $*MAIN :=
@@ -739,7 +741,7 @@ class Perl6::World is HLL::World {
               'X::NYI',
               :feature(($on ?? 'use' !! 'no') ~ " $name"),
             );
-        } 
+        }
         elsif %no_args_pragma{$name} {
             if nqp::islist($arglist) {
                 self.throw($/, 'X::Pragma::NoArgs', :$name)
@@ -2752,10 +2754,10 @@ class Perl6::World is HLL::World {
                 }
                 $nok := 1;
                 CATCH {
-                    # we only get here if we 
-                    # 1) don't have a setting 
+                    # we only get here if we
+                    # 1) don't have a setting
                     # 2) look # for X::Inheritance::UnknownParent while sorta-inside X,
-                    #    e.g. "class X is nosuchtrait { }" 
+                    #    e.g. "class X is nosuchtrait { }"
                     # building the setting loops infinitely without this CATCH
                     # block when calling find_symbol with :setting-only
                 }

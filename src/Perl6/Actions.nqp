@@ -5114,10 +5114,18 @@ Compilation unit '$file' contained the following violations:
 
             # If needed, try to form a coercion type.
             if $<accept> || $<accept_any> {
-                unless nqp::istype($past, QAST::WVal) {
+                my $value;
+                if nqp::istype($past, QAST::WVal) {
+                    $value := $past.value;
+                }
+                elsif $past.has_compile_time_value {
+                    $value := $past.compile_time_value;
+                }
+                else {
                     $/.CURSOR.panic("Target type too complex to form a coercion type");
                 }
-                my $type := $*W.create_coercion_type($/, $past.value,
+
+                my $type := $*W.create_coercion_type($/, $value,
                     $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
                 $past := QAST::WVal.new( :value($type) );
             }

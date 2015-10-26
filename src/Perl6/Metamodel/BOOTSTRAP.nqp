@@ -356,9 +356,17 @@ my class Binder {
                 return $BIND_RESULT_FAIL;
             }
 
+            # Is the coercion target generic and in need of instantiation? (This
+            # can happen in (::T, T) where we didn't learn about the type until
+            # during the signature bind).
+            my $coerce_method := nqp::getattr($param, Parameter, '$!coerce_method');
+            if $coerce_type.HOW.archetypes.generic {
+                $coerce_type   := $coerce_type.HOW.instantiate_generic($coerce_type, $lexpad);
+                $coerce_method := $coerce_type.HOW.name($coerce_type);
+            }
+
             # Only coerce if we don't already have the correct type.
             unless nqp::istype($oval, $coerce_type) {
-                my $coerce_method := nqp::getattr($param, Parameter, '$!coerce_method');
                 if nqp::can($oval, $coerce_method) {
                     $oval := $oval."$coerce_method"();
                 }

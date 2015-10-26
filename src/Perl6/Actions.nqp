@@ -7374,6 +7374,9 @@ Compilation unit '$file' contained the following violations:
             # Handle coercion.
             my $coerce_to := nqp::getattr($param_obj, $Param, '$!coerce_type');
             unless nqp::isnull($coerce_to) {
+                if $coerce_to.HOW.archetypes.generic {
+                    return 0;
+                }
                 $var.push(QAST::Op.new(
                     :op('unless'),
                     QAST::Op.new(

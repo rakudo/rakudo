@@ -948,7 +948,7 @@ multi sub infix:<xx>(Mu \x, Int() $n, :$thunked!) {
     my int $todo = $n;
     my Mu $pulled;
     my Mu $list := nqp::list();
-    while $todo {
+    while $todo > 0 {
         $pulled := x.();
         if nqp::istype($pulled,Slip) {
             nqp::push($list, $_) for $pulled;

@@ -16,13 +16,13 @@ multi sub await(Channel:D $c)  { $c.receive }
 multi sub await(Supply:D $s)   { $s.await }
 multi sub await(*@awaitables)  { @awaitables.eager.map({await $_}) }
 
-sub awaiterator(@awaitables) {
+sub awaiterator(@promises) {
     Seq.new(class :: does Iterator {
         has @!todo;
         has @!done;
         method BUILD(\todo) { @!todo = todo; self }
         method new(\todo) { nqp::create(self).BUILD(todo) }
-        method pull-one() {
+        method pull-one() is raw {
             if @!done {
                 @!done.shift
             }
@@ -40,7 +40,8 @@ sub awaiterator(@awaitables) {
                 IterationEnd
             }
         }
-    }.new(@awaitables))
+        method sink-all() { Promise.allof(@promises).result }
+    }.new(@promises))
 }
 
 sub cas (\val,&code) { val = code(val) } # naive implementation of cas

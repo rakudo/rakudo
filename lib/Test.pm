@@ -611,9 +611,6 @@ END {
     elsif !$no_plan && ($num_of_tests_planned or $num_of_tests_run) && $num_of_tests_planned != $num_of_tests_run {
         exit(255);
     }
-    else {
-        exit(0);
-    }
 }
 
 =begin pod

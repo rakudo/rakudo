@@ -96,10 +96,10 @@ multi sub redo(Label:D \x) { x.redo }
 
 proto sub succeed(|) { * }
 multi sub succeed()   { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
-multi sub succeed(\x) { THROW(nqp::const::CONTROL_SUCCEED, nqp::decont(x)) }
+multi sub succeed(\x) { THROW(nqp::const::CONTROL_SUCCEED, x) }
 multi sub succeed(|) {
     my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW( nqp::const::CONTROL_SUCCEED, nqp::decont($list));
+    THROW( nqp::const::CONTROL_SUCCEED, $list);
 }
 
 sub proceed() { THROW-NIL(nqp::const::CONTROL_PROCEED) }

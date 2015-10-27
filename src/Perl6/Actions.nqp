@@ -4192,8 +4192,13 @@ Compilation unit '$file' contained the following violations:
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
 
-        if (%*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol> || %*PARAM_INFO<pos_onearg>) && $<type_constraint> {
-            $/.CURSOR.sorry("Slurpy positionals with type constraints are not supported.");
+        if $<type_constraint> {
+            if %*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol> || %*PARAM_INFO<pos_onearg> {
+                $/.CURSOR.typed_sorry('X::Parameter::TypedSlurpy', kind => 'positional');
+            }
+            elsif %*PARAM_INFO<named_slurpy> {
+                $/.CURSOR.typed_sorry('X::Parameter::TypedSlurpy', kind => 'named');
+            }
         }
 
         # Result is the parameter info hash.

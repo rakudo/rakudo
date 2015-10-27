@@ -1008,6 +1008,13 @@ my class X::Parameter::RW is Exception {
     }
 }
 
+my class X::Parameter::TypedSlurpy does X::Comp {
+    has $.kind;
+    method message() {
+        "Slurpy $.kind parameters with type constraints are not supported"
+    }
+}
+
 my class X::Signature::NameClash does X::Comp {
     has $.name;
     method message() {

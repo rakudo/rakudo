@@ -608,7 +608,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method Capture() {
-        $!todo.reify-all() if $!todo.DEFINITE;
+        fail X::Cannot::Lazy.new(:action('create a Capture from'))
+            if self.is-lazy;
         my $cap := nqp::create(Capture);
         nqp::bindattr($cap, Capture, '$!list', $!reified);
 

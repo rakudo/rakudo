@@ -9,13 +9,14 @@ class CompUnit {
     has Bool $.has-source;
     has Bool $.has-precomp;
     has Bool $.is-loaded;
-    has Mu   $!module_ctx;
-    has      $.unit;
 
     # The CompUnit::Repository that loaded this CompUnit.
     has CompUnit::Repository $.repo is required;
     # That repository's identifier for the compilation unit. This is not globally unique.
     # has Str:D $.repo-id is required;
+
+    # The low-level handle.
+    has CompUnit::Handle $.handle; # is required;
 
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';
@@ -154,11 +155,8 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                 if %chosen<load> {
                     $trace<precompiled> = %chosen<load>;
                     RAKUDO_MODULE_DEBUG("loading ", %chosen<load>) if $DEBUG;
-                    my %*COMPILING := nqp::hash();
                     my $*CTXSAVE := self;
-                    my $*MAIN_CTX;
-                    nqp::loadbytecode(%chosen<load>);
-                    $!module_ctx := $*MAIN_CTX;
+                    $!handle := CompUnit::Loader.load-precompilation-file(%chosen<load>);
                     RAKUDO_MODULE_DEBUG("  done: ", %chosen<load>) if $DEBUG;
                 }
                 else {
@@ -172,19 +170,9 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
 
                     # Read source file.
                     RAKUDO_MODULE_DEBUG("loading ", %chosen<pm>) if $DEBUG;
-                    my $fh := nqp::open(%chosen<pm>, 'r');
-                    nqp::setencoding($fh, 'utf8');
-                    my $source := nqp::readallfh($fh);
-                    nqp::closefh($fh);
 
-                    # Get the compiler and compile the code, then run it
-                    # (which runs the mainline and captures UNIT).
-                    my $?FILES   := %chosen<pm>;
-                    my $eval     := nqp::getcomp('perl6').compile($source);
                     my $*CTXSAVE := self;
-                    my $*MAIN_CTX;
-                    $eval();
-                    $!module_ctx := $*MAIN_CTX;
+                    $!handle := CompUnit::Loader.load-source-file(%chosen<pm>);
                     RAKUDO_MODULE_DEBUG("done: ", %chosen<pm>) if $DEBUG;
                 }
 
@@ -200,21 +188,16 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
             }
 
             # Provided we have a mainline and need to do global merging...
-            if nqp::defined($!module_ctx) {
+            my $globalish := $!handle.globalish-package;
+            if $globalish !=== Stash {
                 # Merge any globals.
-                my $UNIT := nqp::ctxlexpad($!module_ctx);
-                if GLOBALish.^name eq 'GLOBAL' {
-                    unless nqp::isnull(nqp::atkey($UNIT, 'GLOBALish')) {
-                        nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(
-                            GLOBALish, nqp::atkey($UNIT, 'GLOBALish'));
-                    }
-                }
-                $!unit := $UNIT;
-            }
-            else {
-                $!unit := {};
+                nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(GLOBALish, $globalish);
             }
     } ) }
+
+    method unit() {
+        $.handle.unit
+    }
 
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());

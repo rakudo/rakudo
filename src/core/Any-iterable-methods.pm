@@ -1389,6 +1389,8 @@ augment class Any {
 
                 $!lastn := nqp::list();
                 $!size   = size;
+                nqp::setelems($!lastn,$!size);  # presize list
+                nqp::setelems($!lastn,0);
                 self
             }
             method new(\list,\size) { nqp::create(self).BUILD(list,size) }

@@ -27,9 +27,6 @@ my @clo := $comp.commandline_options();
 @clo.push('I=s');
 @clo.push('M=s');
 
-# Bump up recursion limit, for VMs that have one.
-$comp.recursion_limit(100000);
-
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('perl6', '@END_PHASERS', []);
 

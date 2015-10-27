@@ -464,9 +464,6 @@ sub MAIN(*@ARGS) {
     my $COMPILER_CONFIG := $comp.config;
     nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
     
-    # Bump up recursion limit, for VMs that have one.
-    $comp.recursion_limit(100000);
-    
     # Add extra command line options.
     my @clo := $comp.commandline_options();
     @clo.push('setting=s');

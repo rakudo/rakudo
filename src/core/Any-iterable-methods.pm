@@ -1,3 +1,5 @@
+class X::Cannot::Lazy { ... }
+
 # Now that Iterable is defined, we add extra methods into Any for the list
 # operations. (They can't go into Any right away since we need Attribute to
 # define the various roles, and Attribute inherits from Any. We will do a
@@ -1354,6 +1356,75 @@ augment class Any {
                 take $it => $it-value;
             }
         }
+    }
+
+    proto method head(|) { * }
+    multi method head(Any:D: Int:D $n) {
+        Seq.new( class :: does Iterator {
+            has Mu  $!iter;
+            has int $!todo;
+            method BUILD(\list,\todo) {
+                $!iter = as-iterable(list).iterator;
+                $!todo = todo min 0;
+                self
+            }
+            method new(\list,\todo) { nqp::create(self).BUILD(list,todo) }
+            method pull-one() is raw {
+                $!todo-- ?? $!iter.pull-one() !! IterationEnd
+            }
+        }.new(self,$n))
+    }
+
+    proto method tail(|) { * }
+    multi method tail(Any:D: Int:D $n) {
+        Seq.new( class :: does Iterator {
+            has Mu $!iter;
+            has Mu $!lastn;
+            has int $!size;
+            has int $!todo;
+            has int $!index;
+            method BUILD(\list,\size) {
+                $!iter = as-iterable(list).iterator;
+                fail X::Cannot::Lazy.new(:action<tail>) if $!iter.is-lazy;;
+
+                $!lastn := nqp::list();
+                $!size   = size;
+                self
+            }
+            method new(\list,\size) { nqp::create(self).BUILD(list,size) }
+            method !next() is raw {
+                my int $index = $!index;
+                $!index = ($!index + 1) % $!size;
+                $!todo  = $!todo - 1;
+                nqp::atpos($!lastn,$index)
+            }
+            method pull-one() is raw {
+                if $!todo {
+                    self!next();
+                }
+                elsif $!iter.DEFINITE {
+                    my Mu $pulled;
+                    my int $index;
+                    my int $size = $!size;
+                    until ($pulled := $!iter.pull-one) =:= IterationEnd {
+                        nqp::bindpos($!lastn,$index,$pulled);
+                        $index = ($index + 1) % $size;
+                    }
+                    if nqp::elems($!lastn) == $!size {   # full set for tail
+                        $!index = $index;
+                        $!todo  = $!size;
+                    }
+                    else {  # not a full tail, $!index already 0
+                        $!todo = nqp::elems($!lastn);
+                    }
+                    $!iter := Mu;  # mark we're done iterating
+                    self!next()
+                }
+                else {
+                    IterationEnd
+                }
+            }
+        }.new(self,$n))
     }
 
     proto method grep-index(|) is nodal { * }

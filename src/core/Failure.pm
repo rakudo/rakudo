@@ -50,7 +50,7 @@ my class Failure {
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
-    method Int(Failure:D:)        { $!handled ?? 0   !! self!throw(); }
+    method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }
     method Num(Failure:D:)        { $!handled ?? NaN !! self!throw(); }
     method Numeric(Failure:D:)    { $!handled ?? NaN !! self!throw(); }
     multi method Str(Failure:D:)  { $!handled ?? $.mess !! self!throw(); }

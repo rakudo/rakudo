@@ -51,12 +51,12 @@ my class Failure {
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
     method Int(Failure:D:)        { $!handled ?? 0   !! self!throw(); }
-    method Num(Failure:D:)        { $!handled ?? 0e0 !! self!throw(); }
-    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! self!throw(); }
-    multi method Str(Failure:D:)  { $!handled ?? ''  !! self!throw(); }
+    method Num(Failure:D:)        { $!handled ?? NaN !! self!throw(); }
+    method Numeric(Failure:D:)    { $!handled ?? NaN !! self!throw(); }
+    multi method Str(Failure:D:)  { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:D:) { $!handled ?? $.mess !! self!throw(); }
     method mess (Failure:D:) {
-        self.exception.message ~ "\n" ~ self.backtrace;
+        "(HANDLED) " x $!handled ~ self.exception.message ~ "\n" ~ self.backtrace;
     }
 
     method sink(Failure:D:) {

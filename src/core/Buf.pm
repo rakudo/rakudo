@@ -391,20 +391,10 @@ multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $bdc := nqp::decont($b);
     my int $alen = nqp::elems($adc);
     my int $blen = nqp::elems($bdc);
-    nqp::setelems($res, $alen + $blen);
-    my int $s = 0;
-    my int $d = 0;
-    while $s < $alen {
-        nqp::bindpos_i($res, $d, nqp::atpos_i($adc, $s));
-        $s = $s + 1;
-        $d = $d + 1;
-    }
-    $s = 0;
-    while $s < $blen {
-        nqp::bindpos_i($res, $d, nqp::atpos_i($bdc, $s));
-        $s = $s + 1;
-        $d = $d + 1;
-    }
+
+    nqp::splice($res, $a, 0, $alen);
+    nqp::splice($res, $b, $alen, $blen);
+
     $res
 }
 

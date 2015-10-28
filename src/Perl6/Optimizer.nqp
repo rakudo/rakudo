@@ -1044,6 +1044,19 @@ class Perl6::Optimizer {
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
+        if $optype eq 'p6for' {
+            my $theop := $op[0];
+            if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
+
+            if nqp::istype($theop, QAST::Op) && nqp::existskey(%range_bounds, $theop.name) && $!symbols.is_from_core($theop.name) {
+                self.optimize_for_range($op, $op[1], $theop);
+                self.visit_op_children($op);
+                return $op;
+            }
+        }
+
+        # It could also be that the user explicitly spelled out the for loop
+        # with a method call to "map".
         if $optype eq 'callmethod' && $op.name eq 'sink' &&
               nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
                 (nqp::istype((my $c1 := $op[0][0]), QAST::Op) &&
@@ -1052,7 +1065,7 @@ class Perl6::Optimizer {
                         nqp::istype(($c1 := $op[0][0][0]), QAST::Op) &&
                         nqp::existskey(%range_bounds, $c1.name)) &&
               $!symbols.is_from_core($c1.name) {
-            self.optimize_for_range($op, $c1);
+            self.optimize_for_range($op, $op[0][1], $c1);
             self.visit_op_children($op);
             return $op;
         }
@@ -1583,8 +1596,7 @@ class Perl6::Optimizer {
         }
     }
 
-    method optimize_for_range($op, $c2) {
-        my $callee  := $op[0][1];
+    method optimize_for_range($op, $callee, $c2) {
         my $code    := $callee.ann('code_object');
         my $count   := $code.count;
         my $block   := $!symbols.Block;

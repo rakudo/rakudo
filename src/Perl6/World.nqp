@@ -3214,7 +3214,11 @@ class Perl6::World is HLL::World {
                     # Safe to evaluate it directly; no bootstrap issues.
                     $cp_str := ':' ~ self.canonicalize_opname(self.compile_time_evaluate($_, $_.ast));
                 }
-                @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
+                if +@components {
+                    @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
+                } else {
+                    @components[0] := $cp_str;
+                }
             }
             else {
                 @pairs.push($_);

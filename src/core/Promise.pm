@@ -72,7 +72,7 @@ my class Promise {
             self!schedule_thens();
             $!cond.signal_all;
         });
-        $!result
+        Nil
     }
 
     proto method break(|) { * }
@@ -92,6 +92,7 @@ my class Promise {
             self!schedule_thens();
             $!cond.signal_all;
         });
+        Nil
     }
 
     method !schedule_thens() {

@@ -349,7 +349,7 @@ role STD {
                     }
                 }
                 else {
-                    my $categorical := ~$var ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
+                    my $categorical := $varast.name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
                     if $categorical {    # Does it look like a metaop?
                         my $cat := ~$categorical[0][0];
                         my $op := ~$categorical[0][1];

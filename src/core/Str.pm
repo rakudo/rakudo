@@ -241,18 +241,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # under concatenation closure, which ruins round-tripping.
         my $result = '"';
         my $to-encode = self;
-        if nqp::chars($to-encode) {
-            my int $opener = ord(self);
-#?if moar
-            if $opener >= 256 && +uniprop($opener, 'Canonical_Combining_Class') {
-                $result ~= char-to-escapes(self.substr(0, 1));
-                $to-encode = self.substr(1);
-            }
-#?endif
-        }
 
         for ^$to-encode.chars -> $i {
-            my $ch = substr($to-encode, $i, 1);
+            my $ch = nqp::substr($to-encode, $i, 1);
+            my int $ord = nqp::ord($ch);
+#?if moar
+            if $ord >= 256 && +uniprop($ord, 'Canonical_Combining_Class') {
+                $result ~= char-to-escapes($ch);
+                next;
+            }
+#?endif
             $result ~= %esc{$ch}
                        //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0)

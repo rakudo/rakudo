@@ -765,57 +765,229 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method split(Str:D: Cool:D $delimiter, $limit = *;; :$all) {
-        my $delim-str        = $delimiter.Str;
-        my str $self-string  = self;
-        my str $match-string = $delim-str;
-        return ().list unless nqp::chars($self-string) || nqp::chars($match-string);
+    multi method split(Str:D: Str(Cool) $match;; :$all) {
 
-        my int $l = nqp::istype($limit, Whatever) || $limit == Inf
-            ?? nqp::chars($self-string) + 1
-            !! $limit.Int;
-        return ().list     if $l <= 0;
-        return (self).list if $l == 1;
+        # nothing to work with
+        my int $chars = $match.chars;
+        if !self.chars {
+            return $chars ?? self.list !! ();
+        }
 
-        my int $c = 0;
-        my int $done = 0;
-        if nqp::chars($match-string) {
-            my int $width = nqp::chars($match-string);
-            map {
-                last if $done;
+        Seq.new(class :: does Iterator {
+            has str $!match;
+            has Mu $!matches;
+            method BUILD(\string, \match, \all) {
+                $!match       = nqp::unbox_s(match);
+                my int $chars = nqp::chars($!match);
+                $!matches    := nqp::split($!match,nqp::unbox_s(string));
 
-                my int $m = nqp::index($self-string, $match-string, $c);
-                if $m >= 0 and ($l = $l - 1) {
-                    my \value = nqp::p6box_s(nqp::substr($self-string, $c, $m - $c));
-                    $c = $m + $width;
-                    $all ?? Slip.new(value, $match-string) !! value;
+                # interleave the match string if needed
+                if all && $chars {
+                    my $match-list := nqp::list($!match);
+                    my int $i = nqp::elems($!matches);
+                    nqp::splice($!matches,$match-list,$i,0)
+                      while $i = $i - 1;
                 }
-                else {
-                    $done = 1;
-                    nqp::p6box_s(nqp::substr($self-string, $c));
+                unless $chars {
+                    nqp::unshift($!matches,"");
+                    nqp::push($!matches,"");
                 }
-            }, 1 .. $l;
-        } else {
-            # Add one more to the limit to get the trailing empty string
-            $l = $l + 1 if nqp::istype($limit, Whatever) || $limit == Inf;
-            my int $chars = nqp::chars($self-string);
-            map {
-                last if $done;
+                self
+            }
+            method new(\string,\match,\all) {
+                nqp::create(self).BUILD(string,match,all)
+            }
+            method pull-one() is raw {
+                nqp::elems($!matches)
+                  ?? nqp::p6box_s(nqp::shift($!matches))
+                  !! IterationEnd
+            }
+            method push-all($target) {
+                $target.push(nqp::p6box_s(nqp::shift($!matches)))
+                  while nqp::elems($!matches);
+                IterationEnd
+            }
+            method count-only() {
+                nqp::p6box_i(nqp::elems($!matches))
+            }
+            method sink-all() { IterationEnd }
+        }.new(self,$match,$all));
+    }
 
-                if $_ == 1 {
-                    $l = $l - 1;
-                    ""
-                } elsif $chars > 0 && $l > 1 {
-                    $chars = $chars - 1; $l = $l - 1;
-                    my \value = nqp::p6box_s(nqp::substr($self-string, $c, 1));
-                    $c = $c + 1;
-                    value
+    multi method split(Str:D: Str(Cool) $match, $parts;; :$all) {
+
+        # don't do it here
+        my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
+        return self.split($match,:$all) if $limit == Inf;
+
+        # nothing to work with
+        my int $chars = $match.chars;
+        if !self.chars {
+            return $chars ?? self.list !! ()
+        }
+
+        # nothing to do
+        elsif $limit < 2 {
+            return $limit <= 0 ?? () !! self.list
+        }
+
+        elsif $chars {
+            Seq.new(class :: does Iterator {
+                has str $!string;
+                has str $!chars;
+                has str $!match;
+                has int $!match-chars;
+                has int $!todo;
+                has int $!all;
+                has int $!pos;
+                has int $!do-match;
+                method BUILD(\string, \match, \todo, \all) {
+                    $!string      = nqp::unbox_s(string);
+                    $!chars       = nqp::chars($!string);
+                    $!match       = nqp::unbox_s(match);
+                    $!match-chars = nqp::chars($!match);
+                    $!todo        = todo - 1;
+                    $!all         = ?all;
+                    self
                 }
-                else {
-                    $done = 1;
-                    nqp::p6box_s(nqp::substr($self-string, $c));
+                method new(\string,\match,\todo,\all) {
+                    nqp::create(self).BUILD(string,match,todo,all)
                 }
-            }, 1 .. $l;
+                method !last-part() is raw {
+                    my str $string = nqp::substr($!string,$!pos);
+                    $!pos = $!chars;
+                    $!todo = 0;
+                    nqp::p6box_s($string)
+                }
+                method !next-part(int $found) is raw {
+                    my str $string =
+                      nqp::substr($!string,$!pos, $found - $!pos);
+                    $!pos = $found + $!match-chars;
+                    nqp::p6box_s($string);
+                }
+                method pull-one() is raw {
+                    if $!do-match {
+                        $!do-match = 0;
+                        nqp::p6box_s($!match)
+                    }
+                    elsif $!todo {
+                        $!todo = $!todo - 1;
+                        my int $found = nqp::index($!string,$!match,$!pos);
+                        if $found < 0 {
+                            $!pos < $!chars ?? self!last-part !! IterationEnd
+                        }
+                        else {
+                            $!do-match = $!all;
+                            self!next-part($found);
+                        }
+                    }
+                    elsif $!pos < $!chars {
+                        self!last-part
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+                method push-all($target) {
+                    if $!all {
+                        while $!todo {
+                            my int $found = nqp::index($!string,$!match,$!pos);
+                            if $found < 0 {
+                                $!todo = 0;
+                            }
+                            else {
+                                $target.push(self!next-part($found));
+                                $target.push(nqp::p6box_s($!match));
+                                $!todo = $!todo - 1;
+                            }
+                        }
+                    }
+                    else {
+                        while $!todo {
+                            $!todo = $!todo - 1;
+                            my int $found = nqp::index($!string,$!match,$!pos);
+                            $found < 0
+                              ?? $!todo = 0
+                              !! $target.push(self!next-part($found));
+                        }
+                    }
+                    $target.push(self!last-part) if $!pos < $!chars;
+                    IterationEnd
+                }
+                method sink-all() { IterationEnd }
+            }.new(self,$match,$limit,$all));
+        }
+
+        # just separate chars
+        else {
+            Seq.new(class :: does Iterator {
+                has str $!string;
+                has int $!todo;
+                has int $!all;
+                has int $!chars;
+                has int $!pos;
+                has int $!first;
+                has int $!last;
+                method BUILD(\string, \todo) {
+                    $!string = nqp::unbox_s(string);
+                    $!chars  = nqp::chars($!string);
+                    $!todo   = todo;
+                    $!first  = 1;
+
+                    if $!todo > $!chars + 2 {  # will return all chars
+                        $!todo = $!chars + 1;
+                        $!last = 1;
+                    }
+                    else {
+                        $!todo = $!todo - 1;
+                        $!last = ($!todo == $!chars + 1);
+                    }
+                    self
+                }
+                method new(\string,\todo) {
+                    nqp::create(self).BUILD(string,todo)
+                }
+                method pull-one() is raw {
+                    if $!first {             # do empty string first
+                        $!first = 0;
+                        $!todo  = $!todo - 1;
+                        ""
+                    }
+                    elsif $!todo {           # next char
+                        $!todo = $!todo - 1;
+                        nqp::p6box_s(nqp::substr($!string,$!pos++,1))
+                    }
+                    elsif $!last {           # do final empty string
+                        $!last = 0;
+                        ""
+                    }
+                    elsif $!pos < $!chars {  # do rest of string
+                        my str $rest = nqp::substr($!string,$!pos);
+                        $!pos = $!chars;
+                        nqp::p6box_s($rest)
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+                method push-all($target) {
+                    $target.push("");
+                    $!todo = $!todo - 1;
+                    while $!todo {
+                        $target.push(
+                          nqp::p6box_s(nqp::substr($!string,$!pos++,1)));
+                        $!todo = $!todo - 1;
+                    }
+                    $target.push( nqp::p6box_s(nqp::substr($!string,$!pos)))
+                      if $!pos < $!chars;
+                    $target.push("") if $!last;
+                    IterationEnd
+                }
+                method count-only() {
+                    nqp::p6box_i($!todo + $!first + $!last)
+                }
+                method sink-all() { IterationEnd }
+            }.new(self,$limit));
         }
     }
 

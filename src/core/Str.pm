@@ -907,7 +907,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             $!todo = $!todo - 1;
                             my int $found = nqp::index($!string,$!match,$!pos);
                             $found < 0
-                              ?? $!todo = 0
+                              ?? ($!todo = 0)
                               !! $target.push(self!next-part($found));
                         }
                     }

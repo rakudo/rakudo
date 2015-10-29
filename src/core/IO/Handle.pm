@@ -531,12 +531,13 @@ my class IO::Handle does IO {
             has $!close;
             has str $!str;
             has int $!pos;
+            has int $!searching;
 
             submethod BUILD(\handle, $!close) {
-                $!handle := handle;
-                $!str = self!readcharsfh();
-                $!pos = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $!str, 0, nqp::chars($!str));
+                $!handle   := handle;
+                $!searching = 1;
+                $!str       = ""; # RT #126492
+                self!next-chunk;
                 self
             }
             method new(\handle, \close) {
@@ -555,22 +556,28 @@ my class IO::Handle does IO {
 #?endif
             }
 
-            method !next-chunk(\chars) {
-                $!str = $!pos < chars
-                  ?? nqp::concat(nqp::substr($!str,$!pos),self!readcharsfh)
-                  !! self!readcharsfh;
-                chars = nqp::chars($!str);
-                $!pos = chars
-                  ?? nqp::findnotcclass(
-                       nqp::const::CCLASS_WHITESPACE, $!str, 0, chars)
-                  !! 0;
+            method !next-chunk() {
+                my int $chars = nqp::chars($!str);
+                $!str = $!pos < $chars ?? nqp::substr($!str,$!pos) !! "";
+                $chars = nqp::chars($!str);
+
+                while $!searching {
+                    $!str = nqp::concat($!str,self!readcharsfh);
+                    my int $new = nqp::chars($!str);
+                    $!searching = 0 if $new == $chars; # end
+                    $!pos = ($chars = $new)
+                      ?? nqp::findnotcclass(
+                           nqp::const::CCLASS_WHITESPACE, $!str, 0, $chars)
+                      !! 0;
+                    last if $!pos < $chars;
+                }
             }
             method pull-one() {
                 my int $chars;
                 my int $left;
                 my int $nextpos;
 
-                while $chars = nqp::chars($!str) {
+                while ($chars = nqp::chars($!str)) && $!searching {
                     while ($left = $chars - $!pos) > 0 {
                         $nextpos = nqp::findcclass(
                           nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
@@ -583,43 +590,24 @@ my class IO::Handle does IO {
 
                         return nqp::p6box_s($found);
                     }
-                    self!next-chunk($chars);
+                    self!next-chunk;
                 }
-                $!handle.close if $!close;
-                IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my int $found;
-                my int $chars;
-                my int $left;
-                my int $nextpos;
-
-                while $chars = nqp::chars($!str) {
-                    while ($left = $chars - $!pos) > 0 {
-                        $nextpos = nqp::findcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
-                        last unless $left = $chars - $nextpos; # broken word
-
-                        $target.push(nqp::p6box_s(
-                          nqp::substr($!str, $!pos, $nextpos - $!pos)
-                        ));
-                        $!pos = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
-
-                        $found = $found + 1;
-                        return nqp::p6box_i($n) if $found == $n;
-                    }
-                    self!next-chunk($chars);
+                if $!pos < $chars {
+                    my str $found = nqp::substr($!str,$!pos);
+                    $!pos = $chars;
+                    nqp::p6box_s($found)
                 }
-                $!handle.close if $close;
-                nqp::p6box_i($found)
+                else {
+                    $!handle.close if $!close;
+                    IterationEnd
+                }
             }
             method push-all($target) {
                 my int $chars;
                 my int $left;
                 my int $nextpos;
 
-                while $chars = nqp::chars($!str) {
+                while ($chars = nqp::chars($!str)) && $!searching {
                     while ($left = $chars - $!pos) > 0 {
                         $nextpos = nqp::findcclass(
                           nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
@@ -632,8 +620,10 @@ my class IO::Handle does IO {
                         $!pos = nqp::findnotcclass(
                           nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
                     }
-                    self!next-chunk($chars);
+                    self!next-chunk;
                 }
+                $target.push(nqp::p6box_s(nqp::substr($!str,$!pos)))
+                  if $!pos < $chars;
                 $!handle.close if $close;
                 IterationEnd
             }
@@ -643,7 +633,7 @@ my class IO::Handle does IO {
                 my int $left;
                 my int $nextpos;
 
-                while $chars = nqp::chars($!str) {
+                while ($chars = nqp::chars($!str)) && $!searching {
                     while ($left = $chars - $!pos) > 0 {
                         $nextpos = nqp::findcclass(
                           nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
@@ -654,8 +644,9 @@ my class IO::Handle does IO {
                         $!pos = nqp::findnotcclass(
                           nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
                     }
-                    self!next-chunk($chars);
+                    self!next-chunk;
                 }
+                $found = $found + 1 if $!pos < $chars;
                 $!handle.close if $!close;
                 nqp::p6box_i($found)
             }

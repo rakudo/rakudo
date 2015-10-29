@@ -349,7 +349,34 @@ role STD {
                     }
                 }
                 else {
-                    $var.CURSOR.add_mystery($name, $var.to, 'var');
+                    my $categorical := ~$var ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
+                    if $categorical {    # Does it look like a metaop?
+                        my $cat := ~$categorical[0][0];
+                        my $op := ~$categorical[0][1];
+                        my $lang := self.'!cursor_init'($op, :p(0));
+                        my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;
+                        $meth := 'term:sym<reduce>' if $cat eq 'prefix' && $op ~~ /^ \[ .* \] $ /;
+                        # nqp::printfh(nqp::getstderr(), "$meth $op\n");
+                        my $cursor := $lang."$meth"();
+                        my $match := $cursor.MATCH;
+                        if $cursor.pos == nqp::chars($op) && (
+                            $match<infix_prefix_meta_operator> ||
+                            $match<infix_circumfix_meta_operator> ||
+                            $match<infix_postfix_meta_operator> ||
+                            $match<prefix_postfix_meta_operator> ||
+                            $match<postfix_prefix_meta_operator> ||
+                            $match<op>)
+                        {
+                            # nqp::printfh(nqp::getstderr(), $match.ast.dump);
+                            self.NYI("Autogeneration of $op $cat");
+                        }
+                        else {
+                            $var.CURSOR.add_mystery($name, $var.to, 'var');
+                        }
+                    }
+                    else {
+                        $var.CURSOR.add_mystery($name, $var.to, 'var');
+                    }
                 }
             }
             else {

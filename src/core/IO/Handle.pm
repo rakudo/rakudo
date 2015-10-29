@@ -854,6 +854,7 @@ my class IO::Handle does IO {
                     emit $buf;
                     nqp::readfh($!PIO, $buf, $bytes);
                 }
+                done;
             }
         }
         else {
@@ -864,6 +865,7 @@ my class IO::Handle does IO {
                     emit nqp::p6box_s($str);
                     $str = self!readcharsfh($chars);
                 }
+                done;
             }
         }
     }

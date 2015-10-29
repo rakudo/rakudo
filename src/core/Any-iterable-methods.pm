@@ -1253,7 +1253,7 @@ augment class Any {
                     $!first = 0;
                 }
                 else {
-                    until IterationEnd =:= $value || !with($which,$!last) {
+                    until (IterationEnd =:= $value) || !with($which,$!last) {
                         $value := $!iter.pull-one;
                         $which = &!as($value);
                     }
@@ -1304,7 +1304,7 @@ augment class Any {
                 }
                 else {
                     $value := $!iter.pull-one
-                      until IterationEnd =:= $value || !with($value,$!last);
+                      until (IterationEnd =:= $value) || !with($value,$!last);
                 }
                 $!last = $value
             }

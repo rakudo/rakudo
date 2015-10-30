@@ -88,25 +88,19 @@ my class Range is Cool does Iterable does Positional {
 
     method iterator() {
         # Obtain starting value.
-        my $value = $!excludes-min ?? $!min.succ !! $!min;
-
-        # Iterating a Str range delegates to iterating a sequence.
-        if nqp::istype($value, Str) {
-            $value after $!max
-                ?? ().iterator
-                !! SEQUENCE($value, $!max, :exclude_end($!excludes-max)).iterator
-        }
+        my $min = $!excludes-min ?? $!min.succ !! $!min;
+        my $max = $!excludes-max ?? $!max.pred !! $!max;
 
         # If the value and the maximum are both integers and fit in a native
         # int, we have a really cheap approach.
-        elsif nqp::istype($value, Int) && nqp::istype($!max, Int) &&
-              !nqp::isbig_I(nqp::decont($value)) && !nqp::isbig_I(nqp::decont($!max)) {
+        if nqp::istype($min,Int)  && !nqp::isbig_I(nqp::decont($min))
+          && nqp::istype($max,Int) && !nqp::isbig_I(nqp::decont($max)) {
             class :: does Iterator {
                 has int $!i;
                 has int $!n;
 
-                method BUILD(int $i, int $n) { $!i = $i - 1; $!n = $n; self }
-                method new(\i,\n) { nqp::create(self).BUILD(i,n) }
+                method BUILD(\i,\n) { $!i = i - 1; $!n = n; self }
+                method new(\i,\n)   { nqp::create(self).BUILD(i,n) }
 
                 method pull-one() {
                     ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
@@ -133,30 +127,54 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $i;
                     IterationEnd
                 }
-                method sink-all() {
-                    $!i = $!n;
-                    IterationEnd
-                }
-            }.new($value, $!excludes-max ?? $!max - 1 !! $!max)
+                method count-only() { nqp::p6box_i($!n - $!i + 1) }
+                method sink-all()   { $!i = $!n; IterationEnd }
+            }.new($min, $max)
         }
 
         # Also something quick and easy for 1..* style things.
-        elsif nqp::istype($value, Numeric) && $!max === Inf {
+        elsif nqp::istype($min, Numeric) && $max === Inf {
             class :: does Iterator {
                 has $!i;
 
                 method new($i is copy) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!i', $i);
                     iter
                 }
 
-                method pull-one() {
-                    $!i++
-                }
+                method pull-one() { $!i++ }
+                method is-lazy()  { True  }
+            }.new($min)
+        }
 
-                method is-lazy() { True }
-            }.new($value)
+        # if we have simple char range
+        elsif nqp::istype($min,Str) && $min.chars == 1
+           && nqp::istype($max,Str) && $max.chars == 1 {
+            class :: does Iterator {
+                has int $!i;
+                has int $!n;
+
+                method BUILD(\from,\end) {
+                    $!i = nqp::ord(nqp::unbox_s(from)) - 1;
+                    $!n = nqp::ord(nqp::unbox_s(end));
+                    self
+                }
+                method new(\from,\end) { nqp::create(self).BUILD(from,end) }
+
+                method pull-one() {
+                    ( $!i = $!i + 1 ) <= $!n ?? nqp::chr($!i) !! IterationEnd
+                }
+                method push-all($target) {
+                    my int $i = $!i;
+                    my int $n = $!n;
+                    $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
+                    $!i = $i;
+                    IterationEnd
+                }
+                method count-only() { nqp::p6box_i($!n - $!i + 1) }
+                method sink-all()   { $!i = $!n; IterationEnd }
+            }.new($min,$max)
         }
 
         # General case according to spec
@@ -164,14 +182,16 @@ my class Range is Cool does Iterable does Positional {
             class :: does Iterator {
                 has $!i;
                 has $!e;
-                has $!exclude;
+                has int $!exclude;
 
-                method new($i is copy, $exclude is copy, $e is copy) {
-                    my \iter = self.CREATE;
-                    nqp::bindattr(iter, self, '$!i', $i);
-                    nqp::bindattr(iter, self, '$!e', $e);
-                    nqp::bindattr(iter, self, '$!exclude', $exclude);
-                    iter
+                method BUILD(\i,\exclude,\e) {
+                    $!i       = i;
+                    $!exclude = exclude.Int;
+                    $!e       = e;
+                    self
+                }
+                method new(\i,\exclude,\e) {
+                    nqp::create(self).BUILD(i,exclude,e)
                 }
 
                 method pull-one() {
@@ -184,7 +204,46 @@ my class Range is Cool does Iterable does Positional {
                         IterationEnd
                     }
                 }
-            }.new($value, $!excludes-max, $!max)
+                method push-all($target) {
+                    my Mu $i = $!i;
+                    my Mu $e = $!e;
+                    if $!exclude {
+                        while $i before $e {
+                            $target.push(nqp::clone($i));
+                            $i = $i.succ;
+                        }
+                    }
+                    else {
+                        while not $i after $e {
+                            $target.push(nqp::clone($i));
+                            $i = $i.succ;
+                        }
+                    }
+                    IterationEnd
+                }
+                method count-only {
+                    my Mu $i = $!i;
+                    my Mu $e = $!e;
+                    my int $found;
+                    if $!exclude {
+                        while $i before $e {
+                            $found = $found + 1;
+                            $i     = $i.succ;
+                        }
+                    }
+                    else {
+                        while not $i after $e {
+                            $found = $found + 1;
+                            $i     = $i.succ;
+                        }
+                    }
+                    nqp::p6box_i($found)
+                }
+                method sink-all {
+                    $!i = $!e;
+                    IterationEnd
+                }
+            }.new($min,$!excludes-max,$!max)
         }
     }
     multi method list(Range:D:) { List.from-iterator(self.iterator) }

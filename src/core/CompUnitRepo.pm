@@ -77,14 +77,22 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             }
         }
         else {
-            return $*REPO.need(
-                CompUnit::DependencySpecification.new(
-                    :short-name($module_name),
-                    :auth-matcher(%opts<auth>),
-                    :version-matcher(%opts<ver>),
-                ),
-                GLOBALish,
-                :$line,
+            return (
+                $file
+                ?? $*REPO.load(
+                    $file,
+                    GLOBALish,
+                    :$line
+                )
+                !! $*REPO.need(
+                    CompUnit::DependencySpecification.new(
+                        :short-name($module_name),
+                        :auth-matcher(%opts<auth>),
+                        :version-matcher(%opts<ver>),
+                    ),
+                    GLOBALish,
+                    :$line,
+                )
             ).unit;
         }
 #        elsif $file {

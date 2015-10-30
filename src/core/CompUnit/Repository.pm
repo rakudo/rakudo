@@ -11,6 +11,11 @@ role CompUnit::Repository {
         returns CompUnit:D
         { ... }
 
+    # Just load the file and return a CompUnit object representing it.
+    method load(Str:D $file)
+        returns CompUnit:D
+        { ... }
+
     # Returns the CompUnit objects describing all of the compilation
     # units that have been loaded by this repository in the current
     # process.

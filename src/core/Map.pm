@@ -51,9 +51,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method perl(Map:D:) {
         self.^name
-          ~ '.new('
-          ~ self.pairs.sort.map({.perl}).join(', ')
-          ~ ')';
+          ~ '.new(('
+          ~ self.pairs.sort.map({.perl}).join(',')
+          ~ '))';
     }
 
     method iterator(Map:) { self.pairs.iterator }

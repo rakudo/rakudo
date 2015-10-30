@@ -372,7 +372,7 @@ public final class Binder {
                         if (thrower != null) {
                             error[0] = thrower;
                             error[1] = bindThrower;
-                            error[2] = new Object[] { decontValue.st.WHAT, nomType.st.WHAT, varName };
+                            error[2] = new Object[] { decontValue, nomType.st.WHAT, (varName != null ? varName : "<anon>") };
                         }
                         else {
                             error[0] = String.format(

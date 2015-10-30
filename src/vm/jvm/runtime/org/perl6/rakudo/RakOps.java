@@ -221,10 +221,16 @@ public final class RakOps {
             .get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_PARAMS);
         
         /* Run binder, and handle any errors. */
-        String[] error = new String[1];
+        Object[] error = new Object[3];
         switch (Binder.bind(tc, gcx, cf, params, csd, args, false, error)) {
             case Binder.BIND_RESULT_FAIL:
-                throw ExceptionHandling.dieInternal(tc, error[0]);
+                if (error[0] instanceof String) {
+                    throw ExceptionHandling.dieInternal(tc, (String) error[0]);
+                }
+                else {
+                    Ops.invokeDirect(tc, (SixModelObject) error[0],
+                        (CallSiteDescriptor) error[1], (Object[]) error[2]);
+                }
             case Binder.BIND_RESULT_JUNCTION:
                 /* Invoke the auto-threader. */
                 csd = csd.injectInvokee(tc, args, cf.codeRef.codeObject);
@@ -250,11 +256,17 @@ public final class RakOps {
         SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature,
             "$!params", HINT_SIG_PARAMS);
         
-        String[] error = new String[1];
+        Object[] error = new Object[3];
         switch (Binder.bind(tc, gcx, cf, params, csd, tc.flatArgs, false, error)) {
             case Binder.BIND_RESULT_FAIL:
             case Binder.BIND_RESULT_JUNCTION:
-                throw ExceptionHandling.dieInternal(tc, error[0]);
+                if (error[0] instanceof String) {
+                    throw ExceptionHandling.dieInternal(tc, (String) error[0]);
+                }
+                else {
+                    Ops.invokeDirect(tc, (SixModelObject) error[0],
+                        (CallSiteDescriptor) error[1], (Object[]) error[2]);
+                }
             default:
                 return sig;
         }        

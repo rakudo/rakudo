@@ -139,7 +139,7 @@ public final class Binder {
     
     /* Assigns an attributive parameter to the desired attribute. */
     private static int assignAttributive(ThreadContext tc, CallFrame cf, String varName,
-            int paramFlags, SixModelObject attrPackage, SixModelObject value, String[] error) {
+            int paramFlags, SixModelObject attrPackage, SixModelObject value, Object[] error) {
         /* Find self. */
         StaticCodeInfo sci = cf.codeRef.staticInfo;
         Integer selfIdx = sci.oTryGetLexicalIdx("self");
@@ -191,7 +191,7 @@ public final class Binder {
     private static final CallSiteDescriptor bindThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
-            Object origArg, byte origFlag, boolean noNomTypeCheck, String[] error) {
+            Object origArg, byte origFlag, boolean noNomTypeCheck, Object[] error) {
         /* Get parameter flags and variable name. */
         param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
         int paramFlags = (int)tc.native_i;
@@ -211,7 +211,7 @@ public final class Binder {
         /* Check if boxed/unboxed expections are met. */
         int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
         boolean is_rw = (paramFlags & SIG_ELEM_IS_RW) != 0;
-        int gotNative = origFlag & 7;
+        int gotNative = origFlag & (CallSiteDescriptor.ARG_INT | CallSiteDescriptor.ARG_NUM | CallSiteDescriptor.ARG_STR);
         if (is_rw && desiredNative != 0) {
             switch (desiredNative) {
             case SIG_ELEM_NATIVE_INT_VALUE:
@@ -369,15 +369,16 @@ public final class Binder {
                     if (error != null) {
 
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding");
-                        if (thrower != null && decontValue.st.WHAT != gcx.Junction) {
-                            Ops.invokeDirect(tc, thrower,
-                                bindThrower, new Object[] { decontValue.st.WHAT, nomType.st.WHAT, varName });
-                            return BIND_RESULT_FAIL;
+                        if (thrower != null) {
+                            error[0] = thrower;
+                            error[1] = bindThrower;
+                            error[2] = new Object[] { decontValue.st.WHAT, nomType.st.WHAT, varName };
                         }
-                        else
+                        else {
                             error[0] = String.format(
                                 "Nominal type check failed for parameter '%s'",
                                 varName);
+                        }
                     }
                 
                     /* Report junction failure mode if it's a junction. */
@@ -714,7 +715,7 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static int bind(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject params,
             CallSiteDescriptor csd, Object[] args,
-            boolean noNomTypeCheck, String[] error) {
+            boolean noNomTypeCheck, Object[] error) {
         int bindFail = BIND_RESULT_OK;
         int curPosArg = 0;
         

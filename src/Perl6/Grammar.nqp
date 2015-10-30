@@ -367,8 +367,9 @@ role STD {
                             $match<postfix_prefix_meta_operator> ||
                             $match<op>)
                         {
-                            # nqp::printfh(nqp::getstderr(), $match.ast.dump);
-                            self.NYI("Autogeneration of $op $cat");
+                            my $META := $match.ast[0];
+                            my $fun := $*W.compile_time_evaluate($var,$META);
+                            $*W.install_lexical_symbol($*UNIT,$name,$fun);
                         }
                         else {
                             $var.CURSOR.add_mystery($name, $var.to, 'var');

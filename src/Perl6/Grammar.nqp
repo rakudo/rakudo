@@ -369,7 +369,7 @@ role STD {
                         {
                             my $META := $match.ast[0];
                             my $fun := $*W.compile_time_evaluate($var,$META);
-                            $*W.install_lexical_symbol($*UNIT,$name,$fun);
+                            $*W.install_lexical_symbol($*W.cur_lexpad(),$name,$fun);
                         }
                         else {
                             $var.CURSOR.add_mystery($name, $var.to, 'var');

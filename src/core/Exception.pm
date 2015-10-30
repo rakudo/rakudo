@@ -2073,7 +2073,7 @@ my class X::PhaserExceptions is Exception {
     method message() {
         "Multiple exceptions were thrown by LEAVE/POST phasers"
     }
-    method gist(X::PhaserExceptions:D:) {
+    multi method gist(X::PhaserExceptions:D:) {
         join "\n", flat
             "Multiple exceptions were thrown by LEAVE/POST phasers\n",
             @!exceptions>>.gist>>.indent(4)

@@ -29,7 +29,7 @@ my class CallFrame {
     method file() {
         %.annotations<file>;
     }
-    method gist() {
+    multi method gist(CallFrame:D:) {
         my %annotations := %.annotations;
         "%annotations<file> at line %annotations<line>";
     }

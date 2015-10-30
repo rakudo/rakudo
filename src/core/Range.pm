@@ -89,12 +89,11 @@ my class Range is Cool does Iterable does Positional {
     method iterator() {
         # Obtain starting value.
         my $min = $!excludes-min ?? $!min.succ !! $!min;
-        my $max = $!excludes-max ?? $!max.pred !! $!max;
 
         # If the value and the maximum are both integers and fit in a native
         # int, we have a really cheap approach.
         if nqp::istype($min,Int)  && !nqp::isbig_I(nqp::decont($min))
-          && nqp::istype($max,Int) && !nqp::isbig_I(nqp::decont($max)) {
+          && nqp::istype($!max,Int) && !nqp::isbig_I(nqp::decont($!max)) {
             class :: does Iterator {
                 has int $!i;
                 has int $!n;
@@ -129,11 +128,11 @@ my class Range is Cool does Iterable does Positional {
                 }
                 method count-only() { nqp::p6box_i($!n - $!i + 1) }
                 method sink-all()   { $!i = $!n; IterationEnd }
-            }.new($min, $max)
+            }.new($min, $!excludes-max ?? $!max.pred !! $!max)
         }
 
         # Also something quick and easy for 1..* style things.
-        elsif nqp::istype($min, Numeric) && $max === Inf {
+        elsif nqp::istype($min, Numeric) && $!max === Inf {
             class :: does Iterator {
                 has $!i;
 
@@ -148,33 +147,39 @@ my class Range is Cool does Iterable does Positional {
             }.new($min)
         }
 
-        # if we have simple char range
-        elsif nqp::istype($min,Str) && $min.chars == 1
-           && nqp::istype($max,Str) && $max.chars == 1 {
-            class :: does Iterator {
-                has int $!i;
-                has int $!n;
+        # if we have (simple) char range
+        elsif nqp::istype($min,Str) {
+            $min after $!max
+              ?? ().iterator
+              !! $min.chars == 1 && nqp::istype($!max,Str) && $!max.chars == 1
+                ?? class :: does Iterator {
+                       has int $!i;
+                       has int $!n;
 
-                method BUILD(\from,\end) {
-                    $!i = nqp::ord(nqp::unbox_s(from)) - 1;
-                    $!n = nqp::ord(nqp::unbox_s(end));
-                    self
-                }
-                method new(\from,\end) { nqp::create(self).BUILD(from,end) }
-
-                method pull-one() {
-                    ( $!i = $!i + 1 ) <= $!n ?? nqp::chr($!i) !! IterationEnd
-                }
-                method push-all($target) {
-                    my int $i = $!i;
-                    my int $n = $!n;
-                    $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
-                    $!i = $i;
-                    IterationEnd
-                }
-                method count-only() { nqp::p6box_i($!n - $!i + 1) }
-                method sink-all()   { $!i = $!n; IterationEnd }
-            }.new($min,$max)
+                       method BUILD(\from,\end) {
+                           $!i = nqp::ord(nqp::unbox_s(from)) - 1;
+                           $!n = nqp::ord(nqp::unbox_s(end));
+                           self
+                       }
+                       method new(\from,\end) {
+                           nqp::create(self).BUILD(from,end)
+                       }
+                       method pull-one() {
+                           ( $!i = $!i + 1 ) <= $!n
+                             ?? nqp::chr($!i)
+                             !! IterationEnd
+                       }
+                       method push-all($target) {
+                           my int $i = $!i;
+                           my int $n = $!n;
+                           $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
+                           $!i = $i;
+                           IterationEnd
+                       }
+                       method count-only() { nqp::p6box_i($!n - $!i + 1) }
+                       method sink-all()   { $!i = $!n; IterationEnd }
+                   }.new($min, $!excludes-max ?? $!max.pred !! $!max)
+                !! SEQUENCE($min,$!max,:exclude_end($!excludes-max)).iterator
         }
 
         # General case according to spec

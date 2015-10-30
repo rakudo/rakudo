@@ -855,7 +855,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
                 method !last-part() is raw {
                     my str $string = nqp::substr($!string,$!pos);
-                    $!pos = $!chars;
+                    $!pos  = $!chars + 1;
                     $!todo = 0;
                     nqp::p6box_s($string)
                 }
@@ -874,14 +874,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
                         $!todo = $!todo - 1;
                         my int $found = nqp::index($!string,$!match,$!pos);
                         if $found < 0 {
-                            $!pos < $!chars ?? self!last-part !! IterationEnd
+                            $!pos <= $!chars ?? self!last-part !! IterationEnd
                         }
                         else {
                             $!do-match = $!all;
                             self!next-part($found);
                         }
                     }
-                    elsif $!pos < $!chars {
+                    elsif $!pos <= $!chars {
                         self!last-part
                     }
                     else {
@@ -911,7 +911,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                               !! $target.push(self!next-part($found));
                         }
                     }
-                    $target.push(self!last-part) if $!pos < $!chars;
+                    $target.push(self!last-part) if $!pos <= $!chars;
                     IterationEnd
                 }
                 method sink-all() { IterationEnd }

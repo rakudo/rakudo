@@ -185,8 +185,8 @@ J_CORE_SOURCES = \
   src/core/Channel.pm \
   src/core/Supply.pm \
   src/core/SupplyOperations.pm \
-  src/core/KeyReducer.pm \
-  src/core/IOAsyncFile.pm \
+  src/core/JVM/KeyReducer.pm \
+  src/core/JVM/IOAsyncFile.pm \
   src/core/asyncops.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \

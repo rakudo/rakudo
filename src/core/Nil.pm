@@ -1,6 +1,5 @@
 my class Nil is Cool { # declared in BOOTSTRAP
     method new(*@) { Nil }
-    method gist(*@) { 'Nil' }
     method Numeric() { warn "Use of Nil in numeric context"; 0 }
     method Str() { warn "Use of Nil in string context"; '' }
     method sink(*@) { Nil }     # required by RESTRICTED setting

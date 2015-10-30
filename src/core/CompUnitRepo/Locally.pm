@@ -46,7 +46,7 @@ role CompUnitRepo::Locally {
             return @candidates[0];
         }
         return self.next-repo.need($spec, GLOBALish, :$precomp, :$line) if self.next-repo;
-        nqp::die("Could not find $spec in $.Str");
+        nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
     method loaded() returns Iterable {

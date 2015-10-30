@@ -21,6 +21,10 @@ role CompUnit::Repository {
     method precomp-repository()
         returns CompUnit::PrecompilationRepository
         { CompUnit::PrecompilationRepository::None }
+
+    method repo-chain() {
+        ($.next-repo and $.next-repo.defined) ?? (self, |$.next-repo.repo-chain()) !! (self, );
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

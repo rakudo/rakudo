@@ -6219,11 +6219,13 @@ Compilation unit '$file' contained the following violations:
 
     method prefixish($/) {
         if $<prefix_postfix_meta_operator> {
-            make QAST::Op.new( :node($/),
+            make QAST::Op.new( :node($/), :op<call>,
+                QAST::Op.new( :node($/),
                      :name<&METAOP_HYPER_PREFIX>,
                      :op<call>,
                      QAST::Var.new( :name('&prefix:' ~ $*W.canonicalize_opname($<OPER>.Str)),
-                                    :scope<lexical> ));
+                                    :scope<lexical> ))
+            );
         }
     }
 
@@ -6371,7 +6373,7 @@ Compilation unit '$file' contained the following violations:
                                     ?? QAST::Var.new( :name($past.name), :scope<lexical>)
                                     !! $past[0];
                     $past.push($basepast);
-                    $past.name('&METAOP_HYPER_POSTFIX');
+                    $past.name('&METAOP_HYPER_POSTFIX_ARGS');
                 }
             }
             make $past;

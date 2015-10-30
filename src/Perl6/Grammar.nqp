@@ -367,7 +367,10 @@ role STD {
                             $match<postfix_prefix_meta_operator> ||
                             $match<op>)
                         {
-                            my $META := $match.ast[0];
+                            my $META := $match.ast;
+                            $META := $META[0] unless $META.name;
+                            $META.name('&METAOP_HYPER_POSTFIX') if $META.name eq '&METAOP_HYPER_POSTFIX_ARGS';
+                            # nqp::printfh(nqp::getstderr(), $META.dump);
                             my $fun := $*W.compile_time_evaluate($var,$META);
                             $*W.install_lexical_symbol($*W.cur_lexpad(),$name,$fun);
                         }

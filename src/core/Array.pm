@@ -408,8 +408,9 @@ my class Array { # declared in BOOTSTRAP
             !! self!AT-POS-SLOWPATH($ipos)
     }
     method !AT-POS-SLOWPATH(int $ipos) is raw {
-        fail X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>)
-          if nqp::islt_i($ipos, 0);
+        fail X::OutOfRange.new(
+          :what($*INDEX // 'Index'),:got($ipos),:range<0..Inf>)
+            if nqp::islt_i($ipos, 0);
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {
@@ -427,8 +428,9 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-POS(Array:D: int $ipos, Mu \assignee) {
-        X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>).throw
-          if nqp::islt_i($ipos, 0);
+        X::OutOfRange.new(
+          :what($*INDEX // 'Index'),:got($ipos),:range<0..Inf>).throw
+            if nqp::islt_i($ipos, 0);
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         reified.DEFINITE && $ipos < nqp::elems(reified)
             ?? nqp::isnull(nqp::atpos(reified, $ipos))
@@ -438,8 +440,9 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) {
         my int $ipos = nqp::unbox_i($pos);
-        X::OutOfRange.new(:what<Index>,:got($pos),:range<0..Inf>).throw
-          if nqp::islt_i($ipos, 0);
+        X::OutOfRange.new(
+          :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>).throw
+            if nqp::islt_i($ipos, 0);
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         reified.DEFINITE && $ipos < nqp::elems(reified)
             ?? nqp::isnull(nqp::atpos(reified, $ipos))
@@ -448,8 +451,9 @@ my class Array { # declared in BOOTSTRAP
             !! self!ASSIGN-POS-SLOWPATH($ipos, assignee)
     }
     method !ASSIGN-POS-SLOWPATH(int $ipos, Mu \assignee) {
-        fail X::OutOfRange.new(:what<Index>,:got($ipos),:range<0..Inf>)
-          if nqp::islt_i($ipos, 0);
+        fail X::OutOfRange.new(
+          :what($*INDEX // 'Index'),:got($ipos),:range<0..Inf>)
+            if nqp::islt_i($ipos, 0);
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {

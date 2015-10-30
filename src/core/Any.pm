@@ -251,13 +251,15 @@ my class Any { # declared in BOOTSTRAP
     }
 
     multi method AT-POS(Any:D: int \pos) is raw {
-        fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
-          unless nqp::not_i(pos);
+        fail X::OutOfRange.new(
+          :what($*INDEX // 'Index'), :got(pos), :range<0..0>)
+            unless nqp::not_i(pos);
         self;
     }
     multi method AT-POS(Any:D: Int:D \pos) is raw {
-        fail X::OutOfRange.new(:what<Index>, :got(pos), :range<0..0>)
-          if pos != 0;
+        fail X::OutOfRange.new(
+          :what($*INDEX // 'Index'), :got(pos), :range<0..0>)
+            if pos != 0;
         self;
     }
     multi method AT-POS(Any:D: Num:D \pos) is raw {

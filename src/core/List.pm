@@ -329,7 +329,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method !AT-POS-SLOWPATH(int $pos) is raw {
-        fail X::OutOfRange.new(:what<Index>, :got($pos), :range<0..Inf>)
+        fail X::OutOfRange.new(
+          :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>)
             if $pos < 0;
         $!todo.DEFINITE && $!todo.reify-at-least($pos + 1) > $pos
             ?? nqp::atpos($!reified, $pos)

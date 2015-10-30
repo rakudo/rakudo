@@ -227,6 +227,42 @@ my class Rakudo::Internals {
         }
         Nil
     }
+
+    my $encodings := nqp::hash(
+      # fast mapping for identicals
+      'utf8',            'utf8',
+      'utf16',           'utf16',
+      'utf32',           'utf32',
+      'ascii',           'ascii',
+      'iso-8859-1',      'iso-8859-1',
+      'windows-1252',    'windows-1252',
+      # with dash
+      'utf-8',           'utf8',
+      'utf-16',          'utf16',
+      'utf-32',          'utf32',
+      # according to http://de.wikipedia.org/wiki/ISO-8859-1
+      'iso_8859-1:1987', 'iso-8859-1',
+      'iso_8859-1',      'iso-8859-1',
+      'iso-ir-100',      'iso-8859-1',
+      'latin1',          'iso-8859-1',
+      'latin-1',         'iso-8859-1',
+      'csisolatin1',     'iso-8859-1',
+      'l1',              'iso-8859-1',
+      'ibm819',          'iso-8859-1',
+      'cp819',           'iso-8859-1',
+    );
+    method NORMALIZE_ENCODING(Str:D \encoding) {
+        my str $key = nqp::unbox_s(encoding);
+        if nqp::existskey($encodings,$key) {
+            nqp::atkey($encodings,$key)
+        }
+        else {
+            my str $lc = nqp::lc($key);
+            nqp::existskey($encodings,$lc)
+              ?? nqp::atkey($encodings,$lc)
+              !! nqp::lc($key)
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -67,7 +67,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method Int(Blob:D:)     { self.elems }
 
     method decode(Blob:D: $encoding = 'utf-8') {
-        nqp::p6box_s(nqp::decode(self, NORMALIZE_ENCODING($encoding)))
+        nqp::p6box_s(
+          nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
     }
 
     method list(Blob:D:) {
@@ -222,7 +223,7 @@ constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
     method decode(utf8:D: $encoding = 'utf-8') {
-        my $enc = NORMALIZE_ENCODING($encoding);
+        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-8 buffer as if it were $encoding"
             unless $enc eq 'utf8';
         nqp::p6box_s(nqp::decode(self, 'utf8'))
@@ -234,7 +235,7 @@ my class utf8 does Blob[uint8] is repr('VMArray') {
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
     method decode(utf16:D: $encoding = 'utf-16') {
-        my $enc = NORMALIZE_ENCODING($encoding);
+        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-16 buffer as if it were $encoding"
             unless $enc eq 'utf16';
         nqp::p6box_s(nqp::decode(self, 'utf16'))
@@ -246,7 +247,7 @@ my class utf16 does Blob[uint16] is repr('VMArray') {
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
     method decode(utf32:D: $encoding = 'utf-32') {
-        my $enc = NORMALIZE_ENCODING($encoding);
+        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-32 buffer as if it were $encoding"
             unless $enc eq 'utf32';
         nqp::p6box_s(nqp::decode(self, 'utf32'))

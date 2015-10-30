@@ -23,7 +23,8 @@ my class Proc {
             $!in_fh := nqp::syncpipe();
             $!flags += nqp::const::PIPE_CAPTURE_IN;
             nqp::setinputlinesep($!in_fh, nqp::unbox_s($nl));
-            nqp::setencoding($!in_fh, NORMALIZE_ENCODING($enc)) unless $bin;
+            nqp::setencoding($!in_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
+              unless $bin;
             nqp::bindattr(nqp::decont($!in), IO::Handle, '$!PIO', $!in_fh);
         }
         elsif nqp::istype($in, Str) && $in eq '-' {
@@ -40,7 +41,8 @@ my class Proc {
             $!out_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_OUT;
             nqp::setinputlinesep($!out_fh, nqp::unbox_s($nl));
-            nqp::setencoding($!out_fh, NORMALIZE_ENCODING($enc)) unless $bin;
+            nqp::setencoding($!out_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
+              unless $bin;
             nqp::bindattr(nqp::decont($!out), IO::Handle, '$!PIO', $!out_fh);
         }
         elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
@@ -74,7 +76,8 @@ my class Proc {
             $!err_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_ERR;
             nqp::setinputlinesep($!err_fh, nqp::unbox_s($nl));
-            nqp::setencoding($!err_fh, NORMALIZE_ENCODING($enc)) unless $bin;
+            nqp::setencoding($!err_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
+              unless $bin;
             nqp::bindattr(nqp::decont($!err), IO::Handle, '$!PIO', $!err_fh);
         }
         else {

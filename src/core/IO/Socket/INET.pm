@@ -87,7 +87,7 @@ my class IO::Socket::INET does IO::Socket {
 
     method get() {
         my Mu $io       := nqp::getattr(self, $?CLASS, '$!PIO');
-        my str $encoding = nqp::unbox_s(NORMALIZE_ENCODING($!encoding));
+        my str $encoding = Rakudo::Internals.NORMALIZE_ENCODING($!encoding);
         nqp::setencoding($io, $encoding);
         my str $sep = nqp::unbox_s($!input-line-separator);
         nqp::setinputlinesep($io, $sep);

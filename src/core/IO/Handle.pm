@@ -63,7 +63,8 @@ my class IO::Handle does IO {
                 die "Don't know how to open '$_' especially";
             }
             $!chomp = $chomp;
-            nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
+            nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
+              unless $bin;
             return self;
         }
 
@@ -91,7 +92,8 @@ my class IO::Handle does IO {
 
         $!chomp = $chomp;
         nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
-        nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc)) unless $bin;
+        nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
+          unless $bin;
         self;
     }
 
@@ -956,8 +958,8 @@ my class IO::Handle does IO {
 
     method encoding(IO::Handle:D: $enc?) {
         $enc.defined
-            ?? nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc))
-            !! $!PIO.encoding
+          ?? nqp::setencoding($!PIO,Rakudo::Internals.NORMALIZE_ENCODING($enc))
+          !! $!PIO.encoding
     }
 
     submethod DESTROY(IO::Handle:D:) {

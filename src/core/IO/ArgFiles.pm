@@ -83,7 +83,7 @@ my class IO::ArgFiles is IO::Handle {
                     my $io = $!next-io.();
                     return $io if nqp::istype($io, Failure);
                     return IterationEnd unless $io.defined;
-                    $!iter := $io.lines.iterator;
+                    $!iter := $io.lines(:close).iterator;
                     self.pull-one;
                 }
                 else {

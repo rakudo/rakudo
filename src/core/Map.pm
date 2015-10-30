@@ -10,6 +10,13 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         %h;
     }
 
+    multi method Hash(Map:U:) { Hash }
+    multi method Hash(Map:D:) {
+        my $hash := Hash.new;
+        nqp::bindattr($hash,Map,'$!storage',nqp::getattr(self,Map,'$!storage'));
+        $hash
+    }
+
     multi method Bool(Map:D:) {
         nqp::p6bool(nqp::defined($!storage) && nqp::elems($!storage));
     }

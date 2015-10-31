@@ -969,8 +969,9 @@ class Perl6::World is HLL::World {
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $module := self.find_symbol(['CompUnitRepo']).load_module($module_name, %opts,
+        my $handle := self.find_symbol(['CompUnitRepo']).load_module($module_name, %opts,
             $cur_GLOBALish, :$line);
+        my $module := $handle.unit;
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {

@@ -93,7 +93,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                     GLOBALish,
                     :$line,
                 )
-            ).unit;
+            ).handle;
         }
 #        elsif $file {
 #            nqp::die("Could not find file '$file' for module $module_name");

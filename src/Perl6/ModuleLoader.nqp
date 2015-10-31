@@ -79,15 +79,20 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 if nqp::existskey(%language_module_loaders, %opts<from>) {
                     # We expect that custom module loaders will accept a Stash, only
                     # NQP expects a hash and therefor needs special handling.
+                    my $CompUnit := $*W.find_symbol(["CompUnit"]);
+                    my $CompUnitHandle := nqp::who($CompUnit).AT-KEY('Handle');
                     if %opts<from> eq 'NQP' {
                         if +@GLOBALish {
                             my $target := nqp::knowhow().new_type(:name('GLOBALish'));
                             nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
-                            return %language_module_loaders<NQP>.load_module($module_name,
-                                $target);
+                            return $CompUnitHandle.new(
+                                %language_module_loaders<NQP>.load_module($module_name, $target)
+                            );
                         }
                         else {
-                            return %language_module_loaders<NQP>.load_module($module_name);
+                            return $CompUnitHandle.new(
+                                %language_module_loaders<NQP>.load_module($module_name)
+                            );
                         }
                     }
                     return %language_module_loaders{%opts<from>}.load_module($module_name,

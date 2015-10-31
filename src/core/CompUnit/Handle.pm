@@ -44,7 +44,17 @@ class CompUnit::Handle {
     # The EXPORTHOW package from the UNIT of the compilation unit;
     # a Stash type object if none.
     method export-how-package() returns Stash {
-        ...
+        my $module := self.unit;
+        if $module and nqp::existskey($module, 'EXPORTHOW') {
+            my $EXPORTHOW := nqp::atkey($module, 'EXPORTHOW');
+            my $who := $EXPORTHOW.WHO;
+            nqp::istype($who, Stash)
+                ?? $who
+                !! nqp::p6bindattrinvres(nqp::create(Stash), Map, '$!storage', $who);
+        }
+        else {
+            Stash
+        }
     }
 
     # The GLOBALish package from the UNIT of the compilation unit

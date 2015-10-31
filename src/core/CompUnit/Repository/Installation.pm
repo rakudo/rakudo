@@ -185,13 +185,14 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
         @candi
     }
 
-    method load(Str:D $file, \GLOBALish is raw = Any, :$line) returns CompUnit:D {
-        return self.next-repo.load($file, :$line) if self.next-repo;
-        nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
-    }
-
-    method candidates($name, :$auth, :$ver) {
-        my @candi;
+    method need(
+        CompUnit::DependencySpecification $spec,
+        \GLOBALish is raw = Any,
+        CompUnit::PrecompilationRepository :$precomp = self.precomp-repository(),
+        :$line
+    )
+        returns CompUnit:D
+    {
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {
                 my $dver = $dist<ver>
@@ -200,9 +201,9 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                             !! Version.new( ~$dist<ver> )
                         !! Version.new('0');
 
-                if (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver)
-                && $dist<provides>{$name} {
+                if (!$spec.auth-matcher || $dist<auth> ~~ $spec.auth-matcher)
+                && (!$spec.version-matcher || $dver ~~ $spec.version-matcher)
+                && $dist<provides>{$spec.short-name} {
                     my $candi   = %$dist;
                     $candi<ver> = $dver;
                     for $candi<provides>.kv -> $ln, $files {
@@ -211,17 +212,27 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                                 unless $candi<provides>{$ln}{$type}<file> ~~ /^$path/
                         }
                     }
-                    my $loader = $candi<provides>{$name}<pm pm6>.first(*.so)<file>;
-                    with $candi<provides>{$name}{$*VM.precomp-ext} -> $pc {
+                    my $loader = $candi<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>;
+                    with $candi<provides>{$spec.short-name}{$*VM.precomp-ext} -> $pc {
                         if $*PERL<compiler>.version eqv $pc<cver> {
-                            return CompUnit.new($loader, :has_precomp($pc<file>), :repo(self));
+                            my $compunit = CompUnit.new($loader, :has_precomp($pc<file>), :repo(self));
+                            $compunit.load(GLOBALish, :$line);
+                            return $compunit;
                         }
                     }
-                    return CompUnit.new($loader, :repo(self));
+                    my $compunit = CompUnit.new($loader, :repo(self));
+                    $compunit.load(GLOBALish, :$line);
+                    return $compunit;
                 }
             }
         }
-        ();
+        return self.next-repo.need($spec, GLOBALish, :$precomp, :$line) if self.next-repo;
+        nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
+    }
+
+    method load(Str:D $file, \GLOBALish is raw = Any, :$line) returns CompUnit:D {
+        return self.next-repo.load($file, :$line) if self.next-repo;
+        nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
     method short-id() { 'inst' }

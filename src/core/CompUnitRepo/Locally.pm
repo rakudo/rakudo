@@ -29,7 +29,6 @@ role CompUnitRepo::Locally {
 
     # stubs
     method files(CompUnitRepo::Locally:D: $file, :$name, :$auth, :$ver)   {...}
-    method candidates(CompUnitRepo::Locally:D: $name,:$file,:$auth,:$ver) {...}
     method short-id(CompUnitRepo::Locally:D:)                             {...}
 
     method need(

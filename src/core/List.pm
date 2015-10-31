@@ -466,10 +466,43 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! Range.new( 0, self.elems - 1 )
     }
     multi method kv(List:D:) {
-        gather self.values.map: {
-            take (state $)++;
-            take-rw $_;
-        }
+        Seq.new(class :: does Iterator {
+            has Mu $!iter;
+            has Mu $!pulled;
+            has int $!on-key;
+            has int $!key;
+
+            method BUILD(\iter) { $!iter := iter; $!on-key = 1; self }
+            method new(\iter)   { nqp::create(self).BUILD(iter) }
+
+            method pull-one() is raw {
+                if $!on-key {
+                    my $pulled;
+                    if ($pulled := $!iter.pull-one) =:= IterationEnd {
+                        IterationEnd
+                    }
+                    else {
+                        $!pulled := $pulled;
+                        $!on-key  = 0;
+                        $!key++
+                    }
+                }
+                else {
+                    $!on-key = 1;
+                    $!pulled
+                }
+            }
+            method push-all($target) {
+                my $pulled;
+                my int $key;
+                until ($pulled := $!iter.pull-one) =:= IterationEnd {
+                    $target.push(nqp::p6box_i($key));
+                    $target.push($pulled);
+                    $key = $key + 1;
+                }
+                IterationEnd
+            }
+        }.new(self.iterator))
     }
     multi method pairs(List:D:) {
         self.values.map: { (state $)++ => $_ }

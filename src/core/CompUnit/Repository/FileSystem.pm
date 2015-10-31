@@ -1,4 +1,4 @@
-class CompUnitRepo::Local::File does CompUnitRepo::Locally does CompUnit::Repository {
+class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit::Repository {
 
     my %extensions =
       Perl6 => <pm6 pm>,

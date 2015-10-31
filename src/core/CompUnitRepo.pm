@@ -1,5 +1,5 @@
 role  CompUnitRepo::Locally             { ... }
-class CompUnitRepo::Local::File         { ... }
+class CompUnit::Repository::FileSystem  { ... }
 class CompUnitRepo::Local::Installation { ... }
 
 my class Perl5ModuleLoaderStub {
@@ -169,7 +169,7 @@ sub SHORT-ID2CLASS(Str:D $short-id) {
 }
 
 # prime the short-id -> class lookup
-SHORT-ID2CLASS('file') = 'CompUnitRepo::Local::File';
+SHORT-ID2CLASS('file') = 'CompUnit::Repository::FileSystem';
 SHORT-ID2CLASS('inst') = 'CompUnitRepo::Local::Installation';
 
 sub INCLUDE-SPEC2CUR(Str:D $spec, CompUnit::Repository :$next-repo) {

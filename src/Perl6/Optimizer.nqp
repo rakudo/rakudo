@@ -1726,7 +1726,7 @@ class Perl6::Optimizer {
         %opts<protoguilt> := $protoguilt // nqp::p6bool(0);
         %opts<arguments> := @arg_names;
         %opts<objname> := $obj.name;
-        %opts<signature> := $obj.is_dispatcher && !$protoguilt ??
+        %opts<signature> := nqp::can($obj, 'is_dispatcher') && $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
                 [try $obj.signature.gist];
 

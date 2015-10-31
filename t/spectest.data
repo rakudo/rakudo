@@ -930,6 +930,7 @@ S32-list/permutations.t
 S32-list/pick.t
 S32-list/produce.t
 S32-list/reduce.t
+S32-list/repeated.t
 S32-list/reverse.t
 S32-list/roll.t
 S32-list/rotor.t

@@ -1505,8 +1505,11 @@ multi sub first(Mu $test, +values, *%a) {
 proto sub join(|) { * }
 multi sub join($sep = '', *@values) { @values.join($sep) }
 
-sub reduce (&with, +list)  { list.reduce(&with) }
-sub produce (&with, +list)  { list.produce(&with) }
+proto sub reduce (|) { * }
+multi sub reduce (&with, +list)  { list.reduce(&with) }
+
+proto sub produce (|) { * }
+multi sub produce (&with, +list)  { list.produce(&with) }
 
 proto sub unique(|) { * }
 multi sub unique(+values, |c) { my $laze = values.is-lazy; values.unique(|c).lazy-if($laze) }

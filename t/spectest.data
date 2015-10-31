@@ -937,6 +937,7 @@ S32-list/roll.t
 S32-list/rotor.t
 S32-list/seq.t
 S32-list/sort.t
+S32-list/tail.t
 S32-list/unique.t
 S32-list/squish.t
 S32-num/abs.t

@@ -187,7 +187,7 @@ sub INCLUDE-SPEC2CUR(Str:D $spec, CompUnit::Repository :$next-repo) {
     $lock.protect( {
         %INCLUDE-SPEC2CUR{$id}:exists
           ?? %INCLUDE-SPEC2CUR{$id}
-          !! (%INCLUDE-SPEC2CUR{$id} := $class.new($abspath,|%options));
+          !! (%INCLUDE-SPEC2CUR{$id} := $class.new(:prefix($abspath), |%options));
     } );
 }
 

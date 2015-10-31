@@ -2,9 +2,9 @@ class CompUnit::Repository::Installation does CompUnitRepo::Locally does CompUni
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
 
-    submethod BUILD(:$!IO, :$!lock, :$!WHICH, :$!next-repo) {
-        my $manifest := $!IO.child("MANIFEST");
-        my $abspath  := $!IO.abspath;
+    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) {
+        my $manifest := $!prefix.child("MANIFEST");
+        my $abspath  := $!prefix.abspath;
         %!dists{$abspath} = $manifest.e
           ?? from-json($manifest.slurp)
           !! {};
@@ -226,3 +226,5 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
 
     method short-id() { 'inst' }
 }
+
+# vim: ft=perl6 expandtab sw=4

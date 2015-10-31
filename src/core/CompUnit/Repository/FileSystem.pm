@@ -24,7 +24,7 @@ class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit:
         my $has_precomp = $file.ends-with($precomp-ext);
         my $path = $file.IO.is-absolute
                 ?? $file
-                !! $!IO.abspath ~ $dir-sep ~ $file;
+                !! $!prefix.abspath ~ $dir-sep ~ $file;
 
         if IO::Path.new-from-absolute-path($path).f {
             my $compunit = %seen{$path} = CompUnit.new(
@@ -52,14 +52,14 @@ class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit:
         my $dir-sep           := $*SPEC.dir-sep;
 
         # pick a META6.json if it is there
-        if (my $meta = ($!IO.abspath ~ $dir-sep ~ 'META6.json').IO) && $meta.f {
+        if (my $meta = ($!prefix.abspath ~ $dir-sep ~ 'META6.json').IO) && $meta.f {
             my $json = from-json $meta.slurp;
             if $json<provides>{$name} -> $file {
                 my $has_precomp = $file.ends-with($precomp-ext);
                 my $has_source  = !$has_precomp;
                 my $path        = $file.IO.is-absolute
                                 ?? $file
-                                !! $!IO.abspath ~ $dir-sep ~ $file;
+                                !! $!prefix.abspath ~ $dir-sep ~ $file;
                 $has_precomp    = ?IO::Path.new-from-absolute-path($path ~ '.' ~ $precomp-ext).f
                     unless $has_precomp;
 
@@ -70,7 +70,7 @@ class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit:
         }
         # deduce path to compilation unit from package name
         else {
-            my $base := $!IO.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
+            my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
             if %seen{$base} -> $found {
                 return $found;
             }

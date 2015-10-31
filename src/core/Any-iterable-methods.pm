@@ -1514,6 +1514,9 @@ multi sub unique(+values, |c) { my $laze = values.is-lazy; values.unique(|c).laz
 proto sub squish(|) { * }
 multi sub squish(+values, |c) { my $laze = values.is-lazy; values.squish(|c).lazy-if($laze) }
 
+proto sub repeated(|) { * }
+multi sub repeated(+values, |c) { my $laze = values.is-lazy; values.repeated(|c).lazy-if($laze) }
+
 proto sub sort(|) {*}
 multi sub sort($cmp, +values)      {
     nqp::istype($cmp, Callable)

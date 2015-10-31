@@ -356,7 +356,15 @@ class Perl6::World is HLL::World {
         if $setting_name eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
             my $module := self.load_module_early($/, $name, {}, $*GLOBALish);
-            self.do_import($/, $module, $name);
+            if nqp::existskey($module, 'EXPORT') {
+                my $EXPORT := $module<EXPORT>.WHO;
+                my @to_import := ['MANDATORY', 'DEFAULT'];
+                for @to_import -> $tag {
+                    if nqp::existskey($EXPORT, $tag) {
+                        self.import($/, self.stash_hash($EXPORT{$tag}), $name);
+                    }
+                }
+            }
             self.import_EXPORTHOW($/, $module);
         }
 
@@ -624,9 +632,10 @@ class Perl6::World is HLL::World {
         self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
     }
 
-    method do_import($/, $module, $package_source_name, $arglist?) {
-        if nqp::existskey($module, 'EXPORT') {
-            my $EXPORT := self.stash_hash($module<EXPORT>);
+    method do_import($/, $handle, $package_source_name, $arglist?) {
+        my $EXPORT := $handle.export-package;
+        if nqp::defined($EXPORT) {
+            $EXPORT := $EXPORT.FLATTENABLE_HASH();
             my @to_import := ['MANDATORY'];
             my @positional_imports := [];
             if nqp::defined($arglist) {
@@ -655,8 +664,9 @@ class Perl6::World is HLL::World {
                     self.import($/, self.stash_hash($EXPORT{$tag}), $package_source_name);
                 }
             }
-            if nqp::existskey($module, '&EXPORT') {
-                my $result := $module<&EXPORT>(|@positional_imports);
+            my &EXPORT := $handle.export-sub;
+            if nqp::defined(&EXPORT) {
+                my $result := &EXPORT(|@positional_imports);
                 my $Map := self.find_symbol(['Map']);
                 if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
@@ -913,7 +923,7 @@ class Perl6::World is HLL::World {
             my $module := self.load_module($/, $name, %cp, $*GLOBALish);
             $DEBUG("Performing imports for '$name'") if $DEBUG;
             self.do_import($/, $module, $name, $arglist);
-            self.import_EXPORTHOW($/, $module);
+            self.import_EXPORTHOW($/, $module.unit);
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");
@@ -971,7 +981,6 @@ class Perl6::World is HLL::World {
         my $line   := self.current_line($/);
         my $handle := self.find_symbol(['CompUnitRepo']).load_module($module_name, %opts,
             $cur_GLOBALish, :$line);
-        my $module := $handle.unit;
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
@@ -1000,7 +1009,7 @@ class Perl6::World is HLL::World {
                 ))));
         }
 
-        return $module;
+        return $handle;
     }
 
     # Uses the NQP module loader to load Perl6::ModuleLoader, which

@@ -1452,7 +1452,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
             if $found {
                 # todo: fix arglist
-                $*W.do_import($/,$module.WHO,$longname.name,$*W.arglist($/));
+                $*W.do_import($/, $*W.find_symbol(<CompUnit Handle>).from-unit($module.WHO), $longname.name, $*W.arglist($/));
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~

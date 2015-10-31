@@ -275,9 +275,9 @@ my class IO::Handle does IO {
                     else {
                         my int $pos;
                         my int $found;
-                        my int $extra = nqp::chars($comber);
-                        while ($found = nqp::index($!str,$!comber,$pos)) > 0 {
-                            nqp::push($!strings,$comber);
+                        my int $extra = nqp::chars($!comber);
+                        while ($found = nqp::index($!str,$!comber,$pos)) >= 0 {
+                            nqp::push($!strings,$!comber);
                             $pos = $found + $extra;
                         }
                         $!left  = nqp::substr($!str,$pos);

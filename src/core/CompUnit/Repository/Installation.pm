@@ -185,7 +185,12 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
         @candi
     }
 
-    method candidates($name, :$file, :$auth, :$ver) {
+    method load(Str:D $file, \GLOBALish is raw = Any, :$line) returns CompUnit:D {
+        return self.next-repo.load($file, :$line) if self.next-repo;
+        nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
+    }
+
+    method candidates($name, :$auth, :$ver) {
         my @candi;
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {

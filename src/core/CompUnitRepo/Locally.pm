@@ -53,16 +53,6 @@ role CompUnitRepo::Locally {
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method load(Str:D $file, \GLOBALish is raw = Any, :$line) returns CompUnit:D {
-        my @candidates = self.candidates($file, :file($file));
-        if @candidates {
-            @candidates[0].load(GLOBALish, :$line);
-            return @candidates[0];
-        }
-        return self.next-repo.load($file, :$line) if self.next-repo;
-        nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
-    }
-
     method loaded() returns Iterable {
         return ();
     }

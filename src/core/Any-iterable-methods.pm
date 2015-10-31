@@ -1389,7 +1389,7 @@ augment class Any {
             has int $!index;
             method BUILD(\list,\size) {
                 $!iter = as-iterable(list).iterator;
-                fail X::Cannot::Lazy.new(:action<tail>) if $!iter.is-lazy;;
+                X::Cannot::Lazy.new(:action<tail>).throw if $!iter.is-lazy;
 
                 $!lastn := nqp::list();
                 $!size   = size;
@@ -1424,7 +1424,7 @@ augment class Any {
                         $!todo = nqp::elems($!lastn);
                     }
                     $!iter := Mu;  # mark we're done iterating
-                    self!next()
+                    $!todo ?? self!next() !! IterationEnd
                 }
                 else {
                     IterationEnd

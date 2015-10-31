@@ -1,4 +1,4 @@
-class CompUnitRepo::Local::Installation does CompUnitRepo::Locally does CompUnit::Repository {
+class CompUnitRepo::Local::Installation does CompUnitRepo::Locally does CompUnit::Repository::Installable {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
 
@@ -15,6 +15,10 @@ class CompUnitRepo::Local::Installation does CompUnitRepo::Locally does CompUnit
 
     method writeable-path {
         %!dists.keys.first( *.IO.w )
+    }
+
+    method can-install() {
+        %!dists.keys.any( *.IO.w )
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--

@@ -1,4 +1,4 @@
-class CompUnitRepo::Local::Installation does CompUnitRepo::Locally does CompUnit::Repository::Installable {
+class CompUnit::Repository::Installation does CompUnitRepo::Locally does CompUnit::Repository::Installable {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
 
@@ -42,7 +42,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
     my @installations = @*INC.grep( { .starts-with("inst#") } )\
-        .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
+        .map: { CompUnit::Repository::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
     my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
     unless +@binaries {
         @binaries = flat @installations.map: { .files(\'bin/#name#\') };

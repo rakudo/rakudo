@@ -157,7 +157,7 @@ src/core/CompUnit.pm
 src/core/CompUnitRepo.pm
 src/core/CompUnitRepo/Locally.pm
 src/core/CompUnit/Repository/FileSystem.pm
-src/core/CompUnitRepo/Local/Installation.pm
+src/core/CompUnit/Repository/Installation.pm
 src/core/Argfiles.pm
 src/core/Inc.pm
 src/core/Process.pm

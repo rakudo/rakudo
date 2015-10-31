@@ -1,6 +1,6 @@
 role  CompUnitRepo::Locally             { ... }
 class CompUnit::Repository::FileSystem  { ... }
-class CompUnitRepo::Local::Installation { ... }
+class CompUnit::Repository::Installation { ... }
 
 my class Perl5ModuleLoaderStub {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
@@ -170,7 +170,7 @@ sub SHORT-ID2CLASS(Str:D $short-id) {
 
 # prime the short-id -> class lookup
 SHORT-ID2CLASS('file') = 'CompUnit::Repository::FileSystem';
-SHORT-ID2CLASS('inst') = 'CompUnitRepo::Local::Installation';
+SHORT-ID2CLASS('inst') = 'CompUnit::Repository::Installation';
 
 sub INCLUDE-SPEC2CUR(Str:D $spec, CompUnit::Repository :$next-repo) {
     state %INCLUDE-SPEC2CUR;

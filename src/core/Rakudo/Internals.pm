@@ -263,6 +263,12 @@ my class Rakudo::Internals {
               !! nqp::lc($key)
         }
     }
+
+    # True if given array does not just contain defined objects of given type
+    method NOT_ALL_DEFINED_TYPE(\values,\type) {
+        return True unless nqp::defined($_) && nqp::istype($_,type) for values;
+        False;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

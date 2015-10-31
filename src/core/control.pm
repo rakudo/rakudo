@@ -254,14 +254,6 @@ sub EXHAUST(|) {
     X::ControlFlow::Return.new.throw();
 }
 
-# True if given array does not just contain defined objects of given type
-sub NOT_ALL_DEFINED_TYPE(\values,\type) {
-    for values {
-        return True unless nqp::defined($_) && nqp::istype($_,type);
-    }
-    False;
-}
-
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     my Mu $clone := nqp::hash();
     my Mu $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'));

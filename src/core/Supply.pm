@@ -715,7 +715,7 @@ my role Supply {
 
         X::Supply::Combinator.new(
            combinator => 'merge'
-        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
@@ -734,7 +734,7 @@ my role Supply {
 
         X::Supply::Combinator.new(
            combinator => 'zip'
-        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
@@ -758,7 +758,7 @@ my role Supply {
 
         X::Supply::Combinator.new(
            combinator => 'zip-latest'
-        ).throw if NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0] if +@s == 1;           # nothing to do.
 

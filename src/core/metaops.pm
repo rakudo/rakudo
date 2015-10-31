@@ -10,7 +10,7 @@ sub METAOP_TEST_ASSIGN:<andthen>(\lhs, $rhs) is raw { lhs andthen (lhs = $rhs())
 sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is raw { lhs orelse (lhs = $rhs()) }
 
 sub METAOP_NEGATE(\op) {
-    -> Mu \a, Mu \b { !op.(a ,b) }
+    -> |c { c.elems > 1 ?? !op.(|c) !! True }
 }
 
 sub METAOP_REVERSE(\op) {

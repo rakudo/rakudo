@@ -4325,6 +4325,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         if $categorical {    # Does it look like a metaop?
             my $cat := ~$categorical[0][0];
             my $op := ~$categorical[0][1];
+            return self if $op eq '!=';
             my $lang := self.'!cursor_init'($op, :p(0));
             my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;
             $meth := 'term:sym<reduce>' if $cat eq 'prefix' && $op ~~ /^ \[ .* \] $ /;

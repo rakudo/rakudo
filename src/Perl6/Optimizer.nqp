@@ -1056,7 +1056,54 @@ class Perl6::Optimizer {
             self.visit_op_children($op);
             return $op;
         }
-        
+
+        # Let's see if we can catch a type mismatch in assignment at compile-time.
+        # Especially with Num, Rat, and Int there's often surprises at run-time.
+        if $optype eq 'assign' && nqp::istype($op[0], QAST::Var) && nqp::istype($op[1], QAST::Want) && $op[0].scope eq 'lexical' {
+            # grab the var's symbol from our blocks
+            my $varsym := $!symbols.find_lexical_symbol($op[0].name);
+            my $type := $varsym<type>;
+
+            my $want_type := $op[1][1];
+            my $varname := $op[0].name;
+
+            if $want_type eq 'Ii' {
+                if $type =:= $!symbols.find_in_setting("Num") {
+                    $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                            :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                            :valuetype<Int>, :suggestionsuffix<e0>
+                        );
+                } elsif $type =:= $!symbols.find_in_setting("Rat") {
+                    $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                            :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                            :valuetype<Int>, :suggestionsuffix<.Rat>
+                        );
+                } elsif $type =:= $!symbols.find_in_setting("Complex") {
+                    $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                            :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Numeric>,
+                            :valuetype<Int>, :suggestionsuffix<+0i>
+                        );
+                }
+            } elsif $want_type eq 'Nn' {
+                if $type =:= $!symbols.find_in_setting("Int") {
+                    $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                            :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                            :valuetype<Num>, :suggestionsuffix<.floor>
+                        );
+                } elsif $type =:= $!symbols.find_in_setting("Rat") {
+                    $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                            :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                            :valuetype<Num>, :suggestionsuffix<.Rat>
+                        );
+                } elsif $type =:= $!symbols.find_in_setting("Complex") {
+                    $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                            :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Numeric>,
+                            :valuetype<Num>, :suggestionsuffix<+0i>
+                        );
+                }
+            }
+        }
+
         # A chain with exactly two children can become the op itself.
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;

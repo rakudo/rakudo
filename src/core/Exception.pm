@@ -1340,6 +1340,20 @@ my class X::Syntax::Number::IllegalDecimal does X::Syntax {
     method message() { "Decimal point must be followed by digit" }
 }
 
+my class X::Syntax::Number::LiteralType does X::Syntax {
+    has $.varname;
+    has $.vartype;
+    has $.value;
+    has $.valuetype;
+    has $.suggestionsuffix;
+    has $.suggestiontype;
+
+    method message() {
+        "Can't assign a {$.valuetype} literal ($.value) to a {$.vartype.WHAT.^name} variable. You can try { $.value }{ $.suggestionsuffix } instead or use $.suggestiontype"
+
+    }
+}
+
 my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;

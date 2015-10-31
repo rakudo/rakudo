@@ -518,6 +518,7 @@ my class IO::Handle does IO {
                 my int $found = 1;
                 while $!elems {
                     $found = $found + $!elems;
+                    $!elems = 0;
                     self!next-chunk until $!elems || $!done;
                 }
                 $!handle.close if $!close;

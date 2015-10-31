@@ -461,9 +461,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(self.iterator)
     }
     multi method keys(List:D:) {
-        self.is-lazy
-          ?? self.values.map: { (state $)++ }
-          !! Range.new( 0, self.elems - 1 )
+        Range.new( 0, self.is-lazy ?? Inf !! self.elems - 1 )
     }
     multi method kv(List:D:) {
         gather self.values.map: {

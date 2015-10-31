@@ -1360,12 +1360,14 @@ augment class Any {
 
     proto method head(|) { * }
     multi method head(Any:D: Int:D $n) {
+        return () if $n <= 0;
+
         Seq.new( class :: does Iterator {
             has Mu  $!iter;
             has int $!todo;
             method BUILD(\list,\todo) {
                 $!iter = as-iterable(list).iterator;
-                $!todo = todo min 0;
+                $!todo = todo;
                 self
             }
             method new(\list,\todo) { nqp::create(self).BUILD(list,todo) }
@@ -1377,6 +1379,8 @@ augment class Any {
 
     proto method tail(|) { * }
     multi method tail(Any:D: Int:D $n) {
+        return () if $n <= 0;
+
         Seq.new( class :: does Iterator {
             has Mu $!iter;
             has Mu $!lastn;

@@ -1,6 +1,7 @@
-class CompUnit::Repository::Installation does CompUnitRepo::Locally does CompUnit::Repository::Installable {
+class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
+    has %!loaded;
 
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) {
         my $manifest := $!prefix.child("MANIFEST");
@@ -217,12 +218,12 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                         if $*PERL<compiler>.version eqv $pc<cver> {
                             my $compunit = CompUnit.new($loader, :has_precomp($pc<file>), :repo(self));
                             $compunit.load(GLOBALish, :$line);
-                            return $compunit;
+                            return %!loaded{$compunit.name} = $compunit;
                         }
                     }
                     my $compunit = CompUnit.new($loader, :repo(self));
                     $compunit.load(GLOBALish, :$line);
-                    return $compunit;
+                    return %!loaded{$compunit.name} = $compunit;
                 }
             }
         }
@@ -236,6 +237,10 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
     }
 
     method short-id() { 'inst' }
+
+    method loaded() returns Iterable {
+        return %!loaded.values;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

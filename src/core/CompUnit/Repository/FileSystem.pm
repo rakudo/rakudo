@@ -1,4 +1,5 @@
-class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit::Repository {
+class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does CompUnit::Repository {
+    has %!loaded;
 
     my %extensions =
       Perl6 => <pm6 pm>,
@@ -8,13 +9,6 @@ class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit:
 
     # global cache of files seen
     my %seen;
-
-    method files($file, :$name, :$auth, :$ver) {
-        my $base := $file.IO;
-        $base.f
-         ?? { files => { $file => $base.path }, ver => Version.new('0') }
-         !! ();
-    }
 
     method need(
         CompUnit::DependencySpecification $spec,
@@ -77,7 +71,7 @@ class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit:
 
         if $compunit {
             $compunit.load(GLOBALish, :$line);
-            return $compunit;
+            return %!loaded{$compunit.name} = $compunit;
         }
 
         return self.next-repo.need($spec, GLOBALish, :$precomp, :$line) if self.next-repo;
@@ -99,7 +93,7 @@ class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit:
               $path, :$file, :extension(''), :has-source(!$has_precomp), :$has_precomp, :repo(self)
             );
             $compunit.load(GLOBALish, :$line);
-            return $compunit;
+            return %!loaded{$compunit.name} = $compunit;
         }
 
         return self.next-repo.load($file, :$line) if self.next-repo;
@@ -107,6 +101,10 @@ class CompUnit::Repository::FileSystem does CompUnitRepo::Locally does CompUnit:
     }
 
     method short-id() { 'file' }
+
+    method loaded() returns Iterable {
+        return %!loaded.values;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

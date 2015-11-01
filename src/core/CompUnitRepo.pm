@@ -1,5 +1,4 @@
-role  CompUnitRepo::Locally             { ... }
-class CompUnit::Repository::FileSystem  { ... }
+class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
 
 my class Perl5ModuleLoaderStub {

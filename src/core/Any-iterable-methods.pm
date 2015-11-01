@@ -9,14 +9,10 @@ class X::Cannot::Lazy { ... }
 # work on by doing a .list coercion.
 use MONKEY-TYPING;
 augment class Any {
-    sub as-iterable(\iterablish) {
-        # XXX used to use a tertiary operator here but that seems to break mutability of iterablish.list
-        if iterablish.DEFINITE && nqp::istype(iterablish, Iterable) {
-            iterablish
-        }
-        else {
-            iterablish.list;
-        }
+    sub as-iterable(\iterablish) is raw {
+        iterablish.DEFINITE && nqp::istype(iterablish, Iterable)
+          ?? iterablish
+          !! iterablish.list
     }
 
     proto method map(|) is nodal { * }

@@ -44,16 +44,6 @@ my sub combinations(\n, \k) {
     }.new(n,k))
 }
 
-my sub permutations(Int $n) {
-    $n == 1 ?? ( (0,), ) !!
-    gather for ^$n -> $i {
-        my @i = flat 0 ..^ $i, $i ^..^ $n;
-        for permutations($n - 1) {
-            take ($i, |@i[@$_])
-        }
-    }
-}
-
 sub find-reducer-for-op($op) {
     try my %prec := $op.prec;
     return &METAOP_REDUCE_LEFT if (nqp::isnull(%prec) or ! %prec);

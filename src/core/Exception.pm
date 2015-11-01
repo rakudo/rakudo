@@ -1348,9 +1348,11 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
     has $.suggestiontype;
 
     method message() {
-        my $vartype := $.vartype.WHAT.^name;
-        my $value := $.value.perl;
-        "Cannot assign a literal $value (of type {$.valuetype}) to a variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or coerce the value with { $value ~ '.' ~ $vartype } or $vartype\($value\), or just write the value as { $.value."$vartype"().perl }";
+        my $vartype := $!vartype.WHAT.^name;
+        my $value := $!value.perl;
+        my $val = "Cannot assign a literal of type {$.valuetype} ($value) to a variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or try to coerce the value with { $value ~ '.' ~ $vartype } or $vartype\($value\)";
+        try $val ~= ", or just write the value as " ~ $!value."$vartype"().perl;
+        $val;
     }
 }
 

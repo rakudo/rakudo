@@ -105,6 +105,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method loaded() returns Iterable {
         return %!loaded.values;
     }
+
+    method files($file, :$name, :$auth, :$ver) {
+        my $base := $file.IO;
+        $base.f
+         ?? { files => { $file => $base.path }, ver => Version.new('0') }
+         !! ();
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

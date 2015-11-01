@@ -31,27 +31,6 @@ role CompUnitRepo::Locally {
     method files(CompUnitRepo::Locally:D: $file, :$name, :$auth, :$ver)   {...}
     method short-id(CompUnitRepo::Locally:D:)                             {...}
 
-    method need(
-        CompUnit::DependencySpecification $spec,
-        \GLOBALish is raw = Any,
-        CompUnit::PrecompilationRepository :$precomp = self.precomp-repository(),
-        :$line
-    )
-        returns CompUnit:D
-    {
-        my @candidates = self.candidates(
-            $spec.short-name,
-            :auth($spec.auth-matcher),
-            :ver($spec.version-matcher),
-        );
-        if @candidates {
-            @candidates[0].load(GLOBALish, :$line);
-            return @candidates[0];
-        }
-        return self.next-repo.need($spec, GLOBALish, :$precomp, :$line) if self.next-repo;
-        nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
-    }
-
     method loaded() returns Iterable {
         return ();
     }

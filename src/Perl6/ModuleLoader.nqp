@@ -73,137 +73,18 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
         DEBUG("going to load $module_name") if $DEBUG;
-        unless %chosen {
-            # See if we need to load it from elsewhere.
-            if nqp::existskey(%opts, 'from') {
-                if nqp::existskey(%language_module_loaders, %opts<from>) {
-                    # We expect that custom module loaders will accept a Stash, only
-                    # NQP expects a hash and therefor needs special handling.
-                    my $CompUnitHandle := $*W.find_symbol(["CompUnit", "Handle"]);
-                    if %opts<from> eq 'NQP' {
-                        if +@GLOBALish {
-                            my $target := nqp::knowhow().new_type(:name('GLOBALish'));
-                            nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
-                            return $CompUnitHandle.new(
-                                %language_module_loaders<NQP>.load_module($module_name, $target)
-                            );
-                        }
-                        else {
-                            return $CompUnitHandle.new(
-                                %language_module_loaders<NQP>.load_module($module_name)
-                            );
-                        }
-                    }
-                    return %language_module_loaders{%opts<from>}.load_module($module_name,
-                        %opts, |@GLOBALish, :$line, :$file);
-                }
-                else {
-                    nqp::die("Do not know how to load code from " ~ %opts<from>);
-                }
-            }
-
-            # Locate all the things that we potentially could load. Choose
-            # the first one for now (XXX need to filter by version and auth).
-            my @prefixes   := self.search_path();
-            my @candidates := self.locate_candidates($module_name, @prefixes, :$file);
-            if +@candidates == 0 {
-                if nqp::defined($file) {
-                    nqp::die("Could not find file '$file' for module $module_name");
-                }
-                else {
-                    nqp::die("Could not find $module_name in any of:\n  " ~
-                        join("\n  ", @prefixes));
-                }
-            }
-            %chosen := @candidates[0];
-        }
-
-        my @MODULES := nqp::clone(@*MODULES // []);
-        for @MODULES -> $m {
-            if $m<module> eq $module_name {
-                nqp::die("Circular module loading detected involving module '$module_name'");
-            }
-        }
-        unless nqp::ishash(%chosen) {
-            %chosen := %chosen.FLATTENABLE_HASH();
-        }
-        if $DEBUG {
-            my $text := "chosen:";
-            for %chosen {
-                $text := $text ~ "\n " ~ $_.key ~ ' => ' ~ $_.value;
-            }
-            DEBUG($text);
-        }
-        # If we didn't already do so, load the module and capture
-        # its mainline. Otherwise, we already loaded it so go on
-        # with what we already have.
-        my $module_ctx;
-        if nqp::defined(%modules_loaded{%chosen<key>}) {
-            $module_ctx := %modules_loaded{%chosen<key>};
-        }
-        else {
-            my @*MODULES := @MODULES;
-            if +@*MODULES  == 0 {
-                my %prev        := nqp::hash();
-                %prev<line>     := $line;
-                %prev<filename> := nqp::getlexdyn('$?FILES');
-                @*MODULES[0]    := %prev;
-            }
-            else {
-                @*MODULES[-1]<line> := $line;
-            }
-            my %trace := nqp::hash();
-            %trace<module>   := $module_name;
-            %trace<filename> := %chosen<pm>;
+        if $module_name eq 'Perl6::BOOTSTRAP' {
             my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
-            nqp::push(@*MODULES, %trace);
-            if %chosen<load> {
-                %trace<precompiled> := %chosen<load>;
-                DEBUG("loading ", %chosen<load>) if $DEBUG;
-                my %*COMPILING := {};
-                my $*CTXSAVE := self;
-                my $*MAIN_CTX;
-                nqp::loadbytecode(%chosen<load>);
-                %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
-                DEBUG("done loading ", %chosen<load>) if $DEBUG;
-            }
-            else {
-                # If we're doing module pre-compilation, we should only
-                # allow the modules we load to be pre-compiled also.
-                if $*W && $*W.is_precompilation_mode() {
-                    nqp::die(
-                        "When pre-compiling a module, its dependencies must be pre-compiled first.\n" ~
-                        "Please pre-compile " ~ %chosen<pm>);
-                }
-
-                # Read source file.
-                DEBUG("loading ", %chosen<pm>) if $DEBUG;
-                my $fh := nqp::open(%chosen<pm>, 'r');
-                nqp::setencoding($fh, 'utf8');
-                my $source := nqp::readallfh($fh);
-                nqp::closefh($fh);
-
-                # Get the compiler and compile the code, then run it
-                # (which runs the mainline and captures UNIT).
-                my $?FILES   := %chosen<pm>;
-                my $eval     := nqp::getcomp('perl6').compile($source);
-                my $*CTXSAVE := self;
-                my $*MAIN_CTX;
-                $eval();
-                %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
-                DEBUG("done loading ", %chosen<pm>) if $DEBUG;
-
-            }
+            my %*COMPILING := {};
+            my $*CTXSAVE := self;
+            my $*MAIN_CTX;
+            my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
+            $file := nqp::stat("blib/$file", 0)
+                ?? "blib/$file"
+                !! nqp::backendconfig<prefix> ~ '/share/nqp/lib/' ~ $file;
+            nqp::loadbytecode($file);
+            %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
             nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
-            CATCH {
-                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
-                nqp::rethrow($_);
-            }
-        }
-
-        # Provided we have a mainline and need to do global merging...
-        if nqp::defined($module_ctx) {
-            # Merge any globals.
             my $UNIT := nqp::ctxlexpad($module_ctx);
             if +@GLOBALish {
                 unless nqp::isnull($UNIT<GLOBALish>) {
@@ -212,8 +93,30 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
             return $UNIT;
         }
+
+        if nqp::existskey(%language_module_loaders, %opts<from> // 'NQP') {
+            # We expect that custom module loaders will accept a Stash, only
+            # NQP expects a hash and therefor needs special handling.
+            my $CompUnitHandle := $*W.find_symbol(["CompUnit", "Handle"]);
+            if %opts<from> eq 'NQP' {
+                if +@GLOBALish {
+                    my $target := nqp::knowhow().new_type(:name('GLOBALish'));
+                    nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
+                    return $CompUnitHandle.new(
+                        %language_module_loaders<NQP>.load_module($module_name, $target)
+                    );
+                }
+                else {
+                    return $CompUnitHandle.new(
+                        %language_module_loaders<NQP>.load_module($module_name)
+                    );
+                }
+            }
+            return %language_module_loaders{%opts<from>}.load_module($module_name,
+                %opts, |@GLOBALish, :$line, :$file);
+        }
         else {
-            return {};
+            nqp::die("Do not know how to load code from " ~ %opts<from>);
         }
     }
 

@@ -42,7 +42,7 @@ multi sub INITIALIZE_DYNAMIC('$*TOLERANCE') {
 
 multi sub INITIALIZE_DYNAMIC('$*REPO') {
     my CompUnit::Repository $next-repo;
-    $next-repo := CompUnitRepo.new($_, :$next-repo) for @*INC.reverse;
+    $next-repo := CompUnitRepo.new($_, :$next-repo) for @*INC.unique.reverse;
     PROCESS::<$REPO> := $next-repo;
 }
 

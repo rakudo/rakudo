@@ -269,6 +269,11 @@ my class Rakudo::Internals {
         return True unless nqp::defined($_) && nqp::istype($_,type) for values;
         False;
     }
+
+    method TRANSPOSE(Str \string, Str \original, Str \final) {
+        nqp::join(nqp::unbox_s(final),
+          nqp::split(nqp::unbox_s(original),nqp::unbox_s(string)))
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

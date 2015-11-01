@@ -516,7 +516,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method subst(Str:D: Str \from, Str \to, :$global!, *%adverbs) {
         if $global && !%adverbs {
-            TRANSPOSE(self,from,to);
+            Rakudo::Internals.TRANSPOSE(self,from,to);
         }
         else {
             $/ := nqp::getlexdyn('$/');
@@ -1296,7 +1296,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           || !$to.defined              # or a type object
           || %n;                       # or any named params passed
 
-        return TRANSPOSE-ONE(self, $from, substr($to,0,1))  # 1 char to 1 char
+        # 1 char to 1 char
+        return Rakudo::Internals.TRANSPOSE(self, $from, substr($to,0,1))
           if $from.chars == 1 && $to.chars;
 
         sub expand(Str:D \x) {
@@ -1899,62 +1900,6 @@ sub substr-rw(\what, \start, $want?) is rw {
            },
          )
       !! $r;
-}
-
-sub TRANSPOSE(Str \string, Str \original, Str \final) {
-    my str $str    = nqp::unbox_s(string);
-    my int $chars  = nqp::chars($str);
-    my str $needle = nqp::unbox_s(original);
-    my int $skip   = nqp::chars($needle);
-    my int $from;
-    my int $to;
-    my Mu  $parts := nqp::list_s();
-
-    while $to < $chars {
-        $to = nqp::index($str,$needle,$from);
-        last if $to == -1;
-        nqp::push_s($parts, $to > $from
-              ?? nqp::substr($str,$from,$to - $from)
-              !! ''
-            );
-        $to = $from = $to + $skip;
-    }
-    nqp::push_s( $parts, $from < $chars
-      ?? nqp::substr($str,$from,$chars - $from)
-      !! ''
-    );
-
-    nqp::elems($parts)
-      ?? nqp::box_s(nqp::join(nqp::unbox_s(final),$parts),Str)
-      !! string;
-}
-
-sub TRANSPOSE-ONE(Str \string, Str \original, Str \final) {
-    my str $str     = nqp::unbox_s(string);
-    my int $chars   = nqp::chars($str);
-    my int $ordinal = ord(original);
-    my int $from;
-    my int $to;
-    my $parts := nqp::list_s();
-
-    while $to < $chars {
-        if nqp::ordat($str,$to) == $ordinal {
-            nqp::push_s($parts, $to > $from
-              ?? nqp::substr($str,$from,$to - $from)
-              !! ''
-            );
-            $from = $to + 1;
-        }
-        $to = $to + 1;
-    }
-    nqp::push_s( $parts, $from < $chars
-      ?? nqp::substr($str,$from,$chars - $from)
-      !! ''
-    );
-
-    nqp::elems($parts)
-      ?? nqp::box_s(nqp::join(nqp::unbox_s(final),$parts),Str)
-      !! string;
 }
 
 # These probably belong in a separate unicodey file

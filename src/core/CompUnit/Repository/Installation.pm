@@ -18,7 +18,7 @@ class CompUnit::Repository::Installation does CompUnitRepo::Locally does CompUni
     }
 
     method can-install() {
-        %!dists.keys.any( *.IO.w )
+        so %!dists.keys.map( *.IO.w ).any
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--

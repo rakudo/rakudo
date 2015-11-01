@@ -782,12 +782,10 @@ my class IO::Handle does IO {
     method Supply(IO::Handle:D: :$size = 65536, :$bin --> Supply:D) {
         if $bin {
             supply {
-                my $buf := buf8.new;
-                my int $bytes = $size;
-                nqp::readfh($!PIO, $buf, $bytes);
+                my $buf := self.read($size);
                 while nqp::elems($buf) {
                     emit $buf;
-                    nqp::readfh($!PIO, $buf, $bytes);
+                    $buf := self.read($size);
                 }
                 done;
             }

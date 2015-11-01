@@ -21,6 +21,7 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.port = 80;
     has Str $.localhost;
     has Int $.localport;
+    has Int $.backlog;
     has Bool $.listen;
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
@@ -72,7 +73,7 @@ my class IO::Socket::INET does IO::Socket {
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $.listen || $.localhost || $.localport {
             nqp::bindsock($PIO, nqp::unbox_s($.localhost || "0.0.0.0"),
-                                 nqp::unbox_i($.localport || 0));
+                                 nqp::unbox_i($.localport || 0), nqp::unbox_i($.backlog || 128));
         }
 
         if $.listen {

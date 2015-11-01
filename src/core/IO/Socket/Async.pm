@@ -147,7 +147,7 @@ my class IO::Socket::Async {
         $p
     }
 
-    method listen(IO::Socket::Async:U: Str() $host, Int() $port,
+    method listen(IO::Socket::Async:U: Str() $host, Int() $port, Int() $backlog = 128,
                   :$scheduler = $*SCHEDULER) {
         my $cancellation;
         Supply.on-demand(-> $s {
@@ -163,7 +163,7 @@ my class IO::Socket::Async {
                         $s.emit($client_socket);
                     }
                 },
-                $host, $port, SocketCancellation);
+                $host, $port, $backlog, SocketCancellation);
         },
         closing => {
             $cancellation && nqp::cancel($cancellation)

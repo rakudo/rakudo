@@ -978,7 +978,7 @@ my class Binder {
                     $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_RAW +|
                     $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|
                     $SIG_ELEM_HASH_SIGIL +| $SIG_ELEM_NATIVE_VALUE +|
-                    $SIG_ELEM_IS_OPTIONAL) {
+                    $SIG_ELEM_IS_OPTIONAL +| $SIG_ELEM_IS_RW) {
                 return $TRIAL_BIND_NOT_SURE;
             }
             unless nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {

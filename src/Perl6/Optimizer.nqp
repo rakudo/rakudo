@@ -1044,7 +1044,7 @@ class Perl6::Optimizer {
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
-        if $optype eq 'p6for' {
+        if $optype eq 'p6for' && $op.ann('context') eq 'sink' {
             my $theop := $op[0];
             if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
 
@@ -1639,8 +1639,11 @@ class Perl6::Optimizer {
                             :op('add_i'),
                             QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
                             QAST::IVal.new( :value(1) )
-                        ))),
-                        QAST::WVal.new( :value($!symbols.Nil) )));
+                        )
+                    )
+                ),
+                QAST::WVal.new( :value($!symbols.Nil) )
+            ));
         }
     }
 

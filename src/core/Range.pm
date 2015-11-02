@@ -84,13 +84,11 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method elems {
-        return Inf if $!min === -Inf || $!max === Inf;
-        if nqp::istype($!min, Int) && nqp::istype($!max, Int) {
-            my Int $least =
-              $!excludes-min ?? $!min + 1 !! $!min;
-            return 1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
-        }
-        nextsame;
+        $!infinite
+          ?? Inf
+          !! nqp::istype($!min, Int) && nqp::istype($!max, Int)
+            ?? $!max - $!excludes-max - $!min - $!excludes-min + 1
+            !! nextsame;
     }
 
     method iterator() {

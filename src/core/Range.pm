@@ -98,12 +98,9 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method iterator() {
-        # Obtain starting value.
-        my $min = $!excludes-min ?? $!min.succ !! $!min;
-
         # If the value and the maximum are both integers and fit in a native
         # int, we have a really cheap approach.
-        if nqp::istype($min,Int)  && !nqp::isbig_I(nqp::decont($min))
+        if nqp::istype($!min,Int)  && !nqp::isbig_I(nqp::decont($!min))
           && nqp::istype($!max,Int) && !nqp::isbig_I(nqp::decont($!max)) {
             class :: does Iterator {
                 has int $!i;
@@ -139,27 +136,33 @@ my class Range is Cool does Iterable does Positional {
                 }
                 method count-only() { nqp::p6box_i($!n - $!i + 1) }
                 method sink-all()   { $!i = $!n; IterationEnd }
-            }.new($min, $!excludes-max ?? $!max.pred !! $!max)
+            }.new($!min + $!excludes-min, $!max - $!excludes-max)
+        }
+
+        # doesn't make much sense, but there you go
+        elsif $!min === -Inf {
+            class :: does Iterator {
+                method new()      { nqp::create(self) }
+                method pull-one() { -Inf }
+                method is-lazy()  { True  }
+            }.new
         }
 
         # Also something quick and easy for 1..* style things.
-        elsif nqp::istype($min, Numeric) && $!max === Inf {
+        elsif nqp::istype($!min, Numeric) && $!max === Inf {
             class :: does Iterator {
                 has $!i;
 
-                method new($i is copy) {
-                    my \iter = nqp::create(self);
-                    nqp::bindattr(iter, self, '$!i', $i);
-                    iter
-                }
-
+                method BUILD(\i)  { $!i = i; self }
+                method new(\i)    { nqp::create(self).BUILD(i) }
                 method pull-one() { $!i++ }
                 method is-lazy()  { True  }
-            }.new($min)
+            }.new($!min + $!excludes-min)
         }
 
         # if we have (simple) char range
-        elsif nqp::istype($min,Str) {
+        elsif nqp::istype($!min,Str) {
+            my $min = $!excludes-min ?? $!min.succ !! $!min;
             $min after $!max
               ?? ().iterator
               !! $min.chars == 1 && nqp::istype($!max,Str) && $!max.chars == 1
@@ -259,7 +262,7 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $!e;
                     IterationEnd
                 }
-            }.new($min,$!excludes-max,$!max)
+            }.new($!excludes-min ?? $!min.succ !! $!min,$!excludes-max,$!max)
         }
     }
     multi method list(Range:D:) { List.from-iterator(self.iterator) }

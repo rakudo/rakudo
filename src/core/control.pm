@@ -215,9 +215,9 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
     $compiled();
 }
-multi sub EVAL(Cool $code, Str() :$lang! where 'nqp', *%_) {
+multi sub EVAL(Cool $code, Str() :$lang! where 'nqp' | 'NQP', *%_) {
     nqp::loadbytecode('nqp.moarvm');
-    EVAL($code, :$lang, |%_);
+    EVAL($code, :lang<nqp>, |%_);
 }
 multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');

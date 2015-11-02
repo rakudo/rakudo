@@ -1,7 +1,7 @@
 my class Failure {
     has $.exception;
     has $.backtrace;
-    has $!handled;
+    has int $!handled;
 
     multi method new() {
         my $stash := CALLER::;

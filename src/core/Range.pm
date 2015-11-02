@@ -277,15 +277,13 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method Str(Range:D:) {
-        nqp::istype($!min,Numeric) && nqp::istype($!max,Numeric)
-          ?? $!min == -Inf && $!max == Inf
-            ?? "*{'^' if $!excludes-min}..{'^' if $!excludes-max}*"
-            !! $!min == -Inf
-              ?? "*{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max"
-              !! $!max == Inf
-                ?? "{$!min}{'^' if $!excludes-min}..{'^' if $!excludes-max}*"
-                !! self.list.Str
-          !! self.list.Str
+        $!min === -Inf && $!max === Inf
+          ?? "*{'^' if $!excludes-min}..{'^' if $!excludes-max}*"
+          !! $!min === -Inf
+            ?? "*{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max"
+            !! $!max === Inf
+              ?? "{$!min}{'^' if $!excludes-min}..{'^' if $!excludes-max}*"
+              !! self.list.Str
     }
 
     multi method ACCEPTS(Range:D: Mu \topic) {

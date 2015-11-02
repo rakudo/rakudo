@@ -60,7 +60,7 @@ class Kernel does Systemic {
     method release {
         $!release //= do {
             given $*DISTRO.name {
-                when any <openbsd netbsd> { # needs adapting
+                when any <openbsd netbsd dragonfly> { # needs adapting
                     uname '-r';
                 }
                 default {

@@ -113,7 +113,7 @@ my class IO::ArgFiles is IO::Handle {
           },
           STORE => -> $, $nl {
               if $!io.defined {
-                  nqp::setinputlinesep($!io, nqp::unbox_s($!nl = $nl));
+                  Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!io, $!nl = $nl);
               }
               $!nl = $nl;
           }

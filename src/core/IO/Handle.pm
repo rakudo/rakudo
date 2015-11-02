@@ -91,7 +91,7 @@ my class IO::Handle does IO {
         );
 
         $!chomp = $chomp;
-        nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
+        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl = $nl);
         nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
           unless $bin;
         self;
@@ -103,7 +103,7 @@ my class IO::Handle does IO {
               $!nl
           },
           STORE => -> $, $nl {
-            nqp::setinputlinesep($!PIO, nqp::unbox_s($!nl = $nl));
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl = $nl);
           }
         );
     }

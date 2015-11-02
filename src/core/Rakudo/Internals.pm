@@ -264,6 +264,20 @@ my class Rakudo::Internals {
         }
     }
 
+    method SET_LINE_ENDING_ON_HANDLE(Mu \handle, $ending) {
+        if nqp::istype($ending, Iterable) {
+            my \endings = nqp::list_s();
+            for @$ending {
+                nqp::push(endings, nqp::unbox_s($ending.Str));
+            }
+            nqp::setinputlineseps(handle, endings);
+        }
+        else {
+            nqp::setinputlinesep(handle, nqp::unbox_s($ending.Str))
+        }
+        Nil
+    }
+
     # True if given array does not just contain defined objects of given type
     method NOT_ALL_DEFINED_TYPE(\values,\type) {
         return True unless nqp::defined($_) && nqp::istype($_,type) for values;

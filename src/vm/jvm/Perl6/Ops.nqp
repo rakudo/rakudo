@@ -68,9 +68,30 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
 
     $ops.result($il, $RT_VOID);
 });
+our $Binder;
+proto sub trial_bind(*@args) {
+    $Binder.trial_bind(|@args);
+}
+my $trial_bind := -> $qastcomp, $op {
+    $qastcomp.as_jast(QAST::Op.new(
+        :op('call'),
+        QAST::WVal.new( :value(nqp::getcodeobj(&trial_bind)) ),
+        |@($op)
+    ));
+};
+proto sub set_binder($b) { $Binder := $b; }
+proto sub get_binder()   { $Binder }
+$ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
+    $qastcomp.as_jast(QAST::Op.new(
+        :op('call'),
+        QAST::WVal.new( :value(nqp::getcodeobj(&set_binder)) ),
+        |@($op)
+    ));
+});
+$ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
+$ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6typecheckrv', $TYPE_P6OPS, 'p6typecheckrv', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6decontrv', $TYPE_P6OPS, 'p6decontrv', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6capturelex', $TYPE_P6OPS, 'p6capturelex', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
@@ -198,7 +219,6 @@ $ops.map_classlib_hll_op('nqp', 'p6init', $TYPE_P6OPS, 'p6init', [], $RT_OBJ, :t
 $ops.map_classlib_hll_op('nqp', 'p6settypes', $TYPE_P6OPS, 'p6settypes', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
-$ops.map_classlib_hll_op('nqp', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'jvmrakudointerop', $TYPE_P6OPS, 'jvmrakudointerop', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6captureouters2', $TYPE_P6OPS, 'p6captureouters2', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc, :!inlinable);

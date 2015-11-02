@@ -307,40 +307,6 @@ public final class RakOps {
         }
     }
     
-    public static long p6trialbind(SixModelObject sig, SixModelObject values, SixModelObject flags, ThreadContext tc) {
-        /* Get signature and parameters. */
-        GlobalExt gcx = key.getGC(tc);
-        SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_PARAMS);
-
-        /* Form argument array and call site descriptor. */
-        int numArgs = (int)values.elems(tc);
-        Object[] args = new Object[numArgs];
-        byte[] argFlags = new byte[numArgs];
-        for (int i = 0; i < numArgs; i++) {
-            switch ((int)flags.at_pos_boxed(tc, i).get_int(tc)) {
-                case CallSiteDescriptor.ARG_INT:
-                    args[i] = 0;
-                    argFlags[i] = CallSiteDescriptor.ARG_INT;
-                    break;
-                case CallSiteDescriptor.ARG_NUM:
-                    args[i] = 0.0;
-                    argFlags[i] = CallSiteDescriptor.ARG_NUM;
-                    break;
-                case CallSiteDescriptor.ARG_STR:
-                    args[i] = "";
-                    argFlags[i] = CallSiteDescriptor.ARG_STR;
-                    break;
-                default:
-                    args[i] = values.at_pos_boxed(tc, i);
-                    argFlags[i] = CallSiteDescriptor.ARG_OBJ;
-                    break;
-            }
-        }
-
-        /* Do trial bind. */
-        return Binder.trialBind(tc, gcx, params, new CallSiteDescriptor(argFlags, null), args);
-    }
-    
     private static final CallSiteDescriptor STORE = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(

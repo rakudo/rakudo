@@ -23,6 +23,12 @@ my class Range is Cool does Iterable does Positional {
     multi method new(\min , Seq \max, :$excludes-min, :$excludes-max) {
         X::Range::InvalidArg.new(:got(Seq)).throw;
     }
+    multi method new(Complex \min, \max, :$excludes-min, :$excludes-max) {
+        X::Range::InvalidArg.new(:got(min)).throw;
+    }
+    multi method new(\min , Complex \max, :$excludes-min, :$excludes-max) {
+        X::Range::InvalidArg.new(:got(max)).throw;
+    }
     multi method new(Whatever \min,Whatever \max,:$excludes-min,:$excludes-max){
         nqp::create(self).BUILD(-Inf,Inf,$excludes-min,$excludes-max,1);
     }

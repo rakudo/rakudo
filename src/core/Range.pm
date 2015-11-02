@@ -266,7 +266,7 @@ my class Range is Cool does Iterable does Positional {
     method flat(Range:D:) { Seq.new(self.iterator) }
 
     method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
-    method intbounds() {
+    method int-bounds() {
         nqp::istype($!min, Int) && nqp::istype($!max, Int)
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
           !! fail "Cannot determine integer bounds";

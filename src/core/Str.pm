@@ -1296,9 +1296,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           || !$to.defined              # or a type object
           || %n;                       # or any named params passed
 
-        # 1 char to 1 char
+        # from 1 char
         return Rakudo::Internals.TRANSPOSE(self, $from, substr($to,0,1))
-          if $from.chars == 1 && $to.chars;
+          if $from.chars == 1;
 
         sub expand(Str:D \x) {
             my str $s     = nqp::unbox_s(x);

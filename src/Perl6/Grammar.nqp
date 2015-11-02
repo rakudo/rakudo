@@ -4321,7 +4321,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method add_mystery($token, $pos, $ctx) {
         my $name := ~$token;
-        my $categorical := $name ~~ /^'&'?((\w+?fix) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
+        $name := nqp::substr($name,1) if nqp::eqat($name,"&",0);
+        my $categorical := $name ~~ /^((\w+?fix) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         if $categorical {    # Does it look like a metaop?
             my $cat := ~$categorical[0][0];
             my $op := ~$categorical[0][1];
@@ -4346,10 +4347,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 # nqp::printfh(nqp::getstderr(), $META.dump);
                 my $fun := $*W.compile_time_evaluate(self.MATCH,$META);
                 $*W.install_lexical_symbol($*W.cur_lexpad(),'&' ~ $categorical[0],$fun);
+                $fun.set_name($name);
                 return self;
             }
         }
-        unless $name eq '' || $*W.is_lexical('&' ~ $name) || $*W.is_lexical($name) {
+        unless $name eq '' || $*W.is_lexical('&' ~ $name) {
             my $lex := $*W.cur_lexpad();
             my $key := $name ~ '-' ~ $lex.cuid;
             if nqp::existskey(%*MYSTERY, $key) {

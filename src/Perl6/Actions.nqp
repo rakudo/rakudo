@@ -67,7 +67,7 @@ register_op_desugar('p6for', -> $qast {
     my $call := QAST::Op.new(
         :op<callmethod>, :name<map>, :node($qast),
         QAST::Var.new( :name($for-list-name), :scope('local') ),
-        block_closure($block),
+        $block,
         $iscont,
     );
     if $label {
@@ -923,12 +923,12 @@ Compilation unit '$file' contained the following violations:
                         QAST::Op.new(
                             :op<p6for>, :node($/),
                             $cond,
-                            $past,
+                            block_closure($past),
                         ),
                         'v', QAST::Op.new(
                             :op<p6for>, :node($/),
                             $cond,
-                            $past,
+                            block_closure($past),
                         ),
                     );
                     $past[0].annotate('context', 'eager');
@@ -1301,12 +1301,12 @@ Compilation unit '$file' contained the following violations:
             QAST::Op.new(
                 :op<p6for>, :node($/),
                 $xblock[0],
-                $xblock[1],
+                block_closure($xblock[1]),
             ),
             'v', QAST::Op.new(
                 :op<p6for>, :node($/),
                 $xblock[0],
-                $xblock[1],
+                block_closure($xblock[1]),
             ),
         );
         if $*LABEL {

@@ -276,7 +276,17 @@ my class Range is Cool does Iterable does Positional {
         self.list.fmt(|c)
     }
 
-    multi method Str(Range:D:) { self.list.Str }
+    multi method Str(Range:D:) {
+        nqp::istype($!min,Numeric) && nqp::istype($!max,Numeric)
+          ?? $!min == -Inf && $!max == Inf
+            ?? "*{'^' if $!excludes-min}..{'^' if $!excludes-max}*"
+            !! $!min == -Inf
+              ?? "*{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max"
+              !! $!max == Inf
+                ?? "{$!min}{'^' if $!excludes-min}..{'^' if $!excludes-max}*"
+                !! self.list.Str
+          !! self.list.Str
+    }
 
     multi method ACCEPTS(Range:D: Mu \topic) {
         (topic cmp $!min) > -(!$!excludes-min)
@@ -301,11 +311,10 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method perl(Range:D:) {
-        $.min.perl
-          ~ ('^' if $.excludes-min)
-          ~ '..'
-          ~ ('^' if $.excludes-max)
-          ~ $.max.perl
+        nqp::istype($!min,Int) && nqp::istype($!max,Int)
+          && $!min == 0 && !$!excludes-min && $!excludes-max
+            ?? "^$!max"
+            !! "{$!min.perl}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.perl()"
     }
 
     proto method roll(|) { * }

@@ -3,61 +3,69 @@ my class X::Range::InvalidArg { ... }
 my class Range is Cool does Iterable does Positional {
     has $.min;
     has $.max;
-    has $.excludes-min;
-    has $.excludes-max;
-    has $.infinite;
+    has int $!excludes-min;
+    has int $!excludes-max;
+    has int $!infinite;
     method is-lazy { self.infinite }
 
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
     # are present (e.g., Range,Whatever or Real,Range).
-    multi method new(Range $min, $max, :$excludes-min, :$excludes-max) {
+    multi method new(Range $min, \max, :$excludes-min, :$excludes-max) {
         X::Range::InvalidArg.new(:got($min)).throw;
     }
-    multi method new($min, Range $max, :$excludes-min, :$excludes-max) {
+    multi method new(\min, Range $max, :$excludes-min, :$excludes-max) {
         X::Range::InvalidArg.new(:got($max)).throw;
     }
-    multi method new(Seq $min, $max, :$excludes-min, :$excludes-max) {
+    multi method new(Seq \min, \max, :$excludes-min, :$excludes-max) {
         X::Range::InvalidArg.new(:got(Seq)).throw;
     }
-    multi method new($min, Seq $max, :$excludes-min, :$excludes-max) {
+    multi method new(\min , Seq \max, :$excludes-min, :$excludes-max) {
         X::Range::InvalidArg.new(:got(Seq)).throw;
     }
-    multi method new(Whatever $min, Whatever $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(-Inf, Inf, $excludes-min, $excludes-max, True);
+    multi method new(Whatever \min,Whatever \max,:$excludes-min,:$excludes-max){
+        nqp::create(self).BUILD(-Inf,Inf,$excludes-min,$excludes-max,1);
     }
-    multi method new(Whatever $min, $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(-Inf, $max, $excludes-min, $excludes-max, True);
+    multi method new(Whatever \min, \max, :$excludes-min, :$excludes-max) {
+        nqp::create(self).BUILD(-Inf,max,$excludes-min,$excludes-max,1);
     }
-    multi method new($min, Whatever $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD($min, Inf, $excludes-min, $excludes-max, True);
+    multi method new(\min, Whatever \max, :$excludes-min, :$excludes-max) {
+        nqp::create(self).BUILD(min,Inf,$excludes-min,$excludes-max,1);
     }
-    multi method new(Real $min, Real() $max, :$excludes-min, :$excludes-max) {
+    multi method new(Real \min, Real() $max, :$excludes-min, :$excludes-max) {
         nqp::create(self).BUILD(
-          $min,
-          $max,
-          $excludes-min,
-          $excludes-max,
-          $max == Inf || $min == -Inf,
-        );
+          min,$max,$excludes-min,$excludes-max,$max == Inf || min == -Inf);
     }
-    multi method new($min is copy, $max is copy, :$excludes-min, :$excludes-max) {
-        $min = +$min
-          if nqp::istype($min,List) || nqp::istype($min,Match);
-        $max = +$max
-          if nqp::istype($max,List) || nqp::istype($max,Match);
-        nqp::create(self).BUILD($min, $max, $excludes-min, $excludes-max);
+    multi method new(List:D \min, \max, :$excludes-min, :$excludes-max) {
+        nqp::create(self).BUILD(
+          +min,
+          nqp::istype(max,List) || nqp::istype(max,Match) ?? +max !! max,
+          $excludes-min, $excludes-max, 0);
     }
+    multi method new(Match:D \min, \max, :$excludes-min, :$excludes-max) {
+        nqp::create(self).BUILD(
+          +min,
+          nqp::istype(max,List) || nqp::istype(max,Match) ?? +max !! max,
+          $excludes-min, $excludes-max, 0);
+    }
+    multi method new(\min, \max, :$excludes-min, :$excludes-max!) {
+        nqp::create(self).BUILD(min, max,$excludes-min,$excludes-max,0);
+    }
+    multi method new(\min, \max, :$excludes-min!, :$excludes-max) {
+        nqp::create(self).BUILD(min,max,$excludes-min,$excludes-max,0);
+    }
+    multi method new(\min, \max) { nqp::create(self).BUILD(min,max,0,0,0) }
 
-    submethod BUILD(
-      $!min,
-      $!max,
-      Bool() $!excludes-min,
-      Bool() $!excludes-max,
-      Bool   $!infinite = False,
-    ) {
+    submethod BUILD( $!min, $!max, \excludes-min, \excludes-max, \infinite) {
+        $!excludes-min = excludes-min // 0;
+        $!excludes-max = excludes-max // 0;
+        $!infinite     = infinite;
         self;
     }
+
+    method excludes-min() { ?$!excludes-min }
+    method excludes-max() { ?$!excludes-max }
+    method infinite()     { ?$!infinite     }
 
     multi method WHICH (Range:D:) {
         self.^name
@@ -67,7 +75,6 @@ my class Range is Cool does Iterable does Positional {
           ~ ("^" if $!excludes-max)
           ~ $!max;
     }
-
     multi method EXISTS-POS(Range:D: int \pos) {
         pos < self.elems;
     }
@@ -254,7 +261,7 @@ my class Range is Cool does Iterable does Positional {
     multi method list(Range:D:) { List.from-iterator(self.iterator) }
     method flat(Range:D:) { Seq.new(self.iterator) }
 
-    method bounds()   { (nqp::decont($!min), nqp::decont($!max)) }
+    method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
 
     method fmt(|c) {
         self.list.fmt(|c)

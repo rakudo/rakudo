@@ -21,4 +21,9 @@ my class IterationBuffer is repr('VMArray') { ... }
 my constant Empty = nqp::p6bindattrinvres(nqp::create(Slip),
     List, '$!reified', nqp::create(IterationBuffer));
 
+# The value for \n.
+my constant $?NL = nqp::iseq_s(nqp::atkey(nqp::backendconfig(), 'osname'), 'MSWin32')
+    ?? "\x0D\x0A"
+    !! "\x0A";
+
 # vim: ft=perl6 expandtab sw=4

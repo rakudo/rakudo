@@ -5,9 +5,10 @@ my class Proc { ... }
 my class IO::Handle does IO {
     has $.path;
     has $!PIO;
-    has int $.ins;
     has $.chomp is rw = Bool::True;
-    has $.nl    = "\n";
+    has int $.ins;
+    has $.nl-in = ["\n", "\r\n"];
+    has Str:D $.nl-out is rw = "\n";
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -20,8 +21,14 @@ my class IO::Handle does IO {
       :$bin,
       :$chomp = True,
       :$enc   = 'utf8',
-      :$nl    = "\n",
+      :$nl-in is copy = ["\n", "\r\n"],
+      Str:D :$nl-out is copy = "\n",
+      :$nl
     ) {
+        if $nl.defined {
+            DEPRECATED(what => ':nl parameter to open', ':nl-in and :nl-out');
+            $nl-in = $nl-out = $nl;
+        }
 
         $mode //= do {
             when so ($r && $w) || $rw { $create              = True; 'rw' }
@@ -91,25 +98,39 @@ my class IO::Handle does IO {
         );
 
         $!chomp = $chomp;
-        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl = $nl);
+        $!nl-out = $nl-out;
+        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
         nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
           unless $bin;
         self;
     }
 
     method nl is rw {
+        DEPRECATED('nl-in and nl-out');
         Proxy.new(
           FETCH => {
-              $!nl
+              $!nl-out
           },
           STORE => -> $, $nl {
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl = $nl);
+            $!nl-out = $nl;
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl);
+          }
+        );
+    }
+
+    method nl-in is rw {
+        Proxy.new(
+          FETCH => {
+              $!nl-in
+          },
+          STORE => -> $, $nl-in {
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
           }
         );
     }
 
     method close(IO::Handle:D:) {
-        # TODO:b catch errors
+        # TODO: catch errors
         nqp::closefh($!PIO) if nqp::defined($!PIO);
         $!PIO := Mu;
         True;
@@ -853,7 +874,7 @@ my class IO::Handle does IO {
     }
 
     method print-nl(IO::Handle:D:) {
-        nqp::printfh($!PIO, nqp::unbox_s($!nl));
+        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
         Bool::True;
     }
 

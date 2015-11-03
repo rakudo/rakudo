@@ -19,7 +19,7 @@ my class Proc {
             $!flags += nqp::const::PIPE_INHERIT_IN;
         }
         elsif $in === True {
-            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$nl);
+            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-out => $nl);
             $!in_fh := nqp::syncpipe();
             $!flags += nqp::const::PIPE_CAPTURE_IN;
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!in_fh, $nl);
@@ -37,7 +37,7 @@ my class Proc {
         }
 
         if $out === True || $merge {
-            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$nl);
+            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in => $nl);
             $!out_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_OUT;
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!out_fh, $nl);
@@ -72,7 +72,7 @@ my class Proc {
             $!flags  += nqp::const::PIPE_INHERIT_ERR;
         }
         elsif $err === True {
-            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$nl);
+            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in =>  $nl);
             $!err_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_ERR;
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!err_fh, $nl);

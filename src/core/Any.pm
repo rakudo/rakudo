@@ -400,8 +400,8 @@ my class Any { # declared in BOOTSTRAP
     method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
     method Supply() is nodal { self.list.Supply }
 
-    method nl() { "\n" }
-    method print-nl() { self.print(self.nl) }
+    method nl-out() { "\n" }
+    method print-nl() { self.print(self.nl-out) }
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
 }

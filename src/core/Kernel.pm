@@ -108,6 +108,7 @@ class Kernel does Systemic {
             } else {
                 @names = flat "", qx/kill -l/.words;
                 @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
+                @names.=map({.uc}) if $*KERNEL.name eq 'dragonfly';
             }
 
             for Signal.^enum_value_list -> $signal {

@@ -268,9 +268,14 @@ my class Rakudo::Internals {
         if nqp::istype($ending, Iterable) {
             my \endings = nqp::list_s();
             for @$ending {
-                nqp::push(endings, nqp::unbox_s($ending.Str));
+                nqp::push_s(endings, nqp::unbox_s($ending.Str));
             }
+#?if !jvm
             nqp::setinputlineseps(handle, endings);
+#?endif
+#?if jvm
+            nqp::setinputlinesep(handle, nqp::atpos_s(endings, 0))
+#?endif
         }
         else {
             nqp::setinputlinesep(handle, nqp::unbox_s($ending.Str))

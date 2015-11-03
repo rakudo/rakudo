@@ -6,6 +6,7 @@ my class Range is Cool does Iterable does Positional {
     has int $!excludes-min;
     has int $!excludes-max;
     has int $!infinite;
+    has int $!is-int;
     method is-lazy { self.infinite }
 
     # The order of "method new" declarations matters here, to ensure
@@ -65,13 +66,15 @@ my class Range is Cool does Iterable does Positional {
     submethod BUILD( $!min, $!max, \excludes-min, \excludes-max, \infinite) {
         $!excludes-min = excludes-min // 0;
         $!excludes-max = excludes-max // 0;
-        $!infinite     = infinite;
+        $!infinite = infinite;
+        $!is-int   = nqp::istype($!min,Int) && nqp::istype($!max,Int);
         self;
     }
 
     method excludes-min() { ?$!excludes-min }
     method excludes-max() { ?$!excludes-max }
     method infinite()     { ?$!infinite     }
+    method is-int()       { ?$!is-int       }
 
     multi method WHICH (Range:D:) {
         self.^name
@@ -90,18 +93,16 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method elems {
-        $!infinite
-          ?? Inf
-          !! nqp::istype($!min, Int) && nqp::istype($!max, Int)
-            ?? $!max - $!excludes-max - $!min - $!excludes-min + 1
-            !! nextsame;
+        $!is-int
+          ?? 0 max $!max - $!excludes-max - $!min - $!excludes-min + 1
+          !! $!infinite ?? Inf !! nextsame;
     }
 
     method iterator() {
-        # If the value and the maximum are both integers and fit in a native
-        # int, we have a really cheap approach.
-        if nqp::istype($!min,Int)  && !nqp::isbig_I(nqp::decont($!min))
-          && nqp::istype($!max,Int) && !nqp::isbig_I(nqp::decont($!max)) {
+        # can use native ints
+        if $!is-int
+          && !nqp::isbig_I(nqp::decont($!min))
+          && !nqp::isbig_I(nqp::decont($!max)) {
             class :: does Iterator {
                 has int $!i;
                 has int $!n;
@@ -148,7 +149,7 @@ my class Range is Cool does Iterable does Positional {
             }.new
         }
 
-        # Also something quick and easy for 1..* style things.
+        # Also something quick and easy for 1..* style things
         elsif nqp::istype($!min, Numeric) && $!max === Inf {
             class :: does Iterator {
                 has $!i;
@@ -270,7 +271,7 @@ my class Range is Cool does Iterable does Positional {
 
     method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
     method int-bounds() {
-        nqp::istype($!min, Int) && nqp::istype($!max, Int)
+        $!is-int
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
           !! fail "Cannot determine integer bounds";
     }
@@ -312,88 +313,150 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method perl(Range:D:) {
-        nqp::istype($!min,Int) && nqp::istype($!max,Int)
-          && $!min == 0 && !$!excludes-min && $!excludes-max
+        $!is-int && $!min == 0 && !$!excludes-min && $!excludes-max
             ?? "^$!max"
             !! "{$!min.perl}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.perl()"
     }
 
     proto method roll(|) { * }
     multi method roll(Range:D: Whatever) {
-        gather loop { take self.roll }
-    }
-    multi method roll(Range:D:) {
-        return self.list.roll
-          unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
-
-        my Int $least =
-          $!excludes-min ?? $!min + 1 !! $!min;
-        my Int $elems =
-          1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
-        $elems ?? ($least + nqp::rand_I(nqp::decont($elems), Int)) !! Any;
-    }
-    multi method roll(Int(Cool) $num) {
-        return self.list.roll($num)
-          unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
-
-        my Int $least =
-          $!excludes-min ?? $!min + 1 !! $!min;
-        my Int $elems =
-          1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
-
-        my int $todo = nqp::unbox_i($num.Int);
-        if $elems {
-            gather while $todo {
-                take $least + nqp::rand_I(nqp::decont($elems), Int);
-                $todo = $todo - 1;
-            }
+        if self.elems -> $elems {
+            $!is-int
+              ?? Seq.new(class :: does Iterator {
+                    has int $!min;
+                    has Int $!elems;
+                    method BUILD(\min,\elems) {
+                        $!min    = min;
+                        $!elems := nqp::decont(elems);
+                        self
+                    }
+                    method new(\b,\e) { nqp::create(self).BUILD(b,e) }
+                    method pull-one() { $!min + nqp::rand_I($!elems, Int) }
+                    method is-lazy()  { True }
+                }.new($!min + $!excludes-min, $elems))
+              !! self.list.roll(*)
         }
         else {
-            Any xx $todo;
+            Any xx *
+        }
+    }
+    multi method roll(Range:D:) {
+        if $!is-int {
+            my $elems = $!max - $!excludes-max - $!min - $!excludes-min + 1;
+            $elems > 0
+              ?? $!min + $!excludes-min + nqp::rand_I(nqp::decont($elems),Int)
+              !! Any
+        }
+        else {
+            self.list.roll
+        }
+    }
+    multi method roll(Int(Cool) $todo) {
+        if self.elems -> $elems {
+            $!is-int
+              ?? Seq.new(class :: does Iterator {
+                    has int $!min;
+                    has Int $!elems;
+                    has int $!todo;
+                    method BUILD(\min,\elems,\todo) {
+                        $!min    = min;
+                        $!elems := nqp::decont(elems);
+                        $!todo   = todo;
+                        self
+                    }
+                    method new(\m,\e,\t) { nqp::create(self).BUILD(m,e,t) }
+                    method pull-one() {
+                        $!todo--
+                          ?? $!min + nqp::rand_I($!elems, Int)
+                          !! IterationEnd
+                    }
+                    method push-all($target) {
+                        $target.push($!min + nqp::rand_I($!elems, Int))
+                          while $!todo--;
+                        IterationEnd
+                    }
+                }.new($!min + $!excludes-min,$elems,0 max $todo))
+              !! self.list.roll($todo)
+        }
+        else {
+            Any xx $todo
         }
     }
 
     proto method pick(|)        { * }
     multi method pick()          { self.roll };
     multi method pick(Whatever)  { self.list.pick(*) };
-    multi method pick(Int(Cool) $n) {
-        return self.list.pick($n)
-          unless nqp::istype($!min, Int) && nqp::istype($!max, Numeric);
-
-        my Int $least =
-          $!excludes-min ?? $!min + 1 !! $!min;
-        my Int $elems =
-          1 + ($!excludes-max ?? $!max.Int - 1 !! $!max.Int) - $least;
-        my int $todo = nqp::unbox_i($n.Int);
-
-        # faster to make list and then take from there
-        return self.list.pick($n) if $elems < 3 * $todo;
-
-        my %seen;
-        gather while $todo {
-            my Int $x  := $least + nqp::rand_I(nqp::decont($elems), Int);
-            unless %seen.EXISTS-KEY($x) {
-                %seen{$x} = 1;
-                take $x;
-                $todo = $todo - 1;
-            }
+    multi method pick(Int(Cool) $todo) {
+        if self.elems -> $elems {
+            $!is-int && $elems > 3 * $todo # heuristic for sparse lookup
+              ?? Seq.new(class :: does Iterator {
+                    has int $!min;
+                    has Int $!elems;
+                    has int $!todo;
+                    has $!seen;
+                    method BUILD(\min,\elems,\todo) {
+                        $!min    = min;
+                        $!elems := nqp::decont(elems);
+                        $!todo   = todo;
+                        $!seen  := nqp::hash();
+                        self
+                    }
+                    method new(\m,\e,\t) { nqp::create(self).BUILD(m,e,t) }
+                    method pull-one() {
+                        my Int $value;
+                        my str $key;
+                        if $!todo {
+                            repeat {
+                                $value = $!min + nqp::rand_I($!elems, Int);
+                                $key   = nqp::tostr_I(nqp::decont($value));
+                            } while nqp::existskey($!seen,$key);
+                            $!todo = $!todo - 1;
+                            nqp::bindkey($!seen,$key,1);
+                            $value
+                        }
+                        else {
+                            IterationEnd
+                        }
+                    }
+                    method push-all($target) {
+                        my Int $value;
+                        my str $key;
+                        while $!todo {
+                            $value = $!min + nqp::rand_I($!elems, Int);
+                            $key   = nqp::tostr_I(nqp::decont($value));
+                            unless nqp::existskey($!seen,$key) {
+                                $target.push($value);
+                                $!todo = $!todo - 1;
+                                nqp::bindkey($!seen,$key,1);
+                            }
+                        }
+                        IterationEnd
+                    }
+                }.new($!min + $!excludes-min,$elems,0 max $todo))
+              !! self.list.pick($todo)
+        }
+        else {
+            Any xx $todo
         }
     }
 
     multi method Numeric(Range:D:) {
-        return self.flat.elems unless nqp::istype($.max,Numeric) && nqp::istype($.min,Numeric);
-
-        my $diff := $.max - $.min - $.excludes-min;
-
-        # empty range
-        return 0 if $diff < 0;
-
-        my $floor := $diff.floor;
-        $floor + 1 - ($floor == $diff ?? $.excludes-max !! 0);
+        $!is-int
+          ?? self.elems
+          !! nqp::istype($!min,Numeric) && nqp::istype($!max,Numeric)
+            ?? do {
+                my $diff  = 0 max $!max - $!min - $!excludes-min;
+                my $floor = $diff.floor;
+                $floor + 1 - ($floor == $diff ?? $!excludes-max !! 0)
+            }
+            !! self.flat.elems
     }
 
     method clone-with-op(&op, $value) {
-        self.clone( :min($!min [&op] $value), :max($!max [&op] $value) );
+        my $min    = $!min [&op] $value;
+        my $max    = $!max [&op] $value;
+        my $is-int = nqp::istype($min,Int) && nqp::istype($max,Int);
+        self.clone( :$min, :$max, :$is-int );
     }
 }
 

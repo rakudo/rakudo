@@ -621,7 +621,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # constant ???
-    my str $CRLF = nqp::unbox_s("\r\n");
+    my str $CRLF = "\r\n";
+    my int $CRLF-EXTRA = nqp::chars($CRLF) - 1;
 
     multi method lines(Str:D: :$count!) {
         # we should probably deprecate this feature
@@ -648,7 +649,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     my str $found = ($length = $nextpos - $!pos)
                       ?? nqp::substr($!str, $!pos, $length )
                       !! '';
-                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+                    $!pos = $nextpos + 1 +
+                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
 
                     return nqp::p6box_s($found);
                 }
@@ -668,7 +670,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       ?? nqp::substr($!str, $!pos, $length)
                       !! ''
                     ));
-                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+                    $!pos = $nextpos + 1 +
+                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
 
                     $found = $found + 1;
                     return nqp::p6box_i($found) if $found == $n;
@@ -688,7 +691,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       ?? nqp::substr($!str, $!pos, $length)
                       !! ''
                     ));
-                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+                    $!pos = $nextpos + 1 +
+                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
                 }
                 IterationEnd
             }
@@ -702,7 +706,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
 
                     $found = $found + 1;
-                    $!pos = $nextpos + 1 + nqp::eqat($!str, $CRLF, $nextpos);
+                    $!pos = $nextpos + 1 +
+                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
                 }
                 nqp::p6box_i($found)
             }

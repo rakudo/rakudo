@@ -267,8 +267,8 @@ my class Rakudo::Internals {
     method SET_LINE_ENDING_ON_HANDLE(Mu \handle, $ending) {
         if nqp::istype($ending, Iterable) {
             my \endings = nqp::list_s();
-            for @$ending {
-                nqp::push_s(endings, nqp::unbox_s($ending.Str));
+            for @$ending -> $e {
+                nqp::push_s(endings, nqp::unbox_s($e.Str));
             }
 #?if !jvm
             nqp::setinputlineseps(handle, endings);

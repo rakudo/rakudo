@@ -460,24 +460,24 @@ my class Range is Cool does Iterable does Positional {
         self.clone( :$min, :$max, :$is-int );
     }
 
-    method push(|) {
-        X::Immutable.new(:typename<Range>, :method<push>).throw
-    }
-    method append(|) {
-        X::Immutable.new(:typename<Range>, :method<append>).throw
-    }
-    method unshift(|) {
-        X::Immutable.new(:typename<Range>, :method<unshift>).throw
-    }
-    method prepend(|) {
-        X::Immutable.new(:typename<Range>, :method<prepend>).throw
-    }
-    method shift(|) {
-        X::Immutable.new(:typename<Range>, :method<shift>).throw
-    }
-    method pop(|) {
+    method push(|) is nodal {
+        X::Immutable.new(:typename<Range>,:method<push>).throw
+    }   
+    method append(|) is nodal {
+        X::Immutable.new(:typename<Range>,:method<append>).throw
+    }   
+    method unshift(|) is nodal {
+        X::Immutable.new(:typename<Range>,:method<unshift>).throw
+    }   
+    method prepend(|) is nodal {
+        X::Immutable.new(:typename<Range>,:method<prepend>).throw
+    }   
+    method shift(|) is nodal {
+        X::Immutable.new(:typename<Range>,:method<shift>).throw
+    }   
+    method pop(|) is nodal {
         X::Immutable.new(:typename<Range>, :method<pop>).throw
-    }
+    }   
 }
 
 sub infix:<..>($min, $max) is pure {

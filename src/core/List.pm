@@ -3,7 +3,6 @@ my class X::TypeCheck { ... }
 my class X::TypeCheck::Splice { ... }
 my class X::Cannot::Lazy { ... }
 my class X::Cannot::Empty { ... }
-my class X::Immutable { ... }
 my role Supply { ... }
 
 my sub combinations(\n, \k) {
@@ -880,16 +879,22 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method push(|) is nodal {
-        X::Immutable.new( method => 'push',    typename => 'List' ).throw;
+        X::Immutable.new(:typename<List>,:method<push>).throw
     }
-    method pop(|) is nodal {
-        X::Immutable.new( method => 'pop',     typename => 'List' ).throw;
-    }
-    method shift(|) is nodal {
-        X::Immutable.new( method => 'shift',   typename => 'List' ).throw;
+    method append(|) is nodal {
+        X::Immutable.new(:typename<List>,:method<append>).throw
     }
     method unshift(|) is nodal {
-        X::Immutable.new( method => 'unshift', typename => 'List' ).throw;
+        X::Immutable.new(:typename<List>,:method<unshift>).throw
+    }
+    method prepend(|) is nodal {
+        X::Immutable.new(:typename<List>,:method<prepend>).throw
+    }
+    method shift(|) is nodal {
+        X::Immutable.new(:typename<List>,:method<shift>).throw
+    }
+    method pop(|) is nodal {
+        X::Immutable.new(:typename<List>, :method<pop>).throw
     }
 }
 

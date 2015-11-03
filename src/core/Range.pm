@@ -1,3 +1,4 @@
+my class X::Immutable { ... }
 my class X::Range::InvalidArg { ... }
 
 my class Range is Cool does Iterable does Positional {
@@ -457,6 +458,25 @@ my class Range is Cool does Iterable does Positional {
         my $max    = $!max [&op] $value;
         my $is-int = nqp::istype($min,Int) && nqp::istype($max,Int);
         self.clone( :$min, :$max, :$is-int );
+    }
+
+    method push(|) {
+        X::Immutable.new(:typename<Range>, :method<push>).throw
+    }
+    method append(|) {
+        X::Immutable.new(:typename<Range>, :method<append>).throw
+    }
+    method unshift(|) {
+        X::Immutable.new(:typename<Range>, :method<unshift>).throw
+    }
+    method prepend(|) {
+        X::Immutable.new(:typename<Range>, :method<prepend>).throw
+    }
+    method shift(|) {
+        X::Immutable.new(:typename<Range>, :method<shift>).throw
+    }
+    method pop(|) {
+        X::Immutable.new(:typename<Range>, :method<pop>).throw
     }
 }
 

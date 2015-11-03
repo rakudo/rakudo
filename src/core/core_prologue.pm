@@ -22,7 +22,13 @@ my constant Empty = nqp::p6bindattrinvres(nqp::create(Slip),
     List, '$!reified', nqp::create(IterationBuffer));
 
 # The value for \n.
-my constant $?NL = nqp::iseq_s(nqp::atkey(nqp::backendconfig(), 'osname'), 'MSWin32')
+my constant $?NL = 
+#?if jvm
+    nqp::iseq_s(nqp::atkey(nqp::jvmgetproperties(), 'os.name'), 'MSWin32')
+#?endif
+#?if moar
+    nqp::iseq_s(nqp::atkey(nqp::backendconfig(), 'osname'), 'MSWin32')
+#?endif
     ?? "\x0D\x0A"
     !! "\x0A";
 

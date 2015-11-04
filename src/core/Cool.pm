@@ -146,11 +146,6 @@ my class Cool { # declared in BOOTSTRAP
     method trans(*@a) { self.Str.trans(@a) }
 
     proto method starts-with(|) {*}
-    multi method starts-with(Str:D: Str(Cool) $needle) {
-        nqp::p6bool(
-          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),0)
-        );
-    }
     multi method starts-with(Cool:D: Str(Cool) $needle) {
         nqp::p6bool(
           nqp::eqat(nqp::unbox_s(self.Str),nqp::unbox_s($needle),0)
@@ -158,13 +153,6 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method ends-with(Str(Cool) $suffix) { * }
-    multi method ends-with(Str:D: Str(Cool) $suffix) {
-        my str $str    = nqp::unbox_s(self);
-        my str $needle = nqp::unbox_s($suffix);
-        nqp::p6bool(
-          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
-        );
-    }
     multi method ends-with(Cool:D: Str(Cool) $suffix) {
         my str $str    = nqp::unbox_s(self.Str);
         my str $needle = nqp::unbox_s($suffix);
@@ -174,41 +162,33 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr-eq(|) {*}
-    multi method substr-eq(Str:D: Str(Cool) $needle, Int(Cool) $pos) {
-        $pos >= 0 && nqp::p6bool(
-          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),nqp::unbox_i($pos))
-        );
-    }
-    multi method substr-eq(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        $pos >= 0 && nqp::p6bool(nqp::eqat(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          nqp::unbox_i($pos)
-        ));
+    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $start?) {
+        my str $str = nqp::unbox_s(self.Str);
+        my int $pos =
+          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
+        $pos >= 0 && nqp::eqat($str, nqp::unbox_s($needle), $pos);
     }
 
     proto method contains(|) {*}
-    multi method contains(Cool:D: Str(Cool) $needle) {
-        nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle)) != -1;
-    }
-    multi method contains(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
+    multi method contains(Cool:D: Str(Cool) $needle, Cool $start?) {
         my str $str = nqp::unbox_s(self.Str);
-        $pos >= 0
-          && $pos <= nqp::chars($str)
-          && nqp::index($str, nqp::unbox_s($needle), nqp::unbox_i($pos)) != -1;
+        my int $pos =
+          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
+        nqp::index($str, nqp::unbox_s($needle), $pos) != -1;
     }
 
     proto method indices(|) {*}
-    multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0, :$overlap) {
-        my int $pos  = $start;
+    multi method indices(Cool:D: Str(Cool) $needle, Cool $start?, :$overlap) {
         my str $str  = nqp::unbox_s(self.Str);
+        my int $pos  =
+          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
         my str $need = nqp::unbox_s($needle);
         my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
 
         my $rpa := nqp::list();
         my int $i;
         while ($i = nqp::index($str, $need, $pos)) >= 0 {
-            nqp::push($rpa,nqp::box_i($i,Int));
+            nqp::push($rpa,nqp::p6box_i($i));
             $pos = $i + $add;
         }
         nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)

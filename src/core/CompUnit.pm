@@ -29,6 +29,7 @@ class CompUnit {
       :$from = $default-from,
       :$has-source is copy,
       :$has-precomp is copy,
+      :$handle = CompUnit::Handle,
       :$repo,
     ) {
 
@@ -58,6 +59,7 @@ class CompUnit {
           :$from,
           :$has-source,
           :$has-precomp,
+          :$handle,
           :$repo,
           :!is-loaded,
         ) } );

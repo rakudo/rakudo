@@ -19,7 +19,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                 CompUnit::PrecompilationId $precomp-id)
     {
         my $path = self!path($compiler-id, $precomp-id);
-        $path ~~ :e ?? $path !! Str
+        $path ~~ :e ?? $path.Str !! Str
     }
 
     method store(CompUnit::PrecompilationId $compiler-id,

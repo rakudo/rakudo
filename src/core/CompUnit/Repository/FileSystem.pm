@@ -22,9 +22,21 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         my $dir-sep           := $*SPEC.dir-sep;
         my $name               = $spec.short-name;
         my $id = nqp::sha1($name ~ $*REPO.id);
-        my $compunit = $precomp.load($id);
+        my $handle = $precomp.load($id);
+        my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
+        my $compunit;
 
-        unless $compunit {
+        if $handle {
+            my $globalish := $handle.globalish-package;
+            if $globalish !=== Stash {
+                # Merge any globals.
+                nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(GLOBALish, $globalish);
+            }
+            return %!loaded{$name} = %seen{$base} = CompUnit.new(
+              $base, :name($name), :extension(''), :has-precomp, :$handle, :repo(self)
+            );
+        }
+        else {
             # pick a META6.json if it is there
             if (my $meta = ($!prefix.abspath ~ $dir-sep ~ 'META6.json').IO) && $meta.f {
                 my $json = from-json $meta.slurp;
@@ -40,7 +52,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             }
             # deduce path to compilation unit from package name
             else {
-                my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
                 if %seen{$base} -> $found {
                     $compunit = $found;
                 }

@@ -211,7 +211,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # Under NFG-supporting implementations, must be sure that any leading
         # combiners are escaped, otherwise they will be combined onto the "
-        # under concatenation closure, which ruins round-tripping.
+        # under concatenation closure, which ruins round-tripping. Also handle
+        # the \r\n grapheme correctly.
         my $result = '"';
         my $to-encode = self;
 
@@ -221,6 +222,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?if moar
             if $ord >= 256 && +uniprop($ord, 'Canonical_Combining_Class') {
                 $result ~= char-to-escapes($ch);
+                next;
+            }
+            elsif $ch eq "\r\n" {
+                $result ~= '\r\n';
                 next;
             }
 #?endif

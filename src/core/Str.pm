@@ -256,37 +256,44 @@ my class Str does Stringy { # declared in BOOTSTRAP
             method count-only() { nqp::p6box_i($!pos = $!chars) }
         }.new(self));
     }
-    multi method comb(Str:D: Int:D $size) {
-        return self.comb if $size <= 1;
+    multi method comb(Str:D: Int:D $size, $limit = *) {
+        my int $inf = nqp::istype($limit,Whatever) || $limit == Inf;
+        return self.comb if $size <= 1 && $inf;
 
         Seq.new(class :: does Iterator {
             has str $!str;
             has int $!chars;
             has int $!size;
             has int $!pos;
-            submethod BUILD(\string,\size) {
+            has int $!max;
+            has int $!todo;
+            submethod BUILD(\string,\size,\limit,\inf) {
                 $!str   = nqp::unbox_s(string);
                 $!chars = nqp::chars($!str);
-                $!size  = size;
+                $!size  = 1 max size;
                 $!pos   = -size;
+                $!max   = 1 + floor( ( $!chars - 1 ) / $!size );
+                $!todo  = (inf ?? $!max !! (0 max limit)) + 1;
                 self
             }
-            method new(\string,\size) { nqp::create(self).BUILD(string,size) }
+            method new(\s,\z,\l,\i) { nqp::create(self).BUILD(s,z,l,i) }
             method pull-one() {
-                ($!pos = $!pos + $!size) < $!chars
+                ($!todo = $!todo - 1) && ($!pos = $!pos + $!size) < $!chars
                   ?? nqp::p6box_s(nqp::substr($!str, $!pos, $!size))
                   !! IterationEnd
             }
             method push-all($target) {
-                $target.push(nqp::p6box_s(nqp::substr($!str, $!pos, $!size)))
-                  while ($!pos = $!pos + $!size) < $!chars;
+                my int $todo  = $!todo;
+                my int $pos   = $!pos;
+                my int $size  = $!size;
+                my int $chars = $!chars;
+                $target.push(nqp::p6box_s(nqp::substr($!str, $pos, $size)))
+                  while ($todo = $todo - 1 ) && ($pos = $pos + $size) < $chars;
+                $!pos = $!chars;
                 IterationEnd
             }
-            method count-only() {
-                $!pos = $!chars;
-                1 + floor( ( $!chars - 1 ) / $!size );
-            }
-        }.new(self,$size));
+            method count-only() { $!pos = $!chars; $!max }
+        }.new(self,$size,$limit,$inf))
     }
     multi method comb(Str:D: Str $pat) {
         Seq.new(class :: does Iterator {

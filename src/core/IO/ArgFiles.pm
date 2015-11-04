@@ -3,7 +3,7 @@ my class IO::ArgFiles is IO::Handle {
     has $.filename;
     has $!io;
     has $.ins;
-    has $!nl-in = ["\n", "\r\n"];
+    has $!nl-in = ["\x0A", "\r\n"];
     has $!has-args;
 
     method eof() {

@@ -40,7 +40,7 @@ my class JSONPrettyActions {
     my %esc = '\\' => "\\",
               '/'  => "/",
               'b'  => "\b",
-              'n'  => "\n",
+              'n'  => "\x0A",
               't'  => "\t",
               'f'  => "\f",
               'r'  => "\r",
@@ -92,8 +92,8 @@ multi sub to-json(Real:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ~$d }
 multi sub to-json(Bool:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ($d ?? 'true' !! 'false') }
 multi sub to-json(Str:D $d, :$indent = 0, :$first = 0) {
     (' ' x $first) ~ '"'
-    ~ $d.trans(['"', '\\', "\b", "\f", "\n", "\r", "\t"]
-            => ['\"', '\\\\', '\b', '\f', '\n', '\r', '\t'])\
+    ~ $d.trans(['"', '\\', "\b", "\f", "\x0A", "\r", "\t", "\r\n"]
+            => ['\"', '\\\\', '\b', '\f', '\n', '\r', '\t', '\r\n'])\
             .subst(/<-[\c32..\c126]>/, { ord(~$_).fmt('\u%04x') }, :g)
     ~ '"'
 }

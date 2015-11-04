@@ -195,7 +195,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my %esc = (
         '$' => '\$',  '@' => '\@',  '%' => '\%',  '&' => '\&',  '{' => '\{',
-        "\b" => '\b', "\n" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
+        "\b" => '\b', "\x0A" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
         '\\' => '\\\\' );
 
     multi method gist(Str:D:) { self }

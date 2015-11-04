@@ -25,7 +25,7 @@ my class IO::Socket::INET does IO::Socket {
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
-    has Str $.input-line-separator is rw = "\n";
+    has Str $.input-line-separator is rw = "\x0A";
     has Int $.ins = 0;
 
     my sub v4-split($uri) {

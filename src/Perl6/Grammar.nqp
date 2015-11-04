@@ -5056,9 +5056,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
         <.SIGOK>
     }
 
-    token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> <.SIGOK> }
-
-    token metachar:sym<"> { <?["]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
+    token metachar:sym<'> { <?[ ' " ‘ ‚ ’ “ „ ” ｢ ]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
 
     token metachar:sym<{}> { \\<[xo]>'{' <.obsbrace> }
 

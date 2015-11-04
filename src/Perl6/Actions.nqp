@@ -8505,7 +8505,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method metachar:sym<'>($/) { self.rxquote($/) }
-    method metachar:sym<">($/) { self.rxquote($/) }
+
     method rxquote($/) {
         my $quote := $<quote>.ast;
         if $quote.has_compile_time_value {

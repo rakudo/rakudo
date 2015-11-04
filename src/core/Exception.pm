@@ -1681,6 +1681,12 @@ my class X::Cannot::Empty is Exception {
         "Cannot $.action from an empty $.what";
     }
 }
+my class X::Cannot::New is Exception {
+    has $.class;
+    method message() {
+        "Cannot make a {$.class.^name} object using .new";
+    }
+}
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;

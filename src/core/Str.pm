@@ -1352,10 +1352,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     my $enc_type := nqp::hash('utf8',utf8,'utf16',utf16,'utf32',utf32);
+
+#?if moar
+    proto method encode(|) {*}
+    multi method encode(Str:D $encoding = 'utf8', Bool:D :$replacement) {
+        self.encode($encoding, :replacement($replacement
+            ?? ($encoding ~~ m:i/^utf/ ?? "\x[FFFD]" !! "?" )
+            !! Str
+        ));
+    }
+    multi method encode(Str:D $encoding = 'utf8', Str :$replacement) {
+#?endif
+#?if !moar
     method encode(Str:D $encoding = 'utf8') {
+#?endif
         my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         my $type   :=
           nqp::existskey($enc_type,$enc) ?? nqp::atkey($enc_type,$enc) !! blob8;
+#?if moar
+        return nqp::encoderep(nqp::unbox_s(self), $enc, nqp::unbox_s($replacement), nqp::decont($type.new))
+            if $replacement.defined;
+#?endif
         nqp::encode(nqp::unbox_s(self), $enc, nqp::decont($type.new))
     }
 

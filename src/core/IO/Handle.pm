@@ -70,6 +70,8 @@ my class IO::Handle does IO {
                 die "Don't know how to open '$_' especially";
             }
             $!chomp = $chomp;
+            $!nl-out = $nl-out;
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
             nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
               unless $bin;
             return self;

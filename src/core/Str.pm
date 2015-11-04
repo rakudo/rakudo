@@ -256,6 +256,38 @@ my class Str does Stringy { # declared in BOOTSTRAP
             method count-only() { nqp::p6box_i($!pos = $!chars) }
         }.new(self));
     }
+    multi method comb(Str:D: Int:D $size) {
+        return self.comb if $size <= 1;
+
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
+            has int $!size;
+            has int $!pos;
+            submethod BUILD(\string,\size) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!size  = size;
+                $!pos   = -size;
+                self
+            }
+            method new(\string,\size) { nqp::create(self).BUILD(string,size) }
+            method pull-one() {
+                ($!pos = $!pos + $!size) < $!chars
+                  ?? nqp::p6box_s(nqp::substr($!str, $!pos, $!size))
+                  !! IterationEnd
+            }
+            method push-all($target) {
+                $target.push(nqp::p6box_s(nqp::substr($!str, $!pos, $!size)))
+                  while ($!pos = $!pos + $!size) < $!chars;
+                IterationEnd
+            }
+            method count-only() {
+                $!pos = $!chars;
+                1 + floor( ( $!chars - 1 ) / $!size );
+            }
+        }.new(self,$size));
+    }
     multi method comb(Str:D: Str $pat) {
         Seq.new(class :: does Iterator {
             has str $!str;

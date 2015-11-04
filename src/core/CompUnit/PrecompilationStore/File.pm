@@ -1,10 +1,10 @@
 class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
-    has Str $.prefix is required;
+    has IO::Path $.prefix is required;
 
     method !dir(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        self.prefix.IO
+        self.prefix
             .child($compiler-id.IO)
             .child($precomp-id.substr(0, 2).IO)
     }
@@ -12,13 +12,14 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method !path(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id)
     {
-        self!dir.child($precomp-id.IO)
+        self!dir($compiler-id, $precomp-id).child($precomp-id.IO)
     }
 
     method load(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        self!path.slurp
+        my $path = self!path($compiler-id, $precomp-id);
+        $path ~~ :e ?? $path !! Str
     }
 
     method store(CompUnit::PrecompilationId $compiler-id,
@@ -32,12 +33,12 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method delete(CompUnit::PrecompilationId $compiler-id, CompUnit::PrecompilationId $precomp-id)
     {
-        self!path.unlink;
+        self!path($compiler-id, $precomp-id).unlink;
     }
 
     method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)
     {
-         my $compiler-dir = self.prefix.IO.child($compiler-id.IO);
+         my $compiler-dir = self.prefix.child($compiler-id.IO);
          for $compiler-dir.dir -> $subdir {
              $subdir.dir>>.unlink;
              $subdir.rmdir;

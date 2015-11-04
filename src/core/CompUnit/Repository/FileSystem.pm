@@ -21,51 +21,40 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
         my $dir-sep           := $*SPEC.dir-sep;
         my $name               = $spec.short-name;
-        my $compunit;
+        my $id = nqp::sha1($name ~ $*REPO.id);
+        my $compunit = $precomp.load($id);
 
-        # pick a META6.json if it is there
-        if (my $meta = ($!prefix.abspath ~ $dir-sep ~ 'META6.json').IO) && $meta.f {
-            my $json = from-json $meta.slurp;
-            if $json<provides>{$name} -> $file {
-                my $has_precomp = $file.ends-with($precomp-ext);
-                my $has_source  = !$has_precomp;
-                my $path        = $file.IO.is-absolute
-                                ?? $file
-                                !! $!prefix.abspath ~ $dir-sep ~ $file;
-                $has_precomp    = ?IO::Path.new-from-absolute-path($path ~ '.' ~ $precomp-ext).f
-                    unless $has_precomp;
+        unless $compunit {
+            # pick a META6.json if it is there
+            if (my $meta = ($!prefix.abspath ~ $dir-sep ~ 'META6.json').IO) && $meta.f {
+                my $json = from-json $meta.slurp;
+                if $json<provides>{$name} -> $file {
+                    my $path        = $file.IO.is-absolute
+                                    ?? $file
+                                    !! $!prefix.abspath ~ $dir-sep ~ $file;
 
-                $compunit = %seen{$path} = CompUnit.new(
-                  $path, :name($name), :extension(''), :$has_source, :$has_precomp, :repo(self)
-                ) if IO::Path.new-from-absolute-path($path).f;
-            }
-        }
-        # deduce path to compilation unit from package name
-        else {
-            my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
-            if %seen{$base} -> $found {
-                $compunit = $found;
-            }
-
-            # have extensions to check
-            elsif %extensions<Perl6> -> @extensions {
-                for @extensions -> $extension {
-                    my $path = $base ~ $extension;
-
-                    $compunit = %seen{$base} = CompUnit.new(
-                      $path, :$name, :$extension, :has-source, :repo(self)
+                    $compunit = %seen{$path} = CompUnit.new(
+                      $path, :name($name), :extension(''), :has_source, :repo(self)
                     ) if IO::Path.new-from-absolute-path($path).f;
-                    $compunit = %seen{$base} = CompUnit.new(
-                      $path, :$name, :$extension, :!has-source, :has-precomp, :repo(self)
-                    ) if not $compunit and IO::Path.new-from-absolute-path($path ~ '.' ~ $precomp-ext).f;
                 }
             }
+            # deduce path to compilation unit from package name
+            else {
+                my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
+                if %seen{$base} -> $found {
+                    $compunit = $found;
+                }
 
-            # no extensions to check, just check compiled version
-            elsif $base ~ $precomp-ext -> $path {
-                $compunit = %seen{$base} = CompUnit.new(
-                  $path, :$name, :extension(''), :!has-source, :has-precomp, :repo(self)
-                ) if IO::Path.new-from-absolute-path($path).f;
+                # have extensions to check
+                elsif %extensions<Perl6> -> @extensions {
+                    for @extensions -> $extension {
+                        my $path = $base ~ $extension;
+
+                        $compunit = %seen{$base} = CompUnit.new(
+                          $path, :$name, :$extension, :has-source, :repo(self)
+                        ) if IO::Path.new-from-absolute-path($path).f;
+                    }
+                }
             }
         }
 
@@ -111,6 +100,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $base.f
          ?? { files => { $file => $base.path }, ver => Version.new('0') }
          !! ();
+    }
+
+    method precomp-repository() returns CompUnit::PrecompilationRepository {
+        CompUnit::PrecompilationRepository::Default.new(
+            :store(
+                CompUnit::PrecompilationStore::File.new(
+                    :prefix(self.prefix.child('.precomp')),
+                )
+            ),
+        );
     }
 }
 

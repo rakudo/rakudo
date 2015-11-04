@@ -4664,6 +4664,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<n> { <sym> }
         token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
         token backslash:sym<r> { <sym> }
+        token backslash:sym<rn> { 'r\n' }
         token backslash:sym<t> { <sym> }
         token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }

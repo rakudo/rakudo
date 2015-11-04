@@ -8444,6 +8444,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method backslash:sym<n>($/) { make "\n" }
     method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
     method backslash:sym<r>($/) { make "\r" }
+    method backslash:sym<rn>($/) { make "\r\n" }
     method backslash:sym<t>($/) { make "\t" }
     method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
     method backslash:sym<0>($/) { make "\c[0]" }

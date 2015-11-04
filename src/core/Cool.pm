@@ -207,9 +207,7 @@ my class Cool { # declared in BOOTSTRAP
 
         my $rpa := nqp::list();
         my int $i;
-        loop {
-            $i = nqp::index($str, $need, $pos);
-            last if $i == -1;
+        while ($i = nqp::index($str, $need, $pos)) >= 0 {
             nqp::push($rpa,nqp::box_i($i,Int));
             $pos = $i + $add;
         }

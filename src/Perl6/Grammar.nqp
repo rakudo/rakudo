@@ -3192,8 +3192,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <args(1)>
             {
                 if !$<args><invocant> {
-                    self.add_mystery($<longname>, $<args>.from, 'termish')
-                                unless nqp::index($<longname>.Str, '::') >= 0;
                     my $name := ~$<longname>;
                     if nqp::ishash($*BORG) && $*BORG<block> {
                         unless $*BORG<name> {

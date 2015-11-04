@@ -5024,6 +5024,7 @@ Compilation unit '$file' contained the following violations:
                 $past := capture_or_raw($/,$<args>.ast, ~$<longname>);
                 if +@name == 1 {
                     $past.name(@name[0]);
+                    $/.CURSOR.add_mystery(@name[0], $<args>.from, 'termish');
                     if +$past.list == 1 && %commatrap{@name[0]} {
                         my $prelen := $<longname>.from;
                         $prelen := 100 if $prelen > 100;

@@ -654,24 +654,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
 #?if moar
-    method ords(Str:D:) {
-        Seq.new(class :: does Iterator {
-            has $!nfc;
-            has int $!elems;
-            has int $!pos;
-            method BUILD(\string) {
-                $!nfc   = string.NFC;
-                $!elems = $!nfc.elems;
-                self
-            }
-            method new(\string) { nqp::create(self).BUILD(string) }
-            method pull-one() {
-                $!pos < $!elems
-                  ?? nqp::p6box_i($!nfc.AT-POS($!pos++))
-                  !! IterationEnd
-            }
-        }.new(self));
-    }
+    method ords(Str:D:) { self.NFC.list }
 #?endif
 #?if !moar
     method ords(Str:D:) {
@@ -1671,16 +1654,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method ord(|) { * }
-#?if moar
-    multi method ord(Str:D:) returns Int { self.NFC.AT-POS(0) }
-#?endif
-#?if !moar
     multi method ord(Str:D:) returns Int {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
           !! Int;
     }
-#?endif
     multi method ord(Str:U:) returns Int { Int }
 }
 

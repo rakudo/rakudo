@@ -1,6 +1,7 @@
 class CompUnit::Loader is repr('Uninstantiable') {
     # Load a file from source and compile it
     method load-source-file(Str $path) returns CompUnit::Handle {
+        my $*CTXSAVE := self;
         my $fh := nqp::open($path, 'r');
         nqp::setencoding($fh, 'utf8');
         my $source := nqp::readallfh($fh);
@@ -23,6 +24,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Load a pre-compiled file
     method load-precompilation-file(Str $path) returns CompUnit::Handle {
+        my $*CTXSAVE := self;
         my %*COMPILING := nqp::hash();
         my Mu $*MAIN_CTX;
         nqp::loadbytecode($path);
@@ -33,6 +35,11 @@ class CompUnit::Loader is repr('Uninstantiable') {
     # precompiled file
     method load-precompilation(Buf:D $bytes) returns CompUnit::Handle {
         ... # XXX this one needs MoarVM/JVM backends to expose a new API
+    }
+
+    method ctxsave() {
+        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
+        $*CTXSAVE := 0;
     }
 }
 

@@ -155,7 +155,6 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                 if %chosen<load> {
                     $trace<precompiled> = %chosen<load>;
                     RAKUDO_MODULE_DEBUG("loading ", %chosen<load>) if $DEBUG;
-                    my $*CTXSAVE := self;
                     $!handle := CompUnit::Loader.load-precompilation-file(%chosen<load>);
                     RAKUDO_MODULE_DEBUG("  done: ", %chosen<load>) if $DEBUG;
                 }
@@ -171,7 +170,6 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                     # Read source file.
                     RAKUDO_MODULE_DEBUG("loading ", %chosen<pm>) if $DEBUG;
 
-                    my $*CTXSAVE := self;
                     $!handle := CompUnit::Loader.load-source-file(%chosen<pm>);
                     RAKUDO_MODULE_DEBUG("done: ", %chosen<pm>) if $DEBUG;
                 }
@@ -197,11 +195,6 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
 
     method unit() {
         $.handle.unit
-    }
-
-    method ctxsave() {
-        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
-        $*CTXSAVE := 0;
     }
 }
 

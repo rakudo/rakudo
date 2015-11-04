@@ -8543,11 +8543,22 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             );
         }
         else {
-            my $min := $<min>.ast;
+            my $min := 0;
+            if $<min> { $min := $<min>.ast; }
+
             my $max := -1;
-            if ! $<max> { $max := $min }
+            my $upto := $<upto>;
+
+            if $<from> eq '^' { $min++ }
+
+            if ! $<max> {
+                $max := $min
+            }
             elsif $<max> ne '*' {
                 $max := $<max>.ast;
+                if $<upto> eq '^' {
+                    $max--;
+                }
                 $/.CURSOR.panic("Empty range") if $min > $max;
             }
             $qast := QAST::Regex.new( :rxtype<quant>, :min($min), :max($max), :node($/) );

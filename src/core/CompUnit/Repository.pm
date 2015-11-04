@@ -23,6 +23,11 @@ role CompUnit::Repository {
         returns Iterable
         { ... }
 
+    # Returns a unique ID of this repository
+    method id()
+        returns Str
+        { ... }
+
     method precomp-repository()
         returns CompUnit::PrecompilationRepository
         { CompUnit::PrecompilationRepository::None }

@@ -27,6 +27,12 @@ role CompUnit::Repository::Locally {
         self.short-id ~ '#' ~ $!prefix.abspath;
     }
 
+    method id() {
+        my $name = self.path-spec;
+        $name ~= ',' ~ self.next-repo.id if self.next-repo;
+        return nqp::sha1($name);
+    }
+
     # stubs
     method short-id(CompUnit::Repository::Locally:D:)                             {...}
 }

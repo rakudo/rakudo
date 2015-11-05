@@ -1099,10 +1099,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $result
     }
     multi method split(Str:D: @needles,$parts;; :$all, :$keep-indices) {
-        my @result = self.split(@needles,:$all,:$keep-indices);
         nqp::istype($parts,Whatever) || $parts === Inf
-          ?? @result
-          !! @result.head($all || $keep-indices ?? $parts + $parts !! $parts)
+          ?? self.split(@needles,:$all,:$keep-indices)
+          !! self.split(/ @needles /,$parts,:$all,:$keep-indices)
     }
 
     method samecase(Str:D: Str $pattern) {

@@ -12,7 +12,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method need(
         CompUnit::DependencySpecification $spec,
-        CompUnit::PrecompilationRepository :$precomp = self.precomp-repository(),
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         :$line
     )
         returns CompUnit:D
@@ -68,7 +68,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             return %!loaded{$compunit.name} = $compunit;
         }
 
-        return self.next-repo.need($spec, :$precomp, :$line) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :$line) if self.next-repo;
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 

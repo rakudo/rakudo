@@ -188,7 +188,7 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
 
     method need(
         CompUnit::DependencySpecification $spec,
-        CompUnit::PrecompilationRepository :$precomp = self.precomp-repository(),
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         :$line
     )
         returns CompUnit:D
@@ -226,7 +226,7 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                 }
             }
         }
-        return self.next-repo.need($spec, :$precomp, :$line) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :$line) if self.next-repo;
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 

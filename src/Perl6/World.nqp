@@ -1081,7 +1081,7 @@ class Perl6::World is HLL::World {
             my $categorical := match($_.key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
             if $categorical {
                 $/.CURSOR.add_categorical(~$categorical[0], ~$categorical[1],
-                    ~$categorical[0] ~ ':sym' ~ self.canonicalize_opname($categorical[1]),
+                    ~$categorical[0] ~ self.canonicalize_pair('sym',$categorical[1]),
                     nqp::substr($_.key, 1), $v);
             }
         }
@@ -3006,7 +3006,7 @@ class Perl6::World is HLL::World {
                 @parts.shift() while self.is_pseudo_package(@parts[0]);
             }
             join('::', @parts)
-                ~ ($with_adverbs ?? join('', @!colonpairs) !! '');
+                ~ ($with_adverbs ?? self.canonical_pairs !! '');
         }
 
         # returns a QAST tree that represents the name
@@ -3032,6 +3032,32 @@ class Perl6::World is HLL::World {
                 my $value := join('::', @!components);
                 QAST::SVal.new(:$value);
             }
+        }
+
+        method canonical_pairs() {
+            return '' unless @!colonpairs;
+            my $result := '';
+            my $w := $*W;
+            my $Bool := $w.find_symbol(['Bool']);
+            for @!colonpairs {
+                my $p := $w.compile_time_evaluate($_, $_.ast);
+                if nqp::istype($p.value,$Bool) {
+                    $result := $result ~ ':' ~ ($p.value ?? '' !! '!') ~ $p.key;
+                }
+                else {
+                    $result := $result ~ $w.canonicalize_pair($p.key,$p.value);
+                }
+            }
+            $result;
+        }
+
+        # Note, this permanently mutates the last component.
+        method attach_adverbs() {
+            if @!colonpairs {
+                my $last := nqp::pop(@!components) ~ self.canonical_pairs;
+                nqp::push(@!components,$last);
+            }
+            self;
         }
 
         # Gets the individual components, which may be PAST nodes for
@@ -3206,13 +3232,13 @@ class Perl6::World is HLL::World {
                         $ast := $ast[0];
                     }
                     $cp_str := nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal)
-                        ?? ':' ~ self.canonicalize_opname($ast[2].value)
+                        ?? self.canonicalize_pair('',$ast[2].value)
                         !! ~$_;
                 }
 
                 else {
                     # Safe to evaluate it directly; no bootstrap issues.
-                    $cp_str := ':' ~ self.canonicalize_opname(self.compile_time_evaluate($_, $_.ast));
+                    $cp_str := self.canonicalize_pair('',self.compile_time_evaluate($_, $_.ast));
                 }
                 if +@components {
                     @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
@@ -3919,21 +3945,21 @@ class Perl6::World is HLL::World {
         $obj
     }
 
-    method canonicalize_opname($opname) {
-        if $opname ~~ /<[ < > ]>/ && !($opname ~~ /<[ « » $ \\ " ' ]>/) {
-            '«' ~ $opname ~ '»'
+    method canonicalize_pair($k,$v) {
+        if $v ~~ /<[ < > ]>/ && !($v ~~ /<[ « » $ \\ " ' ]>/) {
+            ':' ~ $k ~ '«' ~ $v ~ '»'
         }
         else {
-            my $op := '';
+            my $new := '';
             my int $i := 0;
-            my int $e := nqp::chars($opname);
+            my int $e := nqp::chars($v);
             while $i < $e {
-                my $ch := nqp::substr($opname,$i,1);
-                $op := $op ~ '\\' if $ch eq '<' || $ch eq '>';
-                $op := $op ~ $ch;
+                my $ch := nqp::substr($v,$i,1);
+                $new := $new ~ '\\' if $ch eq '<' || $ch eq '>';
+                $new := $new ~ $ch;
                 ++$i;
             }
-            '<' ~ $op ~ '>';
+            ':' ~ $k ~ '<' ~ $new ~ '>';
         }
     }
 }

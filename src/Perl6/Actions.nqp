@@ -1996,7 +1996,7 @@ Compilation unit '$file' contained the following violations:
                     $indirect := 1;
                 }
                 else {
-                    $past := make_variable($/, $longname.variable_components(
+                    $past := make_variable($/, $longname.attach_adverbs.variable_components(
                         ~$<sigil>, $<twigil> ?? ~$<twigil> !! ''));
                 }
             }

@@ -76,11 +76,10 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             }
         }
         else {
-            return (
+            my $compunit := (
                 $file
                 ?? $*REPO.load(
                     $file,
-                    GLOBALish,
                     :$line
                 )
                 !! $*REPO.need(
@@ -89,10 +88,11 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                         :auth-matcher(%opts<auth>),
                         :version-matcher(%opts<ver>),
                     ),
-                    GLOBALish,
                     :$line,
                 )
-            ).handle;
+            );
+            GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
+            $compunit.handle
         }
 #        elsif $file {
 #            nqp::die("Could not find file '$file' for module $module_name");

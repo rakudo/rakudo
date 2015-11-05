@@ -12,7 +12,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method need(
         CompUnit::DependencySpecification $spec,
-        \GLOBALish is raw = Any,
         CompUnit::PrecompilationRepository :$precomp = self.precomp-repository(),
         :$line
     )
@@ -27,11 +26,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         my $compunit;
 
         if $handle {
-            my $globalish := $handle.globalish-package;
-            if $globalish !=== Stash {
-                # Merge any globals.
-                nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(GLOBALish, $globalish);
-            }
             return %!loaded{$name} = %seen{$base} = CompUnit.new(
               $base, :name($name), :extension(''), :has-precomp, :$handle, :repo(self)
             );
@@ -70,15 +64,15 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         }
 
         if $compunit {
-            $compunit.load(GLOBALish, :$line);
+            $compunit.load(:$line);
             return %!loaded{$compunit.name} = $compunit;
         }
 
-        return self.next-repo.need($spec, GLOBALish, :$precomp, :$line) if self.next-repo;
+        return self.next-repo.need($spec, :$precomp, :$line) if self.next-repo;
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method load(Str:D $file, \GLOBALish is raw = Any, :$line) returns CompUnit:D {
+    method load(Str:D $file, :$line) returns CompUnit:D {
         state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
         my $dir-sep           := $*SPEC.dir-sep;
 
@@ -92,7 +86,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $compunit = %seen{$path} = CompUnit.new(
               $path, :$file, :extension(''), :has-source(!$has_precomp), :$has_precomp, :repo(self)
             );
-            $compunit.load(GLOBALish, :$line);
+            $compunit.load(:$line);
             return %!loaded{$compunit.name} = $compunit;
         }
 

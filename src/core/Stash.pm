@@ -41,6 +41,12 @@ my class Stash { # declared in BOOTSTRAP
     multi method Str(Stash:D:) {
         nqp::isnull_s($!longname) ?? '<anon>' !! $!longname
     }
+
+    method merge-symbols(Stash:D: Stash $globalish) {
+        if $globalish !=== Stash {
+            nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(self, $globalish);
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

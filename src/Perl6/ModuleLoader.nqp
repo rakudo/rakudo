@@ -88,7 +88,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $UNIT := nqp::ctxlexpad($module_ctx);
             if +@GLOBALish {
                 unless nqp::isnull($UNIT<GLOBALish>) {
-                    self.merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
+                    self.merge_globals(@GLOBALish[0].WHO, $UNIT<GLOBALish>.WHO);
                 }
             }
             return $UNIT;
@@ -137,34 +137,34 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         for stash_hash($source) {
             my $sym := $_.key;
             if !%known_symbols{$sym} {
-                ($target.WHO){$sym} := $_.value;
+                ($target){$sym} := $_.value;
             }
-            elsif ($target.WHO){$sym} =:= $_.value {
+            elsif ($target){$sym} =:= $_.value {
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
                 my $source_mo := $_.value.HOW;
                 my $source_is_stub := $source_mo.HOW.name($source_mo) eq $stub_how
                                    || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
-                my $target_mo := ($target.WHO){$sym}.HOW;
+                my $target_mo := ($target){$sym}.HOW;
                 my $target_is_stub := $target_mo.HOW.name($target_mo) eq $stub_how
                                    || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
-                    self.merge_globals(($target.WHO){$sym}, $_.value);
+                    self.merge_globals(($target){$sym}.WHO, $_.value.WHO);
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
-                    self.merge_globals(($target.WHO){$sym}, $_.value);
+                    self.merge_globals(($target){$sym}.WHO, $_.value.WHO);
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($_.value, ($target.WHO){$sym});
-                    ($target.WHO){$sym} := $_.value;
+                    self.merge_globals($_.value.WHO, ($target){$sym}.WHO);
+                    ($target){$sym} := $_.value;
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
@@ -223,7 +223,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     sub stash_hash($pkg) {
-        my $hash := $pkg.WHO;
+        my $hash := $pkg;
         unless nqp::ishash($hash) {
             $hash := $hash.FLATTENABLE_HASH();
         }

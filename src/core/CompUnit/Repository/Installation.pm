@@ -188,7 +188,6 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
 
     method need(
         CompUnit::DependencySpecification $spec,
-        \GLOBALish is raw = Any,
         CompUnit::PrecompilationRepository :$precomp = self.precomp-repository(),
         :$line
     )
@@ -217,21 +216,21 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
                     with $candi<provides>{$spec.short-name}{$*VM.precomp-ext} -> $pc {
                         if $*PERL<compiler>.version eqv $pc<cver> {
                             my $compunit = CompUnit.new($loader, :has_precomp($pc<file>), :repo(self));
-                            $compunit.load(GLOBALish, :$line);
+                            $compunit.load(:$line);
                             return %!loaded{$compunit.name} = $compunit;
                         }
                     }
                     my $compunit = CompUnit.new($loader, :repo(self));
-                    $compunit.load(GLOBALish, :$line);
+                    $compunit.load(:$line);
                     return %!loaded{$compunit.name} = $compunit;
                 }
             }
         }
-        return self.next-repo.need($spec, GLOBALish, :$precomp, :$line) if self.next-repo;
+        return self.next-repo.need($spec, :$precomp, :$line) if self.next-repo;
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method load(Str:D $file, \GLOBALish is raw = Any, :$line) returns CompUnit:D {
+    method load(Str:D $file, :$line) returns CompUnit:D {
         return self.next-repo.load($file, :$line) if self.next-repo;
         nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }

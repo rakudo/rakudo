@@ -110,9 +110,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
         True;
     }
 
-    proto method load(CompUnit:D: |) { * }
-    multi method load(CompUnit:D: ) { self.load(Any) }
-    multi method load(CompUnit:D: \GLOBALish, :$line) {
+    method load(CompUnit:D: :$line) {
         $global.protect( {
             my int $DEBUG = $*RAKUDO_MODULE_DEBUG;
             RAKUDO_MODULE_DEBUG("going to load $!name") if $DEBUG;
@@ -185,13 +183,6 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                         .throw;
                     }
                 }
-            }
-
-            # Provided we have a mainline and need to do global merging...
-            my $globalish := $!handle.globalish-package;
-            if $globalish !=== Stash {
-                # Merge any globals.
-                nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(GLOBALish, $globalish);
             }
     } ) }
 

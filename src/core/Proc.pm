@@ -125,6 +125,10 @@ my class Proc {
     multi method status(Proc:D:)  { ($!exitcode +< 8) +| $!signal }
     multi method Numeric(Proc:D:) { $!exitcode }
     multi method Bool(Proc:D:)    { $!exitcode == 0 }
+
+    method sink(--> Nil) {
+        X::Proc::Unsuccessful.new(:proc(self)).throw unless self;
+    }
 }
 
 sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',

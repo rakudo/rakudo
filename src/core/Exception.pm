@@ -2272,4 +2272,11 @@ my class X::Language::Unsupported is Exception {
     }
 }
 
+my class X::Proc::Unsuccessful is Exception {
+    has $.proc;
+    method message() {
+        "The spawned process exited unsuccessfully (exit code: $.proc.exitcode())"
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

@@ -1031,6 +1031,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         for @needles.kv -> $index, $needle {
             my str $need  = nqp::unbox_s($needle.Str);
             my int $chars = nqp::chars($need);
+
+            # this is probably an error
+            die "Cannot have an empty needle when using multiple needles"
+              if nqp::iseq_i($chars,0);
+
             nqp::push($needles,$need);
             nqp::push($needle-chars,$chars);
 
@@ -1055,7 +1060,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                          nqp::getattr(nqp::atpos($positions,$a),Pair,'$!value'))
         }) if $fired > 1;
 
-        my int $skip = $skip-empty;
+        my int $skip = ?$skip-empty;
         my $pair;
         my int $from;
         my int $pos;
@@ -1066,9 +1071,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $from  = nqp::getattr($pair,Pair,'$!key');
                 if nqp::isge_i($from,$pos) { # not hidden by other needle
                     my int $needle-index = nqp::getattr($pair,Pair,'$!value');
-                    nqp::push($result,nqp::substr($str,$pos,$from - $pos))
-                      unless $skip && nqp::iseq_i($from,$pos);
-                    nqp::push($result,$needle-index);
+                    unless $skip && nqp::iseq_i($from,$pos) {
+                        nqp::push($result,nqp::substr($str,$pos,$from - $pos));
+                        nqp::push($result,$needle-index);
+                    }
                     $pos = $from + nqp::atpos($needle-chars,$needle-index);
                 }
             }
@@ -1079,9 +1085,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $from  = nqp::getattr($pair,Pair,'$!key');
                 if nqp::isge_i($from,$pos) { # not hidden by other needle
                     my int $needle-index = nqp::getattr($pair,Pair,'$!value');
-                    nqp::push($result,nqp::substr($str,$pos,$from - $pos))
-                      unless $skip && nqp::iseq_i($from,$pos);
-                    nqp::push($result,nqp::atpos($needles,$needle-index));
+                    unless $skip && nqp::iseq_i($from,$pos) {
+                        nqp::push($result,nqp::substr($str,$pos,$from - $pos));
+                        nqp::push($result,nqp::atpos($needles,$needle-index));
+                    }
                     $pos = $from + nqp::atpos($needle-chars,$needle-index);
                 }
             }
@@ -1098,7 +1105,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
             }
         }
-        nqp::push($result,nqp::substr($str,$pos));
+        nqp::push($result,nqp::substr($str,$pos))
+          unless $skip && $pos == nqp::chars($str);
 
         $result
     }

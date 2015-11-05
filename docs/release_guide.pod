@@ -15,7 +15,7 @@ end of this document.
 =head2 Planned future releases
 
   2015-11-19   Rakudo #93 (Coke)
-  2015-12-17   Rakudo #94          # v6.c
+  2015-12-17   Rakudo #94 (Coke)   # v6.c
 
 (More planned dates can be generated with F<tools/release-dates.pl>).
 

@@ -1098,8 +1098,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         $result
     }
-    multi method split(Str:D \string,@needles,$parts;; :$all, :$keep-indices) {
-        my @result = self.split(string,@needles,:$all,:$keep-indices);
+    multi method split(Str:D: @needles,$parts;; :$all, :$keep-indices) {
+        my @result = self.split(@needles,:$all,:$keep-indices);
         nqp::istype($parts,Whatever) || $parts === Inf
           ?? @result
           !! @result.head($all || $keep-indices ?? $parts + $parts !! $parts)

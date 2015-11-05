@@ -1017,18 +1017,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }.new(self,$limit));
         }
     }
-    multi method split(Str:D \string, @needles;; :$all, :$keep-indices) {
-        return self.split(string,rx/ @needles /,:$all)
+    multi method split(Str:D: @needles;; :$all, :$keep-indices) {
+        return self.split(rx/ @needles /,:$all)
           if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@needles,Cool);
 
-        my str $str       = nqp::unbox_s(string);
+        my str $str       = nqp::unbox_s(self);
         my $positions    := nqp::list;
         my $needles      := nqp::list;
         my $needle-chars := nqp::list;
         my $sorted       := nqp::list;
         my int $found     = -1;
-        my $fired;
-        for @needles.kv -> $needle-index, $needle {
+        my int $fired;
+        for @needles.kv -> $index, $needle {
             my str $need  = nqp::unbox_s($needle.Str);
             my int $chars = nqp::chars($need);
             nqp::push($needles,$need);
@@ -1038,7 +1038,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $i;
             my int $seen = nqp::elems($positions);
             while nqp::isge_i($i = nqp::index($str, $need, $pos),0) {
-                nqp::push($positions,Pair.new($i,nqp::unbox_i($needle-index)));
+                nqp::push($positions,Pair.new($i,nqp::unbox_i($index)));
                 nqp::push($sorted,nqp::unbox_i($found = $found + 1));
                 $pos = $i + $chars;
             }
@@ -1057,7 +1057,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         my $pair;
         my int $from;
-        my int $needle-index;
         my int $pos;
         my $result := nqp::list;
         if $keep-indices {
@@ -1065,7 +1064,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $pair := nqp::atpos($positions,nqp::shift($sorted));
                 $from  = nqp::getattr($pair,Pair,'$!key');
                 if nqp::isge_i($from,$pos) { # not hidden by other needle
-                    $needle-index = nqp::getattr($pair,Pair,'$!value');
+                    my int $needle-index = nqp::getattr($pair,Pair,'$!value');
                     nqp::push($result,nqp::substr($str,$pos,$from - $pos));
                     nqp::push($result,$needle-index);
                     $pos = $from + nqp::atpos($needle-chars,$needle-index);
@@ -1077,7 +1076,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $pair := nqp::atpos($positions,nqp::shift($sorted));
                 $from  = nqp::getattr($pair,Pair,'$!key');
                 if nqp::isge_i($from,$pos) { # not hidden by other needle
-                    $needle-index = nqp::getattr($pair,Pair,'$!value');
+                    my int $needle-index = nqp::getattr($pair,Pair,'$!value');
                     nqp::push($result,nqp::substr($str,$pos,$from - $pos));
                     nqp::push($result,nqp::atpos($needles,$needle-index));
                     $pos = $from + nqp::atpos($needle-chars,$needle-index);

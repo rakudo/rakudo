@@ -1,7 +1,12 @@
 my class Failure {
     has $.exception;
     has $.backtrace;
+#?if moar
     has int $!handled;
+#?endif
+#?if jvm
+    has $!handled;
+#?endif
 
     multi method new() {
         my $stash := CALLER::;

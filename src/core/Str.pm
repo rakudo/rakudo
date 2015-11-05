@@ -1017,9 +1017,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }.new(self,$limit));
         }
     }
-    multi method split(Str:D: @needles;; :$all, :$keep-indices, :$skip-empty) {
-        return self.split(rx/ @needles /,:$all)
-          if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@needles,Cool);
+    multi method split(Str:D: @needles, $parts = *;;
+      :$k, :$kv, :$v is copy, :$p, :$skip-empty, :$all) {
+
+        # must all be Cool, otherwise we'll just use a regex
+        if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@needles,Cool) {
+            return self.split(rx/ @needles /,:$all) if $all;  # old form
+            die "Can only :k, :kv, :p when using multiple Cool needles"
+              if $k || $kv || $p;
+            return self.split(rx/ @needles /,:all($v));  # for now
+        }
+
+        if $all {
+            # deprecation?
+            $v = True;
+        }
+
+        # cannot combine these
+        X::Adverb.new(
+          what   => 'split',
+          source => 'Str',
+          nogo   => (:$k,:$kv,:$v,:$p).grep(*.value),
+        ).throw if ?$k + ?$kv + ?$v + ?$p > 1;
 
         my str $str       = nqp::unbox_s(self);
         my $positions    := nqp::list;
@@ -1028,6 +1047,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $sorted       := nqp::list;
         my int $found     = -1;
         my int $fired;
+
+        # search using all needles
         for @needles.kv -> $index, $needle {
             my str $need  = nqp::unbox_s($needle.Str);
             my int $chars = nqp::chars($need);
@@ -1039,6 +1060,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::push($needles,$need);
             nqp::push($needle-chars,$chars);
 
+            # perform the actual search for this needle
             my int $pos;
             my int $i;
             my int $seen = nqp::elems($positions);
@@ -1050,6 +1072,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $fired = $fired + 1 if nqp::elems($positions) > $seen;
         }
 
+        # sort by position if more than one needle fired
         nqp::p6sort($sorted, -> int $a, int $b {
             # $a <=> $b || $b.chars <=> $a.chars, aka pos asc, length desc
             nqp::getattr(nqp::atpos($positions,$a),Pair,'$!key')
@@ -1060,12 +1083,36 @@ my class Str does Stringy { # declared in BOOTSTRAP
                          nqp::getattr(nqp::atpos($positions,$a),Pair,'$!value'))
         }) if $fired > 1;
 
+        # remove elements we don't want
+        unless nqp::istype($parts,Whatever) || $parts == Inf {
+            die "Cannot use a limit together with :skip-empty" if $skip-empty;
+
+            my int $todo = $parts.Int - 1;
+            my $limited := nqp::list;
+            my $pair;
+            my int $from;
+            my int $pos;
+            while $todo && nqp::elems($sorted) {
+                my int $index = nqp::shift($sorted);
+                $pair := nqp::atpos($positions,$index);
+                $from  = nqp::getattr($pair,Pair,'$!key');
+                if nqp::isge_i($from,$pos) { # not hidden by other needle
+                    nqp::push($limited,$index);
+                    $pos = $from + nqp::atpos(
+                      $needle-chars,nqp::getattr($pair,Pair,'$!value'));
+                    $todo = $todo - 1;
+                }
+            }
+            $sorted := $limited;
+        }
+
+        # create the final result
         my int $skip = ?$skip-empty;
         my $pair;
         my int $from;
         my int $pos;
         my $result := nqp::list;
-        if $keep-indices {
+        if $k {
             while nqp::elems($sorted) {
                 $pair := nqp::atpos($positions,nqp::shift($sorted));
                 $from  = nqp::getattr($pair,Pair,'$!key');
@@ -1078,7 +1125,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
             }
         }
-        elsif $all {
+        elsif $v {
             while nqp::elems($sorted) {
                 $pair := nqp::atpos($positions,nqp::shift($sorted));
                 $from  = nqp::getattr($pair,Pair,'$!key');
@@ -1087,6 +1134,34 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     nqp::push($result,nqp::substr($str,$pos,$from - $pos))
                       unless $skip && nqp::iseq_i($from,$pos);
                     nqp::push($result,nqp::atpos($needles,$needle-index));
+                    $pos = $from + nqp::atpos($needle-chars,$needle-index);
+                }
+            }
+        }
+        elsif $kv {
+            while nqp::elems($sorted) {
+                $pair := nqp::atpos($positions,nqp::shift($sorted));
+                $from  = nqp::getattr($pair,Pair,'$!key');
+                if nqp::isge_i($from,$pos) { # not hidden by other needle
+                    my int $needle-index = nqp::getattr($pair,Pair,'$!value');
+                    nqp::push($result,nqp::substr($str,$pos,$from - $pos))
+                      unless $skip && nqp::iseq_i($from,$pos);
+                    nqp::push($result,$needle-index);
+                    nqp::push($result,nqp::atpos($needles,$needle-index));
+                    $pos = $from + nqp::atpos($needle-chars,$needle-index);
+                }
+            }
+        }
+        elsif $p {
+            while nqp::elems($sorted) {
+                $pair := nqp::atpos($positions,nqp::shift($sorted));
+                $from  = nqp::getattr($pair,Pair,'$!key');
+                if nqp::isge_i($from,$pos) { # not hidden by other needle
+                    my int $needle-index = nqp::getattr($pair,Pair,'$!value');
+                    nqp::push($result,nqp::substr($str,$pos,$from - $pos))
+                      unless $skip && nqp::iseq_i($from,$pos);
+                    nqp::push($result,Pair.new(
+                      $needle-index,nqp::atpos($needles,$needle-index)));
                     $pos = $from + nqp::atpos($needle-chars,$needle-index);
                 }
             }
@@ -1104,14 +1179,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
         nqp::push($result,nqp::substr($str,$pos))
-          unless $skip && $pos == nqp::chars($str);
+          unless $skip && nqp::iseq_i($pos,nqp::chars($str));
 
         $result
-    }
-    multi method split(Str:D: @needles,$parts;; :$all, :$keep-indices) {
-        nqp::istype($parts,Whatever) || $parts === Inf
-          ?? self.split(@needles,:$all,:$keep-indices)
-          !! self.split(/ @needles /,$parts,:$all,:$keep-indices)
     }
 
     method samecase(Str:D: Str $pattern) {

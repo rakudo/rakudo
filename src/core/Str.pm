@@ -1053,28 +1053,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # search using all needles
         for @needles.kv -> $index, $needle {
-            my str $need  = nqp::unbox_s($needle.Str);
+            my str $need  = nqp::unbox_s($needle.DEFINITE ?? $needle.Str !! "");
             my int $chars = nqp::chars($need);
-
-            # this is probably an error
-            die "Cannot have an empty needle when using multiple needles"
-              if nqp::iseq_i($chars,0);
-
             nqp::push($needles,$need);
             nqp::push($needle-chars,$chars);
 
-            # perform the actual search for this needle
-            my int $pos;
-            my int $i;
-            my int $seen = nqp::elems($positions);
-            my int $todo = $limit - 1; # no limit: -1
-            while $todo && nqp::isge_i($i = nqp::index($str, $need, $pos),0) {
-                nqp::push($positions,Pair.new($i,nqp::unbox_i($index)));
-                nqp::push($sorted,nqp::unbox_i($found = $found + 1));
-                $pos  = $i + $chars;
-                $todo = $todo - 1;
+            # perform the actual search for this needle if there is one
+            if $chars {
+                my int $pos;
+                my int $i;
+                my int $seen = nqp::elems($positions);
+                my int $todo = $limit - 1; # no limit: -1
+                while $todo
+                  && nqp::isge_i($i = nqp::index($str, $need, $pos),0) {
+                    nqp::push($positions,Pair.new($i,nqp::unbox_i($index)));
+                    nqp::push($sorted,nqp::unbox_i($found = $found + 1));
+                    $pos  = $i + $chars;
+                    $todo = $todo - 1;
+                }
+                $fired = $fired + 1 if nqp::elems($positions) > $seen;
             }
-            $fired = $fired + 1 if nqp::elems($positions) > $seen;
         }
 
         # sort by position if more than one needle fired

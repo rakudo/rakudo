@@ -1021,7 +1021,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
       :$k, :$kv, :$v is copy, :$p, :$skip-empty, :$all) {
 
         # must all be Cool, otherwise we'll just use a regex
-        if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@needles,Cool) {
+        if Rakudo::Internals.NOT_ALL_TYPE(@needles,Cool) {
             return self.split(rx/ @needles /,:$all) if $all;  # old form
             die "Can only :k, :kv, :p when using multiple Cool needles"
               if $k || $kv || $p;
@@ -1049,6 +1049,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $needle-chars := nqp::list;
         my $sorted       := nqp::list;
         my int $found     = -1;
+        my $needles-seen := nqp::hash;
         my int $fired;
 
         # search using all needles
@@ -1058,8 +1059,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::push($needles,$need);
             nqp::push($needle-chars,$chars);
 
-            # perform the actual search for this needle if there is one
-            if $chars {
+            # search for this needle if there is one, and not done before
+            if $chars && !nqp::existskey($needles-seen,$need) {
+                nqp::bindkey($needles-seen,$need,1);
                 my int $pos;
                 my int $i;
                 my int $seen = nqp::elems($positions);
@@ -1074,6 +1076,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $fired = $fired + 1 if nqp::elems($positions) > $seen;
             }
         }
+
+        # no needle fired, assume we want chars
+        return self.split("") if !$fired;
 
         # sort by position if more than one needle fired
         nqp::p6sort($sorted, -> int $a, int $b {

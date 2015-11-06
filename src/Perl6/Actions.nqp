@@ -5773,7 +5773,7 @@ Compilation unit '$file' contained the following violations:
                         ),
                     ),
                     QAST::Op.new(
-                        :op('callmethod'), :name('push'),
+                        :op('callmethod'), :name('append'),
                         $_,
                         QAST::Var.new( :scope('local'), :name($tmp) )
                     ),

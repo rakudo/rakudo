@@ -1040,6 +1040,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nogo   => (:$k,:$kv,:$v,:$p).grep(*.value),
         ).throw if ?$k + ?$kv + ?$v + ?$p > 1;
 
+        my int $limit = $parts.Int
+          unless nqp::istype($parts,Whatever) || $parts == Inf;
+
         my str $str       = nqp::unbox_s(self);
         my $positions    := nqp::list;
         my $needles      := nqp::list;
@@ -1064,10 +1067,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $pos;
             my int $i;
             my int $seen = nqp::elems($positions);
-            while nqp::isge_i($i = nqp::index($str, $need, $pos),0) {
+            my int $todo = $limit - 1; # no limit: -1
+            while $todo && nqp::isge_i($i = nqp::index($str, $need, $pos),0) {
                 nqp::push($positions,Pair.new($i,nqp::unbox_i($index)));
                 nqp::push($sorted,nqp::unbox_i($found = $found + 1));
-                $pos = $i + $chars;
+                $pos  = $i + $chars;
+                $todo = $todo - 1;
             }
             $fired = $fired + 1 if nqp::elems($positions) > $seen;
         }
@@ -1084,10 +1089,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }) if $fired > 1;
 
         # remove elements we don't want
-        unless nqp::istype($parts,Whatever) || $parts == Inf {
+        if $limit {
             die "Cannot use a limit together with :skip-empty" if $skip-empty;
 
-            my int $todo = $parts.Int - 1;
+            my int $todo = $limit - 1;
             my $limited := nqp::list;
             my $pair;
             my int $from;

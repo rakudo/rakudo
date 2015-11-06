@@ -1037,7 +1037,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         X::Adverb.new(
           what   => 'split',
           source => 'Str',
-          nogo   => (:$k,:$kv,:$v,:$p).grep(*.value),
+          nogo   => (:$k,:$kv,:$v,:$p).grep(*.value).map(*.key),
         ).throw if ?$k + ?$kv + ?$v + ?$p > 1;
 
         my int $limit = $parts.Int

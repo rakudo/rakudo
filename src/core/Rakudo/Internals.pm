@@ -283,6 +283,12 @@ my class Rakudo::Internals {
         Nil
     }
 
+    # True if given array does not just contain objects of given type
+    method NOT_ALL_TYPE(\values,\type) {
+        return True unless nqp::istype($_,type) for values;
+        False;
+    }
+
     # True if given array does not just contain defined objects of given type
     method NOT_ALL_DEFINED_TYPE(\values,\type) {
         return True unless nqp::defined($_) && nqp::istype($_,type) for values;

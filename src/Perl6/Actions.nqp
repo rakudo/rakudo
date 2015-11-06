@@ -2588,7 +2588,15 @@ Compilation unit '$file' contained the following violations:
         my $past   := $<variable>.ast;
         my $sigil  := $<variable><sigil>;
         my $twigil := $<variable><twigil>;
-        my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
+        my $desigilname := ~$<variable><desigilname>;
+        my $name := $sigil ~ $twigil ~ $desigilname;
+
+        # Don't know why this doesn't work all the time.
+        if $desigilname ~~ /\w ':' <![:]>/ {
+            $name   := $<variable>.ast.name;  # is already canonicalized in <variable>
+            $desigilname := nqp::substr($name, nqp::chars($sigil ~ $twigil));
+        }
+
         my @post;
         for $<post_constraint> {
             @post.push($_.ast);
@@ -2607,7 +2615,7 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
-        make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>, :@post);
+        make declare_variable($/, $past, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
     }
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {

@@ -2400,7 +2400,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $sigil;
         <variable>
         {
-            $*VARIABLE := $<variable>.Str;
+            $*VARIABLE := $<variable>.ast.name;
             $/.CURSOR.add_variable($*VARIABLE);
             $sigil := nqp::substr($*VARIABLE, 0, 1);
             $*IN_DECL := '';
@@ -4408,9 +4408,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method add_variable($name) {
         my $categorical := $name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
-        if $categorical {
-            self.add_categorical(~$categorical[0][0], ~$categorical[0][1],
-                ~$categorical[0][0] ~ $*W.canonicalize_pair('sym', $categorical[0][1]),
+        my $cat := ~$categorical[0][0];
+        if $categorical && nqp::can(self,$cat) {
+            self.add_categorical($cat, ~$categorical[0][1],
+                $cat ~ $*W.canonicalize_pair('sym', $categorical[0][1]),
                 ~$categorical[0]);
         }
     }

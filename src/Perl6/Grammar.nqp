@@ -383,11 +383,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
 
-        # For tracking how many blocks deep we are nested.
-        # moreinput needs this to know if it has finished asking
-        # for more input.
-        my $*MOREINPUT_BLOCK_DEPTH := 0;
-
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
         # issue is that we may have no setting to provide them, e.g. when we
@@ -543,7 +538,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | [\r\n || \v] <.heredoc>
         | <.unv>
         | <.unsp>
-        | $ <?MOREINPUT>
         ]*
         <?MARKER('ws')>
         :my $stub := self.'!fresh_highexpect'();
@@ -557,21 +551,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <.unv>
         | <.unsp>
         ]*
-    }
-
-    token MOREINPUT {
-        [
-            <!MARKED('nomoreinput')>
-            <?{ $*MOREINPUT_BLOCK_DEPTH == 0 }>
-            { self.moreinput }
-            <?MARKER('nomoreinput')>
-        ||  <!>
-        ]
-    }
-
-    method moreinput() {
-        $*moreinput(self) if $*moreinput;
-        0
     }
 
     token vws {
@@ -1142,13 +1121,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
         :dba('statement list')
         ''
-        { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH + 1 }
         [
         | $
         | <?before <[\)\]\}]>>
         | [ <statement> <.eat_terminator> ]*
         ]
-        { $*MOREINPUT_BLOCK_DEPTH := $*MOREINPUT_BLOCK_DEPTH - 1 }
     }
 
     method shallow_copy(%hash) {
@@ -1229,15 +1206,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token eat_terminator {
-        [
-        || ';' <?MARKER('nomoreinput')>
+        || ';'
         || <?MARKED('endstmt')> <.ws>
         || <?before ')' | ']' | '}' >
-        || $ <?MARKER('nomoreinput')>
+        || $
         || <?stopper>
         || <?before [if|while|for|loop|repeat|given|when] » > { self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
         || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
-        ]
     }
 
     token xblock($*IMPLICIT = 0) {

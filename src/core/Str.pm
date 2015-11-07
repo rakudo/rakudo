@@ -881,11 +881,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     if $skip-empty {
                         nqp::splice($matches,$match-list,$i,
                           nqp::iseq_i(nqp::chars(nqp::atpos($matches,$i)),0))
-                            while nqp::isge_i($i = nqp::sub_i($i,1),0);
+                            while $i = nqp::sub_i($i,1);
                     }
                     else {
                         nqp::splice($matches,$match-list,$i,0)
-                          while nqp::isge_i($i = nqp::sub_i($i,1),0);
+                          while $i = nqp::sub_i($i,1);
                     }
                 }
             }

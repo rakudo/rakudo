@@ -1012,24 +1012,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 has int $!pos;
                 has int $!first;
                 has int $!last;
-                method BUILD(\string, \todo) {
+                method BUILD(\string, \todo, \skip-empty) {
                     $!string = nqp::unbox_s(string);
                     $!chars  = nqp::chars($!string);
                     $!todo   = todo;
-                    $!first  = 1;
+                    $!first  = !skip-empty;
 
                     if $!todo > $!chars + 2 {  # will return all chars
                         $!todo = $!chars + 1;
-                        $!last = 1;
+                        $!last = !skip-empty;
                     }
                     else {
                         $!todo = $!todo - 1;
-                        $!last = ($!todo == $!chars + 1);
+                        $!last = !skip-empty && ($!todo == $!chars + 1);
                     }
                     self
                 }
-                method new(\string,\todo) {
-                    nqp::create(self).BUILD(string,todo)
+                method new(\string,\todo,\skip-empty) {
+                    nqp::create(self).BUILD(string,todo,skip-empty)
                 }
                 method pull-one() is raw {
                     if $!first {             # do empty string first
@@ -1055,7 +1055,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     }
                 }
                 method push-all($target) {
-                    $target.push("");
+                    $target.push("") if $!first;
                     $!todo = $!todo - 1;
                     while $!todo {
                         $target.push(
@@ -1071,7 +1071,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     nqp::p6box_i($!todo + $!first + $!last)
                 }
                 method sink-all() { IterationEnd }
-            }.new(self,$limit));
+            }.new(self,$limit,$skip-empty));
         }
     }
     multi method split(Str:D: @needles, $parts = *;;

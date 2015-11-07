@@ -238,8 +238,10 @@ J_CLEANUPS = \
   $(PERL6_DEBUG_JAR) \
   $(J_DEBUG_RUNNER) \
 
-J_HARNESS_WITH_FUDGE = $(PERL5) t/harness --fudge --keep-exit-code --jvm
-J_HARNESS = $(PERL5) t/harness --jvm
+HARNESS_TYPE =
+
+J_HARNESS = $(PERL5) t/harness5 --jvm
+J_HARNESS_WITH_FUDGE = $(J_HARNESS) --fudge --keep-exit-code
 
 j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
@@ -337,10 +339,10 @@ j-spectest_full: j-testable
 	$(J_HARNESS_WITH_FUDGE) t/spec
 
 j-quicktest: j-testable t/spectest.data
-	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
+	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --quick
 
 j-stresstest: j-testable t/spectest.data
-	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
+	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress
 
 j-rakudo_test_run.tar.gz: j-testable t/spectest.data
 	- $(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive j-rakudo_test_run.tar.gz

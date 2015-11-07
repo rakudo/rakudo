@@ -198,7 +198,7 @@ MAIN: {
     print $MAKEFILE "\t\$(RM_F) perl6", $config{'runner_suffix'},"\n\n";
 
     for my $t (qw/test spectest coretest localtest stresstest/) {
-        print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
+        print $MAKEFILE "$t: ", join(' ', map "$_-$t\$(HARNESS_TYPE)", @prefixes), "\n";
     }
 
     fill_template_file('tools/build/Makefile-common-rules.in', $MAKEFILE, %config);

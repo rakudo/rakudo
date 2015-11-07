@@ -7034,8 +7034,15 @@ Compilation unit '$file' contained the following violations:
                     QAST::Op.new( :op('call'), :name('&infix:<=>'),
                         QAST::Var.new( :name($<sym> eq 's' ?? '$_' !! '$/'), :scope('lexical') ),
                         $apply_matches
-                    )
-
+                    ),
+                    ( $<sym> eq 'S'
+                        ?? QAST::Op.new( :op('p6store'),
+                                QAST::Op.new( :op('call'), :name('&infix:<,>'),
+                                    QAST::Var.new( :name('$/'), :scope('lexical') ) ),
+                                QAST::Var.new( :name('$_'), :scope('lexical') ),
+                           )
+                        !! QAST::Stmt.new()
+                    ),
                 ),
 
                 # It will return a list of matches when we match globally, and a single

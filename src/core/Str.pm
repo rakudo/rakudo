@@ -881,26 +881,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     if $skip-empty {
                         nqp::splice($matches,$match-list,$i,
                           nqp::iseq_i(nqp::chars(nqp::atpos($matches,$i)),0))
-                            while $i = $i - 1;
+                            while nqp::isge_i($i = nqp::sub_i($i,1),0);
                     }
                     else {
                         nqp::splice($matches,$match-list,$i,0)
-                          while $i = $i - 1;
+                          while nqp::isge_i($i = nqp::sub_i($i,1),0);
                     }
                 }
             }
             elsif $skip-empty {
                 my int $i = nqp::elems($matches);
                 my $match-list := nqp::list;
-                while $i = $i - 1 {
+                while nqp::isge_i($i = nqp::sub_i($i,1),0) {
                   nqp::splice($matches,$match-list,$i,1)
                     if nqp::iseq_i(nqp::chars(nqp::atpos($matches,$i)),0);
                 }
             }
         }
 
-        # single chars need empty before/after
-        else {
+        # single chars need empty before/after, unless inhibited
+        elsif !$skip-empty {
             nqp::unshift($matches,"");
             nqp::push($matches,"");
         }

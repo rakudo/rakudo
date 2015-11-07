@@ -365,11 +365,9 @@ sub sprintf(Cool $format, *@args) {
     );
 }
 
-sub printf(Cool $format, *@args) { print sprintf $format, @args };
+sub printf(Cool $format, *@args)          { print sprintf $format, @args }
 sub samecase(Cool $string, Cool $pattern) { $string.samecase($pattern) }
-sub split($pat, Cool $target, $limit = Inf, :$all) {
-    $target.split($pat, $limit, :$all);
-}
+sub split($pat, Cool $target, |c)         { $target.split($pat, |c) }
 
 proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }

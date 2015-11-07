@@ -2390,7 +2390,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         || <.ws>[<typename><.ws>]* <ident> <?before <.ws> [':'?':'?'=' | <.terminator> | $ ]> {}
             <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
-        || <.ws><typo_typename> <!>
+        || <.ws><!typename> <typo_typename> <!>
         || <.malformed($*SCOPE)>
         ]
     }

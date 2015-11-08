@@ -50,25 +50,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method chomp(Str:D:) {
-        my str $sself = nqp::unbox_s(self);
-        my int $chars = nqp::chars($sself);
-        return '' if $chars == 0;
+        my str $str   = nqp::unbox_s(self);
+        my int $chars = nqp::chars($str);
 
-        my int $last = nqp::ordat($sself, $chars - 1);
-        if $last == 10 {
-            if $chars > 1 && nqp::iseq_i(nqp::ordat($sself, $chars - 2),  13) {
-                nqp::p6box_s(nqp::substr($sself, 0, $chars - 2));
-            }
-            else {
-                nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
-            }
-        }
-        elsif $last == 13 {
-            nqp::p6box_s(nqp::substr($sself, 0, $chars - 1));
-        }
-        else {
-            self;
-        }
+        $chars && nqp::isne_i(nqp::findcclass(
+          nqp::const::CCLASS_NEWLINE,$str,$chars-1,1),$chars)
+            ?? nqp::p6box_s(nqp::substr($str,0,$chars-1))
+            !! self
     }
 
     method chop(Str:D: Int() $chopping = 1) {

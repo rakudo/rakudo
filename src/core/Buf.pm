@@ -9,12 +9,21 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method new(@values) {
         my $buf := nqp::create(self);
-        my int $n = @values.elems;
-        my int $i;
-        nqp::setelems($buf, $n);
-        while $i < $n {
-            nqp::bindpos_i($buf, $i, @values.AT-POS($i));
-            $i = $i + 1;
+        # the fast route
+        if nqp::istype(@values,Iterable) {
+            my $iter := @values.iterator;
+            my $pulled;
+            nqp::push_i($buf,$pulled)
+              until ($pulled := $iter.pull-one) =:= IterationEnd;
+        }
+
+        # the slow route
+        else {
+            my int $n = @values.elems;
+            my int $i = -1;
+            nqp::setelems($buf, $n);
+            nqp::bindpos_i($buf, $i, @values.AT-POS($i))
+              while nqp::islt_i($i = nqp::add_i($i,1),$n);
         }
         $buf
     }

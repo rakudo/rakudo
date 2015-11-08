@@ -53,8 +53,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $str   = nqp::unbox_s(self);
         my int $chars = nqp::chars($str);
 
-        $chars && nqp::isne_i(nqp::findcclass(
-          nqp::const::CCLASS_NEWLINE,$str,$chars-1,1),$chars)
+        $chars && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$str,$chars-1)
             ?? nqp::p6box_s(nqp::substr($str,0,$chars-1))
             !! self
     }

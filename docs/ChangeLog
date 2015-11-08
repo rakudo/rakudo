@@ -1,3 +1,29 @@
+New in 2015.11:
+ + Features
+   + \r\n (Carriage Return/LineFeed) is now a single (synthetic) grapheme
+   + Unicode support adhers to Unicode Annex #29
+   + New IO::Handle.nl-in now allows multiple line-endings to be set
+   + New IO::Handle.nl-out allows you to set line-ending used in IO::Handle.say
+   + New IO::Handle.split/comb, same feature set as Str.split/comb, but lazy
+   + New $?NL contains the output new-line character(s) for the current system
+   + New 'use newline' pragma allows setting of $?NL
+   + New List.head/tail methods for easier getting first/last N elements
+   + New List.repeated for only getting repeated values in a list
+   + Str.encode now allows :replacement parameter for unencodable sequences
+   + Str.split now accepts multiple strings to split on
+   + Str.split now accepts :v, :k, :kv, :p, :skip-empty named params
+   + Str.comb(Int:D $n) candidate allows for combing string per $n characters
+   + New Range.int-bounds returns first/last value for integer ranges
+   + EVAL now passes on named params, to allow for customised EVAL subs
+   + Auto-generated meta-ops vivified by referring to them, instead of executing
+   + Unicode quotes are now also allowed in regular expressions
+   + Can now coerce to generic types in parameters
+   + Can attach adverbs to variables
+   + Illegal assigment of different Numeric values now caught at compile time
+ + Deprecated
+   + IO::Handle.nl should either be IO::Handle.nl-in or .nl-out
+   + Str.split( ... :all) should be written as :v
+
 New in 2015.10:
  + Features
     + We are now officially in beta!

@@ -1446,7 +1446,6 @@ class Perl6::Optimizer {
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     if $ct_result == 1 {
                         if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                        #say("# trial bind worked!");
                         if $!level >= 2 {
                             if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
                                 return self.inline_call($op, $obj);

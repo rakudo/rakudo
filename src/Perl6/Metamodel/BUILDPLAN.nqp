@@ -48,7 +48,14 @@ role Perl6::Metamodel::BUILDPLAN {
                 }
             }
         }
-        
+
+        # Ensure that any required attributes are set
+        for @attrs {
+            if nqp::can($_, 'required') && $_.required {
+                @plan[+@plan] := [11, $obj, $_.name, 1];
+            }
+        }
+
         # Check if there's any default values to put in place.
         for @attrs {
             if nqp::can($_, 'build') {
@@ -64,17 +71,10 @@ role Perl6::Metamodel::BUILDPLAN {
                 }
             }
         }
-       
-        # Insure that any required attributes are set 
-        for @attrs {
-            if nqp::can($_, 'required') && $_.required {
-                @plan[+@plan] := [11, $obj, $_.name, 1];
-            }
-        } 
-        
+
         # Install plan for this class.
         @!BUILDPLAN := @plan;
-        
+
         # Now create the full plan by getting the MRO, and working from
         # least derived to most derived, copying the plans.
         my @all_plan;

@@ -450,8 +450,6 @@ my role Supply {
                 my int $pos;
                 my int $nextpos;
                 my int $found;
-                my int $cr;
-                my int $crlf;
 
                 {
                     emit => -> \val {
@@ -464,31 +462,20 @@ my role Supply {
                               nqp::const::CCLASS_NEWLINE, $str, $pos, $left
                             );
 
-                            # no trailing line delimiter, so go buffer
-                            last unless nqp::iscclass(
-                              nqp::const::CCLASS_NEWLINE, $str, $nextpos
-                            );
-
-                            # potentially broken CRLF, so go buffer
-                            $cr = nqp::ordat($str, $nextpos) == 13;    # CR
-                            last if $cr == 1 and $nextpos + 1 == $chars;
-
-                            $crlf = $cr
-                              && nqp::ordat($str, $nextpos + 1) == 10; # LF
+                            # no trailing line delimiter, or potentially broken
+                            last if $nextpos >= $chars - 1;
 
                             if $chomp {
                                 $res.emit( ($found = $nextpos - $pos)
-                                  ?? nqp::box_s(
-                                       nqp::substr($str, $pos, $found), Str)
+                                  ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
                                   !! ''
                                 );
-                                $pos = $nextpos + 1 + $crlf;
+                                $pos = $nextpos + 1;
                             }
                             else {
-                                $found = $nextpos - $pos + 1 + $crlf;
-                                $res.emit( nqp::box_s(
-                                  nqp::substr($str, $pos, $found), Str)
-                                );
+                                $found = $nextpos - $pos + 1;
+                                $res.emit(
+                                  nqp::p6box_s(nqp::substr($str,$pos,$found)));
                                 $pos = $pos + $found;
                             }
                         }
@@ -499,10 +486,10 @@ my role Supply {
                     done => {
                         if $str {
                             $chars = nqp::chars($str);
-                            $res.emit( $chomp
-                              && nqp::ordat($str, $chars - 1) == 13    # CR
-                              ?? nqp::box_s(nqp::substr($str,0,$chars - 1),Str)
-                              !! nqp::box_s($str, Str)
+                            $res.emit( $chomp && nqp::iscclass(
+                              nqp::const::CCLASS_NEWLINE,$str,$chars-1)
+                                ?? nqp::p6box_s(nqp::substr($str,0,$chars - 1))
+                                !! nqp::p6box_s($str)
                             );
                         }
                         $res.done;

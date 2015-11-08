@@ -880,8 +880,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     my int $i = nqp::elems($matches);
                     if $skip-empty {
                         nqp::splice($matches,$match-list,$i,
-                          nqp::iseq_i(nqp::chars(nqp::atpos($matches,$i)),0))
-                            while $i = nqp::sub_i($i,1);
+                          nqp::not_i(nqp::isne_i(
+                            nqp::chars(nqp::atpos($matches,$i)),0)))
+                              while $i = nqp::sub_i($i,1);
+                        nqp::splice($matches,nqp::list,0,1)
+                          unless nqp::chars(nqp::atpos($matches,0));
                     }
                     else {
                         nqp::splice($matches,$match-list,$i,0)

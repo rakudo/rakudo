@@ -1137,8 +1137,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # remove elements we don't want
         if $limit {
-            die "Cannot use a limit together with :skip-empty" if $skip-empty;
-
             my int $todo = $limit - 1;
             my $limited := nqp::list;
             my $pair;

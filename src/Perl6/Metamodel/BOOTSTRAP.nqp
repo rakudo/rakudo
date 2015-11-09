@@ -2079,6 +2079,7 @@ BEGIN {
             my $cur_candidate;
             my int $type_check_count;
             my int $type_mismatch;
+            my $rwness_mismatch := [];
             my int $i;
             my int $pure_type_result := 1;
             my $many_res := $many ?? [] !! Mu;
@@ -2100,10 +2101,19 @@ BEGIN {
                         $type_mismatch := 0;
 
                         $i := 0;
-                        while $i < $type_check_count && !$type_mismatch {
+                        while $i < $type_check_count && !$type_mismatch && !nqp::elems($rwness_mismatch) {
                             my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                             my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                             my int $got_prim   := nqp::captureposprimspec($capture, $i);
+                            my $rwness         := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
+                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
+                                # If we need a container but don't have one it clearly can't work.
+                                my $signature := nqp::atkey($cur_candidate, 'signature');
+                                my $params    := nqp::getattr($signature, Signature, '$!params');
+                                my $param     := nqp::atpos($params, $i);
+                                my $symname   := nqp::getattr($param, Parameter, '$!variable_name');
+                                $rwness_mismatch := [nqp::captureposarg($capture, $i), ~$symname];
+                            }
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
                                 if $got_prim == $BIND_VAL_OBJ {
@@ -2305,7 +2315,12 @@ BEGIN {
                 }
             }
             if nqp::elems(@possibles) == 1 && $pure_type_result {
-                add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));
+                my $have_rwness := 0;
+                my @rwness := nqp::atkey(@possibles[0], 'rwness');
+                for @rwness {
+                    $have_rwness := 1 if $_ == 1;
+                }
+                add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub')) unless $have_rwness;
             }
 
             # Perhaps we found nothing but have junctional arguments?
@@ -2331,11 +2346,22 @@ BEGIN {
             }
 
             # Need a unique candidate.
-            if nqp::elems(@possibles) == 1 {
+            if nqp::elems(@possibles) == 1 && nqp::elems($rwness_mismatch) == 0 {
                 nqp::atkey(nqp::atpos(@possibles, 0), 'sub')
             }
             elsif nqp::isconcrete($junctional_res) {
                 $junctional_res;
+            }
+            elsif nqp::elems($rwness_mismatch) != 0 {
+                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
+                    nqp::die("Parameter '" ~ $rwness_mismatch[0] 
+                        ~ "' expected a writeable container, but got " ~ $rwness_mismatch[1]
+                        ~ " value instead");
+                }
+                else {
+                    nqp::atkey(%ex, 'X::Parameter::RW')($rwness_mismatch[0], $rwness_mismatch[1])
+                }
             }
             elsif nqp::elems(@possibles) == 0 {
                 my %ex := nqp::gethllsym('perl6', 'P6EX');

@@ -876,6 +876,13 @@ my class X::Dynamic::Postdeclaration does X::Comp {
     }
 }
 
+my class X::Dynamic::Package does X::Comp {
+    has $.symbol;
+    method message() {
+        "Dynamic variables cannot have package-like names, like $!symbol"
+    }
+}
+
 my class X::Import::Redeclaration does X::Comp {
     has @.symbols;
     has $.source-package-name;

@@ -2076,6 +2076,9 @@ Compilation unit '$file' contained the following violations:
         my $name := $past.name();
 
         if $twigil eq '*' {
+            if +@name > 1 {
+                $*W.throw($/, 'X::Dynamic::Package', symbol => ~$/);
+            }
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
                 $*W.add_string_constant($name));

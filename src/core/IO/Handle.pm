@@ -154,7 +154,7 @@ my class IO::Handle does IO {
               !! nqp::readlinefh($!PIO);
             # XXX don't fail() as long as it's fatal
             # fail('end of file') if self.eof && $x eq '';
-            if nqp::iseq_i(nqp::chars($x),0) && nqp::eoffh($!PIO) {
+            if nqp::eoffh($!PIO) {
                 Str
             }
             else {

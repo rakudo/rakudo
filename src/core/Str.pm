@@ -2143,7 +2143,7 @@ sub substr-rw(\what, \start, $want?) is rw {
 # These probably belong in a separate unicodey file
 
 proto sub uniname(|) {*}
-multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Str }
+multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
 multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
 proto sub uninames(|) {*}
@@ -2170,7 +2170,7 @@ sub PVALCODE($prop,$pvalname) {
 }
 
 proto sub uniprop(|) {*}
-multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Str }
+multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
 multi sub uniprop(Int:D $code, Stringy:D $propname = "GeneralCategory") {
     my $prop := PROPCODE($propname);
     state %prefs;  # could prepopulate this with various prefs
@@ -2211,7 +2211,7 @@ multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
 }
 
 proto sub unival(|) {*}
-multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Str }
+multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
 multi sub unival(Int:D $code) {
     state $nuprop = nqp::unipropcode("NumericValueNumerator");
     state $deprop = nqp::unipropcode("NumericValueDenominator");
@@ -2224,7 +2224,7 @@ proto sub univals(|) {*}
 multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 
 proto sub unimatch(|) {*}
-multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Str }
+multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := PROPCODE($propname);
     so nqp::matchuniprop($code,$prop,PVALCODE($prop,$pvalname));

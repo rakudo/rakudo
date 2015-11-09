@@ -147,13 +147,13 @@ my class IO::Handle does IO {
     method get(IO::Handle:D:) {
         if $!chomp {
             my str $str = nqp::readlinechompfh($!PIO);
-            # this will lose last empty line because EOF is set too early
+            # loses last empty line because EOF is set too early, RT #126598
             if nqp::chars($str) || !nqp::eoffh($!PIO) {
                 $!ins = nqp::add_i($!ins,1);
                 $str
             }
             else {
-                Str
+                Nil
             }
         }
         else {
@@ -163,14 +163,14 @@ my class IO::Handle does IO {
                 $str
             }
             else {
-                Str
+                Nil
             }
         }
     }
 
     method getc(IO::Handle:D:) {
         my str $c = nqp::getcfh($!PIO);
-        nqp::chars($c) ?? $c !! Str
+        nqp::chars($c) ?? $c !! Nil
     }
 
     proto method comb(|) { * }

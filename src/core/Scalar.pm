@@ -9,7 +9,7 @@ my class Scalar { # declared in BOOTSTRAP
     }
     method name() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Str !! $d.name()
+        nqp::isnull($d) ?? Nil !! $d.name()
     }
     method of() {
         my $d := $!descriptor;
@@ -17,11 +17,11 @@ my class Scalar { # declared in BOOTSTRAP
     }
     method default() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.default;
+        nqp::isnull($d) ?? Any !! $d.default;
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! so $d.dynamic;
+        nqp::isnull($d) ?? Nil !! so $d.dynamic;
     }
 }
 

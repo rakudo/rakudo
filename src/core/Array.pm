@@ -708,7 +708,7 @@ my class Array { # declared in BOOTSTRAP
     # introspection
     method name() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Str !! $d.name()
+        nqp::isnull($d) ?? Nil !! $d.name()
     }
     method of() {
         my $d := $!descriptor;
@@ -720,7 +720,7 @@ my class Array { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Bool !! so $d.dynamic;
+        nqp::isnull($d) ?? Nil !! so $d.dynamic;
     }
     multi method perl(Array:D \SELF:) {
         if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }

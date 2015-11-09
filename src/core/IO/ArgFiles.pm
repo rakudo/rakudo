@@ -17,7 +17,7 @@ my class IO::ArgFiles is IO::Handle {
 
         unless $!io.defined && $!io.opened {
             if $!has-args {
-                return Str unless $!args;
+                return Nil unless $!args;
                 $!filename = $!args.shift;
             } else {
                 $!filename = '-';
@@ -27,7 +27,7 @@ my class IO::ArgFiles is IO::Handle {
                 fail "Unable to open file '$!filename'";
         }
 
-        return Str unless $!io.defined and $!io.opened;
+        return Nil unless $!io.defined and $!io.opened;
 
         $!io;
     }

@@ -88,12 +88,12 @@ my class Hash { # declared in BOOTSTRAP
     # introspection
     method name() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Str !! $d.name()
+        nqp::isnull($d) ?? Nil !! $d.name()
     }
     method keyof () { Any }
     method of() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.of;
+        nqp::isnull($d) ?? Nil !! $d.of;
     }
     method default() {
         my $d := $!descriptor;
@@ -101,7 +101,7 @@ my class Hash { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Bool !! so $d.dynamic;
+        nqp::isnull($d) ?? Nil !! so $d.dynamic;
     }
 
     multi method DELETE-KEY(Hash:U:) { Nil }

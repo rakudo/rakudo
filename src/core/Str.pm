@@ -2143,11 +2143,11 @@ sub substr-rw(\what, \start, $want?) is rw {
 # These probably belong in a separate unicodey file
 
 proto sub uniname(|) {*}
-multi sub uniname(Str $str) { uniname($str.ord) }
-multi sub uniname(Int $code) { nqp::getuniname($code) }
+multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Str }
+multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
 proto sub uninames(|) {*}
-multi sub uninames(Str $str) { $str.comb.map:{uniname($_.ord)}; }
+multi sub uninames(Str:D $str) { $str.comb.map:{uniname(.ord)} }
 
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
@@ -2170,8 +2170,8 @@ sub PVALCODE($prop,$pvalname) {
 }
 
 proto sub uniprop(|) {*}
-multi sub uniprop(Str $str, |c) { uniprop($str.ord, |c) }
-multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
+multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Str }
+multi sub uniprop(Int:D $code, Stringy:D $propname = "GeneralCategory") {
     my $prop := PROPCODE($propname);
     state %prefs;  # could prepopulate this with various prefs
     given %prefs{$propname} // '' {
@@ -2188,26 +2188,31 @@ multi sub uniprop(Int $code, Stringy $propname = "GeneralCategory") {
 }
 
 proto sub uniprop-int(|) {*}
-multi sub uniprop-int(Str $str, Stringy $propname) { uniprop-int($str.ord, $propname) }
-multi sub uniprop-int(Int $code, Stringy $propname) {
+multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
+    $str ?? uniprop-int($str.ord, $propname) !! Str }
+multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_int($code,PROPCODE($propname));
 }
 
 proto sub uniprop-bool(|) {*}
-multi sub uniprop-bool(Str $str, Stringy $propname) { uniprop-bool($str.ord, $propname) }
-multi sub uniprop-bool(Int $code, Stringy $propname) {
+multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
+    $str ?? uniprop-bool($str.ord, $propname) !! Str
+}
+multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
     so nqp::getuniprop_bool($code,PROPCODE($propname));
 }
 
 proto sub uniprop-str(|) {*}
-multi sub uniprop-str(Str $str, Stringy $propname) { uniprop-str($str.ord, $propname) }
-multi sub uniprop-str(Int $code, Stringy $propname) {
+multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
+    $str ?? uniprop-str($str.ord, $propname) !! Str
+}
+multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,PROPCODE($propname));
 }
 
 proto sub unival(|) {*}
-multi sub unival(Str $str) { unival($str.ord) }
-multi sub unival(Int $code) {
+multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Str }
+multi sub unival(Int:D $code) {
     state $nuprop = nqp::unipropcode("NumericValueNumerator");
     state $deprop = nqp::unipropcode("NumericValueDenominator");
     my $nu = nqp::getuniprop_str($code, $nuprop);
@@ -2216,11 +2221,11 @@ multi sub unival(Int $code) {
 }
 
 proto sub univals(|) {*}
-multi sub univals(Str $str) { $str.ords.map: { unival($_) } }
+multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 
 proto sub unimatch(|) {*}
-multi sub unimatch(Str $str, |c) { unimatch($str.ord, |c) }
-multi sub unimatch(Int $code, Stringy $pvalname, Stringy $propname = $pvalname) {
+multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Str }
+multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := PROPCODE($propname);
     so nqp::matchuniprop($code,$prop,PVALCODE($prop,$pvalname));
 }

@@ -145,21 +145,25 @@ my class IO::Handle does IO {
     }
 
     method get(IO::Handle:D:) {
-        if nqp::eoffh($!PIO) {
-            Str
-        }
-        else {
-            my str $x = $!chomp
-              ?? nqp::readlinechompfh($!PIO)
-              !! nqp::readlinefh($!PIO);
-            # XXX don't fail() as long as it's fatal
-            # fail('end of file') if self.eof && $x eq '';
-            if nqp::eoffh($!PIO) {
-                Str
+        if $!chomp {
+            my str $str = nqp::readlinechompfh($!PIO);
+            # this will lose last empty line because EOF is set too early
+            if nqp::chars($str) || !nqp::eoffh($!PIO) {
+                $!ins = nqp::add_i($!ins,1);
+                $str
             }
             else {
+                Str
+            }
+        }
+        else {
+            my str $str = nqp::readlinefh($!PIO);
+            if nqp::chars($str) {   # no need to check EOF
                 $!ins = nqp::add_i($!ins,1);
-                $x
+                $str
+            }
+            else {
+                Str
             }
         }
     }

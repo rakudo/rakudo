@@ -2147,7 +2147,7 @@ multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Str }
 multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
 proto sub uninames(|) {*}
-multi sub uninames(Str:D $str) { $str.comb.map:{uniname(.ord)} }
+multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
 
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }

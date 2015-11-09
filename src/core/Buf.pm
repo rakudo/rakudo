@@ -81,16 +81,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     method list(Blob:D:) {
-        my \retval := List.CREATE;
-        my \reified := IterationBuffer.CREATE;
-        nqp::bindattr(retval, List, '$!reified', reified);
         my int $n = nqp::elems(self);
-        my int $i = 0;
-        while $i < $n {
-            reified.push(nqp::atpos_i(self, $i));
-            $i = $i + 1;
-        }
-        retval;
+        my $list := nqp::list;
+        nqp::setelems($list,$n);
+        my int $i = -1;
+        nqp::bindpos($list,$i,nqp::atpos_i(self, $i))
+          while nqp::islt_i($i = nqp::add_i($i,1),$n);
+        $list
     }
 
     multi method gist(Blob:D:) {

@@ -7,8 +7,8 @@ third Tuesday of each month (This historically allowed Rakudo to
 follow Parrot’s release cycle).
 
 Each development release is given a sequential number and a code name
-based on an active Perl Mongers group.  Rakudo’s February 2009 release
-was #14; prior releases were bundled as part of monthly Parrot releases.
+based on an active Perl Mongers group. 
+
 For releases made so far, see the list of development releases at the
 end of this document.
 
@@ -261,6 +261,8 @@ You’re done!  Celebrate with the appropriate amount of fun.
 =back
 
 =head2 Development releases so far
+
+Previous releases were bundled as part of monthly Parrot releases.
 
   2009-02-26   Rakudo #14 "Vienna"             (pmichaud)
   2009-03-20   Rakudo #15 "Oslo"               (pmichaud)

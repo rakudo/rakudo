@@ -169,9 +169,8 @@ my class IO::Handle does IO {
     }
 
     method getc(IO::Handle:D:) {
-        my $c = nqp::p6box_s(nqp::getcfh($!PIO));
-        fail if $c eq '';
-        $c;
+        my str $c = nqp::getcfh($!PIO);
+        nqp::chars($c) ?? $c !! Str
     }
 
     proto method comb(|) { * }

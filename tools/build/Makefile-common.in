@@ -9,6 +9,7 @@ RM_F    = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
 
 SYSROOT= @sysroot@
+SDKROOT= @sdkroot@
 PREFIX = @prefix@
 PERL6_LANG_DIR = $(PREFIX)/share/perl6
 

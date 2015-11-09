@@ -11,8 +11,10 @@ J_BUILD_DIR = gen/jvm
 PERL6_LANG_DIR = $(PREFIX)/share/perl6
 
 NQP_JARS = @nqp_jars@
+BLD_NQP_JARS = @bld_nqp_jars@
 
-J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx2000m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
+J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx2000m -Xbootclasspath/a:.@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar -cp $(SYSROOT)@nqp_classpath@ nqp
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx2000m -Xbootclasspath/a:.@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp $(SYSROOT)@nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
@@ -248,7 +250,7 @@ j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/lib.pm6.jar l
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
-	$(JAVAC) -source 1.7 -cp $(NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
+	$(JAVAC) -source 1.7 -cp $(BLD_NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
 $(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp
@@ -299,8 +301,7 @@ $(PERL6_M_JAR): $(J_METAMODEL_SOURCES) $(PERL6_OPS_JAR)
 
 $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
 	$(J_NQP) $(J_GEN_CAT) $(BOOTSTRAP_SOURCES) > $(J_BUILD_DIR)/BOOTSTRAP.nqp
-	$(PERL) tools/build/nqp-jvm-rr.pl $(J_NQP) --target=jar \
-        --output=$(PERL6_B_JAR) --encoding=utf8 $(J_BUILD_DIR)/BOOTSTRAP.nqp
+	$(J_RUN_NQP_RR) --target=jar --output=$(PERL6_B_JAR) --encoding=utf8 $(J_BUILD_DIR)/BOOTSTRAP.nqp
 
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	$(J_NQP) $(J_GEN_CAT) $(J_CORE_SOURCES) > $(J_BUILD_DIR)/CORE.setting
@@ -347,12 +348,15 @@ lib/Pod/To/Text.pm.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNE
 lib/newline.pm6.jar: lib/newline.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	.@slash@$(J_RUNNER) --target=jar --output=lib/newline.pm6.jar lib/newline.pm6
 
+eval-client.pl:
+	$(CP) $(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl .
+
 ##  testing targets
 j-test    : j-coretest
 
 j-fulltest: j-coretest j-stresstest
 
-j-coretest: j-all
+j-coretest: j-all eval-client.pl
 	$(J_HARNESS) t/01-sanity t/03-jvm t/04-nativecall
 
 # Run the spectests that we know work.

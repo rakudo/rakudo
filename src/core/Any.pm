@@ -111,7 +111,7 @@ my class Any { # declared in BOOTSTRAP
     multi method roll($n) { self.list.roll($n) }
 
     proto method iterator(|) { * }
-    multi method iterator(Any:D:) { self.list.iterator }
+    multi method iterator(Any:) { self.list.iterator }
 
     proto method classify(|) is nodal { * }
     multi method classify() {

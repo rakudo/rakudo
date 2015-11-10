@@ -828,20 +828,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::setelems($result,$elems + 1);
             while nqp::islt_i($i,$elems) {
                 $match := nqp::decont(nqp::atpos($matches,$i));
-#?if jvm
-                $found  = $match.from;
-#?endif
-#?if !jvm
-                $found  = nqp::getattr($match,Match,'$!from');
-#?endif
+                $found  = nqp::getattr_i($match,Match,'$!from');
                 nqp::bindpos($result,$i,
                   nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
-#?if jvm
-                $pos = $match.to;
-#?endif
-#?if !jvm
-                $pos = nqp::getattr($match,Match,'$!to');
-#?endif
+                $pos = nqp::getattr_i($match,Match,'$!to');
                 $i   = nqp::add_i($i,1);
             }
             nqp::bindpos($result,$i,nqp::substr($str,$pos));

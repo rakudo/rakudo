@@ -2080,6 +2080,7 @@ BEGIN {
             my int $type_check_count;
             my int $type_mismatch;
             my $rwness_mismatch := [];
+            my $found_one_rw := 0; # helper that probably can be removed when multicaches deal with rwness
             my int $i;
             my int $pure_type_result := 1;
             my $many_res := $many ?? [] !! Mu;
@@ -2091,6 +2092,7 @@ BEGIN {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
                 if nqp::isconcrete($cur_candidate) {
+                    $rwness_mismatch := [];
                     # Check if it's admissable by arity.
                     unless $num_args < nqp::atkey($cur_candidate, 'min_arity')
                     || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
@@ -2113,6 +2115,7 @@ BEGIN {
                                 my $param     := nqp::atpos($params, $i);
                                 my $symname   := nqp::getattr($param, Parameter, '$!variable_name');
                                 $rwness_mismatch := [nqp::captureposarg($capture, $i), ~$symname];
+                                $found_one_rw := 1;
                             }
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
@@ -2170,7 +2173,7 @@ BEGIN {
                             $i++;
                         }
                         
-                        unless $type_mismatch {
+                        unless $type_mismatch || nqp::elems($rwness_mismatch) {
                             # It's an admissable candidate; add to list.
                             nqp::push(@possibles, $cur_candidate);
                         }
@@ -2320,7 +2323,7 @@ BEGIN {
                 for @rwness {
                     $have_rwness := 1 if $_ == 1;
                 }
-                add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub')) unless $have_rwness;
+                add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub')) unless $found_one_rw;
             }
 
             # Perhaps we found nothing but have junctional arguments?

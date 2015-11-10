@@ -225,7 +225,9 @@ sub gen_nqp {
     for my $b (qw/jvm moar/) {
         if ($backends =~ /$b/) {
             my $postfix = substr $b, 0, 1;
-            my $bin = File::Spec->catfile( $sdkroot, $prefix, 'bin', "nqp-$postfix$bat" );
+            my $bin = $sdkroot
+                ? File::Spec->catfile( $sdkroot, $prefix, 'bin', "nqp-$postfix$bat" )
+                : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" );
             $impls{$b}{bin} = $bin;
             my %c = read_config($bin);
             my $nqp_have = $c{'nqp::version'} || '';
@@ -298,7 +300,9 @@ sub gen_moar {
     my $startdir   = cwd();
     my $git_protocol = $options{'git-protocol'} || 'https';
 
-    my $moar_exe   = File::Spec->catfile( $sdkroot, $prefix, 'bin', "moar$exe" );
+    my $moar_exe   = $sdkroot
+        ? File::Spec->catfile( $sdkroot, $prefix, 'bin', "moar$exe" )
+        : File::Spec->catfile( $prefix, 'bin', "moar$exe" );
     my $moar_have  = qx{ $moar_exe --version };
     if ($moar_have) {
         $moar_have = $moar_have =~ /version (\S+)/ ? $1 : undef;

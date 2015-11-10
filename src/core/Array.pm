@@ -647,9 +647,8 @@ my class Array { # declared in BOOTSTRAP
 
         my $todo = nqp::getattr(self, List, '$!todo');
         my $lazy;
-        if $todo.DEFINITE {
-            $lazy = $todo.reify-until-lazy() !=:= IterationEnd;
-        }
+        $lazy = !($todo.reify-until-lazy() =:= IterationEnd)
+          if $todo.DEFINITE;
 
         my int $o = nqp::istype($offset,Callable)
           ?? $offset(self.elems)
@@ -675,7 +674,7 @@ my class Array { # declared in BOOTSTRAP
 
         # need to enforce type checking
         my $expected := self.of;
-        if self.of !=:= Mu {
+        unless self.of =:= Mu {
             my int $i = 0;
             my int $n = nqp::elems(splice-buffer);
             while $i < $n {

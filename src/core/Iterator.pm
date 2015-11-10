@@ -82,7 +82,7 @@ my role Iterator {
     # if "foo".IO.lines { , where we're only interested whether there is *any*
     # line in the file, rather than the content of the line.
     method bool-only() {
-        self.pull-one() !=:= IterationEnd;
+        !(self.pull-one() =:= IterationEnd)
     }
 
     # Consumes all of the values in the iterator for their side-effects only.

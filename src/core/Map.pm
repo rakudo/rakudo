@@ -191,7 +191,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             elsif nqp::istype($x, Map) and !nqp::iscont($x) {
                 for $x.list { self.STORE_AT_KEY(.key, .value) }
             }
-            elsif (my Mu $y := iter.pull-one) !=:= IterationEnd {
+            elsif !((my Mu $y := iter.pull-one) =:= IterationEnd) {
                 self.STORE_AT_KEY($x, $y)
             }
             else {

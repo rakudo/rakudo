@@ -98,7 +98,7 @@ augment class Any {
                         nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
                     }
 
-                    if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+                    if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                         # $result will be returned at the end
                     }
                     elsif ($value := $!source.pull-one()) =:= IterationEnd {
@@ -230,7 +230,7 @@ augment class Any {
                         nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
                     }
 
-                    if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+                    if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                         # $result will be returned at the end
                     }
                     elsif $!source.push-exactly($!value-buffer, $!count) =:= IterationEnd

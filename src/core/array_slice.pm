@@ -288,7 +288,8 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
             for $max ^.. $p -> $i {
                 $max = $i;
                 my $lv := $target.pull-one;
-                %keep{$i} := $lv if %keep{$i}:exists and $lv !=:= IterationEnd;
+                %keep{$i} := $lv
+                  if %keep{$i}:exists and !($lv =:= IterationEnd);
             }
             $lv := %keep{$p};
             $lv = rviter.pull-one;

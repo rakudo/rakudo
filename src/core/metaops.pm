@@ -50,7 +50,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     if $i >= $n { take lol.elems == 2 ?? $rop(|@v) !! $rop(@v); }
                     else { $i = $i + 1; @j.push($j); $j = 0; }
                 }
-                elsif (my \value = @loi[$i].pull-one) !=:= IterationEnd {
+                elsif !((my \value = @loi[$i].pull-one) =:= IterationEnd) {
                     nqp::bindpos($sublist, $j, value);
                     redo;
                 }
@@ -203,7 +203,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
             my @args.unshift: first;
             GATHER({
                 take first;
-                while (my \current = source.pull-one) !=:= IterationEnd {
+                while !((my \current = source.pull-one) =:= IterationEnd) {
                     @args.unshift: current;
                     if @args.elems == $count {
                         my \val = op.(|@args);
@@ -223,7 +223,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 
             gather {
                 take $result;
-                while (my $elem := iter.pull-one) !=:= IterationEnd {
+                while !((my $elem := iter.pull-one) =:= IterationEnd) {
                     take $result := op.($elem, $result)
                 }
             }.lazy-if(values.is-lazy);
@@ -338,13 +338,13 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
         my Mu $current = iter.pull-one;
         gather {
             take $state;
-            while $state && (my $next := iter.pull-one) !=:= IterationEnd {
+            while $state && !((my $next := iter.pull-one) =:= IterationEnd) {
                 $state = op.($current, $next);
                 take $state;
                 $current := $next;
             }
             unless $state {
-                while (my \v = iter.pull-one) !=:= IterationEnd {
+                while !((my \v = iter.pull-one) =:= IterationEnd) {
                     take False;
                 }
             }
@@ -361,7 +361,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
         my $current := iter.pull-one;
         return True if $current =:= IterationEnd;
 
-        while (my $next := iter.pull-one) !=:= IterationEnd {
+        while !((my $next := iter.pull-one) =:= IterationEnd) {
             $state := op.($current, $next);
             return $state unless $state;
             $current := $next;
@@ -555,7 +555,7 @@ multi sub deepmap(\op, \obj) {
             my int $redo = 1;
             my $value;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             elsif ($value := $!source.pull-one()) =:= IterationEnd {

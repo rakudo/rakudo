@@ -151,7 +151,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         method pull-one() {
             my int $redo = 1;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             else {
@@ -198,7 +198,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         method pull-one() {
             my int $redo = 1;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             else {
@@ -253,7 +253,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         method pull-one() {
             my int $redo = 1;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             else {
@@ -348,7 +348,7 @@ sub GATHER(&block) {
         }
 
         method pull-one() {
-            if $!slipping && (my \result = self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !((my \result = self.slip-one()) =:= IterationEnd) {
                 result
             }
             else {
@@ -366,7 +366,7 @@ sub GATHER(&block) {
             if ($n > 0) {
                 $!wanted = $n;
                 $!push-target := $target;
-                if $!slipping && self!slip-wanted() !=:= IterationEnd {
+                if $!slipping && !(self!slip-wanted() =:= IterationEnd) {
                     $!push-target := Mu;
                     $n
                 }

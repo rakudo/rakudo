@@ -167,7 +167,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         my $code;
         my $stop;
         my $looped;
-        while (my \value := lefti.pull-one) !=:= IterationEnd {
+        while !((my \value := lefti.pull-one) =:= IterationEnd) {
             $looped = True;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {

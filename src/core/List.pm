@@ -1045,7 +1045,7 @@ multi sub infix:<X>(+lol) {
             my @i = @l.map: *.iterator;
             while $i >= 0 {
                 my \e = @i[$i].pull-one();
-                if e !=:= IterationEnd {
+                if !(e =:= IterationEnd) {
                     nqp::bindpos($v, $i, e);
                     if $i >= $n { take nqp::clone($v) }
                     else {
@@ -1108,7 +1108,7 @@ multi sub infix:<X>(+lol) {
         gather {
             while $i == 0 {
                 my \e = source.pull-one;
-                if e !=:= IterationEnd {
+                if !(e =:= IterationEnd) {
                     nqp::bindpos($v, $i, e);
 
                     if $i >= $n { take nqp::clone($v) }
@@ -1180,7 +1180,7 @@ sub roundrobin(**@lol) {
             my @values;
             for @iters -> $i {
                 my \v = $i.pull-one;
-                if v !=:= IterationEnd {
+                unless v =:= IterationEnd {
                     @values.push: v;
                     @new-iters.push: $i;
                 }

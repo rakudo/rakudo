@@ -2160,19 +2160,10 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
 #?if moar
-sub PROPCODE($propname) {
-    state %propcode;
-    %propcode{$propname} //= nqp::unipropcode($propname);
-}
-sub PVALCODE($prop,$pvalname) {
-    state %pvalcode;
-    %pvalcode{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
-}
-
 proto sub uniprop(|) {*}
 multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
 multi sub uniprop(Int:D $code, Stringy:D $propname = "GeneralCategory") {
-    my $prop := PROPCODE($propname);
+    my $prop := Rakudo::Internals.PROPCODE($propname);
     state %prefs;  # could prepopulate this with various prefs
     given %prefs{$propname} // '' {
         when 'S' { nqp::getuniprop_str($code,$prop) }
@@ -2191,7 +2182,7 @@ proto sub uniprop-int(|) {*}
 multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-int($str.ord, $propname) !! Str }
 multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_int($code,PROPCODE($propname));
+    nqp::getuniprop_int($code,Rakudo::Internals.PROPCODE($propname));
 }
 
 proto sub uniprop-bool(|) {*}
@@ -2199,7 +2190,7 @@ multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-bool($str.ord, $propname) !! Str
 }
 multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
-    so nqp::getuniprop_bool($code,PROPCODE($propname));
+    so nqp::getuniprop_bool($code,Rakudo::Internals.PROPCODE($propname));
 }
 
 proto sub uniprop-str(|) {*}
@@ -2207,7 +2198,7 @@ multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-str($str.ord, $propname) !! Str
 }
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_str($code,PROPCODE($propname));
+    nqp::getuniprop_str($code,Rakudo::Internals.PROPCODE($propname));
 }
 
 proto sub unival(|) {*}
@@ -2226,8 +2217,8 @@ multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 proto sub unimatch(|) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
-    my $prop := PROPCODE($propname);
-    so nqp::matchuniprop($code,$prop,PVALCODE($prop,$pvalname));
+    my $prop := Rakudo::Internals.PROPCODE($propname);
+    so nqp::matchuniprop($code,$prop,Rakudo::Internals.PVALCODE($prop,$pvalname));
 }
 #?endif
 

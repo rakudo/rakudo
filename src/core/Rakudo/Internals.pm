@@ -299,6 +299,25 @@ my class Rakudo::Internals {
         nqp::join(nqp::unbox_s(final),
           nqp::split(nqp::unbox_s(original),nqp::unbox_s(string)))
     }
+
+#?if moar
+    my $propcode := nqp::hash;
+    method PROPCODE(\propname) {
+        my str $key = nqp::unbox_s(propname);
+        nqp::bindkey($propcode,$key,nqp::unipropcode($key))
+          unless nqp::existskey($propcode,$key);
+        nqp::atkey($propcode,$key)
+    }
+    my $pvalcode := nqp::hash;
+    method PVALCODE(\prop,\pvalname) {
+        my str $pvalname = nqp::unbox_s(pvalname);
+        my str $key      = nqp::concat(nqp::tostr_I(prop),$pvalname);
+        nqp::bindkey($pvalcode,$key,
+          nqp::unipvalcode(nqp::unbox_i(prop),$pvalname))
+          unless nqp::existskey($pvalcode,$key);
+        nqp::atkey($pvalcode,$key)
+    }
+#?endif
 }
 
 # vim: ft=perl6 expandtab sw=4

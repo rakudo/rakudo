@@ -5,9 +5,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     #   has Mu $!storage;
 
     method new(*@args) {
-        my %h := nqp::create(self);
-        %h.STORE(@args) if @args;
-        %h;
+        @args
+          ?? nqp::create(self).STORE(@args)
+          !! nqp::create(self)
     }
 
     multi method Hash(Map:U:) { Hash }

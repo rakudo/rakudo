@@ -104,7 +104,7 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     my \righti := nqp::iscont(right)
-        ?? nqp::istype(right, Iterable) ?? right.iterator !! right.list.iterator
+        ?? right.iterator
         !! [right].iterator;
     my $endpoint := righti.pull-one;
     X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)')).throw
@@ -162,7 +162,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     }
 
     my \gathered = GATHER({
-        my \lefti := nqp::istype(left, Iterable) ?? left.iterator !! left.list.iterator;
+        my \lefti := left.iterator;
         my $value;
         my $code;
         my $stop;
@@ -442,21 +442,11 @@ multi sub infix:<...>(|lol) {
     my int $i = 0;
     my int $m = +@lol - 1;
     while $i <= $m {
-        if @lol[$i] ~~ Iterable {
-            @seq[$i] := @lol[$i].iterator;
-        }
-        else {
-            @seq[$i] := @lol[$i].list.iterator;
-        }
+        @seq[$i] := @lol[$i].iterator;
         if $i {
             @end[$i-1] := @seq[$i].pull-one;
             if @end[$i-1] ~~ Numeric | Stringy {
-                if @lol[$i] ~~ Iterable {
-                    @seq[$i] := @lol[$i].iterator;
-                }
-                else {
-                    @seq[$i] := @lol[$i].list.iterator;
-                }
+                @seq[$i] := @lol[$i].iterator;
                 @excl[$i-1] = True;
             }
         }

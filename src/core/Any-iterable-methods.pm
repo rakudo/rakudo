@@ -9,23 +9,18 @@ class X::Cannot::Lazy { ... }
 # work on by doing a .list coercion.
 use MONKEY-TYPING;
 augment class Any {
-    sub as-iterator(\iterablish) is raw {
-        iterablish.DEFINITE && nqp::istype(iterablish, Iterable)
-          ?? iterablish.iterator
-          !! iterablish.list.iterator
-    }
 
     proto method map(|) is nodal { * }
 
     multi method map(\SELF: &block;; :$label, :$item) {
-        sequential-map(as-iterator($item ?? (SELF,) !! SELF), &block, :$label);
+        sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, :$label);
     }
 
     multi method map(HyperIterable:D: &block;; :$label) {
         # For now we only know how to parallelize when we've only one input
         # value needed per block. For the rest, fall back to sequential.
         if &block.count != 1 {
-            sequential-map(as-iterator(self), &block, :$label)
+            sequential-map(self.iterator, &block, :$label)
         }
         else {
             HyperSeq.new(class :: does HyperIterator {
@@ -309,7 +304,7 @@ augment class Any {
             has  Mu $!test;
             has int $!index;
             method BUILD(\list,Mu \test) {
-                $!iter  = as-iterator(list);
+                $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
@@ -351,7 +346,7 @@ augment class Any {
             has int $!index;
             has Mu $!value;
             method BUILD(\list,Mu \test) {
-                $!iter  = as-iterator(list);
+                $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
@@ -420,7 +415,7 @@ augment class Any {
             has  Mu $!test;
             has int $!index;
             method BUILD(\list,Mu \test) {
-                $!iter  = as-iterator(list);
+                $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
@@ -460,7 +455,7 @@ augment class Any {
         has Mu $!iter;
         has Mu $!test;
         method BUILD(\list,Mu \test) {
-            $!iter  = as-iterator(list);
+            $!iter  = list.iterator;
             $!test := test;
             self
         }
@@ -709,7 +704,7 @@ augment class Any {
             Nil
         }
         else {
-            my $iter := as-iterator(self);
+            my $iter := self.iterator;
             my int $index;
             $index = $index + 1
               until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
@@ -730,7 +725,7 @@ augment class Any {
             Nil
         }
         else {
-            my $iter := as-iterator(self);
+            my $iter := self.iterator;
             my int $index;
             $index = $index + 1
               until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
@@ -751,7 +746,7 @@ augment class Any {
             Nil
         }
         else {
-            my $iter := as-iterator(self);
+            my $iter := self.iterator;
             my int $index;
             $index = $index + 1
               until (($_ := $iter.pull-one) =:= IterationEnd) || $test.ACCEPTS($_);
@@ -901,7 +896,7 @@ augment class Any {
 
     method sort(&by = &infix:<cmp>) is nodal {
         # Obtain all the things to sort.
-        my \iter = as-iterator(self);
+        my \iter = self.iterator;
         my \sort-buffer = IterationBuffer.new;
         unless iter.push-until-lazy(sort-buffer) =:= IterationEnd {
             fail X::Cannot::Lazy.new(:action<sort>);
@@ -964,7 +959,7 @@ augment class Any {
             has Mu $!iter;
             has $!seen;
             method BUILD(\list) {
-                $!iter = as-iterator(list);
+                $!iter = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1030,7 +1025,7 @@ augment class Any {
             has &!as;
             has $!seen;
             method BUILD(\list, &!as) {
-                $!iter  = as-iterator(list);
+                $!iter  = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1099,7 +1094,7 @@ augment class Any {
             has Mu $!iter;
             has $!seen;
             method BUILD(\list) {
-                $!iter = as-iterator(list);
+                $!iter = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1164,7 +1159,7 @@ augment class Any {
             has &!as;
             has $!seen;
             method BUILD(\list, &!as) {
-                $!iter  = as-iterator(list);
+                $!iter  = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1235,7 +1230,7 @@ augment class Any {
             has $!last;
             has int $!first;
             method BUILD(\list, &!as, &!with) {
-                $!iter  = as-iterator(list);
+                $!iter  = list.iterator;
                 $!first = 1;
                 self
             }
@@ -1288,7 +1283,7 @@ augment class Any {
             has Mu $!last;
             has int $!first;
             method BUILD(\list, &!with) {
-                $!iter  = as-iterator(list);
+                $!iter  = list.iterator;
                 $!first = 1;
                 self
             }
@@ -1362,7 +1357,7 @@ augment class Any {
             has Mu  $!iter;
             has int $!todo;
             method BUILD(\list,\todo) {
-                $!iter = as-iterator(list);
+                $!iter = list.iterator;
                 $!todo = todo;
                 self
             }
@@ -1384,7 +1379,7 @@ augment class Any {
             has int $!todo;
             has int $!index;
             method BUILD(\list,\size) {
-                $!iter = as-iterator(list);
+                $!iter = list.iterator;
                 X::Cannot::Lazy.new(:action<tail>).throw if $!iter.is-lazy;
 
                 $!lastn := nqp::list();

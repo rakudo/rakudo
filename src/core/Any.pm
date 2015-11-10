@@ -110,6 +110,9 @@ my class Any { # declared in BOOTSTRAP
     multi method roll()   { self.list.roll     }
     multi method roll($n) { self.list.roll($n) }
 
+    proto method iterator(|) { * }
+    multi method iterator(Any:D:) { self.list.iterator }
+
     proto method classify(|) is nodal { * }
     multi method classify() {
         die "Must specify something to classify with, a Callable, Hash or List";

@@ -19,6 +19,8 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method unshift(*@) is nodal { die "Attempted to unshift to {self.gist}." }
     method prepend(*@) is nodal { die "Attempted to prepend to {self.gist}." }
     method FALLBACK(*@)   { Nil }
+
+    method iterator() { self.list.iterator }
 }
 
 # vim: ft=perl6 expandtab sw=4

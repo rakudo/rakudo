@@ -25,10 +25,7 @@ sub METAOP_CROSS(\op, &reduce) {
         my $laze = False;
         my @loi = eager for lol -> \elem {
             $laze = True if elem.is-lazy;
-            nqp::iscont(elem) ?? (elem,).iterator
-              !! nqp::istype(elem, Iterable)
-                ?? elem.iterator
-                !! elem.list.iterator;
+            nqp::iscont(elem) ?? (elem,).iterator !! elem.iterator;
         }
         my Mu $cache := nqp::list();
         my int $i = 0;
@@ -78,11 +75,7 @@ sub METAOP_ZIP(\op, &reduce) {
         my $laze = True;
         my @loi = eager for lol -> \elem {
             $laze = False unless elem.is-lazy;
-            Rakudo::Internals::WhateverIterator.new(
-                nqp::istype(elem, Iterable)
-                    ?? elem.iterator
-                    !! elem.list.iterator
-            )
+            Rakudo::Internals::WhateverIterator.new(elem.iterator)
         }
         gather {
             loop {
@@ -108,9 +101,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         my $ :=
 #?endif
         sub (+values) {
-            my \source = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+            my \source = values.iterator;
 
             my \first = source.pull-one;
             return () if first =:= IterationEnd;
@@ -135,9 +126,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         my $ :=
 #?endif
         sub (+values) {
-            my \source = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+            my \source = values.iterator;
 
             my \first = source.pull-one;
             return () if first =:= IterationEnd;
@@ -160,9 +149,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         my $ :=
 #?endif
         sub (+values) {
-            my \iter = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+            my \iter = values.iterator;
             my \first = iter.pull-one;
             return op.() if first =:= IterationEnd;
 
@@ -185,9 +172,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         my $ :=
 #?endif
         sub (+values) {
-            my \iter = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+            my \iter = values.iterator;
             my \first = iter.pull-one;
             return op.() if first =:= IterationEnd;
 

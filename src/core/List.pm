@@ -1152,11 +1152,7 @@ multi sub infix:<Z>(+lol) {
     eager my @l = (^$arity).map: -> $i {
         my \elem = lol[$i];
         $laze = False unless elem.is-lazy;
-        Rakudo::Internals::WhateverIterator.new(
-            nqp::istype(elem, Iterable)
-                ?? elem.iterator
-                !! elem.list.iterator
-        )
+        Rakudo::Internals::WhateverIterator.new(elem.iterator)
     };
 
     gather {
@@ -1176,7 +1172,7 @@ multi sub infix:<Z>(+lol) {
 my &zip := &infix:<Z>;
 
 sub roundrobin(**@lol) {
-    my @iters = @lol.map: { nqp::istype($_, Iterable) ?? .iterator !! .list.iterator };
+    my @iters = @lol.map: *.iterator;
     my $laze = so any(@lol).is-lazy;
     gather {
         while @iters {

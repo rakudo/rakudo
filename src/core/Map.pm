@@ -182,9 +182,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method STORE(\to_store) {
-        my \iter = nqp::istype(to_store, Iterable)
-            ?? to_store.iterator
-            !! to_store.list.iterator;
+        my \iter = to_store.iterator;
         $!storage := nqp::hash();
         until (my Mu $x := iter.pull-one) =:= IterationEnd {
             if nqp::istype($x,Pair) {

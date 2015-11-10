@@ -1,4 +1,4 @@
-my class Failure {
+my class Failure is Nil {
     has $.exception;
     has $.backtrace;
 #?if moar
@@ -67,6 +67,9 @@ my class Failure {
     method Numeric(Failure:D:)    { $!handled ?? NaN !! self!throw(); }
     multi method Str(Failure:D:)  { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:D:) { $!handled ?? $.mess !! self!throw(); }
+    multi method gist(Failure:U:) { '(' ~ self.^name ~ ')' }
+    multi method perl(Failure:D:) { self.Mu::perl() }
+    multi method perl(Failure:U:) { self.^name }
     method mess (Failure:D:) {
         "(HANDLED) " x $!handled ~ self.exception.message ~ "\n" ~ self.backtrace;
     }

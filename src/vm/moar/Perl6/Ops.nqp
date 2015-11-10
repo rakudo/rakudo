@@ -594,7 +594,7 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             nqp::push(@ops, MAST::Op.new( :op('decont'), $decont, $value_res.result_reg ));
             nqp::push(@ops, MAST::Op.new( :op('istype'), $istype, $decont, $type_res.result_reg ));
             nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
-            nqp::push(@ops, MAST::Op.new( :op('const_s'), $str_failure, MAST::SVal.new( :value('Failure') ) ));
+            nqp::push(@ops, MAST::Op.new( :op('const_s'), $str_failure, MAST::SVal.new( :value('Nil') ) ));
             nqp::push(@ops, MAST::Op.new( :op('getlexstatic_o'), $failure_o, $str_failure));
             nqp::push(@ops, MAST::Op.new( :op('istype'), $isfailure, $decont, $failure_o) );
             nqp::push(@ops, MAST::Op.new( :op('if_i'), $isfailure, $lbl_done ));

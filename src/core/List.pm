@@ -568,7 +568,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         self
     }
-    multi method STORE(List:D: \item) {
+    multi method STORE(List:D: Mu \item) {
         self.STORE((item,));
     }
 

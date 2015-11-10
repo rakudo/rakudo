@@ -433,7 +433,7 @@ public final class RakOps {
                  * an Int that can unbox into an int or similar. */
                 StorageSpec spec = rtype.st.REPR.get_storage_spec(tc, rtype.st);
                 if (spec.inlineable == 0 || Ops.istype(rtype, decontValue.st.WHAT, tc) == 0) {
-                    SixModelObject failure = Ops.getlex("Failure", tc);
+                    SixModelObject failure = Ops.getlex("Nil", tc);
                     if (Ops.istype(failure, decontValue.st.WHAT, tc) == 0) {
                         SixModelObject thrower = getThrower(tc, "X::TypeCheck::Return");
                         if (thrower == null)

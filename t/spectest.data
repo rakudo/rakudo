@@ -204,7 +204,6 @@ S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/equality.t
 S03-operators/eqv.t
-S03-operators/fiddly.t
 S03-operators/flip-flop.t
 S03-operators/gcd.t
 S03-operators/div.t

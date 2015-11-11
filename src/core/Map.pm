@@ -25,7 +25,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     multi method Int(Map:D:)     { self.elems }
     multi method Numeric(Map:D:) { self.elems }
-    multi method Str(Map:D:)     { self.list.Str }
+    multi method Str(Map:D:)     { self.pairs.sort.join("\n") }
 
     multi method ACCEPTS(Map:D: Any $topic) {
         self.EXISTS-KEY($topic.any);

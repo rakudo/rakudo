@@ -4257,7 +4257,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<=> {
         <sym>
         [
-        || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment')>
+        || <?{ $*LEFTSIGIL eq '$' || $*IN_META }> <O('%item_assignment')>
         || <O('%list_assignment')>
         ]
         { $*LEFTSIGIL := '' }

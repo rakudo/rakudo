@@ -422,7 +422,7 @@ public final class RakOps {
     
     private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
-    public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, ThreadContext tc) {
+    public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, SixModelObject failure, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         SixModelObject sig = routine.get_attribute_boxed(tc, gcx.Code, "$!signature", HINT_CODE_SIG);
         SixModelObject rtype = sig.get_attribute_boxed(tc, gcx.Signature, "$!returns", HINT_SIG_RETURNS);
@@ -433,7 +433,6 @@ public final class RakOps {
                  * an Int that can unbox into an int or similar. */
                 StorageSpec spec = rtype.st.REPR.get_storage_spec(tc, rtype.st);
                 if (spec.inlineable == 0 || Ops.istype(rtype, decontValue.st.WHAT, tc) == 0) {
-                    SixModelObject failure = Ops.getlex("Nil", tc);
                     if (Ops.istype(failure, decontValue.st.WHAT, tc) == 0) {
                         SixModelObject thrower = getThrower(tc, "X::TypeCheck::Return");
                         if (thrower == null)

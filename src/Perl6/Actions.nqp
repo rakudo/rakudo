@@ -8246,7 +8246,9 @@ Compilation unit '$file' contained the following violations:
         QAST::Op.new(
             :op('p6typecheckrv'),
             $wrappee,
-            QAST::WVal.new( :value($code_obj) ));
+            QAST::WVal.new( :value($code_obj) ),
+            QAST::WVal.new( :value($*W.find_symbol(['Nil'])) )
+        );
     }
 
     sub wrap_return_handler($past) {

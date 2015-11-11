@@ -582,6 +582,7 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             my @ops;
             my $value_res   := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
             my $type_res    := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
+            my $niltype_res := $qastcomp.as_mast($op[2]);
 
             my $lbl_done    := MAST::Label.new();
             push_ilist(@ops, $value_res);
@@ -590,12 +591,11 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             my $istype := $*REGALLOC.fresh_i();
             my $str_failure := $*REGALLOC.fresh_s();
             my $isfailure := $*REGALLOC.fresh_i();
-            my $failure_o := $*REGALLOC.fresh_o();
+            my $failure_o := $niltype_res.result_reg;
             nqp::push(@ops, MAST::Op.new( :op('decont'), $decont, $value_res.result_reg ));
             nqp::push(@ops, MAST::Op.new( :op('istype'), $istype, $decont, $type_res.result_reg ));
             nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
-            nqp::push(@ops, MAST::Op.new( :op('const_s'), $str_failure, MAST::SVal.new( :value('Nil') ) ));
-            nqp::push(@ops, MAST::Op.new( :op('getlexstatic_o'), $failure_o, $str_failure));
+            push_ilist(@ops, $niltype_res);
             nqp::push(@ops, MAST::Op.new( :op('istype'), $isfailure, $decont, $failure_o) );
             nqp::push(@ops, MAST::Op.new( :op('if_i'), $isfailure, $lbl_done ));
             $*REGALLOC.release_register($decont, $MVM_reg_obj);

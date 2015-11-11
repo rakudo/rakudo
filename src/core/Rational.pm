@@ -170,6 +170,7 @@ my role Rational[::NuT, ::DeT] does Real {
     method norm() { self }
 
     method narrow(::?CLASS:D:) {
+        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! self;

@@ -1335,7 +1335,7 @@ Compilation unit '$file' contained the following violations:
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($block);
         if $<e3> {
-            $loop.push($<e3>.ast);
+            $loop.push(sink($<e3>.ast));
         }
         $loop := tweak_loop($loop);
         if $<e1> {

@@ -2080,7 +2080,6 @@ BEGIN {
             my int $type_check_count;
             my int $type_mismatch;
             my $rwness_mismatch := [];
-            my $found_one_rw := 0; # helper that probably can be removed when multicaches deal with rwness
             my int $i;
             my int $pure_type_result := 1;
             my $many_res := $many ?? [] !! Mu;
@@ -2115,7 +2114,6 @@ BEGIN {
                                 my $param     := nqp::atpos($params, $i);
                                 my $symname   := nqp::getattr($param, Parameter, '$!variable_name');
                                 $rwness_mismatch := [nqp::captureposarg($capture, $i), ~$symname];
-                                $found_one_rw := 1;
                             }
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
@@ -2318,12 +2316,7 @@ BEGIN {
                 }
             }
             if nqp::elems(@possibles) == 1 && $pure_type_result {
-                my $have_rwness := 0;
-                my @rwness := nqp::atkey(@possibles[0], 'rwness');
-                for @rwness {
-                    $have_rwness := 1 if $_ == 1;
-                }
-                add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub')) unless $found_one_rw;
+                add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));
             }
 
             # Perhaps we found nothing but have junctional arguments?
@@ -2487,10 +2480,6 @@ BEGIN {
                     my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim := nqp::atpos(@flags, $i);
-                    if nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i) {
-                        $type_mismatch := 1;
-                        last;
-                    }
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {

@@ -151,6 +151,18 @@ MAIN: {
         }
     }
 
+    for my $target (qw/common_bootstrap_sources moar_core_sources/) {
+        open my $FILELIST, '<', "tools/build/$target"
+            or die "Cannot read 'tools/build/$target': $!";
+        my @lines;
+        while (<$FILELIST>) {
+            chomp;
+            push @lines, "  $_\\\n";
+        }
+        close $FILELIST;
+        $config{$target} = join '', @lines;
+    }
+
     open my $MAKEFILE, '>', 'Makefile'
         or die "Cannot open 'Makefile' for writing: $!";
 
@@ -169,18 +181,6 @@ MAIN: {
 
     for my $t (qw/test spectest coretest localtest stresstest/) {
         print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
-    }
-
-    for my $target (qw/common_bootstrap_sources moar_core_sources/) {
-        open my $FILELIST, '<', "tools/build/$target"
-            or die "Cannot read 'tools/build/$target': $!";
-        my @lines;
-        while (<$FILELIST>) {
-            chomp;
-            push @lines, "  $_\\\n";
-        }
-        close $FILELIST;
-        $config{$target} = join '', @lines;
     }
 
     fill_template_file('tools/build/Makefile-common-rules.in', $MAKEFILE, %config);

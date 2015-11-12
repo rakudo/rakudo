@@ -484,10 +484,7 @@ my class IO::Path is Cool {
     }
 
     method !spurt($contents, :$enc, :$append, :$createonly, :$bin, |c) {
-        if $createonly and $.e {
-            fail("File '$!path' already exists, and :createonly was specified");
-        }
-        my $mode = $append ?? :a !! :w;
+        my $mode = $createonly ?? :x !! $append ?? :a !! :w;
         my $handle = self.open(:enc($enc // 'utf8'), :$bin, |$mode, |c);
         $handle // $handle.throw;
 

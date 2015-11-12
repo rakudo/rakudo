@@ -8473,13 +8473,21 @@ class Perl6::QActions is HLL::Actions does STDActions {
         }
     }
     method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
-    method backslash:sym<r>($/) { make "\r" }
+    method backslash:sym<r>($/) {
+        make nqp::can($/.CURSOR, 'parsing_heredoc')
+            ?? QAST::SVal.new( :value("\r") )
+            !! "\r";
+    }
     method backslash:sym<rn>($/) {
         make nqp::can($/.CURSOR, 'parsing_heredoc')
             ?? QAST::SVal.new( :value("\r\n") )
             !! "\r\n";
     }
-    method backslash:sym<t>($/) { make "\t" }
+    method backslash:sym<t>($/) {
+        make nqp::can($/.CURSOR, 'parsing_heredoc')
+            ?? QAST::SVal.new( :value("\t") )
+            !! "\t";
+    }
     method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
     method backslash:sym<0>($/) { make "\c[0]" }
 

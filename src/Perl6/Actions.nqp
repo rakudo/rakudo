@@ -8461,10 +8461,24 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method backslash:sym<c>($/) { make $<charspec>.ast }
     method backslash:sym<e>($/) { make "\c[27]" }
     method backslash:sym<f>($/) { make "\c[12]" }
-    method backslash:sym<n>($/) { make nqp::unbox_s($*W.find_symbol(['$?NL'])); }
+    method backslash:sym<n>($/) {
+        my str $nl := nqp::unbox_s($*W.find_symbol(['$?NL']));
+        if nqp::can($/.CURSOR, 'parsing_heredoc') {
+            # In heredocs, we spit out a QAST::SVal here to prevent newlines
+            # being taken literally and affecting the dedent.
+            make QAST::SVal.new( :value($nl) );
+        }
+        else {
+            make $nl;
+        }
+    }
     method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
     method backslash:sym<r>($/) { make "\r" }
-    method backslash:sym<rn>($/) { make "\r\n" }
+    method backslash:sym<rn>($/) {
+        make nqp::can($/.CURSOR, 'parsing_heredoc')
+            ?? QAST::SVal.new( :value("\r\n") )
+            !! "\r\n";
+    }
     method backslash:sym<t>($/) { make "\t" }
     method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
     method backslash:sym<0>($/) { make "\c[0]" }

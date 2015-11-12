@@ -778,25 +778,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $rlist
     }
 
-    method rotate(Int(Cool) $n is copy = 1) is nodal {
-        self!ensure-allocated;
+    method rotate(Int(Cool) $rotate = 1) is nodal {
         fail X::Cannot::Lazy.new(:action<rotate>) if self.is-lazy;
-        my $elems = self.elems;
-        return () unless $elems;
-
-        $n %= $elems;
-        return self if $n == 0;
-
-        my $rot := nqp::clone($!reified);
-        if $n > 0 {
-            nqp::push($rot, nqp::shift($rot)) while $n--;
+        my int $elems = self.elems;  # this allocates/reifies
+        my $rotated := nqp::create(self);
+        if $elems {
+            my int $n = $rotate % $elems;
+            my $list := nqp::clone($!reified);
+            if $n > 0 {
+                $n = $n + 1;
+                nqp::push($list, nqp::shift($list)) while $n = $n - 1;
+            }
+            elsif $n < 0 {
+                $n = $n - 1;
+                nqp::unshift($list, nqp::pop($list)) while $n = $n + 1;
+            }
+            nqp::bindattr($rotated,List,'$!reified',$list);
         }
-        elsif $n < 0 {
-            nqp::unshift($rot, nqp::pop($rot)) while $n++;
-        }
-        my $rlist := nqp::create(self.WHAT);
-        nqp::bindattr($rlist, List, '$!reified', $rot);
-        $rlist;
+        $rotated;
     }
 
     method rotor(List:D: *@cycle, :$partial) is nodal {

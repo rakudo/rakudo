@@ -732,31 +732,53 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method roll(|) is nodal { * }
     multi method roll() {
-        fail X::Cannot::Lazy.new(:action('.roll from'))
-            if self.is-lazy;
+        fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
         my $elems = self.elems;
-        $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
+        $elems
+          ?? nqp::atpos($!reified, $elems.rand.floor)
+          !! Nil;
     }
     multi method roll(Whatever) {
         fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
         my $elems = self.elems;
-        return () unless $elems;
-
-        # directly use Seq.from-loop so that the result is known infinite
-        Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)});
+        $elems
+          ?? Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)})
+          !! ()
     }
     multi method roll(\number) {
-        return self.roll(*) if number == Inf;
-
-        fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
-        my $elems = self.elems;
-        return () unless $elems;
-
-        my int $n = number.Int;
-
-        gather while $n > 0 {
-            take nqp::atpos($!reified,$elems.rand.floor);
-            $n = $n - 1;
+        if number == Inf {
+            self.roll(*)
+        }
+        else {
+            fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
+            if self.elems {  # this allocates/reifies
+                Seq.new(class :: does Iterator {
+                    has $!list;
+                    has Int $!elems;
+                    has int $!todo;
+                    method BUILD(\list,\todo) {
+                        $!list := nqp::getattr(list,List,'$!reified');
+                        $!elems = nqp::elems($!list);
+                        $!todo  = todo;
+                        self
+                    }
+                    method new(\list,\todo) {
+                        nqp::create(self).BUILD(list,todo)
+                    }
+                    method pull-one() is raw {
+                        if $!todo {
+                            $!todo = $!todo - 1;
+                            nqp::atpos($!list,$!elems.rand.floor)
+                        }
+                        else {
+                            IterationEnd
+                        }
+                    }
+                }.new(self,number.Int))
+            }
+            else {
+                ()
+            }
         }
     }
 

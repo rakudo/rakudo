@@ -4877,42 +4877,36 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         self;
     }
 
-    method tweak_q($v)          { self.truly($v, ':q'); self.HOW.mixin(self, Perl6::QGrammar::q) }
+    method apply_tweak($role) {
+        my $target := nqp::can(self, 'herelang') ?? self.herelang !! self;
+        $target.HOW.mixin($target, $role);
+        self
+    }
+
+    method tweak_q($v)          { self.truly($v, ':q'); self.apply_tweak(Perl6::QGrammar::q) }
     method tweak_single($v)     { self.tweak_q($v) }
-    method tweak_qq($v)         { self.truly($v, ':qq'); self.HOW.mixin(self, Perl6::QGrammar::qq); }
+    method tweak_qq($v)         { self.truly($v, ':qq'); self.apply_tweak(Perl6::QGrammar::qq); }
     method tweak_double($v)     { self.tweak_qq($v) }
 
-    method tweak_b($v)          { self.HOW.mixin(self, $v ?? b1 !! b0) }
+    method tweak_b($v)          { self.apply_tweak($v ?? b1 !! b0) }
     method tweak_backslash($v)  { self.tweak_b($v) }
-    method tweak_s($v)          { self.HOW.mixin(self, $v ?? s1 !! s0) }
+    method tweak_s($v)          { self.apply_tweak($v ?? s1 !! s0) }
     method tweak_scalar($v)     { self.tweak_s($v) }
-    method tweak_a($v)          { self.HOW.mixin(self, $v ?? a1 !! a0) }
+    method tweak_a($v)          { self.apply_tweak($v ?? a1 !! a0) }
     method tweak_array($v)      { self.tweak_a($v) }
-    method tweak_h($v)          { self.HOW.mixin(self, $v ?? h1 !! h0) }
+    method tweak_h($v)          { self.apply_tweak($v ?? h1 !! h0) }
     method tweak_hash($v)       { self.tweak_h($v) }
-    method tweak_f($v)          { self.HOW.mixin(self, $v ?? f1 !! f0) }
+    method tweak_f($v)          { self.apply_tweak($v ?? f1 !! f0) }
     method tweak_function($v)   { self.tweak_f($v) }
-    method tweak_c($v)          { self.HOW.mixin(self, $v ?? c1 !! c0) }
+    method tweak_c($v)          { self.apply_tweak($v ?? c1 !! c0) }
     method tweak_closure($v)    { self.tweak_c($v) }
 
     method add-postproc(str $newpp) {
-        my @pplist := nqp::list_s();
+        my $target := nqp::can(self, 'herelang') ?? self.herelang !! self;
 
-        if nqp::can(self, "postprocessors") {
-            @pplist := self.postprocessors;
-        }
-
-        # once we have a heredoc marker, we're being asked to tweak the parser
-        # for the stop string (the HERE in q:to/HERE/), and no longer the parser
-        # for the string contents. We could probably get at the contents parser
-        # (it's curried as $herelang to the 'to' role, available through
-        # self.herelang now) and add subsequent postproc adverbs correctly, but
-        # for now we'll take the more careful route and require :to/:heredoc to
-        # be at the end of the chain of adverbs.
-        if nqp::elems(@pplist) && nqp::atpos_s(@pplist, 0) eq "heredoc" {
-            self.panic("Heredoc adverb must be the last one")
-        }
-
+        my @pplist := nqp::can($target, "postprocessors")
+            ?? $target.postprocessors
+            !! nqp::list_s();
         nqp::push_s(@pplist, $newpp);
 
         # yes, the currying is necessary. Otherwise weird things can happen,
@@ -4922,10 +4916,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
                 @curlist;
             }
         }
-
-        my $new := self.HOW.mixin(self, postproc.HOW.curry(postproc, @pplist));
-
-        $new;
+        $target.HOW.mixin($target, postproc.HOW.curry(postproc, @pplist));
+        self
     }
 
 # path() NYI
@@ -4936,20 +4928,18 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_exec($v)       { self.tweak_x($v) }
     method tweak_w($v)          { $v ?? self.add-postproc("words") !! self }
     method tweak_words($v)      { self.tweak_w($v) }
-    method tweak_ww($v)         { $v ?? self.add-postproc("quotewords").HOW.mixin(self, ww) !! self }
+    method tweak_ww($v)         { $v ?? self.add-postproc("quotewords").apply_tweak(ww) !! self }
     method tweak_quotewords($v) { self.tweak_ww($v) }
 
     method tweak_v($v)          { $v ?? self.add-postproc("val") !! self }
     method tweak_val($v)        { self.tweak_v($v) }
 
-    method tweak_cc($v)         { self.truly($v, ':cc'); self.HOW.mixin(self, cc); }
+    method tweak_cc($v)         { self.truly($v, ':cc'); self.apply_tweak(cc); }
 
     method tweak_to($v) {
         self.truly($v, ':to');
-
-        # the cursor_init is to make sure the .panic in add-postproc works, and
-        # to ensure it's been initalized the same way 'self' was back in
-        # quote_lang
+        # the cursor_init is to ensure it's been initalized the same way
+        # 'self' was back in quote_lang
         %*LANG<Quote>.HOW.mixin(%*LANG<Quote>, to.HOW.curry(to, self)).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
     }
     method tweak_heredoc($v)    { self.tweak_to($v) }

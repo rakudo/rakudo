@@ -124,8 +124,8 @@ MAIN: {
     }
 
     $config{prefix} = $prefix;
-    $config{sdkroot} = $options{sdkroot};
-    $config{sysroot} = $options{sysroot};
+    $config{sdkroot} = $options{sdkroot} || '';
+    $config{sysroot} = $options{sysroot} || '';
     $config{slash}  = $slash;
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};

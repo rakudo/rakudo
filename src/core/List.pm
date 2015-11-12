@@ -283,7 +283,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # Pretend we're a Match assuming we're a list of Matches
     method to()      { self.elems ?? self[self.end].to !! Nil }
     method from()    { self.elems ?? self[0].from !! Nil }
-    method backref() { self.elems ?? self[0].orig.substr(self[0].from ..^ self[self.end].to) !! Nil }
 
     method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);

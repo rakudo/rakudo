@@ -762,19 +762,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method reverse() is nodal {
-        self!ensure-allocated;
         fail X::Cannot::Lazy.new(:action<reverse>) if self.is-lazy;
-        my $reversed := IterationBuffer.new;
-        my $reified  := $!reified;
-        my int $i    = 0;
-        my int $n    = nqp::elems($reified);
-        while $i < $n {
-            nqp::bindpos($reversed, $n - ($i + 1), nqp::atpos($reified, $i));
-            $i = $i + 1;
+        my $rlist   := nqp::create(self);
+        my $reified := $!reified;
+        if $reified {
+            my int $i     = -1;
+            my int $elems = nqp::elems($reified);
+            my int $last  = $elems - 1;
+            my $reversed := nqp::list;
+            nqp::setelems($reversed,$elems);
+            nqp::bindpos($reversed, $last - $i, nqp::atpos($reified, $i))
+                while ($i = $i + 1) < $elems;
+            nqp::bindattr($rlist, List, '$!reified', $reversed);
         }
-        my $rlist := nqp::create(self.WHAT);
-        nqp::bindattr($rlist, List, '$!reified', $reversed);
-        $rlist;
+        $rlist
     }
 
     method rotate(Int(Cool) $n is copy = 1) is nodal {

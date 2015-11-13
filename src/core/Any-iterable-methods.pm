@@ -915,10 +915,11 @@ augment class Any {
         # in NQP.
         my int $i = -1;
         my int $n = sort-buffer.elems;
-        my \indices = IterationBuffer.new;
-        nqp::push(indices,nqp::decont($i)) while ++$i < $n;
+        my $indices := nqp::list;
+        nqp::setelems($indices,$n);
+        nqp::bindpos($indices,$i,nqp::decont($i)) while ++$i < $n;
 
-        nqp::p6sort(indices, $transform
+        nqp::p6sort($indices, $transform
             ?? (-> int $a, int $b {
                     nqp::atpos($transform-buffer, $a) cmp nqp::atpos($transform-buffer, $b)
                         || $a <=> $b
@@ -928,8 +929,12 @@ augment class Any {
                         || $a <=> $b
                 }));
 
-        my \indices-list = nqp::p6bindattrinvres(List.CREATE, List, '$!reified', indices);
-        indices-list.map(-> int $i { nqp::atpos(sort-buffer,       $i) })
+        $i = -1;
+        my $result := nqp::list;
+        nqp::setelems($result,$n);
+        nqp::bindpos($result,$i,nqp::atpos(sort-buffer,nqp::atpos($indices,$i)))
+          while ++$i < $n;
+        $result
     }
 
     proto method reduce(|) { * }

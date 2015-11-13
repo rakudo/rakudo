@@ -2109,11 +2109,7 @@ BEGIN {
                             my $rwness         := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
                             if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
                                 # If we need a container but don't have one it clearly can't work.
-                                my $signature := nqp::atkey($cur_candidate, 'signature');
-                                my $params    := nqp::getattr($signature, Signature, '$!params');
-                                my $param     := nqp::atpos($params, $i);
-                                my $symname   := nqp::getattr($param, Parameter, '$!variable_name');
-                                $rwness_mismatch := [nqp::captureposarg($capture, $i), ~$symname];
+                                $rwness_mismatch := [nqp::captureposarg($capture, $i)];
                             }
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
@@ -2347,17 +2343,6 @@ BEGIN {
             }
             elsif nqp::isconcrete($junctional_res) {
                 $junctional_res;
-            }
-            elsif nqp::elems($rwness_mismatch) != 0 {
-                my %ex := nqp::gethllsym('perl6', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
-                    nqp::die("Parameter '" ~ $rwness_mismatch[0] 
-                        ~ "' expected a writeable container, but got " ~ $rwness_mismatch[1]
-                        ~ " value instead");
-                }
-                else {
-                    nqp::atkey(%ex, 'X::Parameter::RW')($rwness_mismatch[0], $rwness_mismatch[1])
-                }
             }
             elsif nqp::elems(@possibles) == 0 {
                 my %ex := nqp::gethllsym('perl6', 'P6EX');

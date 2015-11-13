@@ -52,6 +52,26 @@ multi sub say(**@args is raw) {
     $out.print($str);
 }
 
+proto sub put(|) { * }
+multi sub put() { $*OUT.print-nl }
+multi sub put(Str:D \x) {
+    my $out := $*OUT;
+    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
+    $out.print($str);
+}
+multi sub put(\x) {
+    my $out := $*OUT;
+    my str $str = nqp::concat(nqp::unbox_s(x.Str),$out.nl-out);
+    $out.print($str);
+}
+multi sub put(**@args is raw) {
+    my $out := $*OUT;
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $str = nqp::concat($str,$out.nl-out);
+    $out.print($str);
+}
+
 proto sub note(|) { * }
 multi sub note() {
     my $err := $*ERR;

@@ -332,6 +332,7 @@ Please refactor this code using the new Iterator / Seq interface.
     proto method say(|) { * }
     multi method say() { say(self) }
     method print() { print(self) }
+    method put() { put(self) }
     method note() { note(self) }
 
     proto method gist(|) { * }

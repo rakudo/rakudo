@@ -203,6 +203,13 @@ my class Proc::Async {
         $p
     }
 
+    method put(Proc::Async:D: \x, |c) {
+        X::Proc::Async::OpenForWriting.new(:method<say>, proc => self).throw if !$!w;
+        X::Proc::Async::MustBeStarted.new(:method<say>, proc => self).throw  if !$!started;
+
+        self.print( x.join ~ "\n", |c );
+    }
+
     method say(Proc::Async:D: \x, |c) {
         X::Proc::Async::OpenForWriting.new(:method<say>, proc => self).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<say>, proc => self).throw  if !$!started;

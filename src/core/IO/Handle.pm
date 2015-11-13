@@ -880,6 +880,23 @@ my class IO::Handle does IO {
         Bool::True
     }
 
+    proto method put(|) { * }
+    multi method put(IO::Handle:D: str:D \x) {
+        nqp::printfh($!PIO,x);
+        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        Bool::True
+    }
+    multi method put(IO::Handle:D: Str:D \x) {
+        nqp::printfh($!PIO, nqp::unbox_s(x));
+        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        Bool::True
+    }
+    multi method put(IO::Handle:D: *@list is raw) { # is raw gives List, which is cheaper
+        nqp::printfh($!PIO, nqp::unbox_s(.Str)) for @list;
+        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        Bool::True
+    }
+
     multi method say(IO::Handle:D: |) {
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);

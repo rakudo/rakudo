@@ -218,10 +218,10 @@ my class IO::Handle does IO {
                 my int $found;
                 my str $str = $!handle.readchars($!size);
                 while nqp::chars($str) == $size {
-                    $found = $found + 1;
-                    $str   = $!handle.readchars($!size);
+                    ++$found;
+                    $str = $!handle.readchars($!size);
                 }
-                $found = $found + 1 if nqp::chars($str);
+                ++$found if nqp::chars($str);
                 $!handle.close if $!close;
                 nqp::p6box_i($found)
             }
@@ -277,7 +277,7 @@ my class IO::Handle does IO {
                             $to   = $match.to;
                             nqp::bindpos($!strings,$i,
                               nqp::substr($!str,$from,$to - $from));
-                            $i = $i + 1;
+                            ++$i;
                         }
                         $!left = nqp::substr($!str,$to);
                     }
@@ -453,7 +453,7 @@ my class IO::Handle does IO {
                             nqp::bindpos($strings,$i,
                               nqp::substr($!str,$from,$match.from - $from));
                             $from = $match.to;
-                            $i    = $i + 1;
+                            ++$i;
                         }
                         $!left = nqp::substr(
                           $!str,$from,nqp::chars($!str) - $from);
@@ -616,14 +616,14 @@ my class IO::Handle does IO {
                           nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
                         last unless $left = $chars - $nextpos; # broken word
 
-                        $found = $found + 1;
+                        ++$found;
 
                         $!pos = nqp::findnotcclass(
                           nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
                     }
                     self!next-chunk;
                 }
-                $found = $found + 1 if $!pos < $chars;
+                ++$found if $!pos < $chars;
                 $!handle.close if $!close;
                 nqp::p6box_i($found)
             }
@@ -655,7 +655,7 @@ my class IO::Handle does IO {
             my str $line;
             $line = nqp::readlinefh($!PIO);
             while nqp::chars($line) {
-                $seen = $seen + 1;
+                ++$seen;
                 $line = nqp::readlinefh($!PIO);
             }
             $!close
@@ -688,8 +688,7 @@ my class IO::Handle does IO {
                     my str $line = nqp::readlinechompfh($!PIO);
                     while nqp::chars($line) || !nqp::eoffh($!PIO) {
                         $target.push(nqp::p6box_s($line));
-                        $found = $found + 1;
-                        last if $found == $n;
+                        last if ++$found == $n;
 
                         $line = nqp::readlinechompfh($!PIO);
                     }
@@ -718,7 +717,7 @@ my class IO::Handle does IO {
                         my int $found;
                         while nqp::chars($line) || !nqp::eoffh($!PIO) {
                             $target.push(nqp::p6box_s($line));
-                            $found = $found + 1;
+                            ++$found;
                             $line  = nqp::readlinechompfh($!PIO);
                         }
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
@@ -751,8 +750,7 @@ my class IO::Handle does IO {
                     my int $found;
                     while nqp::chars($line) {
                         $target.push(nqp::p6box_s($line));
-                        $found = $found + 1;
-                        last if $found == $n;
+                        last if ++$found == $n;
 
                         $line = nqp::readlinefh($!PIO);
                     }
@@ -781,8 +779,8 @@ my class IO::Handle does IO {
                         my int $found;
                         while nqp::chars($line) {
                             $target.push(nqp::p6box_s($line));
-                            $found = $found + 1;
-                            $line  = nqp::readlinefh($!PIO);
+                            ++$found;
+                            $line = nqp::readlinefh($!PIO);
                         }
                         nqp::bindattr_i($!handle, IO::Handle, '$!ins',
                           nqp::add_i(

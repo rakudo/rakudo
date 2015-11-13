@@ -139,11 +139,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
         my int $llen = $len.Int;
         nqp::setelems($ret, $llen);
-        my int $i = 0;
+        my int $i;
         while $i < $llen {
             nqp::bindpos_i($ret, $i, nqp::atpos_i(self, $ifrom));
-            $i = $i + 1;
-            $ifrom = $ifrom + 1;
+            ++$i;
+            ++$ifrom;
         }
         $ret
     }
@@ -444,12 +444,12 @@ multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
 multi sub infix:<eqv>(Blob:D $a, Blob:D $b) {
     if $a.WHAT === $b.WHAT && $a.elems == $b.elems {
         my int $n  = $a.elems;
-        my int $i  = 0;
+        my int $i;
         my Mu $da := nqp::decont($a);
         my Mu $db := nqp::decont($b);
         while $i < $n {
             return False unless nqp::iseq_i(nqp::atpos_i($da, $i), nqp::atpos_i($db, $i));
-            $i = $i + 1;
+            ++$i;
         }
         True
     }

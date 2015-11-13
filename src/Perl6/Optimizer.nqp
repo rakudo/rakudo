@@ -1749,6 +1749,7 @@ class Perl6::Optimizer {
     my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
     my %allo_rev := nqp::hash('Ii', 1, 'Nn', 2, 'Ss', 3);
     my @prim_names := ['', 'int', 'num', 'str'];
+    my int $ARG_IS_LITERAL := 32;
     method analyze_args_for_ct_call($op) {
         my @types;
         my @flags;
@@ -1804,14 +1805,15 @@ class Perl6::Optimizer {
             my int $prim_flag := @flags[0] || @flags[1];
             my int $allo_idx := @allomorphs[0] ?? 0 !! 1;
             if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
-                @flags[$allo_idx] := $prim_flag;
+                @flags[$allo_idx] := $prim_flag +| $ARG_IS_LITERAL;
             }
         }
         
         # Alternatively, a single arg that is allomorphic will prefer
         # the literal too.
         if @types == 1 && $num_allo == 1 {
-            @flags[0] := %allo_rev{@allomorphs[0]} // 0;
+            my $rev := %allo_rev{@allomorphs[0]};
+            @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
         }
         
         [@types, @flags]

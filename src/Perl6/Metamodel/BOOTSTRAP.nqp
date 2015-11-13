@@ -1010,7 +1010,7 @@ my class Binder {
             }
             else {
                 # Yes, need to consider type
-                my int $got_prim := $sigflags[$cur_pos_arg];
+                my int $got_prim := $sigflags[$cur_pos_arg] +& 0xF;
                 if $flags +& $SIG_ELEM_NATIVE_VALUE {
                     if $got_prim == 0 {
                         # We got an object; if we aren't sure we can unbox, we can't
@@ -2395,6 +2395,7 @@ BEGIN {
             my int $BIND_VAL_INT      := 1;
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
+            my int $ARG_IS_LITERAL    := 32;
             
             # Count arguments.
             my int $num_args := nqp::elems(@args);
@@ -2464,7 +2465,8 @@ BEGIN {
                 while $i < $type_check_count {
                     my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
-                    my int $got_prim := nqp::atpos(@flags, $i);
+                    my int $got_prim := nqp::atpos(@flags, $i) +& 0xF;
+                    my int $literal  := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {
@@ -2474,7 +2476,8 @@ BEGIN {
                         }
                         if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
                         || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
-                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
+                        || ($literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i)) {
                             # Mismatch.
                             $type_mismatch := 1;
                             $type_match_possible := 0;

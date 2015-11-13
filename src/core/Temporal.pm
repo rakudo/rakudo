@@ -52,7 +52,7 @@ my role Dateish {
         $day = $day - ((2 + $month * 153) div 5 - 1);
         if ($month > 9) {
             $month = $month - 12;
-            ++$year;
+            $year = $year + 1;
         }
         ($year, $month + 3, $day)
     }

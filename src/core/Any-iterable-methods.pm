@@ -311,28 +311,28 @@ augment class Any {
             }
             method new(\list,Mu \test) { nqp::create(self).BUILD(list,test) }
             method pull-one() is raw {
-                ++$!index
+                $!index = $!index + 1
                   until ($_ := $!iter.pull-one) =:= IterationEnd || $!test($_);
                 $_ =:= IterationEnd
                   ?? IterationEnd
-                  !! nqp::p6box_i(++$!index)
+                  !! nqp::p6box_i($!index = $!index + 1)
             }
             method push-exactly($target, int $n) {
                 my int $done;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($_ := $!iter.pull-one);
-                    ++$!index;
+                    $!index = $!index + 1;
                     if $!test($_) {
                         $target.push(nqp::p6box_i($!index));
-                        ++$done;
+                        $done = $done + 1;
                     }
                 }
                 $done
             }
             method push-all($target) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    ++$!index;
+                    $!index = $!index + 1;
                     $target.push(nqp::p6box_i($!index)) if $!test($_);
                 }
                 IterationEnd
@@ -359,7 +359,7 @@ augment class Any {
                     tmp
                 }
                 else {
-                    ++$!index
+                    $!index = $!index + 1
                       until ($_ := $!iter.pull-one) =:= IterationEnd
                         || $!test($_);
                     if $_ =:= IterationEnd {
@@ -367,7 +367,7 @@ augment class Any {
                     }
                     else {
                         $!value := $_;
-                        nqp::p6box_i(++$!index)
+                        nqp::p6box_i($!index = $!index + 1)
                     }
                 }
             }
@@ -377,17 +377,17 @@ augment class Any {
                 if $!value.DEFINITE {
                     $no-sink := $target.push($!value);
                     $!value  := Mu;
-                    ++$done;
+                    $done = $done + 1;
                 }
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($_ := $!iter.pull-one);
-                    ++$!index;
+                    $!index = $!index + 1;
                     if $!test($_) {
                         $target.push(nqp::p6box_i($!index));
-                        if ++$done < $n {
+                        if ($done = $done + 1) < $n {
                             $no-sink := $target.push($_);
-                            ++$done;
+                            $done = $done + 1;
                         }
                         else {
                             $!value := $_;
@@ -399,7 +399,7 @@ augment class Any {
             method push-all($target) {
                 my $no-sink;
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    ++$!index;
+                    $!index = $!index + 1;
                     if $!test($_) {
                         $target.push(nqp::p6box_i($!index));
                         $no-sink := $target.push($_);
@@ -422,28 +422,28 @@ augment class Any {
             }
             method new(\list,Mu \test) { nqp::create(self).BUILD(list,test) }
             method pull-one() is raw {
-                ++$!index
+                $!index = $!index + 1
                   until ($_ := $!iter.pull-one) =:= IterationEnd || $!test($_);
                 $_ =:= IterationEnd
                   ?? IterationEnd
-                  !! Pair.new(++$!index,$_)
+                  !! Pair.new($!index = $!index + 1,$_)
             }
             method push-exactly($target, int $n) {
                 my int $done;
                 while $done < $n {
                     return IterationEnd
                       if IterationEnd =:= ($_ := $!iter.pull-one);
-                    ++$!index;
+                    $!index = $!index + 1;
                     if $!test($_) {
                         $target.push(Pair.new($!index,$_));
-                        ++$done;
+                        $done = $done + 1;
                     }
                 }
                 $done
             }
             method push-all($target) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    ++$!index;
+                    $!index = $!index + 1;
                     $target.push(Pair.new($!index,$_)) if $!test($_);
                 }
                 IterationEnd
@@ -476,7 +476,7 @@ augment class Any {
                       if IterationEnd =:= ($_ := $!iter.pull-one);
                     if $_.match($!test) {
                         $no-sink := $target.push($_);
-                        ++$done;
+                        $done = $done + 1;
                     }
                 }
                 $done
@@ -507,7 +507,7 @@ augment class Any {
                                if IterationEnd =:= ($_ := $!iter.pull-one);
                              if $!test($_) {
                                  $no-sink := $target.push($_);
-                                 ++$done;
+                                 $done = $done + 1;
                              }
                          }
                          $done
@@ -564,7 +564,7 @@ augment class Any {
                       if IterationEnd =:= ($_ := $!iter.pull-one);
                     if $!test.ACCEPTS($_) {
                         $no-sink := $target.push($_);
-                        ++$done;
+                        $done = $done + 1;
                     }
                 }
                 $done
@@ -706,7 +706,7 @@ augment class Any {
         else {
             my $iter := self.iterator;
             my int $index;
-            ++$index
+            $index = $index + 1
               until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
             $_ =:= IterationEnd
               ?? Nil
@@ -727,7 +727,7 @@ augment class Any {
         else {
             my $iter := self.iterator;
             my int $index;
-            ++$index
+            $index = $index + 1
               until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
             $_ =:= IterationEnd
               ?? Nil
@@ -748,7 +748,7 @@ augment class Any {
         else {
             my $iter := self.iterator;
             my int $index;
-            ++$index
+            $index = $index + 1
               until (($_ := $iter.pull-one) =:= IterationEnd) || $test.ACCEPTS($_);
             $_ =:= IterationEnd
               ?? Nil
@@ -760,7 +760,7 @@ augment class Any {
         my $value;
         while nqp::islt_i(i,todo) {
             $value := self.AT-POS(i);
-            ++i;
+            i = i + 1;
             if nqp::isconcrete($value) {
                 found = $value;
                 last;
@@ -781,8 +781,9 @@ augment class Any {
         self!first-concrete($index,$todo,$min);
         while nqp::islt_i($index,$todo) {
             $value := self.AT-POS($index);
-            ++$index;
-            $min = $value if nqp::isconcrete($value) && $value cmp $min < 0;
+            $index  = $index + 1;
+            $min    = $value
+              if nqp::isconcrete($value) && $value cmp $min < 0;
         }
         $min // Inf;
     }
@@ -799,8 +800,9 @@ augment class Any {
         self!first-concrete($index,$todo,$min);
         while nqp::islt_i($index,$todo) {
             $value := self.AT-POS($index);
-            ++$index;
-            $min = $value if nqp::isconcrete($value) && $cmp($value,$min) < 0;
+            $index  = $index + 1;
+            $min    = $value
+              if nqp::isconcrete($value) && $cmp($value,$min) < 0;
         }
         $min // Inf;
     }
@@ -818,8 +820,9 @@ augment class Any {
         self!first-concrete($index,$todo,$max);
         while nqp::islt_i($index,$todo) {
             $value := self.AT-POS($index);
-            ++$index;
-            $max = $value if nqp::isconcrete($value) && $value cmp $max > 0;
+            $index  = $index + 1;
+            $max    = $value
+              if nqp::isconcrete($value) && $value cmp $max > 0;
         }
         $max // -Inf;
     }
@@ -836,8 +839,9 @@ augment class Any {
         self!first-concrete($index,$todo,$max);
         while nqp::islt_i($index,$todo) {
             $value := self.AT-POS($index);
-            ++$index;
-            $max = $value if nqp::isconcrete($value) && $cmp($value,$max) > 0;
+            $index  = $index + 1;
+            $max    = $value
+              if nqp::isconcrete($value) && $cmp($value,$max) > 0;
         }
         $max // -Inf;
     }
@@ -913,7 +917,7 @@ augment class Any {
         # a slice into self. The JVM implementation uses a Java
         # collection sort. MoarVM has its sort algorithm implemented
         # in NQP.
-        my int $i = -1;
+        my int $i = 0;
         my int $n = sort-buffer.elems;
         my $indices := nqp::list;
         nqp::setelems($indices,$n);
@@ -986,7 +990,7 @@ augment class Any {
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
                         $no-sink := $target.push($value);
-                        ++$done;
+                        $done = $done + 1;
                     }
                 }
                 $done
@@ -1052,7 +1056,7 @@ augment class Any {
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
                         $no-sink := $target.push($value);
-                        ++$done;
+                        $done = $done + 1;
                     }
                 }
                 $done
@@ -1119,7 +1123,7 @@ augment class Any {
                     $needle = nqp::unbox_s($value.WHICH);
                     if nqp::existskey($!seen, $needle) {
                         $no-sink := $target.push($value);
-                        ++$done;
+                        $done = $done + 1;
                     }
                     else {
                         nqp::bindkey($!seen, $needle, 1);
@@ -1184,7 +1188,7 @@ augment class Any {
                     $needle = nqp::unbox_s(&!as($value).WHICH);
                     if nqp::existskey($!seen, $needle) {
                         $no-sink := $target.push($value);
-                        ++$done;
+                        $done = $done + 1;
                     }
                     else {
                         nqp::bindkey($!seen, $needle, 1);
@@ -1390,7 +1394,7 @@ augment class Any {
             method !next() is raw {
                 my int $index = $!index;
                 $!index = ($!index + 1) % $!size;
-                --$!todo;
+                $!todo  = $!todo - 1;
                 nqp::atpos($!lastn,$index)
             }
             method pull-one() is raw {

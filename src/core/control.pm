@@ -140,6 +140,11 @@ my &lastcall := -> --> True {
     nqp::p6finddispatcher('lastcall').last();
 };
 
+my &nextcallee := -> {
+    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
+    $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
+};
+
 sub samewith(|c) {
     my Mu $ctx := nqp::ctxcaller(nqp::ctx());
     until nqp::isnull($ctx) {

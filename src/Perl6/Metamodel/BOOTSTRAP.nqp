@@ -1848,6 +1848,9 @@ BEGIN {
                     'constraints',  [],
                     'rwness',       nqp::list_i()
                 );
+                if nqp::istype($candidate, Submethod) {
+                    %info<exact_invocant> := 1;
+                }
                 my int $significant_param := 0;
                 my int $min_arity         := 0;
                 my int $max_arity         := 0;
@@ -2111,7 +2114,7 @@ BEGIN {
                                 # If we need a container but don't have one it clearly can't work.
                                 $rwness_mismatch := 1;
                             }
-                            if $type_flags +& $TYPE_NATIVE_MASK {
+                            elsif $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
                                 if $got_prim == $BIND_VAL_OBJ {
                                     # Object, but could be a native container. If not, mismatch.
@@ -2145,7 +2148,14 @@ BEGIN {
                                                                             Str;
                                     $primish := 1;
                                 }
-                                unless nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                                if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                                    if $i == 0 && nqp::existskey($cur_candidate, 'exact_invocant') {
+                                        unless $param.WHAT =:= $type_obj {
+                                            $type_mismatch := 1;
+                                        }
+                                    }
+                                }
+                                else {
                                     if $type_obj =:= $Positional {
                                         my $PositionalBindFailover := nqp::gethllsym('perl6', 'MD_PBF');
                                         unless nqp::istype($param, $PositionalBindFailover) {

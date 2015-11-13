@@ -136,9 +136,8 @@ my &nextsame := -> {
     Nil
 };
 
-my &lastcall := -> {
+my &lastcall := -> --> True {
     nqp::p6finddispatcher('lastcall').last();
-    True
 };
 
 sub samewith(|c) {

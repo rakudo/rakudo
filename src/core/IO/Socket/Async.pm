@@ -122,9 +122,8 @@ my class IO::Socket::Async {
         );
     }
 
-    method close(IO::Socket::Async:D:) {
+    method close(IO::Socket::Async:D: --> True) {
         nqp::closefh($!VMIO);
-        True;
     }
 
     method connect(IO::Socket::Async:U: Str() $host, Int() $port,

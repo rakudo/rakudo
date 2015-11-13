@@ -72,9 +72,8 @@ my class Exception {
         nqp::p6bool(nqp::istrue(nqp::atkey($!ex, 'resume')));
     }
 
-    method resume(Exception:D:) {
+    method resume(Exception:D: --> True) {
         nqp::resume($!ex);
-        True
     }
 
     method die(Exception:D:) { self.throw }

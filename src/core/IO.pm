@@ -137,7 +137,7 @@ sub CHANGE-DIRECTORY($path,$base,&test) {
          );
 }
 
-sub COPY-FILE(Str $from, Str $to, :$createonly) {
+sub COPY-FILE(Str $from, Str $to, :$createonly --> True) {
     if $createonly and FILETEST-E($to) {
         fail X::IO::Copy.new(
           :$from,
@@ -150,10 +150,9 @@ sub COPY-FILE(Str $from, Str $to, :$createonly) {
     CATCH { default {
         fail X::IO::Copy.new( :$from, :$to, :os-error(.Str) );
     } }
-    True;
 }
 
-sub RENAME-PATH(Str $from, Str $to, :$createonly) {
+sub RENAME-PATH(Str $from, Str $to, :$createonly --> True) {
     if $createonly and FILETEST-E($to) {
         fail X::IO::Rename.new(
           :$from,
@@ -166,55 +165,48 @@ sub RENAME-PATH(Str $from, Str $to, :$createonly) {
     CATCH { default {
         fail X::IO::Rename.new( :$from, :$to, :os-error(.Str) );
     } }
-    True;
 }
 
-sub CHMOD-PATH(Str $path, Int $mode) {
+sub CHMOD-PATH(Str $path, Int $mode --> True) {
     nqp::chmod(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {
         fail X::IO::Chmod.new( :$path, :$mode, :os-error(.Str) );
     } }
-    True;
 }
 
-sub UNLINK-PATH(Str $path) {
+sub UNLINK-PATH(Str $path --> True) {
     nqp::unlink(nqp::unbox_s($path));
     CATCH { default {
         fail X::IO::Unlink.new( :$path, :os-error(.Str) );
     } }
-    True;
 }
 
-sub SYMLINK-PATH(Str $target, Str $name) {
+sub SYMLINK-PATH(Str $target, Str $name --> True) {
     nqp::symlink(nqp::unbox_s($name), nqp::unbox_s($target));
     CATCH { default {
         fail X::IO::Symlink.new( :$target, :$name, :os-error(.Str) );
     } }
-    True;
 }
 
-sub LINK-FILE(Str $target, Str $name) {
+sub LINK-FILE(Str $target, Str $name --> True) {
     nqp::link(nqp::unbox_s($name), nqp::unbox_s($target));
     CATCH { default {
         fail X::IO::Link.new( :$target, :$name, :os-error(.Str) );
     } }
-    True;
 }
 
-sub MAKE-DIR(Str $path, Int $mode) {
+sub MAKE-DIR(Str $path, Int $mode --> True) {
     nqp::mkdir(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {
         fail X::IO::Mkdir.new(:$path, :$mode, os-error => .Str);
     } }
-    True;
 }
 
-sub REMOVE-DIR(Str $path) {
+sub REMOVE-DIR(Str $path --> True) {
     nqp::rmdir(nqp::unbox_s($path));
     CATCH { default {
         fail X::IO::Rmdir.new(:$path, os-error => .Str);
     } }
-    True;
 }
 
 sub FILETEST-E(Str $abspath) {

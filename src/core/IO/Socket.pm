@@ -66,30 +66,26 @@ my role IO::Socket does IO {
         die 'Socket.poll is NYI'
     }
 
-    method print (Str(Cool) $string) {
+    method print (Str(Cool) $string --> True) {
         fail("Not connected") unless $!PIO;
         nqp::printfh($!PIO, nqp::unbox_s($string));
-        True
     }
 
-    method put (Str(Cool) $string) {
+    method put (Str(Cool) $string --> True) {
         fail("Not connected") unless $!PIO;
         nqp::printfh($!PIO, nqp::unbox_s($string));
         nqp::printfh($!PIO, nqp::unbox_s("\n"));  # XXX should be $!nl-out
-        True
     }
 
-    method write(Blob:D $buf) {
+    method write(Blob:D $buf --> True) {
         fail('Socket not available') unless $!PIO;
         nqp::writefh($!PIO, nqp::decont($buf));
-        True
     }
 
-    method close () {
+    method close (--> True) {
         fail("Not connected!") unless $!PIO;
         nqp::closefh($!PIO);
         $!PIO := Mu;
-        True
     }
 }
 

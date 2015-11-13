@@ -2079,7 +2079,7 @@ BEGIN {
             my $cur_candidate;
             my int $type_check_count;
             my int $type_mismatch;
-            my $rwness_mismatch := [];
+            my int $rwness_mismatch;
             my int $i;
             my int $pure_type_result := 1;
             my $many_res := $many ?? [] !! Mu;
@@ -2091,7 +2091,6 @@ BEGIN {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
                 if nqp::isconcrete($cur_candidate) {
-                    $rwness_mismatch := [];
                     # Check if it's admissable by arity.
                     unless $num_args < nqp::atkey($cur_candidate, 'min_arity')
                     || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
@@ -2100,16 +2099,17 @@ BEGIN {
                             ?? $num_args
                             !! nqp::atkey($cur_candidate, 'num_types');
                         $type_mismatch := 0;
+                        $rwness_mismatch := 0;
 
                         $i := 0;
-                        while $i < $type_check_count && !$type_mismatch && !nqp::elems($rwness_mismatch) {
+                        while $i < $type_check_count && !$type_mismatch && !$rwness_mismatch {
                             my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                             my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                             my int $got_prim   := nqp::captureposprimspec($capture, $i);
                             my $rwness         := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
                             if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
                                 # If we need a container but don't have one it clearly can't work.
-                                $rwness_mismatch := [nqp::captureposarg($capture, $i)];
+                                $rwness_mismatch := 1;
                             }
                             if $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
@@ -2167,7 +2167,7 @@ BEGIN {
                             $i++;
                         }
                         
-                        unless $type_mismatch || nqp::elems($rwness_mismatch) {
+                        unless $type_mismatch || $rwness_mismatch {
                             # It's an admissable candidate; add to list.
                             nqp::push(@possibles, $cur_candidate);
                         }
@@ -2338,7 +2338,7 @@ BEGIN {
             }
 
             # Need a unique candidate.
-            if nqp::elems(@possibles) == 1 && nqp::elems($rwness_mismatch) == 0 {
+            if nqp::elems(@possibles) == 1 {
                 nqp::atkey(nqp::atpos(@possibles, 0), 'sub')
             }
             elsif nqp::isconcrete($junctional_res) {

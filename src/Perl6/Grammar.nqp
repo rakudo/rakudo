@@ -262,6 +262,20 @@ role STD {
     method malformed($what) {
         self.typed_panic('X::Syntax::Malformed', :$what);
     }
+    method missing_block() {
+        if $*BORG<block> {
+            my $pos := self.pos;
+            self.'!clear_highwater'();
+            self.'!cursor_pos'($*BORG<block>.CURSOR.pos);
+            self.typed_sorry('X::Syntax::BlockGobbled', what => ($*BORG<name> // ''));
+            self.'!cursor_pos'($pos);
+            self.missing("block (apparently claimed by " ~ ($*BORG<name> ?? "'" ~ $*BORG<name> ~ "'" !! "expression") ~ ")");
+        } elsif %*MYSTERY {
+            self.missing("block (taken by some undeclared routine?)");
+        } else {
+            self.missing("block");
+        }
+    }
     method missing($what) {
         self.typed_panic('X::Syntax::Missing', :$what);
     }
@@ -1037,7 +1051,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
         :my %*MYSTERY;                             # names we assume may be post-declared functions
-        :my $*BORG;                                # who gets blamed for a missing block
+        :my $*BORG := {};                          # who gets blamed for a missing block
         :my $*CCSTATE := '';
         :my $*STRICT;
         :my $*INVOCANT_OK := 0;
@@ -1254,28 +1268,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <?[{]>
             <.newpad>
             <blockoid>
-        || {
-               if nqp::ishash($*BORG) && $*BORG<block> {
-                   my $pos := $/.CURSOR.pos;
-                   if $*BORG<name> {
-                        $/.CURSOR.'!clear_highwater'();
-                        $/.CURSOR.'!cursor_pos'($*BORG<block>.CURSOR.pos);
-                        $/.CURSOR.typed_sorry('X::Syntax::BlockGobbled', what => ~$*BORG<name>);
-                        $/.CURSOR.'!cursor_pos'($pos);
-                        $/.CURSOR.missing("block (apparently taken by '" ~ $*BORG<name> ~ "')");
-                   } else {
-                        $/.CURSOR.'!clear_highwater'();
-                        $/.CURSOR.'!cursor_pos'($*BORG<block>.CURSOR.pos);
-                        $/.CURSOR.typed_sorry('X::Syntax::BlockGobbled');
-                        $/.CURSOR.'!cursor_pos'($pos);
-                        $/.CURSOR.missing("block (apparently taken by expression)");
-                   }
-               } elsif %*MYSTERY {
-                   $/.CURSOR.missing("block (taken by some undeclared routine?)");
-               } else {
-                   $/.CURSOR.missing("block");
-               }
-           }
+        || <.missing_block>
         ]
     }
 
@@ -1285,7 +1278,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARAND := $*W.stub_code_object('Block');
         :my $*CODE_OBJECT := $*DECLARAND;
         :dba('scoped block')
-        [ <?[{]> || <.missing: 'block'>]
+        [ <?[{]> || <.missing_block>]
         <.newpad>
         <blockoid>
     }
@@ -1303,8 +1296,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <statementlist(1)>
             [<.cheat_heredoc> || '}']
             <?ENDSTMT>
-        | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
-        | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
+        || <.missing_block>
         ]
         { $*CURPAD := $*W.pop_lexpad() }
     }
@@ -1651,7 +1643,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<**>                 { <sym> }
     token term:sym<*>                  { <sym> }
-    token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> if nqp::ishash($*BORG)} }
+    token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> } }
     token term:sym<type_declarator>    { <type_declarator> }
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
@@ -2083,6 +2075,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*POD_BLOCK;
+        :my $*BORG := {};
         { $*DECLARATOR_DOCS := '' }
         <.attach_leading_docs>
 
@@ -2475,6 +2468,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
         :my $outer := $*W.cur_lexpad();
+        :my $*BORG := {};
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2508,6 +2502,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || ';'
             {
+                $/.CURSOR.missing_block() if $*BORG<block>;
                 if $<deflongname> ne 'MAIN' {
                     $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
                 }
@@ -2542,6 +2537,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*CODE_OBJECT := $*DECLARAND;
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
+        :my $*BORG := {};
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2600,6 +2596,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
         :my $*CODE_OBJECT := $*DECLARAND;
+        :my $*BORG := {};
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -3047,6 +3044,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*MYSTERY;
         <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'> ]
         <.explain_mystery> <.cry_sorrows>
+        {
+            if $<circumfix> && nqp::substr(self.orig, $<longname>.to, 1) eq '{' {
+                $*BORG<block> := $<circumfix>[0];
+                $*BORG<name> := 'is ' ~ $<longname>;
+            }
+        }
     }
     rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
@@ -3102,7 +3105,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             if !$<args><invocant> {
                 self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1));
-                if nqp::ishash($*BORG) && $*BORG<block> {
+                if $*BORG<block> {
                     unless $*BORG<name> {
                         $*BORG<name> := ~$<identifier>;
                     }
@@ -3168,7 +3171,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             {
                 if !$<args><invocant> {
                     my $name := ~$<longname>;
-                    if nqp::ishash($*BORG) && $*BORG<block> {
+                    if $*BORG<block> {
                         unless $*BORG<name> {
                             $*BORG<name> := $*BORG<name> // $name;
                         }
@@ -3613,7 +3616,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*FAKE_INFIX_FOUND := 0;
         <?[{]> <pblock(1)>
         {
-            $*BORG<block> := $<pblock> if nqp::ishash($*BORG)
+            $*BORG<block> := $<pblock>
         }
     }
 

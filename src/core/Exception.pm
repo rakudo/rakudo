@@ -1241,7 +1241,11 @@ my class X::Syntax::Missing does X::Syntax {
 }
 my class X::Syntax::BlockGobbled does X::Syntax {
     has $.what;
-    method message() { "{ $.what ?? 'Function ' ~ $.what !! 'Expression' } needs parens to avoid gobbling block" };
+    method message() {
+        $.what ~~ /^'is '/
+            ?? "Trait '$.what' needs whitespace before block"
+            !! "{ $.what ?? "Function '$.what'" !! 'Expression' } needs parens to avoid gobbling block";
+    };
 }
 
 my class X::Syntax::ConditionalOperator::PrecedenceTooLoose does X::Syntax {

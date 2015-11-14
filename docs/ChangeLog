@@ -5,6 +5,7 @@ New in 2015.11:
    + New IO::Handle.nl-in now allows multiple line-endings to be set
    + New IO::Handle.nl-out allows you to set line-ending used in IO::Handle.say
    + New IO::Handle.split/comb, same feature set as Str.split/comb, but lazy
+   + IO::Handle.seek now accepts new SeekType enum values as 2nd parameter
    + New $?NL contains the output new-line character(s) for the current system
    + New 'use newline' pragma allows setting of $?NL
    + New List.head/tail methods for easier getting first/last N elements
@@ -22,6 +23,7 @@ New in 2015.11:
    + Illegal assigment of different Numeric values now caught at compile time
  + Deprecated
    + IO::Handle.nl should either be IO::Handle.nl-in or .nl-out
+   + IO::Handle.seek with a numerical value for 2nd parameter
    + Str.split( ... :all) should be written as :v
 
 New in 2015.10:

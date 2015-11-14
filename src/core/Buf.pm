@@ -97,55 +97,49 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
     }
 
-    method subbuf(Blob:D: $from = 0, $len is copy = self.elems - $from) {
+    method subbuf(Blob:D: $from, $length?) {
 
-        if ($len < 0) {
-            X::OutOfRange.new(
-                what => "Len element to subbuf",
-                got  => $len,
-                range => (0..self.elems)).fail;
+        my int $elems = self.elems;
+        X::OutOfRange.new(
+          what => "Len element to subbuf",
+          got  => $length,
+          range => "0..$elems",
+        ).fail if $length.DEFINITE && $length < 0;
+
+        my int $pos;
+        my int $todo;
+        if nqp::istype($from,Range) {
+            ($pos,my int $max) = $from.int-bounds;
+            $todo = $max - $pos + 1;
+        }
+        else {
+            $pos = nqp::istype($from, Callable) ?? $from($elems) !! $from.Int;
+            $todo = $length.DEFINITE
+              ?? $length.Int min $elems - $pos
+              !! $elems - $pos;
         }
 
+        X::OutOfRange.new(
+          what    => 'From argument to subbuf',
+          got     => $from.gist,
+          range   => "0..$elems",
+          comment => "use *{$pos} if you want to index relative to the end",
+        ).fail if $pos < 0;
+        X::OutOfRange.new(
+          what => 'From argument to subbuf',
+          got  => $from.gist,
+          range => "0..$elems",
+        ).fail if $pos > $elems;
 
-        my $ret := nqp::create(self);
-
-        my int $ifrom = nqp::unbox_i(
-            nqp::istype($from, Callable)
-                ?? $from(nqp::p6box_i(self.elems))
-                !! $from.Int);
-
-        if ($ifrom < 0) {
-            X::OutOfRange.new(
-                what    => 'From argument to subbuf',
-                got     => $from.gist,
-                range   => (0..self.elems),
-                comment => "use *{$ifrom} if you want to index relative to the end"
-            ).fail;
+        my $subbuf := nqp::create(self);
+        if $todo {
+            nqp::setelems($subbuf, $todo);
+            my int $i = -1;
+            $pos = $pos - 1;
+            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,($pos = $pos + 1)))
+              while ($i = $i + 1) < $todo;
         }
-
-        if ($ifrom > self.elems) {
-            X::OutOfRange.new(
-                what => 'From argument to subbuf',
-                got  => $from.gist,
-                range => (0..self.elems),
-            ).fail;
-        }
-
-        return $ret
-            if $ifrom == self.elems;
-
-        $len = self.elems - $ifrom
-            if $ifrom + $len > self.elems;
-
-        my int $llen = $len.Int;
-        nqp::setelems($ret, $llen);
-        my int $i = 0;
-        while $i < $llen {
-            nqp::bindpos_i($ret, $i, nqp::atpos_i(self, $ifrom));
-            $i = $i + 1;
-            $ifrom = $ifrom + 1;
-        }
-        $ret
+        $subbuf
     }
 
     method unpack(Blob:D: $template) {

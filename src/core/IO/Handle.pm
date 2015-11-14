@@ -707,13 +707,17 @@ my class IO::Handle does IO {
         }
     }
 
-    # second arguemnt should probably be an enum
-    # valid values for $whence:
-    #   0 -- seek from beginning of file
-    #   1 -- seek relative to current position
-    #   2 -- seek from the end of the file
-    method seek(IO::Handle:D: Int:D $offset, Int:D $whence --> True) {
+    proto method seek(|) { * }
+    multi method seek(IO::Handle:D: Int:D $offset, Int:D $whence --> True) {
+        DEPRECATED(
+          SeekType.^enum_value_list[$whence],
+          :what("numerical seektype $whence"),
+        );
         nqp::seekfh($!PIO, $offset, $whence);
+    }
+    multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence) {
+        nqp::seekfh($!PIO, $offset, +$whence);
+        True;
     }
 
     method tell(IO::Handle:D:) returns Int {

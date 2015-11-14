@@ -6,7 +6,6 @@ my class IO::Handle does IO {
     has $.path;
     has $!PIO;
     has $.chomp is rw = Bool::True;
-    has int $.ins;
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
 
@@ -109,6 +108,11 @@ my class IO::Handle does IO {
         self;
     }
 
+    method ins() {
+        DEPRECATED('.lines.kv');
+        0
+    }
+
     method nl is rw {
         DEPRECATED('nl-in and nl-out');
         Proxy.new(
@@ -144,26 +148,16 @@ my class IO::Handle does IO {
     }
 
     method get(IO::Handle:D:) {
+        my str $str;
         if $!chomp {
-            my str $str = nqp::readlinechompfh($!PIO);
+            $str = nqp::readlinechompfh($!PIO);
             # loses last empty line because EOF is set too early, RT #126598
-            if nqp::chars($str) || !nqp::eoffh($!PIO) {
-                $!ins = nqp::add_i($!ins,1);
-                $str
-            }
-            else {
-                Nil
-            }
+            nqp::chars($str) || !nqp::eoffh($!PIO) ?? $str !! Nil
         }
         else {
-            my str $str = nqp::readlinefh($!PIO);
-            if nqp::chars($str) {   # no need to check EOF
-                $!ins = nqp::add_i($!ins,1);
-                $str
-            }
-            else {
-                Nil
-            }
+            $str = nqp::readlinefh($!PIO);
+            # no need to check EOF
+            nqp::chars($str) ?? $str !! Nil
         }
     }
 
@@ -635,164 +629,40 @@ my class IO::Handle does IO {
         # we should probably deprecate this feature
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines
-          !! self.lines[ $!ins .. $!ins + $limit.Int - 1 ]
-    }
-    my role LinesIterCommon does Iterator {
-        has $!handle;
-        has $!PIO;
-        has $!close;
-
-        submethod BUILD(\handle, $!close) {
-            $!handle := handle;
-            $!PIO    := nqp::getattr(handle, IO::Handle, '$!PIO');
-            self
-        }
-        method new(\handle, \close) {
-            nqp::create(self).BUILD(handle, close);
-        }
-        method count-only() {
-            my int $seen;
-            my str $line;
-            $line = nqp::readlinefh($!PIO);
-            while nqp::chars($line) {
-                $seen = $seen + 1;
-                $line = nqp::readlinefh($!PIO);
-            }
-            $!close
-              ?? $!handle.close
-              !! nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                   nqp::getattr($!handle, IO::Handle, '$!ins' + $seen));
-
-            $seen
-        }
+          !! self.lines[ 0 .. $limit.Int - 1 ]
     }
     multi method lines(IO::Handle:D: :$close) {
-        if $!chomp {  # this can go as soon as we have chomp support on PIO
-            Seq.new(class :: does LinesIterCommon {
-                method pull-one() {
-                    my str $line = nqp::readlinechompfh($!PIO);
-                    if nqp::chars($line) || !nqp::eoffh($!PIO) {
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                          nqp::add_i(
-                            nqp::getattr_i($!handle, IO::Handle, '$!ins'),
-                            1));
-                        nqp::p6box_s($line)
-                    }
-                    else {
-                        $!handle.close if $!close;
-                        IterationEnd
-                    }
-                }
-                method push-exactly($target, int $n) {
-                    my int $found;
-                    my str $line = nqp::readlinechompfh($!PIO);
-                    while nqp::chars($line) || !nqp::eoffh($!PIO) {
-                        $target.push(nqp::p6box_s($line));
-                        $found = $found + 1;
-                        last if $found == $n;
+        Seq.new(class :: does Iterator {
+            has $!handle;
+            has $!close;
 
-                        $line = nqp::readlinechompfh($!PIO);
-                    }
-
-                    if $!close { # don't bother updating .ins
-                        $!handle.close unless nqp::chars($line);
-                    }
-                    else {
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                          nqp::add_i(
-                            nqp::getattr_i($!handle, IO::Handle, '$!ins'),
-                            $found));
-                    }
-                    nqp::p6box_i($found);
+            submethod BUILD(\handle, $!close) {
+                $!handle := handle;
+                self
+            }
+            method new(\handle, \close) {
+                nqp::create(self).BUILD(handle, close);
+            }
+            method pull-one() is raw {
+                $!handle.get // do {
+                    $!handle.close if $!close;
+                    IterationEnd
                 }
-                method push-all($target) {
-                    my str $line = nqp::readlinechompfh($!PIO);
-                    if $!close {   # don't bother keeping track of $!ins
-                        while nqp::chars($line) || !nqp::eoffh($!PIO) {
-                            $target.push(nqp::p6box_s($line));
-                            $line = nqp::readlinechompfh($!PIO);
-                        }
-                        $!handle.close;
-                    }
-                    else {
-                        my int $found;
-                        while nqp::chars($line) || !nqp::eoffh($!PIO) {
-                            $target.push(nqp::p6box_s($line));
-                            $found = $found + 1;
-                            $line  = nqp::readlinechompfh($!PIO);
-                        }
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                          nqp::add_i(
-                            nqp::getattr_i($!handle, IO::Handle, '$!ins'),
-                            $found));
-                    }
-                    IterationEnd;
-                }
-            }.new(self, $close));
-        }
-        else {
-            Seq.new(class :: does LinesIterCommon {
-                method pull-one() {
-                    my str $line = nqp::readlinefh($!PIO);
-                    if nqp::chars($line) {
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                          nqp::add_i(
-                            nqp::getattr_i($!handle, IO::Handle, '$!ins'),
-                            1));
-                        nqp::p6box_s($line);
-                    }
-                    else {
-                        $!handle.close if $!close;
-                        IterationEnd;
-                    }
-                }
-                method push-exactly($target, int $n) {
-                    my str $line = nqp::readlinefh($!PIO);
-                    my int $found;
-                    while nqp::chars($line) {
-                        $target.push(nqp::p6box_s($line));
-                        $found = $found + 1;
-                        last if $found == $n;
-
-                        $line = nqp::readlinefh($!PIO);
-                    }
-
-                    if $!close { # don't bother updating .ins
-                        $!handle.close unless nqp::chars($line);
-                    }
-                    else {
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                          nqp::add_i(
-                            nqp::getattr_i($!handle, IO::Handle, '$!ins'),
-                            $found));
-                    }
-                    nqp::p6box_i($found);
-                }
-                method push-all($target) {
-                    my str $line = nqp::readlinefh($!PIO);
-                    if $!close {   # don't bother keeping track of $!ins
-                        while nqp::chars($line) {
-                            $target.push(nqp::p6box_s($line));
-                            $line = nqp::readlinefh($!PIO);
-                        }
-                        $!handle.close;
-                    }
-                    else {
-                        my int $found;
-                        while nqp::chars($line) {
-                            $target.push(nqp::p6box_s($line));
-                            $found = $found + 1;
-                            $line  = nqp::readlinefh($!PIO);
-                        }
-                        nqp::bindattr_i($!handle, IO::Handle, '$!ins',
-                          nqp::add_i(
-                            nqp::getattr_i($!handle, IO::Handle, '$!ins'),
-                            $found));
-                    }
-                    IterationEnd;
-                }
-            }.new(self, $close));
-        }
+            }
+            method push-all($target) {
+                my $line;
+                $target.push($line) while ($line := $!handle.get).DEFINITE;
+                $!handle.close if $close;
+                IterationEnd
+            }
+            method count-only() {
+                my $line;
+                my int $seen;
+                $seen = $seen + 1 while ($line := $!handle.get).DEFINITE;
+                $!handle.close if $!close;
+                $seen
+            }
+        }.new(self, $close));
     }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {
@@ -922,12 +792,12 @@ my class IO::Handle does IO {
 
     multi method gist(IO::Handle:D:) {
         self.opened
-            ?? "IO::Handle<$!path>(opened, at line {$.ins} / octet {$.tell})"
+            ?? "IO::Handle<$!path>(opened, at octet {$.tell})"
             !! "IO::Handle<$!path>(closed)"
     }
 
     multi method perl(IO::Handle:D:) {
-        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl})"
+        "IO::Handle.new(path => {$!path.perl}, chomp => {$!chomp.perl})"
     }
 
 

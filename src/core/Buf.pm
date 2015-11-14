@@ -99,7 +99,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method subbuf(Blob:D: $from, $length?) {
 
-        my int $elems = self.elems;
+        my int $elems = nqp::elems(self);
         X::OutOfRange.new(
           what => "Len element to subbuf",
           got  => $length,

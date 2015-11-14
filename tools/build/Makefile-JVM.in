@@ -245,7 +245,7 @@ J_CLEANUPS = \
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 J_HARNESS = $(PERL) t/harness --jvm
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.pm.jar lib/lib.pm6.jar lib/Pod/To/Text.pm.jar lib/newline.pm6.jar \
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) eval-client.pl lib/Test.pm.jar lib/lib.pm6.jar lib/Pod/To/Text.pm.jar lib/newline.pm6.jar \
     lib/NativeCall.pm.jar lib/NativeCall/Types.pm.jar lib/NativeCall/Compiler/GNU.pm.jar lib/NativeCall/Compiler/MSVC.pm.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
@@ -356,7 +356,7 @@ j-test    : j-coretest
 
 j-fulltest: j-coretest j-stresstest
 
-j-coretest: j-all eval-client.pl
+j-coretest: j-all
 	$(J_HARNESS) t/01-sanity t/03-jvm t/04-nativecall
 
 # Run the spectests that we know work.

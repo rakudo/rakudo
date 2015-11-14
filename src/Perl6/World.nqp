@@ -828,7 +828,15 @@ class Perl6::World is HLL::World {
             elsif $*PKGDECL {
                 self.throw($/, 'X::Package::UseLib', :what($*PKGDECL) );
             }
-            return 0; # XXX carry on, while "lib" is still an actual file
+            my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+            for $arglist -> $arg {
+                my $REPO := $PROCESS.WHO<$REPO>;
+                if nqp::istype($REPO, NQPMu) {
+                    my &DYNAMIC := self.find_symbol(['&DYNAMIC']);
+                    $REPO := &DYNAMIC('$*REPO');
+                }
+                $PROCESS.WHO<$REPO> := self.find_symbol(['CompUnitRepo']).new($arg, :next-repo($REPO));
+            }
         }
         else {
             $DEBUG("  '$name' is not a valid pragma") if $DEBUG;

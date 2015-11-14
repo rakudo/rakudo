@@ -79,6 +79,13 @@ class array does Iterable is repr('VMArray') {
             nqp::push_i(self, $value);
             self
         }
+        multi method push(array:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'push to array',
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
         multi method append(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.is-lazy;
@@ -105,6 +112,13 @@ class array does Iterable is repr('VMArray') {
         multi method unshift(array:D: Int $value) {
             nqp::unshift_i(self, $value);
             self
+        }
+        multi method unshift(array:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'push to array',
+                got       => value,
+                expected  => T,
+            ).throw;
         }
         multi method unshift(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))

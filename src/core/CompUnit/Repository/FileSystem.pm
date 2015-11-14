@@ -1,5 +1,6 @@
 class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does CompUnit::Repository {
     has %!loaded;
+    has $!precomp;
 
     my %extensions =
       Perl6 => <pm6 pm>,
@@ -25,9 +26,11 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
         my $compunit;
 
+        return %!loaded{$name} if %!loaded{$name}:exists;
+
         if $handle {
             return %!loaded{$name} = %seen{$base} = CompUnit.new(
-              $base, :name($name), :extension(''), :has-precomp, :$handle, :repo(self)
+                $base, :name($name), :extension(''), :has-precomp, :$handle, :repo(self)
             );
         }
         else {
@@ -40,7 +43,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                                     !! $!prefix.abspath ~ $dir-sep ~ $file;
 
                     $compunit = %seen{$path} = CompUnit.new(
-                      $path, :name($name), :extension(''), :has_source, :repo(self)
+                        $path, :name($name), :extension(''), :has-source, :repo(self)
                     ) if IO::Path.new-from-absolute-path($path).f;
                 }
             }
@@ -64,8 +67,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         }
 
         if $compunit {
-            $compunit.load(:$line);
-            return %!loaded{$compunit.name} = $compunit;
+            if $precomp.may-precomp and $precomp.precompile($compunit, $id) {
+                $handle = $precomp.load($id);
+                return %!loaded{$name} = %seen{$base} = CompUnit.new(
+                    $base, :name($name), :extension(''), :has-precomp, :$handle, :repo(self)
+                );
+            }
+            else {
+                $compunit.load(:$line);
+                return %!loaded{$compunit.name} = $compunit;
+            }
         }
 
         return self.next-repo.need($spec, $precomp, :$line) if self.next-repo;
@@ -108,13 +119,14 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method precomp-repository() returns CompUnit::PrecompilationRepository {
-        CompUnit::PrecompilationRepository::Default.new(
+        $!precomp := CompUnit::PrecompilationRepository::Default.new(
             :store(
                 CompUnit::PrecompilationStore::File.new(
                     :prefix(self.prefix.child('.precomp')),
                 )
             ),
-        );
+        ) unless $!precomp;
+        $!precomp
     }
 }
 

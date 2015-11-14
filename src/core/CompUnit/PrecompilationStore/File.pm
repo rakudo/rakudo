@@ -22,13 +22,20 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         $path ~~ :e ?? $path.Str !! Str
     }
 
+    method destination(CompUnit::PrecompilationId $compiler-id,
+                       CompUnit::PrecompilationId $precomp-id)
+        returns IO::Path
+    {
+        my $dest = self!dir($compiler-id, $precomp-id);
+        $dest.mkdir;
+        $dest.child($precomp-id.IO)
+    }
+
     method store(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
                  Str:D $path)
     {
-        my $dest = self!dir($compiler-id, $precomp-id);
-        $dest.mkdir;
-        $path.IO.copy($dest.child($precomp-id.IO));
+        $path.IO.copy(self.destination($compiler-id, $precomp-id));
     }
 
     method delete(CompUnit::PrecompilationId $compiler-id, CompUnit::PrecompilationId $precomp-id)

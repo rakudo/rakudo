@@ -752,7 +752,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method !split-sanity(\v,\k,\kv,\p,\all) {
         if all {
-            # Deprecate ???
+            DEPRECATED("split(:v)", :what("split(:all)") );
             v = True;
         }
 

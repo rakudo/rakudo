@@ -23,14 +23,21 @@ class array does Iterable is repr('VMArray') {
         multi method ASSIGN-POS(array:D: Int:D $idx, int $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
+        multi method ASSIGN-POS(array:D: Any $idx, int $value) {
+            nqp::bindpos_i(self, $idx.Int, $value)
+        }
         multi method ASSIGN-POS(array:D: int $idx, Int:D $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Int:D $idx, Mu \value) {
-            nqp::bindpos_i(self, $idx, value)
+        multi method ASSIGN-POS(array:D: Int $idx, Int:D $value) {
+            nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Any:D $idx, Mu \value) {
-            nqp::bindpos_i(self, $idx.Int, value)
+        multi method ASSIGN-POS(array:D: Any $idx, Mu \value) {
+            X::TypeCheck.new(
+                operation => 'assignment to array',
+                got       => value,
+                expected  => T,
+            ).throw;
         }
 
         multi method STORE(array:D: $value) {

@@ -21,10 +21,27 @@ New in 2015.11:
    + Can now coerce to generic types in parameters
    + Can attach adverbs to variables
    + Illegal assigment of different Numeric values now caught at compile time
+   + &nextcallee implemented, which returns the routine that nextsame would invoke
  + Deprecated
    + IO::Handle.nl should either be IO::Handle.nl-in or .nl-out
    + IO::Handle.seek with a numerical value for 2nd parameter
    + Str.split( ... :all) should be written as :v
+ + Fixes
+   + RT #74414: the multi dispatcher now treats "is rw" paramters as tighter matches
+   + RT #125123: improved error message for type check failures in int-typed arrays
+   + RT #126436: improved error message for missing required attributes
+   + multi submethods aren't inherited to subclasses
+   + leading escape sequences representing whitespaces aren't stripped anymore from  heredocs
+ + Speedups:
+   + [+] and sum
+   + Blob.subbuf
+   + List.sort
+   + List.roll
+   + List.rotate
+   + List.reverse
+   + IO::Handle.getc
+ + Build system
+   + New options --sdkroot and --sysroot to Configure.pl to support cross buils
 
 New in 2015.10:
  + Features

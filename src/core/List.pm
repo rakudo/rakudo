@@ -16,7 +16,7 @@ my sub combinations(\n, \k) {
         method BUILD(\n,\k) {
             $!n = n;
             $!k = k;
-            $!stack       := nqp::list(0);
+            $!stack       := nqp::list_i(0);
             $!combination := nqp::list();
             self
         }
@@ -26,21 +26,21 @@ my sub combinations(\n, \k) {
             my int $n = $!n;
             my int $k = $!k;
 
-            while nqp::elems($!stack) {
-                my int $index = nqp::elems($!stack) - 1;
-                my int $value = nqp::pop($!stack);
+            while (my int $elems = nqp::elems($!stack)) {
+                my int $index = $elems - 1;
+                my int $value = nqp::pop_i($!stack);
 
                 while $value < $n && $index < $k {
-                    nqp::bindpos($!combination,$index,+$value);
+                    nqp::bindpos($!combination, $index, +$value);
                     $index = $index + 1;
                     $value = $value + 1;
-                    nqp::push($!stack,+$value);
+                    nqp::push_i($!stack, $value);
                 }
                 return nqp::clone($!combination) if $index == $k;
             }
             IterationEnd
         }
-    }.new(n,k))
+    }.new(n, k))
 }
 
 sub find-reducer-for-op($op) {

@@ -1,5 +1,10 @@
 class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has IO::Path $.prefix is required;
+    has IO::Handle $!lock;
+
+    submethod BUILD(IO::Path :$!prefix) {
+        $!prefix.mkdir;
+    }
 
     method !dir(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
@@ -15,11 +20,27 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         self!dir($compiler-id, $precomp-id).child($precomp-id.IO)
     }
 
+    method !lock(Int:D $mode) {
+        return if $*W && $*W.is_precompilation_mode();
+        $!lock //= $.prefix.child('.lock').open(:create, :rw);
+        $!lock.lock($mode);
+    }
+
+    method unlock() {
+        $!lock ?? $!lock.unlock !! True;
+    }
+
     method load(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
         my $path = self!path($compiler-id, $precomp-id);
-        $path ~~ :e ?? $path.Str !! Str
+        if $path ~~ :e {
+            self!lock(1);
+            $path.Str
+        }
+        else {
+             Str
+        }
     }
 
     method destination(CompUnit::PrecompilationId $compiler-id,
@@ -27,6 +48,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         returns IO::Path
     {
         my $dest = self!dir($compiler-id, $precomp-id);
+        self!lock(2);
         $dest.mkdir;
         $dest.child($precomp-id.IO)
     }
@@ -36,6 +58,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  Str:D $path)
     {
         $path.IO.copy(self.destination($compiler-id, $precomp-id));
+        self.unlock;
     }
 
     method delete(CompUnit::PrecompilationId $compiler-id, CompUnit::PrecompilationId $precomp-id)

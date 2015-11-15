@@ -24,6 +24,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $path {
             my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
             my $handle := CompUnit::Loader.load-precompilation-file($path);
+            self.store.unlock;
             nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
             CATCH {
                 default {
@@ -41,8 +42,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     method precompile(CompUnit:D $compunit, CompUnit::PrecompilationId $id) {
         my $io = self.store.destination($*PERL.compiler.id, $id);
         my $path = $compunit.path;
-        die "Cannot pre-compile over a newer existing file: $io"
-          if $io.e && $io.modified > $path.modified;
+        if $io.e && $io.modified > $path.IO.modified {
+            # someone else got there first between us checking for existence
+            # of the precomp file and write locking the store
+            self.store.unlock;
+            return True;
+        }
 
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
@@ -60,6 +65,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
         my $result = '';
         $result ~= $_ for $proc.out.lines;
         $proc.out.close;
+        self.store.unlock;
         if $proc.status -> $status {  # something wrong
             $result ~= "Return status $status\n";
             fail $result if $result;

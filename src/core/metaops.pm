@@ -171,7 +171,10 @@ multi sub METAOP_REDUCE_LEFT(\op) {
 #?if jvm
         my $ :=
 #?endif
-        sub (+values) {
+
+        op =:= &infix:<+>
+        ?? &sum
+        !! sub (+values) {
             my \iter = values.iterator;
             my \first = iter.pull-one;
             return op.() if first =:= IterationEnd;

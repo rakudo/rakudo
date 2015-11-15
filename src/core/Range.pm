@@ -478,6 +478,12 @@ my class Range is Cool does Iterable does Positional {
     method pop(|) is nodal {
         X::Immutable.new(:typename<Range>, :method<pop>).throw
     }   
+
+    method sum() {
+        my ($start,$stop) = self.int-bounds;
+        my $elems = $stop - $start + 1;
+        ($start + $stop) * $elems / 2;
+    }
 }
 
 sub infix:<..>($min, $max) is pure {

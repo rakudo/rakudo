@@ -11,6 +11,9 @@ my class X::Subscript::Negative { ... }
 
 my role  Numeric { ... }
 
+# We use a sentinel value to mark the end of an iteration.
+my constant IterationEnd = Mu.CREATE;
+
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
 
@@ -407,6 +410,15 @@ my class Any { # declared in BOOTSTRAP
     method print-nl() { self.print(self.nl-out) }
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
+
+    method sum() {
+        my \iter = self.iterator;
+        my $sum = 0;
+        until (my \value = iter.pull-one) =:= IterationEnd {
+            $sum := $sum + value;
+        }
+        $sum;
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
@@ -462,6 +474,8 @@ multi sub elems($a) { $a.elems }
 
 proto sub end(|) { * }
 multi sub end($a) { $a.end }
+
+sub sum(Any \SELF) { SELF.sum }
 
 sub classify( $test, +items, *%named ) {
     if %named.EXISTS-KEY("into") {

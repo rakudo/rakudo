@@ -1,6 +1,3 @@
-# We use a sentinel value to mark the end of an iteration.
-my constant IterationEnd = Mu.CREATE;
-
 # The Iterator role defines the API for an iterator and provides simple
 # fallback implementations for most of it, so any given iterator can pick
 # and choose what bits it can implement better for performance and/or

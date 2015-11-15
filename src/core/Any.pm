@@ -414,9 +414,9 @@ my class Any { # declared in BOOTSTRAP
     method sum() {
         my \iter = self.iterator;
         my $sum = 0;
-        until (my \value = iter.pull-one) =:= IterationEnd {
-            $sum := $sum + value;
-        }
+        my Mu $value;
+        $sum = $sum + $value
+          until ($value := iter.pull-one) =:= IterationEnd;
         $sum;
     }
 }

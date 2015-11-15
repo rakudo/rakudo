@@ -115,24 +115,11 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
             my int $DEBUG = $*RAKUDO_MODULE_DEBUG;
             RAKUDO_MODULE_DEBUG("going to load $!name") if $DEBUG;
 
-            my %chosen;
-            %chosen<pm>   = ~$!path           if $!has-source;
-            %chosen<load> = self.precomp-path if $!has-precomp;
-            %chosen<key>  = %chosen<pm> // %chosen<load>;
-
             my @MODULES = nqp::clone(@*MODULES // ());
             for @MODULES -> $m {
                 if $m<module> && $m<module> eq $!name {
                     nqp::die("Circular module loading detected involving module '$!name'");
                 }
-            }
-
-            if $DEBUG {
-                my $text := "chosen:";
-                for %chosen {
-                    $text := $text ~ "\n " ~ $_.key ~ ' => ' ~ $_.value;
-                }
-                RAKUDO_MODULE_DEBUG($text);
             }
 
             # If we didn't already do so, load the module and capture
@@ -148,31 +135,15 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
                     @*MODULES[*-1] = { line => $line };
                 }
 
-                my $trace            = { module => $!name, filename => %chosen<pm> };
+                my $trace            = { module => $!name, filename => ~$!path };
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
                 @*MODULES.push: $trace;
 
-                if %chosen<load> {
-                    $trace<precompiled> = %chosen<load>;
-                    RAKUDO_MODULE_DEBUG("loading ", %chosen<load>) if $DEBUG;
-                    $!handle := CompUnit::Loader.load-precompilation-file(%chosen<load>);
-                    RAKUDO_MODULE_DEBUG("  done: ", %chosen<load>) if $DEBUG;
-                }
-                else {
-                    # If we're doing module pre-compilation, we should only
-                    # allow the modules we load to be pre-compiled also.
-                    if $*W && $*W.is_precompilation_mode() {
-                        nqp::die(
-                            "When pre-compiling a module, its dependencies must be pre-compiled first.\n" ~
-                            "Please pre-compile " ~ %chosen<pm>);
-                    }
+                # Read source file.
+                RAKUDO_MODULE_DEBUG("loading ", ~$!path) if $DEBUG;
 
-                    # Read source file.
-                    RAKUDO_MODULE_DEBUG("loading ", %chosen<pm>) if $DEBUG;
-
-                    $!handle := CompUnit::Loader.load-source-file(%chosen<pm>);
-                    RAKUDO_MODULE_DEBUG("done: ", %chosen<pm>) if $DEBUG;
-                }
+                $!handle := CompUnit::Loader.load-source-file(~$!path);
+                RAKUDO_MODULE_DEBUG("done: ", $!path) if $DEBUG;
 
                 nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                 $!is-loaded = True;

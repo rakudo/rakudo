@@ -5,7 +5,7 @@ class CompUnit::DependencySpecification {
     has $.api-matcher = True;
 
     method Str(CompUnit::DependencySpecification:D:) {
-        return "{$.short-name}:ver<{$.version-matcher}>:auth<{$.auth-matcher}>:api<{$.api-matcher}>";
+        return "{$.short-name}:ver<{$.version-matcher // 'True'}>:auth<{$.auth-matcher // 'True'}>:api<{$.api-matcher // 'True'}>";
     }
 }
 

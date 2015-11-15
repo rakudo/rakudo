@@ -3,6 +3,8 @@
 #else
 #define DLLEXPORT extern
 #endif
+#include <stdbool.h>
+#include <stddef.h>
 
 typedef struct {
     char  foo1;
@@ -59,4 +61,12 @@ DLLEXPORT int SizeofLng() {
 
 DLLEXPORT int SizeofPtr() {
     return sizeof(void *);
+}
+
+DLLEXPORT int SizeofBool() {
+    return sizeof(bool);
+}
+
+DLLEXPORT int SizeofSizeT() {
+    return sizeof(size_t);
 }

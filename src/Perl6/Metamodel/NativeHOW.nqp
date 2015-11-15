@@ -81,6 +81,12 @@ class Perl6::Metamodel::NativeHOW
         elsif $ctype eq 'longdouble' {
             $!nativesize := nqp::const::C_TYPE_LONGDOUBLE;
         }
+        elsif $ctype eq 'bool' {
+            $!nativesize := nqp::const::C_TYPE_BOOL;
+        }
+        elsif $ctype eq 'size_t' {
+            $!nativesize := nqp::const::C_TYPE_SIZE_T;
+        }
         else {
             nqp::die("Unhandled C type '$ctype'")
         }

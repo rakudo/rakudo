@@ -19,11 +19,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         returns CompUnit:D
     {
         state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
-        my $dir-sep           := $*SPEC.dir-sep;
         my $name               = $spec.short-name;
         my $id = nqp::sha1($name ~ $*REPO.id);
         my $handle = $precomp.may-precomp ?? $precomp.load($id) !! CompUnit::Handle;
-        my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
+        my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
         my $compunit;
 
         return %!loaded{$name} if %!loaded{$name}:exists;
@@ -35,12 +34,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         }
         else {
             # pick a META6.json if it is there
-            if (my $meta = ($!prefix.abspath ~ $dir-sep ~ 'META6.json').IO) && $meta.f {
+            if (my $meta = $!prefix.child('META6.json')) && $meta.f {
                 my $json = from-json $meta.slurp;
                 if $json<provides>{$name} -> $file {
-                    my $path        = $file.IO.is-absolute
-                                    ?? $file
-                                    !! $!prefix.abspath ~ $dir-sep ~ $file;
+                    my $path = $file.IO.is-absolute ?? $file !! $!prefix.child($file);
 
                     $compunit = %seen{$path} = CompUnit.new(
                         $path, :name($name), :extension(''), :has-source, :repo(self)
@@ -85,13 +82,12 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method load(Str:D $file, :$line) returns CompUnit:D {
         state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
-        my $dir-sep           := $*SPEC.dir-sep;
 
         # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
         my $has_precomp = $file.ends-with($precomp-ext);
         my $path = $file.IO.is-absolute
                 ?? $file
-                !! $!prefix.abspath ~ $dir-sep ~ $file;
+                !! $!prefix.child($file);
 
         if IO::Path.new-from-absolute-path($path).f {
             my $compunit = %seen{$path} = CompUnit.new(

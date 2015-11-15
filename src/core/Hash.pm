@@ -432,7 +432,7 @@ my class Hash { # declared in BOOTSTRAP
                 has $!hash-iter;
 
                 method new(\hash, $class) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!hash-iter',
                         nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
                     iter
@@ -456,7 +456,7 @@ my class Hash { # declared in BOOTSTRAP
                 has $!current-value;
 
                 method new(\hash, $class, $storage) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!hash-iter',
                         nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
                     nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
@@ -489,7 +489,7 @@ my class Hash { # declared in BOOTSTRAP
                 has $!storage;
 
                 method new(\hash, $class, $storage) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!hash-iter',
                         nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
                     nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));

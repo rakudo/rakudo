@@ -12,7 +12,7 @@ my class X::Subscript::Negative { ... }
 my role  Numeric { ... }
 
 # We use a sentinel value to mark the end of an iteration.
-my constant IterationEnd = Mu.CREATE;
+my constant IterationEnd = nqp::create(Mu);
 
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {

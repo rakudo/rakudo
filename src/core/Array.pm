@@ -15,7 +15,7 @@ my class Array { # declared in BOOTSTRAP
         has $!descriptor;
 
         method new(\target, Mu \descriptor) {
-            my \rt = self.CREATE;
+            my \rt = nqp::create(self);
             nqp::bindattr(rt, self, '$!target', target);
             nqp::bindattr(rt, self, '$!descriptor', descriptor);
             rt
@@ -31,7 +31,7 @@ my class Array { # declared in BOOTSTRAP
         has $!target;
 
         method new(\target) {
-            nqp::p6bindattrinvres(self.CREATE, self, '$!target', target);
+            nqp::p6bindattrinvres(nqp::create(self), self, '$!target', target);
         }
 
         method push(Mu \value) {
@@ -41,9 +41,9 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method from-iterator(Array:U: Iterator $iter) {
-        my \result := self.CREATE;
-        my \buffer := IterationBuffer.CREATE;
-        my \todo := List::Reifier.CREATE;
+        my \result := nqp::create(self);
+        my \buffer := nqp::create(IterationBuffer);
+        my \todo := nqp::create(List::Reifier);
         nqp::bindattr(result, List, '$!reified', buffer);
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
@@ -313,7 +313,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method !ensure-allocated() {
-        nqp::bindattr(self, List, '$!reified', IterationBuffer.CREATE)
+        nqp::bindattr(self, List, '$!reified', nqp::create(IterationBuffer))
             unless nqp::getattr(self, List, '$!reified').DEFINITE;
     }
 
@@ -344,7 +344,7 @@ my class Array { # declared in BOOTSTRAP
         self!STORE-ONE(item)
     }
     method !STORE-ITERABLE(\iterable) {
-        my \new-storage = IterationBuffer.CREATE;
+        my \new-storage = nqp::create(IterationBuffer);
         my \iter = iterable.iterator;
         my \target = ArrayReificationTarget.new(new-storage,
             nqp::decont($!descriptor));
@@ -352,7 +352,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindattr(self, List, '$!todo', Mu);
         }
         else {
-            my \new-todo = List::Reifier.CREATE;
+            my \new-todo = nqp::create(List::Reifier);
             nqp::bindattr(new-todo, List::Reifier, '$!reified', new-storage);
             nqp::bindattr(new-todo, List::Reifier, '$!current-iter', iter);
             nqp::bindattr(new-todo, List::Reifier, '$!reification-target', target);
@@ -362,7 +362,7 @@ my class Array { # declared in BOOTSTRAP
         self
     }
     method !STORE-ONE(Mu \item) {
-        my \new-storage = IterationBuffer.CREATE;
+        my \new-storage = nqp::create(IterationBuffer);
         nqp::push(new-storage,
             nqp::assign(nqp::p6scalarfromdesc($!descriptor), item));
         nqp::bindattr(self, List, '$!reified', new-storage);
@@ -382,8 +382,8 @@ my class Array { # declared in BOOTSTRAP
     multi method List(Array:D:) {
         self!ensure-allocated;
         X::Cannot::Lazy.new(:action<List>).throw if self.is-lazy;
-        my \retval := List.CREATE;
-        my \reified := IterationBuffer.CREATE;
+        my \retval := nqp::create(List);
+        my \reified := nqp::create(IterationBuffer);
         nqp::bindattr(retval, List, '$!reified', reified);
         my \target := ListReificationTarget.new(reified);
         self.iterator.push-all(target);
@@ -586,7 +586,7 @@ my class Array { # declared in BOOTSTRAP
         self!prepend-list(@values)
     }
     method !prepend-list(@values) {
-        my \containers := IterationBuffer.CREATE;
+        my \containers := nqp::create(IterationBuffer);
         my \target := ArrayReificationTarget.new(containers,
             nqp::decont($!descriptor));
 
@@ -795,14 +795,14 @@ my class Array { # declared in BOOTSTRAP
 # The [...] term creates an Array.
 proto circumfix:<[ ]>(|) { * }
 multi circumfix:<[ ]>() {
-    my \result = Array.CREATE;
-    nqp::bindattr(result, List, '$!reified', IterationBuffer.CREATE);
+    my \result = nqp::create(Array);
+    nqp::bindattr(result, List, '$!reified', nqp::create(IterationBuffer));
     result
 }
 multi circumfix:<[ ]>(Iterable:D \iterable) {
     if nqp::iscont(iterable) {
-        my \result = Array.CREATE;
-        my \buffer = IterationBuffer.CREATE;
+        my \result = nqp::create(Array);
+        my \buffer = nqp::create(IterationBuffer);
         buffer.push(iterable);
         nqp::bindattr(result, List, '$!reified', buffer);
         result
@@ -813,15 +813,15 @@ multi circumfix:<[ ]>(Iterable:D \iterable) {
 }
 multi circumfix:<[ ]>(|) {
     my \in      = nqp::p6argvmarray();
-    my \result  = Array.CREATE;
-    my \reified = IterationBuffer.CREATE;
+    my \result  = nqp::create(Array);
+    my \reified = nqp::create(IterationBuffer);
     nqp::bindattr(result, List, '$!reified', reified);
     while nqp::elems(in) {
         if nqp::istype(nqp::atpos(in, 0), Slip) {
             # We saw a Slip, which may expand to something lazy. Put all that
             # remains in the future, and let normal reification take care of
             # it.
-            my \todo := List::Reifier.CREATE;
+            my \todo := nqp::create(List::Reifier);
             nqp::bindattr(result, List, '$!todo', todo);
             nqp::bindattr(todo, List::Reifier, '$!reified', reified);
             nqp::bindattr(todo, List::Reifier, '$!future', in);

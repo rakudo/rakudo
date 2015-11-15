@@ -28,7 +28,7 @@ augment class Any {
                 has &!block;
 
                 method new(\source, &block) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!source', source);
                     nqp::bindattr(iter, self, '&!block', &block);
                     iter
@@ -61,7 +61,7 @@ augment class Any {
         has $!label;
 
         method new(&block, $source, $count, $label) {
-            my $iter := self.CREATE;
+            my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!count', $count);
@@ -907,7 +907,7 @@ augment class Any {
         my $transform-buffer;
         if $transform {
             $transform-buffer := IterationBuffer.new;
-            my \to-map = nqp::p6bindattrinvres(List.CREATE, List, '$!reified',
+            my \to-map = nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
                 sort-buffer);
             to-map.map(&by).iterator.push-all($transform-buffer);
         }

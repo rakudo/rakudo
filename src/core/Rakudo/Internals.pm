@@ -26,7 +26,7 @@ my class Rakudo::Internals {
         has $!last;
         has $!whatever;
         method new(\source) {
-            my $iter := self.CREATE;
+            my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!source', source);
             nqp::bindattr($iter, self, '$!whatever', False);
             $iter
@@ -60,7 +60,7 @@ my class Rakudo::Internals {
         has $!i;
         has $!elems;
         method new(\source) {
-            my $iter := self.CREATE;
+            my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!source', source);
             nqp::bindattr($iter, self, '$!buffer', IterationBuffer.new);
             nqp::bindattr($iter, self, '$!ended', False);

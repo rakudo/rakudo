@@ -20,7 +20,7 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
         has $!star;
 
         method new(\target, \star) {
-            my \rt = self.CREATE;
+            my \rt = nqp::create(self);
             nqp::bindattr(rt, self, '$!target', target);
             nqp::bindattr(rt, self, '$!star', star);
             rt
@@ -48,8 +48,8 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
 
 
     my \pos-iter = pos.iterator;
-    my \pos-list = List.CREATE;
-    my \eager-indices = IterationBuffer.CREATE;
+    my \pos-list = nqp::create(List);
+    my \eager-indices = nqp::create(IterationBuffer);
     my \target = IndicesReificationTarget.new(eager-indices, $eagerize);
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
     unless pos-iter.push-until-lazy(target) =:= IterationEnd {
@@ -59,7 +59,7 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
             last unless $eagerize($i);
             $i
         };
-        my \todo := List::Reifier.CREATE;
+        my \todo := nqp::create(List::Reifier);
         nqp::bindattr(todo, List::Reifier, '$!reified', eager-indices);
         nqp::bindattr(todo, List::Reifier, '$!current-iter', rest-seq.iterator);
         nqp::bindattr(todo, List::Reifier, '$!reification-target', eager-indices);
@@ -503,7 +503,7 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw
 sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
     my \target = IterationBuffer.new;
     MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
-    nqp::p6bindattrinvres(List.CREATE, List, '$!reified', target)
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {

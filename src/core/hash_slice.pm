@@ -199,7 +199,7 @@ sub MD-HASH-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
 multi sub postcircumfix:<{; }>(\SELF, @indices) {
     my \target = IterationBuffer.new;
     MD-HASH-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
-    nqp::p6bindattrinvres(List.CREATE, List, '$!reified', target)
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
 }
 
 # vim: ft=perl6 expandtab sw=4

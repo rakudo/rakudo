@@ -545,7 +545,7 @@ multi sub deepmap(\op, \obj) {
         has $!source;
 
         method new(&block, $source) {
-            my $iter := self.CREATE;
+            my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             $iter

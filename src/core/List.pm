@@ -171,9 +171,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method from-iterator(List:U: Iterator $iter) {
-        my \result := self.CREATE;
-        my \buffer := IterationBuffer.CREATE;
-        my \todo := Reifier.CREATE;
+        my \result := nqp::create(self);
+        my \buffer := nqp::create(IterationBuffer);
+        my \todo := nqp::create(Reifier);
         nqp::bindattr(result, List, '$!reified', buffer);
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, Reifier, '$!reified', buffer);
@@ -185,9 +185,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method from-slurpy(|) {
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        my \result := self.CREATE;
-        my \buffer := IterationBuffer.CREATE;
-        my \todo := List::Reifier.CREATE;
+        my \result := nqp::create(self);
+        my \buffer := nqp::create(IterationBuffer);
+        my \todo := nqp::create(List::Reifier);
         nqp::bindattr(result, List, '$!reified', buffer);
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
@@ -208,9 +208,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::istype(self,Array) ?? consider.cache !! consider;
             }
             else {
-                my \result := self.CREATE;
-                my \buffer := IterationBuffer.CREATE;
-                my \todo := List::Reifier.CREATE;
+                my \result := nqp::create(self);
+                my \buffer := nqp::create(IterationBuffer);
+                my \todo := nqp::create(List::Reifier);
                 nqp::bindattr(result, List, '$!reified', buffer);
                 nqp::bindattr(result, List, '$!todo', todo);
                 nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
@@ -228,7 +228,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method from-slurpy-flat(|) {
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        my \future = IterationBuffer.CREATE;
+        my \future = nqp::create(IterationBuffer);
         my int $i = 0;
         my int $n = nqp::elems(vm-tuple);
         while $i < $n {
@@ -244,9 +244,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             $i = $i + 1;
         }
 
-        my \result := self.CREATE;
-        my \buffer := IterationBuffer.CREATE;
-        my \todo := List::Reifier.CREATE;
+        my \result := nqp::create(self);
+        my \buffer := nqp::create(IterationBuffer);
+        my \todo := nqp::create(List::Reifier);
         nqp::bindattr(result, List, '$!reified', buffer);
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
@@ -257,8 +257,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method new(**@things) {
-        my \list = self.CREATE;
-        my \iterbuffer = IterationBuffer.CREATE;
+        my \list = nqp::create(self);
+        my \iterbuffer = nqp::create(IterationBuffer);
         nqp::bindattr(list, List, '$!reified', iterbuffer);
         for @things {
             my $no-sink := iterbuffer.push($_);
@@ -267,7 +267,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method !ensure-allocated() {
-        $!reified := IterationBuffer.CREATE unless $!reified.DEFINITE;
+        $!reified := nqp::create(IterationBuffer) unless $!reified.DEFINITE;
     }
 
     multi method Bool(List:D:) {
@@ -622,7 +622,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         else {
             # We're fully reified - and so immutable inside and out! Just make
             # a Slip that shares our reified buffer.
-            my \result := Slip.CREATE;
+            my \result := nqp::create(Slip);
             nqp::bindattr(result, List, '$!reified', $!reified);
             result
         }
@@ -645,7 +645,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my $cap := nqp::create(Capture);
         nqp::bindattr($cap, Capture, '$!list', $!reified);
 
-        my \positional := IterationBuffer.CREATE;
+        my \positional := nqp::create(IterationBuffer);
         my Mu $hash := nqp::hash();
         my int $c = nqp::elems($!reified);
         my int $i = 0;
@@ -932,20 +932,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 # The , operator produces a List.
 proto sub infix:<,>(|) is pure {*}
 multi sub infix:<,>() {
-    my \result = List.CREATE;
-    nqp::bindattr(result, List, '$!reified', BEGIN IterationBuffer.CREATE);
+    my \result = nqp::create(List);
+    nqp::bindattr(result, List, '$!reified', BEGIN nqp::create(IterationBuffer));
     result
 }
 multi sub infix:<,>(|) {
-    my \result  = List.CREATE;
+    my \result  = nqp::create(List);
     my \in      = nqp::p6argvmarray();
-    my \reified = IterationBuffer.CREATE;
+    my \reified = nqp::create(IterationBuffer);
     nqp::bindattr(result, List, '$!reified', reified);
     while nqp::elems(in) {
         if nqp::istype(nqp::atpos(in, 0), Slip) {
             # We saw a Slip, so we'll lazily deal with the rest of the things
             # (as the Slip may expand to something lazy).
-            my \todo := List::Reifier.CREATE;
+            my \todo := nqp::create(List::Reifier);
             nqp::bindattr(result, List, '$!todo', todo);
             nqp::bindattr(todo, List::Reifier, '$!reified', reified);
             nqp::bindattr(todo, List::Reifier, '$!future', in);

@@ -535,7 +535,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $samespace,
             );
             if $global {
-                my \result := List.CREATE;
+                my \result := nqp::create(List);
                 nqp::bindattr(result, List, '$!reified', nqp::getattr(@matches, List, '$!reified'));
                 result
             }

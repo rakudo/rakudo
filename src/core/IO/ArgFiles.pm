@@ -60,7 +60,7 @@ my class IO::ArgFiles is IO::Handle {
             has $!ins;
 
             method new(\args, \ins, \limit, \next-io) {
-                my \iter = self.CREATE;
+                my \iter = nqp::create(self);
                 nqp::bindattr(iter, self, '$!args', args);
                 nqp::bindattr(iter, self, '$!ins', ins);
                 nqp::bindattr(iter, self, '$!next-io', next-io);

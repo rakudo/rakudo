@@ -26,7 +26,7 @@ my role Iterable {
                 iter
             }
 
-            my constant NO_RESULT_YET = Mu.CREATE;
+            my constant NO_RESULT_YET = nqp::create(Mu);
             method pull-one() is raw {
                 my $result := NO_RESULT_YET;
                 my $got;
@@ -89,7 +89,7 @@ my role Iterable {
             has $!iterator;
 
             method new(\iterable) {
-                my \iter = self.CREATE;
+                my \iter = nqp::create(self);
                 nqp::bindattr(iter, self, '$!iterable', iterable);
                 iter
             }
@@ -122,7 +122,7 @@ my role Iterable {
             has $!configuration;
 
             method new(\iter, $configuration) {
-                my \hyper-iter = self.CREATE;
+                my \hyper-iter = nqp::create(self);
                 nqp::bindattr(hyper-iter, self, '$!source', iter);
                 nqp::bindattr(hyper-iter, self, '$!configuration', $configuration);
                 hyper-iter

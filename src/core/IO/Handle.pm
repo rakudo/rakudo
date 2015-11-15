@@ -736,6 +736,14 @@ my class IO::Handle does IO {
         self.opened && nqp::p6bool(nqp::isttyfh($!PIO))
     }
 
+    method lock(IO::Handle:D: Int:D $flag) {
+        nqp::lockfh($!PIO, $flag)
+    }
+
+    method unlock(IO::Handle:D: --> True) {
+        nqp::unlockfh($!PIO);
+    }
+
 
     proto method print(|) { * }
     multi method print(IO::Handle:D: str:D \x --> True) {

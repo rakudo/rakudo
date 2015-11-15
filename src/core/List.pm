@@ -284,6 +284,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to()      { self.elems ?? self[self.end].to !! Nil }
     method from()    { self.elems ?? self[0].from !! Nil }
 
+    method sum() {
+        my int $elems = self.elems;
+        my $list := nqp::getattr(self,List,'$!reified');
+        my $sum = 0;
+        my int $i = -1;
+        $sum = $sum + nqp::atpos($list,$i) while ($i = $i + 1) < $elems;
+        $sum
+    }
+
     method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);
     }

@@ -139,20 +139,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             $file-id++;
         }
 
-        if !$has-provides && $d.files.keys.first(/^blib\W/) {
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
-            my ($red, $green, $yellow, $clear) = $color
-                ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
-                !! ("", "", "", "");
-            my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
-
-            note "$red==={$clear}WARNING!$red===$clear
-The distribution $d.name() does not seem to have a \"provides\" section in its META.info file,
-and so the packages will not be installed in the correct location.
-Please ask the author to add a \"provides\" section, mapping every exposed namespace to a
-file location in the distribution.
-See http://design.perl6.org/S22.html#provides for more information.\n";
-        }
+        provides-warning($is-win, $d.name) if !$has-provides and $d.files.keys.first(/^blib\W/);
 
         $repo<dists>[$d.id] = $d.Hash;
 
@@ -239,6 +226,21 @@ See http://design.perl6.org/S22.html#provides for more information.\n";
 
     method loaded() returns Iterable {
         return %!loaded.values;
+    }
+
+    sub provides-warning($is-win, $name) {
+        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
+        my ($red, $green, $yellow, $clear) = $color
+            ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
+            !! ("", "", "", "");
+        my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
+
+        note "$red==={$clear}WARNING!$red===$clear
+The distribution $name does not seem to have a \"provides\" section in its META.info file,
+and so the packages will not be installed in the correct location.
+Please ask the author to add a \"provides\" section, mapping every exposed namespace to a
+file location in the distribution.
+See http://design.perl6.org/S22.html#provides for more information.\n";
     }
 }
 

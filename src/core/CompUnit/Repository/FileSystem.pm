@@ -22,7 +22,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         my $dir-sep           := $*SPEC.dir-sep;
         my $name               = $spec.short-name;
         my $id = nqp::sha1($name ~ $*REPO.id);
-        my $handle = $precomp.load($id);
+        my $handle = $precomp.may-precomp ?? $precomp.load($id) !! CompUnit::Handle;
         my $base := $!prefix.abspath ~ $dir-sep ~ $name.subst(:g, "::", $dir-sep) ~ '.';
         my $compunit;
 

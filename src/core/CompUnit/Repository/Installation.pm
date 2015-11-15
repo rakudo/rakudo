@@ -2,6 +2,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has %!dists;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has %!loaded;
+    has $!precomp;
 
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) {
         my $manifest := $!prefix.child("MANIFEST");
@@ -108,11 +109,20 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
             if [||] @provides>>.ACCEPTS($file) -> $/ {
+                my $name = $/.ast;
                 $has-provides = True;
-                $d.provides{ $/.ast }{ $<ext> } = {
+                $d.provides{ $name }{ $<ext> } = {
                     :file($file-id),
                     :time(try $file.IO.modified.Num),
                     :$!cver
+                }
+                my $precomp = self.precomp-repository;
+                if $precomp.may-precomp {
+                    my $id = nqp::sha1($name ~ self.id);
+                    my $compunit = CompUnit.new(
+                        $file, :$name, :extension(''), :has-source, :repo(self)
+                    );
+                    $precomp.precompile($compunit, $id);
                 }
             }
             else {
@@ -226,6 +236,17 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     method loaded() returns Iterable {
         return %!loaded.values;
+    }
+
+    method precomp-repository() returns CompUnit::PrecompilationRepository {
+        $!precomp := CompUnit::PrecompilationRepository::Default.new(
+            :store(
+                CompUnit::PrecompilationStore::File.new(
+                    :prefix(self.prefix.child('precomp')),
+                )
+            ),
+        ) unless $!precomp;
+        $!precomp
     }
 
     sub provides-warning($is-win, $name) {

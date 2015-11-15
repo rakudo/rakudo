@@ -73,43 +73,6 @@ class CompUnit {
         $!has-precomp ?? $*VM.precomp-ext !! $!extension;
     }
 
-    method precomp(CompUnit:D:
-      $out  = self.precomp-path,
-      :$INC = @*INC,
-      :$force,
-    ) {
-
-        my $io = $out.IO;
-        die "Cannot pre-compile over a newer existing file: $out"
-          if $io.e && !$force && $io.modified > $!path.modified;
-
-        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
-        my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
-          ?? ' --ll-exception'
-          !! '';
-        %*ENV<RAKUDO_PRECOMP_WITH> = CREATE-INCLUDE-SPECS(@$INC);
-
-RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
-  if $*RAKUDO_MODULE_DEBUG;
-
-        my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$out $!path";
-        my $proc = shell("$cmd 2>&1", :out, :!chomp);
-        %*ENV<RAKUDO_PRECOMP_WITH>:delete;
-
-        my $result = '';
-        $result ~= $_ for $proc.out.lines;
-        $proc.out.close;
-        if $proc.status -> $status {  # something wrong
-            $result ~= "Return status $status\n";
-            fail $result if $result;
-        }
-        note $result if $result;
-
-
-        $!has-precomp = True if $out eq self.precomp-path;
-        True;
-    }
-
     method load(CompUnit:D: :$line) {
         $global.protect( {
             my int $DEBUG = $*RAKUDO_MODULE_DEBUG;

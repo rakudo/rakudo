@@ -124,7 +124,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         )
                         ~ self.id
                     );
-                    $precomp.precompile($file, $id);
+                    $precomp.precompile($file.IO, $id);
                 }
             }
             else {
@@ -240,7 +240,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method load(Str:D $file) returns CompUnit:D {
+    method load(IO::Path:D $file) returns CompUnit:D {
         return self.next-repo.load($file) if self.next-repo;
         nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }

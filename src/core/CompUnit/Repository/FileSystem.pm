@@ -31,7 +31,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             if (my $meta = $!prefix.child('META6.json')) && $meta.f {
                 my $json = from-json $meta.slurp;
                 if $json<provides>{$name} -> $file {
-                    my $path = $file.IO.is-absolute ?? $file !! $!prefix.child($file);
+                    my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
                     $found = $path if IO::Path.new-from-absolute-path($path).f;
                 }
             }
@@ -45,7 +45,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 elsif %extensions<Perl6> -> @extensions {
                     for @extensions -> $extension {
                         my $path = $base ~ $extension;
-                        $found = $path if IO::Path.new-from-absolute-path($path).f;
+                        $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
                     }
                 }
             }
@@ -65,18 +65,18 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method load(Str:D $file) returns CompUnit:D {
+    method load(IO::Path:D $file) returns CompUnit:D {
         state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
 
         # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
-        my $has_precomp = $file.ends-with($precomp-ext);
-        my $path = $file.IO.is-absolute
+        my $has_precomp = $file.Str.ends-with($precomp-ext);
+        my $path = $file.is-absolute
                 ?? $file
                 !! $!prefix.child($file);
 
-        if IO::Path.new-from-absolute-path($path).f {
+        if $path.f {
             return %!loaded{$file} = %seen{$path} = CompUnit.new(
-                :handle(CompUnit::Loader.load-source-file($path)), :name($file), :repo(self)
+                :handle(CompUnit::Loader.load-source-file($path)), :name($file.Str), :repo(self)
             );
         }
 

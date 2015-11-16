@@ -12,7 +12,7 @@ role CompUnit::Repository {
         { ... }
 
     # Just load the file and return a CompUnit object representing it.
-    method load(Str:D $file)
+    method load(IO::Path:D $file)
         returns CompUnit:D
         { ... }
 

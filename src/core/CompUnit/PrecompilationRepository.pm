@@ -39,9 +39,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
     }
 
-    method precompile(Str:D $path, CompUnit::PrecompilationId $id) {
+    method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id) {
         my $io = self.store.destination($*PERL.compiler.id, $id);
-        if $io.e && $io.modified > $path.IO.modified {
+        if $io.e && $io.modified > $path.modified {
             # someone else got there first between us checking for existence
             # of the precomp file and write locking the store
             self.store.unlock;

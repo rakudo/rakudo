@@ -1,10 +1,10 @@
 class CompUnit::Loader is repr('Uninstantiable') {
     # Load a file from source and compile it
-    method load-source-file(Str $path) returns CompUnit::Handle {
+    method load-source-file(IO::Path $path) returns CompUnit::Handle {
         # Get the compiler and compile the code, then run it
         # (which runs the mainline and captures UNIT).
-        my $?FILES   := $path;
-        self.load-source($path.IO.slurp(:bin))
+        my $?FILES   := $path.Str;
+        self.load-source($path.slurp(:bin))
     }
 
     # Decode the specified byte buffer as source code, and compile it
@@ -30,11 +30,11 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 
     # Load a pre-compiled file
-    method load-precompilation-file(Str $path) returns CompUnit::Handle {
+    method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
         my $*CTXSAVE := self;
         my %*COMPILING := nqp::hash();
         my Mu $*MAIN_CTX;
-        nqp::loadbytecode($path);
+        nqp::loadbytecode($path.Str);
         CompUnit::Handle.new($*MAIN_CTX)
     }
 

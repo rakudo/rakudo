@@ -12,7 +12,7 @@ role CompUnit::PrecompilationStore {
     # under the given compiler ID and precompilation ID.
     method store(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
-                 Str:D $path)
+                 IO::Path:D $path)
     { ... }
 
     # Delete an individual precompilation.

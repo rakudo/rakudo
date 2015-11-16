@@ -36,10 +36,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         my $path = self!path($compiler-id, $precomp-id);
         if $path ~~ :e {
             self!lock(1);
-            $path.Str
+            $path
         }
         else {
-             Str
+             IO::Path
         }
     }
 
@@ -55,9 +55,9 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method store(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
-                 Str:D $path)
+                 IO::Path:D $path)
     {
-        $path.IO.copy(self.destination($compiler-id, $precomp-id));
+        $path.copy(self.destination($compiler-id, $precomp-id));
         self.unlock;
     }
 

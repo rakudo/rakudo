@@ -95,7 +95,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                 else {
                     my $compunit := (
                         $file
-                        ?? $*REPO.load($file)
+                        ?? $*REPO.load($file.IO)
                         !! $*REPO.need(
                             CompUnit::DependencySpecification.new(
                                 :short-name($module_name),

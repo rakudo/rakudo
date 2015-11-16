@@ -32,7 +32,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
 
-    method new_type(:$name, :$ver, :$auth, :$repr, :$signatured, *%extra) {
+    method new_type(:$name, :$ver, :$auth, :$repr, :$signatured, :$longname, *%extra) {
         my $metarole := self.new(:signatured($signatured), :specialize_lock(NQPLock.new));
         my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
         $metarole.set_name($type, $name // "<anon|{nqp::objectid($metarole)}>");
@@ -42,7 +42,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         if nqp::existskey(%extra, 'group') {
             $metarole.set_group($type, %extra<group>);
         }
-        self.add_stash($type);
+        self.add_stash($type, $longname);
     }
     
     method parameterize($obj, *@pos_args, *%named_args) {

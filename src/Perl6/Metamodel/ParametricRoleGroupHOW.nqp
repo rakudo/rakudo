@@ -36,11 +36,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $selector_creator := $sc;
     }
 
-    method new_type(:$name!, :$repr) {
+    method new_type(:$name!, :$repr, :$longname) {
         # Build and configure the type's basic details.
         my $meta := self.new(:selector($selector_creator()));
         my $type_obj := self.add_stash(nqp::settypehll(
-            nqp::newtype($meta, 'Uninstantiable'), 'perl6'));
+            nqp::newtype($meta, 'Uninstantiable'), 'perl6'), $longname);
         $meta.set_name($type_obj, $name);
         $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);

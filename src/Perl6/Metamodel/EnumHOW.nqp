@@ -49,12 +49,12 @@ class Perl6::Metamodel::EnumHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
     
-    method new_type(:$name!, :$base_type!) {
+    method new_type(:$name!, :$base_type!, :$longname) {
         my $meta := self.new();
         my $obj  := nqp::settypehll(nqp::newtype($meta, 'P6opaque'), 'perl6');
         $meta.set_name($obj, $name);
         $meta.set_base_type($meta, $base_type);
-        self.add_stash($obj);
+        self.add_stash($obj, $longname);
     }
     
     method add_enum_value($obj, $value) {

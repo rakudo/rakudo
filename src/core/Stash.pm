@@ -1,5 +1,6 @@
 my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash {
+    #     has str $!longname;
 
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback) is raw {
         my Mu $storage := nqp::defined(nqp::getattr(self, Map, '$!storage')) ??
@@ -31,6 +32,14 @@ my class Stash { # declared in BOOTSTRAP
             $pkg.^compose;
             nqp::bindkey($storage, $key, $pkg)
         }
+    }
+
+    multi method gist(Stash:D:) {
+        self.Str
+    }
+
+    multi method Str(Stash:D:) {
+        nqp::isnull_s($!longname) ?? '<anon>' !! $!longname
     }
 }
 

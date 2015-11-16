@@ -2548,14 +2548,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             <.newpad>
             [
-            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
-            | '(' <multisig> ')' <trait>*
+            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig(1)> ')' ]? <trait>*
+            | '(' <multisig(1)> ')' <trait>*
             | <sigil>'.':!s
                 :dba('subscript signature')
                 [
-                | '(' ~ ')' <multisig>
-                | '[' ~ ']' <multisig>
-                | '{' ~ '}' <multisig>
+                | '(' ~ ')' <multisig(1)>
+                | '[' ~ ']' <multisig(1)>
+                | '{' ~ '}' <multisig(1)>
                 ]:s
                 <trait>*
             | <?>
@@ -2663,9 +2663,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     # XXX Not really implemented yet.
-    token multisig {
+    token multisig($allow_invocant = 0) {
         :my $*SCOPE := 'my';
-        <signature>
+        <signature('sig', $allow_invocant)>
     }
 
     token sigterm {
@@ -2678,11 +2678,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <signature>
     }
 
-    token signature($*IN_DECL = 'sig') {
+    token signature($*IN_DECL = 'sig', $*ALLOW_INVOCANT = 0) {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();
-        :my $*INVOCANT_OK := 1;
         <.ws>
         [
         | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
@@ -2905,7 +2904,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           { if $<deflongname> { %*RX<name> := ~$<deflongname>.ast } }
           { $*IN_DECL := '' }
            <.newpad>
-          [ [ ':'?'(' <signature> ')' ] | <trait> ]*
+          [ [ ':'?'(' <signature('sig', 1)> ')' ] | <trait> ]*
           '{'
           [
           | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}

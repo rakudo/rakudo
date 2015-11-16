@@ -1474,6 +1474,12 @@ my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     }
 }
 
+my class X::Syntax::Signature::InvocantNotAllowed does X::Syntax {
+    method message() {
+        "Can only use the : invocant marker in the signature for a method"
+    }
+}
+
 my class X::Syntax::Extension::Category does X::Syntax {
     has $.category;
     method message() {

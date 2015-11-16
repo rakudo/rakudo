@@ -4132,6 +4132,9 @@ Compilation unit '$file' contained the following violations:
                 if $param_idx != 0 {
                     $*W.throw($/, 'X::Syntax::Signature::InvocantMarker')
                 }
+                unless $*ALLOW_INVOCANT {
+                    $*W.throw($/, 'X::Syntax::Signature::InvocantNotAllowed')
+                }
                 %info<is_invocant> := 1;
             }
             @parameter_infos.push(%info);

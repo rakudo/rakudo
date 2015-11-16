@@ -28,7 +28,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         if $handle {
             return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                $base, :name($name), :extension(''), :has-precomp, :$handle, :repo(self)
+                $base, :name($name), :$handle, :repo(self)
             );
         }
         else {
@@ -39,7 +39,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     my $path = $file.IO.is-absolute ?? $file !! $!prefix.child($file);
 
                     $compunit = %seen{$path} = CompUnit.new(
-                        $path, :name($name), :extension(''), :has-source, :repo(self)
+                        $path, :name($name), :repo(self)
                     ) if IO::Path.new-from-absolute-path($path).f;
                 }
             }
@@ -55,7 +55,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                         my $path = $base ~ $extension;
 
                         $compunit = %seen{$base} = CompUnit.new(
-                          $path, :$name, :$extension, :has-source, :repo(self)
+                          $path, :$name, :repo(self)
                         ) if IO::Path.new-from-absolute-path($path).f;
                     }
                 }
@@ -66,7 +66,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             if $precomp.may-precomp and $precomp.precompile($compunit, $id) {
                 $handle = $precomp.load($id);
                 return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                    $base, :name($name), :extension(''), :has-precomp, :$handle, :repo(self)
+                    $base, :name($name), :$handle, :repo(self)
                 );
             }
             else {
@@ -90,7 +90,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         if IO::Path.new-from-absolute-path($path).f {
             my $compunit = %seen{$path} = CompUnit.new(
-              $path, :$file, :extension(''), :has-source(!$has_precomp), :$has_precomp, :repo(self)
+              $path, :$file, :repo(self)
             );
             $compunit.load;
             return %!loaded{$compunit.name} = $compunit;

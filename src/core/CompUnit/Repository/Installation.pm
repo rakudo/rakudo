@@ -120,7 +120,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 if $precomp.may-precomp {
                     my $id = nqp::sha1($name ~ self.id);
                     my $compunit = CompUnit.new(
-                        $file, :$name, :extension(''), :has-source, :repo(self)
+                        $file, :$name, :repo(self)
                     );
                     $precomp.precompile($compunit, $id);
                 }

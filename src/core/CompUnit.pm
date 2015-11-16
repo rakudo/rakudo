@@ -2,12 +2,8 @@ class CompUnit {
     has Lock $!lock;
     has Str  $.from;
     has Str  $.name;
-    has Str  $.extension;
     has Str  $.path;
-    has Str  $.precomp-path;
     has Str  $!WHICH;
-    has Bool $.has-source;
-    has Bool $.has-precomp;
     has Bool $.is-loaded;
 
     # The CompUnit::Repository that loaded this CompUnit.
@@ -25,40 +21,22 @@ class CompUnit {
     method new(CompUnit:U:
       $path,
       :$name is copy,
-      :$extension is copy,
       :$from = $default-from,
-      :$has-source is copy,
-      :$has-precomp is copy,
       :$handle = CompUnit::Handle,
       :$repo,
     ) {
 
-        # set name / extension if not already given
-        if !$name or !$extension.defined {
+        # set name if not already given
+        if !$name {
             my IO::Spec $SPEC := $*SPEC;
-            $name      ||= $SPEC.basename($path);
-            $extension ||= $SPEC.extension($name);
+            $name = $SPEC.basename($path);
         }
-
-        # sanity test
-        my $VM = $*VM;
-        my $precomp-path = $path ~ '.' ~ $VM.precomp-ext;  # XXX temporary
-        $precomp-path = 
-          $VM.precomp-dir ~ '/' ~ $name ~ '.' ~ $VM.precomp-ext
-          unless $precomp-path.IO.f;
-        $has-source  //= ?$path.IO.f;
-        $has-precomp //= ?$precomp-path.IO.f;
-        return Nil unless $has-source or $has-precomp;
 
         $global.protect( { %instances{$path} //= self.bless(
           :$path,
           :lock(Lock.new),
           :$name,
-          :$extension,
-          :$precomp-path,
           :$from,
-          :$has-source,
-          :$has-precomp,
           :$handle,
           :$repo,
           :!is-loaded,
@@ -69,10 +47,6 @@ class CompUnit {
     multi method Str(CompUnit:D: --> Str)  { $!path.abspath }
     multi method gist(CompUnit:D: --> Str) { "{self.name}:{$!path.abspath}" }
 
-    method key(CompUnit:D: --> Str) {
-        $!has-precomp ?? $*VM.precomp-ext !! $!extension;
-    }
-
     method load(CompUnit:D:) {
         $global.protect( {
             my int $DEBUG = $*RAKUDO_MODULE_DEBUG;
@@ -82,7 +56,6 @@ class CompUnit {
             # its mainline. Otherwise, we already loaded it so go on
             # with what we already have.
             unless $!is-loaded {
-                my $trace            = { module => $!name, filename => ~$!path };
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
 
                 # Read source file.
@@ -106,26 +79,6 @@ class CompUnit {
     method unit() {
         $.handle.unit
     }
-}
-
-# TEMPORARY ACCESS TO COMPUNIT INTERNALS UNTIL WE CAN LOAD DIRECTLY
-multi sub postcircumfix:<{ }> (CompUnit:D \c, "provides" ) {
-    my % = (
-      c.name => {
-        pm => {
-          file => c.path
-        },
-        c.key => {
-          file => c.has-precomp ?? c.precomp-path !! c.path
-        }
-      }
-    );
-}
-multi sub postcircumfix:<{ }> (CompUnit:D \c, "key" ) {
-    c.key;
-}
-multi sub postcircumfix:<{ }> (CompUnit:D \c, "ver" ) {
-    Version.new('0');
 }
 
 # vim: ft=perl6 expandtab sw=4

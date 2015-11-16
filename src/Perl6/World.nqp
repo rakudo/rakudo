@@ -847,7 +847,7 @@ class Perl6::World is HLL::World {
         if nqp::isnull($file) {
             $file := '<unknown file>';
         }
-        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) {
+        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
             $file := nqp::cwd ~ '/' ~ $file;
         }
         $file;

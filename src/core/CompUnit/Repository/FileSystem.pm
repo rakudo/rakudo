@@ -14,7 +14,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        :$line
     )
         returns CompUnit:D
     {
@@ -71,16 +70,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 );
             }
             else {
-                $compunit.load(:$line);
+                $compunit.load;
                 return %!loaded{$compunit.name} = $compunit;
             }
         }
 
-        return self.next-repo.need($spec, $precomp, :$line) if self.next-repo;
+        return self.next-repo.need($spec, $precomp) if self.next-repo;
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method load(Str:D $file, :$line) returns CompUnit:D {
+    method load(Str:D $file) returns CompUnit:D {
         state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
 
         # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
@@ -93,11 +92,11 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $compunit = %seen{$path} = CompUnit.new(
               $path, :$file, :extension(''), :has-source(!$has_precomp), :$has_precomp, :repo(self)
             );
-            $compunit.load(:$line);
+            $compunit.load;
             return %!loaded{$compunit.name} = $compunit;
         }
 
-        return self.next-repo.load($file, :$line) if self.next-repo;
+        return self.next-repo.load($file) if self.next-repo;
         nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 

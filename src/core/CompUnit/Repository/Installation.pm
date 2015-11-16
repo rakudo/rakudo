@@ -186,7 +186,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        :$line
     )
         returns CompUnit:D
     {
@@ -213,22 +212,22 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     with $candi<provides>{$spec.short-name}{$*VM.precomp-ext} -> $pc {
                         if $*PERL<compiler>.version eqv $pc<cver> {
                             my $compunit = CompUnit.new($loader, :has_precomp($pc<file>), :repo(self));
-                            $compunit.load(:$line);
+                            $compunit.load;
                             return %!loaded{$compunit.name} = $compunit;
                         }
                     }
                     my $compunit = CompUnit.new($loader, :repo(self));
-                    $compunit.load(:$line);
+                    $compunit.load;
                     return %!loaded{$compunit.name} = $compunit;
                 }
             }
         }
-        return self.next-repo.need($spec, $precomp, :$line) if self.next-repo;
+        return self.next-repo.need($spec, $precomp) if self.next-repo;
         nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method load(Str:D $file, :$line) returns CompUnit:D {
-        return self.next-repo.load($file, :$line) if self.next-repo;
+    method load(Str:D $file) returns CompUnit:D {
+        return self.next-repo.load($file) if self.next-repo;
         nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 

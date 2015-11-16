@@ -65,47 +65,51 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
     method load_module($module_name, %opts, \GLOBALish is raw, :$line, :$file) {
         RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $*RAKUDO_MODULE_DEBUG;
         $lock.protect( {
-        if %opts<from> {
-            # See if we need to load it from elsewhere.
-            if %language_module_loaders{%opts<from>}:exists {
-                return %language_module_loaders{%opts<from>}.load_module($module_name,
-                    %opts, GLOBALish, :$line, :$file);
+            my @MODULES = nqp::clone(@*MODULES // ());
+            for @MODULES -> $m {
+                if $m<module> && $m<module> eq $module_name {
+                    nqp::die("Circular module loading detected involving module '$module_name'");
+                }
             }
-            else {
-                nqp::die("Do not know how to load code from " ~ %opts<from>);
+
+            {
+                my @*MODULES := @MODULES;
+                if +@*MODULES  == 0 {
+                    @*MODULES[0] = { line => $line, filename => nqp::getlexdyn('$?FILES') };
+                }
+                else {
+                    @*MODULES[*-1] = { line => $line };
+                }
+                @*MODULES.push: { module => $module_name, filename => ~($file // '') };
+
+                if %opts<from> {
+                    # See if we need to load it from elsewhere.
+                    if %language_module_loaders{%opts<from>}:exists {
+                        return %language_module_loaders{%opts<from>}.load_module($module_name,
+                            %opts, GLOBALish, :$line, :$file);
+                    }
+                    else {
+                        nqp::die("Do not know how to load code from " ~ %opts<from>);
+                    }
+                }
+                else {
+                    my $compunit := (
+                        $file
+                        ?? $*REPO.load($file)
+                        !! $*REPO.need(
+                            CompUnit::DependencySpecification.new(
+                                :short-name($module_name),
+                                :auth-matcher(%opts<auth>),
+                                :version-matcher(%opts<ver>),
+                            ),
+                        )
+                    );
+                    GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
+                    $compunit.handle
+                }
             }
-        }
-        else {
-            my $compunit := (
-                $file
-                ?? $*REPO.load(
-                    $file,
-                    :$line
-                )
-                !! $*REPO.need(
-                    CompUnit::DependencySpecification.new(
-                        :short-name($module_name),
-                        :auth-matcher(%opts<auth>),
-                        :version-matcher(%opts<ver>),
-                    ),
-                    :$line,
-                )
-            );
-            GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
-            $compunit.handle
-        }
-#        elsif $file {
-#            nqp::die("Could not find file '$file' for module $module_name");
-#        }
-#        else {
-#            my $from-hint := "";
-#            if nqp::substr(~$module_name, nqp::rindex(~$module_name, ":") + 1) eq "from" {
-#                $from-hint := "\nUse a single colon to include a module from another language.";
-#            }
-#            nqp::die("Could not find $module_name in any of:\n  " ~
-#                join("\n  ", @*INC) ~ $from-hint);
-#        }
-    } ) }
+        } )
+    }
 
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());

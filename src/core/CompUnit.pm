@@ -73,34 +73,17 @@ class CompUnit {
         $!has-precomp ?? $*VM.precomp-ext !! $!extension;
     }
 
-    method load(CompUnit:D: :$line) {
+    method load(CompUnit:D:) {
         $global.protect( {
             my int $DEBUG = $*RAKUDO_MODULE_DEBUG;
             RAKUDO_MODULE_DEBUG("going to load $!name") if $DEBUG;
-
-            my @MODULES = nqp::clone(@*MODULES // ());
-            for @MODULES -> $m {
-                if $m<module> && $m<module> eq $!name {
-                    nqp::die("Circular module loading detected involving module '$!name'");
-                }
-            }
 
             # If we didn't already do so, load the module and capture
             # its mainline. Otherwise, we already loaded it so go on
             # with what we already have.
             unless $!is-loaded {
-                my @*MODULES := @MODULES;
-
-                if +@*MODULES  == 0 {
-                    @*MODULES[0] = { line => $line, filename => nqp::getlexdyn('$?FILES') };
-                }
-                else {
-                    @*MODULES[*-1] = { line => $line };
-                }
-
                 my $trace            = { module => $!name, filename => ~$!path };
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
-                @*MODULES.push: $trace;
 
                 # Read source file.
                 RAKUDO_MODULE_DEBUG("loading ", ~$!path) if $DEBUG;

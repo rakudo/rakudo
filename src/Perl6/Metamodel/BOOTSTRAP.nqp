@@ -2768,8 +2768,11 @@ BEGIN {
     # Give everything we've set up so far a Stash.
     Perl6::Metamodel::ClassHOW.add_stash(Mu);
     Perl6::Metamodel::ClassHOW.add_stash(Any);
+    Perl6::Metamodel::ClassHOW.add_stash(Nil);
     Perl6::Metamodel::ClassHOW.add_stash(Cool);
     Perl6::Metamodel::ClassHOW.add_stash(Attribute);
+    Perl6::Metamodel::ClassHOW.add_stash(Scalar);
+    Perl6::Metamodel::ClassHOW.add_stash(Proxy);
     Perl6::Metamodel::ClassHOW.add_stash(Signature);
     Perl6::Metamodel::ClassHOW.add_stash(Parameter);
     Perl6::Metamodel::ClassHOW.add_stash(Code);
@@ -2777,10 +2780,11 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Routine);
     Perl6::Metamodel::ClassHOW.add_stash(Sub);
     Perl6::Metamodel::ClassHOW.add_stash(Method);
+    Perl6::Metamodel::ClassHOW.add_stash(Submethod);
+    Perl6::Metamodel::ClassHOW.add_stash(Regex);
     Perl6::Metamodel::ClassHOW.add_stash(Str);
     Perl6::Metamodel::ClassHOW.add_stash(Int);
     Perl6::Metamodel::ClassHOW.add_stash(Num);
-    Perl6::Metamodel::ClassHOW.add_stash(Scalar);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrLexRef);
@@ -2790,13 +2794,17 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
-    Perl6::Metamodel::ClassHOW.add_stash(Bool);
-    Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
+    Perl6::Metamodel::ClassHOW.add_stash(Map);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
+    Perl6::Metamodel::ClassHOW.add_stash(Capture);
+    Perl6::Metamodel::ClassHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
+    Perl6::Metamodel::ClassHOW.add_stash(Stash);
+    Perl6::Metamodel::ClassHOW.add_stash(Grammar);
+    Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
     Perl6::Metamodel::ClassHOW.add_stash(CompUnitRepo);
 

@@ -118,7 +118,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 }
                 my $precomp = self.precomp-repository;
                 if $precomp.may-precomp {
-                    my $id = nqp::sha1($name ~ self.id);
+                    my $id = nqp::sha1(
+                        CompUnit::DependencySpecification.new(
+                            :short-name($name), :auth($d.auth), :ver($d.ver)
+                        )
+                        ~ self.id
+                    );
                     my $compunit = CompUnit.new(
                         $file, :$name, :repo(self)
                     );
@@ -189,6 +194,17 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     )
         returns CompUnit:D
     {
+        if $precomp.may-precomp {
+            my $id = nqp::sha1($spec ~ self.id);
+            if $precomp.load($id) -> $handle {
+                return CompUnit.new(
+                    ~$.prefix.child($spec.short-name),
+                    :name($spec.short-name),
+                    :$handle,
+                    :repo(self),
+                );
+            }
+        }
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {
                 my $dver = $dist<ver>

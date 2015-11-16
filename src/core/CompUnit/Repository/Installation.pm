@@ -124,10 +124,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         )
                         ~ self.id
                     );
-                    my $compunit = CompUnit.new(
-                        $file, :$name, :repo(self)
-                    );
-                    $precomp.precompile($compunit, $id);
+                    $precomp.precompile($file, $id);
                 }
             }
             else {
@@ -198,7 +195,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $id = nqp::sha1($spec ~ self.id);
             if $precomp.load($id) -> $handle {
                 return CompUnit.new(
-                    ~$.prefix.child($spec.short-name),
                     :name($spec.short-name),
                     :$handle,
                     :repo(self),
@@ -225,15 +221,17 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         }
                     }
                     my $loader = $candi<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>;
+                    my $handle;
                     with $candi<provides>{$spec.short-name}{$*VM.precomp-ext} -> $pc {
                         if $*PERL<compiler>.version eqv $pc<cver> {
-                            my $compunit = CompUnit.new($loader, :has_precomp($pc<file>), :repo(self));
-                            $compunit.load;
-                            return %!loaded{$compunit.name} = $compunit;
+                            $handle = CompUnit::Loader.load-source-file($loader);
                         }
                     }
-                    my $compunit = CompUnit.new($loader, :repo(self));
-                    $compunit.load;
+                    $handle //= CompUnit::Loader.load-source-file($loader);
+                    my $compunit = CompUnit.new(
+                        :handle(CompUnit::Loader.load-source-file($loader)),
+                        :repo(self),
+                    );
                     return %!loaded{$compunit.name} = $compunit;
                 }
             }

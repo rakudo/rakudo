@@ -22,57 +22,43 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         my $id = nqp::sha1($name ~ $*REPO.id);
         my $handle = $precomp.may-precomp ?? $precomp.load($id) !! CompUnit::Handle;
         my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
-        my $compunit;
+        my $found = ?$handle;
 
         return %!loaded{$name} if %!loaded{$name}:exists;
 
-        if $handle {
-            return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                $base, :name($name), :$handle, :repo(self)
-            );
-        }
-        else {
+        unless $found {
             # pick a META6.json if it is there
             if (my $meta = $!prefix.child('META6.json')) && $meta.f {
                 my $json = from-json $meta.slurp;
                 if $json<provides>{$name} -> $file {
                     my $path = $file.IO.is-absolute ?? $file !! $!prefix.child($file);
-
-                    $compunit = %seen{$path} = CompUnit.new(
-                        $path, :name($name), :repo(self)
-                    ) if IO::Path.new-from-absolute-path($path).f;
+                    $found = $path if IO::Path.new-from-absolute-path($path).f;
                 }
             }
             # deduce path to compilation unit from package name
             else {
-                if %seen{$base} -> $found {
-                    $compunit = $found;
+                if %seen{$base} -> $compunit {
+                    return $compunit;
                 }
 
                 # have extensions to check
                 elsif %extensions<Perl6> -> @extensions {
                     for @extensions -> $extension {
                         my $path = $base ~ $extension;
-
-                        $compunit = %seen{$base} = CompUnit.new(
-                          $path, :$name, :repo(self)
-                        ) if IO::Path.new-from-absolute-path($path).f;
+                        $found = $path if IO::Path.new-from-absolute-path($path).f;
                     }
                 }
             }
         }
 
-        if $compunit {
-            if $precomp.may-precomp and $precomp.precompile($compunit, $id) {
-                $handle = $precomp.load($id);
-                return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                    $base, :name($name), :$handle, :repo(self)
-                );
-            }
-            else {
-                $compunit.load;
-                return %!loaded{$compunit.name} = $compunit;
-            }
+        if $found {
+            $handle //= ($precomp.may-precomp and $precomp.precompile($found, $id))
+                ?? $precomp.load($id)
+                !! CompUnit::Loader.load-source-file($found);
+
+            return %!loaded{$name} = %seen{$base} = CompUnit.new(
+                :name($name), :$handle, :repo(self)
+            );
         }
 
         return self.next-repo.need($spec, $precomp) if self.next-repo;
@@ -89,11 +75,9 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 !! $!prefix.child($file);
 
         if IO::Path.new-from-absolute-path($path).f {
-            my $compunit = %seen{$path} = CompUnit.new(
-              $path, :$file, :repo(self)
+            return %!loaded{$file} = %seen{$path} = CompUnit.new(
+                :handle(CompUnit::Loader.load-source-file($path)), :name($file), :repo(self)
             );
-            $compunit.load;
-            return %!loaded{$compunit.name} = $compunit;
         }
 
         return self.next-repo.load($file) if self.next-repo;

@@ -56,23 +56,13 @@ class CompUnit {
             # its mainline. Otherwise, we already loaded it so go on
             # with what we already have.
             unless $!is-loaded {
-                my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
-
                 # Read source file.
                 RAKUDO_MODULE_DEBUG("loading ", ~$!path) if $DEBUG;
 
                 $!handle := CompUnit::Loader.load-source-file(~$!path);
                 RAKUDO_MODULE_DEBUG("done: ", $!path) if $DEBUG;
 
-                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                 $!is-loaded = True;
-
-                CATCH {
-                    default {
-                        nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
-                        .throw;
-                    }
-                }
             }
     } ) }
 

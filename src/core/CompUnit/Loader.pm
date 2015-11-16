@@ -1,25 +1,20 @@
 class CompUnit::Loader is repr('Uninstantiable') {
     # Load a file from source and compile it
     method load-source-file(Str $path) returns CompUnit::Handle {
-        my $*CTXSAVE := self;
-        my $fh := nqp::open($path, 'r');
-        nqp::setencoding($fh, 'utf8');
-        my $source := nqp::readallfh($fh);
-        nqp::closefh($fh);
-
         # Get the compiler and compile the code, then run it
         # (which runs the mainline and captures UNIT).
         my $?FILES   := $path;
-        my $eval     := nqp::getcomp('perl6').compile($source);
-
-        my $*MAIN_CTX;
-        $eval();
-        CompUnit::Handle.new($*MAIN_CTX)
+        self.load-source($path.IO.slurp(:bin))
     }
 
     # Decode the specified byte buffer as source code, and compile it
     method load-source(Buf:D $bytes) returns CompUnit::Handle {
-        ...
+        my $*CTXSAVE := self;
+        my $eval     := nqp::getcomp('perl6').compile($bytes.decode);
+
+        my $*MAIN_CTX;
+        $eval();
+        CompUnit::Handle.new($*MAIN_CTX)
     }
 
     # Load a pre-compiled file

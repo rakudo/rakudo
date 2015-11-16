@@ -878,7 +878,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method permutations(|) is nodal {*}
     multi method permutations() is nodal {
-        # need block on Moar because of RT#121830
         permutations(self.elems).map: { self[@$_] }
     }
 

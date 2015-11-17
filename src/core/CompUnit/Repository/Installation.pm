@@ -86,6 +86,15 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $dist
     }
 
+    method !add-short-name($name, $dist) {
+        my $short-dir = $.prefix.child('short');
+        $short-dir.mkdir;
+        my $id = nqp::sha1($name);
+        my $lookup = $short-dir.child($id).open(:a);
+        $lookup.say: $dist.id;
+        $lookup.close;
+    }
+
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
@@ -127,6 +136,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $destination = $sources-dir.child($file-id);
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 my $name = $/.ast;
+                self!add-short-name($name, $d);
                 $has-provides = True;
                 $d.provides{ $name }{ $<ext> } = {
                     :file($file-id),

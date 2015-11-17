@@ -274,7 +274,9 @@ my class Range is Cool does Iterable does Positional {
     method int-bounds() {
         $!is-int
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
-          !! fail "Cannot determine integer bounds";
+          !! nqp::istype($!min,Real) && $!min.floor == $!min && nqp::istype($!max,Real)
+             ?? ($!min.floor + $!excludes-min, $!max.floor - ($!excludes-max && $!max.Int == $!max))
+             !! fail "Cannot determine integer bounds";
     }
 
     method fmt(|c) {
@@ -480,9 +482,9 @@ my class Range is Cool does Iterable does Positional {
     }   
 
     method sum() {
-        my ($start,$stop) = self.int-bounds;
+        my ($start,$stop) = self.int-bounds || nextsame;
         my $elems = $stop - $start + 1;
-        ($start + $stop) * $elems / 2;
+        ($start + $stop) * $elems div 2;
     }
 }
 

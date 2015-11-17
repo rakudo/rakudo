@@ -77,6 +77,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
+        my $lock //= $.prefix.child('repo.lock').open(:create, :w);
+        $lock.lock(2);
         my $sources  = $path.child('sources');
         $sources.mkdir;
         my $repo     = %!metadata;
@@ -154,7 +156,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $repo<dists>[$d.id] = $d.Hash;
 
         # XXX Create path if needed.
-        "$path/MANIFEST".IO.spurt: to-json( $repo )
+        "$path/MANIFEST".IO.spurt: to-json( $repo );
+        $lock.unlock;
     } ) }
 
     method files($file, :$name, :$auth, :$ver) {

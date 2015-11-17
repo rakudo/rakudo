@@ -1,9 +1,9 @@
 class Distribution {
-    has $.id is rw;
     has $.name;
     has $.auth;
     has $.author;
     has $.authority;
+    has $.api;
     has $.ver;
     has $.version;
     has $.description;
@@ -15,7 +15,6 @@ class Distribution {
     method ver  { $!ver // $!version }
     method hash {
         {
-            :$!id,
             :$!name,
             :$.auth,
             :$.ver,
@@ -26,9 +25,17 @@ class Distribution {
             :$!source-url,
         }
     }
+    method Str() {
+        return "{$.name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
+    }
+    method id() {
+        return nqp::sha1(self.Str);
+    }
 }
 
 # during CURLI migration period
 class CompUnitRepo::Distribution is Distribution {
     method Hash { self.hash }
 }
+
+# vim: ft=perl6 expandtab sw=4

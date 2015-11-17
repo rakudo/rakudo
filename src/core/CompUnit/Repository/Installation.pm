@@ -74,25 +74,37 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     exit run($*EXECUTABLE-NAME, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
+    method !sources-dir() {
+        my $sources = $.prefix.child('sources');
+        $sources.mkdir;
+        $sources
+    }
+
+    method !dist-dir() {
+        my $dist = $.prefix.child('dist');
+        $dist.mkdir;
+        $dist
+    }
+
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
+
+        my $d = CompUnitRepo::Distribution.new( |$dist.metainfo );
+
         my $lock //= $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
-        my $sources  = $path.child('sources');
-        $sources.mkdir;
+
+        my $dist-dir    = self!dist-dir;
+        if $dist-dir.child($d.id) ~~ :e {
+            $lock.unlock;
+            fail "$d already installed";
+        }
+
+        my $sources-dir = self!sources-dir;
         my $repo     = %!metadata;
         my $file-id := $repo<file-count>;
-        my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
         state $is-win //= $*DISTRO.is-win; # only look up once
-        if $repo<dists>.first({ ($_<name> // '') eq  ($d.name // '') &&
-                                ($_<auth> // '') eq  ($d.auth // '') &&
-                               ~($_<ver>  //  0) eq ~($d.ver  //  0) }) -> $installed {
-            $d.id = $installed<id>
-        }
-        else {
-            $d.id = $repo<dist-count>++
-        }
 
         # Build patterns to choose what goes into "provides" section.
         my $ext = regex { [pm|pm6|jar|moarvm] };
@@ -112,7 +124,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my $has-provides;
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $destination = $sources.child($file-id);
+            my $destination = $sources-dir.child($file-id);
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 my $name = $/.ast;
                 $has-provides = True;
@@ -153,7 +165,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         provides-warning($is-win, $d.name) if !$has-provides and $d.files.keys.first(/^blib\W/);
 
-        $repo<dists>[$d.id] = $d.Hash;
+        $dist-dir.child($d.id).spurt: to-json($d.Hash);
+        $repo<dists>.push: $d.Hash;
 
         # XXX Create path if needed.
         "$path/MANIFEST".IO.spurt: to-json( $repo );

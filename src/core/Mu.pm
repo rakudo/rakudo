@@ -336,7 +336,7 @@ Please refactor this code using the new Iterator / Seq interface.
     method note() { note(self) }
 
     proto method gist(|) { * }
-    multi method gist(Mu:U:) { '(' ~ self.^name ~ ')' }
+    multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
     proto method perl(|) { * }

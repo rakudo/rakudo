@@ -199,10 +199,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     && $dver ~~ $spec.version-matcher
                     && $dist<provides>{$spec.short-name}
                 {
-                    my $candi   = %$dist;
-                    $candi<ver> = $dver;
                     my $loader = $path.IO.child(
-                        $candi<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+                        $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
                     );
                     my $handle;
                     if $precomp.may-precomp {

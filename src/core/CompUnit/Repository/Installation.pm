@@ -213,31 +213,36 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     )
         returns CompUnit:D
     {
-        for @(%!metadata<dists>) -> $dist {
-            my $dver = $dist<ver>
-                    ?? nqp::istype($dist<ver>,Version)
-                        ?? $dist<ver>
-                        !! Version.new( ~$dist<ver> )
-                    !! Version.new('0');
+        my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
+        if $lookup.e {
+            my $dist-dir = self!dist-dir;
+            for $lookup.lines -> $dist-id {
+                my $dist = from-json($dist-dir.child($dist-id).slurp);
+                my $dver = $dist<ver>
+                        ?? nqp::istype($dist<ver>,Version)
+                            ?? $dist<ver>
+                            !! Version.new( ~$dist<ver> )
+                        !! Version.new('0');
 
-            if $dist<auth> ~~ $spec.auth-matcher
-                && $dver ~~ $spec.version-matcher
-                && $dist<provides>{$spec.short-name}
-            {
-                my $loader = $.prefix.child('sources').child(
-                    $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
-                );
-                my $handle;
-                if $precomp.may-precomp {
-                    $handle = $precomp.load(nqp::sha1($loader ~ self.id));
+                if $dist<auth> ~~ $spec.auth-matcher
+                    && $dver ~~ $spec.version-matcher
+                    && $dist<provides>{$spec.short-name}
+                {
+                    my $loader = $.prefix.child('sources').child(
+                        $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+                    );
+                    my $handle;
+                    if $precomp.may-precomp {
+                        $handle = $precomp.load(nqp::sha1($loader ~ self.id));
+                    }
+                    $handle //= CompUnit::Loader.load-source-file($loader);
+                    my $compunit = CompUnit.new(
+                        :$handle,
+                        :name($spec.short-name),
+                        :repo(self),
+                    );
+                    return %!loaded{$compunit.name} = $compunit;
                 }
-                $handle //= CompUnit::Loader.load-source-file($loader);
-                my $compunit = CompUnit.new(
-                    :$handle,
-                    :name($spec.short-name),
-                    :repo(self),
-                );
-                return %!loaded{$compunit.name} = $compunit;
             }
         }
         return self.next-repo.need($spec, $precomp) if self.next-repo;

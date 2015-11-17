@@ -475,7 +475,9 @@ multi sub elems($a) { $a.elems }
 proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
-sub sum(Any \SELF) { SELF.sum }
+proto sub sum(|) {*}
+multi sub sum() { 0 }
+multi sub sum(+SELF) { SELF.sum }
 
 sub classify( $test, +items, *%named ) {
     if %named.EXISTS-KEY("into") {

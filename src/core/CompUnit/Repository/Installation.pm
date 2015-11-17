@@ -108,6 +108,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my $has-provides;
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+            my $destination = $path.IO.child($file-id);
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 my $name = $/.ast;
                 $has-provides = True;
@@ -118,12 +119,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 }
                 my $precomp = self.precomp-repository;
                 if $precomp.may-precomp {
-                    my $id = nqp::sha1(
-                        CompUnit::DependencySpecification.new(
-                            :short-name($name), :auth($d.auth), :ver($d.ver)
-                        )
-                        ~ self.id
-                    );
+                    my $id = nqp::sha1($destination ~ self.id);
                     $precomp.precompile($file.IO, $id);
                 }
             }
@@ -147,7 +143,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 }
                 $d.files{$file} = $file-id
             }
-            copy($file, $path ~ '/' ~ $file-id);
+            copy($file, $destination);
             $file-id++;
         }
 
@@ -191,16 +187,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     )
         returns CompUnit:D
     {
-        if $precomp.may-precomp {
-            my $id = nqp::sha1($spec ~ self.id);
-            if $precomp.load($id) -> $handle {
-                return CompUnit.new(
-                    :name($spec.short-name),
-                    :$handle,
-                    :repo(self),
-                );
-            }
-        }
         for %!dists.kv -> $path, $repo {
             for @($repo<dists>) -> $dist {
                 my $dver = $dist<ver>
@@ -222,14 +208,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     }
                     my $loader = $candi<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>;
                     my $handle;
-                    with $candi<provides>{$spec.short-name}{$*VM.precomp-ext} -> $pc {
-                        if $*PERL<compiler>.version eqv $pc<cver> {
-                            $handle = CompUnit::Loader.load-source-file($loader);
-                        }
+                    if $precomp.may-precomp {
+                        $handle = $precomp.load(nqp::sha1($loader ~ self.id));
                     }
-                    $handle //= CompUnit::Loader.load-source-file($loader);
+                    $handle //= CompUnit::Loader.load-source-file($loader.IO);
                     my $compunit = CompUnit.new(
-                        :handle(CompUnit::Loader.load-source-file($loader)),
+                        :$handle,
+                        :name($spec.short-name),
                         :repo(self),
                     );
                     return %!loaded{$compunit.name} = $compunit;

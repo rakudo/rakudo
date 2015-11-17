@@ -230,7 +230,7 @@ multi sub trait_mod:<is>(Routine:D \r, :$export!) {
     Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
-    my $exp_name := type.^name;
+    my $exp_name := type.^shortname;
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');

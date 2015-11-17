@@ -117,8 +117,9 @@ my %repr_map =
     'VMArray'   => 'vmarray',
     ;
 sub type_code_for(Mu ::T) {
-    return %type_map{T.^name}
-        if %type_map{T.^name}:exists;
+    my $shortname = T.^shortname;
+    return %type_map{$shortname}
+        if %type_map{$shortname}:exists;
     if %repr_map{T.REPR} -> $mapped {
         return $mapped;
     }

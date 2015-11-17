@@ -77,6 +77,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
+        my $sources  = $path.child('sources');
+        $sources.mkdir;
         my $repo     = %!metadata;
         my $file-id := $repo<file-count>;
         my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
@@ -108,7 +110,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my $has-provides;
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $destination = $path.IO.child($file-id);
+            my $destination = $sources.child($file-id);
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 my $name = $/.ast;
                 $has-provides = True;
@@ -196,7 +198,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 && $dver ~~ $spec.version-matcher
                 && $dist<provides>{$spec.short-name}
             {
-                my $loader = $.prefix.abspath.IO.child(
+                my $loader = $.prefix.child('sources').child(
                     $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
                 );
                 my $handle;

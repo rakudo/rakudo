@@ -6,7 +6,7 @@ t/spec :
 	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
 
 spectest_update :
-	-cd t/spec && git pull
+	-cd t/spec && git pull --ff-only
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@

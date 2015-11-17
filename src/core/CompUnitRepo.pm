@@ -99,8 +99,8 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                         !! $*REPO.need(
                             CompUnit::DependencySpecification.new(
                                 :short-name($module_name),
-                                :auth-matcher(%opts<auth>),
-                                :version-matcher(%opts<ver>),
+                                :auth-matcher(%opts<auth> // True),
+                                :version-matcher(%opts<ver> // True),
                             ),
                         )
                     );

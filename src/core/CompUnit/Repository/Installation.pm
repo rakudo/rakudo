@@ -195,23 +195,20 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                             !! Version.new( ~$dist<ver> )
                         !! Version.new('0');
 
-                if (!$spec.auth-matcher || $dist<auth> ~~ $spec.auth-matcher)
-                && (!$spec.version-matcher || $dver ~~ $spec.version-matcher)
-                && $dist<provides>{$spec.short-name} {
+                if $dist<auth> ~~ $spec.auth-matcher
+                    && $dver ~~ $spec.version-matcher
+                    && $dist<provides>{$spec.short-name}
+                {
                     my $candi   = %$dist;
                     $candi<ver> = $dver;
-                    for $candi<provides>.kv -> $ln, $files {
-                        for $files.kv -> $type, $file {
-                            $candi<provides>{$ln}{$type}<file> = $path ~ '/' ~ $file<file>
-                                unless $candi<provides>{$ln}{$type}<file> ~~ /^$path/
-                        }
-                    }
-                    my $loader = $candi<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>;
+                    my $loader = $path.IO.child(
+                        $candi<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+                    );
                     my $handle;
                     if $precomp.may-precomp {
                         $handle = $precomp.load(nqp::sha1($loader ~ self.id));
                     }
-                    $handle //= CompUnit::Loader.load-source-file($loader.IO);
+                    $handle //= CompUnit::Loader.load-source-file($loader);
                     my $compunit = CompUnit.new(
                         :$handle,
                         :name($spec.short-name),

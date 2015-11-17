@@ -1,19 +1,9 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
-    has %!metadata;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has %!loaded;
     has $!precomp;
 
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) {
-        my $manifest := $!prefix.child("MANIFEST");
-        my $abspath  := $!prefix.abspath;
-        %!metadata = $manifest.e
-          ?? from-json($manifest.slurp)
-          !! {};
-        %!metadata<file-count> //= 0;
-        %!metadata<dist-count> //= 0;
-        %!metadata<dists>      //= [ ];
-    }
+    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
 
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;
@@ -95,6 +85,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $lookup.close;
     }
 
+    method !manifest() {
+        my $manifest := $.prefix.child("MANIFEST");
+        my $repo = $manifest.e ?? from-json($manifest.slurp) !! {};
+        $repo<file-count> //= 0;
+        $repo
+    }
+
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
@@ -111,7 +108,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         my $sources-dir = self!sources-dir;
-        my $repo     = %!metadata;
+        my $repo := self!manifest;
         my $file-id := $repo<file-count>;
         state $is-win //= $*DISTRO.is-win; # only look up once
 
@@ -176,31 +173,34 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         provides-warning($is-win, $d.name) if !$has-provides and $d.files.keys.first(/^blib\W/);
 
         $dist-dir.child($d.id).spurt: to-json($d.Hash);
-        $repo<dists>.push: $d.Hash;
 
-        # XXX Create path if needed.
         "$path/MANIFEST".IO.spurt: to-json( $repo );
         $lock.unlock;
     } ) }
 
     method files($file, :$name, :$auth, :$ver) {
         my @candi;
-        for @(%!metadata<dists>) -> $dist {
-            my $dver = $dist<ver>
-                    ?? nqp::istype($dist<ver>,Version)
-                        ?? $dist<ver>
-                        !! Version.new( $dist<ver> )
-                    !! Version.new('0');
+        my $lookup = $.prefix.child('short').child(nqp::sha1($name));
+        if $lookup.e {
+            my $dist-dir = self!dist-dir;
+            for $lookup.lines -> $dist-id {
+                my $dist = from-json($dist-dir.child($dist-id).slurp);
+                my $dver = $dist<ver>
+                        ?? nqp::istype($dist<ver>,Version)
+                            ?? $dist<ver>
+                            !! Version.new( $dist<ver> )
+                        !! Version.new('0');
 
-            if (!$name || $dist<name> ~~ $name)
-            && (!$auth || $dist<auth> ~~ $auth)
-            && (!$ver  || $dver ~~ $ver) {
-                with $dist<files>{$file} {
-                    my $candi   = %$dist;
-                    $candi<ver> = $dver;
-                    $candi<files>{$file} = $.prefix.abspath ~ '/' ~ $candi<files>{$file}
-                        unless $candi<files>{$file} ~~ /^$.prefix/;
-                    @candi.push: $candi;
+                if (!$name || $dist<name> ~~ $name)
+                && (!$auth || $dist<auth> ~~ $auth)
+                && (!$ver  || $dver ~~ $ver) {
+                    with $dist<files>{$file} {
+                        my $candi   = %$dist;
+                        $candi<ver> = $dver;
+                        $candi<files>{$file} = $.prefix.abspath ~ '/' ~ $candi<files>{$file}
+                            unless $candi<files>{$file} ~~ /^$.prefix/;
+                        @candi.push: $candi;
+                    }
                 }
             }
         }

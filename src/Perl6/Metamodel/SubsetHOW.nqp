@@ -23,12 +23,12 @@ class Perl6::Metamodel::SubsetHOW
         $!refinement := $refinement;
     }
 
-    method new_type(:$name = '<anon>', :$refinee!, :$refinement!, :$longname) {
+    method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
         my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
         my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'perl6');
         $metasubset.set_name($type, $name);
         nqp::settypecheckmode($type, 2);
-        self.add_stash($type, $longname)
+        self.add_stash($type)
     }
     
     method set_of($obj, $refinee) {

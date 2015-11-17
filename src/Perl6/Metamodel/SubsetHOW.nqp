@@ -1,6 +1,7 @@
 class Perl6::Metamodel::SubsetHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Stashing
 {
     # The subset type or nominal type that we refine.
     has $!refinee;
@@ -22,11 +23,12 @@ class Perl6::Metamodel::SubsetHOW
         $!refinement := $refinement;
     }
 
-    method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
+    method new_type(:$name = '<anon>', :$refinee!, :$refinement!, :$longname) {
         my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
         my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'perl6');
         $metasubset.set_name($type, $name);
-        nqp::settypecheckmode($type, 2)
+        nqp::settypecheckmode($type, 2);
+        self.add_stash($type, $longname)
     }
     
     method set_of($obj, $refinee) {

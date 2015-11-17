@@ -1,3 +1,4 @@
+my class X::Numeric::Real { ... };
 my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
@@ -30,7 +31,6 @@ my class Complex is Cool does Numeric {
         self.re.isNaN || self.im.isNaN;
     }
 
-    my class X::Numeric::Real { ... };
     method coerce-to-real(Complex:D: $exception-target) {
         unless $!im == 0e0 { fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self);}
         $!re;

@@ -1,5 +1,5 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
-    has %!dists;
+    has %!metadata;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has %!loaded;
     has $!precomp;
@@ -7,20 +7,20 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) {
         my $manifest := $!prefix.child("MANIFEST");
         my $abspath  := $!prefix.abspath;
-        %!dists{$abspath} = $manifest.e
+        %!metadata = $manifest.e
           ?? from-json($manifest.slurp)
           !! {};
-        %!dists{$abspath}<file-count> //= 0;
-        %!dists{$abspath}<dist-count> //= 0;
-        %!dists{$abspath}<dists>      //= [ ];
+        %!metadata<file-count> //= 0;
+        %!metadata<dist-count> //= 0;
+        %!metadata<dists>      //= [ ];
     }
 
     method writeable-path {
-        %!dists.keys.first( *.IO.w )
+        $.prefix.w ?? $.prefix !! IO::Path;
     }
 
     method can-install() {
-        so %!dists.keys.map( *.IO.w ).any
+        $.prefix.w
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--
@@ -77,7 +77,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
-        my $repo     = %!dists{$path};
+        my $repo     = %!metadata;
         my $file-id := $repo<file-count>;
         my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
         state $is-win //= $*DISTRO.is-win; # only look up once
@@ -157,24 +157,22 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     method files($file, :$name, :$auth, :$ver) {
         my @candi;
-        for %!dists.kv -> $path, $repo {
-            for @($repo<dists>) -> $dist {
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( $dist<ver> )
-                        !! Version.new('0');
+        for @(%!metadata<dists>) -> $dist {
+            my $dver = $dist<ver>
+                    ?? nqp::istype($dist<ver>,Version)
+                        ?? $dist<ver>
+                        !! Version.new( $dist<ver> )
+                    !! Version.new('0');
 
-                if (!$name || $dist<name> ~~ $name)
-                && (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver) {
-                    with $dist<files>{$file} {
-                        my $candi   = %$dist;
-                        $candi<ver> = $dver;
-                        $candi<files>{$file} = $path ~ '/' ~ $candi<files>{$file}
-                            unless $candi<files>{$file} ~~ /^$path/;
-                        @candi.push: $candi;
-                    }
+            if (!$name || $dist<name> ~~ $name)
+            && (!$auth || $dist<auth> ~~ $auth)
+            && (!$ver  || $dver ~~ $ver) {
+                with $dist<files>{$file} {
+                    my $candi   = %$dist;
+                    $candi<ver> = $dver;
+                    $candi<files>{$file} = $.prefix.abspath ~ '/' ~ $candi<files>{$file}
+                        unless $candi<files>{$file} ~~ /^$.prefix/;
+                    @candi.push: $candi;
                 }
             }
         }
@@ -187,33 +185,31 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     )
         returns CompUnit:D
     {
-        for %!dists.kv -> $path, $repo {
-            for @($repo<dists>) -> $dist {
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( ~$dist<ver> )
-                        !! Version.new('0');
+        for @(%!metadata<dists>) -> $dist {
+            my $dver = $dist<ver>
+                    ?? nqp::istype($dist<ver>,Version)
+                        ?? $dist<ver>
+                        !! Version.new( ~$dist<ver> )
+                    !! Version.new('0');
 
-                if $dist<auth> ~~ $spec.auth-matcher
-                    && $dver ~~ $spec.version-matcher
-                    && $dist<provides>{$spec.short-name}
-                {
-                    my $loader = $path.IO.child(
-                        $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
-                    );
-                    my $handle;
-                    if $precomp.may-precomp {
-                        $handle = $precomp.load(nqp::sha1($loader ~ self.id));
-                    }
-                    $handle //= CompUnit::Loader.load-source-file($loader);
-                    my $compunit = CompUnit.new(
-                        :$handle,
-                        :name($spec.short-name),
-                        :repo(self),
-                    );
-                    return %!loaded{$compunit.name} = $compunit;
+            if $dist<auth> ~~ $spec.auth-matcher
+                && $dver ~~ $spec.version-matcher
+                && $dist<provides>{$spec.short-name}
+            {
+                my $loader = $.prefix.abspath.IO.child(
+                    $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+                );
+                my $handle;
+                if $precomp.may-precomp {
+                    $handle = $precomp.load(nqp::sha1($loader ~ self.id));
                 }
+                $handle //= CompUnit::Loader.load-source-file($loader);
+                my $compunit = CompUnit.new(
+                    :$handle,
+                    :name($spec.short-name),
+                    :repo(self),
+                );
+                return %!loaded{$compunit.name} = $compunit;
             }
         }
         return self.next-repo.need($spec, $precomp) if self.next-repo;

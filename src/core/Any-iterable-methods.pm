@@ -917,7 +917,7 @@ augment class Any {
         # a slice into self. The JVM implementation uses a Java
         # collection sort. MoarVM has its sort algorithm implemented
         # in NQP.
-        my int $i = 0;
+        my int $i = -1;
         my int $n = sort-buffer.elems;
         my $indices := nqp::list;
         nqp::setelems($indices,$n);

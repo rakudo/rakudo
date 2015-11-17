@@ -2119,6 +2119,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $exists := 1;
                         }
                     }
+                    my $fullname;
+                    if @name {
+                        $fullname := $longname.fully_qualified_with($target_package);
+                    }
 
                     # If it exists already, then it's either uncomposed (in which
                     # case we just stubbed it), a role (in which case multiple
@@ -2140,7 +2144,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         # Construct meta-object for this package.
                         my %args;
                         if @name {
-                            %args<name> := $longname.name();
+                            %args<name> := $fullname;
                         }
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
@@ -2163,7 +2167,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $group := $*PACKAGE;
                         }
                         else {
-                            $group := $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'role-group'), :name($longname.name()), :repr($*REPR));
+                            $group := $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'role-group'),
+                                :name($fullname), :repr($*REPR));
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $target_package, $outer, $group);
                         }
 
@@ -2174,8 +2179,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             return 0 if nqp::elems(@params) == 0;
                             return nqp::elems(@params) > 1 || !@params[0]<optional>;
                         }
-                        $*PACKAGE := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL), :name($longname.name()),
-                            :repr($*REPR), :group($group), :signatured(needs_args($<signature>)));
+                        $*PACKAGE := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL),
+                            :name($fullname), :repr($*REPR),
+                            :group($group), :signatured(needs_args($<signature>)));
                     }
                 }
                 else {

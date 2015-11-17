@@ -3960,20 +3960,26 @@ Compilation unit '$file' contained the following violations:
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
-        my $longname := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
-        my $subset := $<longname> ??
-            $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement, :name($longname.name())) !!
-            $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement);
+        my $subset;
+        my $longname := $<longname> && $*W.dissect_longname($<longname>);
+        my @name := $longname ?? $longname.type_name_parts('subset name', :decl(1)) !! [];
+        if @name {
+            my $target_package := $longname.is_declared_in_global()
+                ?? $*GLOBALish
+                !! $*PACKAGE;
+            my $fullname := $longname.fully_qualified_with($target_package);
+            $subset := $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement,
+                :name($fullname));
+            $*W.install_package($/, @name, ($*SCOPE || 'our'), 'subset',
+                $target_package, $*W.cur_lexpad(), $subset);
+        }
+        else {
+            $subset := $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement);
+        }
 
         # Apply traits.
         for $<trait> {
             ($_.ast)($subset) if $_.ast;
-        }
-
-        # Install it as needed.
-        if $<longname> && $longname.type_name_parts('subset name', :decl(1)) {
-            $*W.install_package($/, $longname.type_name_parts('subset name', :decl(1)),
-                ($*SCOPE || 'our'), 'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }
 
         # Document it

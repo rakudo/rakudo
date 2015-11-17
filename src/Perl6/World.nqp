@@ -1117,23 +1117,26 @@ class Perl6::World is HLL::World {
 
         # If we have a multi-part name, see if we know the opening
         # chunk already. If so, use it for that part of the name.
+        my $longname := '';
         if +@parts {
             try {
                 $cur_pkg := self.find_symbol([@parts[0]]);
                 $cur_lex := 0;
                 $create_scope := 'our';
-                @parts.shift();
+                $longname := @parts.shift();
             }
         }
 
         # Chase down the name, creating stub packages as needed.
         while +@parts {
             my $part := @parts.shift;
+            $longname := $longname ?? $longname ~ '::' ~ $part !! $part;
             if nqp::existskey($cur_pkg.WHO, $part) {
                 $cur_pkg := ($cur_pkg.WHO){$part};
             }
             else {
-                my $new_pkg := self.pkg_create_mo($/, self.resolve_mo($/, 'package'), :name($part));
+                my $new_pkg := self.pkg_create_mo($/, self.resolve_mo($/, 'package'),
+                    :name($longname));
                 self.pkg_compose($new_pkg);
                 if $create_scope eq 'my' || $cur_lex {
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
@@ -3161,6 +3164,21 @@ class Perl6::World is HLL::World {
 
         method get_who() {
             $!get_who
+        }
+
+        # Gets the name qualified with the specified package.
+        method fully_qualified_with($target_package) {
+            my $fullname := self.name();
+            unless $target_package =:= $*GLOBALish {
+                try {
+                    my str $tname := nqp::getattr_s(
+                        nqp::decont($target_package.WHO),
+                        $*W.find_symbol(['Stash']),
+                        '$!longname');
+                    $fullname := $tname ~ '::' ~ $fullname;
+                }
+            }
+            $fullname
         }
 
         # Checks if a name component is a pseudo-package.

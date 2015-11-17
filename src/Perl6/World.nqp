@@ -3478,6 +3478,7 @@ class Perl6::World is HLL::World {
         }
 
         # The final lookup will always be just an AT-KEY call on a Stash.
+        @name := nqp::clone(@name);
         my $final_name := @name.pop();
         my $lookup := QAST::Op.new(
             :op('callmethod'), :name('AT-KEY'),

@@ -477,6 +477,7 @@ multi sub end($a) { $a.end }
 
 proto sub sum(|) {*}
 multi sub sum() { 0 }
+multi sub sum(\SELF) { SELF.sum } # needed for [+] 0..10 optimization
 multi sub sum(+SELF) { SELF.sum }
 
 sub classify( $test, +items, *%named ) {

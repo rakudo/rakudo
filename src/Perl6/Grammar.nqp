@@ -1478,7 +1478,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     ||  <?{ $<version><vnum>[0] == 5 }> {
                             my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
                             $*W.do_import($/, $module, 'Perl5');
-                            $/.CURSOR.import_EXPORTHOW($/, $module);
+                            $*W.import_EXPORTHOW($/, $module);
                         }
                     ||  <?{ $<version><vnum>[0] == 6 }> {
                             my $version_parts := $<version><vnum>;

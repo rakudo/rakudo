@@ -249,11 +249,15 @@ my class Array { # declared in BOOTSTRAP
             }
         }
 
-        multi method push(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
+        proto method push(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
+                !! self.Any::push(|c)
         }
-        multi method append(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'append').throw
+        proto method append(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'append').throw
+                !! self.Any::append(|c)
         }
 
         multi method pop(::?CLASS:D:) {
@@ -264,11 +268,15 @@ my class Array { # declared in BOOTSTRAP
             X::IllegalOnFixedDimensionArray.new(operation => 'shift').throw
         }
 
-        multi method unshift(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
+        proto method unshift(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
+                !! self.Any::unshift(|c)
         }
-        multi method prepend(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'prepend').throw
+        proto method prepend(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'prepend').throw
+                !! self.Any::prepend(|c)
         }
 
         multi method splice(::?CLASS:D: *@) {

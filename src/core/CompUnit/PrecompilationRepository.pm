@@ -58,18 +58,20 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $*RAKUDO_MODULE_DEBUG;
 
         my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$io $path";
-        my $proc = shell("$cmd 2>&1", :out, :!chomp);
+        my $proc = shell("$cmd 2>&1", :out);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 
-        my $result = '';
-        $result ~= $_ for $proc.out.lines;
-        self.store.unlock;
+        my @result = $proc.out.lines;
         if not $proc.out.close or $proc.status {  # something wrong
-            $result ~= "Return status $proc.status\n";
-            fail $result if $result;
+            self.store.unlock;
+            push @result, "Return status $proc.status\n";
+            fail @result if @result;
         }
-        note $result if $result;
-        True
+        else {
+            spurt(self.store.prefix.child('dependencies'), "$id {@result.join(' ')}\n", :append);
+            self.store.unlock;
+            True
+        }
     }
 }
 

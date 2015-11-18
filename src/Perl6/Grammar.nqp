@@ -2238,12 +2238,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
 
                 # Apply any traits.
-                for $<trait> {
-                    my $applier := $_.ast;
-                    if $applier {
-                        $applier($*DECLARAND);
-                    }
-                }
+                $*W.apply_traits($<trait>, $*DECLARAND);
             }
             :!s
             { nqp::push(@*PACKAGES, $*PACKAGE); }

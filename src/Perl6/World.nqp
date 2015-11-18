@@ -1751,11 +1751,7 @@ class Perl6::World is HLL::World {
 
             # Create parameter object and apply any traits.
             my $param_obj := self.create_parameter($/, $_);
-            if $_<traits> {
-                for $_<traits> {
-                    ($_.ast)($param_obj) if $_.ast;
-                }
-            }
+            self.apply_traits($_<traits>, $param_obj) if $_<traits>;
 
             # If it's natively typed and we got "is rw" set, need to mark the
             # container as being a lexical ref.
@@ -2773,6 +2769,14 @@ class Perl6::World is HLL::World {
         }
         if $nok {
             self.rethrow($/, $ex);
+        }
+    }
+
+    # Applies a list of traits, by calling the apply method on each.
+    method apply_traits($traits, $declarand) {
+        for $traits {
+            my $ast := $_.ast;
+            $ast.apply($declarand) if $ast;
         }
     }
 

@@ -2265,9 +2265,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     method package_declarator:sym<also>($/) {
-        for $<trait> {
-            if $_.ast { ($_.ast)($*DECLARAND) }
-        }
+        $*W.apply_traits($<trait>, $*DECLARAND);
     }
 
     method package_def($/) {
@@ -2685,10 +2683,7 @@ Compilation unit '$file' contained the following violations:
             }
 
             # Apply any traits.
-            for $trait_list {
-                my $applier := $_.ast;
-                if $applier { $applier($attr); }
-            }
+            $*W.apply_traits($trait_list, $attr);
 
             # Nothing to emit here; hand back a Nil.
             $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
@@ -2777,10 +2772,7 @@ Compilation unit '$file' contained the following violations:
                 nqp::bindattr($varvar, $Variable, '$!var', $cont);
                 nqp::bindattr($varvar, $Variable, '$!block', $*CODE_OBJECT);
                 nqp::bindattr($varvar, $Variable, '$!slash', $/);
-                for $trait_list {
-                    my $applier := $_.ast;
-                    if $applier { $applier($varvar); }
-                }
+                $*W.apply_traits($trait_list, $varvar);
             }
         }
         elsif $*SCOPE eq '' {
@@ -3031,9 +3023,7 @@ Compilation unit '$file' contained the following violations:
         }
 
         # Apply traits.
-        for $<trait> -> $t {
-            if $t.ast { $*W.ex-handle($t, { ($t.ast)($code) }) }
-        }
+        $*W.apply_traits($<trait>, $code);
         if $<onlystar> {
             # Protect with try; won't work when declaring the initial
             # trait_mod proto in CORE.setting!
@@ -3345,9 +3335,7 @@ Compilation unit '$file' contained the following violations:
         $outer[0].push($past);
 
         # Apply traits.
-        for $<trait> {
-            if $_.ast { ($_.ast)($code) }
-        }
+        $*W.apply_traits($<trait>, $code);
         if $<onlystar> {
             $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
         }
@@ -3450,9 +3438,7 @@ Compilation unit '$file' contained the following violations:
         }
 
         # Apply traits.
-        for $<trait> {
-            if $_.ast { ($_.ast)($code) }
-        }
+        $*W.apply_traits($<trait>, $code);
         $*W.add_phasers_handling_code($code, $block);
 
         my $closure := block_closure(reference_to_code_object($code, $block));
@@ -3739,11 +3725,7 @@ Compilation unit '$file' contained the following violations:
         $outer[0].push($past);
 
         # Apply traits.
-        if $traits {
-            for $traits {
-                if $_.ast { ($_.ast)($code) }
-            }
-        }
+        $*W.apply_traits($traits, $code) if $traits;
 
         # Install in needed scopes.
         install_method($/, $name, $scope, $code, $outer) if $name ne '';
@@ -3781,9 +3763,7 @@ Compilation unit '$file' contained the following violations:
                 $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['StringyEnumeration']));
             }
             # Apply traits, compose and install package.
-            for $<trait> {
-                ($_.ast)($type_obj) if $_.ast;
-            }
+            $*W.apply_traits($<trait>, $type_obj);
             $*W.pkg_compose($type_obj);
         }
         my $base_type;
@@ -3978,9 +3958,7 @@ Compilation unit '$file' contained the following violations:
         }
 
         # Apply traits.
-        for $<trait> {
-            ($_.ast)($subset) if $_.ast;
-        }
+        $*W.apply_traits($<trait>, $subset);
 
         # Document it
         Perl6::Pod::document($/, $subset, $*POD_BLOCK, :leading);
@@ -4074,11 +4052,9 @@ Compilation unit '$file' contained the following violations:
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
                 'constant', $*PACKAGE, $cur_pad, $value);
         }
-        $*W.ex-handle($/, {
-            for $<trait> -> $t {
-                ($t.ast)($value, :SYMBOL($name));
-            }
-        });
+        for $<trait> {
+            $_.ast.apply($value, :SYMBOL($name)) if $_.ast;
+        }
 
         # Evaluate to the constant.
         make QAST::WVal.new( :value($value), :returns($type) );
@@ -4554,6 +4530,27 @@ Compilation unit '$file' contained the following violations:
         make $<trait_mod> ?? $<trait_mod>.ast !! $<colonpair>.ast;
     }
 
+    my class Trait {
+        has $!match;
+        has str $!trait_mod;
+        has @!pos_args;
+        has %!named_args;
+
+        method new($match, str $trait_mod, *@pos_args, *%named_args) {
+            my $self := nqp::create(self);
+            nqp::bindattr($self, Trait, '$!match', $match);
+            nqp::bindattr_s($self, Trait, '$!trait_mod', $trait_mod);
+            nqp::bindattr($self, Trait, '@!pos_args', @pos_args);
+            nqp::bindattr($self, Trait, '%!named_args', %named_args);
+            $self
+        }
+
+        method apply($declarand, *%additional) {
+            $*W.apply_trait($!match, $!trait_mod, $declarand, |@!pos_args,
+                |%!named_args, |%additional);
+        }
+    }
+
     method trait_mod:sym<is>($/) {
         # Handle is repr specially.
         if ~$<longname> eq 'repr' {
@@ -4589,58 +4586,41 @@ Compilation unit '$file' contained the following violations:
             my @name := $*W.dissect_longname($<longname>).components();
             if $*W.is_name(@name) {
                 my $trait := $*W.find_symbol(@name);
-                make -> $declarand {
-                    $*W.apply_trait($/, '&trait_mod:<is>', $declarand, $trait, |@trait_arg);
-                };
+                make Trait.new($/, '&trait_mod:<is>', $trait, |@trait_arg);
             }
             else {
                 my %arg;
                 %arg{~$<longname>} := @trait_arg ?? @trait_arg[0] !!
                     $*W.find_symbol(['Bool', 'True']);
-                make -> $declarand, *%additional {
-                    $*W.apply_trait($/, '&trait_mod:<is>', $declarand, |%arg, |%additional);
-                };
+                make Trait.new($/, '&trait_mod:<is>', |%arg);
             }
         }
     }
 
     method trait_mod:sym<hides>($/) {
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<hides>', $declarand, $<typename>.ast);
-        };
+        make Trait.new($/, '&trait_mod:<hides>', $<typename>.ast);
     }
 
     method trait_mod:sym<does>($/) {
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<does>', $declarand, $<typename>.ast);
-        };
+        make Trait.new($/, '&trait_mod:<does>', $<typename>.ast);
     }
 
     method trait_mod:sym<will>($/) {
         my %arg;
         %arg{~$<identifier>} := ($*W.add_constant('Int', 'int', 1)).compile_time_value;
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<will>', $declarand,
-                ($<pblock>.ast).ann('code_object'), |%arg);
-        };
+        make Trait.new($/, '&trait_mod:<will>', ($<pblock>.ast).ann('code_object'), |%arg);
     }
 
     method trait_mod:sym<of>($/) {
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<of>', $declarand, $<typename>.ast);
-        };
+        make Trait.new($/, '&trait_mod:<of>', $<typename>.ast);
     }
 
     method trait_mod:sym<as>($/) {
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<as>', $declarand, $<typename>.ast);
-        };
+        make Trait.new($/, '&trait_mod:<as>', $<typename>.ast);
     }
 
     method trait_mod:sym<returns>($/) {
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<returns>', $declarand, $<typename>.ast);
-        };
+        make Trait.new($/, '&trait_mod:<returns>', $<typename>.ast);
     }
 
     method trait_mod:sym<handles>($/) {
@@ -4648,9 +4628,7 @@ Compilation unit '$file' contained the following violations:
         # which the trait handler can use to get the term and work with
         # it.
         my $thunk := $*W.create_thunk($/, $<term>.ast);
-        make -> $declarand {
-            $*W.apply_trait($/, '&trait_mod:<handles>', $declarand, $thunk);
-        };
+        make Trait.new($/, '&trait_mod:<handles>', $thunk);
     }
 
     method postop($/) {

@@ -112,33 +112,6 @@ multi sub trait_mod:<does>(Variable:D $v, Mu:U $role) {
     }
 }
 
-# "of" traits
-multi sub trait_mod:<of>(Variable:D $v, |c ) {
-    $v.throw( 'X::Comp::Trait::Unknown',
-      type      => 'of',
-      subtype   => c.hash.keys[0],
-      declaring => ' variable',
-      expected  => <TypeObject>,
-    );
-}
-multi sub trait_mod:<of>(Variable:D $v, Mu:U $of ) {
-    my $var  := $v.var;
-    my $what := $var.VAR.WHAT;
-    my $how  := $what.HOW;
-    try { nqp::getattr(
-            $var,
-            $how.mixin_base($what),
-            '$!descriptor'
-          ).set_of(nqp::decont($of));
-        CATCH {
-            $v.throw( 'X::Comp::Trait::NotOnNative',
-              :type<of>, :subtype($of.^name) ); # can't find out native type yet
-        }
-    }
-    # probably can go if we have a COMPOSE phaser
-    $how.set_name($what,"{$how.name($what)}[{$of.^name}]");
-}
-
 # phaser traits
 multi sub trait_mod:<will>(Variable:D $v, $block, |c ) {
     $v.throw( 'X::Comp::Trait::Unknown',

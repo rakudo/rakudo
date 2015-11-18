@@ -2007,7 +2007,7 @@ Compilation unit '$file' contained the following violations:
                     my $*SCOPE := 'state';
                     my $*OFTYPE;  # should default to Mu/Mu/Any
                     $past := QAST::Var.new( :node($/) );
-                    $past := declare_variable($/, $past, $name, '', '', 0);
+                    $past := declare_variable($/, $past, $name, '', '', []);
                     $past.annotate('nosink', 1);
                 }
                 else {
@@ -2623,10 +2623,37 @@ Compilation unit '$file' contained the following violations:
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
+        my int $have_of_type;
+        my $of_type;
+        $*W.handle_OFTYPE_for_pragma($/, $*SCOPE eq 'has' ?? 'attributes' !! 'variables');
         if $*OFTYPE {
-            my $archetypes := $*OFTYPE.ast.HOW.archetypes;
+            $have_of_type := 1;
+            $of_type := $*OFTYPE.ast;
+            my $archetypes := $of_type.HOW.archetypes;
             unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic || $archetypes.definite {
-                $*OFTYPE.CURSOR.typed_sorry('X::Syntax::Variable::BadType', type => $*OFTYPE.ast);
+                $*OFTYPE.CURSOR.typed_sorry('X::Syntax::Variable::BadType', type => $of_type);
+            }
+        }
+
+        # Process traits for `is Type` and `of Type`, which get special
+        # handling by the compiler.
+        my @late_traits;
+        for $trait_list {
+            my $trait := $_.ast;
+            if $trait {
+                my str $mod := $trait.mod;
+                if $mod eq '&trait_mod:<of>' {
+                    my $type := $trait.args[0];
+                    if $have_of_type {
+                        $_.CURSOR.typed_sorry(
+                            'X::Syntax::Variable::ConflictingTypes',
+                            outer => $of_type, inner => $type)
+                    }
+                    $have_of_type := 1;
+                    $of_type := $type;
+                    next;
+                }
+                nqp::push(@late_traits, $_);
             }
         }
 
@@ -2647,11 +2674,9 @@ Compilation unit '$file' contained the following violations:
             if $desigilname eq '' {
                 $/.CURSOR.panic("Cannot declare an anonymous attribute");
             }
-
-            $*W.handle_OFTYPE_for_pragma($/,'attributes');
-
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
+            my %cont_info  := $*W.container_type_info($/, $sigil,
+                $have_of_type ?? [$of_type] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
@@ -2683,7 +2708,7 @@ Compilation unit '$file' contained the following violations:
             }
 
             # Apply any traits.
-            $*W.apply_traits($trait_list, $attr);
+            $*W.apply_traits(@late_traits, $attr);
 
             # Nothing to emit here; hand back a Nil.
             $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
@@ -2693,7 +2718,7 @@ Compilation unit '$file' contained the following violations:
             # Some things can't be done to our vars.
             my $varname;
             if $*SCOPE eq 'our' {
-                if $*OFTYPE || @post {
+                if $have_of_type || @post {
                     $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
                 }
                 elsif $shape {
@@ -2716,11 +2741,10 @@ Compilation unit '$file' contained the following violations:
                 $varname := $sigil;
             }
 
-            $*W.handle_OFTYPE_for_pragma($/,'variables');
-
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info  := $*W.container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape, :@post);
+            my %cont_info  := $*W.container_type_info($/, $sigil,
+                $have_of_type ?? [$of_type] !! [], $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 
@@ -2764,7 +2788,7 @@ Compilation unit '$file' contained the following violations:
             }
 
             # Apply any traits.
-            if $trait_list {
+            if @late_traits {
                 my $Variable := $*W.find_symbol(['Variable']);
                 my $varvar   := nqp::create($Variable);
                 nqp::bindattr_s($varvar, $Variable, '$!name', $name);
@@ -2772,7 +2796,7 @@ Compilation unit '$file' contained the following violations:
                 nqp::bindattr($varvar, $Variable, '$!var', $cont);
                 nqp::bindattr($varvar, $Variable, '$!block', $*CODE_OBJECT);
                 nqp::bindattr($varvar, $Variable, '$!slash', $/);
-                $*W.apply_traits($trait_list, $varvar);
+                $*W.apply_traits(@late_traits, $varvar);
             }
         }
         elsif $*SCOPE eq '' {
@@ -4549,6 +4573,9 @@ Compilation unit '$file' contained the following violations:
             $*W.apply_trait($!match, $!trait_mod, $declarand, |@!pos_args,
                 |%!named_args, |%additional);
         }
+
+        method mod() { $!trait_mod }
+        method args() { @!pos_args }
     }
 
     method trait_mod:sym<is>($/) {

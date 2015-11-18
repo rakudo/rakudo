@@ -55,6 +55,7 @@ public final class RakOps {
         public RakudoJavaInterop rakudoInterop;
         public SixModelObject JavaHOW;
         public SixModelObject defaultContainerDescriptor;
+        public SixModelObject Failure;
         boolean initialized;
 
         public GlobalExt(ThreadContext tc) {}
@@ -111,6 +112,7 @@ public final class RakOps {
         gcx.ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");
         gcx.False = conf.at_key_boxed(tc, "False");
         gcx.True = conf.at_key_boxed(tc, "True");
+        gcx.Failure = conf.at_key_boxed(tc, "Failure");
         gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
         
         SixModelObject defCD = gcx.ContainerDescriptor.st.REPR.allocate(tc,
@@ -433,7 +435,8 @@ public final class RakOps {
                  * an Int that can unbox into an int or similar. */
                 StorageSpec spec = rtype.st.REPR.get_storage_spec(tc, rtype.st);
                 if (spec.inlineable == 0 || Ops.istype(rtype, decontValue.st.WHAT, tc) == 0) {
-                    if (Ops.istype(failure, decontValue.st.WHAT, tc) == 0) {
+                    if (Ops.istype(failure, decontValue.st.WHAT, tc) == 0
+                    && Ops.istype(failure, gcx.Failure, tc) == 0) {
                         SixModelObject thrower = getThrower(tc, "X::TypeCheck::Return");
                         if (thrower == null)
                             throw ExceptionHandling.dieInternal(tc,

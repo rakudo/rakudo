@@ -1,9 +1,9 @@
 my class Grammar is Cursor {
     method parse($target, :$rule = 'TOP',  Capture() :$args = \(), Mu :$actions = Mu, *%opt) {
         my $*ACTIONS = $actions;
-        my $result =
+        my Mu $result :=
             self."!cursor_init"($target, |%opt)."$rule"(|$args).MATCH;
-        $result = Nil unless $result.to == $target.chars;
+        $result := Nil unless $result.to == $target.chars;
         nqp::getlexcaller('$/') = $result;
     }
     method subparse($target, :$rule = 'TOP', Capture() :$args = \(),  Mu :$actions = Mu, *%opt) {
@@ -12,7 +12,7 @@ my class Grammar is Cursor {
             self."!cursor_init"($target, |%opt)."$rule"(|$args).MATCH;
     }
     method parsefile(Str(Cool) $filename, :$enc, *%opts) {
-        my $match := self.parse($filename.IO.slurp(:$enc), |%opts);
+        my Mu $match := self.parse($filename.IO.slurp(:$enc), |%opts);
         nqp::getlexcaller('$/') = $match;
     }
 }

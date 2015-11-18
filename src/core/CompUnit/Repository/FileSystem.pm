@@ -19,42 +19,44 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     {
         state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
         my $name               = $spec.short-name;
-        my $id = nqp::sha1($name ~ $*REPO.id);
-        my $handle = $precomp.may-precomp ?? $precomp.load($id) !! CompUnit::Handle;
-        my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
-        my $found = ?$handle;
-
         return %!loaded{$name} if %!loaded{$name}:exists;
 
-        unless $found {
-            # pick a META6.json if it is there
-            if (my $meta = $!prefix.child('META6.json')) && $meta.f {
-                my $json = from-json $meta.slurp;
-                if $json<provides>{$name} -> $file {
-                    my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
-                    $found = $path if IO::Path.new-from-absolute-path($path).f;
-                }
-            }
-            # deduce path to compilation unit from package name
-            else {
-                if %seen{$base} -> $compunit {
-                    return $compunit;
-                }
+        my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
+        my $found;
 
-                # have extensions to check
-                elsif %extensions<Perl6> -> @extensions {
-                    for @extensions -> $extension {
-                        my $path = $base ~ $extension;
-                        $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
-                    }
+        # find source file
+        # pick a META6.json if it is there
+        if (my $meta = $!prefix.child('META6.json')) && $meta.f {
+            my $json = from-json $meta.slurp;
+            if $json<provides>{$name} -> $file {
+                my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
+                $found = $path if IO::Path.new-from-absolute-path($path).f;
+            }
+        }
+        # deduce path to compilation unit from package name
+        else {
+            if %seen{$base} -> $compunit {
+                return $compunit;
+            }
+
+            # have extensions to check
+            elsif %extensions<Perl6> -> @extensions {
+                for @extensions -> $extension {
+                    my $path = $base ~ $extension;
+                    $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
                 }
             }
         }
 
         if $found {
-            $handle //= ($precomp.may-precomp and $precomp.precompile($found, $id))
-                ?? $precomp.load($id)
-                !! CompUnit::Loader.load-source-file($found);
+            my $id = nqp::sha1($name ~ $*REPO.id);
+            my $handle = (
+                $precomp.may-precomp and (
+                    $precomp.load($id, :since($found.modified)) # already precompiled?
+                    or $precomp.precompile($found, $id) and $precomp.load($id) # if not do it now
+                )
+                or CompUnit::Loader.load-source-file($found) # precomp failed
+            );
 
             return %!loaded{$name} = %seen{$base} = CompUnit.new(
                 :name($name), :$handle, :repo(self)

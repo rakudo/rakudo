@@ -19,9 +19,9 @@ class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
 
-    method load(CompUnit::PrecompilationId $id) returns CompUnit::Handle {
+    method load(CompUnit::PrecompilationId $id, Instant :$since) returns CompUnit::Handle {
         my $path = self.store.load($*PERL.compiler.id, $id);
-        if $path {
+        if $path and (not $since or $path.modified > $since) {
             my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
             my $handle := CompUnit::Loader.load-precompilation-file($path);
             self.store.unlock;

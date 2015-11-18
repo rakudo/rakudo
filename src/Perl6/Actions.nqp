@@ -4380,6 +4380,28 @@ Compilation unit '$file' contained the following violations:
             my $where := make_where_block($/, $closure_signature, $get_signature_past);
             %*PARAM_INFO<post_constraints>.push($where);
         }
+
+        if $<arrayshape> {
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            my $where := make_where_block($<arrayshape>,
+                QAST::Op.new(
+                    :op('callmethod'), :name('list'),
+                    $<arrayshape>.ast),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('can'),
+                        QAST::Var.new( :name('$_'), :scope('lexical') ),
+                        QAST::SVal.new( :value('shape') )
+                    ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('shape'),
+                        QAST::Var.new( :name('$_'), :scope('lexical') )
+                    )));
+            %*PARAM_INFO<post_constraints>.push($where);
+        }
     }
 
     method declare_param($/, $name) {

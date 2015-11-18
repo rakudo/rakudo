@@ -2808,8 +2808,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           [
           | <?before ':('>  ':'  # XXX allow fakesig parsed as subsig for the moment
           | <?before '('>         <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
-          | <?before '['>         <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant a subsignature for unpacking'>
-               <postcircumfix>
+          | <?before '['> <arrayshape=.postcircumfix>
           | <?before <[ { < « ]>> <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant something else'>
                <postcircumfix>
           ]?

@@ -517,6 +517,10 @@ S09-autovivification/autovivification.t
 S09-hashes/objecthash.t
 S09-subscript/slice.t
 S09-subscript/multidim-assignment.t
+S09-multidim/XX-POS-on-dimensioned.t
+S09-multidim/XX-POS-on-undimensioned.t
+S09-multidim/indexing.t
+S09-multidim/methods.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 S09-typed-arrays/native.t

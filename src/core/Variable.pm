@@ -35,11 +35,6 @@ multi sub trait_mod:<is>(Variable:D $v, |c ) {
       expected  => <TypeObject default dynamic>,
     );
 }
-multi sub trait_mod:<is>(Variable:D $v, Mu:U $is ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'is TypeObject'",
-    );
-}
 multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;

@@ -2496,7 +2496,8 @@ Compilation unit '$file' contained the following violations:
                 }
                 else {
                     $*W.handle_OFTYPE_for_pragma($/,'parameters');
-                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! []);
+                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$',
+                        $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
                     $list.push($*W.build_container_past(
                       %cont_info,
                       $*W.create_container_descriptor(
@@ -2625,6 +2626,9 @@ Compilation unit '$file' contained the following violations:
 
         my int $have_of_type;
         my $of_type;
+        my int $have_is_type;
+        my $is_type;
+
         $*W.handle_OFTYPE_for_pragma($/, $*SCOPE eq 'has' ?? 'attributes' !! 'variables');
         if $*OFTYPE {
             $have_of_type := 1;
@@ -2653,6 +2657,14 @@ Compilation unit '$file' contained the following violations:
                     $of_type := $type;
                     next;
                 }
+                if $mod eq '&trait_mod:<is>' {
+                    my @args := $trait.args;
+                    if nqp::elems(@args) == 1 && !nqp::isconcrete(@args[0]) {
+                        $have_is_type := 1;
+                        $is_type := @args[0];
+                        next;
+                    }
+                }
                 nqp::push(@late_traits, $_);
             }
         }
@@ -2676,7 +2688,9 @@ Compilation unit '$file' contained the following violations:
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my %cont_info  := $*W.container_type_info($/, $sigil,
-                $have_of_type ?? [$of_type] !! [], $shape, :@post);
+                $have_of_type ?? [$of_type] !! [],
+                $have_is_type ?? [$is_type] !! [],
+                $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
@@ -2744,7 +2758,9 @@ Compilation unit '$file' contained the following violations:
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my %cont_info  := $*W.container_type_info($/, $sigil,
-                $have_of_type ?? [$of_type] !! [], $shape, :@post);
+                $have_of_type ?? [$of_type] !! [],
+                $have_is_type ?? [$is_type] !! [],
+                $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
 

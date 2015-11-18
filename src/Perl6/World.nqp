@@ -1257,14 +1257,7 @@ class Perl6::World is HLL::World {
         }
 
         # Build container.
-        my $cont := nqp::create(%cont_info<container_type>);
-        if %cont_info<container_type>.REPR eq 'P6opaque' {
-            nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-            if nqp::existskey(%cont_info, 'scalar_value') {
-                nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                    %cont_info<scalar_value>);
-            }
-        }
+        my $cont := self.build_container(%cont_info, $descriptor);
         self.add_object($cont);
         $block.symbol($name, :value($cont));
         self.install_package_symbol_unchecked($package, $name, $cont) if $scope eq 'our';
@@ -1285,16 +1278,41 @@ class Perl6::World is HLL::World {
         $cd
     }
 
+    # Builds a container.
+    method build_container(%cont_info, $descriptor) {
+        my $cont;
+        my $cont_type := %cont_info<container_type>;
+        if nqp::istype($cont_type, self.find_symbol(['Scalar'])) {
+            $cont := nqp::create($cont_type);
+            nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+            if nqp::existskey(%cont_info, 'scalar_value') {
+                nqp::bindattr($cont, %cont_info<container_base>, '$!value',
+                    %cont_info<scalar_value>);
+            }
+        }
+        elsif nqp::istype($cont_type, self.find_symbol(['Array'])) ||
+              nqp::istype($cont_type, self.find_symbol(['Hash'])) {
+            $cont := nqp::create($cont_type);
+            nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+        }
+        else {
+            $cont := $cont_type.new;
+            try nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+        }
+        $cont
+    }
+
     # Given a sigil and the value type specified, works out the
     # container type (what should we instantiate and bind into the
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    method container_type_info($/, $sigil, @value_type, $shape?, :@post) {
+    method container_type_info($/, $sigil, @value_type, @cont_type, $shape?, :@post) {
         my %info;
         %info<sigil> := $sigil;
 
         @value_type[0] := nqp::decont(@value_type[0]) if @value_type;
+        @cont_type[0] := nqp::decont(@cont_type[0]) if @cont_type;
 
         for @post -> $con {
             @value_type[0] := self.create_subset(self.resolve_mo($/, 'subset'),
@@ -1302,11 +1320,17 @@ class Perl6::World is HLL::World {
                 $con);
         }
         if $sigil eq '@' {
-            %info<bind_constraint> := self.find_symbol(['Positional']);
+            if @cont_type {
+                %info<bind_constraint> := @cont_type[0];
+                %info<container_base> := @cont_type[0];
+            }
+            else {
+                %info<bind_constraint> := self.find_symbol(['Positional']);
+                my $base_type_name     := nqp::objprimspec(@value_type[0]) ?? 'array' !! 'Array';
+                %info<container_base>  := self.find_symbol([$base_type_name]);
+            }
             if @value_type {
                 my $vtype              := @value_type[0];
-                my $base_type_name     := nqp::objprimspec($vtype) ?? 'array' !! 'Array';
-                %info<container_base>  := self.find_symbol([$base_type_name]);
                 %info<container_type>  := self.parameterize_type_with_args($/,
                     %info<container_base>, [$vtype], nqp::hash());
                 %info<bind_constraint> := self.parameterize_type_with_args($/,
@@ -1315,7 +1339,6 @@ class Perl6::World is HLL::World {
                 %info<default_value>   := $vtype;
             }
             else {
-                %info<container_base> := self.find_symbol(['Array']);
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := self.find_symbol(['Mu']);
                 %info<default_value>  := self.find_symbol(['Any']);
@@ -1325,8 +1348,14 @@ class Perl6::World is HLL::World {
             }
         }
         elsif $sigil eq '%' {
-            %info<container_base>  := self.find_symbol(['Hash']);
-            %info<bind_constraint> := self.find_symbol(['Associative']);
+            if @cont_type {
+                %info<container_base>  := @cont_type[0];
+                %info<bind_constraint> := @cont_type[0];
+            }
+            else {
+                %info<container_base>  := self.find_symbol(['Hash']);
+                %info<bind_constraint> := self.find_symbol(['Associative']);
+            }
             if $shape {
                 @value_type[0] := self.find_symbol(['Any']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
@@ -1373,6 +1402,9 @@ class Perl6::World is HLL::World {
             }
         }
         elsif $sigil eq '&' {
+            if @cont_type {
+                self.throw($/, 'X::NYI', :feature('is trait on &-sigil variable'));
+            }
             %info<container_base>  := self.find_symbol(['Scalar']);
             %info<container_type>  := %info<container_base>;
             %info<bind_constraint> := self.find_symbol(['Callable']);
@@ -1385,6 +1417,9 @@ class Perl6::World is HLL::World {
             %info<scalar_value>   := self.find_symbol(['Callable']);
         }
         else {
+            if @cont_type {
+                self.throw($/, 'X::NYI', :feature('is trait on $-sigil variable'));
+            }
             %info<container_base>     := self.find_symbol(['Scalar']);
             %info<container_type>     := %info<container_base>;
             if @value_type {
@@ -1513,7 +1548,8 @@ class Perl6::World is HLL::World {
         my $name       := $varast.name;
         my $BLOCK      := self.cur_lexpad();
         self.handle_OFTYPE_for_pragma($/,'variables');
-        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
+        my %cont_info  := self.container_type_info(NQPMu, $var<sigil>,
+            $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
         my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
@@ -2543,21 +2579,12 @@ class Perl6::World is HLL::World {
     # serialization context. The type would be passed in this way.
     method pkg_add_attribute($/, $obj, $meta_attr, %lit_args, %obj_args,
             %cont_info, $descriptor) {
-        # Build container.
-        my $cont := nqp::create(%cont_info<container_type>);
-        nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if nqp::existskey(%cont_info, 'scalar_value') {
-            nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                %cont_info<scalar_value>);
-        }
-
         # Create meta-attribute instance and add right away. Also add
         # it to the SC.
+        my $cont := self.build_container(%cont_info, $descriptor);
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);
         $obj.HOW.add_attribute($obj, $attr);
         self.add_object($attr);
-
-        # Return attribute that was built.
         $attr
     }
 

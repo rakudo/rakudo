@@ -30,18 +30,24 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     method load(CompUnit::PrecompilationId $id, Instant :$since) returns CompUnit::Handle {
         my $path = self.store.load($*PERL.compiler.id, $id);
-        if $path and (not $since or $path.modified > $since and self!check-dependencies($id, $since)) {
-            my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
-            my $handle := CompUnit::Loader.load-precompilation-file($path);
-            self.store.unlock;
-            nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
-            CATCH {
-                default {
-                    nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
-                    .throw;
+        if $path {
+            if not $since or $path.modified > $since and self!check-dependencies($id, $since) {
+                my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
+                my $handle := CompUnit::Loader.load-precompilation-file($path);
+                self.store.unlock;
+                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+                CATCH {
+                    default {
+                        nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+                        .throw;
+                    }
                 }
+                $handle
             }
-            $handle
+            else {
+                self.store.unlock;
+                CompUnit::Handle
+            }
         }
         else {
             CompUnit::Handle

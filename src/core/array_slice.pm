@@ -555,7 +555,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
     }
 }
 
-multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is rw) is raw {
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
     my int $n = @indices.elems;
     my int $i = 0;
     my $all-ints := True;

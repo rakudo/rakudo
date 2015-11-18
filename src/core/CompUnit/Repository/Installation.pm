@@ -233,7 +233,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     );
                     my $handle;
                     if $precomp.may-precomp {
-                        $handle = $precomp.load(nqp::sha1($loader ~ self.id));
+                        my $id = nqp::sha1($loader ~ self.id);
+                        say $id if $*W and $*W.is_precompilation_mode;
+                        $handle = $precomp.load();
                     }
                     $handle //= CompUnit::Loader.load-source-file($loader);
                     my $compunit = CompUnit.new(

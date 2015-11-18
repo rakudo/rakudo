@@ -14,7 +14,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             .child($precomp-id.substr(0, 2).IO)
     }
 
-    method !path(CompUnit::PrecompilationId $compiler-id,
+    method path(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id)
     {
         self!dir($compiler-id, $precomp-id).child($precomp-id.IO)
@@ -33,7 +33,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method load(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        my $path = self!path($compiler-id, $precomp-id);
+        my $path = self.path($compiler-id, $precomp-id);
         if $path ~~ :e {
             self!lock(1);
             $path
@@ -63,7 +63,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method delete(CompUnit::PrecompilationId $compiler-id, CompUnit::PrecompilationId $precomp-id)
     {
-        self!path($compiler-id, $precomp-id).unlink;
+        self.path($compiler-id, $precomp-id).unlink;
     }
 
     method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)

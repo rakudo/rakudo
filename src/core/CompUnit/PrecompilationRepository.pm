@@ -19,9 +19,18 @@ class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
 
+    method !check-dependencies(CompUnit::PrecompilationId $id, Instant $since) {
+        for self.store.prefix.child('dependencies').lines -> $line {
+            my ($dependent, @dependencies) = $line.split(' ');
+            return not self.store.path($*PERL.compiler.id, any @dependencies).modified < $since
+                if $id eq $dependent;
+        }
+        True
+    }
+
     method load(CompUnit::PrecompilationId $id, Instant :$since) returns CompUnit::Handle {
         my $path = self.store.load($*PERL.compiler.id, $id);
-        if $path and (not $since or $path.modified > $since) {
+        if $path and (not $since or $path.modified > $since and self!check-dependencies($id, $since)) {
             my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
             my $handle := CompUnit::Loader.load-precompilation-file($path);
             self.store.unlock;
@@ -68,7 +77,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
             fail @result if @result;
         }
         else {
-            spurt(self.store.prefix.child('dependencies'), "$id {@result.join(' ')}\n", :append);
+            spurt(self.store.prefix.child('dependencies'), ($id, |@result).join(' ') ~ "\n", :append);
             self.store.unlock;
             True
         }

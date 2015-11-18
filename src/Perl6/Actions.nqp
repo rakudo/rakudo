@@ -2617,6 +2617,9 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
+        if nqp::elems($<semilist>) > 1 {
+            $/.CURSOR.panic('Multiple shapes not yet understood');
+        }
         make declare_variable($/, $past, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
     }
 
@@ -2769,7 +2772,7 @@ Compilation unit '$file' contained the following violations:
                 :scope($*SCOPE), :package($*PACKAGE));
 
             # Set scope and type on container, and if needed emit code to
-            # reify a generic type.
+            # reify a generic type or create a fresh container.
             if $past.isa(QAST::Var) {
                 my $bind_type := %cont_info<bind_constraint>;
                 $past.name($name);
@@ -2780,6 +2783,9 @@ Compilation unit '$file' contained the following violations:
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $past ),
                         QAST::Op.new( :op('curlexpad') ));
+                }
+                elsif %cont_info<build_ast> {
+                    $past := QAST::Op.new( :op('bind'), $past, %cont_info<build_ast> );
                 }
 
                 if $*SCOPE eq 'our' {

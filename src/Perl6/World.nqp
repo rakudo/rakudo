@@ -1343,8 +1343,17 @@ class Perl6::World is HLL::World {
                 %info<value_type>     := self.find_symbol(['Mu']);
                 %info<default_value>  := self.find_symbol(['Any']);
             }
-            if $shape {
-                self.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
+            if $shape || @cont_type {
+                my $ast := QAST::Op.new(
+                    :op('callmethod'), :name('new'),
+                    QAST::WVal.new( :value(%info<container_type>) )
+                );
+                if $shape {
+                    my $shape_ast := $shape[0].ast;
+                    $shape_ast.named('shape');
+                    $ast.push($shape_ast);
+                }
+                %info<build_ast> := $ast;
             }
         }
         elsif $sigil eq '%' {
@@ -1399,6 +1408,12 @@ class Perl6::World is HLL::World {
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := self.find_symbol(['Mu']);
                 %info<default_value>  := self.find_symbol(['Any']);
+            }
+            if @cont_type {
+                %info<build_ast> := QAST::Op.new(
+                    :op('callmethod'), :name('new'),
+                    QAST::WVal.new( :value(%info<container_type>) )
+                );
             }
         }
         elsif $sigil eq '&' {

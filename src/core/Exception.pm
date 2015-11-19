@@ -1193,12 +1193,12 @@ my class X::Syntax::Augment::Illegal does X::Syntax {
 }
 
 my class X::Syntax::Augment::Adverb does X::Syntax {
-    method message() { "Cannot supply adverbs when augumenting." }
+    method message() { "Cannot put adverbs on a typename when augmenting" }
 }
 
 my class X::Syntax::Type::Adverb does X::Syntax {
     has $.adverb;
-    method message() { "Cannot supply adverb $.adverb, only ver and auth are supported." }
+    method message() { "Cannot use adverb $.adverb on a type name (only 'ver' and 'auth' are understood)" }
 }
 
 my class X::Syntax::Argument::MOPMacro does X::Syntax {

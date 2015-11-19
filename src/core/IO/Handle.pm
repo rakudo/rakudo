@@ -733,7 +733,7 @@ my class IO::Handle does IO {
     }
 
     method t(IO::Handle:D:) {
-        self.opened && nqp::p6bool($!PIO.isatty)
+        self.opened && nqp::p6bool(nqp::isttyfh($!PIO))
     }
 
 

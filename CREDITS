@@ -17,6 +17,14 @@
 
 ----------
 
+N: ab5tract
+E: john.haltiwanger@gmail.com
+
+N: Ahmad M. Zawawi
+U: azawawi
+E: ahmad.zawawi@gmail.com
+D: Rakudo builtins, win32 patches
+
 N: Alberto Manuel Brandao Simoes
 U: ambs
 E: ambs@cpan.org
@@ -35,10 +43,11 @@ D: Parrot Architect (0.4.6...)
 E: allison@parrot.org
 U: allison
 
-N: Ahmad M. Zawawi
-U: azawawi
-E: ahmad.zawawi@gmail.com
-D: Rakudo builtins, win32 patches
+N: Amir E. Aharoni
+E: amir.aharoni@mail.huji.ac.il
+
+N: amire80
+E: amir.aharoni@mail.huji.ac.il
 
 N: Andrew Egeler
 U: retupmoca
@@ -67,10 +76,8 @@ U: au
 E: audreyt@audreyt.org
 D: Pugs, a Perl6->Parrot implementation.
 
-N: Вячеслав Матюхин
-U: mmcleric
-E: me@berekuk.ru
-D: Whatever-currying, colonpair fixes
+N: bacek
+E: bacek@illusion.dev.optusnet.com.au
 
 N: Bart Wiegmans
 U: bdw
@@ -82,14 +89,23 @@ N: Bernhard Schmalhofer
 U: bernhard
 E: Bernhard.Schmalhofer@gmx.de
 
+N: Bob Kuo
+E: bob@celect.org
+
 N: Bob Rogers
 D: Random small bug fixes
 E: rogers-perl6@rgrjr.dyndns.org
 U: rgrjr
 
+N: Brad Gilbert
+E: b2gills@gmail.com
+
 N: Brent Laabs
 U: labster
 E: bslaabs@gmail.com
+
+N: Brian Gernhardt
+E: benji@silverinsanity.com
 
 N: Bruce Gray
 U: util
@@ -108,6 +124,9 @@ E: bwarnock@raba.com
 N: Carl Mäsak
 E: cmasak@gmail.com
 U: masak
+
+N: Carlin
+E: glassflag@users.noreply.github.com
 
 N: Carlin Bingham
 E: cb@viennan.net
@@ -132,14 +151,23 @@ N: Chris Fields
 U: cjfields
 D: Rakudo patches
 
+N: Chris Jepeway
+E: jepeway@blasted-heath.com
+
 N: Christian Bartolomäus
 U: usev6
 U: bartolin
 E: bartolin@gmx.de
 
+N: Christoph Otto
+E: christoph_git@mksig.org
+
 N: Christoph Otto a.k.a. cotto
 U: cotto
 E: christoph@mksig.org
+
+N: Christopher J. Madsen
+E: perl@cjmweb.net
 
 N: chromatic
 U: chromatic
@@ -155,11 +183,32 @@ U: cspencer
 D: Rakudo builtins
 E: cspencer@sprocket.org
 
+N: Cosimo Streppone
+E: cosimo@opera.com
+
+N: cosmicnet
+E: webmaster@cosmicperl.com
+
 N: Curtis 'Ovid' Poe
 U: Ovid
 D: docs/test cleanups/Makefile fixes
 D: Rename 'pbc_to_c' to 'pbc_to_exe'
 E: ovid@cpan.org
+
+N: cygx
+E: cygx@cpan.org
+
+N: Daenyth
+E: Daenyth+git@gmail.com
+
+N: Dagfinn Ilmari Mannsåker
+E: ilmari@ilmari.org
+
+N: Dagur Valberg Johannsson
+E: dagurval@pvv.ntnu.no
+
+N: dagurval
+E: dagurval@pvv.ntnu.no
 
 N: Dan Sugalski
 U: dan
@@ -167,9 +216,15 @@ D: Architect emeritus (0.0.1-0.1.1)
 E: dan@sidhe.org
 W: http://www.sidhe.org/~dan/blog/
 
+N: Dave Whipp
+E: dwhipp@google.com
+
 N: David Romano
 D: PGE tests and fixes
 E: david.romano+p6i@gmail.com
+
+N: David Warring
+E: david.warring@gmail.com
 
 N: Dino Morelli
 D: PGE tests
@@ -178,6 +233,9 @@ E: dmorelli@reactorweb.net
 N: Donald Hunter
 U: donaldh
 E: donald@sealgair.com
+
+N: Edwin Steiner
+E: edwin.steiner@gmx.net
 
 N: Elise
 U: rightfold
@@ -188,8 +246,23 @@ N: Elizabeth Mattijsen
 U: lizmat
 E: liz@dijkmat.nl
 
+N: Erik Johansen
+E: perl6-git@uniejo.dk
+
 N: Faye Niemeyer
 U: ShimmerFairy
+
+N: Felix Herrmann
+E: felix@herrmann-koenigsberg.de
+
+N: Fernando Brito
+E: email@fernandobrito.com
+
+N: Filip Sergot
+E: filip@sergot.pl
+
+N: Fitz Elliott
+E: felliott@virginia.edu
 
 N: Florian Ragwitz
 U: rafl
@@ -198,30 +271,53 @@ E: rafl@debianforum.de
 W: http://www.tu-chemnitz.de/~rafl/
 S: Chemnitz, Germany
 
+N: flussence
+E: flussence@gmail.com
+
 N: François Perrad
 E: francois.perrad@gadz.org
 W: http://fperrad.googlepages.com/home
 U: fperrad
 
+N: Gabor Szabo
+E: szabgab@gmail.com
+
+N: Geir Amdal
+E: gam@grok.no
+
 N: Geoff Broadwell
 U: japhb
 E: geoff@broadwell.org
 
-U: gregor
+N: Gerd Pokorra
+E: pokorra@uni-siegen.de
+
+N: Gerhard R
+E: gerd.r.devel@googlemail.com
+
+N: Gerhard R.
+E: gerd.r.devel@googlemail.com
+
+N: Gianni Ceccarelli
+E: dakkar@thenautilus.net
+
+N: GlitchMr
+E: glitchmr@myopera.com
+
 N: Gregor N. Purdy
+U: gregor
 E: gregor@focusresearch.com
 S: Sunnyvale, CA
 
-U: ingy
+N: Hongwen Qiu
+E: qiuhongwen@gmail.com
+
 N: Ingy döt Net
+U: ingy
 E: ingy@ingy.net
 W: http://ingy.net/
 S: Seattle, WA, USA
 D: Make is() work like Perl 5; add .pm6 to extensions searched.
-
-N: JD Horelick
-U: jdhore
-E: jdhore1@gmail.com
 
 N: James E Keenan (Jim)
 E: jkeenan@cpan.org
@@ -229,14 +325,27 @@ U: jkeenan
 W: http://thenceforward.net/parrot/
 S: Brooklyn, NY, USA
 
+N: Jan Ingvoldstad
+E: jani+perl6-2010@ifi.uio.no
+
+N: japhb
+E: gjb@sonic.net
+
 N: Jarkko Hietaniemi
 U: jhi
 E: jhi@iki.fi
 
-N: Justin DeVuyst
-U: jdv79
+N: Jarrod
+E: gigantic.midget@gmail.com
 
 N: Jason Gloudon
+
+N: Jaume Martí
+E: jaume.martif@gmail.com
+
+N: JD Horelick
+U: jdhore
+E: jdhore1@gmail.com
 
 N: Jeff Goff
 D: Parrot Release Manager Emeritus (0.2..0.4)
@@ -247,6 +356,9 @@ N: Jeff Horwitz
 E: jeff@smashing.org
 U: jhorwitz
 
+N: Jens Rehsack
+E: sno@netbsd.org
+
 N: Jerry Gay
 U: particle
 E: Jerry.Gay@gmail.com
@@ -256,14 +368,12 @@ N: Jesse Vincent
 U: jesse
 E: jesse@fsck.com
 
+N: Jimmy Zhuo
+E: zhuomingliang01@qq.com
+
 N: John Harrison
 U: __ash__
 E: ash@greaterthaninfinity.com
-
-N: Jonathan Scott Duff
-U: perlpilot
-U: PerlJam
-E: duff@pobox.com
 
 N: Jonathan "Duke" Leto
 U: leto
@@ -271,6 +381,11 @@ U: dukeleto
 E: jonathan@leto.net
 W: http://leto.net
 S: Portland, OR
+
+N: Jonathan Scott Duff
+U: perlpilot
+U: PerlJam
+E: duff@pobox.com
 
 N: Jonathan Stowe
 U: RabidGravy
@@ -286,6 +401,18 @@ N: Julian Albo
 U: julianalbo
 E: julian.notfound@gmail.com
 
+N: Justin DeVuyst
+U: jdv79
+
+N: Kamil Kułaga
+E: teodozjan@users.noreply.github.com
+
+N: kboga
+E: kristofbogaerts@gmail.com
+
+N: Kevan Benson
+E: kbenson@brinstar.netcrucial.com
+
 N: Kevin Tew
 U: tewk
 E: tewk@tewk.com
@@ -298,15 +425,37 @@ N: Kodi Arfer
 U: Kodi
 W: http://arfer.net
 
+N: Kris Shannon
+E: kris@shannon.id.au
+
 N: Kyle Hasselbacher
 E: kyleha@gmail.com
 U: KyleHa
 U: kyle
 D: Test.pm improvements, ticket testing
 
+N: L. Grondin
+E: grondilu@yahoo.fr
+
+N: laben
+E: labensigma@gmail.com
+
+N: Lanny Ripple
+E: Lanny.Ripple@gmail.com
+
 N: Larry Wall
 E: larry@wall.org
 U: TimToady
+
+N: Lars Dɪᴇᴄᴋᴏᴡ 迪拉斯
+E: daxim@cpan.org
+
+N: last.of.the.careless.men@gmail.com
+E: last.of.the.careless.men@gmail.com
+
+N: Leon Timmermans
+U: leont
+E: fawaka@gmail.com
 
 N: Leopold Toetsch
 U: leo
@@ -314,9 +463,18 @@ D: Patchmonster & release manager emeritus (0.0.13 - 0.4.5)
 E: lt@toetsch.at
 S: Herrnbaumgarten, Austria
 
+N: Lloyd Fournier
+E: LLFourn@users.noreply.github.com
+
+N: Lucas Buchala
+E: lucasbuchala@gmail.com
+
 N: Luke Palmer
 E: luke@luqui.org
 U: luqui
+
+N: Marcus Ramberg
+E: marcus@nordaaker.com
 
 N: Mark Glines
 U: infinoid
@@ -326,27 +484,82 @@ S: South Lake Tahoe, CA, USA
 N: Mark Grimes
 E: mgrimes@cpan.org
 
+N: Mark Shoulson
+E: mark@kli.org
+
+N: markmont
+E: markmont@markmont-dev.web.itd.umich.edu
+
 N: Martin Berends
 E: mberends@autoexec.demon.nl
 D: Rakudo patch(es)
 
+N: Martin Kjeldsen
+E: martin@martinkjeldsen.dk
+
+N: Marton Papp
+E: anteusz@freemail.hu
+
 N: Matt Diephouse
 U: mdiep
 E: matt@diephouse.com
+
+N: Matt Kraai
+E: kraai@ftbfs.org
+
+N: Matthew (lue)
+E: rnddim@gmail.com
+
+N: Matthew Walton
+E: matthew@matthew-walton.co.uk
+
+N: Matthew Wilson
+E: diakopter@gmail.com
+
+N: mberends
+E: github@autoexec.demon.nl
 
 N: Michael Schroeder
 U: mls
 D: Exception handling
 E: mls@suse.de
 
+N: Michael Stapelberg
+E: michael@stapelberg.de
+
+N: Mike Francis
+E: ungrim97@gmail.com
+
+N: Mikhail Khorkov
+E: m.s.khorkov@gmail.com
+
 N: Moritz Lenz
 E: moritz@faui2k3.org
 U: moritz
 D: Test infrastructure, tests, general Rakudo hacking
 
+N: Mouq
+E: alexmoquin@gmail.com
+
+N: Nami-Doc
+E: vendethiel@hotmail.fr
+
 N: Nicholas Clark
 U: nicholas
 E: nick@ccl4.org
+
+N: Nick Glencross
+E: nick.glencross@gmail.com
+
+N: Nick Logan
+U: ugexe
+E: nlogan@gmail.com
+
+N: Nick Wellnhofer
+E: wellnhofer@aevum.de
+
+N: niner
+E: nine@detonation.org
 
 N: Notfound
 E: julian.notfound@gmail.com
@@ -354,6 +567,9 @@ E: julian.notfound@gmail.com
 N: Nuno 'smash' Carvalho
 U: smash
 E: mestre.smash@gmail.com
+
+N: particle
+E: jerry.gay@gmail.com
 
 N: Patrick Abi Salloum
 U: patrickas
@@ -368,6 +584,9 @@ N: Paul Cochrane
 U: paultcochrane
 E: paultcochrane@gmail.com
 
+N: Pawel Murias
+E: pawelmurias@gmail.com
+
 N: Pepe Schwarz
 U: psch
 U: peschwa
@@ -377,16 +596,31 @@ N: Peter Gibbs
 U: petergibbs
 E: peter@emkel.co.za
 
+N: Peter Lobsinger
+E: plobsing@gmail.com
+
 N: Piers Cawley
 U: pdcawley
 D: The Second Perl 6 Summarizer after Bryan C. Warnock
 E: pdcawley@bofh.org.uk
 W: http://www.bofh.org.uk:8080/
 
+N: quester
+E: quester.pm@gmail.com
+
+N: Radu Stoica
+E: radu_cs85@yahoo.com
+
+N: raydiak
+E: raydiak@cyberuniverses.com
+
 N: Reini Urban
 U: rurban
 E: rurban@cpan.org
 D: cygwin fixes
+
+N: Ricardo Signes
+E: rjbs@cpan.org
 
 N: Rob Hoelz
 U: hoelzro
@@ -397,13 +631,55 @@ D: Keeps us running
 U: robert
 E: robert@perl.org
 
+N: Ronald Schmidt
+E: ronaldxs@software-path.com
+
+N: ronaldxs
+E: ronaldxs@software-path.com
+
+N: root
+E: root@atlas.clarku.edu
+
+N: Ruslan Zakirov
+E: ruz@bestpractical.com
+
+N: Salve J. Nilsen
+E: sjn+gnurf@kaizendo.org
+
+N: sergot
+E: filip@sergot.pl
+
+N: ShimmerFairy
+E: rnddim@gmail.com
+
+N: Shlomi Fish
+E: shlomif@iglu.org.il
+
+N: Shoichi Kaji
+E: skaji@cpan.org
+
 N: Shrivatsan Sampathkumar
 U: isBEKaml
 E: nastavs@gmail.com
 
+N: Siddhant Saraf
+E: siddhantsaraf@gmail.com
+
 N: Simon Cozens
 U: simon
 E: simon@simon-cozens.org
+
+N: skids
+E: bri@abrij.org
+
+N: smashz
+E: smash@cpan.org
+
+N: smls
+E: smls75@gmail.com
+
+N: snarkyboojum
+E: snarkyboojum@gmail.com
 
 N: Solomon Foster
 U: colomon
@@ -413,17 +689,38 @@ N: Stefan O'Rear
 U: sorear
 E: stefanor@cox.net
 
-N: Stéphane Payrard
-D: Various code fixes and improvements
+N: Stefan Seifert
+E: nine@detonation.org
+
+N: Stephane cognominal Payrard
+E: cognominal@gmail.com
 
 N: Stephen Weeks
 U: tene
 D: Minor Rakudo patches
 E: tene@allalone.org
 
+N: Sterling Hanenkamp
+E: sterling@hanenkamp.com
+
+N: Steve Mynott
+E: steve.mynott@gmail.com
+
+N: Stéphane Payrard
+D: Various code fixes and improvements
+
+N: sue spence
+E: virtuallysue@gmail.com
+
 N: Tadeusz Sośnierz
 U: tadzik
 E: tadzikes@gmail.com
+
+N: thundergnat
+E: thundergnat@comcast.net
+
+N: Tim Smith
+E: tim.dolores@gmail.com
 
 N: Timo Paulssen
 U: timo
@@ -440,6 +737,18 @@ N: Tobias Leich
 U: FROGGS
 E: email@froggs.de
 
+N: Tokuhiro Matsuno
+E: tokuhirom@gmail.com
+
+N: Tomasz Konojacki
+E: me@xenu.tk
+
+N: Tomoki Aonuma
+E: uasi@99cm.org
+
+N: tony-o
+E: tony.odell@xpertminds.net
+
 N: Tyler Curtis
 U: tcurtis
 D: $*ARGFILES
@@ -449,24 +758,45 @@ N: Ujwal Reddy Malipeddi
 E: ujwalic@gmail.com
 D: Rakudo patch
 
+N: usev6
+E: use_v6@aglaz.de
+
 N: Vasily Chekalkin
 E: bacek@bacek.com
 D: Core and Rakudo patches
+
+N: vendethiel
+E: vendethiel@hotmail.fr
+
+N: Vladimir Lettiev
+E: thecrux@gmail.com
+
+N: Vyacheslav Matjukhin
+E: mmcleric@yandex-team.ru
 
 N: Will "Coke" Coleda
 U: coke
 E: will@coleda.com
 
+N: William Orr
+E: will@worrbase.com
+
+N: Yun SangHo
+E: foollbar@gmail.com
+
 N: Zach Morgan
 E: zpmorgan@gmail.com
 D: Rakudo patch
 
-N: Nick Logan
-U: ugexe
-E: nlogan@gmail.com
+N: Zohar Kelrich
+E: lumimies@gmail.com
 
-N: Leon Timmermans
-U: leont
-E: fawaka@gmail.com
+N: Ævar Arnfjörð Bjarmason
+E: avarab@gmail.com
+
+N: Вячеслав Матюхин
+U: mmcleric
+E: me@berekuk.ru
+D: Whatever-currying, colonpair fixes
 
 =cut

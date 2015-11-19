@@ -416,6 +416,32 @@ my class Array { # declared in BOOTSTRAP
                 '[' ~ (^@dims[0]).map({ self!gist((flat @path, $_), @nextdims) }).join(' ') ~ ']';
             }
         }
+
+        multi method perl(::?CLASS:D \SELF:) {
+            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }
+            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
+            %*perlseen{self.WHICH} = 1;
+            my $result = 'Array.new(:shape' ~ nqp::decont(self.shape).perl ~ ', ' ~
+                self!perl([], self.shape) ~ ')';
+            $result ~= '.item' if nqp::iscont(SELF);
+            $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+            $result;
+        }
+        method !perl(@path, @dims) {
+            if @dims.elems == 1 {
+                 '[' ~
+                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).perl }).join(', ') ~
+                    ',' x (@dims[0] == 1 && nqp::istype(self.AT-POS(|@path, 0), Iterable)) ~
+                 ']'
+            }
+            else {
+                my @nextdims = @dims[1..*];
+                '[' x (@path.elems > 0) ~
+                    (^@dims[0]).map({ self!perl((flat @path, $_), @nextdims) }).join(', ') ~
+                    ',' x (@dims[0] == 1) ~
+                ']' x (@path.elems > 0)
+            }
+        }
     }
 
     proto method new(|) { * }

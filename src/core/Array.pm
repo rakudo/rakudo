@@ -287,6 +287,14 @@ my class Array { # declared in BOOTSTRAP
             X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
         }
 
+        method reverse(::?CLASS:D:) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
+        }
+
+        method rotate(::?CLASS:D: Cool) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
+        }
+
         # A shaped array isn't lazy, we these methods don't need to go looking
         # into the "todo".
         multi method elems(::?CLASS:D:) is nodal {
@@ -315,6 +323,31 @@ my class Array { # declared in BOOTSTRAP
         }
         multi method invert(::?CLASS:D:) {
             self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
+        }
+
+        method iterator(List:D:) {
+            # This can be fairly heavily optimized in various ways later
+            self.values.iterator
+        }
+
+        # These work on the flat view
+        method roll(|c) {
+            self.flat.roll(|c)
+        }
+        method pick(|c) {
+            self.flat.pick(|c)
+        }
+        method permutations(|c) {
+            self.flat.permutations(|c)
+        }
+        method combinations(|c) {
+            self.flat.combinations(|c)
+        }
+        method rotor(|c) {
+            self.flat.rotor(|c)
+        }
+        method join(|c) {
+            self.flat.join(|c)
         }
     }
 

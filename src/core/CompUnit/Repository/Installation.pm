@@ -140,11 +140,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     :time(try $file.IO.modified.Num),
                     :$!cver
                 }
-                my $precomp = self.precomp-repository;
-                if $precomp.may-precomp {
-                    my $id = nqp::sha1($destination ~ self.id);
-                    $precomp.precompile($file.IO, $id);
-                }
             }
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
@@ -175,6 +170,15 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $dist-dir.child($d.id).spurt: to-json($d.Hash);
 
         "$path/MANIFEST".IO.spurt: to-json( $repo );
+
+        my $precomp = self.precomp-repository;
+        for $d.provides.values.map(*.values[0]<file>.Int).sort -> $file-id {
+            my $source = $sources-dir.child($file-id);
+            if $precomp.may-precomp {
+                my $id = nqp::sha1($source ~ self.id);
+                $precomp.precompile($source.IO, $id);
+            }
+        }
         $lock.unlock;
     } ) }
 
@@ -235,7 +239,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     if $precomp.may-precomp {
                         my $id = nqp::sha1($loader ~ self.id);
                         say $id if $*W and $*W.is_precompilation_mode;
-                        $handle = $precomp.load();
+                        $handle = $precomp.load($id);
                     }
                     $handle //= CompUnit::Loader.load-source-file($loader);
                     my $compunit = CompUnit.new(

@@ -67,7 +67,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? ' --ll-exception'
           !! '';
-        %*ENV<RAKUDO_PRECOMP_WITH> = CREATE-INCLUDE-SPECS(@*INC);
+        %*ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain>>.path-spec.join(',');
 
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $*RAKUDO_MODULE_DEBUG;

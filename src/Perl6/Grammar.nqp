@@ -2102,8 +2102,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <trait>*
 
             {
+
                 # Unless we're augmenting...
                 if $*SCOPE ne 'augment' {
+                    if $longname {
+                        for $longname.colonpairs_hash('class') -> $adverb {
+                            if $adverb.key ne 'auth' && $adverb.key ne 'ver' {
+                                $/.CURSOR.typed_panic('X::Syntax::Type::Adverb', adverb => $adverb.key);
+                            }
+                        }
+                    }
+
                     # Locate any existing symbol. Note that it's only a match
                     # with "my" if we already have a declaration in this scope.
                     my $exists := 0;
@@ -2191,6 +2200,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                     elsif !$longname {
                         $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);
+                    }
+
+                    if $longname.colonpairs_hash('class') {
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::Adverb');
                     }
 
                     # Locate type.

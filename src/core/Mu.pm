@@ -212,6 +212,10 @@ Please refactor this code using the new Iterator / Seq interface.
                     X::Attribute::Required.new(name => $attr_name).throw;
                 }
             }
+            elsif nqp::iseq_i($code, 12) {
+                nqp::bindattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
+                    nqp::atpos($task, 3)());
+            }
             else {
                 die "Invalid BUILDALLPLAN";
             }

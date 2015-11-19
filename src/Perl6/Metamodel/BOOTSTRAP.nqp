@@ -1110,6 +1110,7 @@ BEGIN {
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
     #     has Mu $!why;
+    #     has Mu $!container_initializer;
     Attribute.HOW.add_parent(Attribute, Any);
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
@@ -1126,6 +1127,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!positional_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_initializer>, :type(Mu), :package(Attribute)));
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
@@ -1152,6 +1154,10 @@ BEGIN {
                 nqp::bindattr($scalar, Scalar, '$!value', $type);
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
                 nqp::bindattr($attr, Attribute, '$!auto_viv_container', $scalar);
+            }
+            if nqp::existskey(%other, 'container_initializer') {
+                nqp::bindattr($attr, Attribute, '$!container_initializer',
+                    %other<container_initializer>);
             }
             nqp::bindattr_i($attr, Attribute, '$!positional_delegate', $positional_delegate);
             nqp::bindattr_i($attr, Attribute, '$!associative_delegate', $associative_delegate);
@@ -1232,6 +1238,10 @@ BEGIN {
         }));
     Attribute.HOW.add_method(Attribute, 'associative_delegate', nqp::getstaticcode(sub ($self) {
             nqp::getattr_i(nqp::decont($self), Attribute, '$!associative_delegate')
+        }));
+    Attribute.HOW.add_method(Attribute, 'container_initializer', nqp::getstaticcode(sub ($self) {
+            nqp::getattr(nqp::decont($self),
+                Attribute, '$!container_initializer');
         }));
     Attribute.HOW.add_method(Attribute, 'is_generic', nqp::getstaticcode(sub ($self) {
             my $dcself   := nqp::decont($self);

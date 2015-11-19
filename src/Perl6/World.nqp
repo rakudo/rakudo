@@ -2592,12 +2592,12 @@ class Perl6::World is HLL::World {
     # arguments to pass and a set of name to object mappings to pass also
     # as named arguments, but where these passed objects also live in a
     # serialization context. The type would be passed in this way.
-    method pkg_add_attribute($/, $obj, $meta_attr, %lit_args, %obj_args,
+    method pkg_add_attribute($/, $obj, $meta_attr, %args,
             %cont_info, $descriptor) {
         # Create meta-attribute instance and add right away. Also add
         # it to the SC.
         my $cont := self.build_container(%cont_info, $descriptor);
-        my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);
+        my $attr := $meta_attr.new(:auto_viv_container($cont), |%args);
         $obj.HOW.add_attribute($obj, $attr);
         self.add_object($attr);
         $attr

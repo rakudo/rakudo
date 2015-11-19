@@ -19,10 +19,21 @@ role Perl6::Metamodel::BUILDPLAN {
     #   9 class attr_name code = call default value closure if needed, num attr
     #   10 class attr_name code = call default value closure if needed, str attr
     #   11 die if a required attribute is not present
+    #   12 class attr_name code = run attribute container initializer
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
         my @attrs := $obj.HOW.attributes($obj, :local(1));
+
+        # Emit any container initializers.
+        for @attrs {
+            if nqp::can($_, 'container_initializer') {
+                my $ci := $_.container_initializer;
+                if nqp::isconcrete($ci) {
+                    @plan[+@plan] := [12, $obj, $_.name, $ci];
+                }
+            }
+        }
         
         # Does it have its own BUILD?
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));

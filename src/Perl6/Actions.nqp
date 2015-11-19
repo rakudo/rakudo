@@ -2699,16 +2699,18 @@ Compilation unit '$file' contained the following violations:
 
             # Create meta-attribute and add it.
             my $metaattr := $*W.resolve_mo($/, $*PKGDECL ~ '-attr');
+            my %config := hash(
+                name => $attrname,
+                has_accessor => $twigil eq '.',
+                container_descriptor => $descriptor,
+                type => %cont_info<bind_constraint>,
+                package => $*W.find_symbol(['$?CLASS']));
+            if %cont_info<build_ast> {
+                %config<container_initializer> := $*W.create_thunk($/,
+                    %cont_info<build_ast>);
+            }
             my $attr := $*W.pkg_add_attribute($/, $*PACKAGE, $metaattr,
-                hash(
-                    name => $attrname,
-                    has_accessor => $twigil eq '.'
-                ),
-                hash(
-                    container_descriptor => $descriptor,
-                    type => %cont_info<bind_constraint>,
-                    package => $*W.find_symbol(['$?CLASS'])),
-                %cont_info, $descriptor);
+                %config, %cont_info, $descriptor);
 
             # Document it
             Perl6::Pod::document($/, $attr, $*POD_BLOCK, :leading);
@@ -2785,7 +2787,15 @@ Compilation unit '$file' contained the following violations:
                         QAST::Op.new( :op('curlexpad') ));
                 }
                 elsif %cont_info<build_ast> {
-                    $past := QAST::Op.new( :op('bind'), $past, %cont_info<build_ast> );
+                    if $*SCOPE eq 'state' {
+                        $past := QAST::Op.new( :op('if'),
+                            QAST::Op.new( :op('p6stateinit') ),
+                            QAST::Op.new( :op('bind'), $past, %cont_info<build_ast> ),
+                            $past);
+                    }
+                    else {
+                        $past := QAST::Op.new( :op('bind'), $past, %cont_info<build_ast> );
+                    }
                 }
 
                 if $*SCOPE eq 'our' {

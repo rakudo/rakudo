@@ -398,6 +398,24 @@ my class Array { # declared in BOOTSTRAP
         method join(|c) {
             self.flat.join(|c)
         }
+
+        multi method gist(::?CLASS:D:) {
+            if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
+            if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
+            %*gistseen{self.WHICH} = 1;
+            my $result = self!gist([], self.shape);
+            $result = "(\\Array_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
+            $result;
+        }
+        method !gist(@path, @dims) {
+            if @dims.elems == 1 {
+                 '[' ~ (^@dims[0]).map({ self.AT-POS(|@path, $_).gist }).join(' ') ~ ']';
+            }
+            else {
+                my @nextdims = @dims[1..*];
+                '[' ~ (^@dims[0]).map({ self!gist((flat @path, $_), @nextdims) }).join(' ') ~ ']';
+            }
+        }
     }
 
     proto method new(|) { * }

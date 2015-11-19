@@ -2,6 +2,8 @@ my class X::TypeCheck { ... };
 my class X::Subscript::Negative { ... };
 my class X::IllegalOnFixedDimensionArray { ... };
 my class X::NotEnoughDimensions { ... };
+my class X::Assignment::ArrayShapeMismatch { ... };
+my class X::Assignment::ToShaped { ... };
 
 # An Array is a List that ensures every item added to it is in a Scalar
 # container. It also supports push, pop, shift, unshift, splice, BIND-POS,
@@ -246,6 +248,53 @@ my class Array { # declared in BOOTSTRAP
                     got-dimensions => $numind,
                     needed-dimensions => $numdims
                 ).throw
+            }
+        }
+
+        proto method STORE(|) { * }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            allocate-shaped-storage(self, self.shape);
+            if nqp::istype(in, ShapedArray) {
+                if self.shape eqv in.shape {
+                    # Can do a VM-supported memcpy-like thing in the future
+                    for self.keys {
+                        self.ASSIGN-POS(|$_, in.AT-POS(|$_))
+                    }
+                }
+                else {
+                    X::Assignment::ArrayShapeMismatch.new(
+                        source-shape => in.shape,
+                        target-shape => self.shape
+                    ).throw
+                }
+            }
+            else {
+                self!STORE-PATH((), self.shape, in)
+            }
+        }
+        multi method STORE(::?CLASS:D: Mu \item) {
+            self.STORE((item,))
+        }
+        method !STORE-PATH(@path, @rest, \in) {
+            my int $cur-pos = 0;
+            if @rest.elems == 1 {
+                for in -> \item {
+                    self.ASSIGN-POS(|@path, $cur-pos, item);
+                    $cur-pos = $cur-pos + 1;
+                }
+            }
+            else {
+                my @nextrest = @rest[1..*];
+                for in -> \item {
+                    my @nextpath = flat @path, $cur-pos;
+                    if nqp::istype(item, Iterable) && nqp::isconcrete(item) {
+                        self!STORE-PATH(@nextpath, @nextrest, item)
+                    }
+                    else {
+                        X::Assignment::ToShaped.new(shape => self.shape).throw;
+                    }
+                    $cur-pos = $cur-pos + 1;
+                }
             }
         }
 

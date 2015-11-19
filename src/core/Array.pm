@@ -294,6 +294,28 @@ my class Array { # declared in BOOTSTRAP
         }
         method eager() { self }
         method is-lazy() { False }
+
+        multi method keys(::?CLASS:D:) {
+            my @shape := self.shape;
+            @shape.elems == 1
+                ?? Seq.new((^@shape[0]).iterator)
+                !! cross(@shape.map(^*).list)
+        }
+        multi method values(::?CLASS:D:) {
+            self.keys.map({ self.AT-POS(|$_) })
+        }
+        multi method kv(::?CLASS:D:) {
+            self.keys.map({ slip($_, self.AT-POS(|$_)) })
+        }
+        multi method pairs(::?CLASS:D:) {
+            self.keys.map({ $_ => self.AT-POS(|$_) })
+        }
+        multi method antipairs(::?CLASS:D:) {
+            self.keys.map({ self.AT-POS(|$_) => $_ })
+        }
+        multi method invert(::?CLASS:D:) {
+            self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
+        }
     }
 
     proto method new(|) { * }

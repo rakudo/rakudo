@@ -533,7 +533,6 @@ sub permutations(int $n) {
                 else {
                     # Find the largest index l greater than k such that a[k] < a[l].
                     my $l = first { @!a[$k] < @!a[$_] }, ($k ^..^ $!n).reverse;
-                    die "unexpected failure to find l" unless $l.defined;
                     @!a[$k, $l].=reverse;
                     @!a[$k+1 .. *].=reverse;
                     @!a.List;

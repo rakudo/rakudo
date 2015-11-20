@@ -59,14 +59,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
-          ?? ' --ll-exception'
-          !! '';
+          ?? '--ll-exception'
+          !! Empty;
         %*ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain>>.path-spec.join(',');
 
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $*RAKUDO_MODULE_DEBUG;
 
-        my $proc = run("$*EXECUTABLE$lle", "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
+        my $proc = run($*EXECUTABLE, $lle, "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 
         my @result = $proc.out.lines;

@@ -85,13 +85,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $lookup.close;
     }
 
-    method !manifest() {
-        my $manifest := $.prefix.child("MANIFEST");
-        my $repo = $manifest.e ?? from-json($manifest.slurp) !! {};
-        $repo<file-count> //= 0;
-        $repo
-    }
-
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
@@ -108,8 +101,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         my $sources-dir = self!sources-dir;
-        my $repo := self!manifest;
-        my $file-id := $repo<file-count>;
         state $is-win //= $*DISTRO.is-win; # only look up once
 
         # Build patterns to choose what goes into "provides" section.
@@ -130,13 +121,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my $has-provides;
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $destination = $sources-dir.child($file-id);
+            my $id = nqp::sha1($file ~ self.id);
+            my $destination = $sources-dir.child($id);
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 my $name = $/.ast;
                 self!add-short-name($name, $d);
                 $has-provides = True;
                 $d.provides{ $name }{ $<ext> } = {
-                    :file($file-id),
+                    :file($id),
                     :time(try $file.IO.modified.Num),
                     :$!cver
                 }
@@ -159,24 +151,28 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         }
                     }
                 }
-                $d.files{$file} = $file-id
+                $d.files{$file} = $id
             }
             copy($file, $destination);
-            $file-id++;
         }
 
         provides-warning($is-win, $d.name) if !$has-provides and $d.files.keys.first(/^blib\W/);
 
         $dist-dir.child($d.id).spurt: to-json($d.Hash);
 
-        "$path/MANIFEST".IO.spurt: to-json( $repo );
-
         my $precomp = self.precomp-repository;
-        for $d.provides.values.map(*.values[0]<file>.Int).sort -> $file-id {
+        for $d.provides.values.map(*.values[0]<file>) -> $file-id {
             my $source = $sources-dir.child($file-id);
             if $precomp.may-precomp {
                 my $id = nqp::sha1($source ~ self.id);
+                my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
+                my @rev-deps = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
+
                 $precomp.precompile($source.IO, $id);
+                for @rev-deps -> $rev-dep-id {
+                    my $source = $sources-dir.child($rev-dep-id);
+                    $precomp.precompile($source, $rev-dep-id) if $source.e;
+                }
             }
         }
         $lock.unlock;

@@ -17,16 +17,6 @@ end of this document.
 
 (More planned dates can be generated with F<tools/release-dates.pl>).
 
-=head2 Suggested .pm group names for future releases
-
-Names can be gotten from L<http://www.pm.org> if you
-can’t think of one with any particular significance to Perl
-6 or Rakudo.
-
-There is a rudimentary tool for discerning available Perl Monger group
-names that have not already been used for a release in 
-F<tools/available-pm-names.pl6>
-
 =head2 Steps to create a release (for release managers)
 
 =over 4

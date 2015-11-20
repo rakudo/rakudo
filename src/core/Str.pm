@@ -791,8 +791,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $next;
             while nqp::islt_i($i,$elems) {
                 my $match := nqp::decont(nqp::atpos($matches,$i));
-                $found  = nqp::getattr($match,Match,'$!from');
-                $next   = nqp::getattr($match,Match,'$!to');
+                $found  = nqp::getattr_i($match,Match,'$!from');
+                $next   = nqp::getattr_i($match,Match,'$!to');
                 if $notskip {
                     nqp::push($result,
                       nqp::substr($str,$pos,nqp::sub_i($found,$pos)));

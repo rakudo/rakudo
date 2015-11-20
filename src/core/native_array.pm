@@ -426,6 +426,25 @@ class array does Iterable is repr('VMArray') {
             }
             nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', dims)
         }
+
+        proto method EXISTS-POS(|) {*}
+        multi method EXISTS-POS(array:U: |c) {
+            self.Any::EXISTS-POS(|c)
+        }
+        multi method EXISTS-POS(array:D: **@indices) {
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind <= $numdims {
+                my $dims := nqp::dimensions(self);
+                loop (my int $i = 0; $i < $numind; $i = $i + 1) {
+                    return False if @indices[$i] >= nqp::atpos_i($dims, $i);
+                }
+                True
+            }
+            else {
+                False
+            }
+        }
     }
 
     role shapedintarray[::T] does shapedarray {

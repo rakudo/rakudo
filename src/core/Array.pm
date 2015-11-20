@@ -56,32 +56,9 @@ my class Array { # declared in BOOTSTRAP
         result
     }
 
-    my constant \SHAPE-STORAGE-ROOT := do {
-        my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
-        nqp::setparameterizer($root, -> $, $key {
-            my Mu $args := nqp::p6argvmarray();
-            my $dim_type := nqp::newtype(nqp::knowhow(), 'MultiDimArray');
-            nqp::composetype($dim_type, nqp::hash('array',
-                nqp::hash('dimensions', $key.elems)));
-            nqp::settypehll($dim_type, 'perl6');
-            $dim_type
-        });
-        nqp::settypehll($root, 'perl6');
-        $root
-    }
     sub allocate-shaped-storage(\arr, @dims) {
-        my $key := nqp::list();
-        my $dims := nqp::list_i();
-        for @dims {
-            if nqp::istype($_, Whatever) {
-                X::NYI.new(feature => 'Jagged array shapes');
-            }
-            nqp::push($key, Mu);
-            nqp::push_i($dims, $_.Int);
-        }
-        my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
-        nqp::setdimensions($storage, $dims);
-        nqp::bindattr(arr, List, '$!reified', $storage);
+        nqp::bindattr(arr, List, '$!reified',
+            Rakudo::Internals.SHAPED-ARRAY-STORAGE(@dims, nqp::knowhow(), Mu));
         arr
     }
 

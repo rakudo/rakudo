@@ -318,6 +318,36 @@ my class Rakudo::Internals {
         nqp::atkey($pvalcode,$key)
     }
 #?endif
+
+    my constant \SHAPE-STORAGE-ROOT := do {
+        my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
+        nqp::setparameterizer($root, -> $, $key {
+            my $dims := $key.elems.pred;
+            my $type := $key.AT-POS(1);
+            my $dim_type := nqp::newtype($key.AT-POS(0), 'MultiDimArray');
+            nqp::composetype($dim_type, nqp::hash('array',
+                nqp::hash('dimensions', $dims, 'type', $type)));
+            nqp::settypehll($dim_type, 'perl6');
+            $dim_type
+        });
+        nqp::settypehll($root, 'perl6');
+        $root
+    }
+
+    method SHAPED-ARRAY-STORAGE(@dims, Mu \meta-obj, Mu \type-key) {
+        my $key := nqp::list(meta-obj);
+        my $dims := nqp::list_i();
+        for @dims {
+            if nqp::istype($_, Whatever) {
+                X::NYI.new(feature => 'Jagged array shapes');
+            }
+            nqp::push($key, type-key);
+            nqp::push_i($dims, $_.Int);
+        }
+        my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
+        nqp::setdimensions($storage, $dims);
+        $storage
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

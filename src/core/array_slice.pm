@@ -519,6 +519,19 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
         !! MD-ARRAY-SLICE(SELF, @indices)
 }
 
+multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
+    my int $n = @indices.elems;
+    my int $i = 0;
+    my $all-ints := True;
+    while $i < $n {
+        $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
+        $i = $i + 1;
+    }
+    $all-ints
+        ?? SELF.ASSIGN-POS(|@indices, assignee)
+        !! (MD-ARRAY-SLICE(SELF, @indices) = assignee)
+}
+
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
     if $exists {
         my int $n = @indices.elems;

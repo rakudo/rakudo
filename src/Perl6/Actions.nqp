@@ -6074,7 +6074,9 @@ Compilation unit '$file' contained the following violations:
             $past := QAST::Op.new( :op('assign'), $lhs_ast, $rhs_ast );
         }
         elsif $lhs_ast.isa(QAST::Op) && $lhs_ast.op eq 'call' &&
-              ($lhs_ast.name eq '&postcircumfix:<[ ]>' || $lhs_ast.name eq '&postcircumfix:<{ }>') &&
+              ($lhs_ast.name eq '&postcircumfix:<[ ]>' ||
+               $lhs_ast.name eq '&postcircumfix:<{ }>' ||
+               $lhs_ast.name eq '&postcircumfix:<[; ]>') &&
                 +@($lhs_ast) == 2 { # no adverbs
             $lhs_ast.push($rhs_ast);
             $past := $lhs_ast;

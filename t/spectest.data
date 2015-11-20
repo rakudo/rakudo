@@ -728,7 +728,7 @@ S16-filehandles/filestat.t
 S16-filehandles/filetest.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
-# S16-filehandles/io.t # "skip failing test on release :("
+S16-filehandles/io.t
 S16-filehandles/mkdir_rmdir.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
@@ -766,7 +766,7 @@ S17-promise/in.t         # slow
 S17-promise/start.t      # slow
 S17-promise/stress.t     # stress
 S17-promise/then.t
-#S17-scheduler/at.t       # slow "skip failing test on release :("
+S17-scheduler/at.t       # slow
 S17-scheduler/basic.t
 S17-scheduler/every.t    # slow
 S17-scheduler/in.t       # slow
@@ -897,7 +897,7 @@ S32-hash/pairs.t
 S32-hash/perl.t
 S32-hash/push.t
 S32-hash/slice.t
-S32-io/IO-Socket-Async.t # "skip hanging test on release :("
+S32-io/IO-Socket-Async.t
 S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t

@@ -2290,6 +2290,15 @@ my class X::NotEnoughDimensions is Exception {
     }
 }
 
+my class X::TooManyDimensions is Exception {
+    has $.operation;
+    has $.got-dimensions;
+    has $.needed-dimensions;
+    method message() {
+        "Cannot $.operation a $.needed-dimensions dimension array with $.got-dimensions dimensions"
+    }
+}
+
 my class X::Assignment::ArrayShapeMismatch is Exception {
     has $.target-shape;
     has $.source-shape;

@@ -1,4 +1,6 @@
-class array does Iterable is repr('VMArray') {
+my class X::TooManyDimensions { ... }
+
+my class array does Iterable is repr('VMArray') {
 
     proto method STORE(|) { * }
     multi method STORE(array:D: *@values) { self.STORE(@values) }
@@ -222,7 +224,7 @@ class array does Iterable is repr('VMArray') {
         }
     }
 
-# please note that this role is mostly same as intarray but s/_i$/_n/
+    # please note that this role is mostly same as intarray but s/_i$/_n/
     my role numarray[::T] does Positional[T] is array_type(T) {
         multi method AT-POS(array:D: int $idx) is raw {
             nqp::atposref_n(self, $idx)
@@ -448,9 +450,125 @@ class array does Iterable is repr('VMArray') {
     }
 
     role shapedintarray[::T] does shapedarray {
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(array:U: |c) is raw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(array:D: **@indices) is raw {
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::atposnd_i(self, $idxs)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'access',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
+            }
+        }
+
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(array:U: |c) {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(array:D: **@indices) {
+            my int $value   = @indices.pop;
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::bindposnd_i(self, $idxs, $value)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
     }
 
     role shapednumarray[::T] does shapedarray {
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(array:U: |c) is raw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(array:D: **@indices) is raw {
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::atposnd_n(self, $idxs)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'access',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
+            }
+        }
+
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(array:U: |c) {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(array:D: **@indices) {
+            my num $value   = @indices.pop;
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::bindposnd_n(self, $idxs, $value)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
     }
 
     method ^parameterize(Mu:U \arr, Mu:U \t) {

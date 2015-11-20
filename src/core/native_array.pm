@@ -417,6 +417,23 @@ class array does Iterable is repr('VMArray') {
         }
     }
 
+    role shapedarray {
+        method shape() {
+            my Mu \idims = nqp::dimensions(self);
+            my Mu \dims = nqp::list();
+            loop (my int $i = 0; $i < nqp::elems(idims); $i = $i + 1) {
+                nqp::bindpos(dims, $i, nqp::atpos_i(idims, $i))
+            }
+            nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', dims)
+        }
+    }
+
+    role shapedintarray[::T] does shapedarray {
+    }
+
+    role shapednumarray[::T] does shapedarray {
+    }
+
     method ^parameterize(Mu:U \arr, Mu:U \t) {
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
@@ -431,29 +448,40 @@ class array does Iterable is repr('VMArray') {
             $what;
         }
         elsif $kind == 3 {
-            nqp::die('NYI');
+            X::NYI.new(feature => 'native string arrays').throw;
         }
         else {
             die "Can only parameterize array with a native type, not {t.^name}";
         }
     }
 
-    multi method new() {
-        self!validate-parameterized();
-        nqp::create(self)
+    multi method new(:$shape) {
+        self!create($shape)
     }
-    multi method new(@values) {
-        self!validate-parameterized();
-        nqp::create(self).STORE(@values)
+    multi method new(@values, :$shape) {
+        self!create($shape).STORE(@values)
     }
-    multi method new(**@values) {
-        self!validate-parameterized();
-        nqp::create(self).STORE(@values)
+    multi method new(**@values, :$shape) {
+        self!create($shape).STORE(@values)
     }
 
-    method !validate-parameterized() {
+    method !create($shape) {
         nqp::isnull(nqp::typeparameterized(self)) &&
             die "Must parameterize array[T] with a type before creating it";
+        nqp::isconcrete($shape) ?? self!shaped($shape) !! nqp::create(self)
+    }
+
+    method !shaped($shape) {
+        # Calculate new meta-object (probably hitting caches in most cases).
+        my \T = self.of;
+        my int $kind = nqp::objprimspec(T);
+        my \shaped-type = self.WHAT.^mixin($kind == 1
+            ?? shapedintarray[T]
+            !! shapednumarray[T]);
+        shaped-type.^set_name(self.^name());
+
+        # Allocate array storage for this shape, based on the calculated type.
+        Rakudo::Internals.SHAPED-ARRAY-STORAGE($shape.list, shaped-type.HOW, T)
     }
 
     method BIND-POS(|) {

@@ -1,3 +1,4 @@
+my class Seq { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
 
 my class Rakudo::Internals {
@@ -396,6 +397,97 @@ my class Rakudo::Internals {
 
         method rotate(::?CLASS:D: Cool) {
             X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
+        }
+
+        multi method keys(::?CLASS:D:) {
+            my @shape := self.shape;
+            @shape.elems == 1
+                ?? Seq.new((^@shape[0]).iterator)
+                !! cross(@shape.map({ 0..^$_ }).list)
+        }
+        multi method values(::?CLASS:D:) {
+            self.keys.map({ self.AT-POS(|$_) })
+        }
+        multi method kv(::?CLASS:D:) {
+            self.keys.map({ slip($_, self.AT-POS(|$_)) })
+        }
+        multi method pairs(::?CLASS:D:) {
+            self.keys.map({ $_ => self.AT-POS(|$_) })
+        }
+        multi method antipairs(::?CLASS:D:) {
+            self.keys.map({ self.AT-POS(|$_) => $_ })
+        }
+        multi method invert(::?CLASS:D:) {
+            self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
+        }
+
+        method iterator(::?CLASS:D:) {
+            # This can be fairly heavily optimized in various ways later
+            self.values.iterator
+        }
+
+        # These work on the flat view
+        method roll(|c) {
+            self.flat.roll(|c)
+        }
+        method pick(|c) {
+            self.flat.pick(|c)
+        }
+        method permutations(|c) {
+            self.flat.permutations(|c)
+        }
+        method combinations(|c) {
+            self.flat.combinations(|c)
+        }
+        method rotor(|c) {
+            self.flat.rotor(|c)
+        }
+        method join(|c) {
+            self.flat.join(|c)
+        }
+
+        multi method gist(::?CLASS:D:) {
+            if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
+            if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
+            %*gistseen{self.WHICH} = 1;
+            my $result = self!gist([], self.shape);
+            $result = "(\\Array_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
+            $result;
+        }
+        method !gist(@path, @dims) {
+            if @dims.elems == 1 {
+                 '[' ~ (^@dims[0]).map({ self.AT-POS(|@path, $_).gist }).join(' ') ~ ']';
+            }
+            else {
+                my @nextdims = @dims[1..@dims.elems];
+                '[' ~ (^@dims[0]).map({ self!gist((flat @path, $_), @nextdims) }).join(' ') ~ ']';
+            }
+        }
+
+        multi method perl(::?CLASS:D \SELF:) {
+            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }
+            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
+            %*perlseen{self.WHICH} = 1;
+            my $result = self.^name ~ '.new(:shape' ~ nqp::decont(self.shape).perl ~ ', ' ~
+                self!perl([], self.shape) ~ ')';
+            $result ~= '.item' if nqp::iscont(SELF);
+            $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
+            $result;
+        }
+        method !perl(@path, @dims) {
+            if @dims.elems == 1 {
+                 '[' ~
+                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).perl }).join(', ') ~
+                    ',' x (@dims[0] == 1 && nqp::istype(self.AT-POS(|@path, 0), Iterable)) ~
+                 ']'
+            }
+            else {
+                my @nextdims = @dims[1..@dims.elems];
+                '[' x (@path.elems > 0) ~
+                    (^@dims[0]).map({ self!perl((flat @path, $_), @nextdims) }).join(', ') ~
+                    ',' x (@dims[0] == 1) ~
+                ']' x (@path.elems > 0)
+            }
         }
     }
 }

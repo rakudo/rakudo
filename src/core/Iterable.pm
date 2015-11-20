@@ -6,7 +6,6 @@
 # provided by this role. Overriding those is not likely to be needed, and
 # discouraged to maintain predictable semantics. Finally, both .hyper() and
 # .race() are implemented here, and return a HyperSeq wrapping the iterator.
-my class Seq { ... }
 my class HyperSeq { ... }
 my role Iterable {
     method iterator() { ... }

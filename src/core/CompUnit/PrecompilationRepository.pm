@@ -19,19 +19,19 @@ class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
 
-    method !check-dependencies(CompUnit::PrecompilationId $id, Instant $since) {
-        for self.store.prefix.child('dependencies').lines -> $line {
-            my ($dependent, @dependencies) = $line.split(' ');
-            return not self.store.path($*PERL.compiler.id, any @dependencies).modified < $since
-                if $id eq $dependent;
-        }
-        True
+    method !check-dependencies(IO::Path $path, Instant $since) {
+        my $any_modification_times = self.store.path(
+            $*PERL.compiler.id,
+            any (($path ~ '.deps').IO.lines)
+        ).modified;
+        not $any_modification_times >= $since
     }
 
     method load(CompUnit::PrecompilationId $id, Instant :$since) returns CompUnit::Handle {
         my $path = self.store.load($*PERL.compiler.id, $id);
         if $path {
-            if not $since or $path.modified > $since and self!check-dependencies($id, $since) {
+            my $modified = $path.modified;
+            if not $since or $modified > $since and self!check-dependencies($path, $modified) {
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
                 my $handle := CompUnit::Loader.load-precompilation-file($path);
                 self.store.unlock;
@@ -56,12 +56,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id) {
         my $io = self.store.destination($*PERL.compiler.id, $id);
-        if $io.e && $io.modified > $path.modified {
-            # someone else got there first between us checking for existence
-            # of the precomp file and write locking the store
-            self.store.unlock;
-            return True;
-        }
 
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
@@ -83,7 +77,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
             fail @result if @result;
         }
         else {
-            spurt(self.store.prefix.child('dependencies'), ($id, |@result).join(' ') ~ "\n", :append);
+            spurt(($io ~ '.deps').IO, @result.map(* ~ "\n").join(''));
             self.store.unlock;
             True
         }

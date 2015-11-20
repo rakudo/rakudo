@@ -657,6 +657,7 @@ my class array does Iterable is repr('VMArray') {
     method eager() { self }
     method flat()  { self }
     method list()  { List.from-iterator(self.iterator) }
+    method sink(--> Nil) { }
 
     multi method gist(array:D:) {
         self.map(-> $elem {

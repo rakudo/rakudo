@@ -519,16 +519,13 @@ class array does Iterable is repr('VMArray') {
 sub permutations(int $n) {
     my int $i;
     $n == 1 ?? ( (0,), ) !!
-    gather {
-        my @permutations = permutations($n - 1);
-        while $i < $n {
-            my Int @i;
-            my int $j;
-            @i.push($j++) while $j < $i;
-            $j = $i + 1;
-            @i.push($j++) while $j < $n;
-            take (nqp::clone($i), |@i[@$_]) for @permutations;
-            $i = $i + 1;
-        }
+    gather while $i < $n {
+        my Int @i;
+        my int $j;
+        @i.push($j++) while $j < $i;
+        $j = $i + 1;
+        @i.push($j++) while $j < $n;
+        take (nqp::clone($i), |@i[@$_]) for permutations($n - 1);
+        $i = $i + 1;
     }
 }

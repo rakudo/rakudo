@@ -655,7 +655,7 @@ my class array does Iterable is repr('VMArray') {
     method is-lazy(array:D:) { False }
 
     method eager() { self }
-    method flat()  { self }
+    method flat()  { Seq.new(self.iterator) }
     method list()  { List.from-iterator(self.iterator) }
     method sink(--> Nil) { }
 

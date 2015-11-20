@@ -1,6 +1,5 @@
 my class X::TypeCheck { ... };
 my class X::Subscript::Negative { ... };
-my class X::IllegalOnFixedDimensionArray { ... };
 my class X::NotEnoughDimensions { ... };
 my class X::Assignment::ArrayShapeMismatch { ... };
 my class X::Assignment::ToShaped { ... };
@@ -62,7 +61,7 @@ my class Array { # declared in BOOTSTRAP
         arr
     }
 
-    my role ShapedArray[::TValue] does Positional[TValue] {
+    my role ShapedArray[::TValue] does Positional[TValue] does Rakudo::Internals::ShapedArrayCommon {
         has $.shape;
 
         proto method AT-POS(|) is raw {*}
@@ -273,52 +272,6 @@ my class Array { # declared in BOOTSTRAP
                     $cur-pos = $cur-pos + 1;
                 }
             }
-        }
-
-        proto method push(|c) {
-            self.DEFINITE
-                ?? X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
-                !! self.Any::push(|c)
-        }
-        proto method append(|c) {
-            self.DEFINITE
-                ?? X::IllegalOnFixedDimensionArray.new(operation => 'append').throw
-                !! self.Any::append(|c)
-        }
-
-        multi method pop(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'pop').throw
-        }
-
-        multi method shift(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'shift').throw
-        }
-
-        proto method unshift(|c) {
-            self.DEFINITE
-                ?? X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
-                !! self.Any::unshift(|c)
-        }
-        proto method prepend(|c) {
-            self.DEFINITE
-                ?? X::IllegalOnFixedDimensionArray.new(operation => 'prepend').throw
-                !! self.Any::prepend(|c)
-        }
-
-        multi method splice(::?CLASS:D: *@) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'splice').throw
-        }
-
-        multi method plan(::?CLASS:D: *@) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
-        }
-
-        method reverse(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
-        }
-
-        method rotate(::?CLASS:D: Cool) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
         }
 
         # A shaped array isn't lazy, we these methods don't need to go looking

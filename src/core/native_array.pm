@@ -419,7 +419,7 @@ my class array does Iterable is repr('VMArray') {
         }
     }
 
-    role shapedarray {
+    role shapedarray does Rakudo::Internals::ShapedArrayCommon {
         method shape() {
             my Mu \idims = nqp::dimensions(self);
             my Mu \dims = nqp::list();

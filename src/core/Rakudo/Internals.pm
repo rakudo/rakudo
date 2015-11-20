@@ -1,3 +1,5 @@
+my class X::IllegalOnFixedDimensionArray { ... };
+
 my class Rakudo::Internals {
 
     our role MappyIterator does Iterator {
@@ -347,6 +349,54 @@ my class Rakudo::Internals {
         my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
         nqp::setdimensions($storage, $dims);
         $storage
+    }
+
+    our role ShapedArrayCommon {
+        proto method push(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
+                !! self.Any::push(|c)
+        }
+        proto method append(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'append').throw
+                !! self.Any::append(|c)
+        }
+
+        multi method pop(::?CLASS:D:) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'pop').throw
+        }
+
+        multi method shift(::?CLASS:D:) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'shift').throw
+        }
+
+        proto method unshift(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
+                !! self.Any::unshift(|c)
+        }
+        proto method prepend(|c) {
+            self.DEFINITE
+                ?? X::IllegalOnFixedDimensionArray.new(operation => 'prepend').throw
+                !! self.Any::prepend(|c)
+        }
+
+        multi method splice(::?CLASS:D: *@) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'splice').throw
+        }
+
+        multi method plan(::?CLASS:D: *@) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
+        }
+
+        method reverse(::?CLASS:D:) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
+        }
+
+        method rotate(::?CLASS:D: Cool) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
+        }
     }
 }
 

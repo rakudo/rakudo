@@ -1,7 +1,8 @@
 New in 2015.11:
  + Features
+   + Initial shaped array support
    + \r\n (Carriage Return/LineFeed) is now a single (synthetic) grapheme
-   + Unicode support adhers to Unicode Annex #29
+   + Unicode support adheres to Unicode Annex #29
    + New IO::Handle.nl-in now allows multiple line-endings to be set
    + New IO::Handle.nl-out allows you to set line-ending used in IO::Handle.say
    + New IO::Handle.split/comb, same feature set as Str.split/comb, but lazy
@@ -20,14 +21,14 @@ New in 2015.11:
    + Unicode quotes are now also allowed in regular expressions
    + Can now coerce to generic types in parameters
    + Can attach adverbs to variables
-   + Illegal assigment of different Numeric values now caught at compile time
+   + Illegal assignment of different Numeric values now caught at compile time
    + &nextcallee implemented, which returns the routine that nextsame would invoke
  + Deprecated
    + IO::Handle.nl should either be IO::Handle.nl-in or .nl-out
    + IO::Handle.seek with a numerical value for 2nd parameter
    + Str.split( ... :all) should be written as :v
  + Fixes
-   + RT #74414: the multi dispatcher now treats "is rw" paramters as tighter matches
+   + RT #74414: the multi dispatcher now treats "is rw" parameters as tighter matches
    + RT #125123: improved error message for type check failures in int-typed arrays
    + RT #126436: improved error message for missing required attributes
    + multi submethods aren't inherited to subclasses
@@ -41,7 +42,7 @@ New in 2015.11:
    + List.reverse
    + IO::Handle.getc
  + Build system
-   + New options --sdkroot and --sysroot to Configure.pl to support cross buils
+   + New options --sdkroot and --sysroot to Configure.pl to support cross builds
 
 New in 2015.10:
  + Features

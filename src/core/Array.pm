@@ -230,8 +230,9 @@ my class Array { # declared in BOOTSTRAP
         proto method STORE(|) { * }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
             allocate-shaped-storage(self, self.shape);
-            if nqp::istype(in, ShapedArray) {
-                if self.shape eqv in.shape {
+            my \in-shape = nqp::can(in, 'shape') ?? in.shape !! Nil;
+            if in-shape && !nqp::istype(in-shape.AT-POS(0), Whatever) {
+                if self.shape eqv in-shape {
                     # Can do a VM-supported memcpy-like thing in the future
                     for self.keys {
                         self.ASSIGN-POS(|$_, in.AT-POS(|$_))
@@ -239,7 +240,7 @@ my class Array { # declared in BOOTSTRAP
                 }
                 else {
                     X::Assignment::ArrayShapeMismatch.new(
-                        source-shape => in.shape,
+                        source-shape => in-shape,
                         target-shape => self.shape
                     ).throw
                 }

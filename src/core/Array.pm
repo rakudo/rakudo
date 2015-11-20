@@ -298,6 +298,7 @@ my class Array { # declared in BOOTSTRAP
             my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
             allocate-shaped-storage(arr, list-shape);
             arr does ShapedArray[Mu];
+            arr.^set_name('Array');
             nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
             die "Creating shaped array with initial values NYI" if values;
         }

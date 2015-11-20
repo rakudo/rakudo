@@ -76,7 +76,16 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
             fail @result if @result;
         }
         else {
-            spurt(($io ~ '.deps').IO, @result.map(* ~ "\n").join(''));
+            my @dependencies;
+            my $compiler-id = $*PERL.compiler.id;
+            for @result -> $dependency {
+                my $path = self.store.path($compiler-id, $dependency);
+                if $path.e {
+                    push @dependencies, $dependency;
+                    spurt(($path ~ '.rev-deps').IO, "$id\n", :append);
+                }
+            }
+            spurt(($io ~ '.deps').IO, @dependencies.map(* ~ "\n").join(''));
             self.store.unlock;
             True
         }

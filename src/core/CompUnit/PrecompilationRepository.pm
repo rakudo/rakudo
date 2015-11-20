@@ -66,8 +66,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $*RAKUDO_MODULE_DEBUG;
 
-        my $cmd = "$*EXECUTABLE$lle --target={$*VM.precomp-target} --output=$io $path";
-        my $proc = shell("$cmd 2>&1", :out);
+        my $proc = run("$*EXECUTABLE$lle", "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
 
         my @result = $proc.out.lines;

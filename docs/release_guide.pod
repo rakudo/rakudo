@@ -2,9 +2,8 @@
 
 =head1 release_guide.pod - guide to Rakudo releases
 
-Rakudo’s development release cycle is the Thursday following the
-third Tuesday of each month (This historically allowed Rakudo to
-follow Parrot’s release cycle).
+Rakudo’s development release cycle is the third Saturday of
+each month.
 
 Each development release is given a sequential number and a code name
 based on an active Perl Mongers group. 

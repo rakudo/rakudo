@@ -528,11 +528,11 @@ sub permutations(int $n) {
                 if !@!a { (@!a = ^$!n).List }
                 # Find the largest index k such that a[k] < a[k + 1].
                 # If no such index exists, the permutation is the last permutation.
-                elsif !(my $k = first { @!a[$_] < @!a[$_ + 1] }, (^@!a.end).reverse).defined
+                elsif !(my $k = first { @!a[$_] < @!a[$_ + 1] }, :end, ^@!a.end).defined
                 { IterationEnd }
                 else {
                     # Find the largest index l greater than k such that a[k] < a[l].
-                    my $l = first { @!a[$k] < @!a[$_] }, ($k ^..^ $!n).reverse;
+                    my $l = first { @!a[$k] < @!a[$_] }, :end, $k ^..^ $!n;
                     @!a[$k, $l].=reverse;
                     @!a[$k+1 .. *].=reverse;
                     @!a.List;

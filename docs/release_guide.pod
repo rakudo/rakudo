@@ -14,7 +14,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-11-19   Rakudo #93 (Coke)
   2015-12-17   Rakudo #94 (Coke)   # v6.c
 
 (More planned dates can be generated with F<tools/release-dates.pl>).
@@ -350,6 +349,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2015-07-25   2015.07.2                       (moritz)
   2015-09-17   Rakudo #91 "Zürich"             (Coke)
   2015-10-22   Rakudo #92 "Niceville"          (Coke) # v6.b
+  2015-11-19   Rakudo #93 "Bend"               (Coke)
 
 =head1 COPYRIGHT
 

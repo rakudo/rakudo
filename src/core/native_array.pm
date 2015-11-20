@@ -483,6 +483,7 @@ class array does Iterable is repr('VMArray') {
     multi method Str(array:D:)     { self.join(' ') }
 
     multi method elems(array:D:)    { nqp::elems(self) }
+    method shape() { (*,) }
     proto method Int(|) { * }
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }

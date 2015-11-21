@@ -209,6 +209,11 @@ my class Cool { # declared in BOOTSTRAP
                 }
             }
         }
+        fail X::OutOfRange.new(
+          :what("Position in index"),
+          :got($i),
+          :range("0..{self.chars}"),
+        ) if $i < 0;
         $i = nqp::index(
           nqp::unbox_s(self.Str),
           nqp::unbox_s($needle),
@@ -232,6 +237,11 @@ my class Cool { # declared in BOOTSTRAP
                 }
             }
         }
+        fail X::OutOfRange.new(
+          :what("Position in rindex"),
+          :got($i),
+          :range("0..{self.chars}"),
+        ) if $i < 0;
         $i = nqp::rindex(
           nqp::unbox_s(self.Str),
           nqp::unbox_s($needle),

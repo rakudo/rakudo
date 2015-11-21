@@ -260,19 +260,7 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
 	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
-	$(CP) lib/NativeCall.pm lib/Test.pm lib/newline.pm6 $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP) lib/NativeCall.pm.moarvm lib/Test.pm.moarvm lib/newline.pm6.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
-	$(CP) lib/NativeCall/Types.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
-	$(CP) lib/NativeCall/Types.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
-	$(CP) lib/NativeCall/Compiler/GNU.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
-	$(CP) lib/NativeCall/Compiler/GNU.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
-	$(CP) lib/NativeCall/Compiler/MSVC.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
-	$(CP) lib/NativeCall/Compiler/MSVC.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/NativeCall/Compiler
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP) lib/Pod/To/Text.pm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP) lib/Pod/To/Text.pm.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	.@slash@$(M_RUNNER) tools/build/install-core-dist.pl
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT)

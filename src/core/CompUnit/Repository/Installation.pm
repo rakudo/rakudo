@@ -160,7 +160,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         $dist-dir.child($d.id).spurt: to-json($d.Hash);
 
-        my $precomp = self.precomp-repository;
+        my $precomp = $*REPO.precomp-repository;
         for $d.provides.values.map(*.values[0]<file>) -> $file-id {
             my $source = $sources-dir.child($file-id);
             if $precomp.may-precomp {

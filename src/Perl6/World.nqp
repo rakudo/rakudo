@@ -2880,7 +2880,8 @@ class Perl6::World is HLL::World {
 
         # Set up capturing code.
         my $capturer := self.cur_lexpad();
-        my $c_block  := QAST::Block.new( :blocktype('declaration_static') );
+        my $c_block  := QAST::Block.new( :blocktype('declaration_static'),
+                                         :name('!LEXICAL_FIXUP_CSCOPE') );
         self.create_simple_code_object($c_block, 'Code');
         $capturer[0].push(QAST::Op.new(
             :op('callmethod'), :name('resolve'),

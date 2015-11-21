@@ -1636,9 +1636,15 @@ Compilation unit '$file' contained the following violations:
         make $*W.add_phaser($/, 'QUIT', $block.ann('code_object'));
     }
 
-    method statement_prefix:sym<BEGIN>($/)   { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast).ann('code_object')); }
+    method statement_prefix:sym<BEGIN>($/) {
+        begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
+        make $*W.add_phaser($/, 'BEGIN', $<blorst>.ast.ann('code_object'));
+    }
+    method statement_prefix:sym<CHECK>($/) {
+        begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
+        make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast).ann('code_object'));
+    }
     method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<CHECK>($/)   { make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<INIT>($/)    { make $*W.add_phaser($/, 'INIT', ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block')); }
     method statement_prefix:sym<ENTER>($/)   { make $*W.add_phaser($/, 'ENTER', ($<blorst>.ast).ann('code_object')); }
     method statement_prefix:sym<FIRST>($/)   { make $*W.add_phaser($/, 'FIRST', ($<blorst>.ast).ann('code_object')); }
@@ -2326,26 +2332,8 @@ Compilation unit '$file' contained the following violations:
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration_static');
 
-            # Need to ensure we get lexical outers fixed up properly. To
-            # do this we make a list of closures, which each point to the
-            # outer context. These surive serialization and thus point at
-            # what has to be fixed up.
-            my $throwaway_block_past := QAST::Block.new(
-                :blocktype('declaration'),
-                QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
-            );
-            $throwaway_block_past.annotate('outer', $block);
-            $block[0].push($throwaway_block_past);
-            my $throwaway_block := $*W.create_code_object($throwaway_block_past,
-                'Block', $*W.create_signature(nqp::hash('parameter_objects', [])));
-            my $fixup := $*W.create_lexical_capture_fixup();
-            $fixup.push(QAST::Op.new(
-                    :op('p6capturelex'),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('clone'),
-                        QAST::WVal.new( :value($throwaway_block) )
-                    )));
-            $block[1].push($fixup);
+            # Role bodies run at BEGIN time, so need fixup.
+            begin_time_lexical_fixup($block);
 
             # As its last act, it should grab the current lexpad so that
             # we have the type environment, and also return the parametric
@@ -2404,6 +2392,40 @@ Compilation unit '$file' contained the following violations:
         make QAST::Stmts.new(
             $block, QAST::WVal.new( :value($*PACKAGE) )
         );
+    }
+
+    # When code runs at BEGIN time, such as role bodies and BEGIN
+    # blocks, we need to ensure we get lexical outers fixed up
+    # properly when deserializing after pre-comp. To do this we
+    # make a list of closures, which each point to the outer
+    # context. These surive serialization and thus point at what
+    # has to be fixed up.
+    sub begin_time_lexical_fixup($block) {
+        my $has_nested_blocks := 0;
+        for @($block[0]) {
+            if nqp::istype($_, QAST::Block) {
+                $has_nested_blocks := 1;
+                last;
+            }
+        }
+        return 0 unless $has_nested_blocks;
+
+        my $throwaway_block_past := QAST::Block.new(
+            :blocktype('declaration'), :name('!LEXICAL_FIXUP'),
+            QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
+        );
+        $throwaway_block_past.annotate('outer', $block);
+        $block[0].push($throwaway_block_past);
+        my $throwaway_block := $*W.create_code_object($throwaway_block_past,
+            'Block', $*W.create_signature(nqp::hash('parameter_objects', [])));
+        my $fixup := $*W.create_lexical_capture_fixup();
+        $fixup.push(QAST::Op.new(
+                :op('p6capturelex'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('clone'),
+                    QAST::WVal.new( :value($throwaway_block) )
+                )));
+        $block[0].push($fixup);
     }
 
     method scope_declarator:sym<my>($/)      { make $<scoped>.ast; }

@@ -2,6 +2,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has %!loaded;
     has $!precomp;
+    has $!id;
 
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
 
@@ -85,6 +86,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $lookup.close;
     }
 
+    method !precomp-id(Str $name) {
+        my $id = $name ~ self.path-spec;
+        $id ~= ',' ~ self.next-repo.id if self.next-repo;
+        nqp::sha1($id)
+    }
+
     method install(:$dist!, *@files) {
         $!lock.protect( {
         my $path     = self.writeable-path or die "No writeable path found";
@@ -121,7 +128,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my $has-provides;
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id = nqp::sha1($file ~ self.id);
+            my $id = self!precomp-id($file);
             my $destination = $sources-dir.child($id);
             if [||] @provides>>.ACCEPTS($file) -> $/ {
                 my $name = $/.ast;
@@ -164,7 +171,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         for $d.provides.values.map(*.values[0]<file>) -> $file-id {
             my $source = $sources-dir.child($file-id);
             if $precomp.may-precomp {
-                my $id = nqp::sha1($source ~ self.id);
+                my $id = self!precomp-id($source.Str);
                 my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
                 my @rev-deps = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
@@ -175,6 +182,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 }
             }
         }
+
+        # reset cached id so it's generated again on next access.
+        # identity changes with every installation of a dist.
+        $!id = Any;
         $lock.unlock;
     } ) }
 
@@ -234,7 +245,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     );
                     my $handle;
                     if $precomp.may-precomp {
-                        my $id = nqp::sha1($loader ~ self.id);
+                        my $id = self!precomp-id($loader.Str);
                         if $*W and $*W.is_precompilation_mode {
                             say $id;
                             $handle = $precomp.load($id) or $precomp.precompile($loader, $id);
@@ -258,6 +269,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method load(IO::Path:D $file) returns CompUnit:D {
         return self.next-repo.load($file) if self.next-repo;
         nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
+    }
+
+    method id() {
+        return $!id if $!id;
+        $!id = self.CompUnit::Repository::Locally::id();
+        $!id = nqp::sha1($!id ~ self!dist-dir.dir)
     }
 
     method short-id() { 'inst' }

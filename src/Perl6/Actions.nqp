@@ -1414,9 +1414,15 @@ Compilation unit '$file' contained the following violations:
 
     method statement_control:sym<require>($/) {
         my $past := QAST::Stmts.new(:node($/));
-        my $name_past := $<module_name>
-                        ?? $*W.dissect_longname($<module_name><longname>).name_past()
-                        !! $<file>.ast;
+        my $name_past;
+        my $longname;
+        if $<module_name> {
+            $longname  := $*W.dissect_longname($<module_name><longname>);
+            $name_past := $longname.name_past();
+        }
+        else {
+            $name_past := $<file>.ast;
+        }
         my $op := QAST::Op.new(
             :op('callmethod'), :name('load_module'),
             QAST::WVal.new( :value($*W.find_symbol(['CompUnitRepo'])) ),
@@ -1459,7 +1465,9 @@ Compilation unit '$file' contained the following violations:
             $past.push($import_past);
         }
 
-        $past.push(QAST::WVal.new( :value($*W.find_symbol(['True'])) ));
+        $past.push($<module_name>
+            ?? self.make_indirect_lookup($longname.components())
+            !! $<file>.ast);
 
         make $past;
     }

@@ -228,6 +228,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     && $dver ~~ $spec.version-matcher
                     && $dist<provides>{$spec.short-name}
                 {
+                    return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
                     my $loader = $.prefix.child('sources').child(
                         $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
                     );

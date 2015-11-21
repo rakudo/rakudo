@@ -539,6 +539,6 @@ sub permutations(int $n) {
                 }
             }
             method count-only { [*] 1 .. $!n }
-        }.new($n)
+        }.new(:$n)
     );
 }

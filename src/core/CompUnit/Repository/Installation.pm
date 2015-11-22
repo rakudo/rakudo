@@ -30,12 +30,12 @@ __END__
 :endofperl
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
+sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $name;
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
-    my @installations = @*INC.grep( { .starts-with("inst#") } )\
-        .map: { CompUnit::Repository::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
+    $name //= \'#name#\';
+    my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
     my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
     unless +@binaries {
         @binaries = flat @installations.map: { .files(\'bin/#name#\') };
@@ -71,10 +71,22 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $sources
     }
 
+    method !resources-dir() {
+        my $resources = $.prefix.child('resources');
+        $resources.mkdir;
+        $resources
+    }
+
     method !dist-dir() {
         my $dist = $.prefix.child('dist');
         $dist.mkdir;
         $dist
+    }
+
+    method !bin-dir() {
+        my $bin = $.prefix.child('bin');
+        $bin.mkdir;
+        $bin
     }
 
     method !add-short-name($name, $dist) {
@@ -107,7 +119,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             fail "$d already installed";
         }
 
-        my $sources-dir = self!sources-dir;
+        my $sources-dir   = self!sources-dir;
+        my $resources-dir = self!resources-dir;
+        my $bin-dir       = self!bin-dir;
         state $is-win //= $*DISTRO.is-win; # only look up once
 
         # Build patterns to choose what goes into "provides" section.
@@ -129,8 +143,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         for @files -> $file is copy {
             $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
             my $id = self!precomp-id($file);
-            my $destination = $sources-dir.child($id);
+            my $destination;
             if [||] @provides>>.ACCEPTS($file) -> $/ {
+                $destination = $sources-dir.child($id);
                 my $name = $/.ast;
                 self!add-short-name($name, $d);
                 $has-provides = True;
@@ -141,12 +156,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 }
             }
             else {
+                $destination = $resources-dir.child($id);
                 if $file ~~ /^bin<[\\\/]>/ {
-                    mkdir "$path/bin" unless "$path/bin".IO.d;
                     my $basename   = $file.IO.basename;
                     my $withoutext = $basename;
-                    $withoutext.=subst(/\.[exe|bat]$/, '');
-                    for '','-j','-m' -> $be {
+                    $withoutext .= subst(/\.[exe|bat]$/, '');
+                    for '', '-j', '-m' -> $be {
                         "$path/bin/$withoutext$be".IO.spurt:
                             $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
                         if $is-win {
@@ -157,6 +172,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                             "$path/bin/$withoutext$be".IO.chmod(0o755);
                         }
                     }
+                    self!add-short-name($basename, $d);
                 }
                 $d.files{$file} = $id
             }
@@ -191,7 +207,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     method files($file, :$name, :$auth, :$ver) {
         my @candi;
-        my $lookup = $.prefix.child('short').child(nqp::sha1($name));
+        my $prefix = self.prefix;
+        my $lookup = $prefix.child('short').child(nqp::sha1($name));
         if $lookup.e {
             my $dist-dir = self!dist-dir;
             for $lookup.lines -> $dist-id {
@@ -208,8 +225,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     with $dist<files>{$file} {
                         my $candi   = %$dist;
                         $candi<ver> = $dver;
-                        $candi<files>{$file} = $.prefix.abspath ~ '/' ~ $candi<files>{$file}
-                            unless $candi<files>{$file} ~~ /^$.prefix/;
+                        $candi<files>{$file} = $prefix.abspath ~ '/resources/' ~ $candi<files>{$file}
+                            unless $candi<files>{$file} ~~ /^$prefix/;
                         @candi.push: $candi;
                     }
                 }

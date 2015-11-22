@@ -591,8 +591,8 @@ my class Array { # declared in BOOTSTRAP
         my $reified := nqp::getattr(self, List, '$!reified');
         nqp::existspos($reified, 0) || $todo.DEFINITE && $todo.reify-at-least(1)
             ?? nqp::shift($reified)
-            !! nqp::elems($reified)
-                ?? Nil
+            !! nqp::elems($reified)  # is it actually just sparse?
+                ?? SEQ(nqp::shift($reified); Nil)
                 !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
     }
 

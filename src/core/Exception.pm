@@ -2338,4 +2338,13 @@ my class X::Proc::Unsuccessful is Exception {
     }
 }
 
+class CompUnit::DependencySpecification { ... }
+my class X::CompUnit::UnsatisfiedDependency is Exception {
+    has CompUnit::DependencySpecification $.specification;
+
+    method message() {
+        "Could not find $.specification in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

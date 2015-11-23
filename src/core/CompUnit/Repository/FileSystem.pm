@@ -67,7 +67,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         }
 
         return self.next-repo.need($spec, $precomp) if self.next-repo;
-        nqp::die("Could not find $spec in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
+        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
     method load(IO::Path:D $file) returns CompUnit:D {

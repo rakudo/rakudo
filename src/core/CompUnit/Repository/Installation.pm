@@ -261,8 +261,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
                     );
                     my $handle;
+                    my $id = self!precomp-id($loader.Str);
                     if $precomp.may-precomp {
-                        my $id = self!precomp-id($loader.Str);
                         if $*W and $*W.is_precompilation_mode {
                             say $id;
                             $handle = $precomp.load($id) or $precomp.precompile($loader, $id);
@@ -274,6 +274,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         :$handle,
                         :name($spec.short-name),
                         :repo(self),
+                        :repo-id($id),
                     );
                     return %!loaded{$compunit.name} = $compunit;
                 }

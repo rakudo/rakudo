@@ -5,8 +5,9 @@ class CompUnit {
 
     # The CompUnit::Repository that loaded this CompUnit.
     has CompUnit::Repository $.repo is required;
+
     # That repository's identifier for the compilation unit. This is not globally unique.
-    # has Str:D $.repo-id is required;
+    has Str:D $.repo-id is required;
 
     # The low-level handle.
     has CompUnit::Handle $.handle is required;
@@ -20,12 +21,14 @@ class CompUnit {
       :$from = $default-from,
       :$handle = CompUnit::Handle,
       :$repo,
+      :$repo-id,
     ) {
         $global.protect( { %instances{$name} //= self.bless(
           :$name,
           :$from,
           :$handle,
           :$repo,
+          :$repo-id,
         ) } );
     }
 

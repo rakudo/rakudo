@@ -203,7 +203,7 @@ my class Backtrace {
                     @frames.push: $prev;
                 } else {
                     my @outer_callers := self.outer-caller-idx($i);
-                    my ($target_idx) = @outer_callers.keys.grep({self.AT-POS($i).code.^isa(Routine)});
+                    my $target_idx = @outer_callers.keys.grep({self.AT-POS($i).code.^isa(Routine)})[0];
                     $target_idx    ||= @outer_callers[0] || $i;
                     my $current = self.AT-POS($target_idx);
                     @frames.append: $current.clone(line => $prev.line);

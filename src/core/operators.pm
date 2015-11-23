@@ -195,7 +195,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         }
         else {
             my $badseq;
-            my ($a, $b, $c);
+            my $a;
+            my $b;
+            my $c;
             unless $code.defined {
                 take @tail.shift while @tail.elems > 3;
                 $a = @tail[0];

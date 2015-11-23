@@ -591,7 +591,7 @@ augment class Any {
                     value
                 }
                 else {
-                    my ($k) = %a.keys;
+                    my $k = %a.keys[0];
                     if $k eq 'k' || $k eq 'p' {
                         value
                     }
@@ -661,7 +661,7 @@ augment class Any {
                        !! self!grep-accepts: $t
             }
             else {
-                my ($k) = %_.keys;
+                my $k = %_.keys[0];
                 if $k eq 'k' || $k eq 'kv' || $k eq 'p' {
                     nqp::istype($t,Regex:D)
                       ?? self!grep-regex: $t

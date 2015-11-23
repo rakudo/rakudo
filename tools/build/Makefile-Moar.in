@@ -67,13 +67,6 @@ M_CLEANUPS = \
   $(SETTING_MOAR) \
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
-  lib/NativeCall.pm.moarvm \
-  lib/NativeCall/Types.pm.moarvm \
-  lib/NativeCall/Compiler/GNU.pm.moarvm \
-  lib/NativeCall/Compiler/MSVC.pm.moarvm \
-  lib/Test.pm.moarvm \
-  lib/newline.pm6.moarvm \
-  lib/Pod/To/Text.pm.moarvm \
   rakudo_test_run.tar.gz \
   $(M_BUILD_DIR) \
   $(M_RUNNER) \
@@ -88,8 +81,7 @@ M_CLEANUPS = \
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
-m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.pm.moarvm lib/Pod/To/Text.pm.moarvm lib/newline.pm6.moarvm \
-    lib/NativeCall.pm.moarvm lib/NativeCall/Types.pm.moarvm lib/NativeCall/Compiler/GNU.pm.moarvm lib/NativeCall/Compiler/MSVC.pm.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
@@ -189,27 +181,6 @@ $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-valgrind-m . "valgrind" "$(M_LIBPATH)" .
 	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
-##  shipped modules
-lib/NativeCall.pm.moarvm: lib/NativeCall.pm lib/NativeCall/Types.pm.moarvm lib/NativeCall/Compiler/GNU.pm.moarvm lib/NativeCall/Compiler/MSVC.pm.moarvm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc -Ilib --output=lib/NativeCall.pm.moarvm lib/NativeCall.pm
-
-lib/NativeCall/Types.pm.moarvm: lib/NativeCall/Types.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc --output=lib/NativeCall/Types.pm.moarvm lib/NativeCall/Types.pm
-
-lib/NativeCall/Compiler/GNU.pm.moarvm: lib/NativeCall/Compiler/GNU.pm lib/NativeCall/Types.pm.moarvm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc -Ilib --output=lib/NativeCall/Compiler/GNU.pm.moarvm lib/NativeCall/Compiler/GNU.pm
-
-lib/NativeCall/Compiler/MSVC.pm.moarvm: lib/NativeCall/Compiler/MSVC.pm lib/NativeCall/Types.pm.moarvm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc -Ilib --output=lib/NativeCall/Compiler/MSVC.pm.moarvm lib/NativeCall/Compiler/MSVC.pm
-
-lib/Test.pm.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc --output=lib/Test.pm.moarvm -Ilib lib/Test.pm
-
-lib/Pod/To/Text.pm.moarvm: lib/Pod/To/Text.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc --output=lib/Pod/To/Text.pm.moarvm lib/Pod/To/Text.pm
-
-lib/newline.pm6.moarvm: lib/newline.pm6 $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
-	.@slash@$(M_RUNNER) --target=mbc --output=lib/newline.pm6.moarvm lib/newline.pm6
 
 ##  testing targets
 m-test    : m-coretest
@@ -250,7 +221,7 @@ m-localtest_loud: m-all spectest_checkout t/localtest.data
 m-sometests: m-all
 	@$(M_HARNESS_WITH_FUDGE) $(TESTFILES)
 
-m-install: m-all tools/build/create-moar-runner.pl
+m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist.pl
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
 	$(MKPATH) $(DESTDIR)$(M_LIBPATH)/Perl6
 	$(CP) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)$(M_LIBPATH)/Perl6

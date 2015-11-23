@@ -462,8 +462,10 @@ my role Supply {
                               nqp::const::CCLASS_NEWLINE, $str, $pos, $left
                             );
 
-                            # no trailing line delimiter, or potentially broken
-                            last if $nextpos >= $chars - 1;
+                            last
+                              if $nextpos >= $chars     # no line delimiter
+                              or $nextpos == $chars - 1 # broken CRLF ?
+                                && nqp::eqat($str, "\r", $nextpos); # yes!
 
                             if $chomp {
                                 $res.emit( ($found = $nextpos - $pos)

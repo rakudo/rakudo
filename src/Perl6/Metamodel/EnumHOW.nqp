@@ -40,7 +40,8 @@ class Perl6::Metamodel::EnumHOW
     # Exportation callback for enum symbols, if any.
     has $!export_callback;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1),
+                                                        :augmentable(1) );
     method archetypes() {
         $archetypes
     }

@@ -277,6 +277,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         :auth($dist<auth> // Str),
                         :repo(self),
                         :repo-id($id),
+                        :distribution(Distribution.new(|$dist)),
                     );
                     return %!loaded{$compunit.short-name} = $compunit;
                 }

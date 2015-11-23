@@ -14,6 +14,10 @@ class CompUnit {
     # The low-level handle.
     has CompUnit::Handle $.handle is required;
 
+    # The distribution that this compilation unit was installed as part of
+    # (if known).
+    has Distribution $.distribution;
+
     my Lock $global = Lock.new;
     my $default-from = 'Perl6';
     my %instances;
@@ -26,6 +30,7 @@ class CompUnit {
       CompUnit::Handle     :$handle = CompUnit::Handle,
       CompUnit::Repository :$repo,
       Str                  :$repo-id,
+      Distribution         :$distribution,
     ) {
         $global.protect( { %instances{$short-name} //= self.bless(
           :$short-name,
@@ -35,6 +40,7 @@ class CompUnit {
           :$handle,
           :$repo,
           :$repo-id,
+          :$distribution,
         ) } );
     }
 

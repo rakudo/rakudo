@@ -2297,7 +2297,9 @@ BEGIN {
                 return $many_res;
             }
 
-            # Check is default trait if we still have multiple options and we want one.
+            # If we still have multiple options and we want one, then check default
+            # trait and then, failing that, if we got an exact arity match on required
+            # parameters (which will beat matches on optional parameters).
             if nqp::elems(@possibles) > 1 {
                 # Locate any default candidates; if we find multiple defaults, this is
                 # no help, so we'll not bother collecting just which ones are good.
@@ -2316,6 +2318,27 @@ BEGIN {
                 if nqp::isconcrete($default_cand) {
                     nqp::pop(@possibles) while @possibles;
                     @possibles[0] := $default_cand;
+                }
+
+                # Failing that, look for exact arity match.
+                if nqp::elems(@possibles) > 1 {
+                    my $exact_arity;
+                    for @possibles {
+                        if nqp::atkey($_, 'min_arity') == $num_args &&
+                           nqp::atkey($_, 'max_arity') == $num_args {
+                            if nqp::isconcrete($exact_arity) {
+                                $exact_arity := NQPMu;
+                                last;
+                            }
+                            else {
+                                $exact_arity := $_;
+                            }
+                        }
+                    }
+                    if nqp::isconcrete($exact_arity) {
+                        nqp::pop(@possibles) while @possibles;
+                        @possibles[0] := $exact_arity;
+                    }
                 }
             }
 

@@ -272,11 +272,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     $handle //= CompUnit::Loader.load-source-file($loader);
                     my $compunit = CompUnit.new(
                         :$handle,
-                        :name($spec.short-name),
+                        :short-name($spec.short-name),
                         :repo(self),
                         :repo-id($id),
                     );
-                    return %!loaded{$compunit.name} = $compunit;
+                    return %!loaded{$compunit.short-name} = $compunit;
                 }
             }
         }

@@ -60,7 +60,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             );
 
             return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                :name($name), :$handle, :repo(self), :repo-id($id)
+                :short-name($name), :$handle, :repo(self), :repo-id($id)
             );
         }
 
@@ -80,7 +80,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         if $path.f {
             return %!loaded{$file} = %seen{$path} = CompUnit.new(
                 :handle(CompUnit::Loader.load-source-file($path)),
-                :name($file.Str),
+                :short-name($file.Str),
                 :repo(self),
                 :repo-id($file.Str),
             );

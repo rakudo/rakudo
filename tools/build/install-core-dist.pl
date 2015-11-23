@@ -12,17 +12,13 @@ my %provides =
 ;
 
 $*REPO.repo-chain[* - 1].install(
-    dist => class :: {
-        method metainfo() {
-            {
-                name => "CORE",
-                auth => "perl",
-                ver => $v.Str,
-                provides => %provides,
-            }
-        }
-    }.new,
-    |%provides.values,
+    Distribution.new(
+        name     => "CORE",
+        auth     => "perl",
+        ver      => $v.Str,
+        provides => %provides,
+    ),
+    %provides,
 );
 
 note "installed!";

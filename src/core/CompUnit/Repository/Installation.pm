@@ -104,92 +104,78 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         nqp::sha1($id)
     }
 
-    method install(:$dist!, *@files) {
+    method install(Distribution $dist, %sources, %scripts?, %resources?) {
         $!lock.protect( {
-        my $path     = self.writeable-path or die "No writeable path found";
-
-        my $d = CompUnitRepo::Distribution.new( |$dist.metainfo );
-
+        my $path   = self.writeable-path or die "No writeable path found";
         my $lock //= $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
 
-        my $dist-dir    = self!dist-dir;
-        if $dist-dir.child($d.id) ~~ :e {
+        my $dist-dir = self!dist-dir;
+        if $dist-dir.child($dist.id) ~~ :e {
             $lock.unlock;
-            fail "$d already installed";
+            fail "$dist already installed";
         }
 
         my $sources-dir   = self!sources-dir;
         my $resources-dir = self!resources-dir;
         my $bin-dir       = self!bin-dir;
-        state $is-win //= $*DISTRO.is-win; # only look up once
-
-        # Build patterns to choose what goes into "provides" section.
-        my $ext = regex { [pm|pm6|jar|moarvm] };
-        my @provides;
-        for %($d.provides).kv -> $k, $v is copy {
-            $v = $v.subst('\\', '/', :g);
-            $v.=subst(/ [pm|pm6]? \.<$ext>$/, '.');
-            @provides.push: regex { $v [ [pm|pm6] \. ]? <ext=.$ext> { make $k } }
-        }
-
-        # Initialize "provides" section.
-        # when we do not use .kv, we error out when trying to store into Pairs
-        $d.provides.kv.map: -> $k, $ { $d.provides.{$k} = {} }
+        state $is-win   //= $*DISTRO.is-win; # only look up once
 
         # Walk the to be installed files, decide whether we put them into
         # "provides" or just "files".
-        my $has-provides;
-        for @files -> $file is copy {
-            $file = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id = self!precomp-id($file);
-            my $destination;
-            if [||] @provides>>.ACCEPTS($file) -> $/ {
-                $destination = $sources-dir.child($id);
-                my $name = $/.ast;
-                self!add-short-name($name, $d);
-                $has-provides = True;
-                $d.provides{ $name }{ $<ext> } = {
+        for %sources.kv -> $name, $file is copy {
+            $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+            my $id          = self!precomp-id($file);
+            my $destination = $sources-dir.child($id);
+            self!add-short-name($name, $dist);
+            $dist.provides{ $name } = {
+                pm => {
                     :file($id),
                     :time(try $file.IO.modified.Num),
                     :$!cver
                 }
-            }
-            else {
-                $destination = $resources-dir.child($id);
-                if $file ~~ /^bin<[\\\/]>/ {
-                    my $basename   = $file.IO.basename;
-                    my $withoutext = $basename;
-                    $withoutext .= subst(/\.[exe|bat]$/, '');
-                    for '', '-j', '-m' -> $be {
-                        "$path/bin/$withoutext$be".IO.spurt:
-                            $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
-                        if $is-win {
-                            "$path/bin/$withoutext$be.bat".IO.spurt:
-                                $windows_wrapper.subst('#perl#', "perl6$be", :g);
-                        }
-                        else {
-                            "$path/bin/$withoutext$be".IO.chmod(0o755);
-                        }
-                    }
-                    self!add-short-name($basename, $d);
-                }
-                $d.files{$file} = $id
-            }
+            };
             copy($file, $destination);
         }
 
-        provides-warning($is-win, $d.name) if !$has-provides and $d.files.keys.first(/^blib\W/);
+        for %scripts.kv -> $basename, $file is copy {
+            $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+            my $id          = self!precomp-id($file);
+            my $destination = $resources-dir.child($id);
+            my $withoutext  = $basename.subst(/\.[exe|bat]$/, '');
+            for '', '-j', '-m' -> $be {
+                "$path/bin/$withoutext$be".IO.spurt:
+                    $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
+                if $is-win {
+                    "$path/bin/$withoutext$be.bat".IO.spurt:
+                        $windows_wrapper.subst('#perl#', "perl6$be", :g);
+                }
+                else {
+                    "$path/bin/$withoutext$be".IO.chmod(0o755);
+                }
+            }
+            self!add-short-name($basename, $dist);
+            $dist.files{"bin/$basename"} = $id;
+            copy($file, $destination);
+        }
 
-        $dist-dir.child($d.id).spurt: to-json($d.Hash);
+        for %resources.kv -> $name, $file is copy {
+            $file              = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+            my $id             = self!precomp-id($file);
+            my $destination    = $resources-dir.child($id);
+            $dist.files{$file} = $id;
+            copy($file, $destination);
+        }
+
+        $dist-dir.child($dist.id).spurt: to-json($dist.Hash);
 
         my $precomp = $*REPO.precomp-repository;
-        for $d.provides.values.map(*.values[0]<file>) -> $file-id {
+        for $dist.provides.values.map(*.values[0]<file>) -> $file-id {
             my $source = $sources-dir.child($file-id);
             if $precomp.may-precomp {
-                my $id = self!precomp-id($source.Str);
+                my $id            = self!precomp-id($source.Str);
                 my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
-                my @rev-deps = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
+                my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
                 $precomp.precompile($source.IO, $id);
                 for @rev-deps -> $rev-dep-id {

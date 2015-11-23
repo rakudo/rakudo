@@ -1,7 +1,9 @@
 class CompUnit {
-    has Str  $.from;
-    has Str  $.short-name;
-    has Str  $!WHICH;
+    has Str     $.from;
+    has Str     $.short-name;
+    has Version $.version;
+    has Str     $.auth;
+    has Str     $!WHICH;
 
     # The CompUnit::Repository that loaded this CompUnit.
     has CompUnit::Repository $.repo is required;
@@ -17,14 +19,18 @@ class CompUnit {
     my %instances;
 
     method new(CompUnit:U:
-      :$short-name is copy,
-      :$from = $default-from,
-      :$handle = CompUnit::Handle,
-      :$repo,
-      :$repo-id,
+      Str                  :$short-name is copy,
+      Version              :$version,
+      Str                  :$auth,
+      Str                  :$from = $default-from,
+      CompUnit::Handle     :$handle = CompUnit::Handle,
+      CompUnit::Repository :$repo,
+      Str                  :$repo-id,
     ) {
         $global.protect( { %instances{$short-name} //= self.bless(
           :$short-name,
+          :$version,
+          :$auth,
           :$from,
           :$handle,
           :$repo,

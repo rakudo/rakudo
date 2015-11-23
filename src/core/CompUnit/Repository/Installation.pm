@@ -273,6 +273,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     my $compunit = CompUnit.new(
                         :$handle,
                         :short-name($spec.short-name),
+                        :version($dver),
+                        :auth($dist<auth> // Str),
                         :repo(self),
                         :repo-id($id),
                     );

@@ -656,10 +656,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 #?endif
 
-    # constant ???
-    my str $CRLF = "\r\n";
-    my int $CRLF-EXTRA = nqp::chars($CRLF) - 1;
-
     multi method lines(Str:D: :$count!) {
         # we should probably deprecate this feature
         $count ?? self.lines.elems !! self.lines;
@@ -675,60 +671,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has int $!pos;
             method pull-one() {
                 my int $left;
-                my int $nextpos;
-                my int $length;
+                return IterationEnd if ($left = $!chars - $!pos) <= 0;
 
-                if ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-
-                    my str $found = ($length = $nextpos - $!pos)
-                      ?? nqp::substr($!str, $!pos, $length )
-                      !! '';
-                    $!pos = $nextpos + 1 +
-                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
-
-                    return nqp::p6box_s($found);
-                }
-                IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my int $found;
-                my int $left;
-                my int $nextpos;
-                my int $length;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-
-                    $target.push(nqp::p6box_s( ($length = $nextpos - $!pos)
-                      ?? nqp::substr($!str, $!pos, $length)
-                      !! ''
-                    ));
-                    $!pos = $nextpos + 1 +
-                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
-
-                    $found = $found + 1;
-                    return nqp::p6box_i($found) if $found == $n;
-                }
-                nqp::p6box_i($found)
+                my int $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+                my str $found = nqp::substr($!str, $!pos, $nextpos - $!pos);
+                $!pos = $nextpos + 1;
+                $found;
             }
             method push-all($target) {
                 my int $left;
                 my int $nextpos;
-                my int $length;
 
                 while ($left = $!chars - $!pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
 
-                    $target.push(nqp::p6box_s( ($length = $nextpos - $!pos)
-                      ?? nqp::substr($!str, $!pos, $length)
-                      !! ''
-                    ));
-                    $!pos = $nextpos + 1 +
-                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
+                    $target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
+                    $!pos = $nextpos + 1;
                 }
                 IterationEnd
             }
@@ -740,10 +700,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 while ($left = $!chars - $!pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-
-                    $found = $found + 1;
-                    $!pos = $nextpos + 1 +
-                        (nqp::eqat($!str, $CRLF, $nextpos) ?? $CRLF-EXTRA !! 0);
+                    $found = $found   + 1;
+                    $!pos  = $nextpos + 1;
                 }
                 nqp::p6box_i($found)
             }

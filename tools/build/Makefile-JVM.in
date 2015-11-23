@@ -87,10 +87,10 @@ J_CORE_SOURCES = \
   src/core/Junction.pm \
   src/core/Cool.pm \
   src/core/Enumeration.pm \
-  src/core/Bool.pm \
   src/core/Numeric.pm \
   src/core/Real.pm \
   src/core/Int.pm \
+  src/core/Bool.pm \
   src/core/Order.pm \
   src/core/UInt64.pm \
   src/core/Num.pm \

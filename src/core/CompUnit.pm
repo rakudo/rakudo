@@ -14,6 +14,9 @@ class CompUnit {
     # The low-level handle.
     has CompUnit::Handle $.handle is required;
 
+    # Whether the module was loaded from a precompilation or not.
+    has Bool $.precompiled = False;
+
     # The distribution that this compilation unit was installed as part of
     # (if known).
     has Distribution $.distribution;
@@ -30,6 +33,7 @@ class CompUnit {
       CompUnit::Handle     :$handle = CompUnit::Handle,
       CompUnit::Repository :$repo,
       Str                  :$repo-id,
+      Bool                 :$precompiled = False,
       Distribution         :$distribution,
     ) {
         $global.protect( { %instances{$short-name} //= self.bless(
@@ -40,6 +44,7 @@ class CompUnit {
           :$handle,
           :$repo,
           :$repo-id,
+          :$precompiled,
           :$distribution,
         ) } );
     }

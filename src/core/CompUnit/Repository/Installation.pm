@@ -269,6 +269,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         }
                         $handle //= $precomp.load($id);
                     }
+                    my $precompiled = defined $handle;
                     $handle //= CompUnit::Loader.load-source-file($loader);
                     my $compunit = CompUnit.new(
                         :$handle,
@@ -277,6 +278,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         :auth($dist<auth> // Str),
                         :repo(self),
                         :repo-id($id),
+                        :$precompiled,
                         :distribution(Distribution.new(|$dist)),
                     );
                     return %!loaded{$compunit.short-name} = $compunit;

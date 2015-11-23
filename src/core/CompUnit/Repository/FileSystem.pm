@@ -56,11 +56,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     $precomp.load($id, :since($found.modified)) # already precompiled?
                     or $precomp.precompile($found, $id) and $precomp.load($id) # if not do it now
                 )
-                or CompUnit::Loader.load-source-file($found) # precomp failed
             );
+            my $precompiled = ?$handle;
+
+            $handle ||= CompUnit::Loader.load-source-file($found); # precomp failed
 
             return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                :short-name($name), :$handle, :repo(self), :repo-id($id)
+                :short-name($name), :$handle, :repo(self), :repo-id($id), :$precompiled
             );
         }
 
@@ -83,6 +85,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 :short-name($file.Str),
                 :repo(self),
                 :repo-id($file.Str),
+                :precompiled($has_precomp),
             );
         }
 

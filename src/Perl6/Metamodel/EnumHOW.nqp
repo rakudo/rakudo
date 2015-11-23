@@ -17,6 +17,7 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
+    does Perl6::Metamodel::Mixins
 {
     # Hash representing enumeration keys to values.
     has %!values;
@@ -50,12 +51,18 @@ class Perl6::Metamodel::EnumHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
     
-    method new_type(:$name!, :$base_type?) {
+    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque') {
         my $meta := self.new();
-        my $obj  := nqp::settypehll(nqp::newtype($meta, 'P6opaque'), 'perl6');
+        my $obj  := nqp::settypehll(nqp::newtype($meta, $repr), 'perl6');
         $meta.set_name($obj, $name);
         $meta.set_base_type($meta, $base_type) unless $base_type =:= NQPMu;
+        $meta.setup_mixin_cache($obj);
         self.add_stash($obj);
+    }
+
+    # We only have add_parent to support mixins, which expect this method.
+    method add_parent($obj, $parent) {
+        self.set_base_type($obj, $parent);
     }
     
     method add_enum_value($obj, $value) {

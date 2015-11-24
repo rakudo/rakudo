@@ -67,31 +67,31 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method !sources-dir() {
         my $sources = $.prefix.child('sources');
-        $sources.mkdir;
+        $sources.mkdir unless $sources.e;
         $sources
     }
 
     method !resources-dir() {
         my $resources = $.prefix.child('resources');
-        $resources.mkdir;
+        $resources.mkdir unless $resources.e;
         $resources
     }
 
     method !dist-dir() {
         my $dist = $.prefix.child('dist');
-        $dist.mkdir;
+        $dist.mkdir unless $dist.e;
         $dist
     }
 
     method !bin-dir() {
         my $bin = $.prefix.child('bin');
-        $bin.mkdir;
+        $bin.mkdir unless $bin.e;
         $bin
     }
 
     method !add-short-name($name, $dist) {
         my $short-dir = $.prefix.child('short');
-        $short-dir.mkdir;
+        $short-dir.mkdir unless $short-dir.e;
         my $id = nqp::sha1($name);
         my $lookup = $short-dir.child($id).open(:a);
         $lookup.say: $dist.id;

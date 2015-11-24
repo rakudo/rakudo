@@ -47,9 +47,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                        CompUnit::PrecompilationId $precomp-id)
         returns IO::Path
     {
-        my $dest = self!dir($compiler-id, $precomp-id);
         self!lock(2);
-        $dest.mkdir;
+        my $compiler-dir = self.prefix.child($compiler-id.IO);
+        $compiler-dir.mkdir unless $compiler-dir.e;
+        my $dest = self!dir($compiler-id, $precomp-id);
+        $dest.mkdir unless $dest.e;
         $dest.child($precomp-id.IO)
     }
 

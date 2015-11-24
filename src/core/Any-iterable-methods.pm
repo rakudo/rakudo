@@ -689,6 +689,11 @@ augment class Any {
     }
 
     proto method first(|) is nodal { * }
+    multi method first(:$end) {
+        $end
+          ?? ((my $elems = self.elems) ?? self.AT-POS($elems - 1) !! Nil)
+          !! ((my $x := self.iterator.pull-one) =:= IterationEnd ?? Nil !! $x)
+    }
     multi method first(Bool:D $t) {
         fail X::Match::Bool.new( type => '.first' );
     }

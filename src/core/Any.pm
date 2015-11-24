@@ -176,6 +176,26 @@ my class Any { # declared in BOOTSTRAP
             !! self
     }
 
+    method gistseen(Any:D: $id, $gist) {
+        if %*gistseen -> $gistseen {
+            my $WHICH := self.WHICH;
+            if $gistseen.AT-KEY($WHICH) -> \semaphore {
+                semaphore = 2;
+                "{$id}_{self.WHERE}";
+            }
+            else {
+                $gistseen.AT-KEY($WHICH) = 1;
+                $gistseen.DELETE-KEY($WHICH) == 2
+                  ?? "(\\{$id}_{self.WHERE} = $gist())"
+                  !! $gist()
+            }
+        }
+        else {
+            my %*gistseen = :TOP;
+            self.gistseen($id,$gist)
+        }
+    }
+
     # auto-vivifying
     proto method push(|) is nodal {*}
     multi method push(Any:U \SELF: |values) {

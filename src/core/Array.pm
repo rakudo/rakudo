@@ -708,24 +708,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method gist(Array:D:) {
-        if %*gistseen -> $gistseen {
-            my $WHICH := self.WHICH;
-            if $gistseen.AT-KEY($WHICH) -> \semaphore {
-                semaphore = 2;
-                "Array_{self.WHERE}";
-            }
-            else {
-                $gistseen.AT-KEY($WHICH) = 1;
-                my $result = self.map({.gist}).join(' ');
-                $gistseen.DELETE-KEY($WHICH) == 2
-                  ?? "(\\Array_{self.WHERE} = [$result])"
-                  !! "[$result]"
-            }
-        }
-        else {
-            my %*gistseen = :TOP;
-            self.gist
-        }
+        self.gistseen('Array', { '[' ~ self.map({.gist}).join(' ') ~ ']' } )
     }
 
     multi method WHICH(Array:D:) {

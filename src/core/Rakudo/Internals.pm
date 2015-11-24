@@ -448,24 +448,7 @@ my class Rakudo::Internals {
         }
 
         multi method gist(::?CLASS:D:) {
-            if %*gistseen -> $gistseen {
-                my $WHICH := self.WHICH;
-                if $gistseen.AT-KEY($WHICH) -> \semaphore {
-                    semaphore = 2;
-                    "Array_{self.WHERE}";
-                }
-                else {
-                    $gistseen.AT-KEY($WHICH) = 1;
-                    my $result = self!gist([], self.shape);
-                    $gistseen.DELETE-KEY($WHICH) == 2
-                      ?? "(\\Array_{self.WHERE} = $result)"
-                      !! $result
-                }
-            }
-            else {
-                my %*gistseen = :TOP;
-                self.gist
-            }
+            self.gistseen('Array', { self!gist([], self.shape) })
         }
         method !gist(@path, @dims) {
             if @dims.elems == 1 {

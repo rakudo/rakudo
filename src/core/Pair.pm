@@ -36,26 +36,11 @@ my class Pair does Associative {
     multi method Str(Pair:D:) { $!key ~ "\t" ~ $!value }
 
     multi method gist(Pair:D:) {
-        if %*gistseen -> $gistseen {
-            my $WHICH := self.WHICH;
-            if $gistseen.AT-KEY($WHICH) -> \semaphore {
-                semaphore = 2;
-                "Pair_{self.WHERE}";
-            }
-            else {
-                $gistseen.AT-KEY($WHICH) = 1;
-                my $result = nqp::istype($!key, Pair)
-                  ?? '(' ~ $!key.gist ~ ') => ' ~ $!value.gist
-                  !! $!key.gist ~ ' => ' ~ $!value.gist;
-                $gistseen.DELETE-KEY($WHICH) == 2
-                  ?? "(\\Pair_{self.WHERE} = $result)"
-                  !! $result
-            }
-        }
-        else {
-            my %*gistseen = :TOP;
-            self.gist
-        }
+        self.gistseen('Pair', {
+            nqp::istype($!key, Pair)
+              ?? '(' ~ $!key.gist ~ ') => ' ~ $!value.gist
+              !! $!key.gist ~ ' => ' ~ $!value.gist;
+        })
     }
 
     multi method perl(Pair:D: :$arglist) {

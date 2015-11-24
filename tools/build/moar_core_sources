@@ -159,7 +159,6 @@ src/core/CompUnit/Repository/Locally.pm
 src/core/CompUnit/Repository/FileSystem.pm
 src/core/CompUnit/Repository/Installation.pm
 src/core/Argfiles.pm
-src/core/Inc.pm
 src/core/Process.pm
 src/core/StrDistance.pm
 src/core/Slang.pm

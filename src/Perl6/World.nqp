@@ -378,16 +378,7 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
             $*CODE_OBJECT := $*DECLARAND := self.stub_code_object('Block');
 
-            # initialize %?INC if not in an eval
             unless $in_eval {
-                my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
-                unless nqp::isnull($PROCESS) {
-                    my $INC := $PROCESS.WHO<@INC>;
-                    unless nqp::isnull($INC) {
-                        self.use_lib( $INC.FLATTENABLE_LIST, :push );
-                    }
-                }
-
                 self.install_lexical_symbol(
                   $*UNIT,'$=finish',self.find_symbol(['Mu']));
             }

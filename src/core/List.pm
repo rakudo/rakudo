@@ -569,20 +569,30 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
-        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
-        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "List_{self.WHERE}" }
-        %*gistseen{self.WHICH} = 1;
-        my $result = '(' ~
-            self.map( -> $elem {
-                given ++$ {
-                    when 101 { '...' }
-                    when 102 { last }
-                    default  { $elem.gist }
-                }
-            }).join(' ')
-            ~ ')';
-        $result = "(\\List_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
-        $result;
+        if %*gistseen -> $gistseen {
+            my $WHICH := self.WHICH;
+            if $gistseen.AT-KEY($WHICH) -> \semaphore {
+                semaphore = 2;
+                "List_{self.WHERE}";
+            }
+            else {
+                $gistseen.AT-KEY($WHICH) = 1;
+                my $result = self.map( -> $elem {
+                    given ++$ {
+                        when 101 { '...' }
+                        when 102 { last }
+                        default  { $elem.gist }
+                    }
+                }).join(' ');
+                $gistseen.DELETE-KEY($WHICH) == 2
+                  ?? "(\\List_{self.WHERE} = ($result))"
+                  !! "($result)"
+            }
+        }
+        else {
+            my %*gistseen = :TOP;
+            self.gist
+        }
     }
 
     multi method perl(List:D \SELF:) {

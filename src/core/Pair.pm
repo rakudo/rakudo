@@ -36,17 +36,26 @@ my class Pair does Associative {
     multi method Str(Pair:D:) { $!key ~ "\t" ~ $!value }
 
     multi method gist(Pair:D:) {
-        my $result;
-        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
-        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Pair_{self.WHERE}" }
-        %*gistseen{self.WHICH} = 1;
-        if nqp::istype($!key, Pair) {
-            $result = '(' ~ $!key.gist ~ ') => ' ~ $!value.gist;
-        } else {
-            $result = $!key.gist ~ ' => ' ~ $!value.gist;
+        if %*gistseen -> $gistseen {
+            my $WHICH := self.WHICH;
+            if $gistseen.AT-KEY($WHICH) -> \semaphore {
+                semaphore = 2;
+                "Pair_{self.WHERE}";
+            }
+            else {
+                $gistseen.AT-KEY($WHICH) = 1;
+                my $result = nqp::istype($!key, Pair)
+                  ?? '(' ~ $!key.gist ~ ') => ' ~ $!value.gist
+                  !! $!key.gist ~ ' => ' ~ $!value.gist;
+                $gistseen.DELETE-KEY($WHICH) == 2
+                  ?? "(\\Pair_{self.WHERE} = $result)"
+                  !! $result
+            }
         }
-        $result = "(\\Pair_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
-        $result;
+        else {
+            my %*gistseen = :TOP;
+            self.gist
+        }
     }
 
     multi method perl(Pair:D: :$arglist) {

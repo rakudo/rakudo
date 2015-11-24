@@ -54,18 +54,30 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method gist(Hash:D:) {
-        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
-        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-        %*gistseen{self.WHICH} = 1;
-        my $result = self.pairs.sort.map( -> $elem {
-            given ++$ {
-                when 101 { '...' }
-                when 102 { last }
-                default  { $elem.gist }
+        if %*gistseen -> $gistseen {
+            my $WHICH := self.WHICH;
+            if $gistseen.AT-KEY($WHICH) -> \semaphore {
+                semaphore = 2;
+                "Hash_{self.WHERE}";
             }
-        } ).join: ', ';
-        $result = "(\\Hash_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
-        $result;
+            else {
+                $gistseen.AT-KEY($WHICH) = 1;
+                my $result = self.pairs.sort.map( -> $elem {
+                    given ++$ {
+                        when 101 { '...' }
+                        when 102 { last }
+                        default  { $elem.gist }
+                    }
+                } ).join: ', ';
+                $gistseen.DELETE-KEY($WHICH) == 2
+                  ?? "(\\Hash_{self.WHERE} = $result)"
+                  !! $result
+            }
+        }
+        else {
+            my %*gistseen = :TOP;
+            self.gist
+        }
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {

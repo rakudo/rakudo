@@ -2884,13 +2884,13 @@ BEGIN {
     }
 
     # Bool::False and Bool::True.
-    my $false := nqp::add_I(nqp::box_i(0, Int), nqp::box_i(0, Int), Bool); #nqp::create(Bool);
+    my $false := nqp::box_i(0, Bool);
     nqp::bindattr_s($false, Bool, '$!key', 'False');
     nqp::bindattr_i($false, Bool, '$!value', 0);
     #nqp::bindattr($false, Int, '$!value', 0);
     Bool.HOW.add_enum_value(Bool, $false);
     (Bool.WHO)<False> := $false;
-    my $true := nqp::add_I(nqp::box_i(0, Int), nqp::box_i(1, Int), Bool);
+    my $true := nqp::box_i(1, Bool);
     nqp::bindattr_s($true, Bool, '$!key', 'True');
     nqp::bindattr_i($true, Bool, '$!value', 1);
     #nqp::bindattr($true, Int, '$!value', 1);

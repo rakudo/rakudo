@@ -522,43 +522,33 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \cv = nqp::list();
         my \lhs-iter = self.iterator;
         my \rhs-iter = iterable.iterator;
-        my int $rhs-done = 0;
-        loop {
-            my Mu \c := lhs-iter.pull-one;
-            last if c =:= IterationEnd;
+        my int $rhs-done;
+        my Mu $v;
+        until (my Mu \c := lhs-iter.pull-one) =:= IterationEnd {
             if nqp::iscont(c) {
                 # Container: scalar assignment
                 nqp::push(cv, c);
-                if $rhs-done {
-                    nqp::push(cv, Nil);
-                }
-                elsif (my \v = rhs-iter.pull-one) =:= IterationEnd {
-                    nqp::push(cv, Nil);
-                    $rhs-done = 1;
-                }
-                else {
-                    nqp::push(cv, nqp::iscont(v) ?? nqp::decont(v) !! v);
-                }
+                nqp::push(cv, $rhs-done
+                  || ($rhs-done = ($v := rhs-iter.pull-one) =:= IterationEnd)
+                  ?? Nil
+                  !! nqp::decont($v)
+                );
             }
             elsif nqp::istype(c, Whatever) {
                 # Whatever: skip assigning value
-                unless $rhs-done {
-                    my \v = rhs-iter.pull-one;
-                    $rhs-done = 1 if v =:= IterationEnd;
-                }
+                $rhs-done = 1
+                  if !$rhs-done && rhs-iter.pull-one =:= IterationEnd;
             }
             elsif nqp::istype(c, List) and not nqp::istype(c, Array) {
                 # List splice into current lhs
                 my \subiter := c.iterator;
                 until (my \sc = subiter.pull-one) =:= IterationEnd {
                     nqp::push(cv, sc);
-                    if (my \v = rhs-iter.pull-one) =:= IterationEnd {
-                        nqp::push(cv, Nil);
-                        $rhs-done = 1;
-                    }
-                    else {
-                        nqp::push(cv, nqp::iscont(v) ?? nqp::decont(v) !! v);
-                    }
+                    $v := rhs-iter.pull-one;
+                    nqp::push(cv, ($rhs-done = ($v =:= IterationEnd))
+                      ?? Nil
+                      !! nqp::decont($v)
+                    );
                 }
             }
             else {
@@ -570,10 +560,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         # Second pass, perform the assignments.
-        while nqp::elems(cv) {
-            my \c := nqp::shift(cv);
-            c = nqp::shift(cv);
-        }
+        nqp::shift(cv) = nqp::shift(cv) while nqp::elems(cv);
 
         self
     }

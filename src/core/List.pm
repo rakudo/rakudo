@@ -4,6 +4,7 @@ my class X::TypeCheck::Splice { ... }
 my class X::Cannot::Lazy { ... }
 my class X::Cannot::Empty { ... }
 my class Supply { ... }
+my class Supplier { ... }
 
 my sub combinations(\n, \k) {
     return ((),) if k < 1;

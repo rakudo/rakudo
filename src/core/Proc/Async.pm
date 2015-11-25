@@ -63,23 +63,23 @@ my class Proc::Async {
           if the-supply and type != value;
 
         type         = value;
-        the-supply //= Supply.new;
+        the-supply //= Supplier.new;
     }
 
     proto method stdout(|) { * }
     multi method stdout(Proc::Async:D:) {
-        self!supply('stdout', $!stdout_supply, $!stdout_type, Chars);
+        self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply;
     }
     multi method stdout(Proc::Async:D: :$bin!) {
-        self!supply('stdout',$!stdout_supply,$!stdout_type,$bin ?? Bytes !! Chars);
+        self!supply('stdout',$!stdout_supply,$!stdout_type,$bin ?? Bytes !! Chars).Supply;
     }
 
     proto method stderr(|) { * }
     multi method stderr(Proc::Async:D:) {
-        self!supply('stderr', $!stderr_supply, $!stderr_type, Chars);
+        self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply;
     }
     multi method stderr(Proc::Async:D: :$bin!) {
-        self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars);
+        self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars).Supply;
     }
 
     method !capture(\callbacks,\std,\type,\the-supply) {

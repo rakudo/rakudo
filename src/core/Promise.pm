@@ -204,7 +204,7 @@ my class Promise {
     }
 
     method Supply(Promise:D:) {
-        my $s = Supply.new;
+        my $s = Supplier.new;
         self.then({
             if self.status == Kept {
                 $s.emit(self.result);
@@ -214,7 +214,7 @@ my class Promise {
                 $s.quit(self.cause);
             }
         });
-        $s
+        $s.Supply
     }
 
     # experimental

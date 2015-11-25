@@ -764,7 +764,7 @@ my class Supply {
             }
 
             whenever self -> \val {
-                @batched.append: val unless $skip && $skip--;
+                @batched.push: val unless $skip && $skip--;
                 if @batched.elems == $elems {
                     flush;
                     next-batch;
@@ -800,10 +800,10 @@ my class Supply {
                       if $this_time != $last_time {
                           flush if @batched;
                           $last_time = $this_time;
-                          @batched.append: val;
+                          @batched.push: val;
                         }
                         else {
-                            @batched.append: val;
+                            @batched.push: val;
                             flush if @batched.elems == $elems;
                         }
                         LAST { final-flush; }
@@ -816,14 +816,14 @@ my class Supply {
                             flush if @batched;
                             $last_time = $this_time;
                         }
-                        @batched.append: val;
+                        @batched.push: val;
                         LAST { final-flush; }
                     }
                 }
             }
             else { # just $elems
                 whenever self -> \val {
-                    @batched.append: val;
+                    @batched.push: val;
                     flush if @batched.elems == $elems;
                     LAST { final-flush; }
                 }

@@ -6591,6 +6591,9 @@ Compilation unit '$file' contained the following violations:
         make $qast;
     }
 
+    my $nuprop := nqp::unipropcode("NumericValueNumerator");
+    my $deprop := nqp::unipropcode("NumericValueDenominator");
+
     method numish($/) {
         if $<integer> {
             make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
@@ -6599,6 +6602,14 @@ Compilation unit '$file' contained the following violations:
         elsif $<rad_number>     { make $<rad_number>.ast; }
         elsif $<rat_number>     { make $<rat_number>.ast; }
         elsif $<complex_number> { make $<complex_number>.ast; }
+        elsif $<unum> {
+            my $code := nqp::ord($/.Str);
+            my int $nu := +nqp::getuniprop_str($code, $nuprop);
+            my int $de := +nqp::getuniprop_str($code, $deprop);
+            !$de || $de == '1'
+                ?? make $*W.add_numeric_constant($/, 'Int', +$nu)
+                !! make $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
+        }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
         }

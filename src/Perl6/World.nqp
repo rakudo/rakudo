@@ -1282,7 +1282,10 @@ class Perl6::World is HLL::World {
     method build_container(%cont_info, $descriptor) {
         my $cont;
         my $cont_type := %cont_info<container_type>;
-        if nqp::istype($cont_type, self.find_symbol(['Scalar'])) {
+        if %cont_info<build_ast> {
+            $cont := $cont_type;
+        }
+        elsif nqp::istype($cont_type, self.find_symbol(['Scalar'])) {
             $cont := nqp::create($cont_type);
             nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
             if nqp::existskey(%cont_info, 'scalar_value') {

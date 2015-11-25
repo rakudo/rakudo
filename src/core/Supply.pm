@@ -24,9 +24,9 @@ my class Tap {
 # category theorist. :-))
 my role Tappable {
     method tap() { ... }
-    method is-live() { ... }    # Taps into a live data source
-    method is-serial() { ... }  # Promises no concurrent emits
-    method is-sane() { ... }    # Matches emit* [done|quit] grammar
+    method live() { ... }    # Taps into a live data source
+    method serial() { ... }  # Promises no concurrent emits
+    method sane() { ... }    # Matches emit* [done|quit] grammar
 }
 
 # A few Supply-related exception types.
@@ -64,8 +64,8 @@ my class Supply {
     }
     submethod BUILD(:$!tappable!) {}
 
-    method live(Supply:D:) { $!tappable.is-live }
-    method serial(Supply:D:) { $!tappable.is-serial }
+    method live(Supply:D:) { $!tappable.live }
+    method serial(Supply:D:) { $!tappable.serial }
 
     my \NOP = -> {};
     my \DEATH = -> $ex { $ex.throw };
@@ -97,9 +97,9 @@ my class Supply {
                 Tap.new(&!closing)
             }
             
-            method is-live() { False }
-            method is-sane() { True }
-            method is-serial() { True }
+            method live() { False }
+            method sane() { True }
+            method serial() { True }
         }.new(:&producer, :&closing, :$scheduler))
     }
 
@@ -130,9 +130,9 @@ my class Supply {
                 Tap.new({ $cancellation.cancel })
             }
 
-            method is-live { False }
-            method is-sane { True }
-            method is-serial { False }
+            method live { False }
+            method sane { True }
+            method serial { False }
         }.new(:$interval, :$delay, :$scheduler));
     }
 
@@ -146,9 +146,9 @@ my class Supply {
         has $!source;
         has $!source-tap;
         has int $!cleaned-up;
-        method is-live() { $!source.is-live }
-        method is-sane() { True }
-        method is-serial() { True }
+        method live() { $!source.live }
+        method sane() { True }
+        method serial() { True }
         method !cleanup() {
             unless $!cleaned-up {
                 $!cleaned-up = 1;
@@ -158,7 +158,7 @@ my class Supply {
     }
 
     method serialize(Supply:D:) {
-        $!tappable.is-serial ?? self !! Supply.new(class :: does SimpleOpTappable {
+        $!tappable.serial ?? self !! Supply.new(class :: does SimpleOpTappable {
             has $!lock = Lock.new;
 
             submethod BUILD(:$!source!) {}
@@ -186,7 +186,7 @@ my class Supply {
     }    
 
     method sanitize() {
-        $!tappable.is-sane ?? self !! Supply.new(class :: does SimpleOpTappable {
+        $!tappable.sane ?? self !! Supply.new(class :: does SimpleOpTappable {
             has int $!finished;
 
             submethod BUILD(:$!source!) {}
@@ -1377,9 +1377,9 @@ my class Supplier {
             }
         }
 
-        method is-live     { True  }
-        method is-serial() { False }
-        method is-sane()   { False }
+        method live     { True  }
+        method serial() { False }
+        method sane()   { False }
     }
 
     has $!taplist = TapList.new;
@@ -1504,9 +1504,9 @@ sub SUPPLY(&block) {
             $state.active-taps = ();
         }
 
-        method is-live { False }
-        method is-sane { True }
-        method is-serial { True }
+        method live { False }
+        method sane { True }
+        method serial { True }
     }.new(:&block))
 }
 

@@ -6591,8 +6591,8 @@ Compilation unit '$file' contained the following violations:
         make $qast;
     }
 
-    my $nuprop := nqp::unipropcode("NumericValueNumerator");
-    my $deprop := nqp::unipropcode("NumericValueDenominator");
+    my $nuprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("NumericValueNumerator") !! '';
+    my $deprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("NumericValueDenominator") !! '';
 
     method numish($/) {
         if $<integer> {

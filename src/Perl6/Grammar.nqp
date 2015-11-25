@@ -3282,7 +3282,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | 'Inf' >>
         | '+Inf' >>
         | '-Inf' >>
-        | <unum=:No+:Nl>
+        | <?{ nqp::existskey(nqp::backendconfig(), 'moarlib') }> <unum=:No+:Nl>
         ]
     }
 

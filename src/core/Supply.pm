@@ -1,1142 +1,1463 @@
-# Anything that can be subscribed to does this role. It provides the basic
-# supply management infrastructure, as well as various coercions that
-# turn Supply-like things into something else and convenience forms of calls
-# to SupplyOperations.
+# When we tap a Supply, we get back a Tap object. We close the tap in order
+# to turn off the flow of values.
+my class Tap {
+    has &!on-close;
 
-my class SupplyOperations is repr('Uninstantiable') { ... }
+    submethod BUILD(:&!on-close) { }
+
+    method new(&on-close) {
+        self.bless(:&on-close)
+    }
+
+    method close() {
+        &!on-close() if &!on-close;
+    }
+}
+
+# The asynchronous dual of the Iterator role; goes inside of a Supply, which
+# is the asynchronous dual of the Seq class. So just as a Seq wraps around an
+# Iterator so we don't expose all the internal iterator types to the world, a
+# Supply wraps about a Tappable so we don't expose all of those. (It may
+# surprise you that it's a Tappable, not a Tap, given Seq wraps an Iterator,
+# not an Iterable. Guess that's part of the duality too. Ask your local
+# category theorist. :-))
+my role Tappable {
+    method tap() { ... }
+    method is-live() { ... }    # Taps into a live data source
+    method is-serial() { ... }  # Promises no concurrent emits
+    method is-sane() { ... }    # Matches emit* [done|quit] grammar
+}
+
+# A few Supply-related exception types.
 my class X::Supply::Combinator is Exception {
     has $.combinator;
     method message() { "Can only use $!combinator to combine defined Supply objects" }
 }
-
-my class Tap {
-    has &.emit;
-    has &.done;
-    has &.quit;
-    has &.closing;
-    has $.supply;
-
-    method close (Tap:D:) { $!supply.close(self) }
+my class X::Supply::Migrate::Needs is Exception {
+    method message() {
+        ".migrate needs Supplies to be emitted"
+    }
+}
+my class X::Supply::New is Exception {
+    method message() {
+        "Cannot directly create a Supply. You might want:\n" ~
+        " - To use a Publisher in order to get a live supply\n" ~
+        " - To use Supply.on-demand to create an on-demand supply\n" ~
+        " - To create a Supply using a supply block"
+    }
 }
 
-my role Supply {
-    has $!tappers_lock = Lock.new;
-    has @!tappers;
-    has $!been_tapped;
-    has @!paused;
 
-    method tap(Supply:D:
-    &emit = -> $ { }, :&done,:&quit={die $_},:&closing) {
-        my $tap = Tap.new(:&emit, :&done, :&quit, :&closing, :supply(self));
-        $!tappers_lock.protect({
-            @!tappers.push($tap);
-            if @!paused -> \todo {
-                $tap.emit().($_) for todo;
-                @!paused = ();
+# A Supply is like an asynchronous Seq. All the methods that you can do on
+# a Supply go in here.
+my class Publisher { ... }
+my class Supply {
+    has Tappable $!tappable;
+
+    proto method new(|) { * }
+    multi method new() {
+        X::Supply::New.new.throw
+    }
+    multi method new(Tappable $tappable) {
+        self.bless(:$tappable);
+    }
+    submethod BUILD(:$!tappable!) {}
+
+    method live(Supply:D:) { $!tappable.is-live }
+    method serial(Supply:D:) { $!tappable.is-serial }
+
+    my \NOP = -> {};
+    my \DEATH = -> $ex { $ex.throw };
+    method tap(Supply:D: &emit = NOP, :&done = NOP, :&quit = DEATH) {
+        $!tappable.tap(&emit, &done, &quit)
+    }
+
+    method act(Supply:D: &actor) {
+        self.sanitize.tap(&actor)
+    }
+
+    ##
+    ## Supply factories
+    ##
+
+    method on-demand(&producer, :&closing, :$scheduler = CurrentThreadScheduler) {
+        Supply.new(class :: does Tappable {
+            has &!producer;
+            has &!closing;
+            has $!scheduler;
+
+            submethod BUILD(:&!producer!, :&!closing!, :$!scheduler!) {}
+
+            method tap(&emit, &done, &quit) {
+                my $p = Publisher.new;
+                $p.Supply.tap(&emit, :&done, :&quit); # sanitizes
+                $!scheduler.cue({ &!producer($p) },
+                    catch => -> \ex { $p.quit(ex) });
+                Tap.new(&!closing)
             }
-            $!been_tapped = True;
-        });
-        $tap
+            
+            method is-live() { False }
+            method is-sane() { True }
+            method is-serial() { True }
+        }.new(:&producer, :&closing, :$scheduler))
     }
 
-    proto method close(|) { * }
-    multi method close(Supply:D:) { self.close($_) for self.tappers }
-    multi method close(Supply:D: Tap $t) {
-        my $found;
-        $!tappers_lock.protect({
-            @!tappers .= grep( { $_ === $t ?? !($found = True) !! True } );
-        });
-        if $t.closing -> &closing {
-            closing();
+    method from-list(*@values, :$scheduler = CurrentThreadScheduler) {
+        self.on-demand(-> $p {
+            $p.emit($_) for @values;
+            $p.done();
+        }, :$scheduler);
+    }
+
+    method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER) {
+        Supply.new(class :: does Tappable {
+            has $!scheduler;
+            has $!interval;
+            has $!delay;
+
+            submethod BUILD(:$!scheduler, :$!interval, :$!delay) {}
+
+            method tap(&emit, |) {
+                my $cancellation = $!scheduler.cue(
+                    {
+                        state $i = 0;
+                        emit($i++);
+                        CATCH { $cancellation.cancel }
+                    },
+                    :every($!interval), :in($!delay)
+                );
+                Tap.new({ $cancellation.cancel })
+            }
+
+            method is-live { False }
+            method is-sane { True }
+            method is-serial { False }
+        }.new(:$interval, :$delay, :$scheduler));
+    }
+
+    ##
+    ## Simple operations are those that operate on a single Supply, carry its
+    ## liveness, and are always serial. We implement the directly as they are
+    ## common and fairly "hot path".
+    ##
+
+    my role SimpleOpTappable does Tappable {
+        has $!source;
+        has $!source-tap;
+        has int $!cleaned-up;
+        method is-live() { $!source.is-live }
+        method is-sane() { True }
+        method is-serial() { True }
+        method !cleanup() {
+            unless $!cleaned-up {
+                $!cleaned-up = 1;
+                $!source-tap.close;
+            }
         }
-        $found // False;
     }
 
-    method tappers(Supply:D:) {
-        # Shallow clone to provide safe snapshot.
-        my @tappers;
-        $!tappers_lock.protect({ @tappers = @!tappers });
-        @tappers
+    method serialize(Supply:D:) {
+        $!tappable.is-serial ?? self !! Supply.new(class :: does SimpleOpTappable {
+            has $!lock = Lock.new;
+
+            submethod BUILD(:$!source!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(
+                    -> \value{
+                        $!lock.protect: { emit(value); }
+                    },
+                    done => -> {
+                        $!lock.protect: {
+                            done();
+                            self!cleanup;
+                        }
+                    },
+                    quit => -> $ex {
+                        $!lock.protect: {
+                            quit($ex);
+                            self!cleanup;
+                        }
+                    });
+                Tap.new({ self!cleanup })
+            }
+        }.new(source => self))
+    }    
+
+    method sanitize() {
+        $!tappable.is-sane ?? self !! Supply.new(class :: does SimpleOpTappable {
+            has int $!finished;
+
+            submethod BUILD(:$!source!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(
+                    -> \value{
+                        emit(value) unless $!finished;
+                    },
+                    done => -> {
+                        unless $!finished {
+                            $!finished = 1;
+                            done();
+                            self!cleanup;
+                        }
+                    },
+                    quit => -> $ex {
+                        unless $!finished {
+                            $!finished = 1;
+                            quit($ex);
+                            self!cleanup;
+                        }
+                    });
+                Tap.new({ self!cleanup })
+            }
+        }.new(source => self.serialize))
     }
 
-    method emit(Supply:D: \msg --> Nil) {
-        if self.tappers -> \tappers {
-            .emit().(msg) for tappers;
+    method on-close(Supply:D: &on-close) {
+        return Supply.new(class :: does SimpleOpTappable {
+            has int $!finished;
+            has &!on-close;
+
+            submethod BUILD(:$!source!, :&!on-close!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(&emit, :&done, :&quit);
+                Tap.new({
+                    &!on-close();
+                    self!cleanup
+                })
+            }
+        }.new(source => self, :&on-close))
+    }
+
+    method map(Supply:D: &mapper) {
+        Supply.new(class :: does SimpleOpTappable {
+            has &!mapper;
+
+            submethod BUILD(:$!source!, :&!mapper!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(
+                    -> \value {
+                        my \result = try &!mapper(value);
+                        if $! {
+                            quit($!);
+                            self!cleanup;
+                        }
+                        else {
+                            emit(result)
+                        }
+                    },
+                    done => -> {
+                        done();
+                        self!cleanup;
+                    },
+                    quit => -> $ex {
+                        quit($ex);
+                        self!cleanup;
+                    });
+                Tap.new({ self!cleanup })
+            }
+        }.new(source => self.sanitize, :&mapper))
+    }
+
+    method grep(Supply:D: Mu $test) {
+        Supply.new(class :: does SimpleOpTappable {
+            has Mu $!test;
+
+            submethod BUILD(:$!source!, Mu :$!test!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(
+                    -> \value {
+                        my \accepted = try $test.ACCEPTS(value);
+                        if accepted {
+                            emit(value);
+                        }
+                        elsif $! {
+                            quit($!);
+                            self!cleanup;
+                        }
+                    },
+                    done => -> {
+                        done();
+                        self!cleanup;
+                    },
+                    quit => -> $ex {
+                        quit($ex);
+                        self!cleanup;
+                    });
+                Tap.new({ self!cleanup })
+            }
+        }.new(source => self.sanitize, :$test))
+    }
+
+    method schedule-on(Supply:D: Scheduler $scheduler) {
+        Supply.new(class :: does SimpleOpTappable {
+            has $!scheduler;
+
+            submethod BUILD(:$!source!, :$!scheduler!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(
+                    -> \value {
+                        $!scheduler.cue: { emit(value) }
+                    },
+                    done => -> {
+                        $!scheduler.cue: { done(); self!cleanup; }
+                    },
+                    quit => -> $ex {
+                        $!scheduler.cue: { quit($ex); self!cleanup; }
+                    });
+                Tap.new({ self!cleanup })
+            }
+        }.new(source => self.sanitize, :$scheduler))
+    }
+
+    method start(Supply:D: &startee) {
+        self.map: -> \value {
+            Supply.new(class :: does SimpleOpTappable {
+                has $!value;
+                has &!startee;
+
+                submethod BUILD(:$!value, :&!startee) { }
+
+                method tap(&emit, &done, &quit) {
+                    Promise.start({ &!startee($!value) }).then({
+                        if .status == Kept {
+                            emit(.result);
+                            done();
+                        }
+                        else {
+                            quit(.cause);
+                        }
+                    });
+                    Tap.new({ self!cleanup })
+                }
+            }.new(:value(value), :&startee))
         }
-        elsif !$!been_tapped {
-            $!tappers_lock.protect({ @!paused.append: msg });
+    }
+
+    method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
+        return self unless $time;
+        Supply.new(class :: does SimpleOpTappable {
+            has $!time;
+            has $!scheduler;
+            has $!last_cancellation;
+            has $!lock = Lock.new;
+
+            submethod BUILD(:$!source!, :$!time!, :$!scheduler!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(
+                    -> \value {
+                        $!lock.protect: {
+                            if $!last_cancellation {
+                                $!last_cancellation.cancel;
+                            }
+                            $!last_cancellation = $!scheduler.cue(
+                                :in($time),
+                                {
+                                    $!lock.protect: { $!last_cancellation = Nil; }
+                                    try {
+                                        emit(value);
+                                        CATCH {
+                                            default {
+                                                quit($_);
+                                                self!cleanup;
+                                            }
+                                        }
+                                    }
+                                });
+                        }
+                    },
+                    done => -> {
+                        done();
+                        self!cleanup;
+                    },
+                    quit => -> $ex {
+                        quit($ex);
+                        self!cleanup;
+                    });
+                Tap.new({ self!cleanup })
+            }
+        }.new(source => self.sanitize, :$time, :$scheduler))
+    }
+
+    method delayed(Supply:D: $time, :$scheduler = $*SCHEDULER) {
+        return self unless $time;  # nothing to do
+        Supply.new(class :: does SimpleOpTappable {
+            has $!time;
+            has $!scheduler;
+
+            submethod BUILD(:$!source!, :$!time, :$!scheduler!) {}
+
+            method tap(&emit, &done, &quit) {
+                $!source-tap = $!source.tap(
+                    -> \value {
+                        $!scheduler.cue: { emit(value) }, :in($time)
+                    },
+                    done => -> {
+                        $!scheduler.cue: { done(); self!cleanup; }, :in($time)
+                    },
+                    quit => -> $ex {
+                        $!scheduler.cue: { quit($ex); self!cleanup; }, :in($time)
+                    });
+                Tap.new({ self!cleanup })
+            }
+        }.new(source => self.sanitize, :$time, :$scheduler))
+    }
+
+    ##
+    ## A bunch of the more complex combinators, implemented as supply blocks
+    ##
+
+    method do(Supply:D $self: &side-effect) {
+        supply {
+            whenever self -> \value {
+                side-effect(value);
+                emit(value);
+            }
         }
     }
 
-    method done(Supply:D: --> Nil) {
-        for self.tappers -> $t {
-            my $l = $t.done();
-            $l() if $l;
+    method flat(Supply:D:) {
+        supply {
+            whenever self -> \inner {
+                whenever inner -> \value {
+                    emit value;
+                }
+            }
         }
     }
 
-    method quit(Supply:D: $ex --> Nil) {
-        for self.tappers -> $t {
-            my $f = $t.quit();
-            $f($ex) if $f;
+    method merge(*@s) {
+        @s.unshift(self) if self.DEFINITE;  # add if instance method
+        return supply { } unless +@s;       # nothing to be done
+
+        X::Supply::Combinator.new(
+           combinator => 'merge'
+        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+
+        return @s[0].sanitize  if +@s == 1; # nothing to be done
+
+        supply {
+            for @s {
+                whenever $_ -> \value { emit(value) }
+            }
         }
     }
 
-    method taps(Supply:D:) { +@!tappers }
-    method live(Supply:D:) { True };
+    method reduce(Supply:D $self: &with) {
+        supply {
+            my $first := True;
+            my $reduced := Nil;
+            whenever self -> \value {
+                if $first {
+                    $reduced := value;
+                    $first := False;
+                }
+                else {
+                    $reduced := with($reduced, value);
+                }
+                LAST {
+                    emit $reduced;
+                    done;
+                }
+            }
+        }
+    }
+
+    method produce(Supply:D $self: &with) {
+        supply {
+            my $first := True;
+            my $reduced := Nil;
+            whenever self -> \value {
+                if $first {
+                    $reduced := value;
+                    $first := False;
+                }
+                else {
+                    $reduced := with($reduced, value);
+                }
+                emit $reduced;
+            }
+        }
+    }
+
+    method migrate(Supply:D:) {
+        supply {
+            my $current;
+            whenever self -> \inner {
+                X::Supply::Migrate::Needs.new.throw
+                    unless nqp::istype(inner, Supply);
+                $current.close if $current;
+                $current = do whenever inner -> \value {
+                    emit(value);
+                }
+            }
+        }
+    }
+
+    proto method classify(|) { * }
+    multi method classify(Supply:D: &mapper )  {
+        self!classify(&mapper);
+    }
+    multi method classify(Supply:D: %mapper )  {
+        self!classify({ %mapper{$^a} });
+    }
+    multi method classify(Supply:D: @mapper )  {
+        self!classify({ @mapper[$^a] });
+    }
+
+    proto method categorize (|) { * }
+    multi method categorize(Supply:D: &mapper )  {
+        self!classify(&mapper, :multi);
+    }
+    multi method categorize(Supply:D: %mapper )  {
+        self!classify({ %mapper{$^a} }, :multi);
+    }
+    multi method categorize(Supply:D: @mapper )  {
+        self!classify({ @mapper[$^a] }, :multi);
+    }
+
+    method !classify(&mapper, :$multi) {
+        supply {
+            my %mapping;
+
+            sub find-target($key) {
+                %mapping{ $key.WHICH } //= do {
+                    my $p = Publisher.new;
+                    emit($key => $p.Supply);
+                    $p
+                };
+            }
+
+            whenever self -> \value {
+                if $multi {
+                    for @(mapper(value)) -> $key {
+                        find-target($key).emit(value);
+                    }
+                }
+                else {
+                    find-target(mapper(value)).emit(value);
+                }
+                LAST {
+                    %mapping.values>>.done;
+                    done;
+                }
+            }
+        }
+    }
+
+    ##
+    ## Coercions
+    ##
 
     method Supply(Supply:) { self }
+
     method Channel(Supply:D:) {
         my $c = Channel.new();
-        self.tap( -> \val { $c.send(val) },
-          done => { $c.close },
-          quit => -> $ex { $c.quit($ex) });
+        self.sanitize.tap:
+            -> \val { $c.send(val) },
+            done => { $c.close },
+            quit => -> $ex { $c.quit($ex) };
         $c
     }
-
-    method Promise(Supply:D:) {
-        my $l = Lock.new;
-        my $p = Promise.new;
-        my $v = $p.vow;
-        my $t = self.tap(
-          -> \val {
-              $l.protect( {
-                  if $p.status == Planned {
-                      $v.keep(val);
-                      $t.close()
-                  }
-              } );
-          },
-          done => { $v.break("No value received") },
-          quit => -> \ex {
-              $l.protect( {
-                  if $p.status == Planned {
-                      $v.break(ex);
-                      $t.close()
-                  }
-              } );
-          },
-        );
-        $p
-    }
-
-    method await(Supply:D:) {
-        my $l = Lock.new;
-        my $p = Promise.new;
-        my $t = self.tap( -> \val {},
-          done => {
-              $l.protect( {
-                  if $p.status == Planned {
-                      $p.keep(self);
-                      $t.close()
-                  }
-              } );
-          },
-          quit => -> \ex {
-              $l.protect( {
-                  if $p.status == Planned {
-                      $p.break(ex);
-                      $t.close()
-                  }
-              } );
-          },
-        );
-        $p
-    }
-
-    method wait(Supply:D:) { self.await.result }
 
     method list(Supply:D:) {
         # Use a Channel to handle any asynchrony.
         self.Channel.list;
     }
 
-    method on-demand(Supply:U: |c)       { SupplyOperations.on-demand(|c) }
-    method from-list(Supply:U: |c)       { SupplyOperations.from-list(|c) }
-    method interval(Supply:U: |c)        { SupplyOperations.interval(|c) }
-    method flat(Supply:D: )              { SupplyOperations.flat(self) }
-    method grep(Supply:D: Mu $test)      { SupplyOperations.grep(self, $test) }
-    method map(Supply:D: &mapper)        { SupplyOperations.map(self, &mapper) }
-    method schedule-on(Supply:D: Scheduler $scheduler) {
-        SupplyOperations.schedule-on(self, $scheduler);
-    }
-    method start(Supply:D: &startee)     { SupplyOperations.start(self, &startee) }
-    method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        SupplyOperations.stable(self, $time, :$scheduler);
-    }
-    method delayed(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        SupplyOperations.delayed(self, $time, :$scheduler)
-    }
-    method migrate(Supply:D: )           { SupplyOperations.migrate(self) }
-
-    multi method classify(Supply:D: &mapper )  {
-        SupplyOperations.classify(self, &mapper);
-    }
-    multi method classify(Supply:D: %mapper )  {
-        SupplyOperations.classify(self, { %mapper{$^a} });
-    }
-    multi method classify(Supply:D: @mapper )  {
-        SupplyOperations.classify(self, { @mapper[$^a] });
+    method Promise(Supply:D:) {
+        my $p = Promise.new;
+        my $v = $p.vow;
+        my $final := Nil;
+        my $t = self.tap:
+            -> \val { $final := val },
+            done => { $v.keep($final) },
+            quit => -> \ex { $v.break(ex) };
+        $p
     }
 
-    proto method categorize (|) { * }
-    multi method categorize(Supply:D: &mapper )  {
-        SupplyOperations.classify(self, &mapper, :multi);
-    }
-    multi method categorize(Supply:D: %mapper )  {
-        SupplyOperations.classify(self, { %mapper{$^a} }, :multi);
-    }
-    multi method categorize(Supply:D: @mapper )  {
-        SupplyOperations.classify(self, { @mapper[$^a] }, :multi);
-    }
+    method wait(Supply:D:) { await self.Promise }
 
-    method act(Supply:D: &actor) {
-        self.do(&actor).tap(|%_) # need "do" for serializing callbacks
-    }
-
-    method do(Supply:D $self: &side_effect) {
-        on -> $res {
-            $self => -> \val { side_effect(val); $res.emit(val) }
-        }
-    }
-
-    method unique(Supply:D $self: :&as, :&with, :$expires) {
-        on -> $res {
-            $self => do {
-                if $expires {
-                    if &with and &with !=== &[===] {
-                        my @seen;  # really Mu, but doesn't work in settings
-                        my Mu $target;
-                        &as
-                          ?? -> \val {
-                              my $now := now;
-                              $target = &as(val);
-                              my $index =
-                                @seen.first({&with($target,$_[0])},:k);
-                              with $index {
-                                  if $now > @seen[$index][1] {  # expired
-                                      @seen[$index][1] = $now+$expires;
-                                      $res.emit(val);
-                                  }
-                              }
-                              else {
-                                  @seen.push: [$target, $now+$expires];
-                                  $res.emit(val);
-                              }
-                          }
-                          !! -> \val {
-                              my $now := now;
-                              my $index =
-                                @seen.first({&with(val,$_[0])},:k);
-                              with $index {
-                                  if $now > @seen[$index][1] {  # expired
-                                      @seen[$index][1] = $now+$expires;
-                                      $res.emit(val);
-                                  }
-                              }
-                              else {
-                                  @seen.push: [val, $now+$expires];
-                                  $res.emit(val);
-                              }
-                          };
-                    }
-                    else {
-                        my $seen := nqp::hash();
-                        my str $target;
-                        &as
-                          ?? -> \val {
-                              my $now := now;
-                              $target = nqp::unbox_s(&as(val).WHICH);
-                              if !nqp::existskey($seen,$target) ||
-                                $now > nqp::atkey($seen,$target) { #expired
-                                  $res.emit(val);
-                                  nqp::bindkey($seen,$target,$now+$expires);
-                              }
-                          }
-                          !! -> \val {
-                              my $now := now;
-                              $target = nqp::unbox_s(val.WHICH);
-                              if !nqp::existskey($seen,$target) ||
-                                $now > nqp::atkey($seen,$target) { #expired
-                                  $res.emit(val);
-                                  nqp::bindkey($seen,$target,$now+$expires);
-                              }
-                          };
-                    }
-                }
-                else { # !$!expires
-                    if &with and &with !=== &[===] {
-                        my @seen;  # really Mu, but doesn't work in settings
-                        my Mu $target;
-                        &as
-                          ?? -> \val {
-                              $target = &as(val);
-                              if @seen.first({ &with($target,$_) } ) =:= Nil {
-                                  @seen.push($target);
-                                  $res.emit(val);
-                              }
-                          }
-                          !! -> \val {
-                              if @seen.first({ &with(val,$_) } ) =:= Nil {
-                                  @seen.push(val);
-                                  $res.emit(val);
-                              }
-                          };
-                    }
-                    else {
-                        my $seen := nqp::hash();
-                        my str $target;
-                        &as
-                          ?? -> \val {
-                              $target = nqp::unbox_s(&as(val).WHICH);
-                              unless nqp::existskey($seen, $target) {
-                                  nqp::bindkey($seen, $target, 1);
-                                  $res.emit(val);
-                              }
-                          }
-                          !! -> \val {
-                              $target = nqp::unbox_s(val.WHICH);
-                              unless nqp::existskey($seen, $target) {
-                                  nqp::bindkey($seen, $target, 1);
-                                  $res.emit(val);
-                              }
-                          };
-                    }
-                }
-            }
-        }
-    }
-
-    method squish(Supply:D $self: :&as, :&with is copy) {
-        &with //= &[===];
-        on -> $res {
-            $self => do {
-                my int $first = 1;
-                my Mu $last;
-                my Mu $target;
-                &as
-                  ?? -> \val {
-                      $target = &as(val);
-                      if $first || !&with($target,$last) {
-                          $first = 0;
-                          $last  = $target;
-                          $res.emit(val);
-                      }
-                  }
-                  !! -> \val {
-                      if $first || !&with(val,$last) {
-                          $first = 0;
-                          $last = val;
-                          $res.emit(val);
-                      }
-                  };
-            }
-        }
-    }
-
-    proto method rotor(|) {*}
-    multi method rotor(Supply:D $self: *@cycle, :$partial) {
-        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
-
-        on -> $res {
-            $self => do {
-                my Int $elems;
-                my Int $gap;
-                my int $to-skip;
-                my int $skip;
-                my \c = @c.iterator;
-                sub next-batch() {
-                    given c.pull-one {
-                        when Pair {
-                            $elems   = +.key;
-                            $gap     = +.value;
-                            $to-skip = $gap > 0 ?? $gap !! 0;
-                        }
-                        default {
-                            $elems   = +$_;
-                            $gap     = 0;
-                            $to-skip = 0;
-                        }
-                    }
-                }
-                next-batch;
-
-                my @batched;
-                sub flush() {
-                    $res.emit( [@batched.splice(0, +@batched, @batched[* + $gap .. *]),] );
-                    $skip = $to-skip;
-                }
-
-                {
-                    emit => -> \val {
-                        @batched.append: val unless $skip && $skip--;
-                        if @batched.elems == $elems {
-                            flush;
-                            next-batch;
-                        }
-                    },
-                    done => {
-                        flush if @batched and $partial;
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method batch(Supply:D $self: :$elems, :$seconds ) {
-
-        return $self if (!$elems or $elems == 1) and !$seconds;  # nothing to do
-
-        on -> $res {
-            $self => do {
-                my @batched;
-                my $last_time;
-                sub flush {
-                    $res.emit(([@batched],));
-                    @batched = ();
-                }
-
-                {
-                    emit => do {
-                        if $seconds {
-                            $last_time = time div $seconds;
-
-                            $elems # and $seconds
-                              ??  -> \val {
-                                  my $this_time = time div $seconds;
-                                  if $this_time != $last_time {
-                                      flush if @batched;
-                                      $last_time = $this_time;
-                                      @batched.append: val;
-                                  }
-                                  else {
-                                      @batched.append: val;
-                                      flush if @batched.elems == $elems;
-                                  }
-                              }
-                              !! -> \val {
-                                  my $this_time = time div $seconds;
-                                  if $this_time != $last_time {
-                                      flush if @batched;
-                                      $last_time = $this_time;
-                                  }
-                                  @batched.append: val;
-                              }
-                        }
-                        else { # just $elems
-                            -> \val {
-                                @batched.append: val;
-                                flush if @batched.elems == $elems;
-                            }
-                        }
-                    },
-                    done => {
-                        flush if @batched;
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method lines(Supply:D $self: :$chomp = True ) {
-
-        on -> $res {
-            $self => do {
-                my str $str;
-                my int $chars;
-                my int $left;
-                my int $pos;
-                my int $nextpos;
-                my int $found;
-
-                {
-                    emit => -> \val {
-                        $str   = $str ~ nqp::unbox_s(val);
-                        $chars = nqp::chars($str);
-                        $pos   = 0;
-
-                        while ($left = $chars - $pos) > 0 {
-                            $nextpos = nqp::findcclass(
-                              nqp::const::CCLASS_NEWLINE, $str, $pos, $left
-                            );
-
-                            last
-                              if $nextpos >= $chars     # no line delimiter
-                              or $nextpos == $chars - 1 # broken CRLF ?
-                                && nqp::eqat($str, "\r", $nextpos); # yes!
-
-                            if $chomp {
-                                $res.emit( ($found = $nextpos - $pos)
-                                  ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
-                                  !! ''
-                                );
-                                $pos = $nextpos + 1;
-                            }
-                            else {
-                                $found = $nextpos - $pos + 1;
-                                $res.emit(
-                                  nqp::p6box_s(nqp::substr($str,$pos,$found)));
-                                $pos = $pos + $found;
-                            }
-                        }
-                        $str = $pos < $chars
-                          ?? nqp::substr($str,$pos)
-                          !! '';
-                    },
-                    done => {
-                        if $str {
-                            $chars = nqp::chars($str);
-                            $res.emit( $chomp && nqp::iscclass(
-                              nqp::const::CCLASS_NEWLINE,$str,$chars-1)
-                                ?? nqp::p6box_s(nqp::substr($str,0,$chars - 1))
-                                !! nqp::p6box_s($str)
-                            );
-                        }
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method words(Supply:D $self:) {
-
-        on -> $res {
-            $self => do {
-                my str $str;
-                my int $chars;
-                my int $left;
-                my int $pos;
-                my int $nextpos;
-                my int $found;
-                my int $cr;
-                my int $crlf;
-
-                {
-                    emit => -> \val {
-                        $str   = $str ~ nqp::unbox_s(val);
-                        $chars = nqp::chars($str);
-                        $pos   = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
-
-                        while ($left = $chars - $pos) > 0 {
-                            $nextpos = nqp::findcclass(
-                              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
-                            );
-
-                            last unless $left = $chars - $nextpos; # broken word
-
-                            $res.emit( nqp::box_s(
-                              nqp::substr( $str, $pos, $nextpos - $pos ), Str)
-                            );
-
-                            $pos = nqp::findnotcclass(
-                              nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
-                        }
-                        $str = $pos < $chars
-                          ?? nqp::substr($str,$pos)
-                          !! '';
-                    },
-                    done => {
-                        $res.emit( nqp::box_s($str, Str) ) if $str;
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method elems(Supply:D $self: $seconds? ) {
-
-        on -> $res {
-            $self => do {
-                my $elems = 0;
-                my $last_time;
-                my $last_elems;
-
-                {
-                    emit => do {
-                        if $seconds {
-                            $last_time  = time div $seconds;
-                            $last_elems = $elems;
-                            -> \val {
-                                  $last_elems = ++$elems;
-                                  my $this_time = time div $seconds;
-                                  if $this_time != $last_time {
-                                      $res.emit($elems);
-                                      $last_time = $this_time;
-                                  }
-                            }
-                        }
-                        else {
-                            -> \val { $res.emit(++$elems) }
-                        }
-                    },
-                    done => {
-                        $res.emit($elems) if $seconds and $elems != $last_elems;
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method last(Supply:D $self: Int $number = 1) {  # should be Natural
-        on -> $res {
-            $self => do {
-                my @seen;
-                {
-                    emit => $number == 1
-                      ?? -> \val { @seen[0] = val }
-                      !! -> \val {
-                          @seen.shift if +@seen == $number;
-                          @seen.append: val;
-                      },
-                    done => {
-                        $res.emit($_) for @seen;
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method min(Supply:D $self: &by = &infix:<cmp>) {
-        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
-        on -> $res {
-            $self => do {
-                my $min;
-                {
-                    emit => -> \val {
-                        if val.defined and !$min.defined || cmp(val,$min) < 0 {
-                            $res.emit( $min = val );
-                        }
-                    },
-                    done => { $res.done }
-                }
-            }
-        }
-    }
-
-    method max(Supply:D $self: &by = &infix:<cmp>) {
-        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
-        on -> $res {
-            $self => do {
-                my $max;
-                {
-                    emit => -> \val {
-                        if val.defined and !$max.defined || cmp(val,$max) > 0 {
-                            $res.emit( $max = val );
-                        }
-                    },
-                    done => { $res.done }
-                }
-            }
-        }
-    }
-
-    method minmax(Supply:D $self: &by = &infix:<cmp>) {
-        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
-        on -> $res {
-            $self => do {
-                my $min;
-                my $max;
-                {
-                    emit => -> \val {
-                        if val.defined {
-                            if !$min.defined {
-                                $res.emit( (Range.new($min = val, $max = val),) );
-                            }
-                            elsif cmp(val,$min) < 0 {
-                                $res.emit( (Range.new( $min = val, $max ),) );
-                            }
-                            elsif cmp(val,$max) > 0 {
-                                $res.emit( (Range.new( $min, $max = val ),) );
-                            }
-                        }
-                    },
-                    done => { $res.done }
-                }
-            }
-        }
-    }
-
-    method reduce(Supply:D $self: &with) {
-        on -> $res {
-            $self => do {
-                my $notfirst;
-                my $reduced;
-                {
-                    emit => -> \val {
-                        $reduced = $notfirst ?? with($reduced,val) !! val;
-                        $res.emit($reduced);
-                        once $notfirst = True;
-                    },
-                    done => { $res.done }
-                }
-            }
-        }
-    }
-
-    method grab(Supply:D $self: &when_done) {
-        on -> $res {
-            $self => do {
-                my @seen;
-                {
-                    emit => -> \val { @seen.append: val },
-                    done => {
-                        $res.emit($_) for when_done(@seen);
-                        $res.done;
-                    }
-                }
-            }
-        }
-    }
-
-    method reverse(Supply:D:)                 { self.grab( {.reverse} ) }
-    method sort(Supply:D: &by = &infix:<cmp>) { self.grab( {.sort(&by)} ) }
-
-    method merge(*@s) {
-        @s.unshift(self) if self.DEFINITE;  # add if instance method
-        return Supply unless +@s;           # nothing to be done
-
-        X::Supply::Combinator.new(
-           combinator => 'merge'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
-
-        return @s[0]  if +@s == 1;          # nothing to be done
-
-        my $dones = 0;
-        on -> $res {
-            @s => {
-                emit => -> \val { $res.emit(val) },
-                done => { $res.done() if ++$dones == +@s }
-            },
-        }
-    }
-
-    method zip(**@s, :&with) {
-        @s.unshift(self) if self.DEFINITE;  # add if instance method
-        return Supply unless +@s;           # nothing to be done
-
-        X::Supply::Combinator.new(
-           combinator => 'zip'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
-
-        return @s[0]  if +@s == 1;          # nothing to be done
-
-        my @values = [] xx +@s;
-        on -> $res {
-            @s => &with
-              ?? -> $val, $index {
-                  @values[$index].push($val);
-                  $res.emit( [[&with]] @values.map(*.shift) ) if all(@values);
-              }
-              !! -> $val, $index {
-                  @values[$index].push($val);
-                  $res.emit( $(@values.map(*.shift).list) ) if all(@values);
-              }
-        }
-    }
-
-    method zip-latest(**@s, :&with, :$initial ) {
-        @s.unshift(self) if self.DEFINITE;  # add if instance method
-        return Supply unless +@s;           # nothing to do.
-
-        X::Supply::Combinator.new(
-           combinator => 'zip-latest'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
-
-        return @s[0] if +@s == 1;           # nothing to do.
-
-        my @values;
-
-        my $uninitialised = +@s; # how many supplies have yet to emit until we
-                                 # can start emitting, too?
-
-        if $initial {
-            @values = @$initial;
-            $uninitialised = 0 max $uninitialised - @$initial;
-        }
-
-        my $dones = 0;
-
-        on -> $res {
-            @s => do {
-                {
-                emit => &with
-                  ?? -> $val, $index {
-                      --$uninitialised
-                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
-                      @values[$index] = $val;
-                      $res.emit( [[&with]] @values ) unless $uninitialised;
-                  }
-                  !! -> $val, $index {
-                      --$uninitialised
-                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
-                      @values[$index] = $val;
-                      $res.emit( @values.List.item ) unless $uninitialised;
-                  },
-                done => { $res.done() if ++$dones == +@s }
-                }
-            }
-        }
-    }
-
-    proto method throttle(|) { * }
-    multi method throttle(Supply:D $self:
-      Int()  $elems,
-      Real() $seconds,
-      Real() $delay  = 0,
-      :$scheduler    = $*SCHEDULER,
-      :$control,
-      :$status,
-      :$bleed,
-      :$vent-at,
-    ) {
-        my $timer = Supply.interval($seconds,$delay,:$scheduler);
-        my @buffer;
-        my int $limit   = $elems;
-        my int $allowed = $limit;
-        my int $emitted;
-        my int $bled;
-        my int $vent = $vent-at if $bleed;;
-        sub emit-status($id) {
-           $status.emit(
-             { :$allowed, :$bled, :buffered(+@buffer),
-               :$emitted, :$id,   :$limit,  :$vent-at } );
-        }
-        on -> $res {
-            $timer => { 
-                emit => -> \tick {
-                    if +@buffer -> \buffered {
-                        my int $todo = buffered > $limit ?? $limit !! buffered;
-                        $res.emit(@buffer.shift) for ^$todo;
-                        $emitted = $emitted + $todo;
-                        $allowed = $limit   - $todo;
-                    }
-                    else {
-                        $allowed = $limit;
-                    }
-                },
-            },
-            $self => {
-                emit => -> \val {
-                    if $allowed {
-                        $res.emit(val);
-                        $emitted = $emitted + 1;
-                        $allowed = $allowed - 1;
-                    }
-                    elsif $vent && +@buffer >= $vent {
-                        $bleed.emit(val);
-                    }
-                    else {
-                        @buffer.push(val);
-                    }
-                },
-                done => {
-                    $res.done;  # also stops the timer ??
-                    $control.done if $control;
-                    $status.done  if $status;
-                    if $status {
-                        emit-status("done");
-                        $status.done;
-                    }
-                    if $bleed && @buffer {
-                        $bleed.emit(@buffer.shift) while @buffer;
-                        $bleed.done;
-                    }
-                },
-            },
-            $control
-              ?? ($control => {
-                   emit => -> \val {
-                       my str $type;
-                       my str $value;
-                       Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
-
-                       if $type eq 'limit' {
-                           my int $extra = $value - $limit;
-                           $allowed = $extra > 0 || $allowed + $extra >= 0
-                             ?? $allowed + $extra
-                             !! 0;
-                           $limit = $value;
-                       }
-                       elsif $type eq 'bleed' && $bleed {
-                           my int $todo = $value min +@buffer;
-                           $bleed.emit(@buffer.shift) for ^$todo;
-                           $bled = $bled + $todo;
-                       }
-                       elsif $type eq 'status' && $status {
-                           emit-status($value);
-                       }
-                       elsif $type eq 'vent-at' && $bleed {
-                           $vent = $value;
-                           if $vent && +@buffer > $vent {
-                               $bleed.emit(@buffer.shift)
-                                 until !@buffer || +@buffer == $vent;
-                           }
-                       }
-                   },
-                 })
-              !! |()
-        }
-    }
-    multi method throttle(Supply:D $self:
-      Int()  $elems,
-      Callable:D $process,
-      Real() $delay = 0,
-      :$scheduler   = $*SCHEDULER,
-      :$control,
-      :$status,
-      :$bleed,
-      :$vent-at,
-    ) {
-        sleep $delay if $delay;
-        my @buffer;
-        my int $limit   = $elems;
-        my int $allowed = $limit;
-        my int $running;
-        my int $emitted;
-        my int $bled;
-        my int $done;
-        my int $vent = $vent-at if $bleed;
-        my $ready = Supply.new;
-        sub start-process(\val) {
-            my $p = Promise.start( $process, :$scheduler, val );
-            $running = $running + 1;
-            $allowed = $allowed - 1;
-            $p.then: { $ready.emit($p) };
-        }
-        sub emit-status($id) {
-           $status.emit(
-             { :$allowed, :$bled, :buffered(+@buffer),
-               :$emitted, :$id,   :$limit, :$running } );
-        }
-        on -> $res {
-            $self => {
-                emit => -> \val {
-                    $allowed > 0
-                      ?? start-process(val)
-                      !! $vent && $vent == +@buffer
-                        ?? $bleed.emit(val)
-                        !! @buffer.push(val);
-                },
-                done => {
-                    $done = 1;
-                },
-            },
-            $ready => {  # when a process is ready
-                emit => -> \val {
-                    $running = $running - 1;
-                    $allowed = $allowed + 1;
-                    $res.emit(val);
-                    $emitted = $emitted + 1;
-                    start-process(@buffer.shift) if $allowed > 0 && @buffer;
-
-                    if $done && !$running {
-                        $control.done if $control;
-                        if $status {
-                            emit-status("done");
-                            $status.done;
-                        }
-                        if $bleed && @buffer {
-                            $bleed.emit(@buffer.shift) while @buffer;
-                            $bleed.done;
-                        }
-                        $res.done;
-                    }
-                },
-            },
-            $control
-              ?? ($control => {
-                   emit => -> \val {
-                       my str $type;
-                       my str $value;
-                       Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
-
-                       if $type eq 'limit' {
-                           $allowed = $allowed + $value - $limit;
-                           $limit   = $value;
-                           start-process(@buffer.shift)
-                             while $allowed > 0 && @buffer;
-                       }
-                       elsif $type eq 'bleed' && $bleed {
-                           my int $todo = $value min +@buffer;
-                           $bleed.emit(@buffer.shift) for ^$todo;
-                           $bled = $bled + $todo;
-                       }
-                       elsif $type eq 'status' && $status {
-                           emit-status($value);
-                       }
-                       elsif $type eq 'vent-at' && $bleed {
-                           $vent = $value;
-                           if $vent && +@buffer > $vent {
-                               $bleed.emit(@buffer.shift)
-                                 until !@buffer || +@buffer == $vent;
-                           }
-                       }
-                   },
-                 })
-              !! |()
-        }
-    }
+# XXX These all need refactoring as part of the overall Supply refactor.
+#    method unique(Supply:D $self: :&as, :&with, :$expires) {
+#        on -> $res {
+#            $self => do {
+#                if $expires {
+#                    if &with and &with !=== &[===] {
+#                        my @seen;  # really Mu, but doesn't work in settings
+#                        my Mu $target;
+#                        &as
+#                          ?? -> \val {
+#                              my $now := now;
+#                              $target = &as(val);
+#                              my $index =
+#                                @seen.first({&with($target,$_[0])},:k);
+#                              with $index {
+#                                  if $now > @seen[$index][1] {  # expired
+#                                      @seen[$index][1] = $now+$expires;
+#                                      $res.emit(val);
+#                                  }
+#                              }
+#                              else {
+#                                  @seen.push: [$target, $now+$expires];
+#                                  $res.emit(val);
+#                              }
+#                          }
+#                          !! -> \val {
+#                              my $now := now;
+#                              my $index =
+#                                @seen.first({&with(val,$_[0])},:k);
+#                              with $index {
+#                                  if $now > @seen[$index][1] {  # expired
+#                                      @seen[$index][1] = $now+$expires;
+#                                      $res.emit(val);
+#                                  }
+#                              }
+#                              else {
+#                                  @seen.push: [val, $now+$expires];
+#                                  $res.emit(val);
+#                              }
+#                          };
+#                    }
+#                    else {
+#                        my $seen := nqp::hash();
+#                        my str $target;
+#                        &as
+#                          ?? -> \val {
+#                              my $now := now;
+#                              $target = nqp::unbox_s(&as(val).WHICH);
+#                              if !nqp::existskey($seen,$target) ||
+#                                $now > nqp::atkey($seen,$target) { #expired
+#                                  $res.emit(val);
+#                                  nqp::bindkey($seen,$target,$now+$expires);
+#                              }
+#                          }
+#                          !! -> \val {
+#                              my $now := now;
+#                              $target = nqp::unbox_s(val.WHICH);
+#                              if !nqp::existskey($seen,$target) ||
+#                                $now > nqp::atkey($seen,$target) { #expired
+#                                  $res.emit(val);
+#                                  nqp::bindkey($seen,$target,$now+$expires);
+#                              }
+#                          };
+#                    }
+#                }
+#                else { # !$!expires
+#                    if &with and &with !=== &[===] {
+#                        my @seen;  # really Mu, but doesn't work in settings
+#                        my Mu $target;
+#                        &as
+#                          ?? -> \val {
+#                              $target = &as(val);
+#                              if @seen.first({ &with($target,$_) } ) =:= Nil {
+#                                  @seen.push($target);
+#                                  $res.emit(val);
+#                              }
+#                          }
+#                          !! -> \val {
+#                              if @seen.first({ &with(val,$_) } ) =:= Nil {
+#                                  @seen.push(val);
+#                                  $res.emit(val);
+#                              }
+#                          };
+#                    }
+#                    else {
+#                        my $seen := nqp::hash();
+#                        my str $target;
+#                        &as
+#                          ?? -> \val {
+#                              $target = nqp::unbox_s(&as(val).WHICH);
+#                              unless nqp::existskey($seen, $target) {
+#                                  nqp::bindkey($seen, $target, 1);
+#                                  $res.emit(val);
+#                              }
+#                          }
+#                          !! -> \val {
+#                              $target = nqp::unbox_s(val.WHICH);
+#                              unless nqp::existskey($seen, $target) {
+#                                  nqp::bindkey($seen, $target, 1);
+#                                  $res.emit(val);
+#                              }
+#                          };
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method squish(Supply:D $self: :&as, :&with is copy) {
+#        &with //= &[===];
+#        on -> $res {
+#            $self => do {
+#                my int $first = 1;
+#                my Mu $last;
+#                my Mu $target;
+#                &as
+#                  ?? -> \val {
+#                      $target = &as(val);
+#                      if $first || !&with($target,$last) {
+#                          $first = 0;
+#                          $last  = $target;
+#                          $res.emit(val);
+#                      }
+#                  }
+#                  !! -> \val {
+#                      if $first || !&with(val,$last) {
+#                          $first = 0;
+#                          $last = val;
+#                          $res.emit(val);
+#                      }
+#                  };
+#            }
+#        }
+#    }
+#
+#    proto method rotor(|) {*}
+#    multi method rotor(Supply:D $self: *@cycle, :$partial) {
+#        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
+#
+#        on -> $res {
+#            $self => do {
+#                my Int $elems;
+#                my Int $gap;
+#                my int $to-skip;
+#                my int $skip;
+#                my \c = @c.iterator;
+#                sub next-batch() {
+#                    given c.pull-one {
+#                        when Pair {
+#                            $elems   = +.key;
+#                            $gap     = +.value;
+#                            $to-skip = $gap > 0 ?? $gap !! 0;
+#                        }
+#                        default {
+#                            $elems   = +$_;
+#                            $gap     = 0;
+#                            $to-skip = 0;
+#                        }
+#                    }
+#                }
+#                next-batch;
+#
+#                my @batched;
+#                sub flush() {
+#                    $res.emit( [@batched.splice(0, +@batched, @batched[* + $gap .. *]),] );
+#                    $skip = $to-skip;
+#                }
+#
+#                {
+#                    emit => -> \val {
+#                        @batched.append: val unless $skip && $skip--;
+#                        if @batched.elems == $elems {
+#                            flush;
+#                            next-batch;
+#                        }
+#                    },
+#                    done => {
+#                        flush if @batched and $partial;
+#                        $res.done;
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method batch(Supply:D $self: :$elems, :$seconds ) {
+#
+#        return $self if (!$elems or $elems == 1) and !$seconds;  # nothing to do
+#
+#        on -> $res {
+#            $self => do {
+#                my @batched;
+#                my $last_time;
+#                sub flush {
+#                    $res.emit(([@batched],));
+#                    @batched = ();
+#                }
+#
+#                {
+#                    emit => do {
+#                        if $seconds {
+#                            $last_time = time div $seconds;
+#
+#                            $elems # and $seconds
+#                              ??  -> \val {
+#                                  my $this_time = time div $seconds;
+#                                  if $this_time != $last_time {
+#                                      flush if @batched;
+#                                      $last_time = $this_time;
+#                                      @batched.append: val;
+#                                  }
+#                                  else {
+#                                      @batched.append: val;
+#                                      flush if @batched.elems == $elems;
+#                                  }
+#                              }
+#                              !! -> \val {
+#                                  my $this_time = time div $seconds;
+#                                  if $this_time != $last_time {
+#                                      flush if @batched;
+#                                      $last_time = $this_time;
+#                                  }
+#                                  @batched.append: val;
+#                              }
+#                        }
+#                        else { # just $elems
+#                            -> \val {
+#                                @batched.append: val;
+#                                flush if @batched.elems == $elems;
+#                            }
+#                        }
+#                    },
+#                    done => {
+#                        flush if @batched;
+#                        $res.done;
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method lines(Supply:D $self: :$chomp = True ) {
+#
+#        on -> $res {
+#            $self => do {
+#                my str $str;
+#                my int $chars;
+#                my int $left;
+#                my int $pos;
+#                my int $nextpos;
+#                my int $found;
+#
+#                {
+#                    emit => -> \val {
+#                        $str   = $str ~ nqp::unbox_s(val);
+#                        $chars = nqp::chars($str);
+#                        $pos   = 0;
+#
+#                        while ($left = $chars - $pos) > 0 {
+#                            $nextpos = nqp::findcclass(
+#                              nqp::const::CCLASS_NEWLINE, $str, $pos, $left
+#                            );
+#
+#                            last
+#                              if $nextpos >= $chars     # no line delimiter
+#                              or $nextpos == $chars - 1 # broken CRLF ?
+#                                && nqp::eqat($str, "\r", $nextpos); # yes!
+#
+#                            if $chomp {
+#                                $res.emit( ($found = $nextpos - $pos)
+#                                  ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
+#                                  !! ''
+#                                );
+#                                $pos = $nextpos + 1;
+#                            }
+#                            else {
+#                                $found = $nextpos - $pos + 1;
+#                                $res.emit(
+#                                  nqp::p6box_s(nqp::substr($str,$pos,$found)));
+#                                $pos = $pos + $found;
+#                            }
+#                        }
+#                        $str = $pos < $chars
+#                          ?? nqp::substr($str,$pos)
+#                          !! '';
+#                    },
+#                    done => {
+#                        if $str {
+#                            $chars = nqp::chars($str);
+#                            $res.emit( $chomp && nqp::iscclass(
+#                              nqp::const::CCLASS_NEWLINE,$str,$chars-1)
+#                                ?? nqp::p6box_s(nqp::substr($str,0,$chars - 1))
+#                                !! nqp::p6box_s($str)
+#                            );
+#                        }
+#                        $res.done;
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method words(Supply:D $self:) {
+#
+#        on -> $res {
+#            $self => do {
+#                my str $str;
+#                my int $chars;
+#                my int $left;
+#                my int $pos;
+#                my int $nextpos;
+#                my int $found;
+#                my int $cr;
+#                my int $crlf;
+#
+#                {
+#                    emit => -> \val {
+#                        $str   = $str ~ nqp::unbox_s(val);
+#                        $chars = nqp::chars($str);
+#                        $pos   = nqp::findnotcclass(
+#                          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+#
+#                        while ($left = $chars - $pos) > 0 {
+#                            $nextpos = nqp::findcclass(
+#                              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
+#                            );
+#
+#                            last unless $left = $chars - $nextpos; # broken word
+#
+#                            $res.emit( nqp::box_s(
+#                              nqp::substr( $str, $pos, $nextpos - $pos ), Str)
+#                            );
+#
+#                            $pos = nqp::findnotcclass(
+#                              nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
+#                        }
+#                        $str = $pos < $chars
+#                          ?? nqp::substr($str,$pos)
+#                          !! '';
+#                    },
+#                    done => {
+#                        $res.emit( nqp::box_s($str, Str) ) if $str;
+#                        $res.done;
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method elems(Supply:D $self: $seconds? ) {
+#
+#        on -> $res {
+#            $self => do {
+#                my $elems = 0;
+#                my $last_time;
+#                my $last_elems;
+#
+#                {
+#                    emit => do {
+#                        if $seconds {
+#                            $last_time  = time div $seconds;
+#                            $last_elems = $elems;
+#                            -> \val {
+#                                  $last_elems = ++$elems;
+#                                  my $this_time = time div $seconds;
+#                                  if $this_time != $last_time {
+#                                      $res.emit($elems);
+#                                      $last_time = $this_time;
+#                                  }
+#                            }
+#                        }
+#                        else {
+#                            -> \val { $res.emit(++$elems) }
+#                        }
+#                    },
+#                    done => {
+#                        $res.emit($elems) if $seconds and $elems != $last_elems;
+#                        $res.done;
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method last(Supply:D $self: Int $number = 1) {  # should be Natural
+#        on -> $res {
+#            $self => do {
+#                my @seen;
+#                {
+#                    emit => $number == 1
+#                      ?? -> \val { @seen[0] = val }
+#                      !! -> \val {
+#                          @seen.shift if +@seen == $number;
+#                          @seen.append: val;
+#                      },
+#                    done => {
+#                        $res.emit($_) for @seen;
+#                        $res.done;
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method min(Supply:D $self: &by = &infix:<cmp>) {
+#        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
+#        on -> $res {
+#            $self => do {
+#                my $min;
+#                {
+#                    emit => -> \val {
+#                        if val.defined and !$min.defined || cmp(val,$min) < 0 {
+#                            $res.emit( $min = val );
+#                        }
+#                    },
+#                    done => { $res.done }
+#                }
+#            }
+#        }
+#    }
+#
+#    method max(Supply:D $self: &by = &infix:<cmp>) {
+#        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
+#        on -> $res {
+#            $self => do {
+#                my $max;
+#                {
+#                    emit => -> \val {
+#                        if val.defined and !$max.defined || cmp(val,$max) > 0 {
+#                            $res.emit( $max = val );
+#                        }
+#                    },
+#                    done => { $res.done }
+#                }
+#            }
+#        }
+#    }
+#
+#    method minmax(Supply:D $self: &by = &infix:<cmp>) {
+#        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
+#        on -> $res {
+#            $self => do {
+#                my $min;
+#                my $max;
+#                {
+#                    emit => -> \val {
+#                        if val.defined {
+#                            if !$min.defined {
+#                                $res.emit( (Range.new($min = val, $max = val),) );
+#                            }
+#                            elsif cmp(val,$min) < 0 {
+#                                $res.emit( (Range.new( $min = val, $max ),) );
+#                            }
+#                            elsif cmp(val,$max) > 0 {
+#                                $res.emit( (Range.new( $min, $max = val ),) );
+#                            }
+#                        }
+#                    },
+#                    done => { $res.done }
+#                }
+#            }
+#        }
+#    }
+#
+#    method grab(Supply:D $self: &when_done) {
+#        on -> $res {
+#            $self => do {
+#                my @seen;
+#                {
+#                    emit => -> \val { @seen.append: val },
+#                    done => {
+#                        $res.emit($_) for when_done(@seen);
+#                        $res.done;
+#                    }
+#                }
+#            }
+#        }
+#    }
+#
+#    method reverse(Supply:D:)                 { self.grab( {.reverse} ) }
+#    method sort(Supply:D: &by = &infix:<cmp>) { self.grab( {.sort(&by)} ) }
+#
+#    method zip(**@s, :&with) {
+#        @s.unshift(self) if self.DEFINITE;  # add if instance method
+#        return Supply unless +@s;           # nothing to be done
+#
+#        X::Supply::Combinator.new(
+#           combinator => 'zip'
+#        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+#
+#        return @s[0]  if +@s == 1;          # nothing to be done
+#
+#        my @values = [] xx +@s;
+#        on -> $res {
+#            @s => &with
+#              ?? -> $val, $index {
+#                  @values[$index].push($val);
+#                  $res.emit( [[&with]] @values.map(*.shift) ) if all(@values);
+#              }
+#              !! -> $val, $index {
+#                  @values[$index].push($val);
+#                  $res.emit( $(@values.map(*.shift).list) ) if all(@values);
+#              }
+#        }
+#    }
+#
+#    method zip-latest(**@s, :&with, :$initial ) {
+#        @s.unshift(self) if self.DEFINITE;  # add if instance method
+#        return Supply unless +@s;           # nothing to do.
+#
+#        X::Supply::Combinator.new(
+#           combinator => 'zip-latest'
+#        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+#
+#        return @s[0] if +@s == 1;           # nothing to do.
+#
+#        my @values;
+#
+#        my $uninitialised = +@s; # how many supplies have yet to emit until we
+#                                 # can start emitting, too?
+#
+#        if $initial {
+#            @values = @$initial;
+#            $uninitialised = 0 max $uninitialised - @$initial;
+#        }
+#
+#        my $dones = 0;
+#
+#        on -> $res {
+#            @s => do {
+#                {
+#                emit => &with
+#                  ?? -> $val, $index {
+#                      --$uninitialised
+#                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
+#                      @values[$index] = $val;
+#                      $res.emit( [[&with]] @values ) unless $uninitialised;
+#                  }
+#                  !! -> $val, $index {
+#                      --$uninitialised
+#                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
+#                      @values[$index] = $val;
+#                      $res.emit( @values.List.item ) unless $uninitialised;
+#                  },
+#                done => { $res.done() if ++$dones == +@s }
+#                }
+#            }
+#        }
+#    }
+#
+#    proto method throttle(|) { * }
+#    multi method throttle(Supply:D $self:
+#      Int()  $elems,
+#      Real() $seconds,
+#      Real() $delay  = 0,
+#      :$scheduler    = $*SCHEDULER,
+#      :$control,
+#      :$status,
+#      :$bleed,
+#      :$vent-at,
+#    ) {
+#        my $timer = Supply.interval($seconds,$delay,:$scheduler);
+#        my @buffer;
+#        my int $limit   = $elems;
+#        my int $allowed = $limit;
+#        my int $emitted;
+#        my int $bled;
+#        my int $vent = $vent-at if $bleed;;
+#        sub emit-status($id) {
+#           $status.emit(
+#             { :$allowed, :$bled, :buffered(+@buffer),
+#               :$emitted, :$id,   :$limit,  :$vent-at } );
+#        }
+#        on -> $res {
+#            $timer => { 
+#                emit => -> \tick {
+#                    if +@buffer -> \buffered {
+#                        my int $todo = buffered > $limit ?? $limit !! buffered;
+#                        $res.emit(@buffer.shift) for ^$todo;
+#                        $emitted = $emitted + $todo;
+#                        $allowed = $limit   - $todo;
+#                    }
+#                    else {
+#                        $allowed = $limit;
+#                    }
+#                },
+#            },
+#            $self => {
+#                emit => -> \val {
+#                    if $allowed {
+#                        $res.emit(val);
+#                        $emitted = $emitted + 1;
+#                        $allowed = $allowed - 1;
+#                    }
+#                    elsif $vent && +@buffer >= $vent {
+#                        $bleed.emit(val);
+#                    }
+#                    else {
+#                        @buffer.push(val);
+#                    }
+#                },
+#                done => {
+#                    $res.done;  # also stops the timer ??
+#                    $control.done if $control;
+#                    $status.done  if $status;
+#                    if $status {
+#                        emit-status("done");
+#                        $status.done;
+#                    }
+#                    if $bleed && @buffer {
+#                        $bleed.emit(@buffer.shift) while @buffer;
+#                        $bleed.done;
+#                    }
+#                },
+#            },
+#            $control
+#              ?? ($control => {
+#                   emit => -> \val {
+#                       my str $type;
+#                       my str $value;
+#                       Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
+#
+#                       if $type eq 'limit' {
+#                           my int $extra = $value - $limit;
+#                           $allowed = $extra > 0 || $allowed + $extra >= 0
+#                             ?? $allowed + $extra
+#                             !! 0;
+#                           $limit = $value;
+#                       }
+#                       elsif $type eq 'bleed' && $bleed {
+#                           my int $todo = $value min +@buffer;
+#                           $bleed.emit(@buffer.shift) for ^$todo;
+#                           $bled = $bled + $todo;
+#                       }
+#                       elsif $type eq 'status' && $status {
+#                           emit-status($value);
+#                       }
+#                       elsif $type eq 'vent-at' && $bleed {
+#                           $vent = $value;
+#                           if $vent && +@buffer > $vent {
+#                               $bleed.emit(@buffer.shift)
+#                                 until !@buffer || +@buffer == $vent;
+#                           }
+#                       }
+#                   },
+#                 })
+#              !! |()
+#        }
+#    }
+#    multi method throttle(Supply:D $self:
+#      Int()  $elems,
+#      Callable:D $process,
+#      Real() $delay = 0,
+#      :$scheduler   = $*SCHEDULER,
+#      :$control,
+#      :$status,
+#      :$bleed,
+#      :$vent-at,
+#    ) {
+#        sleep $delay if $delay;
+#        my @buffer;
+#        my int $limit   = $elems;
+#        my int $allowed = $limit;
+#        my int $running;
+#        my int $emitted;
+#        my int $bled;
+#        my int $done;
+#        my int $vent = $vent-at if $bleed;
+#        my $ready = Supply.new;
+#        sub start-process(\val) {
+#            my $p = Promise.start( $process, :$scheduler, val );
+#            $running = $running + 1;
+#            $allowed = $allowed - 1;
+#            $p.then: { $ready.emit($p) };
+#        }
+#        sub emit-status($id) {
+#           $status.emit(
+#             { :$allowed, :$bled, :buffered(+@buffer),
+#               :$emitted, :$id,   :$limit, :$running } );
+#        }
+#        on -> $res {
+#            $self => {
+#                emit => -> \val {
+#                    $allowed > 0
+#                      ?? start-process(val)
+#                      !! $vent && $vent == +@buffer
+#                        ?? $bleed.emit(val)
+#                        !! @buffer.push(val);
+#                },
+#                done => {
+#                    $done = 1;
+#                },
+#            },
+#            $ready => {  # when a process is ready
+#                emit => -> \val {
+#                    $running = $running - 1;
+#                    $allowed = $allowed + 1;
+#                    $res.emit(val);
+#                    $emitted = $emitted + 1;
+#                    start-process(@buffer.shift) if $allowed > 0 && @buffer;
+#
+#                    if $done && !$running {
+#                        $control.done if $control;
+#                        if $status {
+#                            emit-status("done");
+#                            $status.done;
+#                        }
+#                        if $bleed && @buffer {
+#                            $bleed.emit(@buffer.shift) while @buffer;
+#                            $bleed.done;
+#                        }
+#                        $res.done;
+#                    }
+#                },
+#            },
+#            $control
+#              ?? ($control => {
+#                   emit => -> \val {
+#                       my str $type;
+#                       my str $value;
+#                       Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
+#
+#                       if $type eq 'limit' {
+#                           $allowed = $allowed + $value - $limit;
+#                           $limit   = $value;
+#                           start-process(@buffer.shift)
+#                             while $allowed > 0 && @buffer;
+#                       }
+#                       elsif $type eq 'bleed' && $bleed {
+#                           my int $todo = $value min +@buffer;
+#                           $bleed.emit(@buffer.shift) for ^$todo;
+#                           $bled = $bled + $todo;
+#                       }
+#                       elsif $type eq 'status' && $status {
+#                           emit-status($value);
+#                       }
+#                       elsif $type eq 'vent-at' && $bleed {
+#                           $vent = $value;
+#                           if $vent && +@buffer > $vent {
+#                               $bleed.emit(@buffer.shift)
+#                                 until !@buffer || +@buffer == $vent;
+#                           }
+#                       }
+#                   },
+#                 })
+#              !! |()
+#        }
+#    }
 }
 
-# The on meta-combinator provides a mechanism for implementing thread-safe
-# combinators on Supplies. It subscribes to a bunch of sources, but will
-# only let one of the specified callbacks to handle their emit/done/quit run
-# at a time. A little bit actor-like.
-my class X::Supply::On::BadSetup is Exception {
-    method message() {
-        "on requires a callable that returns a list of pairs with Supply keys"
-    }
-}
-my class X::Supply::On::NoEmit is Exception {
-    method message() {
-        "on requires that emit be specified for each supply"
-    }
-}
-sub on(&setup) {
-    my class OnSupply does Supply {
-        has &!setup;
-        has Bool $!live = False;
-
-        submethod BUILD(:&!setup) { }
-
-        method !add_source(
-          $source, $lock, $index, :&done is copy, :&quit is copy,
-          :&emit
-        ) {
-            $!live ||= True if $source.live;
-            &emit // X::Supply::On::NoEmit.new.throw;
-            &done //= { self.done };
-            &quit //= -> $ex { self.quit($ex) };
-
-            my &tap_emit = &emit.arity == 2
-              ?? -> \val {
-                  $lock.protect({ emit(val,$index) });
-                  CATCH { default { self.quit($_) } }
-              }
-              !!  -> \val {
-                  $lock.protect({ emit(val) });
-                  CATCH { default { self.quit($_) } }
-              };
-
-            my &tap_done = &done.arity == 1
-              ?? {
-                  $lock.protect({ done($index) });
-                  CATCH { default { self.quit($_) } }
-              }
-              !! {
-                  $lock.protect({ done() });
-                  CATCH { default { self.quit($_) } }
-              };
-
-            my &tap_quit = &quit.arity == 2
-              ?? -> $ex {
-                  $lock.protect({ quit($ex,$index) });
-                  CATCH { default { self.quit($_) } }
-              }
-              !! -> $ex {
-                  $lock.protect({ quit($ex) });
-                  CATCH { default { self.quit($_) } }
-              };
-
-            $source.tap( &tap_emit, done => &tap_done, quit => &tap_quit );
+# A Publisher is a convenient way to create a live Supply. The publisher can
+# be used to emit/done/quit. The Supply objects obtained from it will tap into
+# the same live Supply.
+my class Publisher {
+    my class TapList does Tappable {
+        my class TapListEntry {
+            has &.emit;
+            has &.done;
+            has &.quit;
         }
 
-        method live { $!live }
-        method tap(|c) {
-            my @to_close;
-            my $sub = self.Supply::tap( |c, closing => {.close for @to_close});
-            my @tappers = &!setup(self);
-            my $lock    = Lock.new;
+        # Lock serializes updates to tappers.
+        has Lock $!lock = Lock.new;
 
-            sub add ($source, $what, $index?) {
-                unless nqp::istype($source,Supply) {
-                    X::Supply::On::BadSetup.new.throw;
-                }
-                given $what {
-                    when Map {
-                        @to_close.append(self!add_source($source, $lock, $index, |$what));
+        # An immutable list of tappers. Always replaced on change, never
+        # mutated in-place ==> thread safe together with lock (and only
+        # need lock on modification).
+        has Mu $!tappers;
+
+        method tap(&emit, &done, &quit) {
+            my $tle := TapListEntry.new(:&emit, :&done, :&quit);
+            $!lock.protect({
+                my Mu $update := nqp::isconcrete($!tappers)
+                    ?? nqp::clone($!tappers)
+                    !! nqp::list();
+                nqp::push($update, $tle);
+                $!tappers := $update;
+            });
+            Tap.new({
+                $!lock.protect({
+                    my Mu $update := nqp::list();
+                    for nqp::hllize($!tappers) -> \entry {
+                        nqp::push($update, entry) unless entry =:= $tle;
                     }
-                    when Callable {
-                        @to_close.append(self!add_source($source, $lock, $index, emit => $what));
-                    }
-                    default {
-                        X::Supply::On::BadSetup.new.throw;
-                    }
+                    $!tappers := $update;
+                });
+            })
+        }
+
+        method emit(\value) {
+            my $snapshot := $!tappers;
+            if nqp::isconcrete($snapshot) {
+                my int $n = nqp::elems($snapshot);
+                loop (my int $i = 0; $i < $n; $i = $i + 1) {
+                    nqp::atpos($snapshot, $i).emit()(value);
                 }
             }
+        }
 
-            for @tappers -> $tap {
-                unless nqp::istype($tap,Pair) {
-                    X::Supply::On::BadSetup.new.throw;
-                }
-                given $tap.key {
-                    when Positional {
-                        my $todo := $tap.value;
-                        for .list.kv -> $index, $supply {
-                            add( $supply, $todo, $index );
-                        }
-                    }
-                    when Supply {
-                        add( $_, $tap.value );
-                    }
-                    default {
-                        X::Supply::On::BadSetup.new.throw;
-                    }
+        method done() {
+            my $snapshot := $!tappers;
+            if nqp::isconcrete($snapshot) {
+                my int $n = nqp::elems($snapshot);
+                loop (my int $i = 0; $i < $n; $i = $i + 1) {
+                    nqp::atpos($snapshot, $i).done()();
                 }
             }
-            $sub
         }
 
-        method emit(\msg --> Nil) {
-            for self.tappers {
-                .emit().(msg)
+        method quit($ex) {
+            my $snapshot := $!tappers;
+            if nqp::isconcrete($snapshot) {
+                my int $n = nqp::elems($snapshot);
+                loop (my int $i = 0; $i < $n; $i = $i + 1) {
+                    nqp::atpos($snapshot, $i).quit()($ex);
+                }
             }
         }
 
-        method done( --> Nil) {
-            for self.tappers {
-                if .done -> $l { $l() }
-            }
-        }
-
-        method quit($ex --> Nil) {
-            for self.tappers {
-                if .quit -> $t { $t($ex) }
-            }
-        }
+        method is-live     { True  }
+        method is-serial() { False }
+        method is-sane()   { False }
     }
 
-    OnSupply.new(:&setup)
+    has $!taplist = TapList.new;
+
+    method emit(Publisher:D: Mu \value) {
+        $!taplist.emit(value);
+    }
+
+    method done(Publisher:D:) {
+        $!taplist.done();
+    }
+
+    proto method quit($) { * }
+    multi method quit(Publisher:D: Exception $ex) {
+        $!taplist.quit($ex);
+    }
+    multi method quit(Publisher:D: Str() $message) {
+        $!taplist.quit(X::AdHoc.new(:$message));
+    }
+
+    method Supply(Publisher:D:) {
+        Supply.new($!taplist).sanitize
+    }
+
+    method unsanitized-supply(Publisher:D:) {
+        Supply.new($!taplist)
+    }
 }
 
 sub SUPPLY(&block) {
     my class SupplyBlockState {
-        has $.sub;
+        has &.emit;
+        has &.done;
+        has &.quit;
         has $.lock;
         has $.active is rw;
         has %.active-taps;
     }
 
-    class :: does Supply {
+    Supply.new(class :: does Tappable {
         has &!block;
 
         submethod BUILD(:&!block) { }
 
-        method tap(|c) {
+        method tap(&emit, &done, &quit) {
             my $state = SupplyBlockState.new(
-                sub => self.Supply::tap(|c, closing => { ; }),
+                :&emit, :&done, :&quit,
                 lock => Lock.new,
                 active => 1);
             self!run-supply-code(&!block, $state);
             self!deactivate-one($state);
-            $state.sub
+            Tap.new(-> { self!teardown($state) })
         }
 
         method !run-supply-code(&code, $state) {
@@ -1165,7 +1486,7 @@ sub SUPPLY(&block) {
                             self!deactivate-one($state);
                         }
                         elsif $state.active {
-                            $state.sub.quit().(ex) if $state.sub.quit;
+                            $state.quit().(ex) if $state.quit;
                             $state.active = 0;
                             self!teardown($state);
                         }
@@ -1175,17 +1496,17 @@ sub SUPPLY(&block) {
 
             my $emitter = {
                 my \ex := nqp::exception();
-                $state.sub.emit().(nqp::getpayload(ex)) if $state.sub.emit;
+                $state.emit().(nqp::getpayload(ex)) if $state.emit;
                 nqp::resume(ex)
             }
             my $done = {
-                $state.sub.done().() if $state.sub.done;
+                $state.done().() if $state.done;
                 $state.active = 0;
                 self!teardown($state);
             }
             my $catch = {
                 my \ex = EXCEPTION(nqp::exception());
-                $state.sub.quit().(ex) if $state.sub.quit;
+                $state.quit().(ex) if $state.quit;
                 $state.active = 0;
                 self!teardown($state);
             }
@@ -1198,7 +1519,7 @@ sub SUPPLY(&block) {
         method !deactivate-one($state) {
             $state.lock.protect({
                 if --$state.active == 0 {
-                    $state.sub.done().() if $state.sub.done;
+                    $state.done().() if $state.done;
                     self!teardown($state);
                 }
             });
@@ -1208,7 +1529,11 @@ sub SUPPLY(&block) {
             .close for $state.active-taps.values;
             $state.active-taps = ();
         }
-    }.new(:&block)
+
+        method is-live { False }
+        method is-sane { True }
+        method is-serial { True }
+    }.new(:&block))
 }
 
 sub WHENEVER(Supply() $supply, &block) {

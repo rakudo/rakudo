@@ -106,6 +106,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method install(Distribution $dist, %sources, %scripts?, %resources?) {
         $!lock.protect( {
+        my @*MODULES;
         my $path   = self.writeable-path or die "No writeable path found";
         my $lock //= $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);

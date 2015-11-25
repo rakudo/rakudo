@@ -66,21 +66,18 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
         RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $*RAKUDO_MODULE_DEBUG;
         $lock.protect( {
             my @MODULES = nqp::clone(@*MODULES // ());
-            for @MODULES -> $m {
-                if $m<module> && $m<module> eq $module_name {
-                    nqp::die("Circular module loading detected involving module '$module_name'");
-                }
-            }
 
             {
                 my @*MODULES := @MODULES;
-                if +@*MODULES  == 0 {
-                    @*MODULES[0] = { line => $line, filename => nqp::getlexdyn('$?FILES') };
+                if +@*MODULES == 0 and %*ENV<RAKUDO_PRECOMP_LOADING> -> $loading {
+                    @*MODULES := from-json $loading;
                 }
-                else {
-                    @*MODULES[*-1] = { line => $line };
+                for @*MODULES.list -> $m {
+                    if $m eq $module_name {
+                        nqp::die("Circular module loading detected involving module '$module_name'");
+                    }
                 }
-                @*MODULES.push: { module => $module_name, filename => ~($file // '') };
+                @*MODULES.push: $module_name;
 
                 if %opts<from> {
                     # See if we need to load it from elsewhere.

@@ -62,12 +62,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           ?? '--ll-exception'
           !! Empty;
         %*ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain>>.path-spec.join(',');
+        %*ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES;
 
 RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
   if $*RAKUDO_MODULE_DEBUG;
 
         my $proc = run($*EXECUTABLE, $lle, "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
+        %*ENV<RAKUDO_PRECOMP_LOADING>:delete;
 
         my @result = $proc.out.lines;
         if not $proc.out.close or $proc.status {  # something wrong

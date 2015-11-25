@@ -42,7 +42,7 @@ my class X::Supply::Migrate::Needs is Exception {
 my class X::Supply::New is Exception {
     method message() {
         "Cannot directly create a Supply. You might want:\n" ~
-        " - To use a Publisher in order to get a live supply\n" ~
+        " - To use a Supplier in order to get a live supply\n" ~
         " - To use Supply.on-demand to create an on-demand supply\n" ~
         " - To create a Supply using a supply block"
     }
@@ -51,7 +51,7 @@ my class X::Supply::New is Exception {
 
 # A Supply is like an asynchronous Seq. All the methods that you can do on
 # a Supply go in here.
-my class Publisher { ... }
+my class Supplier { ... }
 my class Supply {
     has Tappable $!tappable;
 
@@ -90,7 +90,7 @@ my class Supply {
             submethod BUILD(:&!producer!, :&!closing!, :$!scheduler!) {}
 
             method tap(&emit, &done, &quit) {
-                my $p = Publisher.new;
+                my $p = Supplier.new;
                 $p.Supply.tap(&emit, :&done, :&quit); # sanitizes
                 $!scheduler.cue({ &!producer($p) },
                     catch => -> \ex { $p.quit(ex) });
@@ -529,7 +529,7 @@ my class Supply {
 
             sub find-target($key) {
                 %mapping{ $key.WHICH } //= do {
-                    my $p = Publisher.new;
+                    my $p = Supplier.new;
                     emit($key => $p.Supply);
                     $p
                 };
@@ -1308,10 +1308,10 @@ my class Supply {
 #    }
 }
 
-# A Publisher is a convenient way to create a live Supply. The publisher can
+# A Supplier is a convenient way to create a live Supply. The publisher can
 # be used to emit/done/quit. The Supply objects obtained from it will tap into
 # the same live Supply.
-my class Publisher {
+my class Supplier {
     my class TapList does Tappable {
         my class TapListEntry {
             has &.emit;
@@ -1384,27 +1384,27 @@ my class Publisher {
 
     has $!taplist = TapList.new;
 
-    method emit(Publisher:D: Mu \value) {
+    method emit(Supplier:D: Mu \value) {
         $!taplist.emit(value);
     }
 
-    method done(Publisher:D:) {
+    method done(Supplier:D:) {
         $!taplist.done();
     }
 
     proto method quit($) { * }
-    multi method quit(Publisher:D: Exception $ex) {
+    multi method quit(Supplier:D: Exception $ex) {
         $!taplist.quit($ex);
     }
-    multi method quit(Publisher:D: Str() $message) {
+    multi method quit(Supplier:D: Str() $message) {
         $!taplist.quit(X::AdHoc.new(:$message));
     }
 
-    method Supply(Publisher:D:) {
+    method Supply(Supplier:D:) {
         Supply.new($!taplist).sanitize
     }
 
-    method unsanitized-supply(Publisher:D:) {
+    method unsanitized-supply(Supplier:D:) {
         Supply.new($!taplist)
     }
 }

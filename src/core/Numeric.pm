@@ -227,6 +227,9 @@ proto sub infix:<**>(Mu $?, Mu $?) is pure  { * }
 multi sub infix:<**>($x = 1)     { $x.Numeric }
 multi sub infix:<**>(\a, \b)   { a.Numeric ** b.Numeric }
 
+proto sub postfix:<ⁿ>(Mu $, Mu $) is pure  { * }
+multi sub postfix:<ⁿ>(\a, \b)  { a ** b }
+
 ## relational operators
 
 proto sub infix:«<=>»(Mu $, Mu $?) is pure       { * }

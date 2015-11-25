@@ -6466,6 +6466,15 @@ Compilation unit '$file' contained the following violations:
         QAST::Op.new( :node($/), :op<call>, $hpast )
     }
 
+    method postfix:sym<ⁿ>($/) {
+        my int $power := 0;
+        for $<dig> {
+            $power := $power * 10 + nqp::index("⁰¹²³⁴⁵⁶⁷⁸⁹", $_);
+        }
+        $power := -$power if $<sign> eq '¯';
+        make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_constant('Int', 'int', $power));
+    }
+
     method postfixish($/) {
         if $<postfix_prefix_meta_operator> {
             my $past := $<OPER>.ast || QAST::Op.new( :name('&postfix' ~ $*W.canonicalize_pair('', $<OPER>.Str)),

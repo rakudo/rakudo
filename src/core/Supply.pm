@@ -11,6 +11,7 @@ my class Tap {
 
     method close() {
         &!on-close() if &!on-close;
+        True;
     }
 }
 

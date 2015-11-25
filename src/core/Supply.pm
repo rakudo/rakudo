@@ -584,190 +584,197 @@ my class Supply {
 
     method wait(Supply:D:) { await self.Promise }
 
-# XXX These all need refactoring as part of the overall Supply refactor.
-#    method unique(Supply:D $self: :&as, :&with, :$expires) {
-#        on -> $res {
-#            $self => do {
-#                if $expires {
-#                    if &with and &with !=== &[===] {
-#                        my @seen;  # really Mu, but doesn't work in settings
-#                        my Mu $target;
-#                        &as
-#                          ?? -> \val {
-#                              my $now := now;
-#                              $target = &as(val);
-#                              my $index =
-#                                @seen.first({&with($target,$_[0])},:k);
-#                              with $index {
-#                                  if $now > @seen[$index][1] {  # expired
-#                                      @seen[$index][1] = $now+$expires;
-#                                      $res.emit(val);
-#                                  }
-#                              }
-#                              else {
-#                                  @seen.push: [$target, $now+$expires];
-#                                  $res.emit(val);
-#                              }
-#                          }
-#                          !! -> \val {
-#                              my $now := now;
-#                              my $index =
-#                                @seen.first({&with(val,$_[0])},:k);
-#                              with $index {
-#                                  if $now > @seen[$index][1] {  # expired
-#                                      @seen[$index][1] = $now+$expires;
-#                                      $res.emit(val);
-#                                  }
-#                              }
-#                              else {
-#                                  @seen.push: [val, $now+$expires];
-#                                  $res.emit(val);
-#                              }
-#                          };
-#                    }
-#                    else {
-#                        my $seen := nqp::hash();
-#                        my str $target;
-#                        &as
-#                          ?? -> \val {
-#                              my $now := now;
-#                              $target = nqp::unbox_s(&as(val).WHICH);
-#                              if !nqp::existskey($seen,$target) ||
-#                                $now > nqp::atkey($seen,$target) { #expired
-#                                  $res.emit(val);
-#                                  nqp::bindkey($seen,$target,$now+$expires);
-#                              }
-#                          }
-#                          !! -> \val {
-#                              my $now := now;
-#                              $target = nqp::unbox_s(val.WHICH);
-#                              if !nqp::existskey($seen,$target) ||
-#                                $now > nqp::atkey($seen,$target) { #expired
-#                                  $res.emit(val);
-#                                  nqp::bindkey($seen,$target,$now+$expires);
-#                              }
-#                          };
-#                    }
-#                }
-#                else { # !$!expires
-#                    if &with and &with !=== &[===] {
-#                        my @seen;  # really Mu, but doesn't work in settings
-#                        my Mu $target;
-#                        &as
-#                          ?? -> \val {
-#                              $target = &as(val);
-#                              if @seen.first({ &with($target,$_) } ) =:= Nil {
-#                                  @seen.push($target);
-#                                  $res.emit(val);
-#                              }
-#                          }
-#                          !! -> \val {
-#                              if @seen.first({ &with(val,$_) } ) =:= Nil {
-#                                  @seen.push(val);
-#                                  $res.emit(val);
-#                              }
-#                          };
-#                    }
-#                    else {
-#                        my $seen := nqp::hash();
-#                        my str $target;
-#                        &as
-#                          ?? -> \val {
-#                              $target = nqp::unbox_s(&as(val).WHICH);
-#                              unless nqp::existskey($seen, $target) {
-#                                  nqp::bindkey($seen, $target, 1);
-#                                  $res.emit(val);
-#                              }
-#                          }
-#                          !! -> \val {
-#                              $target = nqp::unbox_s(val.WHICH);
-#                              unless nqp::existskey($seen, $target) {
-#                                  nqp::bindkey($seen, $target, 1);
-#                                  $res.emit(val);
-#                              }
-#                          };
-#                    }
-#                }
-#            }
-#        }
-#    }
-#
-#    method squish(Supply:D $self: :&as, :&with is copy) {
-#        &with //= &[===];
-#        on -> $res {
-#            $self => do {
-#                my int $first = 1;
-#                my Mu $last;
-#                my Mu $target;
-#                &as
-#                  ?? -> \val {
-#                      $target = &as(val);
-#                      if $first || !&with($target,$last) {
-#                          $first = 0;
-#                          $last  = $target;
-#                          $res.emit(val);
-#                      }
-#                  }
-#                  !! -> \val {
-#                      if $first || !&with(val,$last) {
-#                          $first = 0;
-#                          $last = val;
-#                          $res.emit(val);
-#                      }
-#                  };
-#            }
-#        }
-#    }
-#
-#    proto method rotor(|) {*}
-#    multi method rotor(Supply:D $self: *@cycle, :$partial) {
-#        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
-#
-#        on -> $res {
-#            $self => do {
-#                my Int $elems;
-#                my Int $gap;
-#                my int $to-skip;
-#                my int $skip;
-#                my \c = @c.iterator;
-#                sub next-batch() {
-#                    given c.pull-one {
-#                        when Pair {
-#                            $elems   = +.key;
-#                            $gap     = +.value;
-#                            $to-skip = $gap > 0 ?? $gap !! 0;
-#                        }
-#                        default {
-#                            $elems   = +$_;
-#                            $gap     = 0;
-#                            $to-skip = 0;
-#                        }
-#                    }
-#                }
-#                next-batch;
-#
-#                my @batched;
-#                sub flush() {
-#                    $res.emit( [@batched.splice(0, +@batched, @batched[* + $gap .. *]),] );
-#                    $skip = $to-skip;
-#                }
-#
-#                {
-#                    emit => -> \val {
-#                        @batched.append: val unless $skip && $skip--;
-#                        if @batched.elems == $elems {
-#                            flush;
-#                            next-batch;
-#                        }
-#                    },
-#                    done => {
-#                        flush if @batched and $partial;
-#                        $res.done;
-#                    }
-#                }
-#            }
-#        }
-#    }
+    method unique(Supply:D $self: :&as, :&with, :$expires) {
+        supply {
+            if $expires {
+                if &with and &with !=== &[===] {
+                    my @seen;  # really Mu, but doesn't work in settings
+                    my Mu $target;
+                    if &as {
+                        whenever self -> \val {
+                            my $now := now;
+                            $target = &as(val);
+                            my $index =
+                              @seen.first({&with($target,$_[0])},:k);
+                            with $index {
+                                if $now > @seen[$index][1] {  # expired
+                                    @seen[$index][1] = $now+$expires;
+                                    emit(val);
+                                }
+                            }
+                            else {
+                                @seen.push: [$target, $now+$expires];
+                                emit(val);
+                            }
+                        }
+                    }
+                    else {
+                        whenever self -> \val {
+                            my $now := now;
+                            my $index =
+                              @seen.first({&with(val,$_[0])},:k);
+                            with $index {
+                                if $now > @seen[$index][1] {  # expired
+                                    @seen[$index][1] = $now+$expires;
+                                    emit(val);
+                                }
+                            }
+                            else {
+                                @seen.push: [val, $now+$expires];
+                                emit(val);
+                            }
+                        }
+                    }
+                }
+                else {
+                    my $seen := nqp::hash();
+                    my str $target;
+                    if &as {
+                        whenever self -> \val {
+                            my $now := now;
+                            $target = nqp::unbox_s(&as(val).WHICH);
+                            if !nqp::existskey($seen,$target) ||
+                              $now > nqp::atkey($seen,$target) { #expired
+                                emit(val);
+                                nqp::bindkey($seen,$target,$now+$expires);
+                            }
+                        }
+                    }
+                    else {
+                        whenever self -> \val {
+                            my $now := now;
+                            $target = nqp::unbox_s(val.WHICH);
+                            if !nqp::existskey($seen,$target) ||
+                              $now > nqp::atkey($seen,$target) { #expired
+                                emit(val);
+                                nqp::bindkey($seen,$target,$now+$expires);
+                            }
+                        }
+                    }
+                }
+            }
+            else { # !$!expires
+                if &with and &with !=== &[===] {
+                    my @seen;  # really Mu, but doesn't work in settings
+                    my Mu $target;
+                    if &as {
+                        whenever self -> \val {
+                            $target = &as(val);
+                            if @seen.first({ &with($target,$_) } ) =:= Nil {
+                                @seen.push($target);
+                                emit(val);
+                            }
+                        }
+                    }
+                    else {
+                        whenever self -> \val {
+                            if @seen.first({ &with(val,$_) } ) =:= Nil {
+                                @seen.push(val);
+                                emit(val);
+                            }
+                        }
+                    }
+                }
+                else {
+                    my $seen := nqp::hash();
+                    my str $target;
+                    if &as {
+                        whenever self -> \val {
+                            $target = nqp::unbox_s(&as(val).WHICH);
+                            unless nqp::existskey($seen, $target) {
+                                nqp::bindkey($seen, $target, 1);
+                                emit(val);
+                            }
+                        }
+                    }
+                    else {
+                        whenever self -> \val {
+                            $target = nqp::unbox_s(val.WHICH);
+                            unless nqp::existskey($seen, $target) {
+                                nqp::bindkey($seen, $target, 1);
+                                emit(val);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    method squish(Supply:D $self: :&as, :&with is copy) {
+        &with //= &[===];
+        supply {
+            my int $first = 1;
+            my Mu $last;
+            my Mu $target;
+
+            if &as {
+                whenever self -> \val {
+                    $target = &as(val);
+                    if $first || !&with($target,$last) {
+                        $first = 0;
+                        $last  = $target;
+                        emit(val);
+                    }
+                }
+            }
+            else {
+                whenever self -> \val {
+                    if $first || !&with(val,$last) {
+                        $first = 0;
+                        $last = val;
+                        emit(val);
+                    }
+                }
+            }
+        }
+    }
+
+    proto method rotor(|) {*}
+    multi method rotor(Supply:D $self: *@cycle, :$partial) {
+        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
+        supply {
+            my Int $elems;
+            my Int $gap;
+            my int $to-skip;
+            my int $skip;
+            my \c = @c.iterator;
+
+            sub next-batch() {
+                given c.pull-one {
+                    when Pair {
+                        $elems   = +.key;
+                        $gap     = +.value;
+                        $to-skip = $gap > 0 ?? $gap !! 0;
+                    }
+                    default {
+                        $elems   = +$_;
+                        $gap     = 0;
+                        $to-skip = 0;
+                    }
+                }
+            }
+            next-batch;
+
+            my @batched;
+            sub flush() {
+                emit( @batched.splice(0, +@batched, @batched[* + $gap .. *]) );
+                $skip = $to-skip;
+            }
+
+            whenever self -> \val {
+                @batched.append: val unless $skip && $skip--;
+                if @batched.elems == $elems {
+                    flush;
+                    next-batch;
+                }
+                LAST {
+                    flush if @batched and $partial;
+                    done;
+                }
+            }
+        }
+    }
 
     method batch(Supply:D $self: :$elems, :$seconds ) {
         return self if (!$elems or $elems == 1) and !$seconds;  # nothing to do
@@ -823,149 +830,133 @@ my class Supply {
         }
     }
 
-#    method lines(Supply:D $self: :$chomp = True ) {
-#
-#        on -> $res {
-#            $self => do {
-#                my str $str;
-#                my int $chars;
-#                my int $left;
-#                my int $pos;
-#                my int $nextpos;
-#                my int $found;
-#
-#                {
-#                    emit => -> \val {
-#                        $str   = $str ~ nqp::unbox_s(val);
-#                        $chars = nqp::chars($str);
-#                        $pos   = 0;
-#
-#                        while ($left = $chars - $pos) > 0 {
-#                            $nextpos = nqp::findcclass(
-#                              nqp::const::CCLASS_NEWLINE, $str, $pos, $left
-#                            );
-#
-#                            last
-#                              if $nextpos >= $chars     # no line delimiter
-#                              or $nextpos == $chars - 1 # broken CRLF ?
-#                                && nqp::eqat($str, "\r", $nextpos); # yes!
-#
-#                            if $chomp {
-#                                $res.emit( ($found = $nextpos - $pos)
-#                                  ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
-#                                  !! ''
-#                                );
-#                                $pos = $nextpos + 1;
-#                            }
-#                            else {
-#                                $found = $nextpos - $pos + 1;
-#                                $res.emit(
-#                                  nqp::p6box_s(nqp::substr($str,$pos,$found)));
-#                                $pos = $pos + $found;
-#                            }
-#                        }
-#                        $str = $pos < $chars
-#                          ?? nqp::substr($str,$pos)
-#                          !! '';
-#                    },
-#                    done => {
-#                        if $str {
-#                            $chars = nqp::chars($str);
-#                            $res.emit( $chomp && nqp::iscclass(
-#                              nqp::const::CCLASS_NEWLINE,$str,$chars-1)
-#                                ?? nqp::p6box_s(nqp::substr($str,0,$chars - 1))
-#                                !! nqp::p6box_s($str)
-#                            );
-#                        }
-#                        $res.done;
-#                    }
-#                }
-#            }
-#        }
-#    }
-#
-#    method words(Supply:D $self:) {
-#
-#        on -> $res {
-#            $self => do {
-#                my str $str;
-#                my int $chars;
-#                my int $left;
-#                my int $pos;
-#                my int $nextpos;
-#                my int $found;
-#                my int $cr;
-#                my int $crlf;
-#
-#                {
-#                    emit => -> \val {
-#                        $str   = $str ~ nqp::unbox_s(val);
-#                        $chars = nqp::chars($str);
-#                        $pos   = nqp::findnotcclass(
-#                          nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
-#
-#                        while ($left = $chars - $pos) > 0 {
-#                            $nextpos = nqp::findcclass(
-#                              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
-#                            );
-#
-#                            last unless $left = $chars - $nextpos; # broken word
-#
-#                            $res.emit( nqp::box_s(
-#                              nqp::substr( $str, $pos, $nextpos - $pos ), Str)
-#                            );
-#
-#                            $pos = nqp::findnotcclass(
-#                              nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
-#                        }
-#                        $str = $pos < $chars
-#                          ?? nqp::substr($str,$pos)
-#                          !! '';
-#                    },
-#                    done => {
-#                        $res.emit( nqp::box_s($str, Str) ) if $str;
-#                        $res.done;
-#                    }
-#                }
-#            }
-#        }
-#    }
-#
-#    method elems(Supply:D $self: $seconds? ) {
-#
-#        on -> $res {
-#            $self => do {
-#                my $elems = 0;
-#                my $last_time;
-#                my $last_elems;
-#
-#                {
-#                    emit => do {
-#                        if $seconds {
-#                            $last_time  = time div $seconds;
-#                            $last_elems = $elems;
-#                            -> \val {
-#                                  $last_elems = ++$elems;
-#                                  my $this_time = time div $seconds;
-#                                  if $this_time != $last_time {
-#                                      $res.emit($elems);
-#                                      $last_time = $this_time;
-#                                  }
-#                            }
-#                        }
-#                        else {
-#                            -> \val { $res.emit(++$elems) }
-#                        }
-#                    },
-#                    done => {
-#                        $res.emit($elems) if $seconds and $elems != $last_elems;
-#                        $res.done;
-#                    }
-#                }
-#            }
-#        }
-#    }
-#
+    method lines(Supply:D $self: :$chomp = True ) {
+        supply {
+            my str $str;
+            my int $chars;
+            my int $left;
+            my int $pos;
+            my int $nextpos;
+            my int $found;
+            
+            whenever self -> \val {
+                $str   = $str ~ nqp::unbox_s(val);
+                $chars = nqp::chars($str);
+                $pos   = 0;
+            
+                while ($left = $chars - $pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_NEWLINE, $str, $pos, $left
+                    );
+            
+                    last
+                      if $nextpos >= $chars     # no line delimiter
+                      or $nextpos == $chars - 1 # broken CRLF ?
+                        && nqp::eqat($str, "\r", $nextpos); # yes!
+            
+                    if $chomp {
+                        emit( ($found = $nextpos - $pos)
+                          ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
+                          !! ''
+                        );
+                        $pos = $nextpos + 1;
+                    }
+                    else {
+                        $found = $nextpos - $pos + 1;
+                        emit(
+                          nqp::p6box_s(nqp::substr($str,$pos,$found)));
+                        $pos = $pos + $found;
+                    }
+                }
+                $str = $pos < $chars
+                  ?? nqp::substr($str,$pos)
+                  !! '';
+
+                LAST {
+                    if $str {
+                        $chars = nqp::chars($str);
+                        emit( $chomp && nqp::iscclass(
+                          nqp::const::CCLASS_NEWLINE,$str,$chars-1)
+                            ?? nqp::p6box_s(nqp::substr($str,0,$chars - 1))
+                            !! nqp::p6box_s($str)
+                        );
+                    }
+                    done;
+                }
+            }
+        }
+    }
+
+    method words(Supply:D $self:) {
+        supply {
+            my str $str;
+            my int $chars;
+            my int $left;
+            my int $pos;
+            my int $nextpos;
+            my int $found;
+            my int $cr;
+            my int $crlf;
+
+            whenever self -> \val {
+                $str   = $str ~ nqp::unbox_s(val);
+                $chars = nqp::chars($str);
+                $pos   = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+ 
+                while ($left = $chars - $pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
+                    );
+ 
+                    last unless $left = $chars - $nextpos; # broken word
+ 
+                    emit( nqp::box_s(
+                      nqp::substr( $str, $pos, $nextpos - $pos ), Str)
+                    );
+ 
+                    $pos = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
+                }
+                $str = $pos < $chars
+                  ?? nqp::substr($str,$pos)
+                  !! '';
+
+                LAST {
+                    emit( nqp::box_s($str, Str) ) if $str;
+                    done;
+                }
+            }
+        }
+    }
+
+    method elems(Supply:D $self: $seconds? ) {
+        supply {
+            my $elems = 0;
+            if $seconds {
+                my $last_time = time div $seconds;
+                my $last_elems = $elems;
+                whenever self -> \val {
+                    $last_elems = ++$elems;
+                    my $this_time = time div $seconds;
+                    if $this_time != $last_time {
+                        emit($elems);
+                        $last_time = $this_time;
+                    }
+                    LAST {
+                        emit($elems) if $elems != $last_elems;
+                        done;
+                    }
+                }
+            }
+            else {
+                whenever self -> \val {
+                    emit(++$elems)
+                }
+            }
+        }
+    }
+
 #    method last(Supply:D $self: Int $number = 1) {  # should be Natural
 #        on -> $res {
 #            $self => do {

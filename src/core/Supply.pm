@@ -974,22 +974,39 @@ my class Supply {
     }
 
     method tail(Supply:D: Int(Cool) $number = 1) {
+        my int $size = $number;
+
         supply {
-            my @seen;
-            if $number == 1 {
+            if $size == 1 {
+                my $last;
                 whenever self -> \val {
-                    @seen[0] := val;
-                    LAST { emit($_) for @seen; }
+                    $last := val;
+                    LAST emit $last;
                 }
             }
-            else {
+            elsif $size > 1 {
+                my $lastn := nqp::list;
+                my int $index = 0;
+                nqp::setelems($lastn,$number);  # presize list
+                nqp::setelems($lastn,0);
+
                 whenever self -> \val {
-                    if $number > 0 {
-                        @seen.shift if +@seen == $number;
-                        @seen.push: val;
+                    nqp::bindpos($lastn,$index,val);
+                    $index = ($index + 1) % $size;
+                    LAST {
+                        my int $todo = nqp::elems($lastn);
+                        $index = 0           # start from beginning
+                          if $todo < $size;  # if not a full set
+                        while $todo {
+                            emit nqp::atpos($lastn,$index);
+                            $index = ($index + 1) % $size;
+                            $todo = $todo - 1;
+                        }
                     }
-                    LAST { emit($_) for @seen; }
                 }
+            }
+            else {  # number <= 0
+                whenever self -> \val { }
             }
         }
     }

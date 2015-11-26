@@ -948,27 +948,22 @@ my class Supply {
 
     method elems(Supply:D $self: $seconds? ) {
         supply {
-            my $elems = 0;
+            my int $elems = 0;
             if $seconds {
                 my $last_time = time div $seconds;
-                my $last_elems = $elems;
+                my int $last_elems = $elems;
                 whenever self -> \val {
-                    $last_elems = ++$elems;
+                    $last_elems = $elems = $elems + 1;
                     my $this_time = time div $seconds;
                     if $this_time != $last_time {
-                        emit($elems);
+                        emit $elems;
                         $last_time = $this_time;
                     }
-                    LAST {
-                        emit($elems) if $elems != $last_elems;
-                        done;
-                    }
+                    LAST emit($elems) if $elems != $last_elems;
                 }
             }
             else {
-                whenever self -> \val {
-                    emit(++$elems)
-                }
+                whenever self -> \val { emit ++$elems }
             }
         }
     }

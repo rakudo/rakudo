@@ -722,17 +722,41 @@ my class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        method new(**@values is raw) {
+        proto method new(|) { * }
+        multi method new(**@values is raw, :$shape) {
+            self!new-internal(@values, $shape);
+        }
+        multi method new(\values, :$shape) {
+            self!new-internal(values, $shape);
+        }
+
+        method !new-internal(\values, \shape) {
             my \arr = nqp::create(self);
-            nqp::bindattr(
-                arr,
-                Array,
-                '$!descriptor',
-                Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
-            );
-            arr.STORE(@values);
+            if shape.DEFINITE {
+                my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
+                allocate-shaped-storage(arr, list-shape);
+                arr does ShapedArray[Mu];
+                arr.^set_name('Array');
+                nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
+                die "Creating shaped array with initial values NYI" if values;
+                nqp::bindattr(
+                    arr,
+                    Array,
+                    '$!descriptor',
+                    Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
+                );
+            } else {
+                nqp::bindattr(
+                    arr,
+                    Array,
+                    '$!descriptor',
+                    Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
+                );
+                arr.STORE(values);
+            }
             arr
         }
+
         proto method BIND-POS(|) { * }
         multi method BIND-POS(Int $pos, TValue \bindval) is raw {
             my int $ipos = $pos;

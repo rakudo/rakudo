@@ -973,7 +973,7 @@ my class Supply {
         }
     }
 
-    method last(Supply:D $self: Int $number = 1) {  # should be Natural
+    method tail(Supply:D: Int(Cool) $number = 1) {
         supply {
             my @seen;
             if $number == 1 {
@@ -984,8 +984,10 @@ my class Supply {
             }
             else {
                 whenever self -> \val {
-                    @seen.shift if +@seen == $number;
-                    @seen.push: val;
+                    if $number > 0 {
+                        @seen.shift if +@seen == $number;
+                        @seen.push: val;
+                    }
                     LAST { emit($_) for @seen; }
                 }
             }

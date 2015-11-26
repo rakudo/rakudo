@@ -1123,204 +1123,199 @@ my class Supply {
         }
     }
 
-#    proto method throttle(|) { * }
-#    multi method throttle(Supply:D $self:
-#      Int()  $elems,
-#      Real() $seconds,
-#      Real() $delay  = 0,
-#      :$scheduler    = $*SCHEDULER,
-#      :$control,
-#      :$status,
-#      :$bleed,
-#      :$vent-at,
-#    ) {
-#        my $timer = Supply.interval($seconds,$delay,:$scheduler);
-#        my @buffer;
-#        my int $limit   = $elems;
-#        my int $allowed = $limit;
-#        my int $emitted;
-#        my int $bled;
-#        my int $vent = $vent-at if $bleed;;
-#        sub emit-status($id) {
-#           $status.emit(
-#             { :$allowed, :$bled, :buffered(+@buffer),
-#               :$emitted, :$id,   :$limit,  :$vent-at } );
-#        }
-#        on -> $res {
-#            $timer => { 
-#                emit => -> \tick {
-#                    if +@buffer -> \buffered {
-#                        my int $todo = buffered > $limit ?? $limit !! buffered;
-#                        $res.emit(@buffer.shift) for ^$todo;
-#                        $emitted = $emitted + $todo;
-#                        $allowed = $limit   - $todo;
-#                    }
-#                    else {
-#                        $allowed = $limit;
-#                    }
-#                },
-#            },
-#            $self => {
-#                emit => -> \val {
-#                    if $allowed {
-#                        $res.emit(val);
-#                        $emitted = $emitted + 1;
-#                        $allowed = $allowed - 1;
-#                    }
-#                    elsif $vent && +@buffer >= $vent {
-#                        $bleed.emit(val);
-#                    }
-#                    else {
-#                        @buffer.push(val);
-#                    }
-#                },
-#                done => {
-#                    $res.done;  # also stops the timer ??
-#                    $control.done if $control;
-#                    $status.done  if $status;
-#                    if $status {
-#                        emit-status("done");
-#                        $status.done;
-#                    }
-#                    if $bleed && @buffer {
-#                        $bleed.emit(@buffer.shift) while @buffer;
-#                        $bleed.done;
-#                    }
-#                },
-#            },
-#            $control
-#              ?? ($control => {
-#                   emit => -> \val {
-#                       my str $type;
-#                       my str $value;
-#                       Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
-#
-#                       if $type eq 'limit' {
-#                           my int $extra = $value - $limit;
-#                           $allowed = $extra > 0 || $allowed + $extra >= 0
-#                             ?? $allowed + $extra
-#                             !! 0;
-#                           $limit = $value;
-#                       }
-#                       elsif $type eq 'bleed' && $bleed {
-#                           my int $todo = $value min +@buffer;
-#                           $bleed.emit(@buffer.shift) for ^$todo;
-#                           $bled = $bled + $todo;
-#                       }
-#                       elsif $type eq 'status' && $status {
-#                           emit-status($value);
-#                       }
-#                       elsif $type eq 'vent-at' && $bleed {
-#                           $vent = $value;
-#                           if $vent && +@buffer > $vent {
-#                               $bleed.emit(@buffer.shift)
-#                                 until !@buffer || +@buffer == $vent;
-#                           }
-#                       }
-#                   },
-#                 })
-#              !! |()
-#        }
-#    }
-#    multi method throttle(Supply:D $self:
-#      Int()  $elems,
-#      Callable:D $process,
-#      Real() $delay = 0,
-#      :$scheduler   = $*SCHEDULER,
-#      :$control,
-#      :$status,
-#      :$bleed,
-#      :$vent-at,
-#    ) {
-#        sleep $delay if $delay;
-#        my @buffer;
-#        my int $limit   = $elems;
-#        my int $allowed = $limit;
-#        my int $running;
-#        my int $emitted;
-#        my int $bled;
-#        my int $done;
-#        my int $vent = $vent-at if $bleed;
-#        my $ready = Supply.new;
-#        sub start-process(\val) {
-#            my $p = Promise.start( $process, :$scheduler, val );
-#            $running = $running + 1;
-#            $allowed = $allowed - 1;
-#            $p.then: { $ready.emit($p) };
-#        }
-#        sub emit-status($id) {
-#           $status.emit(
-#             { :$allowed, :$bled, :buffered(+@buffer),
-#               :$emitted, :$id,   :$limit, :$running } );
-#        }
-#        on -> $res {
-#            $self => {
-#                emit => -> \val {
-#                    $allowed > 0
-#                      ?? start-process(val)
-#                      !! $vent && $vent == +@buffer
-#                        ?? $bleed.emit(val)
-#                        !! @buffer.push(val);
-#                },
-#                done => {
-#                    $done = 1;
-#                },
-#            },
-#            $ready => {  # when a process is ready
-#                emit => -> \val {
-#                    $running = $running - 1;
-#                    $allowed = $allowed + 1;
-#                    $res.emit(val);
-#                    $emitted = $emitted + 1;
-#                    start-process(@buffer.shift) if $allowed > 0 && @buffer;
-#
-#                    if $done && !$running {
-#                        $control.done if $control;
-#                        if $status {
-#                            emit-status("done");
-#                            $status.done;
-#                        }
-#                        if $bleed && @buffer {
-#                            $bleed.emit(@buffer.shift) while @buffer;
-#                            $bleed.done;
-#                        }
-#                        $res.done;
-#                    }
-#                },
-#            },
-#            $control
-#              ?? ($control => {
-#                   emit => -> \val {
-#                       my str $type;
-#                       my str $value;
-#                       Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
-#
-#                       if $type eq 'limit' {
-#                           $allowed = $allowed + $value - $limit;
-#                           $limit   = $value;
-#                           start-process(@buffer.shift)
-#                             while $allowed > 0 && @buffer;
-#                       }
-#                       elsif $type eq 'bleed' && $bleed {
-#                           my int $todo = $value min +@buffer;
-#                           $bleed.emit(@buffer.shift) for ^$todo;
-#                           $bled = $bled + $todo;
-#                       }
-#                       elsif $type eq 'status' && $status {
-#                           emit-status($value);
-#                       }
-#                       elsif $type eq 'vent-at' && $bleed {
-#                           $vent = $value;
-#                           if $vent && +@buffer > $vent {
-#                               $bleed.emit(@buffer.shift)
-#                                 until !@buffer || +@buffer == $vent;
-#                           }
-#                       }
-#                   },
-#                 })
-#              !! |()
-#        }
-#    }
+    proto method throttle(|) { * }
+    multi method throttle(Supply:D $self:
+      Int()  $elems,
+      Real() $seconds,
+      Real() $delay  = 0,
+      :$scheduler    = $*SCHEDULER,
+      :$control,
+      :$status,
+      :$bleed,
+      :$vent-at,
+    ) {
+        my $timer = Supply.interval($seconds,$delay,:$scheduler);
+        my int $limit   = $elems;
+        my int $vent = $vent-at if $bleed;;
+        supply {
+            my @buffer;
+            my int $allowed = $limit;
+            my int $emitted;
+            my int $bled;
+            my int $done;
+            sub emit-status($id) {
+               $status.emit(
+                 { :$allowed, :$bled, :buffered(+@buffer),
+                   :$emitted, :$id,   :$limit,  :$vent-at } );
+            }
+
+            whenever $timer -> \tick {
+                if +@buffer -> \buffered {
+                    my int $todo = buffered > $limit ?? $limit !! buffered;
+                    emit(@buffer.shift) for ^$todo;
+                    $emitted = $emitted + $todo;
+                    $allowed = $limit   - $todo;
+                }
+                else {
+                    $allowed = $limit;
+                }
+                if $done && !@buffer {
+                    done;
+                }
+            }
+
+            whenever self -> \val {
+                if $allowed {
+                    emit(val);
+                    $emitted = $emitted + 1;
+                    $allowed = $allowed - 1;
+                }
+                elsif $vent && +@buffer >= $vent {
+                    $bleed.emit(val);
+                }
+                else {
+                    @buffer.push(val);
+                }
+                LAST {
+                    $control.done if $control;
+                    $status.done  if $status;
+                    if $status {
+                        emit-status("done");
+                        $status.done;
+                    }
+                    if $bleed && @buffer {
+                        $bleed.emit(@buffer.shift) while @buffer;
+                        $bleed.done;
+                    }
+                    $done = 0;
+                }
+            }
+
+            if $control {
+                whenever $control -> \val {
+                   my str $type;
+                   my str $value;
+                   Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
+
+                   if $type eq 'limit' {
+                       my int $extra = $value - $limit;
+                       $allowed = $extra > 0 || $allowed + $extra >= 0
+                         ?? $allowed + $extra
+                         !! 0;
+                       $limit = $value;
+                   }
+                   elsif $type eq 'bleed' && $bleed {
+                       my int $todo = $value min +@buffer;
+                       $bleed.emit(@buffer.shift) for ^$todo;
+                       $bled = $bled + $todo;
+                   }
+                   elsif $type eq 'status' && $status {
+                       emit-status($value);
+                   }
+                   elsif $type eq 'vent-at' && $bleed {
+                       $vent = $value;
+                       if $vent && +@buffer > $vent {
+                           $bleed.emit(@buffer.shift)
+                             until !@buffer || +@buffer == $vent;
+                       }
+                   }
+                }
+            }
+        }
+    }
+    multi method throttle(Supply:D $self:
+      Int()  $elems,
+      Callable:D $process,
+      Real() $delay = 0,
+      :$scheduler   = $*SCHEDULER,
+      :$control,
+      :$status,
+      :$bleed,
+      :$vent-at,
+    ) {
+        sleep $delay if $delay;
+        my @buffer;
+        my int $limit   = $elems;
+        my int $allowed = $limit;
+        my int $running;
+        my int $emitted;
+        my int $bled;
+        my int $done;
+        my int $vent = $vent-at if $bleed;
+        my $ready = Supplier.new;
+        sub start-process(\val) {
+            my $p = Promise.start( $process, :$scheduler, val );
+            $running = $running + 1;
+            $allowed = $allowed - 1;
+            $p.then: { $ready.emit($p) };
+        }
+        sub emit-status($id) {
+           $status.emit(
+             { :$allowed, :$bled, :buffered(+@buffer),
+               :$emitted, :$id,   :$limit, :$running } );
+        }
+        supply {
+            whenever self -> \val {
+                $allowed > 0
+                  ?? start-process(val)
+                  !! $vent && $vent == +@buffer
+                    ?? $bleed.emit(val)
+                    !! @buffer.push(val);
+                LAST { $done = 1 }
+            }
+
+            whenever $ready.Supply -> \val { # when a process is ready
+                $running = $running - 1;
+                $allowed = $allowed + 1;
+                emit(val);
+                $emitted = $emitted + 1;
+                start-process(@buffer.shift) if $allowed > 0 && @buffer;
+
+                if $done && !$running {
+                    $control.done if $control;
+                    if $status {
+                        emit-status("done");
+                        $status.done;
+                    }
+                    if $bleed && @buffer {
+                        $bleed.emit(@buffer.shift) while @buffer;
+                        $bleed.done;
+                    }
+                    done;
+                }
+            }
+
+            if $control {
+                whenever $control -> \val {
+                     my str $type;
+                     my str $value;
+                     Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
+  
+                     if $type eq 'limit' {
+                         $allowed = $allowed + $value - $limit;
+                         $limit   = $value;
+                         start-process(@buffer.shift)
+                           while $allowed > 0 && @buffer;
+                     }
+                     elsif $type eq 'bleed' && $bleed {
+                         my int $todo = $value min +@buffer;
+                         $bleed.emit(@buffer.shift) for ^$todo;
+                         $bled = $bled + $todo;
+                     }
+                     elsif $type eq 'status' && $status {
+                         emit-status($value);
+                     }
+                     elsif $type eq 'vent-at' && $bleed {
+                         $vent = $value;
+                         if $vent && +@buffer > $vent {
+                             $bleed.emit(@buffer.shift)
+                               until !@buffer || +@buffer == $vent;
+                         }
+                     }
+                 }
+             }
+        }
+    }
 }
 
 # A Supplier is a convenient way to create a live Supply. The publisher can

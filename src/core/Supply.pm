@@ -150,7 +150,7 @@ my class Supply {
         method sane() { True }
         method serial() { True }
         method !cleanup(int $cleaned-up is rw, $source-tap) {
-            unless $cleaned-up {
+            if $source-tap && !$cleaned-up  {
                 $cleaned-up = 1;
                 $source-tap.close;
             }

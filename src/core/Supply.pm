@@ -1395,7 +1395,12 @@ my class Supplier {
         method sane()   { False }
     }
 
-    has $!taplist = TapList.new;
+    has $!taplist;
+
+    method new() {
+        self.bless(taplist => TapList.new)
+    }
+    submethod BUILD(:$!taplist!) { }
 
     method emit(Supplier:D: Mu \value) {
         $!taplist.emit(value);
@@ -1419,6 +1424,117 @@ my class Supplier {
 
     method unsanitized-supply(Supplier:D:) {
         Supply.new($!taplist)
+    }
+}
+
+# A preserving supplier holds on to emitted values and state when nobody is
+# tapping. As soon as there a tap is made, any preserved events will be
+# immediately sent to that tapper.
+my class Supplier::Preserving is Supplier {
+    my class PreservingTapList does Tappable {
+        my class TapListEntry {
+            has &.emit;
+            has &.done;
+            has &.quit;
+        }
+
+        # Lock serializes updates to tappers.
+        has Lock $!lock = Lock.new;
+
+        # An immutable list of tappers. Always replaced on change, never
+        # mutated in-place ==> thread safe together with lock (and only
+        # need lock on modification).
+        has Mu $!tappers;
+
+        # Events to reply, and a lock to protect it.
+        has @!replay;
+        has $!replay-lock = Lock.new;
+
+        method tap(&emit, &done, &quit) {
+            my $tle := TapListEntry.new(:&emit, :&done, :&quit);
+            my int $replay = 0;
+            $!lock.protect({
+                my Mu $update := nqp::isconcrete($!tappers)
+                    ?? nqp::clone($!tappers)
+                    !! nqp::list();
+                nqp::push($update, $tle);
+                $!tappers := $update;
+                $replay = 1 if nqp::elems($update) == 1;
+            });
+            self!replay($tle) if $replay;
+            Tap.new({
+                $!lock.protect({
+                    my Mu $update := nqp::list();
+                    for nqp::hllize($!tappers) -> \entry {
+                        nqp::push($update, entry) unless entry =:= $tle;
+                    }
+                    $!tappers := $update;
+                });
+            })
+        }
+
+        method emit(\value) {
+            my int $sent = 0;
+            my $snapshot := $!tappers;
+            if nqp::isconcrete($snapshot) {
+                my int $n = nqp::elems($snapshot);
+                loop (my int $i = 0; $i < $n; $i = $i + 1) {
+                    nqp::atpos($snapshot, $i).emit()(value);
+                    $sent = 1;
+                }
+            }
+            unless $sent {
+                self!add-replay({ $_.emit()(value) })
+            }
+        }
+
+        method done() {
+            my int $sent = 0;
+            my $snapshot := $!tappers;
+            if nqp::isconcrete($snapshot) {
+                my int $n = nqp::elems($snapshot);
+                loop (my int $i = 0; $i < $n; $i = $i + 1) {
+                    nqp::atpos($snapshot, $i).done()();
+                    $sent = 1;
+                }
+            }
+            unless $sent {
+                self!add-replay({ $_.done()() })
+            }
+        }
+
+        method quit($ex) {
+            my int $sent = 0;
+            my $snapshot := $!tappers;
+            if nqp::isconcrete($snapshot) {
+                my int $n = nqp::elems($snapshot);
+                loop (my int $i = 0; $i < $n; $i = $i + 1) {
+                    nqp::atpos($snapshot, $i).quit()($ex);
+                    $sent = 1;
+                }
+            }
+            unless $sent {
+                self!add-replay({ $_.quit()($ex) })
+            }
+        }
+
+        method !add-replay(&replay) {
+            $!replay-lock.protect: { @!replay.push(&replay) }
+        }
+
+        method !replay($tle) {
+            while $!replay-lock.protect({ @!replay.shift }) -> $rep {
+                $rep($tle)
+            }
+        }
+
+        method live     { True  }
+        method serial() { False }
+        method sane()   { False }
+    }
+
+    method new() {
+        self.bless(taplist => PreservingTapList.new)
     }
 }
 

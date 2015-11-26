@@ -74,7 +74,7 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
         my @result = $proc.out.lines;
         if not $proc.out.close or $proc.status {  # something wrong
             self.store.unlock;
-            push @result, "Return status $proc.status\n";
+            push @result, "Return status { $proc.status }\n";
             fail @result if @result;
         }
         else {

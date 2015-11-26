@@ -68,9 +68,10 @@ my class Supply {
     method live(Supply:D:) { $!tappable.live }
     method serial(Supply:D:) { $!tappable.serial }
 
+    my \DISCARD = -> $ {};
     my \NOP = -> {};
     my \DEATH = -> $ex { $ex.throw };
-    method tap(Supply:D: &emit = NOP, :&done = NOP, :&quit = DEATH) {
+    method tap(Supply:D: &emit = DISCARD, :&done = NOP, :&quit = DEATH) {
         $!tappable.tap(&emit, &done, &quit)
     }
 

@@ -968,6 +968,21 @@ my class Supply {
         }
     }
 
+    method head(Supply:D: Int(Cool) $number = 1) {
+        my int $todo = $number;
+
+        supply {
+            if $todo >= 1 {
+                whenever self -> \val {
+                    if $todo {
+                        emit val;
+                        last unless $todo = $todo - 1;
+                    }
+                }
+            }
+        }
+    }
+
     method tail(Supply:D: Int(Cool) $number = 1) {
         my int $size = $number;
 

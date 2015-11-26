@@ -784,6 +784,7 @@ S17-supply/flat.t
 S17-supply/from-list.t
 S17-supply/grab.t
 S17-supply/grep.t
+S17-supply/head.t
 S17-supply/interval.t
 S17-supply/lines.t
 S17-supply/list.t

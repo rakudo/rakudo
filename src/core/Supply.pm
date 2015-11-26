@@ -144,15 +144,13 @@ my class Supply {
 
     my role SimpleOpTappable does Tappable {
         has $!source;
-        has $!source-tap;
-        has int $!cleaned-up;
         method live() { $!source.live }
         method sane() { True }
         method serial() { True }
-        method !cleanup() {
-            unless $!cleaned-up {
-                $!cleaned-up = 1;
-                $!source-tap.close;
+        method !cleanup(int $cleaned-up is rw, $source-tap) {
+            unless $cleaned-up {
+                $cleaned-up = 1;
+                $source-tap.close;
             }
         }
     }
@@ -164,23 +162,24 @@ my class Supply {
             submethod BUILD(:$!source!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(
                     -> \value{
                         $!lock.protect: { emit(value); }
                     },
                     done => -> {
                         $!lock.protect: {
                             done();
-                            self!cleanup;
+                            self!cleanup($cleaned-up, $source-tap);
                         }
                     },
                     quit => -> $ex {
                         $!lock.protect: {
                             quit($ex);
-                            self!cleanup;
+                            self!cleanup($cleaned-up, $source-tap);
                         }
                     });
-                Tap.new({ self!cleanup })
+                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self))
     }    
@@ -192,7 +191,8 @@ my class Supply {
             submethod BUILD(:$!source!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(
                     -> \value{
                         emit(value) unless $!finished;
                     },
@@ -200,17 +200,17 @@ my class Supply {
                         unless $!finished {
                             $!finished = 1;
                             done();
-                            self!cleanup;
+                            self!cleanup($cleaned-up, $source-tap);
                         }
                     },
                     quit => -> $ex {
                         unless $!finished {
                             $!finished = 1;
                             quit($ex);
-                            self!cleanup;
+                            self!cleanup($cleaned-up, $source-tap);
                         }
                     });
-                Tap.new({ self!cleanup })
+                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self.serialize))
     }
@@ -223,10 +223,11 @@ my class Supply {
             submethod BUILD(:$!source!, :&!on-close!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(&emit, :&done, :&quit);
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(&emit, :&done, :&quit);
                 Tap.new({
                     &!on-close();
-                    self!cleanup
+                    self!cleanup($cleaned-up, $source-tap)
                 })
             }
         }.new(source => self, :&on-close))
@@ -239,12 +240,13 @@ my class Supply {
             submethod BUILD(:$!source!, :&!mapper!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(
                     -> \value {
                         my \result = try &!mapper(value);
                         if $! {
                             quit($!);
-                            self!cleanup;
+                            self!cleanup($cleaned-up, $source-tap);
                         }
                         else {
                             emit(result)
@@ -252,13 +254,13 @@ my class Supply {
                     },
                     done => -> {
                         done();
-                        self!cleanup;
+                        self!cleanup($cleaned-up, $source-tap);
                     },
                     quit => -> $ex {
                         quit($ex);
-                        self!cleanup;
+                        self!cleanup($cleaned-up, $source-tap);
                     });
-                Tap.new({ self!cleanup })
+                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self.sanitize, :&mapper))
     }
@@ -270,7 +272,8 @@ my class Supply {
             submethod BUILD(:$!source!, Mu :$!test!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(
                     -> \value {
                         my \accepted = try $test.ACCEPTS(value);
                         if accepted {
@@ -278,18 +281,18 @@ my class Supply {
                         }
                         elsif $! {
                             quit($!);
-                            self!cleanup;
+                            self!cleanup($cleaned-up, $source-tap);
                         }
                     },
                     done => -> {
                         done();
-                        self!cleanup;
+                        self!cleanup($cleaned-up, $source-tap);
                     },
                     quit => -> $ex {
                         quit($ex);
-                        self!cleanup;
+                        self!cleanup($cleaned-up, $source-tap);
                     });
-                Tap.new({ self!cleanup })
+                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self.sanitize, :$test))
     }
@@ -301,17 +304,18 @@ my class Supply {
             submethod BUILD(:$!source!, :$!scheduler!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(
                     -> \value {
                         $!scheduler.cue: { emit(value) }
                     },
                     done => -> {
-                        $!scheduler.cue: { done(); self!cleanup; }
+                        $!scheduler.cue: { done(); self!cleanup($cleaned-up, $source-tap); }
                     },
                     quit => -> $ex {
-                        $!scheduler.cue: { quit($ex); self!cleanup; }
+                        $!scheduler.cue: { quit($ex); self!cleanup($cleaned-up, $source-tap); }
                     });
-                Tap.new({ self!cleanup })
+                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self.sanitize, :$scheduler))
     }
@@ -325,16 +329,19 @@ my class Supply {
                 submethod BUILD(:$!value, :&!startee) { }
 
                 method tap(&emit, &done, &quit) {
+                    my int $closed = 0;
                     Promise.start({ &!startee($!value) }).then({
-                        if .status == Kept {
-                            emit(.result);
-                            done();
-                        }
-                        else {
-                            quit(.cause);
+                        unless $closed {
+                            if .status == Kept {
+                                emit(.result);
+                                done();
+                            }
+                            else {
+                                quit(.cause);
+                            }
                         }
                     });
-                    Tap.new({ self!cleanup })
+                    Tap.new({ $closed = 1 })
                 }
             }.new(:value(value), :&startee))
         }
@@ -351,7 +358,8 @@ my class Supply {
             submethod BUILD(:$!source!, :$!time!, :$!scheduler!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(
                     -> \value {
                         $!lock.protect: {
                             if $!last_cancellation {
@@ -366,7 +374,7 @@ my class Supply {
                                         CATCH {
                                             default {
                                                 quit($_);
-                                                self!cleanup;
+                                                self!cleanup($cleaned-up, $source-tap);
                                             }
                                         }
                                     }
@@ -375,13 +383,13 @@ my class Supply {
                     },
                     done => -> {
                         done();
-                        self!cleanup;
+                        self!cleanup($cleaned-up, $source-tap);
                     },
                     quit => -> $ex {
                         quit($ex);
-                        self!cleanup;
+                        self!cleanup($cleaned-up, $source-tap);
                     });
-                Tap.new({ self!cleanup })
+                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self.sanitize, :$time, :$scheduler))
     }
@@ -395,17 +403,22 @@ my class Supply {
             submethod BUILD(:$!source!, :$!time, :$!scheduler!) {}
 
             method tap(&emit, &done, &quit) {
-                $!source-tap = $!source.tap(
+                my int $cleaned-up = 0;
+                my $source-tap = $!source.tap(
                     -> \value {
                         $!scheduler.cue: { emit(value) }, :in($time)
                     },
                     done => -> {
-                        $!scheduler.cue: { done(); self!cleanup; }, :in($time)
+                        $!scheduler.cue:
+                            { done(); self!cleanup($cleaned-up, $source-tap); },
+                            :in($time)
                     },
                     quit => -> $ex {
-                        $!scheduler.cue: { quit($ex); self!cleanup; }, :in($time)
+                        $!scheduler.cue:
+                            { quit($ex); self!cleanup($cleaned-up, $source-tap); },
+                            :in($time)
                     });
-                Tap.new({ self!cleanup })
+                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self.sanitize, :$time, :$scheduler))
     }

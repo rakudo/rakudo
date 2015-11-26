@@ -52,6 +52,7 @@ my class X::Supply::New is Exception {
 # A Supply is like an asynchronous Seq. All the methods that you can do on
 # a Supply go in here.
 my class Supplier { ... }
+my class Supplier::Preserving { ... }
 my class Supply {
     has Tappable $!tappable;
 
@@ -542,7 +543,7 @@ my class Supply {
 
             sub find-target($key) {
                 %mapping{ $key.WHICH } //= do {
-                    my $p = Supplier.new;
+                    my $p = Supplier::Preserving.new;
                     emit($key => $p.Supply);
                     $p
                 };

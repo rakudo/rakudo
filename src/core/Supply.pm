@@ -1064,13 +1064,13 @@ my class Supply {
             my @values = [] xx +@s;
             for @s.kv -> $index, $supply {
                 if &with {
-                    whenever self -> \val {
+                    whenever $supply -> \val {
                         @values[$index].push(val);
                         emit( [[&with]] @values.map(*.shift) ) if all(@values);
                     }
                 }
                 else {
-                    whenever self -> \val {
+                    whenever $supply -> \val {
                         @values[$index].push(val);
                         emit( $(@values.map(*.shift).list) ) if all(@values);
                     }
@@ -1102,7 +1102,7 @@ my class Supply {
 
             for @s.kv -> $index, $supply {
                 if &with {
-                    whenever self -> \val {
+                    whenever $supply -> \val {
                         --$uninitialised
                         if $uninitialised > 0 && not @values.EXISTS-POS($index);
                         @values[$index] = val;
@@ -1110,7 +1110,7 @@ my class Supply {
                     }
                 }
                 else {
-                    whenever self -> \val {
+                    whenever $supply -> \val {
                         --$uninitialised
                             if $uninitialised > 0 && not @values.EXISTS-POS($index);
                         @values[$index] = val;

@@ -526,6 +526,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
+    token tok {
+        <.end_keyword>
+        <!{
+                my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
+                $*W.is_name([$n]) || $*W.is_name(['&' ~ $n])
+        }>
+    }
+
 
     token ENDSTMT {
         [
@@ -2318,8 +2326,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    rule term:sym<earliest> { <sym><.end_keyword> <xblock> }
-    rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
+    rule term:sym<earliest> { <sym><.kok> <xblock> }
+    rule term:sym<combine>{ <sym><.kok> <xblock> }
     rule statement_control:sym<more>   { <sym><.kok> <xblock(1)> }
     rule statement_control:sym<done>   { <sym><.kok> <xblock(1)> }
     rule statement_control:sym<wait>   { <sym><.kok> <xblock(1)> }
@@ -3086,15 +3094,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token term { <...> }
 
     token term:sym<self> {
-        <sym> <.end_keyword>
+        <sym> <.tok>
         {
             $*HAS_SELF || self.typed_sorry('X::Syntax::Self::WithoutObject')
         }
     }
 
-    token term:sym<now> { <sym> <.end_keyword> }
+    token term:sym<now> { <sym> <.tok> }
 
-    token term:sym<time> { <sym> <.end_keyword> }
+    token term:sym<time> { <sym> <.tok> }
 
     token term:sym<empty_set> { "∅" <!before <[ \( \\ ' \- ]> || \h* '=>'> }
 

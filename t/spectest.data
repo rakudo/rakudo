@@ -793,9 +793,9 @@ S17-supply/merge.t
 S17-supply/migrate.t
 S17-supply/min.t
 S17-supply/minmax.t
-S17-supply/on.t
 S17-supply/on-demand.t
 S17-supply/Promise.t
+S17-supply/produce.t
 S17-supply/reduce.t
 S17-supply/reverse.t
 S17-supply/rotor.t

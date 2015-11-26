@@ -1015,9 +1015,6 @@ my class Supply {
                     }
                 }
             }
-            else {  # number <= 0
-                whenever self -> \val { }
-            }
         }
     }
 

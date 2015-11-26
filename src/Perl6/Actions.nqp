@@ -6471,7 +6471,7 @@ Compilation unit '$file' contained the following violations:
         for $<dig> {
             $power := $power * 10 + nqp::index("⁰¹²³⁴⁵⁶⁷⁸⁹", $_);
         }
-        $power := -$power if $<sign> eq '¯';
+        $power := -$power if $<sign> eq '⁻' || $<sign> eq '¯';
         make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_constant('Int', 'int', $power));
     }
 

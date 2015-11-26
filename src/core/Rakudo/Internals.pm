@@ -461,14 +461,15 @@ my class Rakudo::Internals {
         }
 
         multi method perl(::?CLASS:D \SELF:) {
-            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }
-            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
-            %*perlseen{self.WHICH} = 1;
-            my $result = self.^name ~ '.new(:shape' ~ nqp::decont(self.shape).perl ~ ', ' ~
-                self!perl([], self.shape) ~ ')';
-            $result ~= '.item' if nqp::iscont(SELF);
-            $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-            $result;
+            SELF.perlseen('Array', {
+                self.^name
+                ~ '.new(:shape'
+                ~ nqp::decont(self.shape).perl
+                ~ ', '
+                ~ self!perl([], self.shape)
+                ~ ')'
+                ~ (nqp::iscont(SELF) ?? '.item' !! '')
+            })
         }
         method !perl(@path, @dims) {
             if @dims.elems == 1 {

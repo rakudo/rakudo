@@ -698,13 +698,13 @@ my class Array { # declared in BOOTSTRAP
         nqp::isnull($d) ?? Nil !! so $d.dynamic;
     }
     multi method perl(Array:D \SELF:) {
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }
-        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
-        %*perlseen{self.WHICH} = 1;
-        my $result = '$' x nqp::iscont(SELF) ~
-        '[' ~ self.map({nqp::decont($_).perl}).join(', ') ~ ',' x (self.elems == 1 && nqp::istype(self[0],Iterable)) ~ ']';
-        $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-        $result;
+        SELF.perlseen('Array', {
+             '$' x nqp::iscont(SELF)  # self is always deconted
+             ~ '['
+             ~ self.map({nqp::decont($_).perl}).join(', ')
+             ~ ',' x (self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable))
+             ~ ']'
+        })
     }
 
     multi method gist(Array:D:) {

@@ -44,13 +44,10 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method perl(Hash:D \SELF:) {
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
-        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-        %*perlseen{self.WHICH} = 1;
-        my $result = '$' x nqp::iscont(SELF) ~
-        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}';
-        $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-        $result;
+        SELF.perlseen('Hash', {
+            '$' x nqp::iscont(SELF)  # self is always deconted
+            ~ '{' ~ self.pairs.sort.map({.perl}).join(', ') ~ '}'
+        })
     }
 
     multi method gist(Hash:D:) {
@@ -329,16 +326,11 @@ my class Hash { # declared in BOOTSTRAP
                 bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
-            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-            %*perlseen{self.WHICH} = 1;
-            my $result = '(my '
-              ~ TValue.perl
-              ~ ' % = '
-              ~ self.pairs.sort.map({.perl}).join(', ')
-              ~ ')';
-            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-            $result;
+            SELF.perlseen('Hash', {
+                '(my '
+                ~ TValue.perl
+                ~ ' % = ' ~ self.pairs.sort.map({.perl}).join(', ') ~ ')'
+            })
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
@@ -511,24 +503,15 @@ my class Hash { # declared in BOOTSTRAP
             self.map: { .value »=>» .key }
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
-            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-            %*perlseen{self.WHICH} = 1;
-            my $result;
-
-            my $TKey-perl   := TKey.perl;
-            my $TValue-perl := TValue.perl;
-            if $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
-                $result = ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
-            }
-            else {
-                $result = "(my $TValue-perl %\{$TKey-perl\} = {
-                  self.pairs.sort.map({.perl}).join(', ')
-                })";
-            }
-
-            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-            $result;
+            SELF.perlseen('Hash', {
+                my $TKey-perl   := TKey.perl;
+                my $TValue-perl := TValue.perl;
+                $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
+                  ?? ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+                  !! "(my $TValue-perl %\{$TKey-perl\} = {
+                      self.pairs.sort.map({.perl}).join(', ')
+                    })"
+            })
         }
         multi method DELETE-KEY($key) {
             my Mu $val = self.AT-KEY($key);

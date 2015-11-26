@@ -44,23 +44,15 @@ my class Pair does Associative {
     }
 
     multi method perl(Pair:D: :$arglist) {
-        my $result;
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl(:$arglist) }
-        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Pair_{self.WHERE}" }
-        %*perlseen{self.WHICH} = 1;
-        if nqp::istype($!key, Pair) {
-            $result = '(' ~ $!key.perl ~ ') => ' ~ $!value.perl;
-        } elsif nqp::istype($!key, Str) and !$arglist and $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/ {
-            if nqp::istype($!value,Bool) {
-                $result = ':' ~ '!' x !$!value ~ $!key;
-            } else {
-                $result = ':' ~ $!key ~ '(' ~ $!value.perl ~ ')';
-            }
-        } else {
-            $result = $!key.perl ~ ' => ' ~ $!value.perl;
-        }
-        $result = "(my \\Pair_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-        $result;
+        self.perlseen('Pair', -> :$arglist {
+            nqp::istype($!key, Pair)
+              ?? '(' ~ $!key.perl ~ ') => ' ~ $!value.perl
+              !! nqp::istype($!key, Str) && !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
+                ?? nqp::istype($!value,Bool)
+                   ?? ':' ~ '!' x !$!value ~ $!key
+                   !! ':' ~ $!key ~ '(' ~ $!value.perl ~ ')'
+                !! $!key.perl ~ ' => ' ~ $!value.perl
+        }, :$arglist)
     }
 
     method fmt($format = "%s\t%s") {

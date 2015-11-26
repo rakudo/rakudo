@@ -339,26 +339,67 @@ Please refactor this code using the new Iterator / Seq interface.
     method put() { put(self) }
     method note() { note(self) }
 
+    method gistseen(Mu:D \SELF: $id, $gist, *%named) {
+        if $*gistseen -> \sems {
+            my str $WHICH = nqp::unbox_s(self.WHICH);
+            if nqp::atkey(sems,$WHICH) {
+                nqp::bindkey(sems,$WHICH,2);
+                "{$id}_{nqp::objectid(SELF)}";
+            }
+            else {
+                nqp::bindkey(sems,$WHICH,1);
+                my $result   := $gist(|%named);
+                my int $value = nqp::atkey(sems,$WHICH);
+                nqp::deletekey(sems,$WHICH);
+                $value == 2
+                  ?? "(\\{$id}_{nqp::objectid(SELF)} = $result)"
+                  !! $result
+            }
+        }
+        else {
+            my $*gistseen := nqp::hash("TOP",1);
+            SELF.gistseen($id,$gist,|%named)
+        }
+    }
+
     proto method gist(|) { * }
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
+    method perlseen(Mu:D \SELF: $id, $perl, *%named) {
+        if $*perlseen -> \sems {
+            my str $WHICH = nqp::unbox_s(self.WHICH);
+            if nqp::atkey(sems,$WHICH) {
+                nqp::bindkey(sems,$WHICH,2);
+                "{$id}_{nqp::objectid(SELF)}";
+            }
+            else {
+                nqp::bindkey(sems,$WHICH,1);
+                my $result := $perl(|%named);
+                my int $value = nqp::atkey(sems,$WHICH);
+                nqp::deletekey(sems,$WHICH);
+                $value == 2
+                  ?? "(my \\{$id}_{nqp::objectid(SELF)} = $result)"
+                  !! $result
+            }
+        }
+        else {
+            my $*perlseen := nqp::hash("TOP",1);
+            SELF.perlseen($id,$perl,|%named)
+        }
+    }
+
     proto method perl(|) { * }
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
-        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "{self.^name}_{self.WHERE}" }
-        %*perlseen{self.WHICH} = 1;
-        my @attrs;
-        for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-            my $name := substr($attr.Str,2);
-            @attrs.push: $name
-                        ~ ' => '
-                        ~ $attr.get_value(self).perl
-        }
-        my $result = self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs);
-        $result = "(my \\{self.^name}_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-        $result;
+        self.perlseen(self.^name, {
+            my @attrs;
+            for self.^attributes().flat.grep: { .has_accessor } -> $attr {
+                my $name := substr($attr.Str,2);
+                @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
+            }
+            self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
+        })
     }
 
     proto method DUMP(|) { * }

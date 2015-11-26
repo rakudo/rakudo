@@ -182,7 +182,6 @@ J_CORE_SOURCES = \
   src/core/Promise.pm \
   src/core/Channel.pm \
   src/core/Supply.pm \
-  src/core/SupplyOperations.pm \
   src/core/JVM/KeyReducer.pm \
   src/core/JVM/IOAsyncFile.pm \
   src/core/asyncops.pm \

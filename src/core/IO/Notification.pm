@@ -13,7 +13,7 @@ my class IO::Notification {
     }
 
     method watch-path(Str() $path, :$scheduler = $*SCHEDULER) {
-        my $s = Supply.new;
+        my $s = Supplier.new;
         nqp::watchfile(
             $scheduler.queue,
             -> \path, \rename, \err {
@@ -26,6 +26,6 @@ my class IO::Notification {
                 }
             },
             $path, FileWatchCancellation);
-        $s
+        $s.Supply
     }
 }

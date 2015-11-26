@@ -129,7 +129,6 @@ src/core/CurrentThreadScheduler.pm
 src/core/Promise.pm
 src/core/Channel.pm
 src/core/Supply.pm
-src/core/SupplyOperations.pm
 src/core/asyncops.pm
 src/core/IO/Socket.pm
 src/core/IO/Socket/INET.pm

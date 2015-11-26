@@ -55,12 +55,12 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
 
     my class SignalCancellation is repr('AsyncTask') { }
     Supply.merge( @signals.map(-> $sig {
-        my $s = Supply.new;
+        my $s = Supplier.new;
         nqp::signal($scheduler.queue,
             -> $signum { $s.emit(@known_signals[$signum] // $signum) },
             nqp::unbox_i(%sigmap{$sig}),
             SignalCancellation);
-        $s
+        $s.Supply
     }) );
 }
 

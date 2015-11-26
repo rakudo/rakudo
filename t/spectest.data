@@ -784,8 +784,7 @@ S17-supply/flat.t
 S17-supply/from-list.t
 S17-supply/grab.t
 S17-supply/grep.t
-S17-supply/interval.t    # slow
-S17-supply/last.t
+S17-supply/interval.t
 S17-supply/lines.t
 S17-supply/list.t
 S17-supply/map.t
@@ -806,6 +805,7 @@ S17-supply/squish.t
 S17-supply/stable.t       # slow
 S17-supply/start.t        # slow
 S17-supply/syntax.t       # slow
+S17-supply/tail.t
 S17-supply/throttle.t     # slow
 S17-supply/unique.t       # slow
 S17-supply/wait.t         # slow

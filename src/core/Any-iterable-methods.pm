@@ -1376,7 +1376,7 @@ augment class Any {
     }
 
     proto method tail(|) { * }
-    multi method tail(Any:D: Int:D $n) {
+    multi method tail(Any:D: Int(Cool) $n = 1) {
         return () if $n <= 0;
 
         Seq.new( class :: does Iterator {
@@ -1389,7 +1389,7 @@ augment class Any {
                 $!iter = list.iterator;
                 X::Cannot::Lazy.new(:action<tail>).throw if $!iter.is-lazy;
 
-                $!lastn := nqp::list();
+                $!lastn := nqp::list;
                 $!size   = size;
                 nqp::setelems($!lastn,$!size);  # presize list
                 nqp::setelems($!lastn,0);
@@ -1404,7 +1404,7 @@ augment class Any {
             }
             method pull-one() is raw {
                 if $!todo {
-                    self!next();
+                    self!next;
                 }
                 elsif $!iter.DEFINITE {
                     my Mu $pulled;
@@ -1422,7 +1422,7 @@ augment class Any {
                         $!todo = nqp::elems($!lastn);
                     }
                     $!iter := Mu;  # mark we're done iterating
-                    $!todo ?? self!next() !! IterationEnd
+                    $!todo ?? self!next !! IterationEnd
                 }
                 else {
                     IterationEnd

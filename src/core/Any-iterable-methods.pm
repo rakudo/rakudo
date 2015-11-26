@@ -1357,7 +1357,7 @@ augment class Any {
     }
 
     proto method head(|) { * }
-    multi method head(Any:D: Int:D $n) {
+    multi method head(Any:D: Int(Cool) $n = 1) {
         return () if $n <= 0;
 
         Seq.new( class :: does Iterator {
@@ -1370,7 +1370,7 @@ augment class Any {
             }
             method new(\list,\todo) { nqp::create(self).BUILD(list,todo) }
             method pull-one() is raw {
-                $!todo-- ?? $!iter.pull-one() !! IterationEnd
+                $!todo-- ?? $!iter.pull-one !! IterationEnd
             }
         }.new(self,$n))
     }

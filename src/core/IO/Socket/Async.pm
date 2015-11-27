@@ -52,37 +52,36 @@ my class IO::Socket::Async {
         -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) }
     }
 
-    method chars-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
+    method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$scheduler = $*SCHEDULER) {
         my $cancellation;
-        Supply.on-demand( -> $supply {
-            $cancellation := nqp::asyncreadchars(
-              $!VMIO,
-              $scheduler.queue,
-              capture($supply),
-              SocketCancellation
-            );
+        Supply.on-demand:
+            -> $supply {
+                $cancellation := $bin
+                    ?? nqp::asyncreadbytes(
+                        $!VMIO,
+                        $scheduler.queue,
+                        capture($supply),
+                        nqp::decont($buf),
+                        SocketCancellation)
+                    !! nqp::asyncreadchars(
+                        $!VMIO,
+                        $scheduler.queue,
+                        capture($supply),
+                        SocketCancellation)
           },
           closing => {
               $cancellation && nqp::cancel($cancellation)
-          },
-        );
+          }
+    }
+
+    method chars-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
+        DEPRECATED('Supply');
+        self.Supply
     }
 
     method bytes-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
-        my $cancellation;
-        Supply.on-demand( -> $supply {
-            $cancellation := nqp::asyncreadbytes(
-              $!VMIO,
-              $scheduler.queue,
-              capture($supply),
-              nqp::decont($buf),
-              SocketCancellation,
-            );
-          },
-          closing => {
-              $cancellation && nqp::cancel($cancellation)
-          },
-        );
+        DEPRECATED('Supply(:bin)');
+        self.Supply(:bin, :$buf)
     }
 
     method close(IO::Socket::Async:D: --> True) {

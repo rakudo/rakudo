@@ -486,6 +486,34 @@ my class Range is Cool does Iterable does Positional {
         my $elems = $stop - $start + 1;
         ($start + $stop) * $elems div 2;
     }
+
+    method rand() {
+        fail "Can only get a random value on Real values"
+          unless nqp::istype($!min,Real) && nqp::istype($!max,Real);
+
+        my $range = $!max - $!min;
+        fail "Can only get a random value if the range is positive"
+          unless $range > 0;
+
+        my $value;
+        if $!excludes-min || $!excludes-max {
+            if $!excludes-min {
+                if $!excludes-max {
+                    $value = $range.rand until $value != 0 && $value != $range;
+                }
+                else {
+                    $value = $range.rand until $value != 0;
+                }
+            }
+            else {  # $!excludes-max
+                $value = $range.rand until $value != $range;
+            }
+        }
+        else {
+            $value = $range.rand
+        }
+        $!min + $value
+    }
 }
 
 sub infix:<..>($min, $max) is pure {

@@ -21,7 +21,7 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.port = 80;
     has Str $.localhost;
     has Int $.localport;
-    has Bool $.listen;
+    has Bool $.listening;
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
@@ -59,23 +59,23 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
 
-        %args<listen>.=Bool if %args.EXISTS-KEY('listen');
+        %args<listening> = %args<listen>.Bool if %args.EXISTS-KEY('listen');
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(|%args)!initialize()
     }
 
     method !initialize() {
-        my $PIO := nqp::socket($.listen ?? 10 !! 0);
+        my $PIO := nqp::socket($.listening ?? 10 !! 0);
         #Quoting perl5's SIO::INET:
         #If Listen is defined then a listen socket is created, else if the socket type,
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
-        if $.listen || $.localhost || $.localport {
+        if $.listening || $.localhost || $.localport {
             nqp::bindsock($PIO, nqp::unbox_s($.localhost || "0.0.0.0"),
                                  nqp::unbox_i($.localport || 0));
         }
 
-        if $.listen {
+        if $.listening {
         }
         elsif $.type == PIO::SOCK_STREAM {
             nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
@@ -83,6 +83,14 @@ my class IO::Socket::INET does IO::Socket {
 
         nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);
         self;
+    }
+
+    method connect(IO::Socket::INET:U: Str() $host, Int() $port) {
+        self.new(:$host, :$port)
+    }
+
+    method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport) {
+        self.new(:$localhost, :$localport, :listen)
     }
 
     method input-line-separator is rw {

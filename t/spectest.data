@@ -918,6 +918,7 @@ S32-io/note.t
 S32-io/other.t
 S32-io/pipe.t
 S32-io/rename.t
+S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t

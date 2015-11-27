@@ -75,8 +75,8 @@ my class Supply {
         $!tappable.tap(&emit, &done, &quit)
     }
 
-    method act(Supply:D: &actor) {
-        self.sanitize.tap(&actor)
+    method act(Supply:D: &actor, *%others) {
+        self.sanitize.tap(&actor, |%others)
     }
 
     ##

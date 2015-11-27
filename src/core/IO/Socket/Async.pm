@@ -4,8 +4,8 @@ my class IO::Socket::Async {
     has $!VMIO;
 
     method new() {
-        die "Cannot create an asynchronous socket directly; please use" ~
-            "IO::Socket::Async.connect or IO::Socket::Async.listen.";
+        die "Cannot create an asynchronous socket directly; please use " ~
+            "IO::Socket::Async.connect or IO::Socket::Async.listen";
     }
 
     method print(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {

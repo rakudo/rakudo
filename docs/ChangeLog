@@ -2,6 +2,7 @@ New in 2015.12:
  + Features
  + Incompatible changes
    + Bool is now a proper enum
+   + Supply.new replaced by Supplier.new
  + Fixes
    + Dynamic variables are now visible inside start { ... } blocks
 

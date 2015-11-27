@@ -1430,41 +1430,6 @@ augment class Any {
             }
         }.new(self,$n))
     }
-
-    proto method grep-index(|) is nodal { * }
-    multi method grep-index(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.grep-index' );
-    }
-    multi method grep-index(Regex:D \t) {
-        DEPRECATED('grep(:k)');
-        self!grep-k({$_.match(t)})
-    }
-    multi method grep-index(Callable:D \t) {
-        DEPRECATED('grep(:k)');
-        self!grep-k(t)
-    }
-    multi method grep-index(Mu \t) {
-        DEPRECATED('grep(:k)');
-        self!grep-k({t.ACCEPTS($_)})
-    }
-
-    proto method first-index(|) is nodal { * }
-    multi method first-index(Bool:D $ ) {
-        fail X::Match::Bool.new( type => '.first-index' );
-    }
-    multi method first-index(Mu \test) {
-        DEPRECATED('first(:k)');
-        self.first(test,:k)
-    }
-
-    proto method last-index(|) is nodal { * }
-    multi method last-index(Bool:D $ ) {
-        fail X::Match::Bool.new( type => '.last-index' );
-    }
-    multi method last-index(Mu \test) {
-        DEPRECATED('first(:end,:k)');
-        self.first(test,:end,:k)
-    }
 }
 
 BEGIN Attribute.^compose;
@@ -1527,36 +1492,6 @@ multi sub sort($cmp, +values)      {
     nqp::istype($cmp, Callable)
         ?? values.sort($cmp)
         !! (|$cmp,|values).sort;
-}
-
-proto sub grep-index(|) {*}
-multi sub grep-index(Bool:D $t, |) {
-    fail X::Match::Bool.new(type => 'grep-index');
-}
-multi sub grep-index(Mu $test, +values) {
-    DEPRECATED('grep(:k)');
-    my $laze = values.is-lazy;
-    values.grep($test,:k).lazy-if($laze)
-}
-
-proto sub first-index(|) {*}
-multi sub first-index(Bool:D $ , |) {
-    fail X::Match::Bool.new(type => 'first-index');
-}
-multi sub first-index(Mu $test, +values) {
-    DEPRECATED('first(:k)');
-    my $laze = values.is-lazy;
-    values.first($test,:k).lazy-if($laze)
-}
-
-proto sub last-index(|) {*}
-multi sub last-index(Bool:D $ , |) {
-    fail X::Match::Bool.new(type => 'last-index');
-}
-multi sub last-index(Mu $test, +values) {
-    DEPRECATED('first(:end,:k)');
-    my $laze = values.is-lazy;
-    values.first($test,:end,:k).lazy-if($laze)
 }
 
 # vim: ft=perl6 expandtab sw=4

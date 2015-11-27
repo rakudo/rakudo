@@ -2258,7 +2258,9 @@ my class X::InvalidTypeSmiley does X::Comp {
 
 my class X::Seq::Consumed is Exception {
     method message() {
-        "This Seq has already been iterated, and its values consumed"
+        "This Seq has already been iterated, and its values consumed\n" ~
+        "(you might solve this by addding .cache on usages of the Seq, or\n" ~
+        "by assigning the Seq into an array)"
     }
 }
 

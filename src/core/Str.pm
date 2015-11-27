@@ -708,12 +708,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }.new(self));
     }
 
-    method !split-sanity(\v,\k,\kv,\p,\all) {
-        if all {
-            DEPRECATED("split(:v)", :what("split(:all)") );
-            v = True;
-        }
-
+    method !split-sanity(\v,\k,\kv,\p) {
         # cannot combine these
         my int $any = ?v + ?k + ?kv + ?p;
         X::Adverb.new(
@@ -726,8 +721,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Regex:D $pat, $parts = *;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty, :$all) {
-        my int $any = self!split-sanity($v,$k,$kv,$p,$all);
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        my int $any = self!split-sanity($v,$k,$kv,$p);
 
         my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
         return ().list if $limit <= 0;
@@ -799,8 +794,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Str(Cool) $match;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty, :$all) {
-        my int $any = self!split-sanity($v,$k,$kv,$p,$all);
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        my int $any = self!split-sanity($v,$k,$kv,$p);
 
         # nothing to work with
         my str $needle = nqp::unbox_s($match);
@@ -859,8 +854,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Str(Cool) $match, $parts;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty, :$all) {
-        my int $any = self!split-sanity($v,$k,$kv,$p,$all);
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        my int $any = self!split-sanity($v,$k,$kv,$p);
 
         # don't do it here
         my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
@@ -1023,8 +1018,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
     multi method split(Str:D: @needles, $parts = *;;
-       :$v is copy, :$k, :$kv, :$p, :$skip-empty, :$all) {
-        my int $any = self!split-sanity($v,$k,$kv,$p,$all);
+       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        my int $any = self!split-sanity($v,$k,$kv,$p);
 
         # must all be Cool, otherwise we'll just use a regex
         return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty)

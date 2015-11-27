@@ -965,13 +965,12 @@ my class Supply {
     method head(Supply:D: Int(Cool) $number = 1) {
         supply {
             my int $todo = $number;
-            if $todo >= 1 {
-                whenever self -> \val {
-                    if $todo {
-                        emit val;
-                        last unless $todo = $todo - 1;
-                    }
+            whenever self -> \val {
+                if $todo > 0 {
+                    emit val;
+                    $todo = $todo - 1;
                 }
+                last if $todo <= 0;  # nothing left to do
             }
         }
     }
@@ -1007,6 +1006,9 @@ my class Supply {
                         }
                     }
                 }
+            }
+            else {  # number <= 0, needed to keep tap open
+                whenever self -> \val { }
             }
         }
     }

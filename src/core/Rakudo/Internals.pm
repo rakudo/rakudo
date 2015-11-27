@@ -1,4 +1,5 @@
 my class Seq { ... }
+my class Lock is repr('ReentrantMutex') { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
 my class X::Assignment::ToShaped { ... };
 
@@ -506,6 +507,55 @@ my class Rakudo::Internals {
                         X::Assignment::ToShaped.new(shape => self.shape).throw;
                     }
                     $cur-pos = $cur-pos + 1;
+                }
+            }
+        }
+    }
+
+    our class SupplySequencer {
+        has &!on-data-ready;
+        has &!on-completed;
+        has &!on-error;
+        has $!buffer;
+        has int $!buffer-start-seq;
+        has int $!done-target;
+        has int $!bust;
+        has $!lock;
+
+        submethod BUILD(:&!on-data-ready!, :&!on-completed!, :&!on-error!) {
+            $!buffer := nqp::list();
+            $!buffer-start-seq = 0;
+            $!done-target = -1;
+            $!bust = 0;
+            $!lock := Lock.new;
+        }
+
+        method process(Mu \seq, Mu \data, Mu \err) {
+            $!lock.protect: {
+                if err {
+                    &!on-error(err);
+                    $!bust = 1;
+                }
+                elsif nqp::isconcrete(data) {
+                    my int $insert-pos = seq - $!buffer-start-seq;
+                    nqp::bindpos($!buffer, $insert-pos, data);
+                    self!emit-events();
+                }
+                else {
+                    $!done-target = seq;
+                    self!emit-events();
+                }
+            }
+        }
+
+        method !emit-events() {
+            unless $!bust {
+                until nqp::elems($!buffer) == 0 || nqp::isnull(nqp::atpos($!buffer, 0)) {
+                    &!on-data-ready(nqp::shift($!buffer));
+                    $!buffer-start-seq = $!buffer-start-seq + 1;
+                }
+                if $!buffer-start-seq == $!done-target {
+                    &!on-completed();
                 }
             }
         }

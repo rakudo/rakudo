@@ -479,7 +479,6 @@ my class Supply {
                 }
                 LAST {
                     emit $reduced;
-                    done;
                 }
             }
         }
@@ -561,7 +560,6 @@ my class Supply {
                 }
                 LAST {
                     %mapping.values>>.done;
-                    done;
                 }
             }
         }
@@ -786,7 +784,6 @@ my class Supply {
                 }
                 LAST {
                     flush if @batched and $partial;
-                    done;
                 }
             }
         }
@@ -803,7 +800,6 @@ my class Supply {
             }
             sub final-flush {
                 flush if @batched;
-                done;
             }
 
             if $seconds {
@@ -897,7 +893,6 @@ my class Supply {
                             !! nqp::p6box_s($str)
                         );
                     }
-                    done;
                 }
             }
         }
@@ -940,7 +935,6 @@ my class Supply {
 
                 LAST {
                     emit( nqp::box_s($str, Str) ) if $str;
-                    done;
                 }
             }
         }
@@ -1184,9 +1178,7 @@ my class Supply {
                 else {
                     $allowed = $limit;
                 }
-                if $done && !@buffer {
-                    done;
-                }
+                last if $done && !@buffer;
             }
 
             whenever self -> \val {
@@ -1306,7 +1298,7 @@ my class Supply {
                         $bleed.emit(@buffer.shift) while @buffer;
                         $bleed.done;
                     }
-                    done;
+                    last;
                 }
             }
 

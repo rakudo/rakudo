@@ -121,12 +121,6 @@ my class IO::Socket::INET does IO::Socket {
         );
         return $new_sock;
     }
-
-    method remote_address() {
-    }
-
-    method local_address() {
-    }
 }
 
 # vim: ft=perl6 expandtab sw=4

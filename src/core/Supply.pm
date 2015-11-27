@@ -969,9 +969,8 @@ my class Supply {
     }
 
     method head(Supply:D: Int(Cool) $number = 1) {
-        my int $todo = $number;
-
         supply {
+            my int $todo = $number;
             if $todo >= 1 {
                 whenever self -> \val {
                     if $todo {

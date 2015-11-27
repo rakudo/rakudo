@@ -957,7 +957,7 @@ my class Supply {
                 }
             }
             else {
-                whenever self -> \val { emit ++$elems }
+                whenever self -> \val { emit $elems = $elems + 1 }
             }
         }
     }

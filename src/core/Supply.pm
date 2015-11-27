@@ -1180,7 +1180,9 @@ my class Supply {
                 else {
                     $allowed = $limit;
                 }
-                last if $done && !@buffer;
+                if $done && !@buffer {
+                    done;
+                }
             }
 
             whenever self -> \val {

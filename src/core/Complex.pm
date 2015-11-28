@@ -434,6 +434,11 @@ multi sub infix:<===>(Complex:D \a, Complex:D \b) returns Bool:D {
     a.WHAT =:= b.WHAT && a == b
 }
 
+# Meaningful only for sorting purposes, of course.
+multi sub infix:<cmp>(Complex:D \a, Complex:D \b) returns Order:D { a.re <=> b.re || a.im <=> b.im }
+multi sub infix:<cmp>(Num(Real) \a, Complex:D \b) returns Order:D { a <=> b.re || 0 <=> b.im }
+multi sub infix:<cmp>(Complex:D \a, Num(Real) \b) returns Order:D { a.re <=> b || a.im <=> 0 }
+
 proto sub postfix:<i>(\a) returns Complex:D is pure { * }
 multi sub postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }
 multi sub postfix:<i>(Complex:D \a) returns Complex:D { Complex.new(-a.im, a.re) }

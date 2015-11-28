@@ -4097,6 +4097,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<let>  { <sym><.kok> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
     token prefix:sym<temp> { <sym><.kok> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
 
+    token infix:sym«=~=»  { <sym>  <O('%chaining')> }
+    token infix:sym«≅»    { <sym>  <O('%chaining')> }
     token infix:sym«==»   { <sym>  <O('%chaining')> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O('%chaining')> }
     token infix:sym«<=»   { <sym>  <O('%chaining')> }

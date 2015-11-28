@@ -354,20 +354,24 @@ multi sub infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
 }
 
-
+# Here we sort NaN in with string "NaN"
 multi sub infix:<cmp>(Num:D \a, Num:D \b) {
      ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
-         a === b ?? Same !! a.Stringy cmp b.Stringy; # treat NaN like "NaN"
+         a === b ?? Same !! a.Stringy cmp b.Stringy;
 }
 multi sub infix:<cmp>(num $a, num $b) {
-    ORDER(nqp::cmp_n($a, $b))
+    ORDER(nqp::cmp_n($a, $b)) or
+         $a === $b ?? Same !! $a.Stringy cmp $b.Stringy;
 }
 
+# Here we treat NaN as undefined
 multi sub infix:«<=>»(Num:D \a, Num:D \b) {
-    ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
+         a == b ?? Same !! Nil;
 }
 multi sub infix:«<=>»(num $a, num $b) {
-    ORDER(nqp::cmp_n($a, $b))
+    ORDER(nqp::cmp_n($a, $b)) or
+         $a == $b ?? Same !! Nil;
 }
 
 multi sub infix:<===>(Num:D \a, Num:D \b) {

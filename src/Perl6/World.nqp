@@ -2782,28 +2782,9 @@ class Perl6::World is HLL::World {
     method apply_trait($/, $trait_sub_name, *@pos_args, *%named_args) {
         my $trait_sub := self.find_symbol([$trait_sub_name]);
         my $ex;
-        my $nok := 0;
         try {
             self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
-            CATCH {
-                $ex := $_;
-                my $payload := nqp::getpayload($_);
-                if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"], :setting-only)) {
-                    my @suggestions := self.suggest_typename($payload.parent);
-                    for @suggestions {
-                        $payload.suggestions.push($_)
-                    }
-                }
-                $nok := 1;
-                CATCH {
-                    # we only get here if we 
-                    # 1) don't have a setting 
-                    # 2) look # for X::Inheritance::UnknownParent while sorta-inside X,
-                    #    e.g. "class X is nosuchtrait { }" 
-                    # building the setting loops infinitely without this CATCH
-                    # block when calling find_symbol with :setting-only
-                }
-            }
+            CATCH { $ex := $_; }
             CONTROL {
                 if nqp::getextype($_) == nqp::const::CONTROL_WARN {
                     $/.CURSOR.worry(nqp::getmessage($_));
@@ -2812,7 +2793,14 @@ class Perl6::World is HLL::World {
                 nqp::rethrow($_);
             }
         }
-        if $nok {
+        if $ex {
+            my $payload := nqp::getpayload($ex);
+            if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"], :setting-only)) {
+                my @suggestions := self.suggest_typename($payload.parent);
+                for @suggestions {
+                    $payload.suggestions.push($_)
+                }
+            }
             self.rethrow($/, $ex);
         }
     }

@@ -356,7 +356,8 @@ multi sub infix:<**>(num $a, num $b) {
 
 
 multi sub infix:<cmp>(Num:D \a, Num:D \b) {
-    ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+     ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
+         a === b ?? Same !! a.Stringy cmp b.Stringy; # treat NaN like "NaN"
 }
 multi sub infix:<cmp>(num $a, num $b) {
     ORDER(nqp::cmp_n($a, $b))

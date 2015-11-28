@@ -552,4 +552,7 @@ multi sub infix:<cmp>(Range:D \a, Range:D \b) returns Order:D {
 multi sub infix:<cmp>(Num(Real) \a, Range:D \b) returns Order:D { (a..a) cmp b }
 multi sub infix:<cmp>(Range:D \a, Num(Real) \b) returns Order:D { a cmp (b..b) }
 
+multi sub infix:<cmp>(Positional \a, Range:D \b) returns Order:D { a cmp b.list }
+multi sub infix:<cmp>(Range:D \a, Positional \b) returns Order:D { a.list cmp b }
+
 # vim: ft=perl6 expandtab sw=4

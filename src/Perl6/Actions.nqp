@@ -2999,6 +2999,11 @@ Compilation unit '$file' contained the following violations:
             }
             $sig.set_returns($*OFTYPE.ast);
         }
+        # and mixin the parameterize callable for type checks
+        if $signature.has_returns {
+            my $callable := $*W.find_symbol(['Callable']);
+            $code.HOW.mixin($code, $callable.HOW.parameterize($callable, $signature.returns));
+        }
 
         # Document it
         Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);

@@ -4187,6 +4187,7 @@ Compilation unit '$file' contained the following violations:
         my $sig := $*W.create_signature_and_params($/, $<signature>.ast,
             $fake_pad, 'Mu', :no_attr_check(1));
 
+        %*PARAM_INFO<subsig_returns> := $sig.returns;
         $*W.cur_lexpad()[0].push($fake_pad);
         $*W.create_code_object($fake_pad, 'Block', $sig);
 
@@ -4285,6 +4286,17 @@ Compilation unit '$file' contained the following violations:
             }
             elsif %*PARAM_INFO<named_slurpy> {
                 $/.CURSOR.typed_sorry('X::Parameter::TypedSlurpy', kind => 'named');
+            }
+            elsif %*PARAM_INFO<sigil> eq '&' && nqp::existskey(%*PARAM_INFO, 'subsig_returns')
+                    && !(%*PARAM_INFO<subsig_returns> =:= $*W.find_symbol(["Mu"])) {
+                $/.CURSOR.'!fresh_highexpect'();
+                $*W.throw($/, 'X::Redeclaration',
+                    what    => 'return type for',
+                    symbol  => $<param_var>.Str,
+                    postfix => " (previous return type was "
+                                ~ $<type_constraint>[0].Str
+                                ~ ')',
+                );
             }
         }
 

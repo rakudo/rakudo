@@ -31,6 +31,7 @@ for  qx!git log --pretty='format:%an|%ae'|sort -u!.split("\n") -> $commit {
 
     my ($name, $email) = $commit.split('|');
     next unless $name and $email;
+    next if $name eq 'chromatic'; # user requested this
 
     # TODO check for existing email here
     %h{$name} = "E: {$email}\n" if all( $name ne "unknown", $email !~~ /'(none)'/, $email !~~ /\.local/, !%h{$name}.defined, !%email{$email}.defined );

@@ -129,18 +129,15 @@ Please refactor this code using the new Iterator / Seq interface.
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.EXISTS-KEY($key_name) {
-                    # XXX Should not really need the decontainerize, but seems
-                    # that slurpy hashes sometimes lead to double containers
-                    # somehow...
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = %attrinit{$key_name};
                 }
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = %attrinit{$key_name};
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
@@ -151,7 +148,7 @@ Please refactor this code using the new Iterator / Seq interface.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.EXISTS-KEY($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = %attrinit{$key_name};
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),

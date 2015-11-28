@@ -73,6 +73,7 @@ my class Signature { # declared in BOOTSTRAP
                 return False unless $hasslurpy;
             }
         }
+        return False unless self.returns =:= $topic.returns;
         True;
     }
 

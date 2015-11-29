@@ -1,14 +1,6 @@
 my role  IO         { ... }
 my class IO::Path   { ... }
 
-my class SprintfHandler {
-    method mine($x) { nqp::reprname($x) eq "P6opaque"; }
-
-    method int($x) { $x.Int }
-}
-
-my $sprintfHandlerInitialized = False;
-
 my class Cool { # declared in BOOTSTRAP
     # class Cool is Any {
 
@@ -76,10 +68,7 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method fmt($format = '%s') {
-        unless $sprintfHandlerInitialized {
-            nqp::sprintfaddargumenthandler(SprintfHandler.new);
-            $sprintfHandlerInitialized = True;
-        }
+        Rakudo::Internals.initialize-sprintf-handler;
         nqp::p6box_s(
             nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
         )
@@ -356,17 +345,13 @@ multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
 sub sprintf(Cool $format, *@args) {
-    unless $sprintfHandlerInitialized {
-        nqp::sprintfaddargumenthandler(SprintfHandler.new);
-        $sprintfHandlerInitialized = True;
-    }
-
+    Rakudo::Internals.initialize-sprintf-handler;
     @args.elems;
     nqp::p6box_s(
         nqp::sprintf(nqp::unbox_s($format.Stringy),
             nqp::clone(nqp::getattr(@args, List, '$!reified'))
         )
-    );
+    )
 }
 
 sub printf(Cool $format, *@args)          { print sprintf $format, @args }

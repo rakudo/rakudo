@@ -560,6 +560,19 @@ my class Rakudo::Internals {
             }
         }
     }
+
+
+    my int $sprintfHandlerInitialized = 0;
+    method initialize-sprintf-handler() {
+        class SprintfHandler {
+            method mine($x) { nqp::reprname($x) eq "P6opaque"; }
+            method int($x) { $x.Int }
+        }
+        unless $sprintfHandlerInitialized {
+            nqp::sprintfaddargumenthandler(SprintfHandler.new);
+            $sprintfHandlerInitialized = 1;
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

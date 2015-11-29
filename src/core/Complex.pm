@@ -33,7 +33,7 @@ my class Complex is Cool does Numeric {
 
     method coerce-to-real(Complex:D: $exception-target) {
         fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self)
-            unless $!im.abs < $*SIGNIFICANCE;
+            unless $!im ≅ 0;
         $!re;
     }
     multi method Real(Complex:D:) { self.coerce-to-real(Real); }
@@ -446,9 +446,12 @@ multi sub infix:<cmp>(Num(Real) \a, Complex:D \b) returns Order:D { a cmp b.re |
 multi sub infix:<cmp>(Complex:D \a, Num(Real) \b) returns Order:D { a.re cmp b || a.im cmp 0 }
 
 multi sub infix:«<=>»(Complex:D \a, Complex:D \b) returns Order:D {
-    my $signif = $*SIGNIFICANCE;
+    my $tolerance = a && b
+        ?? (a.re.abs + b.re.abs) / 2 * $*TOLERANCE  # Scale slop to average real parts.
+        !! $*TOLERANCE;                             # Don't want tolerance 0 if either arg is 0.
+    # Fail unless imaginary parts are relatively negligible, compared to real parts.
     fail X::Numeric::Real.new(target => Real, reason => "Complex is not numerically orderable", source => "Complex")
-        unless a.im.abs < $signif && b.im.abs < $signif;  # c.f. coerce-to-real above
+        unless infix:<≅>(a.im, 0, :$tolerance) and infix:<≅>(b.im, 0, :$tolerance);
     a.re <=> b.re;
 }
 multi sub infix:«<=>»(Num(Real) \a, Complex:D \b) returns Order:D { a.Complex <=> b }

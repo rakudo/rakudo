@@ -42,8 +42,8 @@ multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
     PROCESS::<$TMPDIR> := $*SPEC.tmpdir;
 }
 
-multi sub INITIALIZE_DYNAMIC('$*SIGNIFICANCE') {
-    PROCESS::<$SIGNIFICANCE> := item 1e-15;
+multi sub INITIALIZE_DYNAMIC('$*TOLERANCE') {
+    PROCESS::<$TOLERANCE> := item 1e-15;
 }
 
 multi sub INITIALIZE_DYNAMIC('$*HOME') {

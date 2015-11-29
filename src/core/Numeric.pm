@@ -239,10 +239,21 @@ proto sub infix:<==>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
-proto sub infix:<≅>(Mu $?, Mu $?) { * }  # note, can't be pure due to dynvar
+proto sub infix:<≅>(Mu $?, Mu $?, *%) { * }  # note, can't be pure due to dynvar
 multi sub infix:<≅>($?)        { Bool::True }
-multi sub infix:<≅>(\a, \b)    { abs(a.Num - b.Num) < $*SIGNIFICANCE }
-sub infix:<=~=>(\a, Mu \b) { a ≅ b  }
+multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
+    # If operands are non-0, scale the tolerance to the larger of the abs values.
+    # We test b first since $value ≅ 0 is the usual idiom and falsifies faster.
+    if b && a && $tolerance {
+        my $a = a.abs;
+        my $b = b.abs;
+        abs($a - $b) < ($a max $b) * $tolerance;
+    }
+    else {  # interpret tolerance as absolute
+        abs(a.Num - b.Num) < $tolerance;
+    }
+}
+sub infix:<=~=>(|c) { infix:<≅>(|c) }
 
 proto sub infix:<!=>(Mu $?, Mu $?) is pure  { * }
 multi sub infix:<!=>($?)        { Bool::True }

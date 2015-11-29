@@ -33,7 +33,7 @@ my class Complex is Cool does Numeric {
 
     method coerce-to-real(Complex:D: $exception-target) {
         fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self)
-            unless $!im ≅ 0;
+            unless $!im ≅ 0e0;
         $!re;
     }
     multi method Real(Complex:D:) { self.coerce-to-real(Real); }
@@ -218,7 +218,7 @@ my class Complex is Cool does Numeric {
     }
 
     method narrow(Complex:D:) {
-        $!im == 0e0
+        $!im / $!re ≅ 0e0
             ?? $!re.narrow
             !! self;
     }
@@ -451,7 +451,7 @@ multi sub infix:«<=>»(Complex:D \a, Complex:D \b) returns Order:D {
         !! $*TOLERANCE;                             # Don't want tolerance 0 if either arg is 0.
     # Fail unless imaginary parts are relatively negligible, compared to real parts.
     fail X::Numeric::Real.new(target => Real, reason => "Complex is not numerically orderable", source => "Complex")
-        unless infix:<≅>(a.im, 0, :$tolerance) and infix:<≅>(b.im, 0, :$tolerance);
+        unless infix:<≅>(a.im, 0e0, :$tolerance) and infix:<≅>(b.im, 0e0, :$tolerance);
     a.re <=> b.re;
 }
 multi sub infix:«<=>»(Num(Real) \a, Complex:D \b) returns Order:D { a.Complex <=> b }

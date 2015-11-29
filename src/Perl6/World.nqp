@@ -678,32 +678,6 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method use_lib($arglist,:$push) {
-        my $INC := %*PRAGMAS<INC> := %*PRAGMAS<INC>
-          ?? nqp::clone(%*PRAGMAS<INC>)
-          !! nqp::list();
-
-        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
-        $DEBUG(($push ?? "Push" !! "Unshift") ~ "ing to @?INC:") if $DEBUG;
-
-        for $arglist -> $arg {
-            my $string := nqp::decont(nqp::index($arg,'#') == -1
-              ?? nqp::hllizefor("file#$arg", 'perl6')
-              !! $arg
-            );
-            $push
-              ?? nqp::push($INC,$string)
-              !! nqp::unshift($INC,$string);
-            $DEBUG("  $arg") if $DEBUG;
-        }
-
-        my $INC-list := nqp::create(self.find_symbol(['List']));
-        nqp::bindattr($INC-list, self.find_symbol(['List']), '$!reified', $INC);
-        $INC := $INC-list;
-        self.add_object($INC);
-        self.install_lexical_symbol(self.cur_lexpad,'@?INC',$INC);
-    }
-
     # pragmas without args
     my %no_args_pragma := nqp::hash(
       'fatal',          1,
@@ -752,9 +726,6 @@ class Perl6::World is HLL::World {
 
         if %just_set_pragma{$name} {
             %*PRAGMAS{$name} := $on;
-        }
-        elsif $name eq 'cur' {   # temporary, will become 'lib'
-            self.use_lib($arglist);
         }
         elsif $name eq 'strict' {
             if nqp::islist($arglist) {

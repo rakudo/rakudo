@@ -1173,8 +1173,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
 
     method samespace(Str:D: Str:D $pat) {
-        my @self-chunks = self.split(rx/\s+/, :all).flat;
-        my @pat-chunks  = $pat.split(rx/\s+/, :all).flat;
+        my @self-chunks = self.split(rx/\s+/, :v).flat;
+        my @pat-chunks  = $pat.split(rx/\s+/, :v).flat;
         loop (my $i = 1; $i < @pat-chunks && $i < @self-chunks; $i += 2) {
             @self-chunks[$i] = @pat-chunks[$i];
         }

@@ -1053,15 +1053,17 @@ my class X::Adverb is Exception {
         my $text = '';
         if @!unexpected.elems -> $elems {
             $text = $elems > 1
-              ?? "$elems unexpected adverbs (@!unexpected.sort())"
+              ?? "$elems unexpected adverbs (@.unexpected)"
               !! "Unexpected adverb '@!unexpected[0]'"
         }
         if @!nogo {
             $text ~= $text ?? " and u" !! "U";
-            $text ~= "nsupported combination of adverbs (@!nogo.sort())";
+            $text ~= "nsupported combination of adverbs (@.nogo)";
         }
         $text ~ " passed to $!what on $!source";
     }
+    method unexpected { @!unexpected.sort }
+    method nogo       { @!nogo.sort }
 }
 
 my class X::Bind is Exception {

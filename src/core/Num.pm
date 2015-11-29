@@ -238,7 +238,9 @@ my constant pi = 3.14159_26535_89793_238e0;
 my constant e  = 2.71828_18284_59045_235e0;
 
 my constant π := pi;
+#?if moar
 my constant 𝑒 := e;
+#?endif
 
 multi sub prefix:<++>(Num:D $a is rw) {
     $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0))

@@ -609,7 +609,6 @@ class Perl6::World is HLL::World {
 
             # This also becomes the current MAIN. Also place it in %?LANG.
             %*LANG<MAIN> := $cursor.WHAT;
-            self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
         }
 
         # Add action method if needed.
@@ -622,6 +621,7 @@ class Perl6::World is HLL::World {
             %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
                 PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
         }
+        self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
     }
 
     method do_import($/, $module, $package_source_name, $arglist?) {

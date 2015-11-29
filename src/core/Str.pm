@@ -1343,6 +1343,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
     }
 #?endif
+#?if jvm
+    method NFC()  { X::NYI.new(:feature<NFC>).throw }
+    method NFD()  { X::NYI.new(:feature<NFD>).throw }
+    method NFKC() { X::NYI.new(:feature<NFKC>).throw }
+    method NFKD() { X::NYI.new(:feature<NFKD>).throw }
+#?endif
 
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {

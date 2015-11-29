@@ -422,10 +422,9 @@ my class Range is Cool does Iterable does Positional {
                         }
                     }
                     method push-all($target) {
-                        my Int $value;
                         my str $key;
                         while $!todo {
-                            $value = $!min + nqp::rand_I($!elems, Int);
+                            my Int $value = $!min + nqp::rand_I($!elems, Int);
                             $key   = nqp::tostr_I(nqp::decont($value));
                             unless nqp::existskey($!seen,$key) {
                                 $target.push($value);

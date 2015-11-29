@@ -200,15 +200,12 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i;
-        try {
-            $i = nqp::unbox_i($pos);
-            CATCH {
-                default {
-                    return Nil
-                }
-            }
-        }
+        fail X::OutOfRange.new(
+          :what("Position in index"),
+          :got($pos),
+          :range("0..{self.chars}"),
+        ) if nqp::isbig_I(nqp::decont($pos));
+        my int $i = nqp::unbox_i($pos);
         fail X::OutOfRange.new(
           :what("Position in index"),
           :got($i),
@@ -228,15 +225,12 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i;
-        try {
-            $i = nqp::unbox_i($pos);
-            CATCH {
-                default {
-                    return Nil
-                }
-            }
-        }
+        fail X::OutOfRange.new(
+          :what("Position in rindex"),
+          :got($pos),
+          :range("0..{self.chars}"),
+        ) if nqp::isbig_I(nqp::decont($pos));
+        my int $i = nqp::unbox_i($pos);
         fail X::OutOfRange.new(
           :what("Position in rindex"),
           :got($i),

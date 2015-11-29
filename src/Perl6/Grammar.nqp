@@ -4576,7 +4576,6 @@ if $*COMPILING_CORE_SETTING {
 
         # This also becomes the current MAIN. Also place it in %?LANG.
         %*LANG<MAIN> := self.WHAT;
-        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
 
         # Declarand should get precedence traits.
         if $is_oper && nqp::isconcrete($declarand) {
@@ -4629,6 +4628,7 @@ if $*COMPILING_CORE_SETTING {
                     !! TermAction.HOW.curry(TermAction, $canname, $subname));
         }
 
+        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
         return 1;
     }
 

@@ -142,10 +142,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         $subbuf
     }
 
-    method unpack(Blob:D: $template) {
+    proto method unpack(|) { * }
+    multi method unpack(Blob:D: Str:D $template) {
+        self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
+    }
+    multi method unpack(Blob:D: @template) {
         my @bytes = self.list;
         my @fields;
-        for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
+        for @template -> $unit {
             my $directive = substr($unit,0,1);
             my $amount    = substr($unit,1);
             my $pa = $amount eq ''  ?? 1            !!

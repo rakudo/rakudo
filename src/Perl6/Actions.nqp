@@ -5532,7 +5532,7 @@ Compilation unit '$file' contained the following violations:
         make $past;
     }
 
-    method circumfix:sym<SEQ( )>($/) {
+    method circumfix:sym<STATEMENT_LIST( )>($/) {
         my $past := $<sequence>.ast;
         my $size := +$past.list;
         if $size == 0 {

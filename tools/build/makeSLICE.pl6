@@ -313,7 +313,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,$pair,%adv) {
                     $k
                       ?? $more.cache.flatmap( {
                              next unless SELF.@EXISTS[]$_);
-                             SEQ( SELF.@DELETE[]$_); $_ );
+                             STATEMENT_LIST( SELF.@DELETE[]$_); $_ );
                          } ).eager.list
                       !! $more.cache.flatmap( {
                              SELF.@DELETE[]$_); $_

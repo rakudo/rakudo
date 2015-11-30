@@ -3614,7 +3614,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <block>
     }
 
-    token circumfix:sym<SEQ( )> { :dba('statement list') 'SEQ(' ~ ')' <sequence> }
+    # XXX remove SEQ for xmas?
+    token circumfix:sym<SEQ( )> { 'SEQ(' <.panic: "Use of unsupported SEQ macro; please change to STATEMENT_LIST"> }
+    token circumfix:sym<STATEMENT_LIST( )> { :dba('statement list') 'STATEMENT_LIST(' ~ ')' <sequence> }
 
     token circumfix:sym<( )> {
         :my $*FAKE_INFIX_FOUND := 0;

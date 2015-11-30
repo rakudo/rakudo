@@ -48,7 +48,7 @@ class Derived1 is repr<CPPStruct> {
 sub SizeofDerived1() returns int32 is mangled is native("./11-cpp") { * }
 
 is nativesizeof(Derived1), SizeofDerived1(), 'sizeof(Derived1)';
-ok my $d1 = Derived1.new, 'can instanciate C++ class';
+ok my $d1 = Derived1.new, 'can instantiate C++ class';
 is $d1.foo,   11,   'can read attribute foo';
 is $d1.bar,   42,   'can read attribute bar';
 is $d1.baz,   43,   'can read attribute baz';
@@ -76,7 +76,7 @@ class Derived2 is repr<CPPStruct> {
 sub SizeofDerived2() returns int32 is mangled is native("./11-cpp") { * }
 
 is nativesizeof(Derived2), SizeofDerived2(), 'sizeof(Derived2)';
-ok my $d2 = Derived2.new, 'can instanciate C++ class with vtable';
+ok my $d2 = Derived2.new, 'can instantiate C++ class with vtable';
 is $d2.foo,   11,   'can read attribute foo';
 is $d2.bar,   42,   'can read attribute bar';
 is $d2.baz,   43,   'can read attribute baz';

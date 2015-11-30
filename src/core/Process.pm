@@ -41,97 +41,67 @@ multi sub INITIALIZE_DYNAMIC('$*TOLERANCE') {
 }
 
 multi sub INITIALIZE_DYNAMIC('$*REPO') {
-    my @INC;
     my %CUSTOM_LIB;
     my %ENV := %*ENV; # only look up environment once
+    my CompUnit::Repository $next-repo;
 
     # starting up for creating precomp
     if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
-        @INC = specs.split(','); # assume well formed strings
+        # assume well formed strings
+        $next-repo := CompUnitRepo.new($_, :$next-repo) for specs.split(',').reverse;
     }
 
     # normal start up
     else {
+        my $prefix := nqp::p6box_s(
+            nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'), '/share/perl6')
+        );
+        %CUSTOM_LIB<perl>   = $next-repo := CompUnitRepo.new("inst#$prefix",        :$next-repo);
+        %CUSTOM_LIB<vendor> = $next-repo := CompUnitRepo.new("inst#$prefix/vendor", :$next-repo);
+        %CUSTOM_LIB<site>   = $next-repo := CompUnitRepo.new("inst#$prefix/site",   :$next-repo);
+
+        # XXX Various issues with this stuff on JVM
+        my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
+        try {
+            if %ENV<HOME>
+              // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
+                my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+                my $path := "$home/.perl6/$ver";
+                %CUSTOM_LIB<home> = $next-repo := CompUnitRepo.new("inst#$path", :$next-repo);
+            }
+        }
+
+#?if jvm
+        for nqp::hllize(nqp::jvmclasspaths()) -> $path {
+            $next-repo := CompUnitRepo.new($_, :$next-repo)
+                for PARSE-INCLUDE-SPECS($path).reverse;
+        }
+#?endif
+
+        for <RAKUDOLIB PERL6LIB> {
+            if %ENV{$_} -> $lib {
+                $next-repo := CompUnitRepo.new($_, :$next-repo)
+                    for PARSE-INCLUDE-SPECS($lib).reverse;
+            }
+        }
+
         my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
         if nqp::defined($I) {
             if nqp::islist($I) {
                 my Mu $iter := nqp::iterator($I);
                 while $iter {
-                    @INC.append: PARSE-INCLUDE-SPECS(nqp::shift($iter));
+                        $next-repo := CompUnitRepo.new($_, :$next-repo)
+                        for PARSE-INCLUDE-SPECS(nqp::shift($iter)).reverse;
                 }
-           }
+            }
             else {
-                @INC.append: PARSE-INCLUDE-SPECS(nqp::p6box_s($I));
+                $next-repo := CompUnitRepo.new($_, :$next-repo)
+                    for PARSE-INCLUDE-SPECS(nqp::p6box_s($I)).reverse;
             }
-        }
-
-        if %ENV<RAKUDOLIB> -> $rakudolib {
-            @INC.append: PARSE-INCLUDE-SPECS($rakudolib);
-        }
-        if %ENV<PERL6LIB> -> $perl6lib {
-            @INC.append: PARSE-INCLUDE-SPECS($perl6lib);
-        }
-
-#?if jvm
-        for nqp::hllize(nqp::jvmclasspaths()) -> $path {
-            @INC.append: PARSE-INCLUDE-SPECS($path);
-        }
-#?endif
-
-        my $prefix := nqp::p6box_s(
-          nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
-        );
-
-        my $abspath := "$prefix/share/libraries.json";
-        if IO::Path.new-from-absolute-path($abspath).e {
-#            my $config = from-json( slurp $abspath );
-#
-#            for $config.list -> @group {
-#                for @group>>.kv -> $class, $props {
-#                    for $props.list -> $prop {
-#                        if nqp::istype($prop,Associative) {
-#                            for $prop.value.flat -> $path {
-#                                @INC.push: PARSE-INCLUDE-SPECS($path);
-#                                %CUSTOM_LIB{$prop.key} = $path;
-#                            }
-#                        }
-#                        else {
-#                            for $prop.flat -> $path {
-#                                @INC.push: PARSE-INCLUDE-SPECS($path);
-#                            }
-#                        }
-#                    }
-#                }
-#            }
-        }
-        # There is no config file, so pick sane defaults.
-        else {
-            # XXX Various issues with this stuff on JVM
-            my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
-            try {
-                if %ENV<HOME>
-                  // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
-                    my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-                    my $path := "$home/.perl6/$ver";
-                    @INC.append: "inst#$path";
-                    %CUSTOM_LIB<home> = $path;
-                }
-            }
-            @INC.append:
-              "inst#$prefix/site",
-              "inst#$prefix/vendor",
-              "inst#$prefix";
-
-            %CUSTOM_LIB<perl>   =  $prefix;
-            %CUSTOM_LIB<vendor> = "$prefix/vendor";
-            %CUSTOM_LIB<site>   = "$prefix/site";
         }
     }
 
     PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
-
-    my CompUnit::Repository $next-repo;
-    $next-repo := CompUnitRepo.new($_, :$next-repo) for @INC.unique.reverse;
     PROCESS::<$REPO> := $next-repo;
 }
 

@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 14;
+plan 11;
 
 for (
 
@@ -30,22 +30,6 @@ for (
 
 dies-ok { CompUnitRepo.parse-spec('CompUnitRepo::GitHub#masak/html-template') },
   "must have module loaded";
-
-# need EVAL to create and check class at runtime
-EVAL '
-class CompUnitRepo::GitHub {
-    method short-id { "gith" };
-};
-for (
-  ( "CompUnitRepo::GitHub#masak/html-template" =>
-    [ "CompUnitRepo::GitHub#masak/html-template" ] ),
-  ( "gith#masak/html-template" =>
-    [ "gith#masak/html-template" ] ),
-) -> $to-check { parse_ok( $to-check ) };
-';
-
-is-deeply @*INC, PARSE-INCLUDE-SPECS(CREATE-INCLUDE-SPECS(@*INC)),
-  'can we reproduce an @*INC setting';
 
 #========================================================
 sub parse_ok ($to-check) {

@@ -118,20 +118,19 @@ multi sub INITIALIZE_DYNAMIC('$*REPO') {
                 }
             }
             @INC.append:
-              "inst#$prefix/site",
-              "inst#$prefix/vendor",
-              "inst#$prefix";
-
-            %CUSTOM_LIB<perl>   =  $prefix;
-            %CUSTOM_LIB<vendor> = "$prefix/vendor";
-            %CUSTOM_LIB<site>   = "$prefix/site";
+              (%CUSTOM_LIB<site>   = "inst#$prefix/site"),
+              (%CUSTOM_LIB<vendor> = "inst#$prefix/vendor"),
+              (%CUSTOM_LIB<perl>   = "inst#$prefix");
         }
     }
 
     PROCESS::<%CUSTOM_LIB> := %CUSTOM_LIB;
 
     my CompUnit::Repository $next-repo;
-    $next-repo := CompUnitRepo.new($_, :$next-repo) for @INC.unique.reverse;
+    my %repos;
+    %repos{$_} = $next-repo := CompUnitRepo.new($_, :$next-repo) for @INC.unique.reverse;
+
+    $_ = %repos{$_} for %CUSTOM_LIB.values;
     PROCESS::<$REPO> := $next-repo;
 }
 

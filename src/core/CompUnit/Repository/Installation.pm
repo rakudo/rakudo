@@ -104,7 +104,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         nqp::sha1($id)
     }
 
-    method install(Distribution $dist, %sources, %scripts?, %resources?) {
+    method install(Distribution $dist, %sources, %scripts?, %resources?, :$force) {
         $!lock.protect( {
         my @*MODULES;
         my $path   = self.writeable-path or die "No writeable path found";
@@ -112,7 +112,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lock.lock(2);
 
         my $dist-dir = self!dist-dir;
-        if $dist-dir.child($dist.id) ~~ :e {
+        if not $force and $dist-dir.child($dist.id) ~~ :e {
             $lock.unlock;
             fail "$dist already installed";
         }

@@ -19,6 +19,7 @@ $*REPO.repo-chain[* - 1].install(
         provides => %provides,
     ),
     %provides,
+    :force,
 );
 
 note "installed!";

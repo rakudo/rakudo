@@ -155,7 +155,7 @@ my class Cool { # declared in BOOTSTRAP
         my str $str = nqp::unbox_s(self.Str);
         my int $pos =
           nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
-        $pos >= 0 && nqp::eqat($str, nqp::unbox_s($needle), $pos);
+        $pos >= 0 && nqp::p6bool(nqp::eqat($str, nqp::unbox_s($needle), $pos));
     }
 
     proto method contains(|) {*}

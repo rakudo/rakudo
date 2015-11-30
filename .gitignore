@@ -1,5 +1,6 @@
 src/gen/*
 nqp/
+repo/
 install/
 install-jvm/
 Makefile

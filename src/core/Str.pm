@@ -1172,13 +1172,53 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
 
-    method samespace(Str:D: Str:D $pat) {
-        my @self-chunks = self.split(rx/\s+/, :v).flat;
-        my @pat-chunks  = $pat.words;
-        loop (my $i = 1; $i < @pat-chunks && $i < @self-chunks; $i += 2) {
-            @self-chunks[$i] = @pat-chunks[$i];
+    method samespace(Str:D: Str:D $pattern) {
+        my str $str = nqp::unbox_s(self);
+        my str $pat = nqp::unbox_s($pattern);
+        my Mu $ret := nqp::list_s;
+
+        my int $chars = nqp::chars($str);
+        my int $pos = 0;
+        my int $nextpos;
+        my int $patchars = nqp::chars($pat);
+        my int $patpos = 0;
+        my int $patnextpos;
+        my int $left;
+
+        # still something to look for
+        while ($left = $chars - $pos) > 0 {
+
+            # no more whitespace in original?
+            $nextpos = nqp::findcclass(
+              nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+            last if $nextpos >= $chars;
+
+            # nothing left in pat
+            last unless ($left = $patchars - $patpos) > 0;
+
+            # no more whitespace in pattern?
+            $patnextpos = nqp::findcclass(
+              nqp::const::CCLASS_WHITESPACE, $pat, $patpos, $left);
+            last if $patnextpos >= $patchars;
+
+            # store original with other whitespace
+            $patpos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+              $pat, $patnextpos, $patchars - $patnextpos);
+            nqp::push_s($ret,
+              nqp::substr($str, $pos, $nextpos - $pos));
+            nqp::push_s($ret,
+              nqp::substr($pat, $patnextpos, $patpos - $patnextpos));
+
+            # where do we continue?
+            $pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+              $str, $nextpos, $chars - $nextpos);
         }
-        @self-chunks.join;
+
+        # any final bits
+        nqp::push_s($ret, nqp::substr($str, $pos, $chars - $pos))
+          if $pos < $chars;
+
+        nqp::join("",$ret)
     }
 
     method trim-leading(Str:D:) {

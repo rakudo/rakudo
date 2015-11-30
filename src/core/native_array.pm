@@ -709,15 +709,28 @@ my class array does Iterable is repr('VMArray') {
 
 # needs native arrays, so we can only define it here
 sub permutations(int $n) {
-    my int $i;
-    $n == 1 ?? ( (0,), ) !!
-    gather while $i < $n {
-        my Int @i;
-        my int $j;
-        @i.push($j++) while $j < $i;
-        $j = $i + 1;
-        @i.push($j++) while $j < $n;
-        take (nqp::clone($i), |@i[@$_]) for permutations($n - 1);
-        $i = $i + 1;
-    }
+    Seq.new(
+        class :: does Iterator {
+            # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
+            has int $!n;
+            has     @!a;
+            submethod BUILD(:$n) { $!n = $n; self }
+            #method is-lazy { True }
+            method pull-one {
+                if !@!a { (@!a = ^$!n).List }
+                # Find the largest index k such that a[k] < a[k + 1].
+                # If no such index exists, the permutation is the last permutation.
+                elsif !(my $k = first { @!a[$_] < @!a[$_ + 1] }, :end, ^@!a.end).defined
+                { IterationEnd }
+                else {
+                    # Find the largest index l greater than k such that a[k] < a[l].
+                    my $l = first { @!a[$k] < @!a[$_] }, :end, $k ^..^ $!n;
+                    @!a[$k, $l].=reverse;
+                    @!a[$k+1 .. *].=reverse;
+                    @!a.List;
+                }
+            }
+            method count-only { [*] 1 .. $!n }
+        }.new(:$n)
+    );
 }

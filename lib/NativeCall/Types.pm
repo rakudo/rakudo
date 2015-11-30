@@ -61,15 +61,10 @@ augment class Pointer {
 }
 
 # CArray class, used to represent C arrays.
-our class CArray is repr('CArray') is array_type(Pointer) { };
-
-# need to introduce the roles in there in an augment, because you can't 
-# inherit from types that haven't been properly composed.
-use MONKEY-TYPING;
-augment class CArray {
+our class CArray is repr('CArray') is array_type(Pointer) {
     method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
 
-    my role IntTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
+    my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
@@ -104,7 +99,7 @@ augment class CArray {
         }
     }
 
-    my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
+    my role NumTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
@@ -139,7 +134,7 @@ augment class CArray {
         }
     }
 
-    my role TypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
+    my role TypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
@@ -167,20 +162,22 @@ augment class CArray {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
         }
     }
-    method ^parameterize($, Mu:U \t) {
-        my $typed;
+    method ^parameterize(Mu:U \arr, Mu:U \t) {
+        my $mixin;
         if t ~~ Int {
-            $typed := IntTypedCArray[t.WHAT];
+            $mixin := IntTypedCArray[t.WHAT];
         }
         elsif t ~~ Num {
-            $typed := NumTypedCArray[t.WHAT];
+            $mixin := NumTypedCArray[t.WHAT];
         }
         else {
             die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
                 unless t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CUnion' | 'CPointer' | 'CArray';
-            $typed := TypedCArray[t];
+            $mixin := TypedCArray[t];
         }
-        $typed.^inheritalize();
+        my $what := arr.^mixin: $mixin;
+        $what.^set_name("{arr.^name}[{t.^name}]");
+        $what;
     }
 
     method elems { nqp::elems(self) }

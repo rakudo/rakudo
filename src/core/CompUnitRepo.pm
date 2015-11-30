@@ -233,8 +233,6 @@ RAKUDO_MODULE_DEBUG("Parsing specs: $specs")
     @found;
 }
 
-sub CREATE-INCLUDE-SPECS(*@INC) { @INC.join(',') }
-
 sub RAKUDO_MODULE_DEBUG(*@str) { note "SET RMD: @str[]" }
 
 # vim: ft=perl6 expandtab sw=4

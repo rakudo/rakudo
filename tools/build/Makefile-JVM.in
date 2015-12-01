@@ -371,6 +371,21 @@ j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.
 	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/dist
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/sources
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/resources
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/bin
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/short
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/dist
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/sources
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/resources
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/bin
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/short
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/dist
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/sources
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/resources
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/bin
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/short
 	.@slash@$(J_RUNNER) tools/build/install-core-dist.pl
 	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 	$(PERL) tools/build/create-jvm-runner.pl install-debug "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)

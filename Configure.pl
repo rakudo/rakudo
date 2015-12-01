@@ -1,7 +1,7 @@
 #! perl
 # Copyright (C) 2009 The Perl Foundation
 
-use 5.008;
+use 5.010;
 use strict;
 use warnings;
 use Text::ParseWords;

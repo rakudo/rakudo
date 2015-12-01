@@ -569,12 +569,7 @@ public final class RakOps {
 
     public static SixModelObject p6routinereturn(SixModelObject in, ThreadContext tc) {
         CallFrame ctx = tc.curFrame;
-        SixModelObject cont = null;
-
-        for (ctx = ctx.caller; ctx != null; ctx = ctx.caller) {
-            cont = getremotelex(ctx, "RETURN");
-            if (cont != null) break;
-        }
+        SixModelObject cont = getremotelex(ctx.caller, "RETURN");
 
         if (!(cont instanceof LexoticInstance)) {
             SixModelObject thrower = getThrower(tc, "X::ControlFlow::Return");

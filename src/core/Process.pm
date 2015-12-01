@@ -113,8 +113,7 @@ multi sub INITIALIZE_DYNAMIC('$*REPO') {
                   // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
                     my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
                     my $path := "$home/.perl6/$ver";
-                    @INC.append: "inst#$path";
-                    %CUSTOM_LIB<home> = $path;
+                    @INC.append: (%CUSTOM_LIB<home> = "inst#$path");
                 }
             }
             @INC.append:

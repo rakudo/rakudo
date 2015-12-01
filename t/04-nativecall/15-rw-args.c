@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
 #else
@@ -42,4 +43,13 @@ DLLEXPORT void SetULong(unsigned long *lng) {
 
 DLLEXPORT void SetULongLong(unsigned long long *llg) {
     *llg = 15324;
+}
+
+DLLEXPORT int SetPtrToPtr(int **ptr) {
+    if (ptr == NULL) {
+        return 0;
+    }
+
+    *ptr = (int *)42;
+    return 1;
 }

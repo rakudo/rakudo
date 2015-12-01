@@ -44,6 +44,7 @@ my sub MAIN_HELPER($retval = 0) {
     # Generate $?USAGE string (default usage info for MAIN)
     my sub gen-usage() {
         my @help-msgs;
+        my %arg-help;
 
         my sub strip_path_prefix($name) {
             my $SPEC := $*SPEC;
@@ -90,6 +91,7 @@ my sub MAIN_HELPER($retval = 0) {
                     $argument = "[$argument]"     if $param.optional;
                     @positional.push($argument);
                 }
+                %arg-help{$argument} = $param.WHY if $param.WHY;
             }
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
@@ -97,6 +99,13 @@ my sub MAIN_HELPER($retval = 0) {
             my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
             @help-msgs.push($msg);
         }
+
+        if %arg-help {
+            @help-msgs.push('');
+            my $offset = max(%arg-help.map: { .key.chars }) + 4;
+            @help-msgs.append(%arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
+        }
+
         my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
         $usage;
     }

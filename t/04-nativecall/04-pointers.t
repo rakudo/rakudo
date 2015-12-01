@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 15;
+plan 12;
 
 compile_test_lib('04-pointers');
 
@@ -20,14 +20,11 @@ ok $x,     'Non-NULL pointer is trueish';
 ok $x.Int, 'Calling .Int on non-NULL pointer is trueish';
 ok +$x,    'Calling prefix:<+> on non-NULL pointer is trueish';
 is +$x.perl.EVAL,          +$x,               'Pointer roundtrips okay using .perl and EVAL';
-is Pointer.new.gist,       'Pointer<NULL>',   'Pointer.new gistifies to "Pointer<NULL>"';
-is Pointer.new(0).gist,    'Pointer<NULL>',   'Pointer.new(0) gistifies to "Pointer<NULL>"';
-is Pointer.new(1234).gist, 'Pointer<0x4d2>',  'Pointer.new(1234) gistifies to "Pointer<0x4d2>"';
-is Pointer.new($a).gist,   'Pointer<0x10e1>', 'Pointer.new accepts a native int too';
-is Pointer.gist,           '(Pointer)',       'The Pointer type object gistifies ot "Pointer"';
-is ReturnNullPointer().gist, '(Pointer)',     'A returned NULL pointer is the Pointer type object itself';
-ok ReturnNullPointer().defined == False,      'A returned NULL pointer is the Pointer type object itself';
-ok ReturnNullPointer().Bool == False,         'A returned NULL pointer is the Pointer type object itself';
+is +Pointer.new,          0, 'Numerical value of Pointer.new is 0';
+is +Pointer.new(0),       0, 'Pointer.new(0) has 0 numerical value';
+is +Pointer.new(1234), 1234, 'Pointer.new(1234) has numerical value 1234';
+is +Pointer.new($a),     $a, 'Pointer.new accepts a native int too';
+ok ReturnNullPointer() === Pointer,           'A returned NULL pointer is the Pointer type object itself';
 
 {
     eval-lives-ok q:to 'CODE', 'Signature matching with Pointer[Int] works (RT #124321)';

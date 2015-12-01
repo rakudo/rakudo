@@ -7,15 +7,8 @@ our native ulong     is Int is ctype("long")     is unsigned is repr("P6int") { 
 our native ulonglong is Int is ctype("longlong") is unsigned is repr("P6int") { };
 our class void                                  is repr('Uninstantiable') { };
 # Expose a Pointer class for working with raw pointers.
-our class Pointer                               is repr('CPointer') { };
-
-# need to introduce the roles in there in an augment, because you can't
-# inherit from types that haven't been properly composed.
-use MONKEY-TYPING;
-augment class Pointer {
+our class Pointer                               is repr('CPointer') {
     method of() { void }
-
-    method ^name($) { 'Pointer' }
 
     multi method new() {
         self.CREATE()
@@ -47,16 +40,16 @@ augment class Pointer {
     multi method perl(::?CLASS:U:) { self.^name }
     multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
 
-    my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
+    my role TypedPointer[::TValue] {
         method of() { TValue }
-        # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
         method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
     }
-    method ^parameterize($, Mu:U \t) {
+    method ^parameterize(Mu:U \p, Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
             unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
-        my \typed := TypedPointer[t];
-        typed.^inheritalize;
+        my $w := p.^mixin: TypedPointer[t.WHAT];
+        $w.^set_name: "{p.^name}[{t.^name}]";
+        $w;
     }
 }
 

@@ -456,7 +456,7 @@ my class Rakudo::Internals {
                  '[' ~ (^@dims[0]).map({ self.AT-POS(|@path, $_).gist }).join(' ') ~ ']';
             }
             else {
-                my @nextdims = @dims[1..@dims.elems];
+                my @nextdims = @dims[1..^@dims.elems];
                 '[' ~ (^@dims[0]).map({ self!gist((flat @path, $_), @nextdims) }).join(' ') ~ ']';
             }
         }
@@ -480,7 +480,7 @@ my class Rakudo::Internals {
                  ']'
             }
             else {
-                my @nextdims = @dims[1..@dims.elems];
+                my @nextdims = @dims[1..^@dims.elems];
                 '[' x (@path.elems > 0) ~
                     (^@dims[0]).map({ self!perl((flat @path, $_), @nextdims) }).join(', ') ~
                     ',' x (@dims[0] == 1) ~
@@ -497,7 +497,7 @@ my class Rakudo::Internals {
                 }
             }
             else {
-                my @nextrest = @rest[1..@rest.elems];
+                my @nextrest = @rest[1..^@rest.elems];
                 for in -> \item {
                     my @nextpath = flat @path, $cur-pos;
                     if nqp::istype(item, Iterable) && nqp::isconcrete(item) {

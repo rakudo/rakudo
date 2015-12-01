@@ -3,8 +3,7 @@
 # Generates list of positions to index into the array at. Takes all those
 # before something lazy is encountered and eagerly reifies them. If there
 # are any lazy things in the slice, then we lazily consider those, but will
-# truncate at the first one that is out of range. We have a special case for
-# Range, which will auto-truncate even though not lazy.  The optional
+# truncate at the first one that is out of range. The optional
 # :$eagerize will be called if Whatever/WhateverCode is encountered or if
 # clipping of lazy indices is enacted.  It should return the number of
 # elements of the array if called with Whatever, or do something EXISTS-POSish
@@ -66,13 +65,6 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
         nqp::bindattr(pos-list, List, '$!todo', todo);
     }
     pos-list
-}
-multi sub POSITIONS(\SELF, Range \pos) {
-    # Can be more clever here and look at range endpoints, as an optimization.
-    pos.map(-> Int() $i {
-        last unless SELF.EXISTS-POS($i);
-        $i
-    }).cache;
 }
 
 proto sub postcircumfix:<[ ]>(|) is nodal { * }

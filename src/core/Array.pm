@@ -673,7 +673,7 @@ my class Array { # declared in BOOTSTRAP
         }
         else {
             my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
-            @ret = self[$o..($o + $s - 1)] if $s;
+            @ret = self[lazy $o..($o + $s - 1)] if $s;
             nqp::splice(nqp::getattr(self, List, '$!reified'),
                 splice-buffer, $o, $s);
             @ret;

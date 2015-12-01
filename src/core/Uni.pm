@@ -7,7 +7,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method new(*@codes) {
         my $uni := nqp::create(self);
         my int $n = @codes.elems;
-        loop (my int $i = 0; $i < $n; $i++) {
+        loop (my int $i = 0; $i < $n; $i = $i + 1) {
             nqp::bindpos_i($uni, $i, @codes.AT-POS($i));
         }
         $uni
@@ -16,7 +16,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method list(Uni:D:) {
         gather {
             my int $n = nqp::elems(self);
-            loop (my int $i = 0; $i < $n; $i++) {
+            loop (my int $i = 0; $i < $n; $i = $i + 1) {
                 take nqp::atpos_i(self, $i);
             }
         }

@@ -20,11 +20,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     has CompUnit::PrecompilationStore $.store;
 
     method !check-dependencies(IO::Path $path, Instant $since) {
-        my $any_modification_times = self.store.path(
-            $*PERL.compiler.id,
-            any (($path ~ '.deps').IO.lines)
-        ).modified;
-        not $any_modification_times >= $since
+        my @dependencies = ($path ~ '.deps').IO.lines;
+        my $compiler-id = $*PERL.compiler.id;
+        for ($path ~ '.deps').IO.lines -> $dependency {
+            my ($id, $src) = $dependency.words;
+            my $modified = self.store.path($compiler-id, $id).modified;
+            return False if $modified >= $since or not $src.IO.e or $modified <= $src.IO.modified;
+        }
+        True
     }
 
     method load(CompUnit::PrecompilationId $id, Instant :$since) returns CompUnit::Handle {
@@ -81,7 +84,8 @@ RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
             my @dependencies;
             my $compiler-id = $*PERL.compiler.id;
             for @result -> $dependency {
-                my $path = self.store.path($compiler-id, $dependency);
+                my ($dependency-id, $dependency-src) = $dependency.words;
+                my $path = self.store.path($compiler-id, $dependency-id);
                 if $path.e {
                     push @dependencies, $dependency;
                     spurt(($path ~ '.rev-deps').IO, "$id\n", :append);

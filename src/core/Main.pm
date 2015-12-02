@@ -91,7 +91,7 @@ my sub MAIN_HELPER($retval = 0) {
                     $argument = "[$argument]"     if $param.optional;
                     @positional.push($argument);
                 }
-                %arg-help{$argument} = $param.WHY if $param.WHY;
+                %arg-help{$argument} //= $param.WHY.contents if $param.WHY;  # Use first defined
             }
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents

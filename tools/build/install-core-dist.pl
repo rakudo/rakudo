@@ -1,6 +1,6 @@
 use lib "inst#repo";
 my $v = run("git", "describe", :out).out.lines[0];
-$v //= $*PERL6.version;
+$v //= $*PERL.version;
 
 my %provides = 
     "Test"                       => "lib/Test.pm",

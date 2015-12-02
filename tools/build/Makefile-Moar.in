@@ -78,8 +78,8 @@ M_CLEANUPS = \
   $(M_DEBUG_RUNNER) \
 @m_cleanups@
 
-M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
-HARNESS = $(PERL) t/harness
+M_HARNESS_WITH_FUDGE = $(PERL) -Ilib t/harness --fudge --moar --keep-exit-code
+HARNESS = $(PERL) -Ilib t/harness
 
 m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
 

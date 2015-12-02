@@ -236,8 +236,8 @@ J_CLEANUPS = \
   $(PERL6_DEBUG_JAR) \
   $(J_DEBUG_RUNNER) \
 
-J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
-J_HARNESS = $(PERL) t/harness --jvm
+J_HARNESS_WITH_FUDGE = $(PERL) -Ilib t/harness --fudge --keep-exit-code --jvm
+J_HARNESS = $(PERL) -Ilib t/harness --jvm
 
 j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 

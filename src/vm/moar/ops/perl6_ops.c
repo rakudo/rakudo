@@ -488,6 +488,7 @@ static void p6setfirstflag(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code  = MVM_frame_find_invokee(tc, code_obj, NULL);
     vm_code->header.flags |= RAKUDO_FIRST_FLAG;
+    GET_REG(tc, 0).o = code_obj;
 }
 
 static MVMuint8 s_p6takefirstflag[] = {

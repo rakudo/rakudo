@@ -1276,7 +1276,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_control:sym<while>($/) {
-        my $past := xblock_immediate( $<xblock>.ast );
+        my $past := $<xblock>.ast;
         $past.op(~$<sym>);
         make tweak_loop($past);
     }
@@ -1285,12 +1285,11 @@ Compilation unit '$file' contained the following violations:
         my $op := 'repeat_' ~ ~$<wu>;
         my $past;
         if $<xblock> {
-            $past := xblock_immediate( $<xblock>.ast );
+            $past := $<xblock>.ast;
             $past.op($op);
         }
         else {
-            $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
-                                   :op($op), :node($/) );
+            $past := QAST::Op.new( $<EXPR>.ast, $<pblock>.ast, :op($op), :node($/) );
         }
         make tweak_loop($past);
     }
@@ -1330,10 +1329,9 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_control:sym<loop>($/) {
-        my $block := pblock_immediate($<block>.ast);
         my $cond := $<e2> ?? $<e2>.ast !! QAST::IVal.new( :value(1) );
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
-        $loop.push($block);
+        $loop.push($<block>.ast);
         if $<e3> {
             $loop.push(sink($<e3>.ast));
         }
@@ -1352,7 +1350,10 @@ Compilation unit '$file' contained the following violations:
         my $code := $loop[1].ann('code_object');
         my $block_type := $*W.find_symbol(['Block']);
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
-        unless nqp::isnull($phasers) {
+        if nqp::isnull($phasers) {
+            $loop[1] := pblock_immediate($loop[1]);
+        }
+        else {
             if nqp::existskey($phasers, 'NEXT') {
                 my $phascode := $*W.run_phasers_code($code, $loop[1], $block_type, 'NEXT');
                 if +@($loop) == 2 {
@@ -1363,9 +1364,18 @@ Compilation unit '$file' contained the following violations:
                 }
             }
             if nqp::existskey($phasers, 'FIRST') {
+                my $tmp := QAST::Node.unique('LOOP_BLOCK');
                 $loop := QAST::Stmts.new(
-                    QAST::Op.new( :op('p6setfirstflag'), QAST::WVal.new( :value($code) ) ),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                        QAST::Op.new( :op('p6setfirstflag'), $loop[1] )
+                    ),
                     $loop);
+                $loop[1][1] := QAST::Op.new( :op('call'), QAST::Var.new( :name($tmp), :scope('local') ) );
+            }
+            else {
+                $loop[1] := pblock_immediate($loop[1]);
             }
             if nqp::existskey($phasers, 'LAST') {
                 $loop := QAST::Stmts.new(

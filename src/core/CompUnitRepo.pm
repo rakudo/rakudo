@@ -82,8 +82,25 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                 if %opts<from> {
                     # See if we need to load it from elsewhere.
                     if %language_module_loaders{%opts<from>}:exists {
-                        return %language_module_loaders{%opts<from>}.load_module($module_name,
-                            %opts, GLOBALish, :$line, :$file);
+                        my $repo = class :: does CompUnit::Repository { # until language module loaders _are_ Repositories
+                                method need(CompUnit::DependencySpecification $spec,
+                                            CompUnit::PrecompilationRepository $precomp)
+                                    returns CompUnit:D { }
+                                method load(IO::Path:D $file) returns CompUnit:D { }
+                                method loaded() returns Iterable { }
+                                method id() returns Str { }
+                            }.new;
+                        return CompUnit.new(
+                            :short-name($module_name),
+                            :handle(
+                                %language_module_loaders{%opts<from>}.load_module(
+                                    $module_name, %opts, GLOBALish, :$line, :$file
+                                )
+                            ),
+                            :$repo,
+                            :repo-id($module_name),
+                            :from(%opts<from>),
+                        );
                     }
                     else {
                         nqp::die("Do not know how to load code from " ~ %opts<from>);
@@ -102,7 +119,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                         )
                     );
                     GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
-                    $compunit.handle
+                    $compunit
                 }
             }
         } )

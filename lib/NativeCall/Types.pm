@@ -1,6 +1,11 @@
 use nqp;
 unit module NativeCall::Types;
 
+sub nativecast($target-type, $source) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        nqp::decont(map_return_type($target-type)), nqp::decont($source));
+}
+
 our native long     is Int is ctype("long")     is repr("P6int") { };
 our native longlong is Int is ctype("longlong") is repr("P6int") { };
 our native ulong     is Int is ctype("long")     is unsigned is repr("P6int") { };
@@ -198,9 +203,4 @@ multi sub map_return_type(Mu $type) { Mu }
 multi sub map_return_type($type) {
     nqp::istype($type, Int) ?? Int
                             !! nqp::istype($type, Num) ?? Num !! $type;
-}
-
-sub nativecast($target-type, $source) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        nqp::decont(map_return_type($target-type)), nqp::decont($source));
 }

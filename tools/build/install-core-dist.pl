@@ -1,4 +1,3 @@
-use lib "inst#repo";
 my $v = run("git", "describe", :out).out.lines[0];
 $v //= $*PERL.version;
 

@@ -26,7 +26,7 @@ my class Block { # declared in BOOTSTRAP
     method fire_phasers(str $name) {
         if !nqp::isnull($!phasers) && nqp::existskey($!phasers, $name) {
             my Mu $iter := nqp::iterator(nqp::atkey($!phasers, $name));
-            nqp::shift($iter).() while $iter;
+            nqp::while($iter, nqp::shift($iter).(), :nohandler);
         }
     }
 

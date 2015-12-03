@@ -110,7 +110,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
             :store(
                 CompUnit::PrecompilationStore::File.new(
-                    :prefix(self.prefix.child('.precomp')),
+                    :prefix(
+                        $*DISTRO.cache-dir.?child('precomp')
+                            // self.prefix.child('.precomp')
+                    )
                 )
             ),
         ) unless $!precomp;

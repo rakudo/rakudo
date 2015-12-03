@@ -21,6 +21,8 @@ class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default
   does CompUnit::PrecompilationRepository
 {
+    use nqp;
+
     has CompUnit::PrecompilationStore:D $.store is required is built(:bind);
     has $!RMD;
     has $!RRD;
@@ -74,8 +76,7 @@ class CompUnit::PrecompilationRepository::Default
         if $World && $World.record_precompilation_dependencies {
             if $handle {
                 $dependency.checksum = $checksum;
-                say $dependency.serialize;
-                $*OUT.flush;
+                $*ADD-DEPENDENCY($dependency);
             }
             else {
                 nqp::exit(0);
@@ -219,14 +220,9 @@ Need to re-check dependencies.")
         # report back id and source location of dependency to dependant
         my $World := $*W;
         if $World && $World.record_precompilation_dependencies {
-            my $dependencies := nqp::list_s();
-            nqp::push_s($dependencies,.serialize)
-              for $precomp-unit.dependencies;
-            nqp::push_s($dependencies,"");  # for final \n
-
-            my $out := $*OUT;
-            $out.print(nqp::join($out.nl-out,$dependencies));
-            $out.flush;
+            for $precomp-unit.dependencies -> $dependency {
+                $*ADD-DEPENDENCY($dependency);
+            }
         }
 
         if $resolve {
@@ -367,103 +363,19 @@ Need to re-check dependencies.")
             return self!already-precompiled($path,$source-name,$io,0)
         }
 
-        # Local copy for us to tweak
-        $env := nqp::clone($env);
-
+        my $bc = "$io.bc".IO;
         my $REPO := $*REPO;
-        nqp::bindkey($env,'RAKUDO_PRECOMP_WITH',
-          $REPO.repo-chain.map(*.path-spec).join(',')
-        );
 
-        if $rpl {
-            nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING',
-              $rpl.chop
-                ~ ','
-                ~ Rakudo::Internals::JSON.to-json($path.Str)
-                ~ ']');
-        }
-        else {
-            nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING',
-              '[' ~ Rakudo::Internals::JSON.to-json($path.Str) ~ ']');
-        }
+        my @*PRECOMP-WITH = $REPO.repo-chain.map(*.path-spec).join(',');
+        my @*PRECOMP-LOADING := @*MODULES;
 
-        my $distribution := $*DISTRIBUTION;
-        nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
-          $distribution ?? $distribution.serialize !! '{}');
+        my @dependencies;
+        my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
 
-        my $bc := "$io.bc".IO;
-        $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
-          if $!RMD;
-
-        my $raku := $*EXECUTABLE.absolute
-            .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
-            .subst('perl6-gdb', 'perl6')
-            .subst('perl6-jdb-server', 'perl6-j') ;
-
-#?if jvm
-        if nqp::atkey($env,'RAKUDO_PRECOMP_NESTED_JDB') {
-            $raku.subst-mutate('perl6-j', 'perl6-jdb-server');
-            note "starting jdb on port "
-              ~ nqp::bindkey($env,'RAKUDO_JDB_PORT',
-                  nqp::ifnull(nqp::atkey($env,'RAKUDO_JDB_PORT'),0) + 1
-                );
-        }
-#?endif
-
-        if $stagestats {
-            note "\n    precomp $path.relative()";
-            $*ERR.flush;
-        }
-
-        my $out := nqp::list_s;
-        my $err := nqp::list_s;
-        my $status;
-        react {
-            my $proc = Proc::Async.new(
-                $raku,
-                $lle,
-                $profile,
-                $optimize,
-                $target,
-                $stagestats,
-                "--output=$bc",
-                "--source-name=$source-name",
-                $path
-            );
-
-            whenever $proc.stdout {
-                nqp::push_s($out,$_);
-            }
-            unless $!RMD {
-                whenever $proc.stderr {
-                    nqp::push_s($err,$_);
-                }
-            }
-            if $stagestats {
-                whenever $proc.stderr.lines {
-                    note("    $_");
-                    $*ERR.flush;
-                }
-            }
-            whenever $proc.start(ENV => nqp::hllize($env)) {
-                $status = .exitcode
-            }
-        }
-
-        if $status {  # something wrong
-            $store.unlock;
-            $!RMD("Precompiling $path failed: $status")
-              if $!RMD;
-
-            Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $!RMD
-              ?? nqp::join('',$out).lines.unique.List
-              !! nqp::join('',$err);
-        }
-
-        if nqp::elems($err) && not($!RMD || $stagestats) {
-            $*ERR.print(nqp::join('',$err));
-        }
+        $!RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $!RMD;
+        my $compiler := nqp::getcomp('perl6');
+        $compiler.command_eval: $path, :ll-exception($lle), :target(Rakudo::Internals.PRECOMP-TARGET), :output($io),
+            :encoding('utf8'), :transcode('ascii iso-8859-1');
 
         unless Rakudo::Internals.FILETEST-ES($bc.absolute) {
             $!RMD("$path aborted precompilation without failure")
@@ -473,39 +385,14 @@ Need to re-check dependencies.")
             return False;
         }
 
-        $!RMD("Precompiled $path into $bc")
-          if $!RMD;
-
-        my $dependencies := nqp::create(IterationBuffer);
-        my $seen := nqp::hash;
-
-        for nqp::join('',$out).lines.unique -> str $outstr {
-            if nqp::atpos(nqp::radix_I(16,$outstr,0,0,Int),2) == 40
-              && nqp::eqat($outstr,"\0",40)
-              && nqp::chars($outstr) > 41 {
-                my $dependency :=
-                  CompUnit::PrecompilationDependency::File.deserialize($outstr);
-                if $dependency {
-                    my str $dependency-str = $dependency.Str;
-                    unless nqp::existskey($seen,$dependency-str) {
-                        $!RMD($dependency-str)
-                          if $!RMD;
-
-                        nqp::bindkey($seen,$dependency-str,1);
-                        nqp::push($dependencies,$dependency);
-                    }
-                }
-            }
-
-            # huh?  malformed dependency?
-            else {
-                say $outstr;
-            }
+        $!RMD("Precompiled $path into $bc") if $!RMD;
+        my CompUnit::PrecompilationDependency::File @dependency_files;
+        my %dependencies;
+        for @dependencies -> $dependency {
+            next if %dependencies{$dependency.Str}++; # already got that one
+            $!RMD($dependency.Str()) if $!RMD;
+            @dependency_files.push: $dependency;
         }
-
-        # HLLize dependencies
-        my CompUnit::PrecompilationDependency::File @dependencies;
-        nqp::bindattr(@dependencies,List,'$!reified',$dependencies);
 
         my $source-checksum := $path.CHECKSUM;
         $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
@@ -515,12 +402,7 @@ Need to re-check dependencies.")
         $store.store-unit(
             $compiler-id,
             $id,
-            $store.new-unit(
-              :$id,
-              :@dependencies
-              :$source-checksum,
-              :bytecode($bc.slurp(:bin))
-            ),
+            self.store.new-unit(:$id, :dependencies(@dependency_files), :$source-checksum, :bytecode($bc.slurp(:bin))),
         );
         $bc.unlink;
         $store.unlock;

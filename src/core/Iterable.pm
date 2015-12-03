@@ -131,9 +131,7 @@ my role Iterable {
                 $!source.push-exactly($work.input, $items)
             }
 
-            method process-buffer(HyperWorkBuffer:D $work) {
-                Mu
-            }
+            method process-buffer(HyperWorkBuffer:D $work --> Nil) { }
 
             method configuration() { $!configuration }
         }.new(self.iterator, $configuration));

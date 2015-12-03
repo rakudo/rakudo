@@ -324,7 +324,7 @@ my class Block { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            Any
+            Nil
         } else {
             $!why.set_docee(self);
             $!why

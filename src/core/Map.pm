@@ -178,7 +178,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         my str $skey = nqp::unbox_s(key.Str);
         nqp::defined($!storage) && nqp::existskey($!storage, $skey)
           ?? nqp::atkey($!storage, $skey)
-          !! Any
+          !! Nil
     }
 
     method STORE(\to_store) {

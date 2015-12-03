@@ -109,7 +109,7 @@ my class Attribute { # declared in BOOTSTRAP
         }
     }
 
-    method container() is raw { nqp::isnull($!auto_viv_container) ?? Mu !! $!auto_viv_container }
+    method container() is raw { nqp::isnull($!auto_viv_container) ?? Nil !! $!auto_viv_container }
     method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }
     method package() { $!package }
@@ -119,7 +119,7 @@ my class Attribute { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            Any
+            Nil
         } else {
             $!why.set_docee(self);
             $!why

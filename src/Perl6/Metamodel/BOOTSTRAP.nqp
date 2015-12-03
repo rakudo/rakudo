@@ -1557,7 +1557,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'WHY', nqp::getstaticcode(sub ($self) {
             my $why := nqp::getattr(nqp::decont($self), Parameter, '$!why');
             if nqp::isnull($why) || !$why {
-                Any
+                Nil
             } else {
                 $why.set_docee($self);
                 $why

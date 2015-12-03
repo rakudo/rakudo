@@ -1396,7 +1396,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method encode(Str:D $encoding = 'utf8', Bool:D :$replacement) {
         self.encode($encoding, :replacement($replacement
             ?? ($encoding ~~ m:i/^utf/ ?? "\x[FFFD]" !! "?" )
-            !! Str
+            !! Nil
         ));
     }
     multi method encode(Str:D $encoding = 'utf8', Str :$replacement) {
@@ -1889,9 +1889,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method ord(Str:D:) returns Int {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
-          !! Int;
+          !! Nil;
     }
-    multi method ord(Str:U:) returns Int { Int }
+    multi method ord(Str:U: --> Nil) { }
 }
 
 
@@ -2225,14 +2225,14 @@ multi sub uniprop(Int:D $code, Stringy:D $propname = "GeneralCategory") {
 
 proto sub uniprop-int(|) {*}
 multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-int($str.ord, $propname) !! Str }
+    $str ?? uniprop-int($str.ord, $propname) !! Nil }
 multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_int($code,Rakudo::Internals.PROPCODE($propname));
 }
 
 proto sub uniprop-bool(|) {*}
 multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-bool($str.ord, $propname) !! Str
+    $str ?? uniprop-bool($str.ord, $propname) !! Nil
 }
 multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
     so nqp::getuniprop_bool($code,Rakudo::Internals.PROPCODE($propname));
@@ -2240,7 +2240,7 @@ multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
 
 proto sub uniprop-str(|) {*}
 multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-str($str.ord, $propname) !! Str
+    $str ?? uniprop-str($str.ord, $propname) !! Nil
 }
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,Rakudo::Internals.PROPCODE($propname));

@@ -340,7 +340,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll(*)
         }
         else {
-            Any xx *
+            Nil xx *
         }
     }
     multi method roll(Range:D:) {
@@ -348,7 +348,7 @@ my class Range is Cool does Iterable does Positional {
             my $elems = $!max - $!excludes-max - $!min - $!excludes-min + 1;
             $elems > 0
               ?? $!min + $!excludes-min + nqp::rand_I(nqp::decont($elems),Int)
-              !! Any
+              !! Nil
         }
         else {
             self.list.roll
@@ -382,7 +382,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll($todo)
         }
         else {
-            Any xx $todo
+            Nil xx $todo
         }
     }
 
@@ -438,7 +438,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.pick($todo)
         }
         else {
-            Any xx $todo
+            Nil xx $todo
         }
     }
 

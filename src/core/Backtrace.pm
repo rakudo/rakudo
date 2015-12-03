@@ -158,7 +158,7 @@ my class Backtrace {
 
             return $idx - 1;
         }
-        Int;
+        Nil;
     }
 
     method outer-caller-idx(Backtrace:D: Int $startidx) {

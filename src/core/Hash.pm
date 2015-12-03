@@ -87,7 +87,7 @@ my class Hash { # declared in BOOTSTRAP
     method keyof () { Any }
     method of() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! $d.of;
+        nqp::isnull($d) ?? Mu !! $d.of;
     }
     method default() {
         my $d := $!descriptor;

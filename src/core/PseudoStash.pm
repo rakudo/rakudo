@@ -162,8 +162,8 @@ my class PseudoStash is Map {
             my Mu $store := nqp::getattr(self, Map, '$!storage');
             my Mu $res := nqp::existskey($store, $nkey) ??
                             nqp::atkey($store, $nkey) !!
-                            Any;
-            if !($res =:= Any) && nqp::bitand_i($!mode, REQUIRE_DYNAMIC) {
+                            Nil;
+            if !($res =:= Nil) && nqp::bitand_i($!mode, REQUIRE_DYNAMIC) {
                 if try !$res.VAR.dynamic {
                     X::Caller::NotDynamic.new(
                         symbol => $key,
@@ -176,13 +176,13 @@ my class PseudoStash is Map {
             my $found := nqp::getlexreldyn(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 $nkey);
-            nqp::isnull($found) ?? Any !! $found
+            nqp::isnull($found) ?? Nil !! $found
         }
         else { # STATIC_CHAIN
             my $found := nqp::getlexrel(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 $nkey);
-            nqp::isnull($found) ?? Any !! $found
+            nqp::isnull($found) ?? Nil !! $found
         }
     }
 

@@ -22,7 +22,7 @@ class CompUnit::Handle {
             nqp::atkey($module, '&EXPORT');
         }
         else {
-            Callable
+            Nil
         }
     }
 
@@ -37,7 +37,7 @@ class CompUnit::Handle {
                 !! nqp::p6bindattrinvres(nqp::create(Stash), Map, '$!storage', $EXPORT.WHO);
         }
         else {
-            Stash
+            Nil
         }
     }
 
@@ -53,7 +53,7 @@ class CompUnit::Handle {
                 !! nqp::p6bindattrinvres(nqp::create(Stash), Map, '$!storage', $who);
         }
         else {
-            Stash
+            Nil
         }
     }
 
@@ -63,10 +63,10 @@ class CompUnit::Handle {
     method globalish-package() { # returns Stash {
         if nqp::defined($!module_ctx) {
             my $lexpad := nqp::ctxlexpad($!module_ctx);
-            nqp::isnull(nqp::atkey($lexpad, 'GLOBALish')) ?? Stash !! nqp::atkey($lexpad, 'GLOBALish')
+            nqp::isnull(nqp::atkey($lexpad, 'GLOBALish')) ?? Nil !! nqp::atkey($lexpad, 'GLOBALish')
         }
         else {
-            Stash
+            Nil
         }
     }
 

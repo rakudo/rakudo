@@ -529,7 +529,7 @@ sub DELETEKEY(Mu \d, str $key) {
         $value;
     }
     else {
-        Mu;
+        Nil;
     }
 } #DELETEKEY
 

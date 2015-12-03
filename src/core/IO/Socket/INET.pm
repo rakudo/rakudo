@@ -108,7 +108,7 @@ my class IO::Socket::INET does IO::Socket {
             $line
         }
         else {
-            Str
+            Nil
         }
     }
 

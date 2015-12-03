@@ -37,13 +37,15 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             if not $since or $modified > $since and self!check-dependencies($path, $modified) {
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
                 my $handle := CompUnit::Loader.load-precompilation-file($path);
-                self.store.unlock;
                 nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                 CATCH {
                     default {
                         nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                         .throw;
                     }
+                }
+                LEAVE {
+                    self.store.unlock;
                 }
                 $handle
             }

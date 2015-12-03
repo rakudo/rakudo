@@ -20,6 +20,8 @@ BEGIN CompUnit::PrecompilationRepository::<None> := CompUnit::PrecompilationRepo
 
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
+    use nqp;
+
     has CompUnit::PrecompilationStore $.store;
     my %loaded;
     my $loaded-lock = Lock.new;
@@ -54,7 +56,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $*W and $*W.record_precompilation_dependencies {
             if $handle {
                 $dependency.checksum = $checksum;
-                say $dependency.serialize;
+                $*ADD-DEPENDENCY($dependency);
             }
             else {
                 nqp::exit(0);
@@ -150,7 +152,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         # report back id and source location of dependency to dependant
         if $*W and $*W.record_precompilation_dependencies {
             for $precomp-unit.dependencies -> $dependency {
-                say $dependency.serialize;
+                $*ADD-DEPENDENCY($dependency);
             }
         }
 
@@ -233,11 +235,15 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
         my $bc = "$io.bc".IO;
 
-        $lle     //= Rakudo::Internals.LL-EXCEPTION;
+        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
+        my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
+          ?? True
+          !! False;
         $profile //= Rakudo::Internals.PROFILE;
         $optimize //= Rakudo::Internals.OPTIMIZE;
         my %env = %*ENV; # Local copy for us to tweak
-        %env<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
+        my @*PRECOMP-WITH = $*REPO.repo-chain.map(*.path-spec).join(',');
+        my @*PRECOMP-LOADING := @*MODULES;
 
         my $rakudo_precomp_loading = %env<RAKUDO_PRECOMP_LOADING>;
         my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
@@ -245,78 +251,32 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
         %env<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
+        my @dependencies;
+        my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
+
         $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
-        my $perl6 = $*EXECUTABLE
-            .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
-            .subst('perl6-gdb', 'perl6')
-            .subst('perl6-jdb-server', 'perl6-j') ;
-        if %env<RAKUDO_PRECOMP_NESTED_JDB> {
-            $perl6.subst-mutate('perl6-j', 'perl6-jdb-server');
-            note "starting jdb on port " ~ ++%env<RAKUDO_JDB_PORT>;
-        }
-        my $out = '';
-        my $err = '';
-        my $status;
-        react {
-            my $proc = Proc::Async.new(
-                $perl6,
-                $lle,
-                $profile,
-                $optimize,
-                "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
-                "--output=$bc",
-                "--source-name=$source-name",
-                $path
-            );
+        my $compiler := nqp::getcomp('perl6');
+        $compiler.command_eval: $path, :ll-exception($lle), :target(Rakudo::Internals.PRECOMP-TARGET), :output($io),
+            :encoding('utf8'), :transcode('ascii iso-8859-1');
 
-            whenever $proc.stdout {
-                $out ~= $_
-            }
-            unless $RMD {
-                whenever $proc.stderr {
-                    $err ~= $_
-                }
-            }
-            whenever $proc.start(ENV => %env) {
-                $status = .exitcode
-            }
-        }
-
-        my @result = $out.lines.unique;
-        if $status {  # something wrong
-            self.store.unlock;
-            $RMD("Precomping $path failed: $status") if $RMD;
-            Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $RMD ?? @result !! $err;
-        }
-
-        if not $RMD and $err -> $warnings {
-            $*ERR.print($warnings);
-        }
         unless $bc.e {
             $RMD("$path aborted precompilation without failure") if $RMD;
             self.store.unlock;
             return False;
         }
         $RMD("Precompiled $path into $bc") if $RMD;
-        my str $dependencies = '';
-        my CompUnit::PrecompilationDependency::File @dependencies;
+        my CompUnit::PrecompilationDependency::File @dependency_files;
         my %dependencies;
-        for @result -> $dependency-str {
-            unless $dependency-str ~~ /^<[A..Z0..9]> ** 40 \0 .+/ {
-                say $dependency-str;
-                next
-            }
-            my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
+        for @dependencies -> $dependency {
             next if %dependencies{$dependency.Str}++; # already got that one
             $RMD($dependency.Str()) if $RMD;
-            @dependencies.push: $dependency;
+            @dependency_files.push: $dependency;
         }
         $RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum") if $RMD;
         self.store.store-unit(
             $compiler-id,
             $id,
-            self.store.new-unit(:$id, :@dependencies, :$source-checksum, :bytecode($bc.slurp(:bin))),
+            self.store.new-unit(:$id, :dependencies(@dependency_files), :$source-checksum, :bytecode($bc.slurp(:bin))),
         );
         $bc.unlink;
         self.store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));

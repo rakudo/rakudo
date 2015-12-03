@@ -7,6 +7,7 @@ CHMOD   = $(PERL) -MExtUtils::Command -e chmod
 CP      = $(PERL) -MExtUtils::Command -e cp
 RM_F    = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
+SHELL   = @shell@
 
 SYSROOT= @sysroot@
 SDKROOT= @sdkroot@

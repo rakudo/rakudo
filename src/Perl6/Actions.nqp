@@ -6860,6 +6860,7 @@ Compilation unit '$file' contained the following violations:
         Perl5       => 'P5',
         samecase    => 'ii',
         samespace   => 'ss',
+        samemark    => 'mm',
         squash      => 's',
         complement  => 'c',
         delete      => 'd',
@@ -6867,6 +6868,7 @@ Compilation unit '$file' contained the following violations:
     my %REGEX_ADVERB_IMPLIES := hash(
         ii        => 'i',
         ss        => 's',
+        mm        => 'm',
     );
     INIT {
         my str $mods := 'i ignorecase m ignoremark s sigspace r ratchet Perl5 P5';
@@ -6874,7 +6876,7 @@ Compilation unit '$file' contained the following violations:
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }
 
-        $mods := 'g global ii samecase ss samespace x c continue p pos nth th st nd rd';
+        $mods := 'g global ii samecase ss samespace mm samemark x c continue p pos nth th st nd rd';
         for nqp::split(' ', $mods) {
             %SUBST_ALLOWED_ADVERBS{$_} := 1;
         }
@@ -7115,14 +7117,27 @@ Compilation unit '$file' contained the following violations:
             $past.push(QAST::IVal.new(:named('samespace'), :value(1)));
         }
 
+        my $samespace := +$/[0];
+        my $sigspace := $samespace;
         my $samecase := 0;
+        my $samemark := 0;
         my $global   := 0;
         for $<rx_adverbs>.ast {
             if $_.named eq 'samecase' || $_.named eq 'ii' {
                 $samecase := 1;
             }
+            elsif $_.named eq 'samemark' || $_.named eq 'mm' {
+                $samemark := 1;
+            }
             elsif $_.named eq 'global' || $_.named eq 'g' {
                 $global := 1;
+            }
+            elsif $_.named eq 'samespace' || $_.named eq 'ss' {
+                $samespace := 1;
+                $sigspace := 1;
+            }
+            elsif $_.named eq 'sigspace' || $_.named eq 's' {
+                $sigspace := 1;
             }
         }
 
@@ -7139,8 +7154,10 @@ Compilation unit '$file' contained the following violations:
             $closure,
             QAST::Var.new( :name('$/'), :scope('lexical') ), # caller dollar slash
             QAST::IVal.new( :value(1) ),                     # set dollar slash
-            QAST::IVal.new( :value($samecase) ),             # samecase
-            QAST::IVal.new( :value($/[0] ?? 1 !! 0) ),       # samespace
+            QAST::IVal.new( :value($sigspace) ),
+            QAST::IVal.new( :value($samespace) ),
+            QAST::IVal.new( :value($samecase) ),
+            QAST::IVal.new( :value($samemark) ),
         );
 
         $past := QAST::Op.new( :op('locallifetime'), :node($/),

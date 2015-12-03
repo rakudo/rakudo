@@ -514,10 +514,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method subst-mutate($self is rw: $matcher, $replacement,
-                       :ii(:$samecase), :ss(:$samespace), *%options) {
+                       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options) {
         my $global = %options<g> || %options<global>;
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
+        my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches              = self.match($matcher, |%options);
@@ -531,8 +532,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $replacement,
               $caller_dollar_slash,
               $SET_DOLLAR_SLASH,
-              $samecase,
+              $word_by_word,
               $samespace,
+              $samecase,
+              $samemark,
             );
             if $global {
                 my \result := nqp::create(List);
@@ -555,11 +558,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
     multi method subst(Str:D: $matcher, $replacement,
-                       :ii(:$samecase), :ss(:$samespace),
+                       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),
                        *%options) {
 
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
+        my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
         # nothing to do
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
@@ -572,12 +576,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
                $replacement,
                $caller_dollar_slash,
                $SET_DOLLAR_SLASH,
-               $samecase,
+               $word_by_word,
                $samespace,
+               $samecase,
+               $samemark,
              );
     }
 
-    method !APPLY-MATCHES(\matches,$replacement,\cds,\SDS,\case,\space) {
+    method !APPLY-MATCHES(\matches,$replacement,\cds,\SDS,\word_by_word,\space,\case,\mark) {
         my \callable       := nqp::istype($replacement,Callable);
 
         my int $prev;
@@ -586,10 +592,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         try cds = $/ if SDS;
 
         # need to do something special
-        if SDS || case || space || callable {
-            my \noargs         := callable ?? $replacement.count == 0 !! False;
-            my \case-or-space  := case || space;
-            my \case-and-space := case && space;
+        if SDS || space || case || mark || callable {
+            my \noargs        := callable ?? $replacement.count == 0 !! False;
+            my \fancy         := space || case || mark || word_by_word;
+            my \case-and-mark := case && mark;
 
             for flat matches -> $m {
                 try cds = $m if SDS;
@@ -597,22 +603,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                 );
 
-                if case-or-space {
+                if fancy {
+                    my $mstr := $m.Str;
                     my $it := ~(callable
                       ?? (noargs ?? $replacement() !! $replacement($m))
                       !! $replacement
                     );
-                    if case-and-space {
-                        my $mstr := $m.Str;
+                    if word_by_word {  # all spacers delegated to word-by-word
+                        my &filter :=
+                        case-and-mark
+                        ?? -> $w,$p { $w.samemark($p).samecase($p) }
+                        !! case
+                            ?? -> $w,$p { $w.samecase($p) }
+                            !! -> $w,$p { $w.samemark($p) }
                         nqp::push_s($result,nqp::unbox_s(
-                          $it.samecase($mstr).samespace($mstr)
+                          $it.word-by-word($mstr,&filter,:samespace(?space))
+                        ) );
+                    }
+                    elsif case-and-mark {
+                        nqp::push_s($result,nqp::unbox_s(
+                          $it.samecase($mstr).samemark($mstr)
                         ) );
                     }
                     elsif case {
                         nqp::push_s($result,nqp::unbox_s($it.samecase(~$m)));
                     }
-                    else { # space
-                        nqp::push_s($result,nqp::unbox_s($it.samespace(~$m)));
+                    else { # mark
+                        nqp::push_s($result,nqp::unbox_s($it.samemark(~$m)));
                     }
                 }
                 else {
@@ -1142,6 +1159,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $result
     }
 
+    # Note that in these same* methods, as used by s/LHS/RHS/, the
+    # pattern is actually the original string matched by LHS, while the
+    # invocant "original" is really the replacement RHS part.  Confusing...
     method samecase(Str:D: Str $pattern) {
         my str $str = nqp::unbox_s(self);
         my str $pat = nqp::unbox_s($pattern);
@@ -1171,8 +1191,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::join("",$ret);
     }
 
+    method samemark(Str:D: Str:D $pattern) {
+        my $p := $pattern.comb.map: *.NFD[1..*];
+        join '', self.comb.map: {
+            my $m := $p[$++];
+            $m.defined
+            ?? Uni.new(.NFD[0], |$m).Str
+            !! $_
+        }
+    }
 
-    method samespace(Str:D: Str:D $pattern) {
+    method samespace(Str:D: Str:D $pattern) { self.word-by-word($pattern, :samespace) }
+
+    method word-by-word(Str:D: Str:D $pattern, &filter?, Bool :$samespace) {
         my str $str = nqp::unbox_s(self);
         my str $pat = nqp::unbox_s($pattern);
         my Mu $ret := nqp::list_s;
@@ -1184,39 +1215,49 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $patpos = 0;
         my int $patnextpos;
         my int $left;
+        my $patword;
 
-        # still something to look for
+        # Still something to look for?
         while ($left = $chars - $pos) > 0 {
 
-            # no more whitespace in original?
             $nextpos = nqp::findcclass(
               nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+
+            $patnextpos = nqp::findcclass(nqp::const::CCLASS_WHITESPACE, $pat, $patpos, $patchars - $patpos);
+
+            if &filter {
+                # We latch on last pattern word if pattern runs out of words first.
+                $patword := nqp::p6box_s(nqp::substr($pat, $patpos, $patnextpos - $patpos)) if $patpos < $patchars;
+                nqp::push_s($ret, nqp::unbox_s(filter(nqp::substr($str, $pos, $nextpos - $pos), $patword)));
+            }
+            else {
+                nqp::push_s($ret, nqp::substr($str, $pos, $nextpos - $pos));
+            }
+
+            # Did we have the last word?
             last if $nextpos >= $chars;
 
-            # nothing left in pat
-            last unless ($left = $patchars - $patpos) > 0;
-
-            # no more whitespace in pattern?
-            $patnextpos = nqp::findcclass(
-              nqp::const::CCLASS_WHITESPACE, $pat, $patpos, $left);
-            last if $patnextpos >= $patchars;
-
-            # store original with other whitespace
-            $patpos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-              $pat, $patnextpos, $patchars - $patnextpos);
-            nqp::push_s($ret,
-              nqp::substr($str, $pos, $nextpos - $pos));
-            nqp::push_s($ret,
-              nqp::substr($pat, $patnextpos, $patpos - $patnextpos));
-
-            # where do we continue?
             $pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
               $str, $nextpos, $chars - $nextpos);
-        }
+            if $patnextpos >= $patchars {  # No more pat space, just copy original space.
+                nqp::push_s($ret,
+                  nqp::substr($str, $nextpos, $pos - $nextpos));
+                $patpos = $patnextpos;
+            }
+            else {  # Traverse pat space, use if wanted
+                $patpos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+                  $pat, $patnextpos, $patchars - $patnextpos);
 
-        # any final bits
-        nqp::push_s($ret, nqp::substr($str, $pos, $chars - $pos))
-          if $pos < $chars;
+                if $samespace {  # Carry over pattern space?
+                    nqp::push_s($ret,
+                      nqp::substr($pat, $patnextpos, $patpos - $patnextpos));
+                }
+                else {   # Nope, just use original space.
+                    nqp::push_s($ret,
+                      nqp::substr($str, $nextpos, $pos - $nextpos));
+                }
+            }
+        }
 
         nqp::join("",$ret)
     }
@@ -2136,6 +2177,9 @@ sub substr-rw(\what, \start, $want?) is rw {
          )
       !! $r;
 }
+
+proto sub samemark(|) {*}
+multi sub samemark($s, $pat) { $s.samemark($pat) }
 
 # These probably belong in a separate unicodey file
 

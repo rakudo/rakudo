@@ -1191,6 +1191,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::join("",$ret);
     }
 
+#?if moar
     method samemark(Str:D: Str:D $pattern) {
         my @marklist = $pattern.comb;
         my $patmarks;
@@ -1199,6 +1200,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             Uni.new($orig.NFD[0], |$patmarks).Str;
         }
     }
+#?endif
+#?if jvm
+    method samemark(Str:D: Str:D $pattern) { X::NYI.new(:feature<samemark>).throw }
+#?endif
 
     method samespace(Str:D: Str:D $pattern) { self.word-by-word($pattern, :samespace) }
 

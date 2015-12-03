@@ -17,6 +17,8 @@ BEGIN CompUnit::PrecompilationRepository::<None> := CompUnit::PrecompilationRepo
 
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
+    use nqp;
+
     has CompUnit::PrecompilationStore $.store;
 
     method !check-dependencies(IO::Path $path, Instant $since) {
@@ -62,39 +64,34 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
-          ?? '--ll-exception'
-          !! Empty;
-        %*ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain>>.path-spec.join(',');
-        %*ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES;
+          ?? True
+          !! False;
+        my @*PRECOMP-WITH = $*REPO.repo-chain>>.path-spec;
+        my @*PRECOMP-LOADING := @*MODULES;
 
-RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
+RAKUDO_MODULE_DEBUG("Precomping with @*PRECOMP-WITH.join(',')")
   if $*RAKUDO_MODULE_DEBUG;
 
-        my $proc = run($*EXECUTABLE, $lle, "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
-        %*ENV<RAKUDO_PRECOMP_WITH>:delete;
-        %*ENV<RAKUDO_PRECOMP_LOADING>:delete;
+        my @dependencies;
+        my $*ADD-DEPENDENCY = -> $id, $src { @dependencies.push: [$id, $src] };
 
-        my @result = $proc.out.lines;
-        if not $proc.out.close or $proc.status {  # something wrong
-            self.store.unlock;
-            push @result, "Return status { $proc.status }\n";
-            fail @result if @result;
-        }
-        else {
-            my @dependencies;
-            my $compiler-id = $*PERL.compiler.id;
-            for @result -> $dependency {
-                my ($dependency-id, $dependency-src) = $dependency.words;
-                my $path = self.store.path($compiler-id, $dependency-id);
-                if $path.e {
-                    push @dependencies, $dependency;
-                    spurt(($path ~ '.rev-deps').IO, "$id\n", :append);
-                }
+        my $compiler := nqp::getcomp('perl6');
+        $compiler.command_eval: $path, :ll-exception($lle), :target($*VM.precomp-target), :output($io),
+            :encoding('utf8'), :transcode('ascii iso-8859-1');
+
+        my $compiler-id = $*PERL.compiler.id;
+        for @dependencies -> ($dependency-id, $dependency-src) {
+            my $path = self.store.path($compiler-id, $dependency-id);
+            if $path.e {
+                spurt(($path ~ '.rev-deps').IO, "$id\n", :append);
             }
-            spurt(($io ~ '.deps').IO, @dependencies.map(* ~ "\n").join(''));
-            self.store.unlock;
-            True
         }
+        my $depfile = ($io ~ '.deps').IO;
+        for @dependencies -> ($dependency-id, $dependency-src) {
+            $depfile.say: "$dependency-id $dependency-src";
+        }
+        self.store.unlock;
+        True
     }
 }
 

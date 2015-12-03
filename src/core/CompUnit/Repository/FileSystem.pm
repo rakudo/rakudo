@@ -50,7 +50,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         if $found {
             my $id = nqp::sha1($name ~ $*REPO.id);
-            say "$id $found" if $*W and $*W.is_precompilation_mode;
+            $*ADD-DEPENDENCY($id, $found) if $*W and $*W.is_precompilation_mode;
             my $handle = (
                 $precomp.may-precomp and (
                     $precomp.load($id, :since($found.modified)) # already precompiled?

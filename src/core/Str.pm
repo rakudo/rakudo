@@ -1192,12 +1192,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method samemark(Str:D: Str:D $pattern) {
-        my $p := $pattern.comb.map: *.NFD[1..*];
-        join '', self.comb.map: {
-            my $m := $p[$++];
-            $m.defined
-            ?? Uni.new(.NFD[0], |$m).Str
-            !! $_
+        my @marklist = $pattern.comb;
+        my $patmarks;
+        join '', self.comb.map: -> $orig {
+            $patmarks := .NFD[1..*] with @marklist.shift;
+            Uni.new($orig.NFD[0], |$patmarks).Str;
         }
     }
 

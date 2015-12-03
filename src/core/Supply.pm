@@ -83,7 +83,7 @@ my class Supply {
     ## Supply factories
     ##
 
-    method on-demand(&producer, :&closing, :$scheduler = CurrentThreadScheduler) {
+    method on-demand(Supply:U: &producer, :&closing, :$scheduler = CurrentThreadScheduler) {
         Supply.new(class :: does Tappable {
             has &!producer;
             has &!closing;
@@ -105,7 +105,7 @@ my class Supply {
         }.new(:&producer, :&closing, :$scheduler))
     }
 
-    method from-list(+@values, :$scheduler = CurrentThreadScheduler) {
+    method from-list(Supply:U: +@values, :$scheduler = CurrentThreadScheduler) {
         self.on-demand(-> $p {
             $p.emit($_) for @values;
             $p.done();

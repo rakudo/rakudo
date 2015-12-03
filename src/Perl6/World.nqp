@@ -69,7 +69,7 @@ sub levenshtein($a, $b) {
     sub changecost($ac, $bc) {
         sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
         return 0 if $ac eq $bc;
-        return 0.5 if nqp::uc($ac) eq nqp::lc($bc);
+        return 0.1 if nqp::fc($ac) eq nqp::fc($bc);
         return 0.5 if issigil($ac) && issigil($bc);
         return 1;
     }

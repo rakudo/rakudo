@@ -204,16 +204,15 @@ multi sub infix:<%>(Rational \a, Rational \b) {
 multi sub infix:<**>(Rational \a, Int \b) {
     b >= 0
         ?? DIVIDE_NUMBERS
-            a.numerator ** b,
-            a.denominator ** b,
+            (a.numerator ** b // fail (a.numerator.abs > a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
+            a.denominator ** b,  # we presume it likely already blew up on the numerator
             a,
             b
         !! DIVIDE_NUMBERS
-            a.denominator ** -b,
+            (a.numerator ** -b // fail (a.numerator.abs < a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
             a.numerator ** -b,
             a,
             b
-    or a == 0.0 ?? 0.0 !! fail X::Numeric::Overflow.new;  # can this happen?
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {

@@ -228,7 +228,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
     method narrow(Num:D:) {
         my $i := self.Int;
-        $i.defined && $i.Num == self
+        $i.defined && $i.Num ≅ self
             ?? $i
             !! self
     }
@@ -238,6 +238,9 @@ my constant pi = 3.14159_26535_89793_238e0;
 my constant e  = 2.71828_18284_59045_235e0;
 
 my constant π := pi;
+#?if moar
+my constant 𝑒 := e;
+#?endif
 
 multi sub prefix:<++>(Num:D $a is rw) {
     $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0))
@@ -347,26 +350,34 @@ multi sub infix:<%>(num $a, num $b) {
     nqp::mod_n($a, $b)
 }
 
+# (If we get 0 here, must be underflow, since floating overflow provides Inf.)
 multi sub infix:<**>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+        or a == 0e0 || b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
 }
 multi sub infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
+        or $a == 0e0 || $b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
 }
 
-
+# Here we sort NaN in with string "NaN"
 multi sub infix:<cmp>(Num:D \a, Num:D \b) {
-    ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+     ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
+         a === b ?? Same !! a.Stringy cmp b.Stringy;
 }
 multi sub infix:<cmp>(num $a, num $b) {
-    ORDER(nqp::cmp_n($a, $b))
+    ORDER(nqp::cmp_n($a, $b)) or
+         $a === $b ?? Same !! $a.Stringy cmp $b.Stringy;
 }
 
+# Here we treat NaN as undefined
 multi sub infix:«<=>»(Num:D \a, Num:D \b) {
-    ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
+         a == b ?? Same !! Nil;
 }
 multi sub infix:«<=>»(num $a, num $b) {
-    ORDER(nqp::cmp_n($a, $b))
+    ORDER(nqp::cmp_n($a, $b)) or
+         $a == $b ?? Same !! Nil;
 }
 
 multi sub infix:<===>(Num:D \a, Num:D \b) {

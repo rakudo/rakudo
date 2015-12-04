@@ -60,7 +60,7 @@ class Kernel does Systemic {
     method release {
         $!release //= do {
             given $*DISTRO.name {
-                when any <openbsd netbsd> { # needs adapting
+                when any <openbsd netbsd dragonfly> { # needs adapting
                     uname '-r';
                 }
                 default {
@@ -108,6 +108,7 @@ class Kernel does Systemic {
             } else {
                 @names = flat "", qx/kill -l/.words;
                 @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
+                @names.=map({.uc}) if $*KERNEL.name eq 'dragonfly';
             }
 
             for Signal.^enum_value_list -> $signal {

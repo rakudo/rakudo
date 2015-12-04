@@ -1,6 +1,3 @@
-# We use a sentinel value to mark the end of an iteration.
-my constant IterationEnd = Mu.CREATE;
-
 # The Iterator role defines the API for an iterator and provides simple
 # fallback implementations for most of it, so any given iterator can pick
 # and choose what bits it can implement better for performance and/or
@@ -82,7 +79,7 @@ my role Iterator {
     # if "foo".IO.lines { , where we're only interested whether there is *any*
     # line in the file, rather than the content of the line.
     method bool-only() {
-        self.pull-one() !=:= IterationEnd;
+        !(self.pull-one() =:= IterationEnd)
     }
 
     # Consumes all of the values in the iterator for their side-effects only.

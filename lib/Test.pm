@@ -462,8 +462,8 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                         }
                     }
                 } else {
-                    diag "Expected: {$ex_type.gist}";
-                    diag "Got:      {$_.WHAT.gist}";
+                    diag "Expected: {$ex_type.^name}";
+                    diag "Got:      {$_.^name}";
                     diag "Exception message: $_.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }

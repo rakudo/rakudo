@@ -11,6 +11,9 @@ my class X::Subscript::Negative { ... }
 
 my role  Numeric { ... }
 
+# We use a sentinel value to mark the end of an iteration.
+my constant IterationEnd = nqp::create(Mu);
+
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
 
@@ -109,6 +112,9 @@ my class Any { # declared in BOOTSTRAP
     proto method roll(|) is nodal { * }
     multi method roll()   { self.list.roll     }
     multi method roll($n) { self.list.roll($n) }
+
+    proto method iterator(|) { * }
+    multi method iterator(Any:) { self.list.iterator }
 
     proto method classify(|) is nodal { * }
     multi method classify() {
@@ -400,10 +406,19 @@ my class Any { # declared in BOOTSTRAP
     method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
     method Supply() is nodal { self.list.Supply }
 
-    method nl() { "\n" }
-    method print-nl() { self.print(self.nl) }
+    method nl-out() { "\n" }
+    method print-nl() { self.print(self.nl-out) }
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
+
+    method sum() {
+        my \iter = self.iterator;
+        my $sum = 0;
+        my Mu $value;
+        $sum = $sum + $value
+          until ($value := iter.pull-one) =:= IterationEnd;
+        $sum;
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
@@ -460,6 +475,11 @@ multi sub elems($a) { $a.elems }
 proto sub end(|) { * }
 multi sub end($a) { $a.end }
 
+proto sub sum(|) {*}
+multi sub sum() { 0 }
+multi sub sum(\SELF) { SELF.sum }
+multi sub sum(+SELF) { SELF.sum }
+
 sub classify( $test, +items, *%named ) {
     if %named.EXISTS-KEY("into") {
         my $into := %named.DELETE-KEY("into");
@@ -509,7 +529,7 @@ sub DELETEKEY(Mu \d, str $key) {
         $value;
     }
     else {
-        Mu;
+        Nil;
     }
 } #DELETEKEY
 

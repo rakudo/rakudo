@@ -3,8 +3,7 @@
 # Generates list of positions to index into the array at. Takes all those
 # before something lazy is encountered and eagerly reifies them. If there
 # are any lazy things in the slice, then we lazily consider those, but will
-# truncate at the first one that is out of range. We have a special case for
-# Range, which will auto-truncate even though not lazy.  The optional
+# truncate at the first one that is out of range. The optional
 # :$eagerize will be called if Whatever/WhateverCode is encountered or if
 # clipping of lazy indices is enacted.  It should return the number of
 # elements of the array if called with Whatever, or do something EXISTS-POSish
@@ -20,7 +19,7 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
         has $!star;
 
         method new(\target, \star) {
-            my \rt = self.CREATE;
+            my \rt = nqp::create(self);
             nqp::bindattr(rt, self, '$!target', target);
             nqp::bindattr(rt, self, '$!star', star);
             rt
@@ -48,8 +47,8 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
 
 
     my \pos-iter = pos.iterator;
-    my \pos-list = List.CREATE;
-    my \eager-indices = IterationBuffer.CREATE;
+    my \pos-list = nqp::create(List);
+    my \eager-indices = nqp::create(IterationBuffer);
     my \target = IndicesReificationTarget.new(eager-indices, $eagerize);
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
     unless pos-iter.push-until-lazy(target) =:= IterationEnd {
@@ -59,20 +58,13 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
             last unless $eagerize($i);
             $i
         };
-        my \todo := List::Reifier.CREATE;
+        my \todo := nqp::create(List::Reifier);
         nqp::bindattr(todo, List::Reifier, '$!reified', eager-indices);
         nqp::bindattr(todo, List::Reifier, '$!current-iter', rest-seq.iterator);
         nqp::bindattr(todo, List::Reifier, '$!reification-target', eager-indices);
         nqp::bindattr(pos-list, List, '$!todo', todo);
     }
     pos-list
-}
-multi sub POSITIONS(\SELF, Range \pos) {
-    # Can be more clever here and look at range endpoints, as an optimization.
-    pos.map(-> Int() $i {
-        last unless SELF.EXISTS-POS($i);
-        $i
-    }).cache;
 }
 
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
@@ -288,7 +280,8 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
             for $max ^.. $p -> $i {
                 $max = $i;
                 my $lv := $target.pull-one;
-                %keep{$i} := $lv if %keep{$i}:exists and $lv !=:= IterationEnd;
+                %keep{$i} := $lv
+                  if %keep{$i}:exists and !($lv =:= IterationEnd);
             }
             $lv := %keep{$p};
             $lv = rviter.pull-one;
@@ -502,7 +495,7 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw
 sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
     my \target = IterationBuffer.new;
     MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
-    nqp::p6bindattrinvres(List.CREATE, List, '$!reified', target)
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
@@ -516,6 +509,19 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
     $all-ints
         ?? SELF.AT-POS(|@indices)
         !! MD-ARRAY-SLICE(SELF, @indices)
+}
+
+multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
+    my int $n = @indices.elems;
+    my int $i = 0;
+    my $all-ints := True;
+    while $i < $n {
+        $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
+        $i = $i + 1;
+    }
+    $all-ints
+        ?? SELF.ASSIGN-POS(|@indices, assignee)
+        !! (MD-ARRAY-SLICE(SELF, @indices) = assignee)
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
@@ -554,7 +560,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
     }
 }
 
-multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is rw) is raw {
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
     my int $n = @indices.elems;
     my int $i = 0;
     my $all-ints := True;

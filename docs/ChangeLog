@@ -1,3 +1,57 @@
+New in 2015.12:
+ + Features
+ + Incompatible changes
+   + Bool is now a proper enum
+   + Supply.new replaced by Supplier.new
+ + Fixes
+   + Dynamic variables are now visible inside start { ... } blocks
+
+New in 2015.11:
+ + Features
+   + Initial shaped array support
+   + \r\n (Carriage Return/LineFeed) is now a single (synthetic) grapheme
+   + Unicode support adheres to Unicode Annex #29
+   + New IO::Handle.nl-in now allows multiple line-endings to be set
+   + New IO::Handle.nl-out allows you to set line-ending used in IO::Handle.say
+   + New IO::Handle.split/comb, same feature set as Str.split/comb, but lazy
+   + IO::Handle.seek now accepts new SeekType enum values as 2nd parameter
+   + New $?NL contains the output new-line character(s) for the current system
+   + New 'use newline' pragma allows setting of $?NL
+   + New List.head/tail methods for easier getting first/last N elements
+   + New List.repeated for only getting repeated values in a list
+   + Str.encode now allows :replacement parameter for unencodable sequences
+   + Str.split now accepts multiple strings to split on
+   + Str.split now accepts :v, :k, :kv, :p, :skip-empty named params
+   + Str.comb(Int:D $n) candidate allows for combing string per $n characters
+   + New Range.int-bounds returns first/last value for integer ranges
+   + EVAL now passes on named params, to allow for customised EVAL subs
+   + Auto-generated meta-ops vivified by referring to them, instead of executing
+   + Unicode quotes are now also allowed in regular expressions
+   + Can now coerce to generic types in parameters
+   + Can attach adverbs to variables
+   + Illegal assignment of different Numeric values now caught at compile time
+   + &nextcallee implemented, which returns the routine that nextsame would invoke
+ + Deprecated
+   + IO::Handle.nl should either be IO::Handle.nl-in or .nl-out
+   + IO::Handle.seek with a numerical value for 2nd parameter
+   + Str.split( ... :all) should be written as :v
+ + Fixes
+   + RT #74414: the multi dispatcher now treats "is rw" parameters as tighter matches
+   + RT #125123: improved error message for type check failures in int-typed arrays
+   + RT #126436: improved error message for missing required attributes
+   + multi submethods aren't inherited to subclasses
+   + leading escape sequences representing whitespaces aren't stripped anymore from  heredocs
+ + Speedups:
+   + [+] and sum
+   + Blob.subbuf
+   + List.sort
+   + List.roll
+   + List.rotate
+   + List.reverse
+   + IO::Handle.getc
+ + Build system
+   + New options --sdkroot and --sysroot to Configure.pl to support cross builds
+
 New in 2015.10:
  + Features
     + We are now officially in beta!

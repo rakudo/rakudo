@@ -11,11 +11,11 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Bool(Junction:D:) {
-        SEQ($!storage.map({return True if $_}).sink; return False)
+        STATEMENT_LIST($!storage.map({return True if $_}).sink; return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.map({return False unless $_}).sink; return True)
+        STATEMENT_LIST($!storage.map({return False unless $_}).sink; return True)
             if nqp::iseq_s($!type, 'all');
-        SEQ($!storage.map({return False if $_}).sink; return True)
+        STATEMENT_LIST($!storage.map({return False if $_}).sink; return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;
@@ -34,11 +34,11 @@ my class Junction { # declared in BOOTSTRAP
         nqp::p6bool(nqp::istype(topic, Junction));
     }
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        SEQ($!storage.map({return True if $_.ACCEPTS(topic)}).sink; return False)
+        STATEMENT_LIST($!storage.map({return True if $_.ACCEPTS(topic)}).sink; return False)
             if nqp::iseq_s($!type, 'any');
-        SEQ($!storage.map({return False unless $_.ACCEPTS(topic)}).sink; return True)
+        STATEMENT_LIST($!storage.map({return False unless $_.ACCEPTS(topic)}).sink; return True)
             if nqp::iseq_s($!type, 'all');
-        SEQ($!storage.map({return False if $_.ACCEPTS(topic)}).sink; return True)
+        STATEMENT_LIST($!storage.map({return False if $_.ACCEPTS(topic)}).sink; return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
         my $count = 0;

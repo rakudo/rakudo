@@ -3,40 +3,23 @@ my role Enumeration {
     has $.key;
     has $.value;
 
-    multi method Numeric(::?CLASS:D:) { $!value.Numeric }
-
-    method enums() {
-        self.^enum_values
-    }
-
-    multi method gist(::?CLASS:D:) {
-        $!key
-    }
+    method enums() { self.^enum_values }
 
     multi method kv(::?CLASS:D:) { ($!key, $!value) }
-
     method pair(::?CLASS:D:) { $!key => $!value }
 
-    method perl() {
-        self.defined ??
-            (self.^name ~ '::' ~ $!key) !!
-            self.^name;
-    }
+    multi method gist(::?CLASS:D:) { $!key                     }
+    multi method perl(::?CLASS:D:) { self.^name ~ '::' ~ $!key }
 
-    method pick(*@pos, *%named) {
-        self.defined
-          ?? self xx +?( @pos[0] // 1 )
-          !! self.^enum_value_list.pick(|@pos, |%named);
-    }
-    method roll(*@pos, *%named) {
-        self.defined
-          ?? self xx ( @pos[0] // 1 )
-          !! self.^enum_value_list.roll(|@pos, |%named);
-    }
+    multi method pick(::?CLASS:U:)       { self.^enum_value_list.pick     }
+    multi method pick(::?CLASS:U: \n)    { self.^enum_value_list.pick(n)  }
+    multi method pick(::?CLASS:D: *@pos) { self xx +?( @pos[0] // 1 )     }
+    multi method roll(::?CLASS:U:)       { self.^enum_value_list.roll     }
+    multi method roll(::?CLASS:U: \n)    { self.^enum_value_list.roll(n)  }
+    multi method roll(::?CLASS:D: *@pos) { self xx +?( @pos[0] // 1 )     }
 
-    method Int(::?CLASS:D:) {
-        self.value.Int
-    }
+    multi method Numeric(::?CLASS:D:) { $!value.Numeric }
+    multi method Int(::?CLASS:D:)     { $!value.Int }
 
     method CALL-ME(|) {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);

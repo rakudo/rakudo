@@ -28,6 +28,12 @@ class Perl6::Metamodel::BaseDispatcher {
         nqp::setdispatcher(self);
         nqp::invokewithcapture(nqp::decont($call), $capture)
     }
+
+    method shift_callee() {
+        my $callee := @!candidates[$!idx];
+        $!idx := $!idx + 1;
+        nqp::decont($callee)
+    }
 }
 
 class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {

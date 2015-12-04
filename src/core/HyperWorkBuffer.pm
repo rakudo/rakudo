@@ -8,9 +8,9 @@ my class HyperWorkBuffer {
     has $.output;
 
     method new() {
-        my \wb = self.CREATE;
-        nqp::bindattr(wb, HyperWorkBuffer, '$!input', IterationBuffer.CREATE);
-        nqp::bindattr(wb, HyperWorkBuffer, '$!output', IterationBuffer.CREATE);
+        my \wb = nqp::create(self);
+        nqp::bindattr(wb, HyperWorkBuffer, '$!input', nqp::create(IterationBuffer));
+        nqp::bindattr(wb, HyperWorkBuffer, '$!output', nqp::create(IterationBuffer));
         wb
     }
 
@@ -39,7 +39,7 @@ my class HyperWorkBuffer {
             has int $!i;
 
             method new(\buffer) {
-                my \iter = self.CREATE;
+                my \iter = nqp::create(self);
                 nqp::bindattr(iter, self, '$!buffer', buffer);
                 iter
             }

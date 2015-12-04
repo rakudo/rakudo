@@ -129,6 +129,7 @@ S02-types/hash.t
 S02-types/infinity.t
 S02-types/instants-and-durations.t
 S02-types/int-uint.t
+S02-types/is-type.t
 S02-types/isDEPRECATED.t
 S02-types/keyhash.t
 S02-types/lazy-lists.t
@@ -204,7 +205,6 @@ S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/equality.t
 S03-operators/eqv.t
-S03-operators/fiddly.t
 S03-operators/flip-flop.t
 S03-operators/gcd.t
 S03-operators/div.t
@@ -439,6 +439,7 @@ S06-macros/errors.t
 S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
 S06-macros/opaque-ast.t
+S06-multi/by-trait.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
@@ -489,6 +490,7 @@ S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
 S06-signature/positional.t
 S06-signature/scalar-type.t
+S06-signature/shape.t
 S06-signature/sigilless.t
 S06-signature/slurpy-and-interpolation.t
 S06-signature/slurpy-params.t
@@ -516,6 +518,12 @@ S09-autovivification/autovivification.t
 S09-hashes/objecthash.t
 S09-subscript/slice.t
 S09-subscript/multidim-assignment.t
+S09-multidim/XX-POS-on-dimensioned.t
+S09-multidim/XX-POS-on-undimensioned.t
+S09-multidim/assign.t
+S09-multidim/decl.t
+S09-multidim/indexing.t
+S09-multidim/methods.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 S09-typed-arrays/native.t
@@ -526,6 +534,8 @@ S10-packages/basic.t
 S10-packages/joined-namespaces.t
 S10-packages/precompilation.t
 S10-packages/use-with-class.t
+S11-compunit/compunit-dependencyspecification.t
+S11-compunit/compunit-repository.t
 S11-modules/export.t
 S11-modules/importing.t
 S11-modules/import-multi.t
@@ -535,6 +545,7 @@ S11-modules/lexical.t
 S11-modules/need.t
 S11-modules/nested.t
 S11-modules/require.t
+S11-repository/curli-install.t
 S12-attributes/class.t
 S12-attributes/clone.t
 S12-attributes/defaults.t
@@ -648,8 +659,9 @@ S14-traits/routines.t
 S15-literals/identifiers.t
 S15-literals/numbers.t
 S15-nfg/case-change.t           # moar
-S15-nfg/concatenation.t         # moar
 S15-nfg/cgj.t                   # moar
+S15-nfg/concatenation.t         # moar
+S15-nfg/crlf-encoding.t         # moar
 S15-nfg/from-buf.t              # moar
 S15-nfg/from-file.t             # moar
 S15-nfg/grapheme-break.t        # moar
@@ -711,6 +723,7 @@ S15-string-types/Uni.t          # moar
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
 S15-unicode-information/unimatch-general.t	# moar
+S15-unicode-information/uniprop.t           # moar
 S15-unicode-information/unival.t	        # moar
 S16-filehandles/argfiles.t
 S16-filehandles/chmod.t
@@ -729,11 +742,13 @@ S16-io/comb.t
 S16-io/cwd.t
 S16-io/getc.t
 S16-io/lines.t
+S16-io/newline.t
 S16-io/note.t
 S16-io/print.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/split.t
+S16-io/supply.t
 S16-io/tmpdir.t
 S16-io/words.t
 S16-unfiled/rebindstdhandles.t
@@ -747,6 +762,7 @@ S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress slow
 S17-procasync/no-runaway-file-limit.t # moar
 S17-procasync/many-processes-no-close-stdin.t # moar
+S17-procasync/stress.t   # moar stress
 S17-promise/allof.t      # slow
 S17-promise/anyof.t
 S17-promise/basic.t
@@ -772,8 +788,8 @@ S17-supply/flat.t
 S17-supply/from-list.t
 S17-supply/grab.t
 S17-supply/grep.t
-S17-supply/interval.t    # slow
-S17-supply/last.t
+S17-supply/head.t
+S17-supply/interval.t
 S17-supply/lines.t
 S17-supply/list.t
 S17-supply/map.t
@@ -782,9 +798,9 @@ S17-supply/merge.t
 S17-supply/migrate.t
 S17-supply/min.t
 S17-supply/minmax.t
-S17-supply/on.t
 S17-supply/on-demand.t
 S17-supply/Promise.t
+S17-supply/produce.t
 S17-supply/reduce.t
 S17-supply/reverse.t
 S17-supply/rotor.t
@@ -794,6 +810,7 @@ S17-supply/squish.t
 S17-supply/stable.t       # slow
 S17-supply/start.t        # slow
 S17-supply/syntax.t       # slow
+S17-supply/tail.t
 S17-supply/throttle.t     # slow
 S17-supply/unique.t       # slow
 S17-supply/wait.t         # slow
@@ -831,7 +848,6 @@ S26-documentation/why-both.t
 S26-documentation/why-trailing.t
 S26-documentation/why-leading.t
 S28-named-variables/cwd.t
-S28-named-variables/inc.t
 S28-named-variables/slangs.t    # moar
 S29-any/cmp.t
 S29-any/isa.t
@@ -904,6 +920,7 @@ S32-io/note.t
 S32-io/other.t
 S32-io/pipe.t
 S32-io/rename.t
+S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
@@ -1007,6 +1024,7 @@ S32-str/tclc.t
 S32-str/trim.t
 S32-str/uc.t
 S32-str/unpack.t
+S32-str/utf8-c8.t       # moar
 S32-str/words.t
 S32-temporal/calendar.t
 S32-temporal/Date.t

@@ -28,9 +28,7 @@ my class Code does Callable { # declared in BOOTSTRAP
         nqp::p6box_i(nqp::where(nqp::getstaticcode($!do)));
     }
 
-    multi method new(Code:) {
-        die "Cannot make a {self.^name} object using .new";
-    }
+    multi method new(Code:) { X::Cannot::New.new(class => self).throw }
 
     method file(Code:D:) {
         nqp::getcodelocation($!do)<file>;

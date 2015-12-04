@@ -1,73 +1,78 @@
 my class IO::ArgFiles { ... }
 
 proto sub print(|) { * }
-multi sub print(*@args) {
-    my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
-    $*OUT.print($str);
-    Bool::True
-}
 multi sub print(Str:D \x) {
     $*OUT.print(x);
 }
 multi sub print(\x) {
     $*OUT.print(x.Str);
 }
-multi sub print(Iterable \x) {
-    my $out := $*OUT;
+multi sub print(**@args is raw) {
     my str $str;
-    if nqp::iscont(x) {
-        $str = x.Str;
-    }
-    else {
-        my \iterator := x.iterator;
-        until (my \value := iterator.pull-one) =:= IterationEnd {
-            $str = nqp::concat($str, nqp::unbox_s(value.Str));
-        }
-    }
-    $out.print($str);
+    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $*OUT.print($str);
 }
 
 # Once we have an nqp::say that looks at the *output* line separator of the
-# PIO, then we can stop concatenating .nl to each string before .print, but
+# PIO, then we can stop concatenating .nl-out to each string before .print, but
 # instead call nqp::say directly.
 
 proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl);
+    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
     $out.print($str);
 }
 multi sub say(\x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl);
+    my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl-out);
     $out.print($str);
 }
 multi sub say(**@args is raw) {
     my $out := $*OUT;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$out.nl);
+    $str = nqp::concat($str,$out.nl-out);
+    $out.print($str);
+}
+
+proto sub put(|) { * }
+multi sub put() { $*OUT.print-nl }
+multi sub put(Str:D \x) {
+    my $out := $*OUT;
+    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
+    $out.print($str);
+}
+multi sub put(\x) {
+    my $out := $*OUT;
+    my str $str = nqp::concat(nqp::unbox_s(x.Str),$out.nl-out);
+    $out.print($str);
+}
+multi sub put(**@args is raw) {
+    my $out := $*OUT;
+    my str $str;
+    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    $str = nqp::concat($str,$out.nl-out);
     $out.print($str);
 }
 
 proto sub note(|) { * }
 multi sub note() {
     my $err := $*ERR;
-    my str $str = nqp::concat("Noted",$err.nl);
+    my str $str = nqp::concat("Noted",$err.nl-out);
     $err.print($str);
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;
-    my str $str = nqp::concat(nqp::unbox_s(x),$err.nl);
+    my str $str = nqp::concat(nqp::unbox_s(x),$err.nl-out);
     $err.print($str);
 }
 multi sub note(**@args is raw) {
     my $err := $*ERR;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$err.nl);
+    $str = nqp::concat($str,$err.nl-out);
     $err.print($str);
 }
 

@@ -1,4 +1,6 @@
-class array does Iterable is repr('VMArray') {
+my class X::TooManyDimensions { ... }
+
+my class array does Iterable is repr('VMArray') {
 
     proto method STORE(|) { * }
     multi method STORE(array:D: *@values) { self.STORE(@values) }
@@ -23,14 +25,21 @@ class array does Iterable is repr('VMArray') {
         multi method ASSIGN-POS(array:D: Int:D $idx, int $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
+        multi method ASSIGN-POS(array:D: Any $idx, int $value) {
+            nqp::bindpos_i(self, $idx.Int, $value)
+        }
         multi method ASSIGN-POS(array:D: int $idx, Int:D $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Int:D $idx, Mu \value) {
-            nqp::bindpos_i(self, $idx, value)
+        multi method ASSIGN-POS(array:D: Int $idx, Int:D $value) {
+            nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(array:D: Any:D $idx, Mu \value) {
-            nqp::bindpos_i(self, $idx.Int, value)
+        multi method ASSIGN-POS(array:D: Any $idx, Mu \value) {
+            X::TypeCheck.new(
+                operation => 'assignment to array',
+                got       => value,
+                expected  => T,
+            ).throw;
         }
 
         multi method STORE(array:D: $value) {
@@ -72,6 +81,13 @@ class array does Iterable is repr('VMArray') {
             nqp::push_i(self, $value);
             self
         }
+        multi method push(array:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'push to array',
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
         multi method append(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.is-lazy;
@@ -98,6 +114,13 @@ class array does Iterable is repr('VMArray') {
         multi method unshift(array:D: Int $value) {
             nqp::unshift_i(self, $value);
             self
+        }
+        multi method unshift(array:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'push to array',
+                got       => value,
+                expected  => T,
+            ).throw;
         }
         multi method unshift(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
@@ -201,7 +224,7 @@ class array does Iterable is repr('VMArray') {
         }
     }
 
-# please note that this role is mostly same as intarray but s/_i$/_n/
+    # please note that this role is mostly same as intarray but s/_i$/_n/
     my role numarray[::T] does Positional[T] is array_type(T) {
         multi method AT-POS(array:D: int $idx) is raw {
             nqp::atposref_n(self, $idx)
@@ -396,6 +419,183 @@ class array does Iterable is repr('VMArray') {
         }
     }
 
+    role shapedarray does Rakudo::Internals::ShapedArrayCommon {
+        method shape() {
+            my Mu \idims = nqp::dimensions(self);
+            my Mu \dims = nqp::list();
+            loop (my int $i = 0; $i < nqp::elems(idims); $i = $i + 1) {
+                nqp::bindpos(dims, $i, nqp::atpos_i(idims, $i))
+            }
+            nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', dims)
+        }
+
+        proto method EXISTS-POS(|) {*}
+        multi method EXISTS-POS(array:U: |c) {
+            self.Any::EXISTS-POS(|c)
+        }
+        multi method EXISTS-POS(array:D: **@indices) {
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind <= $numdims {
+                my $dims := nqp::dimensions(self);
+                loop (my int $i = 0; $i < $numind; $i = $i + 1) {
+                    return False if @indices[$i] >= nqp::atpos_i($dims, $i);
+                }
+                True
+            }
+            else {
+                False
+            }
+        }
+
+        proto method STORE(|) { * }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            my \in-shape = nqp::can(in, 'shape') ?? in.shape !! Nil;
+            if in-shape && !nqp::istype(in-shape.AT-POS(0), Whatever) {
+                if self.shape eqv in-shape {
+                    # Can do a VM-supported memcpy-like thing in the future
+                    for self.keys {
+                        self.ASSIGN-POS(|$_, in.AT-POS(|$_))
+                    }
+                }
+                else {
+                    X::Assignment::ArrayShapeMismatch.new(
+                        source-shape => in-shape,
+                        target-shape => self.shape
+                    ).throw
+                }
+            }
+            else {
+                self!STORE-PATH((), self.shape, in)
+            }
+        }
+        multi method STORE(::?CLASS:D: Mu \item) {
+            self.STORE((item,))
+        }
+    }
+
+    role shapedintarray[::T] does shapedarray {
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(array:U: |c) is raw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(array:D: **@indices) is raw {
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::atposnd_i(self, $idxs)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'access',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
+            }
+        }
+
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(array:U: |c) {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(array:D: **@indices) {
+            my int $value   = @indices.pop;
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::bindposnd_i(self, $idxs, $value)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
+    }
+
+    role shapednumarray[::T] does shapedarray {
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(array:U: |c) is raw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(array:D: **@indices) is raw {
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::atposnd_n(self, $idxs)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'access',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
+            }
+        }
+
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(array:U: |c) {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(array:D: **@indices) {
+            my num $value   = @indices.pop;
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i();
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::bindposnd_n(self, $idxs, $value)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
+    }
+
     method ^parameterize(Mu:U \arr, Mu:U \t) {
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
@@ -410,29 +610,40 @@ class array does Iterable is repr('VMArray') {
             $what;
         }
         elsif $kind == 3 {
-            nqp::die('NYI');
+            X::NYI.new(feature => 'native string arrays').throw;
         }
         else {
             die "Can only parameterize array with a native type, not {t.^name}";
         }
     }
 
-    multi method new() {
-        self!validate-parameterized();
-        nqp::create(self)
+    multi method new(:$shape) {
+        self!create($shape)
     }
-    multi method new(@values) {
-        self!validate-parameterized();
-        nqp::create(self).STORE(@values)
+    multi method new(@values, :$shape) {
+        self!create($shape).STORE(@values)
     }
-    multi method new(**@values) {
-        self!validate-parameterized();
-        nqp::create(self).STORE(@values)
+    multi method new(**@values, :$shape) {
+        self!create($shape).STORE(@values)
     }
 
-    method !validate-parameterized() {
+    method !create($shape) {
         nqp::isnull(nqp::typeparameterized(self)) &&
             die "Must parameterize array[T] with a type before creating it";
+        nqp::isconcrete($shape) ?? self!shaped($shape) !! nqp::create(self)
+    }
+
+    method !shaped($shape) {
+        # Calculate new meta-object (probably hitting caches in most cases).
+        my \T = self.of;
+        my int $kind = nqp::objprimspec(T);
+        my \shaped-type = self.WHAT.^mixin($kind == 1
+            ?? shapedintarray[T]
+            !! shapednumarray[T]);
+        shaped-type.^set_name(self.^name());
+
+        # Allocate array storage for this shape, based on the calculated type.
+        Rakudo::Internals.SHAPED-ARRAY-STORAGE($shape.list, shaped-type.HOW, T)
     }
 
     method BIND-POS(|) {
@@ -462,14 +673,16 @@ class array does Iterable is repr('VMArray') {
     multi method Str(array:D:)     { self.join(' ') }
 
     multi method elems(array:D:)    { nqp::elems(self) }
+    method shape() { (*,) }
     proto method Int(|) { * }
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
     method is-lazy(array:D:) { False }
 
     method eager() { self }
-    method flat()  { self }
+    method flat()  { Seq.new(self.iterator) }
     method list()  { List.from-iterator(self.iterator) }
+    method sink(--> Nil) { }
 
     multi method gist(array:D:) {
         self.map(-> $elem {
@@ -492,4 +705,32 @@ class array does Iterable is repr('VMArray') {
     method iterator() {
         nqp::die('iterator must be provided by native array parameterization role')
     }
+}
+
+# needs native arrays, so we can only define it here
+sub permutations(int $n) {
+    Seq.new(
+        class :: does Iterator {
+            # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
+            has int $!n;
+            has     @!a;
+            submethod BUILD(:$n) { $!n = $n; self }
+            #method is-lazy { True }
+            method pull-one {
+                if !@!a { (@!a = ^$!n).List }
+                # Find the largest index k such that a[k] < a[k + 1].
+                # If no such index exists, the permutation is the last permutation.
+                elsif !(my $k = first { @!a[$_] < @!a[$_ + 1] }, :end, ^@!a.end).defined
+                { IterationEnd }
+                else {
+                    # Find the largest index l greater than k such that a[k] < a[l].
+                    my $l = first { @!a[$k] < @!a[$_] }, :end, $k ^..^ $!n;
+                    @!a[$k, $l].=reverse;
+                    @!a[$k+1 .. *].=reverse;
+                    @!a.List;
+                }
+            }
+            method count-only { [*] 1 .. $!n }
+        }.new(:$n)
+    );
 }

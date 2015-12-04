@@ -23,6 +23,7 @@ my class Promise {
     has $!lock;
     has $!cond;
     has @!thens;
+    has Mu $!dynamic_context;
 
     submethod BUILD(:$!scheduler = $*SCHEDULER) {
         $!lock            := nqp::create(Lock);
@@ -157,10 +158,11 @@ my class Promise {
     }
 
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER, |c) {
-        my $p   = Promise.new(:$scheduler);
+        my $p := Promise.new(:$scheduler);
+        nqp::bindattr($p, Promise, '$!dynamic_context', nqp::ctx());
         my $vow = $p.vow;
         $scheduler.cue(
-            { $vow.keep(code(|c)) },
+            { my $*PROMISE := $p; $vow.keep(code(|c)) },
             :catch(-> $ex { catch($ex) if &catch; $vow.break($ex); }) );
         $p
     }
@@ -202,7 +204,7 @@ my class Promise {
     }
 
     method Supply(Promise:D:) {
-        my $s = Supply.new;
+        my $s = Supplier.new;
         self.then({
             if self.status == Kept {
                 $s.emit(self.result);
@@ -212,7 +214,7 @@ my class Promise {
                 $s.quit(self.cause);
             }
         });
-        $s
+        $s.Supply
     }
 
     # experimental

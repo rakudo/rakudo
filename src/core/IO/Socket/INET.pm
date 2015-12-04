@@ -22,12 +22,12 @@ my class IO::Socket::INET does IO::Socket {
     has Str $.localhost;
     has Int $.localport;
     has Int $.backlog;
-    has Bool $.listen;
+    has Bool $.listening;
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
-    has Str $.input-line-separator is rw = "\n";
-    has Int $.ins = 0;
+    has $.nl-in is rw = ["\x0A", "\r\n"];
+    has int $.ins;
 
     my sub v4-split($uri) {
         return $uri.split(':', 2);
@@ -60,23 +60,23 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
 
-        %args<listen>.=Bool if %args.EXISTS-KEY('listen');
+        %args<listening> = %args<listen>.Bool if %args.EXISTS-KEY('listen');
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(|%args)!initialize()
     }
 
     method !initialize() {
-        my $PIO := nqp::socket($.listen ?? 10 !! 0);
+        my $PIO := nqp::socket($.listening ?? 10 !! 0);
         #Quoting perl5's SIO::INET:
         #If Listen is defined then a listen socket is created, else if the socket type,
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
-        if $.listen || $.localhost || $.localport {
+        if $.listening || $.localhost || $.localport {
             nqp::bindsock($PIO, nqp::unbox_s($.localhost || "0.0.0.0"),
                                  nqp::unbox_i($.localport || 0), nqp::unbox_i($.backlog || 128));
         }
 
-        if $.listen {
+        if $.listening {
         }
         elsif $.type == PIO::SOCK_STREAM {
             nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
@@ -86,34 +86,42 @@ my class IO::Socket::INET does IO::Socket {
         self;
     }
 
-    method get() {
-        my Mu $io       := nqp::getattr(self, $?CLASS, '$!PIO');
-        my str $encoding = Rakudo::Internals.NORMALIZE_ENCODING($!encoding);
-        nqp::setencoding($io, $encoding);
-        my str $sep = nqp::unbox_s($!input-line-separator);
-        nqp::setinputlinesep($io, $sep);
-        my int $sep-len = nqp::chars($sep);
-        my str $line    = nqp::readlinefh($io);
-        my int $len     = nqp::chars($line);
+    method connect(IO::Socket::INET:U: Str() $host, Int() $port) {
+        self.new(:$host, :$port)
+    }
 
-        if $len == 0 { Str }
+    method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport) {
+        self.new(:$localhost, :$localport, :listen)
+    }
+
+    method input-line-separator is rw {
+        DEPRECATED('nl-in');
+        self.nl-in
+    }
+
+    method get() {
+        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
+        nqp::setencoding($io, Rakudo::Internals.NORMALIZE_ENCODING($!encoding));
+        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($io, $!nl-in);
+        my str $line = nqp::readlinechompfh($io);
+        if nqp::chars($line) || !nqp::eoffh($io) {
+            $!ins = $!ins + 1;
+            $line
+        }
         else {
-            ++$!ins;
-            $len >= $sep-len && nqp::eqat($line, $sep, $len - $sep-len)
-                ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
-                !! nqp::p6box_s($line);
+            Nil
         }
     }
 
     method lines() {
-        gather while (my $line = self.get()).defined {
+        gather while (my $line = self.get()).DEFINITE {
             take $line;
         }
     }
 
     method accept() {
         ## A solution as proposed by moritz
-        my $new_sock := $?CLASS.bless(:$!family, :$!proto, :$!type, :$!input-line-separator);
+        my $new_sock := $?CLASS.bless(:$!family, :$!proto, :$!type, :$!nl-in);
 #?if jvm
         nqp::getattr($new_sock, $?CLASS, '$!buffer') = buf8.new;
 #?endif
@@ -121,12 +129,6 @@ my class IO::Socket::INET does IO::Socket {
             nqp::accept(nqp::getattr(self, $?CLASS, '$!PIO'))
         );
         return $new_sock;
-    }
-
-    method remote_address() {
-    }
-
-    method local_address() {
     }
 }
 

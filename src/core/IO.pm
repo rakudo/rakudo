@@ -6,6 +6,32 @@ my role IO {
     method umask { state $ = :8( qx/umask/.chomp ) }
 }
 
+enum SeekType (
+  :SeekFromBeginning(0),
+  :SeekFromCurrent(1),
+  :SeekFromEnd(2),
+);
+enum ProtocolFamily (
+  :PF_LOCAL(0),
+  :PF_UNIX(1),
+  :PF_INET(2),
+  :PF_INET6(3),
+  :PF_MAX(4),
+);
+enum SocketType (
+  :SOCK_PACKET(0),
+  :SOCK_STREAM(1),
+  :SOCK_DGRAM(2),
+  :SOCK_RAW(3),
+  :SOCK_RDM(4),
+  :SOCK_SEQPACKET(5),
+  :SOCK_MAX(6),
+);
+enum ProtocolType (
+  :PROTO_TCP(6),
+  :PROTO_UDP(17),
+);
+
 #===============================================================================
 # Primitives that may live in a role someday, if we figure out how to do that
 # in a sensible and performant way.  Until then, these global subs with slightly
@@ -137,7 +163,7 @@ sub CHANGE-DIRECTORY($path,$base,&test) {
          );
 }
 
-sub COPY-FILE(Str $from, Str $to, :$createonly) {
+sub COPY-FILE(Str $from, Str $to, :$createonly --> True) {
     if $createonly and FILETEST-E($to) {
         fail X::IO::Copy.new(
           :$from,
@@ -150,10 +176,9 @@ sub COPY-FILE(Str $from, Str $to, :$createonly) {
     CATCH { default {
         fail X::IO::Copy.new( :$from, :$to, :os-error(.Str) );
     } }
-    True;
 }
 
-sub RENAME-PATH(Str $from, Str $to, :$createonly) {
+sub RENAME-PATH(Str $from, Str $to, :$createonly --> True) {
     if $createonly and FILETEST-E($to) {
         fail X::IO::Rename.new(
           :$from,
@@ -166,55 +191,48 @@ sub RENAME-PATH(Str $from, Str $to, :$createonly) {
     CATCH { default {
         fail X::IO::Rename.new( :$from, :$to, :os-error(.Str) );
     } }
-    True;
 }
 
-sub CHMOD-PATH(Str $path, Int $mode) {
+sub CHMOD-PATH(Str $path, Int $mode --> True) {
     nqp::chmod(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {
         fail X::IO::Chmod.new( :$path, :$mode, :os-error(.Str) );
     } }
-    True;
 }
 
-sub UNLINK-PATH(Str $path) {
+sub UNLINK-PATH(Str $path --> True) {
     nqp::unlink(nqp::unbox_s($path));
     CATCH { default {
         fail X::IO::Unlink.new( :$path, :os-error(.Str) );
     } }
-    True;
 }
 
-sub SYMLINK-PATH(Str $target, Str $name) {
+sub SYMLINK-PATH(Str $target, Str $name --> True) {
     nqp::symlink(nqp::unbox_s($name), nqp::unbox_s($target));
     CATCH { default {
         fail X::IO::Symlink.new( :$target, :$name, :os-error(.Str) );
     } }
-    True;
 }
 
-sub LINK-FILE(Str $target, Str $name) {
+sub LINK-FILE(Str $target, Str $name --> True) {
     nqp::link(nqp::unbox_s($name), nqp::unbox_s($target));
     CATCH { default {
         fail X::IO::Link.new( :$target, :$name, :os-error(.Str) );
     } }
-    True;
 }
 
-sub MAKE-DIR(Str $path, Int $mode) {
+sub MAKE-DIR(Str $path, Int $mode --> True) {
     nqp::mkdir(nqp::unbox_s($path), nqp::unbox_i($mode));
     CATCH { default {
         fail X::IO::Mkdir.new(:$path, :$mode, os-error => .Str);
     } }
-    True;
 }
 
-sub REMOVE-DIR(Str $path) {
+sub REMOVE-DIR(Str $path --> True) {
     nqp::rmdir(nqp::unbox_s($path));
     CATCH { default {
         fail X::IO::Rmdir.new(:$path, os-error => .Str);
     } }
-    True;
 }
 
 sub FILETEST-E(Str $abspath) {

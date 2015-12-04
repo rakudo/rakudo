@@ -58,9 +58,7 @@ my class Routine { # declared in BOOTSTRAP
         $perl
     }
 
-    method soft() {
-        Mu
-    }
+    method soft( --> Nil ) { }
 
     method wrap(&wrapper) {
         my class WrapHandle {

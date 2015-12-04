@@ -112,11 +112,9 @@ my &callwith := -> |c {
 
 my &nextwith := -> |c {
     my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
-    unless $dispatcher.exhausted {
-        nqp::p6routinereturn(nqp::p6recont_ro(
-            $dispatcher.call_with_args(|c)))
-    }
-    Nil
+    nqp::p6routinereturn($dispatcher.exhausted
+        ?? Nil
+        !! nqp::p6recont_ro($dispatcher.call_with_args(|c)))
 };
 
 my &callsame := -> {
@@ -128,17 +126,19 @@ my &callsame := -> {
 
 my &nextsame := -> {
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    unless $dispatcher.exhausted {
-        nqp::p6routinereturn(nqp::p6recont_ro(
-            $dispatcher.call_with_capture(
+    nqp::p6routinereturn($dispatcher.exhausted
+        ?? Nil
+        !! nqp::p6recont_ro($dispatcher.call_with_capture(
                 nqp::p6argsfordispatcher($dispatcher))))
-    }
-    Nil
 };
 
-my &lastcall := -> {
+my &lastcall := -> --> True {
     nqp::p6finddispatcher('lastcall').last();
-    True
+};
+
+my &nextcallee := -> {
+    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
+    $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
 };
 
 sub samewith(|c) {

@@ -1,6 +1,5 @@
-role  CompUnitRepo::Locally             { ... }
-class CompUnitRepo::Local::File         { ... }
-class CompUnitRepo::Local::Installation { ... }
+class CompUnit::Repository::FileSystem   { ... }
+class CompUnit::Repository::Installation { ... }
 
 my class Perl5ModuleLoaderStub {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
@@ -33,7 +32,9 @@ class CompUnitRepo {
         %language_module_loaders{$lang} := $loader;
     }
 
-    method new(Str $spec) { INCLUDE-SPEC2CUR($spec) }
+    method new(Str $spec, CompUnit::Repository :$next-repo) {
+        INCLUDE-SPEC2CUR($spec, :$next-repo)
+    }
 
     method files($file, :$name, :$auth, :$ver) {
         for @*INC -> $spec {
@@ -64,31 +65,48 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
     method load_module($module_name, %opts, \GLOBALish is raw, :$line, :$file) {
         RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $*RAKUDO_MODULE_DEBUG;
         $lock.protect( {
-        if %opts<from> {
-            # See if we need to load it from elsewhere.
-            if %language_module_loaders{%opts<from>}:exists {
-                return %language_module_loaders{%opts<from>}.load_module($module_name,
-                    %opts, GLOBALish, :$line, :$file);
+            my @MODULES = nqp::clone(@*MODULES // ());
+
+            {
+                my @*MODULES := @MODULES;
+                if +@*MODULES == 0 and %*ENV<RAKUDO_PRECOMP_LOADING> -> $loading {
+                    @*MODULES := from-json $loading;
+                }
+                for @*MODULES.list -> $m {
+                    if $m eq $module_name {
+                        nqp::die("Circular module loading detected involving module '$module_name'");
+                    }
+                }
+                @*MODULES.push: $module_name;
+
+                if %opts<from> {
+                    # See if we need to load it from elsewhere.
+                    if %language_module_loaders{%opts<from>}:exists {
+                        return %language_module_loaders{%opts<from>}.load_module($module_name,
+                            %opts, GLOBALish, :$line, :$file);
+                    }
+                    else {
+                        nqp::die("Do not know how to load code from " ~ %opts<from>);
+                    }
+                }
+                else {
+                    my $compunit := (
+                        $file
+                        ?? $*REPO.load($file.IO)
+                        !! $*REPO.need(
+                            CompUnit::DependencySpecification.new(
+                                :short-name($module_name),
+                                :auth-matcher(%opts<auth> // True),
+                                :version-matcher(%opts<ver> // True),
+                            ),
+                        )
+                    );
+                    GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
+                    $compunit.handle
+                }
             }
-            else {
-                nqp::die("Do not know how to load code from " ~ %opts<from>);
-            }
-        }
-        elsif self.candidates($module_name, :$file, :auth(%opts<auth>), :ver(%opts<ver>)) -> ($candi) {
-            $candi.load(GLOBALish, :$line)
-        }
-        elsif $file {
-            nqp::die("Could not find file '$file' for module $module_name");
-        }
-        else {
-            my $from-hint := "";
-            if nqp::substr(~$module_name, nqp::rindex(~$module_name, ":") + 1) eq "from" {
-                $from-hint := "\nUse a single colon to include a module from another language.";
-            }
-            nqp::die("Could not find $module_name in any of:\n  " ~
-                join("\n  ", @*INC) ~ $from-hint);
-        }
-    } ) }
+        } )
+    }
 
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
@@ -151,10 +169,10 @@ sub SHORT-ID2CLASS(Str:D $short-id) {
 }
 
 # prime the short-id -> class lookup
-SHORT-ID2CLASS('file') = 'CompUnitRepo::Local::File';
-SHORT-ID2CLASS('inst') = 'CompUnitRepo::Local::Installation';
+SHORT-ID2CLASS('file') = 'CompUnit::Repository::FileSystem';
+SHORT-ID2CLASS('inst') = 'CompUnit::Repository::Installation';
 
-sub INCLUDE-SPEC2CUR(Str:D $spec) {
+sub INCLUDE-SPEC2CUR(Str:D $spec, CompUnit::Repository :$next-repo) {
     state %INCLUDE-SPEC2CUR;
     state $lock = Lock.new;
 
@@ -165,10 +183,11 @@ sub INCLUDE-SPEC2CUR(Str:D $spec) {
 
     my $abspath = $class.?absolutify($path) // $path;
     my $id      = "$short-id#$abspath";
+    %options<next-repo> = $next-repo if $next-repo;
     $lock.protect( {
         %INCLUDE-SPEC2CUR{$id}:exists
           ?? %INCLUDE-SPEC2CUR{$id}
-          !! (%INCLUDE-SPEC2CUR{$id} := $class.new($abspath,|%options));
+          !! (%INCLUDE-SPEC2CUR{$id} := $class.new(:prefix($abspath), |%options));
     } );
 }
 
@@ -213,8 +232,6 @@ RAKUDO_MODULE_DEBUG("Parsing specs: $specs")
     }
     @found;
 }
-
-sub CREATE-INCLUDE-SPECS(*@INC) { @INC.join(',') }
 
 sub RAKUDO_MODULE_DEBUG(*@str) { note "SET RMD: @str[]" }
 

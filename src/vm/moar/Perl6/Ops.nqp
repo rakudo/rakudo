@@ -579,30 +579,65 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             $qastcomp.as_mast($op[0])
         }
         else {
+
+            # if the type we want to check against is a definite type
+            # like Int:D, we can generate much more efficient code by
+            # splitting the check up into definedness check + type check
+            # against the base type. This saves us from a call into the
+            # metamodel for each check.
+            my int $emit_definite_check := -1;
+            if $type.HOW.archetypes.definite {
+                $emit_definite_check := $type.HOW.definite($type);
+                $type := $type.HOW.base_type($type);
+            }
+
             my @ops;
             my $value_res   := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
             my $type_res    := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
+            my $niltype_res := $qastcomp.as_mast($op[2]);
 
             my $lbl_done    := MAST::Label.new();
             push_ilist(@ops, $value_res);
             push_ilist(@ops, $type_res);
             my $decont := $*REGALLOC.fresh_o();
             my $istype := $*REGALLOC.fresh_i();
+            my $isdefinite;
             my $str_failure := $*REGALLOC.fresh_s();
-            my $isfailure := $*REGALLOC.fresh_i();
-            my $failure_o := $*REGALLOC.fresh_o();
+            my $failure_o := $niltype_res.result_reg;
+
+            unless $emit_definite_check == -1 {
+                $isdefinite := $*REGALLOC.fresh_i();
+            }
+
             nqp::push(@ops, MAST::Op.new( :op('decont'), $decont, $value_res.result_reg ));
             nqp::push(@ops, MAST::Op.new( :op('istype'), $istype, $decont, $type_res.result_reg ));
+
+            if $emit_definite_check == -1 {
+                nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
+            } else {
+                my $lbl_failed_initial_typecheck    := MAST::Label.new();
+                nqp::push(@ops, MAST::Op.new( :op('unless_i'), $istype, $lbl_failed_initial_typecheck ));
+
+                nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $isdefinite, $decont ));
+                if $emit_definite_check == 0 {
+                    nqp::push(@ops, MAST::Op.new( :op('unless_i'), $isdefinite, $lbl_done ));
+                } else {
+                    nqp::push(@ops, MAST::Op.new( :op('if_i'), $isdefinite, $lbl_done ));
+                }
+                nqp::push(@ops, $lbl_failed_initial_typecheck);
+            }
+
+            push_ilist(@ops, $niltype_res);
+            nqp::push(@ops, MAST::Op.new( :op('istype'), $istype, $decont, $failure_o) );
             nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
-            nqp::push(@ops, MAST::Op.new( :op('const_s'), $str_failure, MAST::SVal.new( :value('Failure') ) ));
-            nqp::push(@ops, MAST::Op.new( :op('getlexstatic_o'), $failure_o, $str_failure));
-            nqp::push(@ops, MAST::Op.new( :op('istype'), $isfailure, $decont, $failure_o) );
-            nqp::push(@ops, MAST::Op.new( :op('if_i'), $isfailure, $lbl_done ));
             $*REGALLOC.release_register($decont, $MVM_reg_obj);
             $*REGALLOC.release_register($istype, $MVM_reg_int64);
             $*REGALLOC.release_register($str_failure, $MVM_reg_str);
             $*REGALLOC.release_register($failure_o, $MVM_reg_obj);
-            $*REGALLOC.release_register($isfailure, $MVM_reg_int64);
+
+            unless $emit_definite_check == -1 {
+                $*REGALLOC.release_register($isdefinite, $MVM_reg_int64);
+            }
 
             # Error generation.
             proto return_error($got, $wanted) {

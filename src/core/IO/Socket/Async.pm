@@ -4,8 +4,8 @@ my class IO::Socket::Async {
     has $!VMIO;
 
     method new() {
-        die "Cannot create an asynchronous socket directly; please use" ~
-            "IO::Socket::Async.connect or IO::Socket::Async.listen.";
+        die "Cannot create an asynchronous socket directly; please use " ~
+            "IO::Socket::Async.connect or IO::Socket::Async.listen";
     }
 
     method print(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
@@ -45,86 +45,47 @@ my class IO::Socket::Async {
     }
 
     my sub capture(\supply) {
+        my $ss = Rakudo::Internals::SupplySequencer.new(
+            on-data-ready => -> \data { supply.emit(data) },
+            on-completed  => -> { supply.done() },
+            on-error      => -> \err { supply.quit(err) });
+        -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) }
+    }
 
-        my $lock = Lock.new;
-        my int $emitting;
-        my int $next_seq;
-        my @buffer; # should be Mu, as data can be Mu
-
-        -> Mu \seq, Mu \data, Mu \err {
-            if err {
-                supply.quit(err);
-            }
-            elsif seq < 0 {
-                supply.done();
-            }
-            else {
-                # cannot simply return out of here, so we need a flag
-                my int $in_charge;
-
-                $lock.protect( {
-#say "seq = {seq} with {data}   in {$*THREAD}";
-                    @buffer[ seq - $next_seq ] := data;
-                    $in_charge = $emitting = 1 unless $emitting;
-                } );
-
-                if $in_charge {
-                    my int $done;
-                    while @buffer.EXISTS-POS($done) {
-#say "emitting { $next_seq + $done }: {@buffer[$done]}";
-                        supply.emit( @buffer[$done] );
-                        $done = $done + 1;
-                    }
-
-                    $lock.protect( {
-                        if $done {
-#say "discarding from $next_seq for $done";
-                            @buffer.splice(0,$done);
-                            $next_seq = $next_seq + $done;
-                        }
-                        $emitting = 0;
-                    } );
-                }
-            }
-        };
+    method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$scheduler = $*SCHEDULER) {
+        my $cancellation;
+        Supply.on-demand:
+            -> $supply {
+                $cancellation := $bin
+                    ?? nqp::asyncreadbytes(
+                        $!VMIO,
+                        $scheduler.queue,
+                        capture($supply),
+                        nqp::decont($buf),
+                        SocketCancellation)
+                    !! nqp::asyncreadchars(
+                        $!VMIO,
+                        $scheduler.queue,
+                        capture($supply),
+                        SocketCancellation)
+          },
+          closing => {
+              $cancellation && nqp::cancel($cancellation)
+          }
     }
 
     method chars-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
-        my $cancellation;
-        Supply.on-demand( -> $supply {
-            $cancellation := nqp::asyncreadchars(
-              $!VMIO,
-              $scheduler.queue,
-              capture($supply),
-              SocketCancellation
-            );
-          },
-          closing => {
-              $cancellation && nqp::cancel($cancellation)
-          },
-        );
+        DEPRECATED('Supply');
+        self.Supply
     }
 
     method bytes-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
-        my $cancellation;
-        Supply.on-demand( -> $supply {
-            $cancellation := nqp::asyncreadbytes(
-              $!VMIO,
-              $scheduler.queue,
-              capture($supply),
-              nqp::decont($buf),
-              SocketCancellation,
-            );
-          },
-          closing => {
-              $cancellation && nqp::cancel($cancellation)
-          },
-        );
+        DEPRECATED('Supply(:bin)');
+        self.Supply(:bin, :$buf)
     }
 
-    method close(IO::Socket::Async:D:) {
+    method close(IO::Socket::Async:D: --> True) {
         nqp::closefh($!VMIO);
-        True;
     }
 
     method connect(IO::Socket::Async:U: Str() $host, Int() $port,

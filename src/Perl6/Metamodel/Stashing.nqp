@@ -5,6 +5,8 @@ role Perl6::Metamodel::Stashing {
             my $attr_type := Perl6::Metamodel::Configuration.stash_attr_type;
             my $stash := nqp::create($stash_type);
             nqp::bindattr($stash, $attr_type, '$!storage', my %symbols);
+            nqp::bindattr_s($stash, $stash.WHAT, '$!longname',
+                $type_obj.HOW.name($type_obj));
             nqp::setwho($type_obj, $stash);
         }
         $type_obj

@@ -7,6 +7,7 @@ my class Exception { ... }
 my class X::AdHoc  { ... }
 my class FatRat    { ... }
 my class Pair      { ... }
+my class Promise   { ... }
 my class X::OutOfRange { ... }
 my class X::Dynamic::NotFound { ... }
 
@@ -26,19 +27,27 @@ my class MixHash { ... }
 sub DYNAMIC(\name) is raw {
     my Mu \x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull(x) {
-        my str $pkgname = nqp::replace(nqp::unbox_s(name), 1, 1, '');
-        if nqp::existskey((my \globalwho := GLOBAL.WHO), $pkgname) {
-            x := nqp::atkey(globalwho, $pkgname);
+        my \prom := nqp::getlexdyn('$*PROMISE');
+        unless nqp::isnull(prom) {
+            x := nqp::getlexreldyn(
+                nqp::getattr(prom, Promise, '$!dynamic_context'),
+                nqp::unbox_s(name));
         }
-        elsif nqp::existskey((my \processwho := PROCESS.WHO), $pkgname) {
-            x := nqp::atkey(processwho, $pkgname);
-        }
-        else {
+        if nqp::isnull(x) {
+            my str $pkgname = nqp::replace(nqp::unbox_s(name), 1, 1, '');
+            if nqp::existskey((my \globalwho := GLOBAL.WHO), $pkgname) {
+                x := nqp::atkey(globalwho, $pkgname);
+            }
+            elsif nqp::existskey((my \processwho := PROCESS.WHO), $pkgname) {
+                x := nqp::atkey(processwho, $pkgname);
+            }
+            else {
 #my $last = now;
 #say "initializing {name}";
-            x := INITIALIZE_DYNAMIC(name);
+                x := INITIALIZE_DYNAMIC(name);
 #say "    done at {now - $last}";
-            fail x if nqp::istype(x, Exception);
+                fail x if nqp::istype(x, Exception);
+            }
         }
     }
     x

@@ -19,10 +19,10 @@ my class Proc {
             $!flags += nqp::const::PIPE_INHERIT_IN;
         }
         elsif $in === True {
-            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$nl);
+            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-out => $nl);
             $!in_fh := nqp::syncpipe();
             $!flags += nqp::const::PIPE_CAPTURE_IN;
-            nqp::setinputlinesep($!in_fh, nqp::unbox_s($nl));
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!in_fh, $nl);
             nqp::setencoding($!in_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
               unless $bin;
             nqp::bindattr(nqp::decont($!in), IO::Handle, '$!PIO', $!in_fh);
@@ -37,10 +37,10 @@ my class Proc {
         }
 
         if $out === True || $merge {
-            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$nl);
+            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in => $nl);
             $!out_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_OUT;
-            nqp::setinputlinesep($!out_fh, nqp::unbox_s($nl));
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!out_fh, $nl);
             nqp::setencoding($!out_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
               unless $bin;
             nqp::bindattr(nqp::decont($!out), IO::Handle, '$!PIO', $!out_fh);
@@ -72,10 +72,10 @@ my class Proc {
             $!flags  += nqp::const::PIPE_INHERIT_ERR;
         }
         elsif $err === True {
-            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$nl);
+            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in =>  $nl);
             $!err_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_ERR;
-            nqp::setinputlinesep($!err_fh, nqp::unbox_s($nl));
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!err_fh, $nl);
             nqp::setencoding($!err_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
               unless $bin;
             nqp::bindattr(nqp::decont($!err), IO::Handle, '$!PIO', $!err_fh);
@@ -125,6 +125,10 @@ my class Proc {
     multi method status(Proc:D:)  { ($!exitcode +< 8) +| $!signal }
     multi method Numeric(Proc:D:) { $!exitcode }
     multi method Bool(Proc:D:)    { $!exitcode == 0 }
+
+    method sink(--> Nil) {
+        X::Proc::Unsuccessful.new(:proc(self)).throw unless self;
+    }
 }
 
 sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',

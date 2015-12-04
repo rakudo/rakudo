@@ -39,12 +39,12 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method new_type(:$name!, :$repr) {
         # Build and configure the type's basic details.
         my $meta := self.new(:selector($selector_creator()));
-        my $type_obj := self.add_stash(nqp::settypehll(
-            nqp::newtype($meta, 'Uninstantiable'), 'perl6'));
+        my $type_obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
         $meta.set_name($type_obj, $name);
         $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);
         $meta.publish_boolification_spec($type_obj);
+        self.add_stash($type_obj);
 
         # We use 6model parametrics to make this a parametric type on the
         # arguments we curry with. This means we'll make the curries unique.

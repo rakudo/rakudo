@@ -104,7 +104,7 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     my \righti := nqp::iscont(right)
-        ?? nqp::istype(right, Iterable) ?? right.iterator !! right.list.iterator
+        ?? right.iterator
         !! [right].iterator;
     my $endpoint := righti.pull-one;
     X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)')).throw
@@ -162,12 +162,12 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
     }
 
     my \gathered = GATHER({
-        my \lefti := nqp::istype(left, Iterable) ?? left.iterator !! left.list.iterator;
+        my \lefti := left.iterator;
         my $value;
         my $code;
         my $stop;
         my $looped;
-        while (my \value := lefti.pull-one) !=:= IterationEnd {
+        while !((my \value := lefti.pull-one) =:= IterationEnd) {
             $looped = True;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
@@ -195,7 +195,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         }
         else {
             my $badseq;
-            my ($a, $b, $c);
+            my $a;
+            my $b;
+            my $c;
             unless $code.defined {
                 take @tail.shift while @tail.elems > 3;
                 $a = @tail[0];
@@ -254,7 +256,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
                     if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) && nqp::istype($c,Real) {
-                        if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 $stop = 1 if $a > $endpoint;
                                 $code = -> $x {
@@ -284,7 +286,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                     $ab = $b / $a;
                     if $ab == $c / $b {
                         $ab = $ab.Int if nqp::istype($ab,Rat) && $ab.denominator == 1;
-                        if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 if $ab > 1  {
                                     $stop = 1 if $a > $endpoint;
@@ -328,7 +330,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             elsif @tail.elems == 2 {
                 my $ab = $b - $a;
                 if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
-                    if nqp::istype($endpoint, Real) and nqp::isconcrete($endpoint) {
+                    if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
                         if $ab > 0 {
                             $stop = 1 if $a > $endpoint;
                             $code = -> $x {
@@ -359,7 +361,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 if nqp::istype($endpoint,Code) or not nqp::isconcrete($endpoint) {
                     $code = { $^x.succ }
                 }
-                elsif nqp::istype($endpoint, Real) and nqp::istype($a, Real) {
+                elsif nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::istype($a, Real) {
                     if $a < $endpoint {
                         $code = -> $x {
                             my $new = $x.succ;
@@ -442,21 +444,11 @@ multi sub infix:<...>(|lol) {
     my int $i = 0;
     my int $m = +@lol - 1;
     while $i <= $m {
-        if @lol[$i] ~~ Iterable {
-            @seq[$i] := @lol[$i].iterator;
-        }
-        else {
-            @seq[$i] := @lol[$i].list.iterator;
-        }
+        @seq[$i] := @lol[$i].iterator;
         if $i {
             @end[$i-1] := @seq[$i].pull-one;
             if @end[$i-1] ~~ Numeric | Stringy {
-                if @lol[$i] ~~ Iterable {
-                    @seq[$i] := @lol[$i].iterator;
-                }
-                else {
-                    @seq[$i] := @lol[$i].list.iterator;
-                }
+                @seq[$i] := @lol[$i].iterator;
                 @excl[$i-1] = True;
             }
         }

@@ -40,7 +40,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     # The only valid way to create a Seq directly is by giving it the
     # iterator it will consume and maybe memoize.
     method new(Iterator:D $iter) {
-        my $seq := self.CREATE;
+        my $seq := nqp::create(self);
         nqp::bindattr($seq, Seq, '$!iter', nqp::decont($iter));
         $seq
     }
@@ -143,7 +143,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         has &!body;
 
         method new(&body) {
-            my \iter = self.CREATE;
+            my \iter = nqp::create(self);
             nqp::bindattr(iter, self, '&!body', &body);
             iter
         }
@@ -151,7 +151,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         method pull-one() {
             my int $redo = 1;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             else {
@@ -188,7 +188,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         has int $!skip-cond;
 
         method new(&body, &cond, :$repeat) {
-            my \iter = self.CREATE;
+            my \iter = nqp::create(self);
             nqp::bindattr(iter, self, '&!body', &body);
             nqp::bindattr(iter, self, '&!cond', &cond);
             nqp::bindattr_i(iter, self, '$!skip-cond', $repeat ?? 1 !! 0);
@@ -198,7 +198,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         method pull-one() {
             my int $redo = 1;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             else {
@@ -242,7 +242,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         has int $!first-time;
 
         method new(&body, &cond, &afterwards) {
-            my \iter = self.CREATE;
+            my \iter = nqp::create(self);
             nqp::bindattr(iter, self, '&!body', &body);
             nqp::bindattr(iter, self, '&!cond', &cond);
             nqp::bindattr(iter, self, '&!afterwards', &afterwards);
@@ -253,7 +253,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         method pull-one() {
             my int $redo = 1;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             else {
@@ -314,10 +314,10 @@ sub GATHER(&block) {
         has $!push-target;
         has int $!wanted;
 
-        my constant PROMPT = Mu.CREATE;
+        my constant PROMPT = nqp::create(Mu);
 
         method new(&block) {
-            my \iter = self.CREATE;
+            my \iter = nqp::create(self);
             my int $wanted;
             my $taken;
             my $taker := {
@@ -348,11 +348,11 @@ sub GATHER(&block) {
         }
 
         method pull-one() {
-            if $!slipping && (my \result = self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !((my \result = self.slip-one()) =:= IterationEnd) {
                 result
             }
             else {
-                $!push-target := IterationBuffer.CREATE
+                $!push-target := nqp::create(IterationBuffer)
                     unless $!push-target.DEFINITE;
                 $!wanted = 1;
                 nqp::continuationreset(PROMPT, &!resumption);
@@ -366,7 +366,7 @@ sub GATHER(&block) {
             if ($n > 0) {
                 $!wanted = $n;
                 $!push-target := $target;
-                if $!slipping && self!slip-wanted() !=:= IterationEnd {
+                if $!slipping && !(self!slip-wanted() =:= IterationEnd) {
                     $!push-target := Mu;
                     $n
                 }

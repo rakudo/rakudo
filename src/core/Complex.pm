@@ -1,3 +1,4 @@
+my class X::Numeric::Real { ... };
 my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
@@ -30,9 +31,9 @@ my class Complex is Cool does Numeric {
         self.re.isNaN || self.im.isNaN;
     }
 
-    my class X::Numeric::Real { ... };
     method coerce-to-real(Complex:D: $exception-target) {
-        unless $!im == 0e0 { fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self);}
+        fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self)
+            unless $!im ≅ 0e0;
         $!re;
     }
     multi method Real(Complex:D:) { self.coerce-to-real(Real); }
@@ -217,7 +218,7 @@ my class Complex is Cool does Numeric {
     }
 
     method narrow(Complex:D:) {
-        $!im == 0e0
+        $!im / $!re ≅ 0e0
             ?? $!re.narrow
             !! self;
     }
@@ -433,6 +434,28 @@ multi sub infix:<==>(Num(Real) \a, Complex:D \b) returns Bool:D { a    == b.re &
 multi sub infix:<===>(Complex:D \a, Complex:D \b) returns Bool:D {
     a.WHAT =:= b.WHAT && a == b
 }
+
+multi sub infix:<≅>(Complex:D \a, Complex:D \b) returns Bool:D { .not with a <=> b }
+multi sub infix:<≅>(Complex:D \a, Num(Real) \b) returns Bool:D { .not with a <=> b }
+multi sub infix:<≅>(Num(Real) \a, Complex:D \b) returns Bool:D { .not with a <=> b }
+
+# Meaningful only for sorting purposes, of course.
+# We delegate to Real::cmp rather than <=> because parts might be NaN.
+multi sub infix:<cmp>(Complex:D \a, Complex:D \b) returns Order:D { a.re cmp b.re || a.im cmp b.im }
+multi sub infix:<cmp>(Num(Real) \a, Complex:D \b) returns Order:D { a cmp b.re || 0 cmp b.im }
+multi sub infix:<cmp>(Complex:D \a, Num(Real) \b) returns Order:D { a.re cmp b || a.im cmp 0 }
+
+multi sub infix:«<=>»(Complex:D \a, Complex:D \b) returns Order:D {
+    my $tolerance = a && b
+        ?? (a.re.abs + b.re.abs) / 2 * $*TOLERANCE  # Scale slop to average real parts.
+        !! $*TOLERANCE;                             # Don't want tolerance 0 if either arg is 0.
+    # Fail unless imaginary parts are relatively negligible, compared to real parts.
+    fail X::Numeric::Real.new(target => Real, reason => "Complex is not numerically orderable", source => "Complex")
+        unless infix:<≅>(a.im, 0e0, :$tolerance) and infix:<≅>(b.im, 0e0, :$tolerance);
+    a.re <=> b.re;
+}
+multi sub infix:«<=>»(Num(Real) \a, Complex:D \b) returns Order:D { a.Complex <=> b }
+multi sub infix:«<=>»(Complex:D \a, Num(Real) \b) returns Order:D { a <=> b.Complex }
 
 proto sub postfix:<i>(\a) returns Complex:D is pure { * }
 multi sub postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }

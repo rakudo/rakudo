@@ -25,10 +25,7 @@ sub METAOP_CROSS(\op, &reduce) {
         my $laze = False;
         my @loi = eager for lol -> \elem {
             $laze = True if elem.is-lazy;
-            nqp::iscont(elem) ?? (elem,).iterator
-              !! nqp::istype(elem, Iterable)
-                ?? elem.iterator
-                !! elem.list.iterator;
+            nqp::iscont(elem) ?? (elem,).iterator !! elem.iterator;
         }
         my Mu $cache := nqp::list();
         my int $i = 0;
@@ -53,7 +50,7 @@ sub METAOP_CROSS(\op, &reduce) {
                     if $i >= $n { take lol.elems == 2 ?? $rop(|@v) !! $rop(@v); }
                     else { $i = $i + 1; @j.push($j); $j = 0; }
                 }
-                elsif (my \value = @loi[$i].pull-one) !=:= IterationEnd {
+                elsif !((my \value = @loi[$i].pull-one) =:= IterationEnd) {
                     nqp::bindpos($sublist, $j, value);
                     redo;
                 }
@@ -78,11 +75,7 @@ sub METAOP_ZIP(\op, &reduce) {
         my $laze = True;
         my @loi = eager for lol -> \elem {
             $laze = False unless elem.is-lazy;
-            Rakudo::Internals::WhateverIterator.new(
-                nqp::istype(elem, Iterable)
-                    ?? elem.iterator
-                    !! elem.list.iterator
-            )
+            Rakudo::Internals::WhateverIterator.new(elem.iterator)
         }
         gather {
             loop {
@@ -108,9 +101,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         my $ :=
 #?endif
         sub (+values) {
-            my \source = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+            my \source = values.iterator;
 
             my \first = source.pull-one;
             return () if first =:= IterationEnd;
@@ -135,9 +126,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         my $ :=
 #?endif
         sub (+values) {
-            my \source = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+            my \source = values.iterator;
 
             my \first = source.pull-one;
             return () if first =:= IterationEnd;
@@ -160,9 +149,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         my $ :=
 #?endif
         sub (+values) {
-            my \iter = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+            my \iter = values.iterator;
             my \first = iter.pull-one;
             return op.() if first =:= IterationEnd;
 
@@ -184,10 +171,11 @@ multi sub METAOP_REDUCE_LEFT(\op) {
 #?if jvm
         my $ :=
 #?endif
-        sub (+values) {
-            my \iter = nqp::istype(values, Iterable)
-                ?? values.iterator
-                !! values.list.iterator;
+
+        op =:= &infix:<+>
+        ?? &sum
+        !! sub (+values) {
+            my \iter = values.iterator;
             my \first = iter.pull-one;
             return op.() if first =:= IterationEnd;
 
@@ -218,7 +206,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
             my @args.unshift: first;
             GATHER({
                 take first;
-                while (my \current = source.pull-one) !=:= IterationEnd {
+                while !((my \current = source.pull-one) =:= IterationEnd) {
                     @args.unshift: current;
                     if @args.elems == $count {
                         my \val = op.(|@args);
@@ -238,7 +226,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 
             gather {
                 take $result;
-                while (my $elem := iter.pull-one) !=:= IterationEnd {
+                while !((my $elem := iter.pull-one) =:= IterationEnd) {
                     take $result := op.($elem, $result)
                 }
             }.lazy-if(values.is-lazy);
@@ -353,13 +341,13 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
         my Mu $current = iter.pull-one;
         gather {
             take $state;
-            while $state && (my $next := iter.pull-one) !=:= IterationEnd {
+            while $state && !((my $next := iter.pull-one) =:= IterationEnd) {
                 $state = op.($current, $next);
                 take $state;
                 $current := $next;
             }
             unless $state {
-                while (my \v = iter.pull-one) !=:= IterationEnd {
+                while !((my \v = iter.pull-one) =:= IterationEnd) {
                     take False;
                 }
             }
@@ -376,7 +364,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
         my $current := iter.pull-one;
         return True if $current =:= IterationEnd;
 
-        while (my $next := iter.pull-one) !=:= IterationEnd {
+        while !((my $next := iter.pull-one) =:= IterationEnd) {
             $state := op.($current, $next);
             return $state unless $state;
             $current := $next;
@@ -557,7 +545,7 @@ multi sub deepmap(\op, \obj) {
         has $!source;
 
         method new(&block, $source) {
-            my $iter := self.CREATE;
+            my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             $iter
@@ -570,7 +558,7 @@ multi sub deepmap(\op, \obj) {
             my int $redo = 1;
             my $value;
             my $result;
-            if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                 $result
             }
             elsif ($value := $!source.pull-one()) =:= IterationEnd {

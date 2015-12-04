@@ -13,6 +13,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has int $!associative_delegate;
     #     has Mu $!why;
     #     has int $!required;
+    #     has Mu $!container_initializer;
 
     method compose(Mu $package) {
         # Generate accessor method, if we're meant to have one.
@@ -108,7 +109,7 @@ my class Attribute { # declared in BOOTSTRAP
         }
     }
 
-    method container() is raw { nqp::isnull($!auto_viv_container) ?? Mu !! $!auto_viv_container }
+    method container() is raw { nqp::isnull($!auto_viv_container) ?? Nil !! $!auto_viv_container }
     method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }
     method package() { $!package }
@@ -118,7 +119,7 @@ my class Attribute { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            Any
+            Nil
         } else {
             $!why.set_docee(self);
             $!why

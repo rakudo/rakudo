@@ -63,7 +63,7 @@ my class Signature { # declared in BOOTSTRAP
             my $this;
 
             if $other.slurpy {
-                return False if any($here.keys) ~~ { .type !=:= Mu };
+                return False if any($here.keys) ~~ { !(.type =:= Mu) };
                 return $hasslurpy;
             }
             if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
@@ -73,6 +73,7 @@ my class Signature { # declared in BOOTSTRAP
                 return False unless $hasslurpy;
             }
         }
+        return False unless self.returns =:= $topic.returns;
         True;
     }
 
@@ -109,7 +110,7 @@ my class Signature { # declared in BOOTSTRAP
                   !! ', '
             }
         }
-        if !nqp::isnull($!returns) && $!returns !=:= Mu {
+        if !nqp::isnull($!returns) && !($!returns =:= Mu) {
             $text = $text ~ ' --> ' ~ $!returns.perl
         }
         # Closer.

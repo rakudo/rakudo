@@ -44,28 +44,22 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method perl(Hash:D \SELF:) {
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
-        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-        %*perlseen{self.WHICH} = 1;
-        my $result = '$' x nqp::iscont(SELF) ~
-        '{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}';
-        $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-        $result;
+        SELF.perlseen('Hash', {
+            '$' x nqp::iscont(SELF)  # self is always deconted
+            ~ '{' ~ self.pairs.sort.map({.perl}).join(', ') ~ '}'
+        })
     }
 
     multi method gist(Hash:D:) {
-        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
-        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-        %*gistseen{self.WHICH} = 1;
-        my $result = self.pairs.sort.map( -> $elem {
-            given ++$ {
-                when 101 { '...' }
-                when 102 { last }
-                default  { $elem.gist }
-            }
-        } ).join: ', ';
-        $result = "(\\Hash_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
-        $result;
+        self.gistseen('Hash', {
+            self.pairs.sort.map( -> $elem {
+                given ++$ {
+                    when 101 { '...' }
+                    when 102 { last }
+                    default  { $elem.gist }
+                }
+            } ).join: ', '
+        })
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {
@@ -88,7 +82,7 @@ my class Hash { # declared in BOOTSTRAP
     # introspection
     method name() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Str !! $d.name()
+        nqp::isnull($d) ?? Nil !! $d.name()
     }
     method keyof () { Any }
     method of() {
@@ -101,7 +95,7 @@ my class Hash { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Bool !! so $d.dynamic;
+        nqp::isnull($d) ?? Nil !! so $d.dynamic;
     }
 
     multi method DELETE-KEY(Hash:U:) { Nil }
@@ -332,16 +326,11 @@ my class Hash { # declared in BOOTSTRAP
                 bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
-            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-            %*perlseen{self.WHICH} = 1;
-            my $result = '(my '
-              ~ TValue.perl
-              ~ ' % = '
-              ~ self.pairs.sort.map({.perl}).join(', ')
-              ~ ')';
-            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-            $result;
+            SELF.perlseen('Hash', {
+                '(my '
+                ~ TValue.perl
+                ~ ' % = ' ~ self.pairs.sort.map({.perl}).join(', ') ~ ')'
+            })
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
@@ -432,7 +421,7 @@ my class Hash { # declared in BOOTSTRAP
                 has $!hash-iter;
 
                 method new(\hash, $class) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!hash-iter',
                         nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
                     iter
@@ -456,7 +445,7 @@ my class Hash { # declared in BOOTSTRAP
                 has $!current-value;
 
                 method new(\hash, $class, $storage) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!hash-iter',
                         nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
                     nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
@@ -489,7 +478,7 @@ my class Hash { # declared in BOOTSTRAP
                 has $!storage;
 
                 method new(\hash, $class, $storage) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!hash-iter',
                         nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
                     nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
@@ -514,24 +503,15 @@ my class Hash { # declared in BOOTSTRAP
             self.map: { .value »=>» .key }
         }
         multi method perl(::?CLASS:D \SELF:) {
-            if not %*perlseen<TOP> { my %*perlseen = :TOP ; return self.perl }
-            if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Hash_{self.WHERE}" }
-            %*perlseen{self.WHICH} = 1;
-            my $result;
-
-            my $TKey-perl   := TKey.perl;
-            my $TValue-perl := TValue.perl;
-            if $TKey-perl eq 'Any' && $TValue-perl eq 'Mu' {
-                $result = ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
-            }
-            else {
-                $result = "(my $TValue-perl %\{$TKey-perl\} = {
-                  self.pairs.sort.map({.perl}).join(', ')
-                })";
-            }
-
-            $result = "(my \\Hash_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-            $result;
+            SELF.perlseen('Hash', {
+                my $TKey-perl   := TKey.perl;
+                my $TValue-perl := TValue.perl;
+                $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
+                  ?? ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+                  !! "(my $TValue-perl %\{$TKey-perl\} = {
+                      self.pairs.sort.map({.perl}).join(', ')
+                    })"
+            })
         }
         multi method DELETE-KEY($key) {
             my Mu $val = self.AT-KEY($key);

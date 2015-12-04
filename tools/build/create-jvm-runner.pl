@@ -23,15 +23,26 @@ die "Invalid target type $type" unless $type eq 'dev' || $type eq 'install';
 my $cpsep = $^O eq 'MSWin32' ? ';' : ':';
 my $bat   = $^O eq 'MSWin32' ? '.bat' : '';
 
-my $preamble = $^O eq 'MSWin32' ? '@' : '#!/bin/sh
-exec ';
-my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
-
+my $nqpdir = File::Spec->catfile($nqpprefix, 'share', 'nqp');
+my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($nqpdir, 'lib') : File::Spec->catfile('${NQP_DIR}', 'lib');
+my $nqpjars = $^O eq 'MSWin32' ? $thirdpartyjars : join( $cpsep, map { $_ =~ s,$nqpdir,\${NQP_DIR},g; $_ } split($cpsep, $thirdpartyjars) );
 my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
-my $jardir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6', 'runtime') : $prefix;
-my $libdir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6', 'lib') : 'blib';
-my $nqplibdir = File::Spec->catfile($nqpprefix, 'share', 'nqp', 'lib');
+my $perl6dir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6') : $prefix;
+my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6dir : '${PERL6_DIR}', 'runtime') : $prefix;
+my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6dir : '${PERL6_DIR}', 'lib') : 'blib';
 my $sharedir = File::Spec->catfile($prefix, 'share', 'perl6', 'site', 'lib');
+my $perl6jars = join( $cpsep,
+    $^O eq 'MSWin32' ? $nqpjars : '${NQP_JARS}',
+    File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
+    File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar'));
+
+my $preamble = $^O eq 'MSWin32' ? '@' : "#!/bin/sh
+: \${NQP_DIR:=\"$nqpdir\"}
+: \${NQP_JARS:=\"$nqpjars\"}
+: \${PERL6_DIR:=\"$perl6dir\"}
+: \${PERL6_JARS:=\"$perl6jars\"}
+exec ";
+my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
 
 sub install {
     my ($name, $command) = @_;
@@ -48,13 +59,8 @@ sub install {
     chmod 0755, $install_to if $^O ne 'MSWin32';
 }
 
-my $bootclasspath = join($cpsep,
-    ($thirdpartyjars,
-    File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
-    File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar')));
-    
 my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
-my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $bootclasspath 
+my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $perl6jars 
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . $prefix
           . ' -Djna.library.path=' . $sharedir
@@ -67,6 +73,4 @@ else {
     install "perl6-j", "java $jopts perl6";
     install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y $jopts perl6";
     install "perl6-eval-server", "java -Xmx3000m -XX:MaxPermSize=200m $jopts org.perl6.nqp.tools.EvalServer";
-    cp(File::Spec->catfile($nqpprefix,'bin','eval-client.pl'), '.')
-        or die "Couldn't copy 'eval-client.pl' from $nqpprefix: $!";
 }

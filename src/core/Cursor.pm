@@ -33,7 +33,7 @@ my class Cursor does NQPCursorRole {
                     my $iter := nqp::iterator($caplist);
                     while $iter {
                         my $curcap := nqp::shift($iter);
-                        $namecount++;
+                        $namecount = $namecount + 1;
 #?if jvm
                         my Mu $curval := nqp::iterval($curcap);
                         if (nqp::isint($curval) && nqp::isge_i($curval, 2))

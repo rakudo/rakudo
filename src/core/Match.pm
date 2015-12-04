@@ -20,6 +20,7 @@ my class Match is Capture is Cool {
     multi method Str(Match:D:) {
         $!to > $!from ?? substr($!orig,$!from,$!to-$!from) !! ''
     }
+
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }

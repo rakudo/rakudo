@@ -3,7 +3,7 @@ my class IO::ArgFiles is IO::Handle {
     has $.filename;
     has $!io;
     has $.ins;
-    has $!nl = "\n";
+    has $!nl-in = ["\x0A", "\r\n"];
     has $!has-args;
 
     method eof() {
@@ -17,17 +17,17 @@ my class IO::ArgFiles is IO::Handle {
 
         unless $!io.defined && $!io.opened {
             if $!has-args {
-                return Str unless $!args;
+                return Nil unless $!args;
                 $!filename = $!args.shift;
             } else {
                 $!filename = '-';
             }
 
-            $!io = open($!filename, :r, :nl($!nl)) ||
+            $!io = open($!filename, :r, :$!nl-in) ||
                 fail "Unable to open file '$!filename'";
         }
 
-        return Str unless $!io.defined and $!io.opened;
+        return Nil unless $!io.defined and $!io.opened;
 
         $!io;
     }
@@ -60,7 +60,7 @@ my class IO::ArgFiles is IO::Handle {
             has $!ins;
 
             method new(\args, \ins, \limit, \next-io) {
-                my \iter = self.CREATE;
+                my \iter = nqp::create(self);
                 nqp::bindattr(iter, self, '$!args', args);
                 nqp::bindattr(iter, self, '$!ins', ins);
                 nqp::bindattr(iter, self, '$!next-io', next-io);
@@ -107,15 +107,20 @@ my class IO::ArgFiles is IO::Handle {
     }
 
     method nl is rw {
+        DEPRECATED('nl-in');
+        self.nl-in
+    }
+
+    method nl-in is rw {
         Proxy.new(
           FETCH => {
-              $!nl
+              $!nl-in
           },
-          STORE => -> $, $nl {
+          STORE => -> $, $nl-in {
               if $!io.defined {
-                  nqp::setinputlinesep($!io, nqp::unbox_s($!nl = $nl));
+                  Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!io, $nl-in);
               }
-              $!nl = $nl;
+              $!nl-in = $nl-in;
           }
         );
     }

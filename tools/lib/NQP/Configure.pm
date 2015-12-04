@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Cwd;
 use File::Copy qw(copy);
+use File::Spec qw();
 
 use base qw(Exporter);
 our @EXPORT_OK = qw(sorry slurp system_or_die
@@ -214,6 +215,7 @@ sub gen_nqp {
     my $gen_nqp     = $options{'gen-nqp'};
     my $gen_moar    = $options{'gen-moar'};
     my $prefix      = $options{'prefix'} || cwd().'/install';
+    my $sdkroot     = $options{'sdkroot'} || '';
     my $startdir    = cwd();
     my $git_protocol = $options{'git-protocol'} // 'https';
     my @moar_options = @{ $options{'moar-option'} // [] };
@@ -223,7 +225,9 @@ sub gen_nqp {
     for my $b (qw/jvm moar/) {
         if ($backends =~ /$b/) {
             my $postfix = substr $b, 0, 1;
-            my $bin = "$prefix/bin/nqp-$postfix$bat";
+            my $bin = $sdkroot
+                ? File::Spec->catfile( $sdkroot, $prefix, 'bin', "nqp-$postfix$bat" )
+                : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" );
             $impls{$b}{bin} = $bin;
             my %c = read_config($bin);
             my $nqp_have = $c{'nqp::version'} || '';
@@ -289,13 +293,16 @@ sub gen_moar {
     my %options  = @_;
 
     my $prefix     = $options{'prefix'} || cwd()."/install";
+    my $sdkroot    = $options{'sdkroot'} || '';
     my $gen_moar   = $options{'gen-moar'};
     my @opts       = @{ $options{'moar-option'} || [] };
     push @opts, "--optimize";
     my $startdir   = cwd();
     my $git_protocol = $options{'git-protocol'} || 'https';
 
-    my $moar_exe   = "$prefix/bin/moar$exe";
+    my $moar_exe   = $sdkroot
+        ? File::Spec->catfile( $sdkroot, $prefix, 'bin', "moar$exe" )
+        : File::Spec->catfile( $prefix, 'bin', "moar$exe" );
     my $moar_have  = qx{ $moar_exe --version };
     if ($moar_have) {
         $moar_have = $moar_have =~ /version (\S+)/ ? $1 : undef;

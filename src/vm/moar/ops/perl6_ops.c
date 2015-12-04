@@ -18,21 +18,21 @@
 #define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
 /* Dummy zero and one-arg callsite. */
-static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0 };
+static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0, 0 };
 static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 0 };
+static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 1, 0 };
 static MVMCallsiteEntry one_str_flags[] = { MVM_CALLSITE_ARG_STR };
-static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 0 };
+static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 1, 0 };
 
 /* Assignment type check failed callsite. */
 static MVMCallsiteEntry atcf_flags[] = { MVM_CALLSITE_ARG_STR, MVM_CALLSITE_ARG_OBJ, 
                                          MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     atcf_callsite = { atcf_flags, 3, 3, 0 };
+static MVMCallsite     atcf_callsite = { atcf_flags, 3, 3, 3, 0 };
 
 /* Dispatcher vivify_for callsite. */
 static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
                                          MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 0 };
+static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 4, 0 };
 
 /* Are we initialized yet? */
 static int initialized = 0;
@@ -358,8 +358,8 @@ static MVMuint8 s_p6routinereturn[] = {
     MVM_operand_obj | MVM_operand_read_reg,
 };
 static void p6routinereturn(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMRegister *reg = MVM_frame_find_lexical_by_name_rel_caller(tc, str_return,
-                                                                 tc->cur_frame);
+    MVMRegister *reg = MVM_frame_find_lexical_by_name_rel(tc, str_return,
+        tc->cur_frame->caller);
     MVMObject   *ret = (reg ? reg->o : NULL);
     if (!MVM_is_null(tc, ret) && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
         MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
@@ -488,6 +488,7 @@ static void p6setfirstflag(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code  = MVM_frame_find_invokee(tc, code_obj, NULL);
     vm_code->header.flags |= RAKUDO_FIRST_FLAG;
+    GET_REG(tc, 0).o = code_obj;
 }
 
 static MVMuint8 s_p6takefirstflag[] = {

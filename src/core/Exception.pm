@@ -72,9 +72,8 @@ my class Exception {
         nqp::p6bool(nqp::istrue(nqp::atkey($!ex, 'resume')));
     }
 
-    method resume(Exception:D:) {
+    method resume(Exception:D: --> True) {
         nqp::resume($!ex);
-        True
     }
 
     method die(Exception:D:) { self.throw }
@@ -159,7 +158,10 @@ my class X::Pragma::NoArgs is Exception {
     has $.name;
     method message { "The '$.name' pragma does not take any arguments." }
 }
-
+my class X::Pragma::CannotPrecomp is Exception {
+    has $.what = 'This compilation unit';
+    method message { "$.what may not be pre-compiled" }
+}
 my class X::Pragma::CannotWhat is Exception {
     has $.what;
     has $.name;
@@ -175,7 +177,6 @@ my class X::Pragma::UnknownArg is Exception {
     has $.arg;
     method message { "Unknown argument '{$.arg.perl}' specified with the '$.name' pragma." }
 }
-
 my class X::Pragma::OnlyOne is Exception {
     has $.name;
     method message { "The '$.name' pragma only takes one argument." }
@@ -876,6 +877,13 @@ my class X::Dynamic::Postdeclaration does X::Comp {
     }
 }
 
+my class X::Dynamic::Package does X::Comp {
+    has $.symbol;
+    method message() {
+        "Dynamic variables cannot have package-like names, like $!symbol"
+    }
+}
+
 my class X::Import::Redeclaration does X::Comp {
     has @.symbols;
     has $.source-package-name;
@@ -1047,15 +1055,17 @@ my class X::Adverb is Exception {
         my $text = '';
         if @!unexpected.elems -> $elems {
             $text = $elems > 1
-              ?? "$elems unexpected adverbs (@!unexpected.sort())"
+              ?? "$elems unexpected adverbs (@.unexpected)"
               !! "Unexpected adverb '@!unexpected[0]'"
         }
         if @!nogo {
             $text ~= $text ?? " and u" !! "U";
-            $text ~= "nsupported combination of adverbs (@!nogo.sort())";
+            $text ~= "nsupported combination of adverbs (@.nogo)";
         }
         $text ~ " passed to $!what on $!source";
     }
+    method unexpected { @!unexpected.sort }
+    method nogo       { @!nogo.sort }
 }
 
 my class X::Bind is Exception {
@@ -1186,6 +1196,15 @@ my class X::Syntax::Augment::Illegal does X::Syntax {
     method message() { "Cannot augment $.package because it is closed" };
 }
 
+my class X::Syntax::Augment::Adverb does X::Syntax {
+    method message() { "Cannot put adverbs on a typename when augmenting" }
+}
+
+my class X::Syntax::Type::Adverb does X::Syntax {
+    has $.adverb;
+    method message() { "Cannot use adverb $.adverb on a type name (only 'ver' and 'auth' are understood)" }
+}
+
 my class X::Syntax::Argument::MOPMacro does X::Syntax {
     has $.macro;
     method message() { "Cannot give arguments to $.macro" };
@@ -1234,7 +1253,11 @@ my class X::Syntax::Missing does X::Syntax {
 }
 my class X::Syntax::BlockGobbled does X::Syntax {
     has $.what;
-    method message() { "{ $.what ?? 'Function ' ~ $.what !! 'Expression' } needs parens to avoid gobbling block" };
+    method message() {
+        $.what ~~ /^'is '/
+            ?? "Trait '$.what' needs whitespace before block"
+            !! "{ $.what ?? "Function '$.what'" !! 'Expression' } needs parens to avoid gobbling block";
+    };
 }
 
 my class X::Syntax::ConditionalOperator::PrecedenceTooLoose does X::Syntax {
@@ -1267,8 +1290,8 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$\'' => '$/.postmatch',
       '$,'  => '$*OUT.output_field_separator()',
       '$.'  => "the filehandle's .ins method",
-      '$/'  => "the filehandle's .nl attribute",
-      '$\\' => "the filehandle's .nl attribute",
+      '$/'  => "the filehandle's .nl-in attribute",
+      '$\\' => "the filehandle's .nl-out attribute",
       '$|'  => ':autoflush on open',
       '$?'  => '$! for handling child errors also',
       '$@'  => '$!',
@@ -1345,12 +1368,14 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
     has $.vartype;
     has $.value;
     has $.valuetype;
-    has $.suggestionsuffix;
     has $.suggestiontype;
 
     method message() {
-        "Can't assign a {$.valuetype} literal ($.value) to a {$.vartype.WHAT.^name} variable. You can try { $.value }{ $.suggestionsuffix } instead or use $.suggestiontype"
-
+        my $vartype := $!vartype.WHAT.^name;
+        my $value := $!value.perl;
+        my $val = "Cannot assign a literal of type {$.valuetype} ($value) to a variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or try to coerce the value with { $value ~ '.' ~ $vartype } or $vartype\($value\)";
+        try $val ~= ", or just write the value as " ~ $!value."$vartype"().perl;
+        $val;
     }
 }
 
@@ -1459,6 +1484,12 @@ my class X::Syntax::AddCategorical::TooManyParts does X::Syntax {
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     method message() {
         "Can only use : as invocant marker in a signature after the first parameter"
+    }
+}
+
+my class X::Syntax::Signature::InvocantNotAllowed does X::Syntax {
+    method message() {
+        "Can only use the : invocant marker in the signature for a method"
     }
 }
 
@@ -1579,6 +1610,10 @@ my class X::Match::Bool is Exception {
     method message() { "Cannot use Bool as Matcher with '" ~ $.type ~ "'.  Did you mean to use \$_ inside a block?" }
 }
 
+my class X::Package::UseLib does X::Comp {
+    has $.what;
+    method message { "Cannot 'use lib' inside a $.what" }
+}
 my class X::Package::Stubbed does X::Comp {
     has @.packages;
     # TODO: suppress display of line number
@@ -1679,6 +1714,12 @@ my class X::Cannot::Empty is Exception {
         "Cannot $.action from an empty $.what";
     }
 }
+my class X::Cannot::New is Exception {
+    has $.class;
+    method message() {
+        "Cannot make a {$.class.^name} object using .new";
+    }
+}
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;
@@ -1692,7 +1733,7 @@ my class X::Backslash::NonVariableDollar does X::Syntax {
 my class X::ControlFlow is Exception {
     has $.illegal;   # something like 'next'
     has $.enclosing; # ....  outside a loop
-    has $.backtrace; # where the bougs control flow op was
+    has $.backtrace; # where the bogus control flow op was
 
     method backtrace() {
         $!backtrace || nextsame();
@@ -1977,6 +2018,14 @@ my class X::Numeric::DivideByZero is Exception {
     }
 }
 
+my class X::Numeric::Overflow is Exception {
+    method message() { "Numeric overflow" }
+}
+
+my class X::Numeric::Underflow is Exception {
+    method message() { "Numeric underflow" }
+}
+
 my class X::Numeric::Confused is Exception {
     has $.num;
     has $.base;
@@ -2225,7 +2274,9 @@ my class X::InvalidTypeSmiley does X::Comp {
 
 my class X::Seq::Consumed is Exception {
     method message() {
-        "This Seq has already been iterated, and its values consumed"
+        "This Seq has already been iterated, and its values consumed\n" ~
+        "(you might solve this by addding .cache on usages of the Seq, or\n" ~
+        "by assigning the Seq into an array)"
     }
 }
 
@@ -2257,10 +2308,50 @@ my class X::NotEnoughDimensions is Exception {
     }
 }
 
+my class X::TooManyDimensions is Exception {
+    has $.operation;
+    has $.got-dimensions;
+    has $.needed-dimensions;
+    method message() {
+        "Cannot $.operation a $.needed-dimensions dimension array with $.got-dimensions dimensions"
+    }
+}
+
+my class X::Assignment::ArrayShapeMismatch is Exception {
+    has $.target-shape;
+    has $.source-shape;
+    method message() {
+        "Cannot assign an array of shape $.source-shape to an array of shape $.target-shape"
+    }
+}
+
+my class X::Assignment::ToShaped is Exception {
+    has $.shape;
+    method message() {
+        "Assignment to array with shape $.shape must provide structured data"
+    }
+}
+
 my class X::Language::Unsupported is Exception {
     has $.version;
     method message() {
         "No compiler available for Perl $.version"
+    }
+}
+
+my class X::Proc::Unsuccessful is Exception {
+    has $.proc;
+    method message() {
+        "The spawned process exited unsuccessfully (exit code: $.proc.exitcode())"
+    }
+}
+
+class CompUnit::DependencySpecification { ... }
+my class X::CompUnit::UnsatisfiedDependency is Exception {
+    has CompUnit::DependencySpecification $.specification;
+
+    method message() {
+        "Could not find $.specification in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
     }
 }
 

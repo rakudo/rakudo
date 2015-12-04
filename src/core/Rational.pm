@@ -143,7 +143,9 @@ my role Rational[::NuT, ::DeT] does Real {
 
     method base-repeating($base = 10) {
         return ~self, '' if self.narrow ~~ Int;
-        my (@quotients, @remainders, %remainders);
+        my @quotients;
+        my @remainders;
+        my %remainders;
         push @quotients, [div] my ($nu, $de) = abs(self).nude;
         loop {
             push @remainders, $nu %= $de;
@@ -170,6 +172,7 @@ my role Rational[::NuT, ::DeT] does Real {
     method norm() { self }
 
     method narrow(::?CLASS:D:) {
+        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! self;

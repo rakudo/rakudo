@@ -348,7 +348,8 @@ my class DateTime does Dateish {
         my ($unit, $amount) = %unit.kv;
         self!VALID-UNIT($unit);
 
-        my ($hour, $minute) = $!hour, $!minute;
+        my $hour   = $!hour;
+        my $minute = $!minute;
         my $date;
 
         given $unit {
@@ -370,7 +371,8 @@ my class DateTime does Dateish {
             when 'week' | 'weeks' { $day-delta += 7 * $amount; proceed }
 
             when 'month' | 'months' {
-                my ($month, $year) = $!month, $!year;
+                my $month = $!month;
+                my $year  = $!year;
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
                 $month = ($month - 1) % 12 + 1;
@@ -605,7 +607,8 @@ my class Date does Dateish {
             when 'week' | 'weeks' { $day-delta = 7 * $amount; proceed }
 
             when 'month' | 'months' {
-                my ($month, $year) = $!month, $!year;
+                my $month = $!month;
+                my $year  = $!year;
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
                 $month = ($month - 1) % 12 + 1;

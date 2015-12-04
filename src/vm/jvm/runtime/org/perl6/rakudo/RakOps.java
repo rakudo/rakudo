@@ -307,40 +307,6 @@ public final class RakOps {
         }
     }
     
-    public static long p6trialbind(SixModelObject sig, SixModelObject values, SixModelObject flags, ThreadContext tc) {
-        /* Get signature and parameters. */
-        GlobalExt gcx = key.getGC(tc);
-        SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_PARAMS);
-
-        /* Form argument array and call site descriptor. */
-        int numArgs = (int)values.elems(tc);
-        Object[] args = new Object[numArgs];
-        byte[] argFlags = new byte[numArgs];
-        for (int i = 0; i < numArgs; i++) {
-            switch ((int)flags.at_pos_boxed(tc, i).get_int(tc)) {
-                case CallSiteDescriptor.ARG_INT:
-                    args[i] = 0;
-                    argFlags[i] = CallSiteDescriptor.ARG_INT;
-                    break;
-                case CallSiteDescriptor.ARG_NUM:
-                    args[i] = 0.0;
-                    argFlags[i] = CallSiteDescriptor.ARG_NUM;
-                    break;
-                case CallSiteDescriptor.ARG_STR:
-                    args[i] = "";
-                    argFlags[i] = CallSiteDescriptor.ARG_STR;
-                    break;
-                default:
-                    args[i] = values.at_pos_boxed(tc, i);
-                    argFlags[i] = CallSiteDescriptor.ARG_OBJ;
-                    break;
-            }
-        }
-
-        /* Do trial bind. */
-        return Binder.trialBind(tc, gcx, params, new CallSiteDescriptor(argFlags, null), args);
-    }
-    
     private static final CallSiteDescriptor STORE = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
@@ -456,7 +422,7 @@ public final class RakOps {
     
     private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
-    public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, ThreadContext tc) {
+    public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, SixModelObject bypassType, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         SixModelObject sig = routine.get_attribute_boxed(tc, gcx.Code, "$!signature", HINT_CODE_SIG);
         SixModelObject rtype = sig.get_attribute_boxed(tc, gcx.Signature, "$!returns", HINT_SIG_RETURNS);
@@ -467,8 +433,7 @@ public final class RakOps {
                  * an Int that can unbox into an int or similar. */
                 StorageSpec spec = rtype.st.REPR.get_storage_spec(tc, rtype.st);
                 if (spec.inlineable == 0 || Ops.istype(rtype, decontValue.st.WHAT, tc) == 0) {
-                    SixModelObject failure = Ops.getlex("Failure", tc);
-                    if (Ops.istype(failure, decontValue.st.WHAT, tc) == 0) {
+                    if (Ops.istype(decontValue.st.WHAT, bypassType, tc) == 0) {
                         SixModelObject thrower = getThrower(tc, "X::TypeCheck::Return");
                         if (thrower == null)
                             throw ExceptionHandling.dieInternal(tc,
@@ -604,12 +569,7 @@ public final class RakOps {
 
     public static SixModelObject p6routinereturn(SixModelObject in, ThreadContext tc) {
         CallFrame ctx = tc.curFrame;
-        SixModelObject cont = null;
-
-        for (ctx = ctx.caller; ctx != null; ctx = ctx.caller) {
-            cont = getremotelex(ctx, "RETURN");
-            if (cont != null) break;
-        }
+        SixModelObject cont = getremotelex(ctx.caller, "RETURN");
 
         if (!(cont instanceof LexoticInstance)) {
             SixModelObject thrower = getThrower(tc, "X::ControlFlow::Return");

@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 25;
+plan 26;
 
 compile_test_lib('06-struct');
 
@@ -161,5 +161,14 @@ my StructIntStruct $sis = ReturnAStructIntStruct();
 is $sis.i, 42, 'and the int after is 42';
 is $sis.a.first, 101, 'nested first is 101';
 is $sis.a.second, 77, 'nested second is 77';
+
+# RT #126675
+{
+    class A is repr<CStruct> { has int8 $.a };
+    class B is repr<CStruct> { has int8 $.b };
+    class AB is repr<CStruct> { HAS A $.a; HAS B $.b };
+
+    is nativesizeof(AB), 2, 'struct with inlined structs has correct size';
+}
 
 # vim:ft=perl6

@@ -9,27 +9,18 @@ class X::Cannot::Lazy { ... }
 # work on by doing a .list coercion.
 use MONKEY-TYPING;
 augment class Any {
-    sub as-iterable(\iterablish) {
-        # XXX used to use a tertiary operator here but that seems to break mutability of iterablish.list
-        if iterablish.DEFINITE && nqp::istype(iterablish, Iterable) {
-            iterablish
-        }
-        else {
-            iterablish.list;
-        }
-    }
 
     proto method map(|) is nodal { * }
 
     multi method map(\SELF: &block;; :$label, :$item) {
-        sequential-map(as-iterable($item ?? (SELF,) !! SELF).iterator, &block, :$label);
+        sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, :$label);
     }
 
     multi method map(HyperIterable:D: &block;; :$label) {
         # For now we only know how to parallelize when we've only one input
         # value needed per block. For the rest, fall back to sequential.
         if &block.count != 1 {
-            sequential-map(as-iterable(self).iterator, &block, :$label)
+            sequential-map(self.iterator, &block, :$label)
         }
         else {
             HyperSeq.new(class :: does HyperIterator {
@@ -37,7 +28,7 @@ augment class Any {
                 has &!block;
 
                 method new(\source, &block) {
-                    my \iter = self.CREATE;
+                    my \iter = nqp::create(self);
                     nqp::bindattr(iter, self, '$!source', source);
                     nqp::bindattr(iter, self, '&!block', &block);
                     iter
@@ -70,7 +61,7 @@ augment class Any {
         has $!label;
 
         method new(&block, $source, $count, $label) {
-            my $iter := self.CREATE;
+            my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!count', $count);
@@ -107,7 +98,7 @@ augment class Any {
                         nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
                     }
 
-                    if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+                    if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                         # $result will be returned at the end
                     }
                     elsif ($value := $!source.pull-one()) =:= IterationEnd {
@@ -239,7 +230,7 @@ augment class Any {
                         nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
                     }
 
-                    if $!slipping && ($result := self.slip-one()) !=:= IterationEnd {
+                    if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
                         # $result will be returned at the end
                     }
                     elsif $!source.push-exactly($!value-buffer, $!count) =:= IterationEnd
@@ -313,7 +304,7 @@ augment class Any {
             has  Mu $!test;
             has int $!index;
             method BUILD(\list,Mu \test) {
-                $!iter  = as-iterable(list).iterator;
+                $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
@@ -355,7 +346,7 @@ augment class Any {
             has int $!index;
             has Mu $!value;
             method BUILD(\list,Mu \test) {
-                $!iter  = as-iterable(list).iterator;
+                $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
@@ -424,7 +415,7 @@ augment class Any {
             has  Mu $!test;
             has int $!index;
             method BUILD(\list,Mu \test) {
-                $!iter  = as-iterable(list).iterator;
+                $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
@@ -464,7 +455,7 @@ augment class Any {
         has Mu $!iter;
         has Mu $!test;
         method BUILD(\list,Mu \test) {
-            $!iter  = as-iterable(list).iterator;
+            $!iter  = list.iterator;
             $!test := test;
             self
         }
@@ -600,7 +591,7 @@ augment class Any {
                     value
                 }
                 else {
-                    my ($k) = %a.keys;
+                    my $k = %a.keys[0];
                     if $k eq 'k' || $k eq 'p' {
                         value
                     }
@@ -670,7 +661,7 @@ augment class Any {
                        !! self!grep-accepts: $t
             }
             else {
-                my ($k) = %_.keys;
+                my $k = %_.keys[0];
                 if $k eq 'k' || $k eq 'kv' || $k eq 'p' {
                     nqp::istype($t,Regex:D)
                       ?? self!grep-regex: $t
@@ -698,6 +689,11 @@ augment class Any {
     }
 
     proto method first(|) is nodal { * }
+    multi method first(:$end) {
+        $end
+          ?? ((my $elems = self.elems) ?? self.AT-POS($elems - 1) !! Nil)
+          !! ((my $x := self.iterator.pull-one) =:= IterationEnd ?? Nil !! $x)
+    }
     multi method first(Bool:D $t) {
         fail X::Match::Bool.new( type => '.first' );
     }
@@ -713,7 +709,7 @@ augment class Any {
             Nil
         }
         else {
-            my $iter := as-iterable(self).iterator;
+            my $iter := self.iterator;
             my int $index;
             $index = $index + 1
               until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
@@ -734,7 +730,7 @@ augment class Any {
             Nil
         }
         else {
-            my $iter := as-iterable(self).iterator;
+            my $iter := self.iterator;
             my int $index;
             $index = $index + 1
               until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
@@ -755,7 +751,7 @@ augment class Any {
             Nil
         }
         else {
-            my $iter := as-iterable(self).iterator;
+            my $iter := self.iterator;
             my int $index;
             $index = $index + 1
               until (($_ := $iter.pull-one) =:= IterationEnd) || $test.ACCEPTS($_);
@@ -905,7 +901,7 @@ augment class Any {
 
     method sort(&by = &infix:<cmp>) is nodal {
         # Obtain all the things to sort.
-        my \iter = as-iterable(self).iterator;
+        my \iter = self.iterator;
         my \sort-buffer = IterationBuffer.new;
         unless iter.push-until-lazy(sort-buffer) =:= IterationEnd {
             fail X::Cannot::Lazy.new(:action<sort>);
@@ -916,7 +912,7 @@ augment class Any {
         my $transform-buffer;
         if $transform {
             $transform-buffer := IterationBuffer.new;
-            my \to-map = nqp::p6bindattrinvres(List.CREATE, List, '$!reified',
+            my \to-map = nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
                 sort-buffer);
             to-map.map(&by).iterator.push-all($transform-buffer);
         }
@@ -926,15 +922,13 @@ augment class Any {
         # a slice into self. The JVM implementation uses a Java
         # collection sort. MoarVM has its sort algorithm implemented
         # in NQP.
-        my int $i = 0;
+        my int $i = -1;
         my int $n = sort-buffer.elems;
-        my \indices = IterationBuffer.new;
-        while $i < $n {
-            nqp::push(indices, nqp::decont($i));
-            $i = $i + 1;
-        }
+        my $indices := nqp::list;
+        nqp::setelems($indices,$n);
+        nqp::bindpos($indices,$i,nqp::decont($i)) while ++$i < $n;
 
-        nqp::p6sort(indices, $transform
+        nqp::p6sort($indices, $transform
             ?? (-> int $a, int $b {
                     nqp::atpos($transform-buffer, $a) cmp nqp::atpos($transform-buffer, $b)
                         || $a <=> $b
@@ -944,8 +938,12 @@ augment class Any {
                         || $a <=> $b
                 }));
 
-        my \indices-list = nqp::p6bindattrinvres(List.CREATE, List, '$!reified', indices);
-        indices-list.map(-> int $i { nqp::atpos(sort-buffer,       $i) })
+        $i = -1;
+        my $result := nqp::list;
+        nqp::setelems($result,$n);
+        nqp::bindpos($result,$i,nqp::atpos(sort-buffer,nqp::atpos($indices,$i)))
+          while ++$i < $n;
+        $result
     }
 
     proto method reduce(|) { * }
@@ -968,7 +966,7 @@ augment class Any {
             has Mu $!iter;
             has $!seen;
             method BUILD(\list) {
-                $!iter = as-iterable(list).iterator;
+                $!iter = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1034,7 +1032,7 @@ augment class Any {
             has &!as;
             has $!seen;
             method BUILD(\list, &!as) {
-                $!iter  = as-iterable(list).iterator;
+                $!iter  = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1103,7 +1101,7 @@ augment class Any {
             has Mu $!iter;
             has $!seen;
             method BUILD(\list) {
-                $!iter = as-iterable(list).iterator;
+                $!iter = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1168,7 +1166,7 @@ augment class Any {
             has &!as;
             has $!seen;
             method BUILD(\list, &!as) {
-                $!iter  = as-iterable(list).iterator;
+                $!iter  = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
@@ -1239,7 +1237,7 @@ augment class Any {
             has $!last;
             has int $!first;
             method BUILD(\list, &!as, &!with) {
-                $!iter  = as-iterable(list).iterator;
+                $!iter  = list.iterator;
                 $!first = 1;
                 self
             }
@@ -1292,7 +1290,7 @@ augment class Any {
             has Mu $!last;
             has int $!first;
             method BUILD(\list, &!with) {
-                $!iter  = as-iterable(list).iterator;
+                $!iter  = list.iterator;
                 $!first = 1;
                 self
             }
@@ -1359,26 +1357,26 @@ augment class Any {
     }
 
     proto method head(|) { * }
-    multi method head(Any:D: Int:D $n) {
+    multi method head(Any:D: Int(Cool) $n = 1) {
         return () if $n <= 0;
 
         Seq.new( class :: does Iterator {
             has Mu  $!iter;
             has int $!todo;
             method BUILD(\list,\todo) {
-                $!iter = as-iterable(list).iterator;
+                $!iter = list.iterator;
                 $!todo = todo;
                 self
             }
             method new(\list,\todo) { nqp::create(self).BUILD(list,todo) }
             method pull-one() is raw {
-                $!todo-- ?? $!iter.pull-one() !! IterationEnd
+                $!todo-- ?? $!iter.pull-one !! IterationEnd
             }
         }.new(self,$n))
     }
 
     proto method tail(|) { * }
-    multi method tail(Any:D: Int:D $n) {
+    multi method tail(Any:D: Int(Cool) $n = 1) {
         return () if $n <= 0;
 
         Seq.new( class :: does Iterator {
@@ -1388,10 +1386,10 @@ augment class Any {
             has int $!todo;
             has int $!index;
             method BUILD(\list,\size) {
-                $!iter = as-iterable(list).iterator;
+                $!iter = list.iterator;
                 X::Cannot::Lazy.new(:action<tail>).throw if $!iter.is-lazy;
 
-                $!lastn := nqp::list();
+                $!lastn := nqp::list;
                 $!size   = size;
                 nqp::setelems($!lastn,$!size);  # presize list
                 nqp::setelems($!lastn,0);
@@ -1406,7 +1404,7 @@ augment class Any {
             }
             method pull-one() is raw {
                 if $!todo {
-                    self!next();
+                    self!next;
                 }
                 elsif $!iter.DEFINITE {
                     my Mu $pulled;
@@ -1424,48 +1422,13 @@ augment class Any {
                         $!todo = nqp::elems($!lastn);
                     }
                     $!iter := Mu;  # mark we're done iterating
-                    $!todo ?? self!next() !! IterationEnd
+                    $!todo ?? self!next !! IterationEnd
                 }
                 else {
                     IterationEnd
                 }
             }
         }.new(self,$n))
-    }
-
-    proto method grep-index(|) is nodal { * }
-    multi method grep-index(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.grep-index' );
-    }
-    multi method grep-index(Regex:D \t) {
-        DEPRECATED('grep(:k)');
-        self!grep-k({$_.match(t)})
-    }
-    multi method grep-index(Callable:D \t) {
-        DEPRECATED('grep(:k)');
-        self!grep-k(t)
-    }
-    multi method grep-index(Mu \t) {
-        DEPRECATED('grep(:k)');
-        self!grep-k({t.ACCEPTS($_)})
-    }
-
-    proto method first-index(|) is nodal { * }
-    multi method first-index(Bool:D $ ) {
-        fail X::Match::Bool.new( type => '.first-index' );
-    }
-    multi method first-index(Mu \test) {
-        DEPRECATED('first(:k)');
-        self.first(test,:k)
-    }
-
-    proto method last-index(|) is nodal { * }
-    multi method last-index(Bool:D $ ) {
-        fail X::Match::Bool.new( type => '.last-index' );
-    }
-    multi method last-index(Mu \test) {
-        DEPRECATED('first(:end,:k)');
-        self.first(test,:end,:k)
     }
 }
 
@@ -1529,36 +1492,6 @@ multi sub sort($cmp, +values)      {
     nqp::istype($cmp, Callable)
         ?? values.sort($cmp)
         !! (|$cmp,|values).sort;
-}
-
-proto sub grep-index(|) {*}
-multi sub grep-index(Bool:D $t, |) {
-    fail X::Match::Bool.new(type => 'grep-index');
-}
-multi sub grep-index(Mu $test, +values) {
-    DEPRECATED('grep(:k)');
-    my $laze = values.is-lazy;
-    values.grep($test,:k).lazy-if($laze)
-}
-
-proto sub first-index(|) {*}
-multi sub first-index(Bool:D $ , |) {
-    fail X::Match::Bool.new(type => 'first-index');
-}
-multi sub first-index(Mu $test, +values) {
-    DEPRECATED('first(:k)');
-    my $laze = values.is-lazy;
-    values.first($test,:k).lazy-if($laze)
-}
-
-proto sub last-index(|) {*}
-multi sub last-index(Bool:D $ , |) {
-    fail X::Match::Bool.new(type => 'last-index');
-}
-multi sub last-index(Mu $test, +values) {
-    DEPRECATED('first(:end,:k)');
-    my $laze = values.is-lazy;
-    values.first($test,:end,:k).lazy-if($laze)
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,7 +1,9 @@
 class Compiler does Systemic {
+    has Str $.id;
     has Str $.release;
     has Str $!build-date;
     has Str $.codename;
+    BEGIN my $id = $*W.handle.Str ~ '.' ~ nqp::time_n();
 
     submethod BUILD (
       :$!name      = 'rakudo',
@@ -13,6 +15,9 @@ class Compiler does Systemic {
     ) {
 # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
+        $!id = nqp::p6box_s( nqp::existskey($compiler,'id')
+          ?? nqp::atkey($compiler,'id')
+          !! $id );
         $!version = Version.new(
           $version // nqp::p6box_s(nqp::atkey($compiler, 'version')) );
         $!release =

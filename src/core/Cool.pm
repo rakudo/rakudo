@@ -1,14 +1,6 @@
 my role  IO         { ... }
 my class IO::Path   { ... }
 
-my class SprintfHandler {
-    method mine($x) { nqp::reprname($x) eq "P6opaque"; }
-
-    method int($x) { $x.Int }
-}
-
-my $sprintfHandlerInitialized = False;
-
 my class Cool { # declared in BOOTSTRAP
     # class Cool is Any {
 
@@ -76,10 +68,7 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method fmt($format = '%s') {
-        unless $sprintfHandlerInitialized {
-            nqp::sprintfaddargumenthandler(SprintfHandler.new);
-            $sprintfHandlerInitialized = True;
-        }
+        Rakudo::Internals.initialize-sprintf-handler;
         nqp::p6box_s(
             nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
         )
@@ -146,11 +135,6 @@ my class Cool { # declared in BOOTSTRAP
     method trans(*@a) { self.Str.trans(@a) }
 
     proto method starts-with(|) {*}
-    multi method starts-with(Str:D: Str(Cool) $needle) {
-        nqp::p6bool(
-          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),0)
-        );
-    }
     multi method starts-with(Cool:D: Str(Cool) $needle) {
         nqp::p6bool(
           nqp::eqat(nqp::unbox_s(self.Str),nqp::unbox_s($needle),0)
@@ -158,13 +142,6 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method ends-with(Str(Cool) $suffix) { * }
-    multi method ends-with(Str:D: Str(Cool) $suffix) {
-        my str $str    = nqp::unbox_s(self);
-        my str $needle = nqp::unbox_s($suffix);
-        nqp::p6bool(
-          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
-        );
-    }
     multi method ends-with(Cool:D: Str(Cool) $suffix) {
         my str $str    = nqp::unbox_s(self.Str);
         my str $needle = nqp::unbox_s($suffix);
@@ -174,43 +151,33 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr-eq(|) {*}
-    multi method substr-eq(Str:D: Str(Cool) $needle, Int(Cool) $pos) {
-        $pos >= 0 && nqp::p6bool(
-          nqp::eqat(nqp::unbox_s(self),nqp::unbox_s($needle),nqp::unbox_i($pos))
-        );
-    }
-    multi method substr-eq(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        $pos >= 0 && nqp::p6bool(nqp::eqat(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          nqp::unbox_i($pos)
-        ));
+    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $start?) {
+        my str $str = nqp::unbox_s(self.Str);
+        my int $pos =
+          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
+        $pos >= 0 && nqp::p6bool(nqp::eqat($str, nqp::unbox_s($needle), $pos));
     }
 
     proto method contains(|) {*}
-    multi method contains(Cool:D: Str(Cool) $needle) {
-        nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle)) != -1;
-    }
-    multi method contains(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
+    multi method contains(Cool:D: Str(Cool) $needle, Cool $start?) {
         my str $str = nqp::unbox_s(self.Str);
-        $pos >= 0
-          && $pos <= nqp::chars($str)
-          && nqp::index($str, nqp::unbox_s($needle), nqp::unbox_i($pos)) != -1;
+        my int $pos =
+          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
+        nqp::index($str, nqp::unbox_s($needle), $pos) != -1;
     }
 
     proto method indices(|) {*}
-    multi method indices(Cool:D: Str(Cool) $needle, Int(Cool) $start = 0, :$overlap) {
-        my int $pos  = $start;
+    multi method indices(Cool:D: Str(Cool) $needle, Cool $start?, :$overlap) {
         my str $str  = nqp::unbox_s(self.Str);
+        my int $pos  =
+          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
         my str $need = nqp::unbox_s($needle);
         my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
 
         my $rpa := nqp::list();
         my int $i;
-        loop {
-            $i = nqp::index($str, $need, $pos);
-            last if $i == -1;
-            nqp::push($rpa,nqp::box_i($i,Int));
+        while ($i = nqp::index($str, $need, $pos)) >= 0 {
+            nqp::push($rpa,nqp::p6box_i($i));
             $pos = $i + $add;
         }
         nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
@@ -222,15 +189,17 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i;
-        try {
-            $i = nqp::unbox_i($pos);
-            CATCH {
-                default {
-                    return Nil
-                }
-            }
-        }
+        fail X::OutOfRange.new(
+          :what("Position in index"),
+          :got($pos),
+          :range("0..{self.chars}"),
+        ) if nqp::isbig_I(nqp::decont($pos));
+        my int $i = nqp::unbox_i($pos);
+        fail X::OutOfRange.new(
+          :what("Position in index"),
+          :got($i),
+          :range("0..{self.chars}"),
+        ) if $i < 0;
         $i = nqp::index(
           nqp::unbox_s(self.Str),
           nqp::unbox_s($needle),
@@ -245,15 +214,17 @@ my class Cool { # declared in BOOTSTRAP
         $i < 0 ?? Nil !! nqp::box_i($i,Int);
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        my int $i;
-        try {
-            $i = nqp::unbox_i($pos);
-            CATCH {
-                default {
-                    return Nil
-                }
-            }
-        }
+        fail X::OutOfRange.new(
+          :what("Position in rindex"),
+          :got($pos),
+          :range("0..{self.chars}"),
+        ) if nqp::isbig_I(nqp::decont($pos));
+        my int $i = nqp::unbox_i($pos);
+        fail X::OutOfRange.new(
+          :what("Position in rindex"),
+          :got($i),
+          :range("0..{self.chars}"),
+        ) if $i < 0;
         $i = nqp::rindex(
           nqp::unbox_s(self.Str),
           nqp::unbox_s($needle),
@@ -367,30 +338,25 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 proto sub comb($, $, $?)            { * }
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
+multi sub comb(Int:D $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
 proto sub wordcase($) is pure { * }
 multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
 sub sprintf(Cool $format, *@args) {
-    unless $sprintfHandlerInitialized {
-        nqp::sprintfaddargumenthandler(SprintfHandler.new);
-        $sprintfHandlerInitialized = True;
-    }
-
+    Rakudo::Internals.initialize-sprintf-handler;
     @args.elems;
     nqp::p6box_s(
         nqp::sprintf(nqp::unbox_s($format.Stringy),
             nqp::clone(nqp::getattr(@args, List, '$!reified'))
         )
-    );
+    )
 }
 
-sub printf(Cool $format, *@args) { print sprintf $format, @args };
+sub printf(Cool $format, *@args)          { print sprintf $format, @args }
 sub samecase(Cool $string, Cool $pattern) { $string.samecase($pattern) }
-sub split($pat, Cool $target, $limit = Inf, :$all) {
-    $target.split($pat, $limit, :$all);
-}
+sub split($pat, Cool $target, |c)         { $target.split($pat, |c) }
 
 proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }

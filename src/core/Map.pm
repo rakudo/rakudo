@@ -5,9 +5,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     #   has Mu $!storage;
 
     method new(*@args) {
-        my %h := nqp::create(self);
-        %h.STORE(@args) if @args;
-        %h;
+        @args
+          ?? nqp::create(self).STORE(@args)
+          !! nqp::create(self)
     }
 
     multi method Hash(Map:U:) { Hash }
@@ -25,7 +25,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     multi method Int(Map:D:)     { self.elems }
     multi method Numeric(Map:D:) { self.elems }
-    multi method Str(Map:D:)     { self.list.Str }
+    multi method Str(Map:D:)     { self.pairs.sort.join("\n") }
 
     multi method ACCEPTS(Map:D: Any $topic) {
         self.EXISTS-KEY($topic.any);
@@ -178,13 +178,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         my str $skey = nqp::unbox_s(key.Str);
         nqp::defined($!storage) && nqp::existskey($!storage, $skey)
           ?? nqp::atkey($!storage, $skey)
-          !! Any
+          !! Nil
     }
 
     method STORE(\to_store) {
-        my \iter = nqp::istype(to_store, Iterable)
-            ?? to_store.iterator
-            !! to_store.list.iterator;
+        my \iter = to_store.iterator;
         $!storage := nqp::hash();
         until (my Mu $x := iter.pull-one) =:= IterationEnd {
             if nqp::istype($x,Pair) {
@@ -193,7 +191,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             elsif nqp::istype($x, Map) and !nqp::iscont($x) {
                 for $x.list { self.STORE_AT_KEY(.key, .value) }
             }
-            elsif (my Mu $y := iter.pull-one) !=:= IterationEnd {
+            elsif !((my Mu $y := iter.pull-one) =:= IterationEnd) {
                 self.STORE_AT_KEY($x, $y)
             }
             else {

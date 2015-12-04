@@ -42,8 +42,8 @@ class Perl6::Metamodel::ClassHOW
     method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new();
         my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
-        self.add_stash($obj);
         $metaclass.set_name($obj, $name // "<anon|{nqp::objectid($metaclass)}>");
+        self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.setup_mixin_cache($obj);

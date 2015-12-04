@@ -3,7 +3,6 @@
 # does for its iterator. If you ask for its iterator, then you are ending the
 # declaration of a chain of parallelizable operations. That is, in fact, the
 # thing that will actually kick off the parallel work.
-my class Lock is repr('ReentrantMutex') { ... }
 my class Promise { ... }
 my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
     has HyperIterator $!hyper-iter;
@@ -11,7 +10,7 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
     # The only valid way to create a HyperSeq directly is by giving it the
     # hyper-iterator it will expose and maybe memoize.
     method new(HyperIterator:D $hyper-iter) {
-        my \hseq := self.CREATE;
+        my \hseq := nqp::create(self);
         nqp::bindattr(hseq, HyperSeq, '$!hyper-iter', nqp::decont($hyper-iter));
         hseq
     }
@@ -52,12 +51,12 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
             has int $!sequence-number;
 
             method new(\hyper-iterator) {
-                my \iter = self.CREATE;
+                my \iter = nqp::create(self);
                 my \lock = Lock.new;
                 nqp::bindattr(iter, self, '$!hyper-iterator', hyper-iterator);
                 nqp::bindattr(iter, self, '$!configuration', hyper-iterator.configuration);
-                nqp::bindattr(iter, self, '$!work-available', IterationBuffer.CREATE);
-                nqp::bindattr(iter, self, '$!work-completed', IterationBuffer.CREATE);
+                nqp::bindattr(iter, self, '$!work-available', nqp::create(IterationBuffer));
+                nqp::bindattr(iter, self, '$!work-completed', nqp::create(IterationBuffer));
                 nqp::bindattr(iter, self, '$!lock', lock);
                 nqp::bindattr(iter, self, '$!cond-have-work', lock.condition);
                 nqp::bindattr(iter, self, '$!cond-have-result', lock.condition);

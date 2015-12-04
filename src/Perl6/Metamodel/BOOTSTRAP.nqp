@@ -67,7 +67,7 @@ my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Map metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Bool metaclass Perl6::Metamodel::EnumHOW { ... };
 my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
@@ -86,8 +86,9 @@ my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 
-#?if moar
-# On MoarVM, implement the signature binder.
+# Implement the signature binder.
+# The JVM backend really only uses trial_bind,
+# so we exclude everything else.
 my class Binder {
     # Flags that can be set on a signature element.
     my int $SIG_ELEM_BIND_CAPTURE        := 1;
@@ -128,6 +129,7 @@ my class Binder {
     my $Positional;
     my $PositionalBindFailover;
 
+#?if moar
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
@@ -948,6 +950,11 @@ my class Binder {
         $sig
     }
 
+    method get_return_type($code) {
+        nqp::getattr(nqp::getattr($code, Code, '$!signature'), Signature, '$!returns')
+    }
+#?endif
+
     my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, but need to check at runtime.
     my int $TRIAL_BIND_OK       :=  1;   # Bind will always work out.
     my int $TRIAL_BIND_NO_WAY   := -1;   # Bind could never work out.
@@ -978,7 +985,7 @@ my class Binder {
                     $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_RAW +|
                     $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|
                     $SIG_ELEM_HASH_SIGIL +| $SIG_ELEM_NATIVE_VALUE +|
-                    $SIG_ELEM_IS_OPTIONAL) {
+                    $SIG_ELEM_IS_OPTIONAL) || $flags +& $SIG_ELEM_IS_RW {
                 return $TRIAL_BIND_NOT_SURE;
             }
             unless nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
@@ -1003,7 +1010,7 @@ my class Binder {
             }
             else {
                 # Yes, need to consider type
-                my int $got_prim := $sigflags[$cur_pos_arg];
+                my int $got_prim := $sigflags[$cur_pos_arg] +& 0xF;
                 if $flags +& $SIG_ELEM_NATIVE_VALUE {
                     if $got_prim == 0 {
                         # We got an object; if we aren't sure we can unbox, we can't
@@ -1070,14 +1077,9 @@ my class Binder {
         # Otherwise, if we get there, all is well.
         return $TRIAL_BIND_OK;
     }
-
-    method get_return_type($code) {
-        nqp::getattr(nqp::getattr($code, Code, '$!signature'), Signature, '$!returns')
-    }
 }
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
-#?endif
 
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
@@ -1108,6 +1110,7 @@ BEGIN {
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
     #     has Mu $!why;
+    #     has Mu $!container_initializer;
     Attribute.HOW.add_parent(Attribute, Any);
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
@@ -1124,6 +1127,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!positional_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_initializer>, :type(Mu), :package(Attribute)));
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
@@ -1150,6 +1154,10 @@ BEGIN {
                 nqp::bindattr($scalar, Scalar, '$!value', $type);
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
                 nqp::bindattr($attr, Attribute, '$!auto_viv_container', $scalar);
+            }
+            if nqp::existskey(%other, 'container_initializer') {
+                nqp::bindattr($attr, Attribute, '$!container_initializer',
+                    %other<container_initializer>);
             }
             nqp::bindattr_i($attr, Attribute, '$!positional_delegate', $positional_delegate);
             nqp::bindattr_i($attr, Attribute, '$!associative_delegate', $associative_delegate);
@@ -1230,6 +1238,10 @@ BEGIN {
         }));
     Attribute.HOW.add_method(Attribute, 'associative_delegate', nqp::getstaticcode(sub ($self) {
             nqp::getattr_i(nqp::decont($self), Attribute, '$!associative_delegate')
+        }));
+    Attribute.HOW.add_method(Attribute, 'container_initializer', nqp::getstaticcode(sub ($self) {
+            nqp::getattr(nqp::decont($self),
+                Attribute, '$!container_initializer');
         }));
     Attribute.HOW.add_method(Attribute, 'is_generic', nqp::getstaticcode(sub ($self) {
             my $dcself   := nqp::decont($self);
@@ -1545,7 +1557,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'WHY', nqp::getstaticcode(sub ($self) {
             my $why := nqp::getattr(nqp::decont($self), Parameter, '$!why');
             if nqp::isnull($why) || !$why {
-                Any
+                Nil
             } else {
                 $why.set_docee($self);
                 $why
@@ -1846,6 +1858,9 @@ BEGIN {
                     'constraints',  [],
                     'rwness',       nqp::list_i()
                 );
+                if nqp::istype($candidate, Submethod) {
+                    %info<exact_invocant> := 1;
+                }
                 my int $significant_param := 0;
                 my int $min_arity         := 0;
                 my int $max_arity         := 0;
@@ -2077,6 +2092,7 @@ BEGIN {
             my $cur_candidate;
             my int $type_check_count;
             my int $type_mismatch;
+            my int $rwness_mismatch;
             my int $i;
             my int $pure_type_result := 1;
             my $many_res := $many ?? [] !! Mu;
@@ -2096,13 +2112,19 @@ BEGIN {
                             ?? $num_args
                             !! nqp::atkey($cur_candidate, 'num_types');
                         $type_mismatch := 0;
+                        $rwness_mismatch := 0;
 
                         $i := 0;
-                        while $i < $type_check_count && !$type_mismatch {
+                        while $i < $type_check_count && !$type_mismatch && !$rwness_mismatch {
                             my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                             my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                             my int $got_prim   := nqp::captureposprimspec($capture, $i);
-                            if $type_flags +& $TYPE_NATIVE_MASK {
+                            my $rwness         := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
+                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
+                                # If we need a container but don't have one it clearly can't work.
+                                $rwness_mismatch := 1;
+                            }
+                            elsif $type_flags +& $TYPE_NATIVE_MASK {
                                 # Looking for a natively typed value. Did we get one?
                                 if $got_prim == $BIND_VAL_OBJ {
                                     # Object, but could be a native container. If not, mismatch.
@@ -2136,7 +2158,14 @@ BEGIN {
                                                                             Str;
                                     $primish := 1;
                                 }
-                                unless nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                                if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                                    if $i == 0 && nqp::existskey($cur_candidate, 'exact_invocant') {
+                                        unless $param.WHAT =:= $type_obj {
+                                            $type_mismatch := 1;
+                                        }
+                                    }
+                                }
+                                else {
                                     if $type_obj =:= $Positional {
                                         my $PositionalBindFailover := nqp::gethllsym('perl6', 'MD_PBF');
                                         unless nqp::istype($param, $PositionalBindFailover) {
@@ -2158,7 +2187,7 @@ BEGIN {
                             $i++;
                         }
                         
-                        unless $type_mismatch {
+                        unless $type_mismatch || $rwness_mismatch {
                             # It's an admissable candidate; add to list.
                             nqp::push(@possibles, $cur_candidate);
                         }
@@ -2268,7 +2297,9 @@ BEGIN {
                 return $many_res;
             }
 
-            # Check is default trait if we still have multiple options and we want one.
+            # If we still have multiple options and we want one, then check default
+            # trait and then, failing that, if we got an exact arity match on required
+            # parameters (which will beat matches on optional parameters).
             if nqp::elems(@possibles) > 1 {
                 # Locate any default candidates; if we find multiple defaults, this is
                 # no help, so we'll not bother collecting just which ones are good.
@@ -2287,6 +2318,27 @@ BEGIN {
                 if nqp::isconcrete($default_cand) {
                     nqp::pop(@possibles) while @possibles;
                     @possibles[0] := $default_cand;
+                }
+
+                # Failing that, look for exact arity match.
+                if nqp::elems(@possibles) > 1 {
+                    my $exact_arity;
+                    for @possibles {
+                        if nqp::atkey($_, 'min_arity') == $num_args &&
+                           nqp::atkey($_, 'max_arity') == $num_args {
+                            if nqp::isconcrete($exact_arity) {
+                                $exact_arity := NQPMu;
+                                last;
+                            }
+                            else {
+                                $exact_arity := $_;
+                            }
+                        }
+                    }
+                    if nqp::isconcrete($exact_arity) {
+                        nqp::pop(@possibles) while @possibles;
+                        @possibles[0] := $exact_arity;
+                    }
                 }
             }
 
@@ -2386,6 +2438,7 @@ BEGIN {
             my int $BIND_VAL_INT      := 1;
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
+            my int $ARG_IS_LITERAL    := 32;
             
             # Count arguments.
             my int $num_args := nqp::elems(@args);
@@ -2455,7 +2508,8 @@ BEGIN {
                 while $i < $type_check_count {
                     my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
-                    my int $got_prim := nqp::atpos(@flags, $i);
+                    my int $got_prim := nqp::atpos(@flags, $i) +& 0xF;
+                    my int $literal  := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {
@@ -2465,7 +2519,8 @@ BEGIN {
                         }
                         if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
                         || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
-                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
+                        || ($literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i)) {
                             # Mismatch.
                             $type_mismatch := 1;
                             $type_match_possible := 0;
@@ -2709,13 +2764,23 @@ BEGIN {
     Junction.HOW.add_attribute(Junction, scalar_attr('$!type', Mu, Junction));
     Junction.HOW.compose_repr(Junction);
     
-    # class Bool is Cool {
+    # class Bool is Int {
+    #     has str $!key;
     #     has int $!value;
-    Bool.HOW.add_parent(Bool, Cool);
-    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1), :package(Bool)));
+    Bool.HOW.set_base_type(Bool, Int);
+    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!key>, :type(str), :package(Bool)));
+    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :package(Bool)));
     Bool.HOW.set_boolification_mode(Bool, 1);
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
+    Bool.HOW.add_method(Bool, 'key', nqp::getstaticcode(sub ($self) {
+            nqp::getattr_s(nqp::decont($self),
+                Bool, '$!key');
+        }));
+    Bool.HOW.add_method(Bool, 'value', nqp::getstaticcode(sub ($self) {
+            nqp::getattr_i(nqp::decont($self),
+                Bool, '$!value');
+        }));
 
     # class ObjAt is Any {
     #     has str $!value;
@@ -2734,9 +2799,10 @@ BEGIN {
     CompUnitRepo.HOW.add_parent(CompUnitRepo, Any);
     CompUnitRepo.HOW.compose_repr(CompUnitRepo);
 
-    # Set up Stash type, which is really just a hash.
+    # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
     Stash.HOW.add_parent(Stash, Hash);
+    Stash.HOW.add_attribute(Stash, BOOTSTRAPATTR.new(:name<$!longname>, :type(str), :package(Attribute)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.
@@ -2745,8 +2811,11 @@ BEGIN {
     # Give everything we've set up so far a Stash.
     Perl6::Metamodel::ClassHOW.add_stash(Mu);
     Perl6::Metamodel::ClassHOW.add_stash(Any);
+    Perl6::Metamodel::ClassHOW.add_stash(Nil);
     Perl6::Metamodel::ClassHOW.add_stash(Cool);
     Perl6::Metamodel::ClassHOW.add_stash(Attribute);
+    Perl6::Metamodel::ClassHOW.add_stash(Scalar);
+    Perl6::Metamodel::ClassHOW.add_stash(Proxy);
     Perl6::Metamodel::ClassHOW.add_stash(Signature);
     Perl6::Metamodel::ClassHOW.add_stash(Parameter);
     Perl6::Metamodel::ClassHOW.add_stash(Code);
@@ -2754,10 +2823,11 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Routine);
     Perl6::Metamodel::ClassHOW.add_stash(Sub);
     Perl6::Metamodel::ClassHOW.add_stash(Method);
+    Perl6::Metamodel::ClassHOW.add_stash(Submethod);
+    Perl6::Metamodel::ClassHOW.add_stash(Regex);
     Perl6::Metamodel::ClassHOW.add_stash(Str);
     Perl6::Metamodel::ClassHOW.add_stash(Int);
     Perl6::Metamodel::ClassHOW.add_stash(Num);
-    Perl6::Metamodel::ClassHOW.add_stash(Scalar);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrLexRef);
@@ -2767,13 +2837,17 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
-    Perl6::Metamodel::ClassHOW.add_stash(Bool);
-    Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
+    Perl6::Metamodel::ClassHOW.add_stash(Map);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
+    Perl6::Metamodel::ClassHOW.add_stash(Capture);
+    Perl6::Metamodel::EnumHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
+    Perl6::Metamodel::ClassHOW.add_stash(Stash);
+    Perl6::Metamodel::ClassHOW.add_stash(Grammar);
+    Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
     Perl6::Metamodel::ClassHOW.add_stash(CompUnitRepo);
 
@@ -2810,11 +2884,17 @@ BEGIN {
     }
 
     # Bool::False and Bool::True.
-    my $false := nqp::create(Bool);
+    my $false := nqp::box_i(0, Bool);
+    nqp::bindattr_s($false, Bool, '$!key', 'False');
     nqp::bindattr_i($false, Bool, '$!value', 0);
+    #nqp::bindattr($false, Int, '$!value', 0);
+    Bool.HOW.add_enum_value(Bool, $false);
     (Bool.WHO)<False> := $false;
-    my $true := nqp::create(Bool);
+    my $true := nqp::box_i(1, Bool);
+    nqp::bindattr_s($true, Bool, '$!key', 'True');
     nqp::bindattr_i($true, Bool, '$!value', 1);
+    #nqp::bindattr($true, Int, '$!value', 1);
+    Bool.HOW.add_enum_value(Bool, $true);
     (Bool.WHO)<True> := $true;
 
     # Setup some regexy/grammary bits.

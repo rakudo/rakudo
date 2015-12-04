@@ -6,6 +6,8 @@ my class WhateverCode { ... }
 my class Cursor { ... }
 my class Failure { ... }
 my class Rakudo::Internals { ... }
+my class X::Numeric::Overflow { ... }
+my class X::Numeric::Underflow { ... }
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }
@@ -20,5 +22,16 @@ my role PositionalBindFailover { ... }
 my class IterationBuffer is repr('VMArray') { ... }
 my constant Empty = nqp::p6bindattrinvres(nqp::create(Slip),
     List, '$!reified', nqp::create(IterationBuffer));
+
+# The value for \n.
+my constant $?NL = 
+#?if jvm
+    nqp::iseq_s(nqp::atkey(nqp::jvmgetproperties(), 'os.name'), 'MSWin32')
+#?endif
+#?if moar
+    nqp::iseq_s(nqp::atkey(nqp::backendconfig(), 'osname'), 'MSWin32')
+#?endif
+    ?? "\x0D\x0A"
+    !! "\x0A";
 
 # vim: ft=perl6 expandtab sw=4

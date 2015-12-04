@@ -1,7 +1,7 @@
 my class X::TypeCheck { ... };
 my class X::Subscript::Negative { ... };
-my class X::IllegalOnFixedDimensionArray { ... };
 my class X::NotEnoughDimensions { ... };
+my class X::Assignment::ArrayShapeMismatch { ... };
 
 # An Array is a List that ensures every item added to it is in a Scalar
 # container. It also supports push, pop, shift, unshift, splice, BIND-POS,
@@ -15,7 +15,7 @@ my class Array { # declared in BOOTSTRAP
         has $!descriptor;
 
         method new(\target, Mu \descriptor) {
-            my \rt = self.CREATE;
+            my \rt = nqp::create(self);
             nqp::bindattr(rt, self, '$!target', target);
             nqp::bindattr(rt, self, '$!descriptor', descriptor);
             rt
@@ -31,7 +31,7 @@ my class Array { # declared in BOOTSTRAP
         has $!target;
 
         method new(\target) {
-            nqp::p6bindattrinvres(self.CREATE, self, '$!target', target);
+            nqp::p6bindattrinvres(nqp::create(self), self, '$!target', target);
         }
 
         method push(Mu \value) {
@@ -41,9 +41,9 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method from-iterator(Array:U: Iterator $iter) {
-        my \result := self.CREATE;
-        my \buffer := IterationBuffer.CREATE;
-        my \todo := List::Reifier.CREATE;
+        my \result := nqp::create(self);
+        my \buffer := nqp::create(IterationBuffer);
+        my \todo := nqp::create(List::Reifier);
         nqp::bindattr(result, List, '$!reified', buffer);
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
@@ -54,36 +54,13 @@ my class Array { # declared in BOOTSTRAP
         result
     }
 
-    my constant \SHAPE-STORAGE-ROOT := do {
-        my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
-        nqp::setparameterizer($root, -> $, $key {
-            my Mu $args := nqp::p6argvmarray();
-            my $dim_type := nqp::newtype(nqp::knowhow(), 'MultiDimArray');
-            nqp::composetype($dim_type, nqp::hash('array',
-                nqp::hash('dimensions', $key.elems)));
-            nqp::settypehll($dim_type, 'perl6');
-            $dim_type
-        });
-        nqp::settypehll($root, 'perl6');
-        $root
-    }
     sub allocate-shaped-storage(\arr, @dims) {
-        my $key := nqp::list();
-        my $dims := nqp::list_i();
-        for @dims {
-            if nqp::istype($_, Whatever) {
-                X::NYI.new(feature => 'Jagged array shapes');
-            }
-            nqp::push($key, Mu);
-            nqp::push_i($dims, $_.Int);
-        }
-        my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
-        nqp::setdimensions($storage, $dims);
-        nqp::bindattr(arr, List, '$!reified', $storage);
+        nqp::bindattr(arr, List, '$!reified',
+            Rakudo::Internals.SHAPED-ARRAY-STORAGE(@dims, nqp::knowhow(), Mu));
         arr
     }
 
-    my role ShapedArray[::TValue] does Positional[TValue] {
+    my role ShapedArray[::TValue] does Positional[TValue] does Rakudo::Internals::ShapedArrayCommon {
         has $.shape;
 
         proto method AT-POS(|) is raw {*}
@@ -249,34 +226,30 @@ my class Array { # declared in BOOTSTRAP
             }
         }
 
-        multi method push(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
+        proto method STORE(|) { * }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            allocate-shaped-storage(self, self.shape);
+            my \in-shape = nqp::can(in, 'shape') ?? in.shape !! Nil;
+            if in-shape && !nqp::istype(in-shape.AT-POS(0), Whatever) {
+                if self.shape eqv in-shape {
+                    # Can do a VM-supported memcpy-like thing in the future
+                    for self.keys {
+                        self.ASSIGN-POS(|$_, in.AT-POS(|$_))
+                    }
+                }
+                else {
+                    X::Assignment::ArrayShapeMismatch.new(
+                        source-shape => in-shape,
+                        target-shape => self.shape
+                    ).throw
+                }
+            }
+            else {
+                self!STORE-PATH((), self.shape, in)
+            }
         }
-        multi method append(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'append').throw
-        }
-
-        multi method pop(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'pop').throw
-        }
-
-        multi method shift(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'shift').throw
-        }
-
-        multi method unshift(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
-        }
-        multi method prepend(::?CLASS:D: |) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'prepend').throw
-        }
-
-        multi method splice(::?CLASS:D: *@) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'splice').throw
-        }
-
-        multi method plan(::?CLASS:D: *@) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
+        multi method STORE(::?CLASS:D: Mu \item) {
+            self.STORE((item,))
         }
 
         # A shaped array isn't lazy, we these methods don't need to go looking
@@ -303,6 +276,7 @@ my class Array { # declared in BOOTSTRAP
             my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
             allocate-shaped-storage(arr, list-shape);
             arr does ShapedArray[Mu];
+            arr.^set_name('Array');
             nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
             die "Creating shaped array with initial values NYI" if values;
         }
@@ -313,7 +287,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method !ensure-allocated() {
-        nqp::bindattr(self, List, '$!reified', IterationBuffer.CREATE)
+        nqp::bindattr(self, List, '$!reified', nqp::create(IterationBuffer))
             unless nqp::getattr(self, List, '$!reified').DEFINITE;
     }
 
@@ -344,7 +318,7 @@ my class Array { # declared in BOOTSTRAP
         self!STORE-ONE(item)
     }
     method !STORE-ITERABLE(\iterable) {
-        my \new-storage = IterationBuffer.CREATE;
+        my \new-storage = nqp::create(IterationBuffer);
         my \iter = iterable.iterator;
         my \target = ArrayReificationTarget.new(new-storage,
             nqp::decont($!descriptor));
@@ -352,7 +326,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindattr(self, List, '$!todo', Mu);
         }
         else {
-            my \new-todo = List::Reifier.CREATE;
+            my \new-todo = nqp::create(List::Reifier);
             nqp::bindattr(new-todo, List::Reifier, '$!reified', new-storage);
             nqp::bindattr(new-todo, List::Reifier, '$!current-iter', iter);
             nqp::bindattr(new-todo, List::Reifier, '$!reification-target', target);
@@ -362,7 +336,7 @@ my class Array { # declared in BOOTSTRAP
         self
     }
     method !STORE-ONE(Mu \item) {
-        my \new-storage = IterationBuffer.CREATE;
+        my \new-storage = nqp::create(IterationBuffer);
         nqp::push(new-storage,
             nqp::assign(nqp::p6scalarfromdesc($!descriptor), item));
         nqp::bindattr(self, List, '$!reified', new-storage);
@@ -382,8 +356,8 @@ my class Array { # declared in BOOTSTRAP
     multi method List(Array:D:) {
         self!ensure-allocated;
         X::Cannot::Lazy.new(:action<List>).throw if self.is-lazy;
-        my \retval := List.CREATE;
-        my \reified := IterationBuffer.CREATE;
+        my \retval := nqp::create(List);
+        my \reified := nqp::create(IterationBuffer);
         nqp::bindattr(retval, List, '$!reified', reified);
         my \target := ListReificationTarget.new(reified);
         self.iterator.push-all(target);
@@ -586,7 +560,7 @@ my class Array { # declared in BOOTSTRAP
         self!prepend-list(@values)
     }
     method !prepend-list(@values) {
-        my \containers := IterationBuffer.CREATE;
+        my \containers := nqp::create(IterationBuffer);
         my \target := ArrayReificationTarget.new(containers,
             nqp::decont($!descriptor));
 
@@ -617,7 +591,9 @@ my class Array { # declared in BOOTSTRAP
         my $reified := nqp::getattr(self, List, '$!reified');
         nqp::existspos($reified, 0) || $todo.DEFINITE && $todo.reify-at-least(1)
             ?? nqp::shift($reified)
-            !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+            !! nqp::elems($reified)  # is it actually just sparse?
+                ?? STATEMENT_LIST(nqp::shift($reified); Nil)
+                !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
     }
 
     proto method splice(|) is nodal { * }
@@ -647,9 +623,8 @@ my class Array { # declared in BOOTSTRAP
 
         my $todo = nqp::getattr(self, List, '$!todo');
         my $lazy;
-        if $todo.DEFINITE {
-            $lazy = $todo.reify-until-lazy() !=:= IterationEnd;
-        }
+        $lazy = !($todo.reify-until-lazy() =:= IterationEnd)
+          if $todo.DEFINITE;
 
         my int $o = nqp::istype($offset,Callable)
           ?? $offset(self.elems)
@@ -675,7 +650,7 @@ my class Array { # declared in BOOTSTRAP
 
         # need to enforce type checking
         my $expected := self.of;
-        if self.of !=:= Mu {
+        unless self.of =:= Mu {
             my int $i = 0;
             my int $n = nqp::elems(splice-buffer);
             while $i < $n {
@@ -698,7 +673,7 @@ my class Array { # declared in BOOTSTRAP
         }
         else {
             my @ret := $expected =:= Mu ?? Array.new !! Array[$expected].new;
-            @ret = self[$o..($o + $s - 1)] if $s;
+            @ret = self[lazy $o..($o + $s - 1)] if $s;
             nqp::splice(nqp::getattr(self, List, '$!reified'),
                 splice-buffer, $o, $s);
             @ret;
@@ -708,7 +683,7 @@ my class Array { # declared in BOOTSTRAP
     # introspection
     method name() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Str !! $d.name()
+        nqp::isnull($d) ?? Nil !! $d.name()
     }
     method of() {
         my $d := $!descriptor;
@@ -720,25 +695,20 @@ my class Array { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Bool !! so $d.dynamic;
+        nqp::isnull($d) ?? Nil !! so $d.dynamic;
     }
     multi method perl(Array:D \SELF:) {
-        if not %*perlseen<TOP> { my %*perlseen = :TOP ; return SELF.perl }
-        if %*perlseen{self.WHICH} { %*perlseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
-        %*perlseen{self.WHICH} = 1;
-        my $result = '$' x nqp::iscont(SELF) ~
-        '[' ~ self.map({nqp::decont($_).perl}).join(', ') ~ ',' x (self.elems == 1 && nqp::istype(self[0],Iterable)) ~ ']';
-        $result = "(my \\Array_{self.WHERE} = $result)" if %*perlseen{self.WHICH}:delete == 2;
-        $result;
+        SELF.perlseen('Array', {
+             '$' x nqp::iscont(SELF)  # self is always deconted
+             ~ '['
+             ~ self.map({nqp::decont($_).perl}).join(', ')
+             ~ ',' x (self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable))
+             ~ ']'
+        })
     }
 
     multi method gist(Array:D:) {
-        if not %*gistseen<TOP> { my %*gistseen = :TOP ; return self.gist }
-        if %*gistseen{self.WHICH} { %*gistseen{self.WHICH} = 2; return "Array_{self.WHERE}" }
-        %*gistseen{self.WHICH} = 1;
-        my $result = '[' ~ self.map({.gist}).join(' ') ~ ']';
-        $result = "(\\Array_{self.WHERE} = $result)" if %*gistseen{self.WHICH}:delete == 2;
-        $result;
+        self.gistseen('Array', { '[' ~ self.map({.gist}).join(' ') ~ ']' } )
     }
 
     multi method WHICH(Array:D:) {
@@ -752,17 +722,41 @@ my class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        method new(**@values is raw) {
+        proto method new(|) { * }
+        multi method new(**@values is raw, :$shape) {
+            self!new-internal(@values, $shape);
+        }
+        multi method new(\values, :$shape) {
+            self!new-internal(values, $shape);
+        }
+
+        method !new-internal(\values, \shape) {
             my \arr = nqp::create(self);
-            nqp::bindattr(
-                arr,
-                Array,
-                '$!descriptor',
-                Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
-            );
-            arr.STORE(@values);
+            if shape.DEFINITE {
+                my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
+                allocate-shaped-storage(arr, list-shape);
+                arr does ShapedArray[Mu];
+                arr.^set_name('Array');
+                nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
+                die "Creating shaped array with initial values NYI" if values;
+                nqp::bindattr(
+                    arr,
+                    Array,
+                    '$!descriptor',
+                    Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
+                );
+            } else {
+                nqp::bindattr(
+                    arr,
+                    Array,
+                    '$!descriptor',
+                    Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
+                );
+                arr.STORE(values);
+            }
             arr
         }
+
         proto method BIND-POS(|) { * }
         multi method BIND-POS(Int $pos, TValue \bindval) is raw {
             my int $ipos = $pos;
@@ -796,14 +790,14 @@ my class Array { # declared in BOOTSTRAP
 # The [...] term creates an Array.
 proto circumfix:<[ ]>(|) { * }
 multi circumfix:<[ ]>() {
-    my \result = Array.CREATE;
-    nqp::bindattr(result, List, '$!reified', IterationBuffer.CREATE);
+    my \result = nqp::create(Array);
+    nqp::bindattr(result, List, '$!reified', nqp::create(IterationBuffer));
     result
 }
 multi circumfix:<[ ]>(Iterable:D \iterable) {
     if nqp::iscont(iterable) {
-        my \result = Array.CREATE;
-        my \buffer = IterationBuffer.CREATE;
+        my \result = nqp::create(Array);
+        my \buffer = nqp::create(IterationBuffer);
         buffer.push(iterable);
         nqp::bindattr(result, List, '$!reified', buffer);
         result
@@ -814,15 +808,15 @@ multi circumfix:<[ ]>(Iterable:D \iterable) {
 }
 multi circumfix:<[ ]>(|) {
     my \in      = nqp::p6argvmarray();
-    my \result  = Array.CREATE;
-    my \reified = IterationBuffer.CREATE;
+    my \result  = nqp::create(Array);
+    my \reified = nqp::create(IterationBuffer);
     nqp::bindattr(result, List, '$!reified', reified);
     while nqp::elems(in) {
         if nqp::istype(nqp::atpos(in, 0), Slip) {
             # We saw a Slip, which may expand to something lazy. Put all that
             # remains in the future, and let normal reification take care of
             # it.
-            my \todo := List::Reifier.CREATE;
+            my \todo := nqp::create(List::Reifier);
             nqp::bindattr(result, List, '$!todo', todo);
             nqp::bindattr(todo, List::Reifier, '$!reified', reified);
             nqp::bindattr(todo, List::Reifier, '$!future', in);

@@ -12,7 +12,7 @@ class Perl6::Metamodel::NativeHOW
     has int $!unsigned;
     has $!composed;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1) );
     method archetypes() {
         $archetypes
     }

@@ -317,9 +317,14 @@ constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
 
+proto sub pack(|) { * }
 multi sub pack(Str $template, *@items) {
+    pack($template.comb(/<[a..zA..Z]>[\d+|'*']?/), @items)
+}
+
+multi sub pack(@template, *@items) {
     my @bytes;
-    for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
+    for @template -> $unit {
         my $directive = substr($unit,0,1);
         my $amount    = substr($unit,1);
 

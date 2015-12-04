@@ -4501,6 +4501,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         else {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
+
+        # when importing, reuse known precedence overrides
+        if $prec && nqp::can($declarand,'prec') {
+            $prec := $prec ~ ', ' ~ $declarand.prec.pairs.map(sub ($p) { ':' ~ $p.key ~ '<' ~ $p.value ~ '>' }).join(', ');
+        }
+
         my @parts := nqp::split(' ', $opname);
 
 # The settings should only have 1 grammar, otherwise it will slow down

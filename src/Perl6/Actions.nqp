@@ -5824,7 +5824,7 @@ Compilation unit '$file' contained the following violations:
                         $/.CURSOR.typed_panic('X::Syntax::Adverb', what => $target.name);
                     }
                     else {
-                        $/.CURSOR.typed_panic('X::Syntax::Adverb')
+                        $/.CURSOR.typed_panic('X::Syntax::Adverb', what => ~$/[0]);
                     }
                 }
                 my $cpast := $<colonpair>.ast;

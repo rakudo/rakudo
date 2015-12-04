@@ -69,14 +69,20 @@ my sub MAIN_HELPER($retval = 0) {
             for $sub.signature.params -> $param {
                 my $argument;
                 if $param.named {
-                    my @names  = $param.named_names.reverse;
-                    $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
-                    $argument ~= "=<{$param.type.^name}>" unless $param.type === Bool;
-                    if $param.optional {
+                    if $param.slurpy {
+                        $argument  = '--<' ~ substr($param.name,1) ~ '>=...';
                         @optional-named.push("[$argument]");
                     }
                     else {
-                        @required-named.push($argument);
+                        my @names  = $param.named_names.reverse;
+                        $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
+                        $argument ~= "=<{$param.type.^name}>" unless $param.type === Bool;
+                        if $param.optional {
+                            @optional-named.push("[$argument]");
+                        }
+                        else {
+                            @required-named.push($argument);
+                        }
                     }
                 }
                 else {

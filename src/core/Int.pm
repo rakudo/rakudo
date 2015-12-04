@@ -258,10 +258,12 @@ multi sub infix:<%>(int $a, int $b) returns int {
 multi sub infix:<**>(Int:D \a, Int:D \b) {
     b >= 0 ?? nqp::pow_I(nqp::decont(a), nqp::decont(b), Num, Int)
            !! 1 / nqp::pow_I(nqp::decont(a), nqp::decont(-b), Num, Int)
+    or a == 0 ?? 0 !! fail X::Numeric::Overflow.new;
 }
 
 multi sub infix:<**>(int $a, int $b) returns int {
     nqp::pow_i($a, $b)
+        or $a == 0 ?? 0 !! fail X::Numeric::Overflow.new;
 }
 
 multi sub infix:<lcm>(Int:D \a, Int:D \b) returns Int {

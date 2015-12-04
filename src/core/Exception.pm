@@ -2018,6 +2018,14 @@ my class X::Numeric::DivideByZero is Exception {
     }
 }
 
+my class X::Numeric::Overflow is Exception {
+    method message() { "Numeric overflow" }
+}
+
+my class X::Numeric::Underflow is Exception {
+    method message() { "Numeric underflow" }
+}
+
 my class X::Numeric::Confused is Exception {
     has $.num;
     has $.base;

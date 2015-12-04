@@ -350,11 +350,14 @@ multi sub infix:<%>(num $a, num $b) {
     nqp::mod_n($a, $b)
 }
 
+# (If we get 0 here, must be underflow, since floating overflow provides Inf.)
 multi sub infix:<**>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+        or a == 0e0 || b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
 }
 multi sub infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
+        or $a == 0e0 || $b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
 }
 
 # Here we sort NaN in with string "NaN"

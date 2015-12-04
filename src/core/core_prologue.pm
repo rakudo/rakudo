@@ -6,6 +6,8 @@ my class WhateverCode { ... }
 my class Cursor { ... }
 my class Failure { ... }
 my class Rakudo::Internals { ... }
+my class X::Numeric::Overflow { ... }
+my class X::Numeric::Underflow { ... }
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }

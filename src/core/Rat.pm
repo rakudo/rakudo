@@ -213,6 +213,7 @@ multi sub infix:<**>(Rational \a, Int \b) {
             a.numerator ** -b,
             a,
             b
+    or a == 0.0 ?? 0.0 !! fail X::Numeric::Overflow.new;  # can this happen?
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {

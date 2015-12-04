@@ -163,11 +163,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     our %commatrap := nqp::hash(
         '&categorize', 1,
         '&classify', 1,
-        '&first', 1,
-        '&first-index', 1,
-        '&grep', 1,
-        '&grep-index', 1,
-        '&last-index', 1,
+        '&first', 2,
+        '&grep', 2,
         '&map', 1,
         '&reduce', 1,
         '&sort', 1,
@@ -1495,7 +1492,7 @@ Compilation unit '$file' contained the following violations:
         my $xblock := $<xblock>.ast;
         my $sm_exp := $xblock.shift;
         my $pblock := $xblock.shift;
-        check_smartmatch($/,$sm_exp);
+        check_smartmatch($<xblock>,$sm_exp);
 
         # Handle the smart-match.
         my $match_past := QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
@@ -1850,7 +1847,7 @@ Compilation unit '$file' contained the following violations:
 
     method statement_mod_cond:sym<when>($/) {
         my $pat := $<modifier_expr>.ast;
-        check_smartmatch($/,$pat);
+        check_smartmatch($<modifier_expr>,$pat);
         make QAST::Op.new( :op<if>,
             QAST::Op.new( :name('ACCEPTS'), :op('callmethod'),
                           $pat,
@@ -4037,7 +4034,7 @@ Compilation unit '$file' contained the following violations:
 
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
-        my $refinement := make_where_block($/, $<EXPR> ?? $<EXPR>.ast !!
+        my $refinement := make_where_block($<EXPR>, $<EXPR> ?? $<EXPR>.ast !!
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
@@ -4464,9 +4461,10 @@ Compilation unit '$file' contained the following violations:
                 :name('signature'),
                 QAST::Var.new( :name('$_'), :scope('lexical') )
             );
-            my $closure_signature := $<name><sigterm><fakesignature>.ast;
+            my $fakesig := $<name><sigterm><fakesignature>;
+            my $closure_signature := $fakesig.ast;
 
-            my $where := make_where_block($/, $closure_signature, $get_signature_past);
+            my $where := make_where_block($fakesig, $closure_signature, $get_signature_past);
             %*PARAM_INFO<post_constraints>.push($where);
         }
 
@@ -4626,7 +4624,7 @@ Compilation unit '$file' contained the following violations:
                 unless %*PARAM_INFO<post_constraints> {
                     %*PARAM_INFO<post_constraints> := [];
                 }
-                %*PARAM_INFO<post_constraints>.push(make_where_block($/, $<EXPR>.ast));
+                %*PARAM_INFO<post_constraints>.push(make_where_block($<EXPR>, $<EXPR>.ast));
             }
         }
         else {
@@ -4634,7 +4632,7 @@ Compilation unit '$file' contained the following violations:
                 $/.CURSOR.NYI('Signatures as constraints on variables');
             }
             else {
-                make make_where_block($/, $<EXPR>.ast);
+                make make_where_block($<EXPR>, $<EXPR>.ast);
             }
         }
     }
@@ -5170,6 +5168,7 @@ Compilation unit '$file' contained the following violations:
                             $/.CURSOR.missing("comma after block argument to " ~ nqp::substr(@name[0],1));
                         }
                     }
+                    check_smartmatch($<args>,$past[0]) if %commatrap{@name[0]} == 2;
                 }
                 else {
                     $past.unshift($*W.symbol_lookup(@name, $/));
@@ -5927,8 +5926,18 @@ Compilation unit '$file' contained the following violations:
     }
 
     sub check_smartmatch($/,$pat) {
-        if $pat.ann('is_S') {
-            $/.CURSOR.worry("Smartmatch with S/// can never succeed because the subsequent string match will fail");
+        if nqp::can($pat,'ann') && $pat.ann('is_S') {
+            $/.PRECURSOR.worry("Smartmatch with S/// can never succeed because the subsequent string match will fail");
+        }
+
+        if $pat ~~ QAST::WVal && istype($pat.returns, $*W.find_symbol(['Bool'])) && nqp::isconcrete($pat.value) {
+            my $p := ~$pat.compile_time_value;
+            if $p eq 'True' {
+                $/.PRECURSOR.worry("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")
+            }
+            elsif $p eq 'False' {
+                $/.PRECURSOR.worry("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")
+            }
         }
     }
 
@@ -5941,7 +5950,7 @@ Compilation unit '$file' contained the following violations:
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
-        check_smartmatch($/,$rhs);
+        check_smartmatch($/[1],$rhs);
 
         # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
         $sm_call := QAST::Op.new(

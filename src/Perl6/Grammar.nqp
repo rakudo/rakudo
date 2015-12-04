@@ -4118,8 +4118,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<eqv>    { <sym> >> <O('%chaining')> }
     token infix:sym<before> { <sym> >> <O('%chaining')> }
     token infix:sym<after>  { <sym> >> <O('%chaining')> }
-    token infix:sym<~~>   { <sym> <O('%chaining')> <!dumbsmart> }
-    token infix:sym<!~~>  { <sym> <O('%chaining')> <!dumbsmart> }
+    token infix:sym<~~>   { <sym> <O('%chaining')> }
+    token infix:sym<!~~>  { <sym> <O('%chaining')> }
     token infix:sym<(elem)> { <sym> <O('%chaining')> }
     token infix:sym«∈»      { <sym> <O('%chaining')> }
     token infix:sym«∉»      { <sym> <O('%chaining')> }
@@ -4142,14 +4142,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«≼»      { <sym> <O('%chaining')> }
     token infix:sym«(>+)»   { <sym> <O('%chaining')> }
     token infix:sym«≽»      { <sym> <O('%chaining')> }
-
-    token dumbsmart {
-        # should be
-        # 'Bool::'? True && <.longname>
-        # once && in regexes is implemented
-        | <?before \h* [ 'Bool::'? 'True' && <.longname> ] >  <.worry("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>
-        | <?before \h* [ 'Bool::'? 'False' && <.longname> ] > <.worry("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")>
-    }
 
     token infix:sym<&&>   { <sym>  <O('%tight_and, :iffy<1>, :pasttype<if>')> }
 

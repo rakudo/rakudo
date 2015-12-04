@@ -30,7 +30,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $json = from-json $meta.slurp;
             if $json<provides>{$name} -> $file {
                 my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
-                $found = $path if IO::Path.new-from-absolute-path($path).f;
+                $found = $path if $path.f;
             }
         }
         # deduce path to compilation unit from package name

@@ -67,7 +67,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           ?? True
           !! False;
         my @*PRECOMP-WITH = $*REPO.repo-chain>>.path-spec;
-        my @*PRECOMP-LOADING := @*MODULES;
+        my @*PRECOMP-LOADING = @*MODULES;
 
 RAKUDO_MODULE_DEBUG("Precomping with @*PRECOMP-WITH.join(',')")
   if $*RAKUDO_MODULE_DEBUG;

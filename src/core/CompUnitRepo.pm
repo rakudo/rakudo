@@ -70,7 +70,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             {
                 my @*MODULES := @MODULES;
                 if +@*MODULES == 0 and @*PRECOMP-LOADING !~~ Failure {
-                    @*MODULES := @*PRECOMP-LOADING;
+                    @*MODULES = @*PRECOMP-LOADING;
                 }
                 RAKUDO_MODULE_DEBUG("\@*MODULES = @*MODULES.join(', ')") if $*RAKUDO_MODULE_DEBUG;
                 for @*MODULES.list -> $m {

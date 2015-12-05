@@ -580,9 +580,27 @@ my class Supply {
         $c
     }
 
+    my class ConcQueue is repr('ConcBlockingQueue') { }
     method list(Supply:D:) {
-        # Use a Channel to handle any asynchrony.
-        self.Channel.list;
+        gather {
+            my Mu \queue = ConcQueue.CREATE;
+            my $exception;
+            self.tap(
+                -> \val { nqp::push(queue, val) },
+                done => -> { nqp::push(queue, ConcQueue) }, # type obj as sentinel
+                quit => -> \ex { $exception := ex; nqp::push(queue, ConcQueue) });
+            loop {
+                my \got = nqp::shift(queue);
+                if got =:= ConcQueue {
+                    $exception.DEFINITE
+                        ?? $exception.throw
+                        !! last
+                }
+                else {
+                    take got;
+                }
+            }
+        }
     }
 
     method Promise(Supply:D:) {

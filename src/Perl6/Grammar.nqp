@@ -2326,12 +2326,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    rule term:sym<earliest> { <sym><.kok> <xblock> }
-    rule term:sym<combine>{ <sym><.kok> <xblock> }
-    rule statement_control:sym<more>   { <sym><.kok> <xblock(1)> }
-    rule statement_control:sym<done>   { <sym><.kok> <xblock(1)> }
-    rule statement_control:sym<wait>   { <sym><.kok> <xblock(1)> }
-
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));

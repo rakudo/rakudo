@@ -3048,7 +3048,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<::=> {
-        <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
+        <sym> [ <.ws> <EXPR('e=')> <.NYI('"::="')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<.=> {
         <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
@@ -4208,7 +4208,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym<::=> {
-        <sym>  <O('%item_assignment')>
+        <sym>  <O('%item_assignment')> <.NYI('"::="')>
     }
 
     token infix:sym<.=> { <sym> <O('%dottyinfix')> }

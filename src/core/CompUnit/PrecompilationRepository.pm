@@ -256,7 +256,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
         my $compiler := nqp::getcomp('perl6');
-        $compiler.command_eval: $path, :ll-exception($lle), :target(Rakudo::Internals.PRECOMP-TARGET), :output($io),
+        $compiler.evalfiles: $path, :ll-exception($lle), :target(Rakudo::Internals.PRECOMP-TARGET), :output($io),
             :encoding('utf8'), :transcode('ascii iso-8859-1');
 
         unless $bc.e {

@@ -7,6 +7,7 @@ class Distro does Systemic {
     has Str $.release;
     has Bool $.is-win;
     has Str $.path-sep;
+    has $.cache-dir;
 
     submethod BUILD (
       :$name,
@@ -16,6 +17,7 @@ class Distro does Systemic {
       :$!path-sep,
       :$!signature  = Blob,
       :$!desc = Str,
+      :$!cache-dir,
     ) {
         $!name = $name.lc;    # lowercase
         $!name ~~ s:g/" "//;  # spaceless
@@ -42,6 +44,14 @@ sub INITIALIZE-A-DISTRO-NOW() {
 #?endif
     my Str $release := "unknown";
     my Str $auth    := "unknown";
+    my $cache-dir   := do if $name eq 'linux' {
+        with (%*ENV<XDG_CACHE_DIR>, "%*ENV<HOME>/.cache").first(*.?IO.d) {
+            given .IO.child('perl6') {
+                try .mkdir(0o755) unless .e;
+                $_ when .d;
+            }
+        }
+    }
 
     # darwin specific info
     if $name eq 'darwin' {
@@ -81,7 +91,7 @@ sub INITIALIZE-A-DISTRO-NOW() {
         }
     }
     my $desc := DateTime.now.Str;
-    Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
+    Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc, :$cache-dir);
 }
 
 # set up $*DISTRO

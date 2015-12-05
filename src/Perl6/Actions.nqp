@@ -2118,6 +2118,22 @@ Compilation unit '$file' contained the following violations:
                 $past := $*W.add_string_constant($*W.current_file);
             }
         }
+        elsif $name eq '%?RESOURCES' {
+            my $resources := nqp::getlexdyn('$*RESOURCES');
+            unless $resources {
+                my $Resources := $*W.find_symbol(['Distribution', 'Resources']);
+                $resources := $Resources.from-precomp();
+            }
+            if $resources {
+                $past := QAST::WVal.new( :value($resources) );
+                if nqp::isnull(nqp::getobjsc($resources)) {
+                    $*W.add_object($resources);
+                }
+            }
+            else {
+                $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
+            }
+        }
         elsif $name eq '&?BLOCK' || $name eq '&?ROUTINE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',

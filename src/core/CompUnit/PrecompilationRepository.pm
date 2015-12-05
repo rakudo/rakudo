@@ -36,6 +36,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             my $modified = $path.modified;
             if not $since or $modified > $since and self!check-dependencies($path, $modified) {
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
+                RAKUDO_MODULE_DEBUG("Loading precompiled $path") if $*RAKUDO_MODULE_DEBUG;
                 my $handle := CompUnit::Loader.load-precompilation-file($path);
                 nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                 CATCH {
@@ -68,18 +69,19 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           !! Empty;
         %*ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain>>.path-spec.join(',');
         %*ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES;
-
-RAKUDO_MODULE_DEBUG("Precomping with %*ENV<RAKUDO_PRECOMP_WITH>")
-  if $*RAKUDO_MODULE_DEBUG;
+        my $current_dist = %*ENV<RAKUDO_PRECOMP_DIST>;
+        %*ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
         my $proc = run($*EXECUTABLE, $lle, "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
         %*ENV<RAKUDO_PRECOMP_WITH>:delete;
         %*ENV<RAKUDO_PRECOMP_LOADING>:delete;
+        %*ENV<RAKUDO_PRECOMP_DIST> = $current_dist;
 
         my @result = $proc.out.lines;
         if not $proc.out.close or $proc.status {  # something wrong
             self.store.unlock;
             push @result, "Return status { $proc.status }\n";
+            RAKUDO_MODULE_DEBUG("Precomping $path failed: {@result}") if $*RAKUDO_MODULE_DEBUG;
             fail @result if @result;
         }
         else {

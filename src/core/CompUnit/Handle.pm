@@ -1,10 +1,11 @@
 class CompUnit::Handle {
-    has Mu $!module_ctx;
-    has Mu $!unit;
+    has Mu $.unit;
 
     submethod new(Mu \module_ctx) {
         my $self := nqp::create(self);
-        nqp::bindattr($self, CompUnit::Handle, '$!module_ctx', module_ctx);
+        if nqp::defined(module_ctx) {
+            nqp::bindattr($self, CompUnit::Handle, '$!unit', nqp::ctxlexpad(module_ctx));
+        }
         $self
     }
 
@@ -61,19 +62,16 @@ class CompUnit::Handle {
     # (the module's contributions to GLOBAL, for merging); a Stash
     # type object if none.
     method globalish-package() { # returns Stash {
-        if nqp::defined($!module_ctx) {
-            my $lexpad := nqp::ctxlexpad($!module_ctx);
-            nqp::isnull(nqp::atkey($lexpad, 'GLOBALish')) ?? Nil !! nqp::atkey($lexpad, 'GLOBALish')
+        if nqp::defined($!unit) {
+            nqp::isnull(nqp::atkey($!unit, 'GLOBALish')) ?? Nil !! nqp::atkey($!unit, 'GLOBALish')
         }
         else {
             Nil
         }
     }
 
-    method unit() {
-        nqp::defined($!unit)
-            ?? $!unit
-            !! nqp::defined($!module_ctx) ?? nqp::ctxlexpad($!module_ctx) !! {}
+    method clean() {
+        $!unit := Mu;
     }
 }
 

@@ -896,6 +896,7 @@ class Perl6::World is HLL::World {
             $DEBUG("Performing imports for '$name'") if $DEBUG;
             self.do_import($/, $module, $name, $arglist);
             self.import_EXPORTHOW($/, $module);
+            #$module.clean; # get rid of references to the vm context
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");

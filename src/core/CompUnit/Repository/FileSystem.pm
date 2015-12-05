@@ -51,6 +51,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         if $found {
             my $id = nqp::sha1($name ~ $*REPO.id);
             say "$id $found" if $*W and $*W.is_precompilation_mode;
+            my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $handle = (
                 $precomp.may-precomp and (
                     $precomp.load($id, :since($found.modified)) # already precompiled?
@@ -104,6 +105,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $base.f
          ?? { files => { $file => $base.path }, ver => Version.new('0') }
          !! ();
+    }
+
+    method resource($dist-id, $key) {
+        $.prefix.parent.child('resources').child($key);
     }
 
     method precomp-repository() returns CompUnit::PrecompilationRepository {

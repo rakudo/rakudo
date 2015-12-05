@@ -162,9 +162,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for %resources.kv -> $name, $file is copy {
             $file              = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id             = self!precomp-id($file);
+            my $id             = self!precomp-id($file) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.child($id);
-            $dist.files{$file} = $id;
+            $dist.files{$name} = $id;
             copy($file, $destination);
         }
 
@@ -247,6 +247,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     my $loader = $.prefix.child('sources').child(
                         $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
                     );
+                    my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
                     my $handle;
                     my $id = self!precomp-id($loader.Str);
                     if $precomp.may-precomp {
@@ -279,6 +280,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method load(IO::Path:D $file) returns CompUnit:D {
         return self.next-repo.load($file) if self.next-repo;
         nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
+    }
+
+    method resource($dist-id, $key) {
+        my $dist = from-json(self!dist-dir.child($dist-id).slurp);
+        self!resources-dir.child($dist<files>{$key})
     }
 
     method id() {

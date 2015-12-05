@@ -76,7 +76,7 @@ RAKUDO_MODULE_DEBUG("Precomping with @*PRECOMP-WITH.join(',')")
         my $*ADD-DEPENDENCY = -> $id, $src { @dependencies.push: [$id, $src] };
 
         my $compiler := nqp::getcomp('perl6');
-        $compiler.command_eval: $path, :ll-exception($lle), :target($*VM.precomp-target), :output($io),
+        $compiler.evalfiles: $path, :ll-exception($lle), :target($*VM.precomp-target), :output($io),
             :encoding('utf8'), :transcode('ascii iso-8859-1');
 
         my $compiler-id = $*PERL.compiler.id;

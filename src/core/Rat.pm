@@ -209,7 +209,7 @@ multi sub infix:<**>(Rational \a, Int \b) {
             a,
             b
         !! DIVIDE_NUMBERS
-            (a.numerator ** -b // fail (a.numerator.abs < a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
+            (a.denominator ** -b // fail (a.numerator.abs < a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
             a.numerator ** -b,
             a,
             b

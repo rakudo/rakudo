@@ -204,17 +204,17 @@ my class Promise {
     }
 
     method Supply(Promise:D:) {
-        my $s = Supplier.new;
-        self.then({
-            if self.status == Kept {
-                $s.emit(self.result);
-                $s.done();
-            }
-            else {
-                $s.quit(self.cause);
-            }
-        });
-        $s.Supply
+        Supply.on-demand: -> $s {
+            self.then({
+                if self.status == Kept {
+                    $s.emit(self.result);
+                    $s.done();
+                }
+                else {
+                    $s.quit(self.cause);
+                }
+            });
+        }
     }
 
     # experimental

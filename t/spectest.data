@@ -753,7 +753,6 @@ S16-io/tmpdir.t
 S16-io/words.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
-S17-channel/earliest.t
 S17-lowlevel/lock.t      # slow
 S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress

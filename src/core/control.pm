@@ -216,7 +216,7 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     $compiled();
 }
 multi sub EVAL(Cool $code, Str() :$lang! where 'nqp' | 'NQP', *%_) {
-    nqp::loadbytecode("nqp.{ $*VM.precomp-ext }");
+    once nqp::loadbytecode("nqp.{ $*VM.precomp-ext }");
     EVAL($code, :lang<nqp>, |%_);
 }
 multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {

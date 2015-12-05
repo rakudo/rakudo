@@ -498,12 +498,8 @@ my role X::Comp is Exception {
     has @.highexpect;
     multi method gist(::?CLASS:D: :$sorry = True, :$expect = True) {
         if $.is-compile-time {
-            my $is-win := $*DISTRO.is-win;
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
-            my ($red, $green, $yellow, $clear) = $color
-                ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
-                !! ("", "", "", "");
-            my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
+            my ($red,$clear,$green,$yellow,$eject) =
+              Rakudo::Internals.error-rcgye;
             my $r = $sorry ?? self.sorry_heading() !! "";
             $r ~= "$.message\nat $.filename():$.line";
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
@@ -526,8 +522,7 @@ my role X::Comp is Exception {
         }
     }
     method sorry_heading() {
-        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
-        my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
+        my ($red, $clear) = Rakudo::Internals.error-rcgye;
         "$red==={$clear}SORRY!$red===$clear Error while compiling $.filename\n"
     }
     method SET_FILE_LINE($file, $line) {
@@ -547,8 +542,7 @@ my class X::Comp::Group is Exception {
     multi method gist(::?CLASS:D:) {
         my $r = "";
         if $.panic || @.sorrows {
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
-            my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
+            my ($red, $clear) = Rakudo::Internals.rcgye;
             $r ~= "$red==={$clear}SORRY!$red===$clear\n";
             for @.sorrows {
                 $r ~= .gist(:!sorry, :!expect) ~ "\n";
@@ -1639,22 +1633,18 @@ my class X::Str::Numeric is Exception {
     has $.pos;
     has $.reason;
     method source-indicator {
-        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win;
-        my $goodpart = $color ?? "\e[32m" !! "";
-        my $ejection = $color ?? "\e[33m\c[EJECT SYMBOL]" !! "\c[EJECT SYMBOL]";
-        my $badpart  = $color ?? "\e[31m" !! "";
-        my $clearcol = $color ?? "\e[0m" !! "";
+        my ($red,$clear,$green,$,$eject) = Rakudo::Internals.error-rcgye;
         my sub escape($str) { $str.perl.substr(1).chop }
         join '', "in '",
-                $goodpart,
+                $green,
                 escape(substr($.source,0, $.pos)),
-                $ejection,
-                $badpart,
+                $eject,
+                $red,
                 escape(substr($.source,$.pos)),
-                $clearcol,
+                $clear,
                 "' (indicated by ",
-                $ejection,
-                $clearcol,
+                $eject,
+                $clear,
                 ")",
                 ;
     }

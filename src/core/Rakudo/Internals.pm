@@ -615,6 +615,12 @@ my class Rakudo::Internals {
             !! $max - from;
         chars < 0 ?? Rakudo::Internals.SUBSTR-CHARS-OOR(chars).fail !! 1;
     }
+
+    method error-rcgye() {  # red clear green yellow eject
+        %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win
+          ?? ("\e[31m", "\e[0m", "\e[32m", "\e[33m", "\x[23CF]")
+          !! ("", "", "", "", "<HERE>");
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

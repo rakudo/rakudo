@@ -24,13 +24,7 @@ my class Label {
     method leave(*@) { X::NYI.new(:feature("{self.^name}.leave()")).throw }
 
     multi method gist(Label:D:) {
-        my $is-win := $*DISTRO.is-win;
-        my $color = %*ENV<RAKUDO_ERROR_COLOR> // !$is-win;
-        my ($red, $green, $yellow, $clear) = $color
-            ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
-            !! ("", "", "", "");
-        my $eject = $is-win ?? "<HERE>" !! "\x[23CF]";
-
+        my ($red,$clear,$green,$yellow,$eject) = Rakudo::Internals::rcgye;
         "Label<$!name>(at $!file:$!line, '$green$!prematch$yellow$eject$red$!name$green$!postmatch$clear')"
     }
 

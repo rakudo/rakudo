@@ -542,7 +542,7 @@ my class X::Comp::Group is Exception {
     multi method gist(::?CLASS:D:) {
         my $r = "";
         if $.panic || @.sorrows {
-            my ($red, $clear) = Rakudo::Internals.rcgye;
+            my ($red, $clear) = Rakudo::Internals.error-rcgye;
             $r ~= "$red==={$clear}SORRY!$red===$clear\n";
             for @.sorrows {
                 $r ~= .gist(:!sorry, :!expect) ~ "\n";

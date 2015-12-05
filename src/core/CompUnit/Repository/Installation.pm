@@ -305,7 +305,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     sub provides-warning($is-win, $name) {
-        my ($red,$clear) = Rakudo::Internals.rcgye;
+        my ($red,$clear) = Rakudo::Internals.error-rcgye;
 
         note "$red==={$clear}WARNING!$red===$clear
 The distribution $name does not seem to have a \"provides\" section in its META.info file,

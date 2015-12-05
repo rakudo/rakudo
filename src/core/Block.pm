@@ -315,11 +315,7 @@ my class Block { # declared in BOOTSTRAP
     }
 
     multi method perl(Block:D:) {
-        my $perl = '-> ';
-        # lose colon prefix and parens
-        $perl ~= substr(self.signature().perl,2,*-1);
-        $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
-        $perl
+        "-> {self.signature.perl.substr(2,*-1)} \{ #`({self.WHICH}) ... \}"
     }
 
     method WHY() {

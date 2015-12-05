@@ -23,6 +23,11 @@ my class Channel {
     # Flag for if the channel is closed to senders.
     has $!closed;
 
+    # We use a Supplier to send async notifications that there may be a new
+    # message to read from the channel (there may be many things competing
+    # over them).
+    has $!async-notify;
+
     # Magical objects for various ways a channel can end.
     my class CHANNEL_CLOSE { }
     my class CHANNEL_FAIL  { has $.error }
@@ -31,11 +36,14 @@ my class Channel {
         $!queue := nqp::create(Queue);
         $!closed_promise = Promise.new;
         $!closed_promise_vow = $!closed_promise.vow;
+        $!async-notify = Supplier.new;
     }
 
     method send(Channel:D: \item) {
         X::Channel::SendOnClosed.new(channel => self).throw if $!closed;
         nqp::push($!queue, nqp::decont(item));
+        $!async-notify.emit(True);
+        Nil
     }
 
     method receive(Channel:D:) {
@@ -91,6 +99,18 @@ my class Channel {
         }
     }
 
+    method Supply(Channel:D:) {
+        supply {
+            whenever $!async-notify.unsanitized-supply {
+                my Mu \got = self!peek;
+                emit got unless nqp::eqaddr(got, Nil);
+            }
+            whenever $!closed_promise {
+                done;
+            }
+        }
+    }
+
     multi method list(Channel:D $self:) {
         gather {
             loop {
@@ -119,6 +139,7 @@ my class Channel {
         # if $!queue is otherwise empty, make sure that $!closed_promise
         # learns about the new value
         self!peek();
+        $!async-notify.emit(True);
         Nil
     }
 
@@ -126,6 +147,7 @@ my class Channel {
         $!closed = 1;
         $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
         nqp::push($!queue, CHANNEL_FAIL.new(:$error));
+        $!async-notify.emit(True);
         Nil
     }
 

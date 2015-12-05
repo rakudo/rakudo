@@ -24,7 +24,7 @@ my class Label {
     method leave(*@) { X::NYI.new(:feature("{self.^name}.leave()")).throw }
 
     multi method gist(Label:D:) {
-        my ($red,$clear,$green,$yellow,$eject) = Rakudo::Internals::rcgye;
+        my ($red,$clear,$green,$yellow,$eject) = Rakudo::Internals.rcgye;
         "Label<$!name>(at $!file:$!line, '$green$!prematch$yellow$eject$red$!name$green$!postmatch$clear')"
     }
 

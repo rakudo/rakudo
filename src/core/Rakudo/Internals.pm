@@ -573,6 +573,48 @@ my class Rakudo::Internals {
             $sprintfHandlerInitialized = 1;
         }
     }
+
+    method SUBSTR-START-OOR(\from,\max) {
+        X::OutOfRange.new(
+          :what('Start argument to substr'),
+          :got(from.gist),
+          :range("0.." ~ max),
+          :comment( nqp::istype(from, Callable) || -from > max
+            ?? ''
+            !! "use *{from} if you want to index relative to the end"),
+        );
+    }
+    method SUBSTR-CHARS-OOR(\chars) {
+        X::OutOfRange.new(
+          :what('Number of characters argument to substr'),
+          :got(chars.gist),
+          :range("0..Inf"),
+          :comment("use *{chars} if you want to index relative to the end"),
+        );
+    }
+    method SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
+        my Int $max := what.chars;
+        from = nqp::istype($start, Callable)
+          ?? $start($max)
+          !! nqp::istype($start, Range)
+            ?? $start.min + $start.excludes-min
+            !! $start.Int;
+        Rakudo::Internals.SUBSTR-START-OOR(from,$max).fail
+          if from < 0 || from > $max;
+
+        chars = nqp::istype($start, Range)
+          ?? $start == Inf
+            ?? $max - from
+            !! $start.max - $start.excludes-max - from + 1
+          !! $want.defined
+            ?? $want === Inf
+              ?? $max - from
+              !! nqp::istype($want, Callable)
+                ?? $want($max - from)
+                !! (nqp::istype($want,Int) ?? $want !! $want.Int)
+            !! $max - from;
+        chars < 0 ?? Rakudo::Internals.SUBSTR-CHARS-OOR(chars).fail !! 1;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

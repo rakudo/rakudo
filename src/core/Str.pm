@@ -2066,55 +2066,13 @@ sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join;
 }
 
-sub SUBSTR-START-OOR(\from,\max) {
-    X::OutOfRange.new(
-      :what('Start argument to substr'),
-      :got(from.gist),
-      :range("0.." ~ max),
-      :comment( nqp::istype(from, Callable) || -from > max
-        ?? ''
-        !! "use *{from} if you want to index relative to the end"),
-    );
-}
-sub SUBSTR-CHARS-OOR(\chars) {
-    X::OutOfRange.new(
-      :what('Number of characters argument to substr'),
-      :got(chars.gist),
-      :range("0..Inf"),
-      :comment("use *{chars} if you want to index relative to the end"),
-    );
-}
-sub SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
-    my Int $max := what.chars;
-    from = nqp::istype($start, Callable)
-      ?? $start($max)
-      !! nqp::istype($start, Range)
-        ?? $start.min + $start.excludes-min
-        !! $start.Int;
-    SUBSTR-START-OOR(from,$max).fail
-      if from < 0 || from > $max;
-
-    chars = nqp::istype($start, Range)
-      ?? $start == Inf
-        ?? $max - from
-        !! $start.max - $start.excludes-max - from + 1
-      !! $want.defined
-        ?? $want === Inf
-          ?? $max - from
-          !! nqp::istype($want, Callable)
-            ?? $want($max - from)
-            !! (nqp::istype($want,Int) ?? $want !! $want.Int)
-        !! $max - from;
-    chars < 0 ?? SUBSTR-CHARS-OOR(chars).fail !! 1;
-}
-
 proto sub substr(|) { * }
 multi sub substr(Str:D \what, Int:D \start) {
     my str $str  = nqp::unbox_s(what);
     my int $max  = nqp::chars($str);
     my int $from = nqp::unbox_i(start);
 
-    SUBSTR-START-OOR($from,$max).fail
+    Rakudo::Internals.SUBSTR-START-OOR($from,$max).fail
       if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
 
     nqp::p6box_s(nqp::substr($str,$from));
@@ -2124,7 +2082,7 @@ multi sub substr(Str:D \what, Callable:D \start) {
     my int $max  = nqp::chars($str);
     my int $from = nqp::unbox_i((start)(nqp::p6box_i($max)));
 
-    SUBSTR-START-OOR($from,$max).fail
+    Rakudo::Internals.SUBSTR-START-OOR($from,$max).fail
       if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
 
     nqp::p6box_s(nqp::substr($str,$from));
@@ -2134,11 +2092,11 @@ multi sub substr(Str:D \what, Int:D \start, Int:D \want) {
     my int $max   = nqp::chars($str);
     my int $from  = nqp::unbox_i(start);
 
-    SUBSTR-START-OOR($from,$max).fail
+    Rakudo::Internals.SUBSTR-START-OOR($from,$max).fail
      if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
 
     my int $chars = nqp::unbox_i(want);
-    SUBSTR-CHARS-OOR($chars).fail
+    Rakudo::Internals.SUBSTR-CHARS-OOR($chars).fail
       if nqp::islt_i($chars,0);
 
     nqp::p6box_s(nqp::substr($str,$from,$chars));
@@ -2146,7 +2104,7 @@ multi sub substr(Str:D \what, Int:D \start, Int:D \want) {
 multi sub substr(Str() $what, \start, $want?) {
 
     # should really be int, but \ then doesn't work for rw access
-    my $r := SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
+    my $r := Rakudo::Internals.SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
     $r.defined
       ?? nqp::p6box_s(nqp::substr(
            nqp::unbox_s($what),nqp::unbox_i($from),nqp::unbox_i($chars)
@@ -2158,7 +2116,7 @@ sub substr-rw(\what, \start, $want?) is rw {
     my $Str := nqp::istype(what,Str) ?? what !! what.Str;
 
     # should really be int, but \ then doesn't work for rw access
-    my $r := SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
+    my $r := Rakudo::Internals.SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
     $r.defined
       ?? Proxy.new(
            FETCH => sub ($) {

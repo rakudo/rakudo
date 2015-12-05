@@ -9,6 +9,10 @@ my class IO::Handle does IO {
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
 
+    my role Binary {
+        method get { callsame.?encode('utf8-c8') }
+    }
+
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
       :$rw, :$rx, :$ra,
@@ -19,7 +23,7 @@ my class IO::Handle does IO {
       :$exclusive is copy,
       :$bin,
       :$chomp = True,
-      :$enc   = 'utf8',
+      :$enc is copy = 'utf8',
       :$nl-in is copy = ["\x0A", "\r\n"],
       Str:D :$nl-out is copy = "\n",
       :$nl
@@ -27,6 +31,11 @@ my class IO::Handle does IO {
         if $nl.defined {
             DEPRECATED(what => ':nl parameter to open', ':nl-in and :nl-out');
             $nl-in = $nl-out = $nl;
+        }
+
+        if $bin {
+            $enc = 'utf8-c8';
+            self does Binary;
         }
 
         $mode //= do {
@@ -73,8 +82,7 @@ my class IO::Handle does IO {
 #?if !jvm
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
 #?endif
-            nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
+            nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc));
             return self;
         }
 
@@ -103,8 +111,7 @@ my class IO::Handle does IO {
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          unless $bin;
+        nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc));
         self;
     }
 

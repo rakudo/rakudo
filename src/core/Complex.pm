@@ -209,7 +209,7 @@ my class Complex is Cool does Numeric {
     multi method round(Complex:D:) {
         Complex.new( self.re.round, self.im.round );
     }
-    multi method round(Complex:D: Real(Real) $scale) {
+    multi method round(Complex:D: Real() $scale) {
         Complex.new( self.re.round($scale), self.im.round($scale) );
     }
 

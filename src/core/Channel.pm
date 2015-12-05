@@ -101,36 +101,27 @@ my class Channel {
 
     method Supply(Channel:D:) {
         supply {
-            whenever $!async-notify.unsanitized-supply {
-                my Mu \got = self!peek;
-                emit got unless nqp::eqaddr(got, Nil);
+            loop {
+                my Mu \got = self.poll;
+                last if nqp::eqaddr(got, Nil);
+                emit got;
             }
-            whenever $!closed_promise {
-                done;
+            self!peek();
+            done() if $!closed_promise;
+            whenever $!async-notify.unsanitized-supply.schedule-on($*SCHEDULER) {
+                my Mu \got = self.poll;
+                if nqp::eqaddr(got, Nil) {
+                    done() if $!closed_promise;
+                }
+                else {
+                    emit got;
+                }
             }
         }
     }
 
-    multi method list(Channel:D $self:) {
-        gather {
-            loop {
-                earliest $self {
-                  more * { take $_ }
-                  done * { last }
-                }
-            }
-        }
-    }
-    multi method list(Channel:D $self: :$wait! ) {
-        gather {
-            loop {
-                earliest $self {
-                  more * { take $_ }
-                  done * { last }
-                  wait $wait { Nil }
-                }
-            }
-        }
+    multi method list(Channel:D:) {
+        self.Supply.list
     }
 
     method close() {

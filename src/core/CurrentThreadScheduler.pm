@@ -19,8 +19,10 @@ my class CurrentThreadScheduler does Scheduler {
         &catch //=
           self.uncaught_handler // -> $ex { self.handle_uncaught($ex) };
 
-        code() for 1 .. $times;
-        CATCH { default { catch($_) } };
+        for 1 .. $times {
+            code();
+            CATCH { default { catch($_) } };
+        }
         class { method cancel() {} }
     }
 

@@ -86,10 +86,7 @@ RAKUDO_MODULE_DEBUG("Precomping with @*PRECOMP-WITH.join(',')")
                 spurt(($path ~ '.rev-deps').IO, "$id\n", :append);
             }
         }
-        my $depfile = ($io ~ '.deps').IO;
-        for @dependencies -> ($dependency-id, $dependency-src) {
-            $depfile.say: "$dependency-id $dependency-src";
-        }
+        spurt ($io ~ '.deps').IO, @dependencies.map({"$_[0] $_[1]\n"}).join('');
         self.store.unlock;
         True
     }

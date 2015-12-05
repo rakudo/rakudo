@@ -44,4 +44,6 @@ sub awaiterator(@promises) {
     }.new(@promises))
 }
 
+sub cas (\val,&code) { val = code(val) } # naive implementation of cas
+
 # vim: ft=perl6 expandtab sw=4

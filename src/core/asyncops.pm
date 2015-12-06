@@ -13,7 +13,7 @@ multi sub await(Any $x) {
 multi sub await(Iterable:D $i) { $i.eager.map({ await $_ }) }
 multi sub await(Promise:D $p)  { $p.result }
 multi sub await(Channel:D $c)  { $c.receive }
-multi sub await(Supply:D $s)   { $s.await }
+multi sub await(Supply:D $s)   { $s.wait }
 multi sub await(*@awaitables)  { @awaitables.eager.map({await $_}) }
 
 sub awaiterator(@promises) {

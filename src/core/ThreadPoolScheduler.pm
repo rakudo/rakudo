@@ -83,37 +83,49 @@ my class ThreadPoolScheduler does Scheduler {
         $!queue
     }
 
-    method cue(&code, :$at, :$in, :$every, :$times = 1, :&stop, :&catch ) {
+    method cue(&code, :$at, :$in, :$every, :$times = 1, :&stop is copy, :&catch ) {
         my class TimerCancellation is repr('AsyncTask') { }
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
-        die "Cannot specify :every and :times at the same time"
-          if $every.defined and $times > 1;
+        die "Cannot specify :every, :times and :stop at the same time"
+          if $every.defined and $times > 1 and &stop;
         my $delay = $at ?? $at - now !! $in // 0;
         self!initialize unless $!started_any;
 
         # need repeating
         if $every {
 
+            # generate a stopper if needed
+            if $times > 1 {
+                my $todo = $times;
+                &stop = sub { $todo ?? !$todo-- !! True }
+            }
+
             # we have a stopper
             if &stop {
+                my $handle;
                 my $cancellation;
-                my $handle := nqp::timer($!queue,
+                sub cancellation() {
+                    $cancellation //=
+                      Cancellation.new(async_handles => [$handle]);
+                }
+                $handle := nqp::timer($!queue,
                     &catch
                       ?? -> {
-                          code();
-                          $cancellation.cancel if stop();
+                          stop()
+                            ?? cancellation().cancel
+                            !! code();
                           CATCH { default { catch($_) } };
                       }
                       !! -> {
-                          code();
-                          $cancellation.cancel if stop();
+                          stop()
+                            ?? cancellation().cancel
+                            !! code();
                       },
                     ($delay * 1000).Int, ($every * 1000).Int,
                     TimerCancellation);
                 self!maybe_new_thread();
-                return
-                  $cancellation = Cancellation.new(async_handles => [$handle]);
+                return cancellation()
             }
 
             # no stopper

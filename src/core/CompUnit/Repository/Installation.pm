@@ -251,7 +251,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     my $handle;
                     my $id = self!precomp-id($loader.Str);
                     if $precomp.may-precomp {
-                        $*ADD-DEPENDENCY($id, $loader) if $*W and $*W.is_precompilation_mode;
+                        say "$id $loader" if $*W and $*W.is_precompilation_mode;
                         $handle = (
                             $precomp.load($id, :since($loader.modified)) # already precompiled?
                             or $precomp.precompile($loader, $id) and $precomp.load($id) # if not do it now

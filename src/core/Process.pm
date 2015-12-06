@@ -46,8 +46,8 @@ multi sub INITIALIZE_DYNAMIC('$*REPO') {
     my %ENV := %*ENV; # only look up environment once
 
     # starting up for creating precomp
-    if @*PRECOMP-WITH !~~ Failure {
-        @INC = @*PRECOMP-WITH; # assume well formed strings
+    if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
+        @INC = specs.split(','); # assume well formed strings
     }
 
     # normal start up

@@ -1281,7 +1281,7 @@ my class Supply {
         my int $bled;
         my int $done;
         my int $vent = $vent-at if $bleed;
-        my $ready = Supplier.new;
+        my $ready = Supplier::Preserving.new;
         sub start-process(\val) {
             my $p = Promise.start( $process, :$scheduler, val );
             $running = $running + 1;

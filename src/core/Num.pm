@@ -234,10 +234,12 @@ my class Num does Real { # declared in BOOTSTRAP
     }
 }
 
-my constant pi = 3.14159_26535_89793_238e0;
-my constant e  = 2.71828_18284_59045_235e0;
+my constant tau = 6.28318_53071_79586_476e0;
+my constant pi  = 3.14159_26535_89793_238e0;
+my constant e   = 2.71828_18284_59045_235e0;
 
 my constant π := pi;
+my constant τ := tau;
 #?if moar
 my constant 𝑒 := e;
 #?endif

@@ -1320,7 +1320,7 @@ my class Supply {
                         $bleed.emit(@buffer.shift) while @buffer;
                         $bleed.done;
                     }
-                    last;
+                    done;
                 }
             }
 

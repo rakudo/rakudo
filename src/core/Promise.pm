@@ -173,6 +173,9 @@ my class Promise {
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
     }
+    method at(Promise:U: $at, :$scheduler = $*SCHEDULER) {
+        self.in( $at - now, :$scheduler )
+    }
 
     method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1, 'anyof') }
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }

@@ -1326,33 +1326,33 @@ my class Supply {
 
             if $control {
                 whenever $control -> \val {
-                     my str $type;
-                     my str $value;
-                     Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
-  
-                     if $type eq 'limit' {
-                         $allowed = $allowed + $value - $limit;
-                         $limit   = $value;
-                         start-process(@buffer.shift)
-                           while $allowed > 0 && @buffer;
-                     }
-                     elsif $type eq 'bleed' && $bleed {
-                         my int $todo = $value min +@buffer;
-                         $bleed.emit(@buffer.shift) for ^$todo;
-                         $bled = $bled + $todo;
-                     }
-                     elsif $type eq 'status' && $status {
-                         emit-status($value);
-                     }
-                     elsif $type eq 'vent-at' && $bleed {
-                         $vent = $value;
-                         if $vent && +@buffer > $vent {
-                             $bleed.emit(@buffer.shift)
-                               until !@buffer || +@buffer == $vent;
-                         }
-                     }
-                 }
-             }
+                    my str $type;
+                    my str $value;
+                    Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
+ 
+                    if $type eq 'limit' {
+                        $allowed = $allowed + $value - $limit;
+                        $limit   = $value;
+                        start-process(@buffer.shift)
+                          while $allowed > 0 && @buffer;
+                    }
+                    elsif $type eq 'bleed' && $bleed {
+                        my int $todo = $value min +@buffer;
+                        $bleed.emit(@buffer.shift) for ^$todo;
+                        $bled = $bled + $todo;
+                    }
+                    elsif $type eq 'status' && $status {
+                        emit-status($value);
+                    }
+                    elsif $type eq 'vent-at' && $bleed {
+                        $vent = $value;
+                        if $vent && +@buffer > $vent {
+                            $bleed.emit(@buffer.shift)
+                              until !@buffer || +@buffer == $vent;
+                        }
+                    }
+                }
+            }
         }
     }
 }

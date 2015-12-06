@@ -743,6 +743,8 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::Pragma::CannotWhat', :what<use>, :$name);
             }
             if self.is_precompilation_mode {
+                my $automatic_precomp := nqp::ifnull(nqp::atkey(nqp::getenvhash, 'RAKUDO_PRECOMP_WITH'), 0);
+                nqp::exit(0) if $automatic_precomp;
                 self.throw($/, 'X::Pragma::CannotPrecomp');
             }
             # no further action needed

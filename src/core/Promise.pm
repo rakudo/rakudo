@@ -138,7 +138,7 @@ my class Promise {
 
     method then(Promise:D: &code) {
         nqp::lock($!lock);
-        if $!status == Broken | Kept {
+        if $!status == Broken || $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
             Promise.start( { code(self) }, :$!scheduler);

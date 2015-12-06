@@ -52,6 +52,9 @@ my class Thread {
     multi method Str(Thread:D:) {
         "Thread<$.id>($.name)"
     }
+    multi method gist(Thread:D:) {
+        "Thread #$.id" ~ ($!name ne '<anon>' ?? " ($!name)" !! '')
+    }
 
     method yield(Thread:U:) {
         nqp::threadyield();

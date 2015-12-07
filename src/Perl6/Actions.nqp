@@ -6149,6 +6149,34 @@ Compilation unit '$file' contained the following violations:
         my $type := nqp::substr($thunky,0,1);
         while $i < $e {
             my $ast := @clause[$i].ast;
+
+            if $type eq 'T' || $type eq 'X' || $type eq 'B' {
+                my $argast := $ast;
+                $argast := $argast[0] if nqp::istype($argast,QAST::Stmts);
+                if nqp::istype($argast,QAST::Op) && $argast.op eq 'call' && $argast.name eq '&infix:<,>' {
+#                    note("thunky $type bingo:\n" ~ $argast.dump);
+                    my int $ae := nqp::elems($argast);
+                    my int $a := 0;
+                    while $a < $ae {
+                        my $elem := $argast[$a];
+                        if $type eq 'T' {  # thunk
+                            $elem := block_closure(make_thunk_ref($elem, $/));
+                        }
+                        elsif $type eq 'B' {  # thunk and topicalize to a block
+                            unless $elem.ann('bare_block') || $elem.ann('past_block') {
+                                $elem := block_closure(make_topic_block_ref(@clause[$i], $elem, migrate_stmt_id => $*STATEMENT_ID));
+                            }
+                        }
+                        elsif $type eq 'X' {  # thunk maybe (for xx)
+                            unless $elem.has_compile_time_value {
+                                $elem := block_closure(make_thunk_ref($elem, $/));
+                            }
+                        }
+                        $argast[$a] := $elem;
+                        ++$a;
+                    }
+                }
+            }
             if $type eq '.' || $type eq 'T' || $type eq 'X' || $type eq 'B' {
                 $past.push($ast);
             }

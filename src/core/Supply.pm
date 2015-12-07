@@ -1294,15 +1294,6 @@ my class Supply {
                :$emitted, :$id,   :$limit, :$running } );
         }
         supply {
-            whenever self -> \val {
-                $allowed > 0
-                  ?? start-process(val)
-                  !! $vent && $vent == +@buffer
-                    ?? $bleed.emit(val)
-                    !! @buffer.push(val);
-                LAST { $done = 1 }
-            }
-
             whenever $ready.Supply -> \val { # when a process is ready
                 $running = $running - 1;
                 $allowed = $allowed + 1;
@@ -1352,6 +1343,15 @@ my class Supply {
                         }
                     }
                 }
+            }
+
+            whenever self -> \val {
+                $allowed > 0
+                  ?? start-process(val)
+                  !! $vent && $vent == +@buffer
+                    ?? $bleed.emit(val)
+                    !! @buffer.push(val);
+                LAST { $done = 1 }
             }
         }
     }

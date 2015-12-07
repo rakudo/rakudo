@@ -12,6 +12,7 @@ my class Perl5ModuleLoaderStub {
         }
 
         # Inline::Perl5 has overwritten this module loader at this point
+        @*MODULES.pop; # $module_name is already on the load stack
         return CompUnitRepo.load_module($module_name, %opts, @GLOBALish, :$line, :$file);
     }
 }

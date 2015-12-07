@@ -6166,7 +6166,6 @@ Compilation unit '$file' contained the following violations:
                     $past.push($ast);
                 }
                 else {
-                    # Not a simple constant expression, so must thunk left hand side.
                     $past.push(block_closure(make_thunk_ref($ast, $/)));
                 }
             }
@@ -6351,11 +6350,11 @@ Compilation unit '$file' contained the following violations:
             my $metasym  := ~$<infix_prefix_meta_operator><sym>;
             my $base     := $<infix_prefix_meta_operator><infixish>;
             my $basesym  := ~$base<OPER>;
-            my $t        := $base<OPER><O><thunky>;
             my $basepast := $base.ast
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                                :scope<lexical>);
+            my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
@@ -6366,6 +6365,7 @@ Compilation unit '$file' contained the following violations:
             $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
+            $metapast.annotate('thunky', $t) if $t;
             $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
             $ast.annotate('thunky', $t) if $t;
         }

@@ -25,9 +25,9 @@ BEGIN {
     my Mu $list_infix       := nqp::hash('prec', 'f=', 'assoc', 'list');
     my Mu $list_prefix      := nqp::hash('prec', 'e=');
     my Mu $loose_and        := nqp::hash('prec', 'd=', 'assoc', 'list', 'thunky', '.t');
-    my Mu $loose_andthen    := nqp::hash('prec', 'd=', 'assoc', 'list', 'thunky', '.T');
+    my Mu $loose_andthen    := nqp::hash('prec', 'd=', 'assoc', 'list', 'thunky', '.b');
     my Mu $loose_or         := nqp::hash('prec', 'c=', 'assoc', 'list', 'thunky', '.t');
-    my Mu $loose_orelse     := nqp::hash('prec', 'c=', 'assoc', 'list', 'thunky', '.T');
+    my Mu $loose_orelse     := nqp::hash('prec', 'c=', 'assoc', 'list', 'thunky', '.b');
 
     trait_mod:<is>(&postfix:<i>, :prec($methodcall));
     trait_mod:<is>(&postcircumfix:<[ ]>, :prec($methodcall));

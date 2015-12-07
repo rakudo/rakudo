@@ -3666,9 +3666,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<f=>, :assoc<list>, :dba<list infix>',  '%list_infix');
         Perl6::Grammar.O(':prec<e=>, :assoc<right>, :dba<list prefix>', '%list_prefix');
         Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>, :thunky<.t>',  '%loose_and');
-        Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>, :thunky<.T>',  '%loose_andthen');
+        Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>, :thunky<.b>',  '%loose_andthen');
         Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>, :thunky<.t>',  '%loose_or');
-        Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>, :thunky<.T>',  '%loose_orelse');
+        Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>, :thunky<.b>',  '%loose_orelse');
         Perl6::Grammar.O(':prec<b=>, :assoc<list>, :dba<sequencer>',  '%sequencer');
     }
 

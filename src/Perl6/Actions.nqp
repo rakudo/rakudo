@@ -886,11 +886,11 @@ Compilation unit '$file' contained the following violations:
             $past := $<EXPR>.ast;
             if $mc {
                 if ~$mc<sym> eq 'with' {
-                    make thunkity_thunk($/,'.T',QAST::Op.new( :op('call'), :name('&infix:<andthen>')),[$mc,$<EXPR>]);
+                    make thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<andthen>')),[$mc,$<EXPR>]);
                     return;
                 }
                 elsif ~$mc<sym> eq 'without' {
-                    make thunkity_thunk($/,'.T',QAST::Op.new( :op('call'), :name('&infix:<notandthen>')),[$mc,$<EXPR>]);
+                    make thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<notandthen>')),[$mc,$<EXPR>]);
                     return;
                 }
                 my $mc_ast := $mc.ast;
@@ -6149,13 +6149,13 @@ Compilation unit '$file' contained the following violations:
         my $type := nqp::substr($thunky,0,1);
         while $i < $e {
             my $ast := @clause[$i].ast;
-            if $type eq '.' {
+            if $type eq '.' || $type eq 'T' || $type eq 'X' || $type eq 'B' {
                 $past.push($ast);
             }
             elsif $type eq 't' {  # thunk
                 $past.push(block_closure(make_thunk_ref($ast, $/)));
             }
-            elsif $type eq 'T' {  # thunk and topicalize
+            elsif $type eq 'b' {  # thunk and topicalize to a block
                 unless $ast.ann('bare_block') || $ast.ann('past_block') {
                     $ast := block_closure(make_topic_block_ref(@clause[$i], $ast, migrate_stmt_id => $*STATEMENT_ID));
                 }
@@ -6358,8 +6358,8 @@ Compilation unit '$file' contained the following violations:
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
-            elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; $t := ''; }  # disable transitive thunking for now
-            elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := ''; }
+            elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; $t := nqp::uc($t); }  # disable transitive thunking for now
+            elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := nqp::uc($t); }
 
             my $metapast := QAST::Op.new( :op<call>, :name($helper), $basepast );
             $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),

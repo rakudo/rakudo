@@ -3647,24 +3647,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<v=>, :assoc<left>, :dba<dotty infix>, :nextterm<dottyopish>, :sub<z=>, :fiddly<1>', '%dottyinfix');
         Perl6::Grammar.O(':prec<u=>, :assoc<left>, :dba<multiplicative>',  '%multiplicative');
         Perl6::Grammar.O(':prec<t=>, :assoc<left>, :dba<additive>',  '%additive');
-        Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication>',  '%replication');
+        Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication>', '%replication');
+        Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication> :thunk<x.:>', '%replication_xx');
         Perl6::Grammar.O(':prec<r=>, :assoc<left>, :dba<concatenation>',  '%concatenation');
         Perl6::Grammar.O(':prec<q=>, :assoc<list>, :dba<junctive and>', '%junctive_and');
         Perl6::Grammar.O(':prec<p=>, :assoc<list>, :dba<junctive or>', '%junctive_or');
         Perl6::Grammar.O(':prec<o=>, :assoc<unary>, :dba<named unary>', '%named_unary');
         Perl6::Grammar.O(':prec<n=>, :assoc<non>, :dba<structural infix>, :diffy<1>',  '%structural');
         Perl6::Grammar.O(':prec<m=>, :assoc<left>, :dba<chaining>, :iffy<1>, :diffy<1> :pasttype<chain>',  '%chaining');
-        Perl6::Grammar.O(':prec<l=>, :assoc<left>, :dba<tight and>',  '%tight_and');
-        Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>',  '%tight_or');
-        Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>', '%conditional');
+        Perl6::Grammar.O(':prec<l=>, :assoc<left>, :dba<tight and>, :thunk<.t>',  '%tight_and');
+        Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or> :thunk<.t>',  '%tight_or');
+        Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>, :thunk<.tt>', '%conditional');
+        Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>, :thunk<tt>', '%conditional_ff');
         Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>', '%item_assignment');
         Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<list assignment>, :sub<e=>, :fiddly<1>', '%list_assignment');
         Perl6::Grammar.O(':prec<h=>, :assoc<unary>, :dba<loose unary>', '%loose_unary');
         Perl6::Grammar.O(':prec<g=>, :assoc<list>, :dba<comma>, :nextterm<nulltermish>, :fiddly<1>',  '%comma');
         Perl6::Grammar.O(':prec<f=>, :assoc<list>, :dba<list infix>',  '%list_infix');
         Perl6::Grammar.O(':prec<e=>, :assoc<right>, :dba<list prefix>', '%list_prefix');
-        Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>',  '%loose_and');
-        Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>',  '%loose_or');
+        Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>, :thunk<.t>',  '%loose_and');
+        Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>, :thunk<.T>',  '%loose_andthen');
+        Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>, :thunk<.t>',  '%loose_or');
+        Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>, :thunk<.T>',  '%loose_orelse');
         Perl6::Grammar.O(':prec<b=>, :assoc<list>, :dba<sequencer>',  '%sequencer');
     }
 
@@ -4062,7 +4066,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<?^>   { <sym>  <O('%additive, :iffy<1>')> }
 
     token infix:sym<x>    { <sym> >> <O('%replication')> }
-    token infix:sym<xx>    { <sym> >> <O('%replication')> }
+    token infix:sym<xx>    { <sym> >> <O('%replication_xx')> }
 
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
     token infix:sym<.>    { <sym> <.ws>
@@ -4260,15 +4264,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<?>    { <sym> {} <![?]> <?before <-[;]>*?':'> <.obs('? and : for the ternary conditional operator', '?? and !!')> <O('%conditional')> }
 
-    token infix:sym<ff> { <sym> <O('%conditional')> }
-    token infix:sym<^ff> { <sym> <O('%conditional')> }
-    token infix:sym<ff^> { <sym> <O('%conditional')> }
-    token infix:sym<^ff^> { <sym> <O('%conditional')> }
+    token infix:sym<ff> { <sym> <O('%conditional_ff')> }
+    token infix:sym<^ff> { <sym> <O('%conditional_ff')> }
+    token infix:sym<ff^> { <sym> <O('%conditional_ff')> }
+    token infix:sym<^ff^> { <sym> <O('%conditional_ff')> }
 
-    token infix:sym<fff> { <sym> <O('%conditional')> }
-    token infix:sym<^fff> { <sym> <O('%conditional')> }
-    token infix:sym<fff^> { <sym> <O('%conditional')> }
-    token infix:sym<^fff^> { <sym> <O('%conditional')> }
+    token infix:sym<fff> { <sym> <O('%conditional_ff')> }
+    token infix:sym<^fff> { <sym> <O('%conditional_ff')> }
+    token infix:sym<fff^> { <sym> <O('%conditional_ff')> }
+    token infix:sym<^fff^> { <sym> <O('%conditional_ff')> }
 
     token infix:sym<=> {
         <sym>
@@ -4280,12 +4284,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym<and>  { <sym> >> <O('%loose_and, :iffy<1>, :pasttype<if>')> }
-    token infix:sym<andthen> { <sym> >> <O('%loose_and, :assoc<list>')> }
-    token infix:sym<notandthen> { <sym> >> <O('%loose_and, :assoc<list>')> }
+    token infix:sym<andthen> { <sym> >> <O('%loose_andthen, :assoc<list>')> }
+    token infix:sym<notandthen> { <sym> >> <O('%loose_andthen, :assoc<list>')> }
 
     token infix:sym<or>   { <sym> >> <O('%loose_or, :iffy<1>, :assoc<left>, :pasttype<unless>')> }
     token infix:sym<xor>  { <sym> >> <O('%loose_or, :iffy<1>, :pasttype<xor>')> }
-    token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<list>, :pasttype<defor>')> }
+    token infix:sym<orelse> { <sym> >> <O('%loose_orelse, :assoc<list>, :pasttype<defor>')> }
 
     token infix:sym«<==»  { <sym> <O('%sequencer')> }
     token infix:sym«==>»  { <sym> <O('%sequencer')> }

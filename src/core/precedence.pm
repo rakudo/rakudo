@@ -10,21 +10,25 @@ BEGIN {
     my Mu $iffy             := nqp::hash('prec', 'u=', 'assoc', 'left', 'iffy', 1);
     my Mu $additive         := nqp::hash('prec', 't=', 'assoc', 'left');
     my Mu $replication      := nqp::hash('prec', 's=', 'assoc', 'left');
+    my Mu $replication_xx   := nqp::hash('prec', 's=', 'assoc', 'left', 'thunk', 't.');
     my Mu $concatenation    := nqp::hash('prec', 'r=', 'assoc', 'list');
     my Mu $junctive_and     := nqp::hash('prec', 'q=', 'assoc', 'list');
     my Mu $junctive_or      := nqp::hash('prec', 'p=', 'assoc', 'list');
     my Mu $structural       := nqp::hash('prec', 'n=', 'assoc', 'non');
     my Mu $chaining         := nqp::hash('prec', 'm=', 'assoc', 'chain', 'iffy', 1, 'pasttype', 'chain');
-    my Mu $tight_and        := nqp::hash('prec', 'l=', 'assoc', 'list');
-    my Mu $tight_or         := nqp::hash('prec', 'k=', 'assoc', 'list');
-    my Mu $conditional      := nqp::hash('prec', 'j=', 'assoc', 'right', 'iffy', 1);
+    my Mu $tight_and        := nqp::hash('prec', 'l=', 'assoc', 'list', 'thunk', '.t');
+    my Mu $tight_or         := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunk', '.t');
+    my Mu $conditional      := nqp::hash('prec', 'j=', 'assoc', 'right', 'iffy', 1, 'thunk', '.tt');
+#   my Mu $conditional_ff   := nqp::hash('prec', 'j=', 'assoc', 'right', 'iffy', 1, 'thunk', '11');
     my Mu $item_assignment  := nqp::hash('prec', 'i=', 'assoc', 'right');
     my Mu $loose_unary      := nqp::hash('prec', 'h=');
     my Mu $comma            := nqp::hash('prec', 'g=', 'assoc', 'list');
     my Mu $list_infix       := nqp::hash('prec', 'f=', 'assoc', 'list');
     my Mu $list_prefix      := nqp::hash('prec', 'e=');
-    my Mu $loose_and        := nqp::hash('prec', 'd=', 'assoc', 'list');
-    my Mu $loose_or         := nqp::hash('prec', 'c=', 'assoc', 'list');
+    my Mu $loose_and        := nqp::hash('prec', 'd=', 'assoc', 'list', 'thunk', '.t');
+    my Mu $loose_andthen    := nqp::hash('prec', 'd=', 'assoc', 'list', 'thunk', '.T');
+    my Mu $loose_or         := nqp::hash('prec', 'c=', 'assoc', 'list', 'thunk', '.t');
+    my Mu $loose_orelse     := nqp::hash('prec', 'c=', 'assoc', 'list', 'thunk', '.T');
 
     trait_mod:<is>(&postfix:<i>, :prec($methodcall));
     trait_mod:<is>(&postcircumfix:<[ ]>, :prec($methodcall));
@@ -73,7 +77,7 @@ BEGIN {
     trait_mod:<is>(&infix:<?^>, :prec($additive));
 
     trait_mod:<is>(&infix:<x>,  :prec($replication));
-    trait_mod:<is>(&infix:<xx>, :prec($replication));
+    trait_mod:<is>(&infix:<xx>, :prec($replication_xx));
 
     trait_mod:<is>(&infix:<~>, :prec($concatenation));
 
@@ -168,8 +172,8 @@ BEGIN {
     trait_mod:<is>(&infix:<min>, :prec($tight_or));
     trait_mod:<is>(&infix:<max>, :prec($tight_or));
 
-    #trait_mod:<is>(&infix:<ff>,  :prec($conditional));
-    #trait_mod:<is>(&infix:<fff>, :prec($conditional));
+    #trait_mod:<is>(&infix:<ff>,  :prec($conditional_ff));
+    #trait_mod:<is>(&infix:<fff>, :prec($conditional_ff));
 
     trait_mod:<is>(&infix:<< => >>, :prec($item_assignment));
 
@@ -188,12 +192,12 @@ BEGIN {
     #trait_mod:<is>(&infix:<::=>, :prec($list_prefix));
 
     trait_mod:<is>(&infix:<and>,     :prec($loose_and));
-    trait_mod:<is>(&infix:<andthen>, :prec($loose_and));
-    trait_mod:<is>(&infix:<notandthen>, :prec($loose_and));
+    trait_mod:<is>(&infix:<andthen>, :prec($loose_andthen));
+    trait_mod:<is>(&infix:<notandthen>, :prec($loose_andthen));
 
-    trait_mod:<is>(&infix:<or>,     :prec($loose_or));
-    trait_mod:<is>(&infix:<xor>,    :prec($loose_or));
-    trait_mod:<is>(&infix:<orelse>, :prec($loose_or));
+    trait_mod:<is>(&infix:<or>,     :prec($loose_orelse));
+    trait_mod:<is>(&infix:<xor>,    :prec($loose_orelse));
+    trait_mod:<is>(&infix:<orelse>, :prec($loose_orelse));
 }
 
 # vim: ft=perl6 expandtab sw=4

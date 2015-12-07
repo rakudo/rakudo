@@ -886,11 +886,11 @@ Compilation unit '$file' contained the following violations:
             $past := $<EXPR>.ast;
             if $mc {
                 if ~$mc<sym> eq 'with' {
-                    make tailthunk_op('&infix:<andthen>',[$mc,$<EXPR>]);
+                    make thunkity_thunk($/,'andthen','.T',[$mc,$<EXPR>]);
                     return;
                 }
                 elsif ~$mc<sym> eq 'without' {
-                    make tailthunk_op('&infix:<notandthen>',[$mc,$<EXPR>]);
+                    make thunkity_thunk($/,'notandthen','.T',[$mc,$<EXPR>]);
                     return;
                 }
                 my $mc_ast := $mc.ast;
@@ -5686,6 +5686,8 @@ Compilation unit '$file' contained the following violations:
         unless $key { return 0; }
         my $past := $/.ast // $<OPER>.ast;
         my $sym := ~$<infix><sym>;
+        my $O := $<infix><O>;
+        my $thunk := $O<thunk>;
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
@@ -5712,16 +5714,9 @@ Compilation unit '$file' contained the following violations:
             make mixin_op($/, $sym);
             return 1;
         }
-        elsif !$past && $sym eq 'xx' {
-            make xx_op($/, $/[0].ast, $/[1].ast);
-            return 1;
-        }
-        elsif !$past && $sym eq 'andthen' {
-            make tailthunk_op('&infix:<andthen>',$/.list);
-            return 1;
-        }
-        elsif !$past && $sym eq 'orelse' {
-            make tailthunk_op('&infix:<orelse>',$/.list);
+        elsif !$past && $thunk && ($sym eq 'xx' || $sym eq 'andthen' || $sym eq 'orelse') {
+            $past := thunkity_thunk($/, $sym, $thunk, $/.list);
+            make $past;
             return 1;
         }
         unless $past {
@@ -6156,22 +6151,49 @@ Compilation unit '$file' contained the following violations:
         }
     }
 
-    sub tailthunk_op($name,@clause) {
+    sub thunkity_thunk($/,$sym,$thunk,@clause) {
         my $past := QAST::Op.new(
             :op('call'),
-            :name($name),
-            # don't need to thunk the first operand
-            @clause[0].ast,
+            :name("&infix" ~ $*W.canonicalize_pair('', $sym)),
         );
-        my int $i := 1;
+        my int $i := 0;
         my int $e := +@clause;
+        my int $te := nqp::chars($thunk);
+        my int $didthunk := 0;
+        my $type := nqp::substr($thunk,0,1);
         while $i < $e {
             my $ast := @clause[$i].ast;
-            unless $ast.ann('bare_block') || $ast.ann('past_block') {
-                $ast := block_closure(make_topic_block_ref(@clause[$i], $ast, migrate_stmt_id => $*STATEMENT_ID));
+            if $type eq '.' {
+                $past.push($ast);
             }
-            $past.push($ast);
-            $i++;
+            elsif $type eq 't' {  # thunk
+                $past.push(block_closure(make_thunk_ref($ast, $/)));
+                $didthunk := 1;
+            }
+            elsif $type eq 'T' {  # thunk and topicalize
+                unless $ast.ann('bare_block') || $ast.ann('past_block') {
+                    $ast := block_closure(make_topic_block_ref(@clause[$i], $ast, migrate_stmt_id => $*STATEMENT_ID));
+                }
+                $past.push($ast);
+                $didthunk := 1;
+            }
+            elsif $type eq 'x' {  # thunk maybe (for xx)
+                if $ast.has_compile_time_value {
+                    $past.push($ast);
+                }
+                else {
+                    # Not a simple constant expression, so must thunk left hand side.
+                    $past.push(block_closure(make_thunk_ref($ast, $/)));
+                    $didthunk := 1;
+                }
+            }
+            else {
+                $/.CURSOR.panic("Unknown thunk spec '$type'");
+            }
+            $type := nqp::substr($thunk,$i,1) if ++$i < $te;  # repeat last thunk spec as necessary
+        }
+        if $type eq ':' && $didthunk {  # add a :thunked flag, maybe
+            $past.push(QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ), :named('thunked') ));
         }
         $past;
     }

@@ -960,10 +960,10 @@ role XX-Whatever does Iterator {
 proto sub infix:<xx>(Mu $, $, *%) { * }
 multi sub infix:<xx>()      { fail "No zero-arg meaning for infix:<xx>" }
 multi sub infix:<xx>(Mu \x) { x }
-multi sub infix:<xx>(Mu \x, Num $n, :$thunked!) {
-    infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int, :$thunked);
+multi sub infix:<xx>(&x, Num $n) {
+    infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
-multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
+multi sub infix:<xx>(&x, Whatever) {
     Seq.new(class :: does XX-Whatever {
         has @!slipped;
         method pull-one() {
@@ -981,14 +981,14 @@ multi sub infix:<xx>(Mu \x, Whatever, :$thunked!) {
                 }
             }
         }
-    }.new(x))
+    }.new(&x))
 }
-multi sub infix:<xx>(Mu \x, Int() $n, :$thunked!) {
+multi sub infix:<xx>(&x, Int() $n) {
     my int $todo = $n;
     my Mu $pulled;
     my Mu $list := nqp::list();
     while $todo > 0 {
-        $pulled := x.();
+        $pulled := &x.();
         if nqp::istype($pulled,Slip) {
             nqp::push($list, $_) for $pulled;
         }

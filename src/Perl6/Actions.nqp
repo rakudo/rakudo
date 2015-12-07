@@ -886,11 +886,11 @@ Compilation unit '$file' contained the following violations:
             $past := $<EXPR>.ast;
             if $mc {
                 if ~$mc<sym> eq 'with' {
-                    make thunkity_thunk($/,'andthen','.T',[$mc,$<EXPR>]);
+                    make thunkity_thunk($/,'.T',QAST::Op.new( :op('call'), :name('&infix:<andthen>')),[$mc,$<EXPR>]);
                     return;
                 }
                 elsif ~$mc<sym> eq 'without' {
-                    make thunkity_thunk($/,'notandthen','.T',[$mc,$<EXPR>]);
+                    make thunkity_thunk($/,'.T',QAST::Op.new( :op('call'), :name('&infix:<notandthen>')),[$mc,$<EXPR>]);
                     return;
                 }
                 my $mc_ast := $mc.ast;
@@ -5687,7 +5687,7 @@ Compilation unit '$file' contained the following violations:
         my $past := $/.ast // $<OPER>.ast;
         my $sym := ~$<infix><sym>;
         my $O := $<infix><O>;
-        my $thunk := $O<thunk>;
+        my $thunky := $O<thunky>;
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
@@ -5714,8 +5714,10 @@ Compilation unit '$file' contained the following violations:
             make mixin_op($/, $sym);
             return 1;
         }
-        elsif !$past && $thunk && ($sym eq 'xx' || $sym eq 'andthen' || $sym eq 'orelse') {
-            $past := thunkity_thunk($/, $sym, $thunk, $/.list);
+        elsif !$past && $thunky && ($sym eq 'xx' || $sym eq 'andthen' || $sym eq 'orelse') {
+            $past := thunkity_thunk($/, $thunky,
+                QAST::Op.new( :op('call'), :name("&infix" ~ $*W.canonicalize_pair('', $sym))),
+                $/.list);
             make $past;
             return 1;
         }
@@ -5776,6 +5778,10 @@ Compilation unit '$file' contained the following violations:
             if $past.isa(QAST::Op) && $past.op eq 'callmethod' {
                 $return_map := 1;
             }
+        }
+        elsif $past.ann('thunky') {
+            $arity := $arity + +$/.list;
+            $past := thunkity_thunk($/, $past.ann('thunky'), $past, $/.list);
         }
         else {
             for $/.list { if $_.ast { $past.push($_.ast); ++$arity; } }
@@ -6136,31 +6142,11 @@ Compilation unit '$file' contained the following violations:
         $past
     }
 
-    sub xx_op($/, $lhs, $rhs) {
-        if $lhs.has_compile_time_value {
-            # Constant expression on the left; need not thunk.
-            QAST::Op.new( :op('call'), :name('&infix:<xx>'), :node($/), $lhs, $rhs )
-        }
-        else {
-            # Not a simple constant expression, so must thunk left hand side.
-            QAST::Op.new(
-                :op('call'), :name('&infix:<xx>'), :node($/),
-                block_closure(make_thunk_ref($lhs, $/)),
-                $rhs,
-                QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ), :named('thunked') ))
-        }
-    }
-
-    sub thunkity_thunk($/,$sym,$thunk,@clause) {
-        my $past := QAST::Op.new(
-            :op('call'),
-            :name("&infix" ~ $*W.canonicalize_pair('', $sym)),
-        );
+    sub thunkity_thunk($/,$thunky,$past,@clause) {
         my int $i := 0;
         my int $e := +@clause;
-        my int $te := nqp::chars($thunk);
-        my int $didthunk := 0;
-        my $type := nqp::substr($thunk,0,1);
+        my int $te := nqp::chars($thunky);
+        my $type := nqp::substr($thunky,0,1);
         while $i < $e {
             my $ast := @clause[$i].ast;
             if $type eq '.' {
@@ -6168,14 +6154,12 @@ Compilation unit '$file' contained the following violations:
             }
             elsif $type eq 't' {  # thunk
                 $past.push(block_closure(make_thunk_ref($ast, $/)));
-                $didthunk := 1;
             }
             elsif $type eq 'T' {  # thunk and topicalize
                 unless $ast.ann('bare_block') || $ast.ann('past_block') {
                     $ast := block_closure(make_topic_block_ref(@clause[$i], $ast, migrate_stmt_id => $*STATEMENT_ID));
                 }
                 $past.push($ast);
-                $didthunk := 1;
             }
             elsif $type eq 'x' {  # thunk maybe (for xx)
                 if $ast.has_compile_time_value {
@@ -6184,16 +6168,12 @@ Compilation unit '$file' contained the following violations:
                 else {
                     # Not a simple constant expression, so must thunk left hand side.
                     $past.push(block_closure(make_thunk_ref($ast, $/)));
-                    $didthunk := 1;
                 }
             }
             else {
                 $/.CURSOR.panic("Unknown thunk spec '$type'");
             }
-            $type := nqp::substr($thunk,$i,1) if ++$i < $te;  # repeat last thunk spec as necessary
-        }
-        if $type eq ':' && $didthunk {  # add a :thunked flag, maybe
-            $past.push(QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ), :named('thunked') ));
+            $type := nqp::substr($thunky,$i,1) if ++$i < $te;  # repeat last thunk spec as necessary
         }
         $past;
     }
@@ -6371,21 +6351,23 @@ Compilation unit '$file' contained the following violations:
             my $metasym  := ~$<infix_prefix_meta_operator><sym>;
             my $base     := $<infix_prefix_meta_operator><infixish>;
             my $basesym  := ~$base<OPER>;
+            my $t        := $base<OPER><O><thunky>;
             my $basepast := $base.ast
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                                :scope<lexical>);
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
-            if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; }
-            elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; }
-            elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; }
+            if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
+            elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; $t := ''; }  # disable transitive thunking for now
+            elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := ''; }
 
             my $metapast := QAST::Op.new( :op<call>, :name($helper), $basepast );
             $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
             $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
+            $ast.annotate('thunky', $t) if $t;
         }
 
         if $<infix_postfix_meta_operator> {

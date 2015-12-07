@@ -96,14 +96,17 @@ multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::p6bool(nqp::ifnull(nqp::xor(a.B
 # we define them here for use as arguments to functions.
 proto sub infix:<&&>(|)                   { * }
 multi sub infix:<&&>(Mu $x = Bool::True)  { $x }
+multi sub infix:<&&>(Mu \a, &b)           { a && b }
 multi sub infix:<&&>(Mu \a, Mu \b)        { a && b }
 
 proto sub infix:<||>(|)                   { * }
 multi sub infix:<||>(Mu $x = Bool::False) { $x }
+multi sub infix:<||>(Mu \a, &b)           { a || b }
 multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
 
 proto sub infix:<^^>(|)                   { * }
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
+multi sub infix:<^^>(Mu \a, Mu &b)        { a ^^ b }
 multi sub infix:<^^>(Mu \a, Mu \b)        { a ^^ b }
 multi sub infix:<^^>(+@a) {
     my $a = shift @a;
@@ -118,19 +121,23 @@ multi sub infix:<^^>(+@a) {
 
 proto sub infix:<//>(|)                   { * }
 multi sub infix:<//>(Mu $x = Any)         { $x }
+multi sub infix:<//>(Mu \a, &b)           { a // b }
 multi sub infix:<//>(Mu \a, Mu \b)        { a // b }
 
 proto sub infix:<and>(|)                  { * }
 multi sub infix:<and>(Mu $x = Bool::True) { $x }
+multi sub infix:<and>(Mu \a, &b)          { a && b }
 multi sub infix:<and>(Mu \a, Mu \b)       { a && b }
 
 proto sub infix:<or>(|)                   { * }
 multi sub infix:<or>(Mu $x = Bool::False) { $x }
+multi sub infix:<or>(Mu \a, &b)           { a || b }
 multi sub infix:<or>(Mu \a, Mu \b)        { a || b }
 
 proto sub infix:<xor>(|)                  { * }
 multi sub infix:<xor>(Mu $x = Bool::False) { $x }
-multi sub infix:<xor>(Mu \a, Mu \b)        { a ^^ b }
+multi sub infix:<xor>(Mu \a, &b)          { a ^^ b }
+multi sub infix:<xor>(Mu \a, Mu \b)       { a ^^ b }
 multi sub infix:<xor>(|c)                 { &infix:<^^>(|c); }
 
 # vim: ft=perl6 expandtab sw=4

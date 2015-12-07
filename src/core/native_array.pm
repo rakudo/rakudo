@@ -720,11 +720,11 @@ sub permutations(int $n) {
                 if !@!a { return (@!a = ^$!n).List }
                 # Find the largest index k such that a[k] < a[k + 1].
                 # If no such index exists, the permutation is the last permutation.
-                my $k = @!a.end - 1;
+                my int $k = @!a.end - 1;
                 $k-- until $k < 0 or @!a[$k] < @!a[$k + 1];
                 return IterationEnd if $k < 0;
                 # Find the largest index l greater than k such that a[k] < a[l].
-                my $l = @!a.end;
+                my int $l = @!a.end;
                 $l-- until @!a[$k] < @!a[$l];
                 @!a[$k, $l].=reverse;
                 @!a[$k+1 .. *].=reverse;

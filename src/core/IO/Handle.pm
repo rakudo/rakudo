@@ -94,11 +94,13 @@ my class IO::Handle does IO {
             $truncate  ?? 't' !! '',
             $exclusive ?? 'x' !! '';
 
-        # TODO: catch error, and fail()
-        $!PIO := nqp::open(
-          nqp::unbox_s($!path.abspath),
-          nqp::unbox_s($llmode),
-        );
+        {
+            CATCH { .fail }
+            $!PIO := nqp::open(
+              nqp::unbox_s($!path.abspath),
+              nqp::unbox_s($llmode),
+            );
+        }
 
         $!chomp = $chomp;
         $!nl-out = $nl-out;

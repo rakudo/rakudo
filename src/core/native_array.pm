@@ -717,7 +717,7 @@ sub permutations(int $n) {
             submethod BUILD(:$n) { $!n = $n; self }
             #method is-lazy { True }
             method pull-one {
-                if !@!a { return (@!a = ^$!n).List }
+                return (@!a = ^$!n).List unless @!a;
                 # Find the largest index k such that a[k] < a[k + 1].
                 # If no such index exists, the permutation is the last permutation.
                 my int $k = @!a.end - 1;

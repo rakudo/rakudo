@@ -85,7 +85,7 @@ class Perl6::Compiler is HLL::Compiler {
         }
         $past;
     }
-    
+
     method interactive_result($value) {
         CATCH { nqp::say($_) }
         if nqp::can($value, 'gist') {
@@ -153,7 +153,8 @@ class Perl6::Compiler is HLL::Compiler {
                 });
 
                 CATCH {
-                    nqp::say("I ran into a problem while trying to set up REPL completions: $_");
+                    nqp::say('I ran into a problem while trying to set up REPL completions:');
+                    nqp::say(~$_);
                     nqp::say('Continuing without tab completions');
                     nqp::say('');
                 }
@@ -172,7 +173,7 @@ class Perl6::Compiler is HLL::Compiler {
         my $super := nqp::findmethod(HLL::Compiler, 'interactive');
         $super(self, :interactive(1), |%adverbs);
     }
-    
+
     method interactive_exception($ex) {
         my $payload := nqp::getpayload($ex);
         if nqp::can($payload, 'gist') {
@@ -183,14 +184,14 @@ class Perl6::Compiler is HLL::Compiler {
         }
         CATCH { nqp::say(~$ex) }
     }
-    
+
     method usage($name?) {
         say(($name ?? $name !! "") ~ " [switches] [--] [programfile] [arguments]
- 
+
         With no arguments, enters a REPL. With a \"[programfile]\" or the
         \"-e\" option, compiles the given program and by default also
         executes the compiled code.
- 
+
           -c                   check syntax only (runs BEGIN and CHECK blocks)
           --doc                extract documentation and print it as text
           -e program           one line of program, strict is enabled by default
@@ -214,15 +215,17 @@ class Perl6::Compiler is HLL::Compiler {
         Note that only boolean single-letter options may be bundled.
 
         To modify the include path, you can set the PERL6LIB environment variable:
-        
+
         PERL6LIB=\"lib\" perl6 example.pl
-        
-        For more information, see the perl6(1) man page.\n"); 
+
+        For more information, see the perl6(1) man page.\n");
         nqp::exit(0);
     }
 
     method readline($stdin, $stdout, $prompt) {
-        if $!linenoise {
+        my $line;
+
+        try {
             my $ctx := self.context();
             if $ctx {
                 my $pad := nqp::ctxlexpad($ctx);
@@ -253,17 +256,20 @@ class Perl6::Compiler is HLL::Compiler {
                 }
             }
 
-            my $line := $!linenoise($prompt);
+            $line := $!linenoise($prompt);
             if $line.defined {
                 $!linenoise_add_history($line);
                 $line
             } else {
-                nqp::null_s()
+                $line := nqp::null_s()
             }
-        } else {
-            my $super := nqp::findmethod(HLL::Compiler, 'readline');
-            $super(self, $stdin, $stdout, $prompt);
+
+            CATCH {
+                my $super := nqp::findmethod(HLL::Compiler, 'readline');
+                $line := $super(self, $stdin, $stdout, $prompt);
+            }
         }
+        $line;
     }
 
 }

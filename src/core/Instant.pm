@@ -1,3 +1,5 @@
+my class Date { ... }
+my class DateTime { ... }
 my class Duration {... }
 
 my class Instant is Cool does Real {
@@ -51,6 +53,9 @@ my class Instant is Cool does Real {
     method Num   (Instant:D:) { $.tai.Num    }
     method Int   (Instant:D:) { $.tai.Int    }
     method narrow(Instant:D:) { $.tai.narrow }
+
+    method Date(Instant:D:)        { Date.new(self)         }
+    method DateTime(Instant:D: |c) { DateTime.new(self, |c) }
 
 #    TODO: should be the new .gist, probably
 #    method Str() {

@@ -1,6 +1,3 @@
-my class DateTime { ... }
-my class Date     { ... }
-
 my role Dateish {
     has Int $.year;
     has Int $.month = 1;

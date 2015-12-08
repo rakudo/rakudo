@@ -544,7 +544,7 @@ my class Date does Dateish {
 
     multi method new() {
         DEPRECATED(
-            :what('Date.new() without arguments as a way to get the Christmas date'),
+            :what('Date.new() without arguments to get the Christmas date'),
             'Date.new(self.today.year, 12, 24)',
             '2015.12',
         );

@@ -18,6 +18,8 @@ BEGIN {
     my Mu $chaining         := nqp::hash('prec', 'm=', 'assoc', 'chain', 'iffy', 1, 'pasttype', 'chain');
     my Mu $tight_and        := nqp::hash('prec', 'l=', 'assoc', 'list', 'thunky', '.t');
     my Mu $tight_or         := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunky', '.t');
+    my Mu $tight_or_xor     := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunky', '..x');
+    my Mu $tight_or_minmax  := nqp::hash('prec', 'k=', 'assoc', 'list');
     my Mu $conditional      := nqp::hash('prec', 'j=', 'assoc', 'right', 'iffy', 1, 'thunky', '.tt');
     my Mu $item_assignment  := nqp::hash('prec', 'i=', 'assoc', 'right');
     my Mu $loose_unary      := nqp::hash('prec', 'h=');
@@ -166,10 +168,10 @@ BEGIN {
     trait_mod:<is>(&infix:<&&>, :prec($tight_and));
 
     trait_mod:<is>(&infix:<||>,  :prec($tight_or));
-    trait_mod:<is>(&infix:<^^>,  :prec($tight_or));
+    trait_mod:<is>(&infix:<^^>,  :prec($tight_or_xor));
     trait_mod:<is>(&infix:<//>,  :prec($tight_or));
-    trait_mod:<is>(&infix:<min>, :prec($tight_or));
-    trait_mod:<is>(&infix:<max>, :prec($tight_or));
+    trait_mod:<is>(&infix:<min>, :prec($tight_or_minmax));
+    trait_mod:<is>(&infix:<max>, :prec($tight_or_minmax));
 
     #trait_mod:<is>(&infix:<ff>,  :prec($conditional_ff));
     #trait_mod:<is>(&infix:<fff>, :prec($conditional_ff));

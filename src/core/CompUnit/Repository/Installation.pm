@@ -34,7 +34,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $name;
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
-    $name //= \'#name#\';
+    $name //= \'#dist-name#\';
     my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
     my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
     unless +@binaries {
@@ -146,7 +146,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $withoutext  = $basename.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
                 "$path/bin/$withoutext$be".IO.spurt:
-                    $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
+                    $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be").subst('#dist-name#', $dist.name);
                 if $is-win {
                     "$path/bin/$withoutext$be.bat".IO.spurt:
                         $windows_wrapper.subst('#perl#', "perl6$be", :g);

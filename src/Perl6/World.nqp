@@ -799,7 +799,7 @@ class Perl6::World is HLL::World {
                     my &DYNAMIC := self.find_symbol(['&DYNAMIC']);
                     $REPO := &DYNAMIC('$*REPO');
                 }
-                $PROCESS.WHO<$REPO> := self.find_symbol(['CompUnitRepo']).new($arg, :next-repo($REPO));
+                $PROCESS.WHO<$REPO> := self.find_symbol(['CompUnit', 'RepositoryRegistry']).new($arg, :next-repo($REPO));
             }
         }
         else {
@@ -953,7 +953,7 @@ class Perl6::World is HLL::World {
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $handle := self.find_symbol(['CompUnitRepo']).load_module($module_name, %opts,
+        my $handle := self.find_symbol(['CompUnit', 'RepositoryRegistry']).load_module($module_name, %opts,
             $cur_GLOBALish, :$line);
 
         # During deserialization, ensure that we get this module loaded.
@@ -975,7 +975,7 @@ class Perl6::World is HLL::World {
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
                    :op('callmethod'), :name('load_module'),
-                   QAST::WVal.new( :value(self.find_symbol(['CompUnitRepo'])) ),
+                   QAST::WVal.new( :value(self.find_symbol(['CompUnit', 'RepositoryRegistry'])) ),
                    QAST::SVal.new( :value($module_name) ),
                    $opt_hash,
                    QAST::WVal.new( :value(self.find_symbol(['Any'])) ),

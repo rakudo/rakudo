@@ -1,10 +1,11 @@
 class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
+class CompUnit::RepositoryRegistry       { ... }
 
 my class Perl5ModuleLoaderStub {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
         {
-            CompUnitRepo.load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
+            CompUnit::RepositoryRegistry.load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
             CATCH {
                 $*W.find_symbol(nqp::list('X','NYI','Available')).new(
                     :available('Inline::Perl5'), :feature('Perl 5')).throw;
@@ -13,11 +14,11 @@ my class Perl5ModuleLoaderStub {
 
         # Inline::Perl5 has overwritten this module loader at this point
         @*MODULES.pop; # $module_name is already on the load stack
-        return CompUnitRepo.load_module($module_name, %opts, @GLOBALish, :$line, :$file);
+        return CompUnit::RepositoryRegistry.load_module($module_name, %opts, @GLOBALish, :$line, :$file);
     }
 }
 
-class CompUnitRepo {
+class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
     my %modules_loaded;
 
@@ -152,11 +153,11 @@ sub SHORT-ID2CLASS(Str:D $short-id) {
                           %SHORT-ID2CLASS.BIND-KEY($id,$type);
                       }
                       else {
-                          die "Class '$type.^name()' is not a CompUnitRepo";
+                          die "Class '$type.^name()' is not a CompUnit::Repository";
                       }
                   }
                   else {
-                      die "No CompUnitRepo known by '$short-id'";
+                      die "No CompUnit::Repository known by '$short-id'";
                   }
               }
           } );

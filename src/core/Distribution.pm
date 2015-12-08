@@ -33,13 +33,8 @@ class Distribution {
     }
 }
 
-# during CURLI migration period
-class CompUnitRepo::Distribution is Distribution {
-    method Hash { self.hash }
-}
-
 role CompUnit::Repository { ... }
-class CompUnitRepo { ... }
+class CompUnit::RepositoryRegistry { ... }
 class Distribution::Resources does Associative {
     has Str $.dist-id;
     has Str $.repo;
@@ -60,7 +55,7 @@ class Distribution::Resources does Associative {
     }
 
     method AT-KEY($key) {
-        CompUnitRepo.new($.repo).resource($.dist-id, $key)
+        CompUnit::RepositoryRegistry.new($.repo).resource($.dist-id, $key)
     }
 
     method Str() {

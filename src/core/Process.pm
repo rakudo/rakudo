@@ -132,7 +132,7 @@ multi sub INITIALIZE_DYNAMIC('$*REPO') {
         my @parts = $repo.split('#');
         join '#', @parts[0], $SPEC.canonpath(@parts[1]);
     };
-    %repos{$_} = $next-repo := CompUnitRepo.new($_, :$next-repo) for @INC>>.&canon.unique.reverse;
+    %repos{$_} = $next-repo := CompUnit::RepositoryRegistry.new($_, :$next-repo) for @INC>>.&canon.unique.reverse;
 
     $_ = %repos{$_.&canon} for %CUSTOM_LIB.values;
     PROCESS::<$REPO> := $next-repo;

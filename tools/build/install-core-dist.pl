@@ -8,6 +8,7 @@ my %provides =
     "NativeCall::Compiler::GNU"  => "lib/NativeCall/Compiler/GNU.pm",
     "NativeCall::Compiler::MSVC" => "lib/NativeCall/Compiler/MSVC.pm",
     "Pod::To::Text"              => "lib/Pod/To/Text.pm",
+    "newline"                    => "lib/newline.pm6",
 ;
 
 $*REPO.repo-chain[* - 1].install(

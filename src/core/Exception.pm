@@ -1252,9 +1252,11 @@ my class X::Syntax::Missing does X::Syntax {
 my class X::Syntax::BlockGobbled does X::Syntax {
     has $.what;
     method message() {
+        my $looks_like_type = $.what ~~ /'::' | <[A..Z]><[a..z]>+/;
         $.what ~~ /^'is '/
             ?? "Trait '$.what' needs whitespace before block"
-            !! "{ $.what ?? "Function '$.what'" !! 'Expression' } needs parens to avoid gobbling block";
+            !! "{ $.what ?? "Function '$.what'" !! 'Expression' } needs parens to avoid gobbling block" ~
+                    $looks_like_type ?? " (or perhaps it's a class that's not declared or available in this scope?)" !! "";
     };
 }
 

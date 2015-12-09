@@ -736,7 +736,7 @@ sub permutations(int $n) {
                 $l = $!n;
                 until ++$k >= --$l {
                     @!a[$k] +^= @!a[$l];
-                    @!a[$k] +^= a[$l] = @!a[$k] +^ @!a[$l];
+                    @!a[$k] +^= @!a[$l] = @!a[$k] +^ @!a[$l];
                 }
                 @!a.List;
             }

@@ -733,12 +733,10 @@ sub permutations(int $n) {
                 @!a[$k] +^= @!a[$l];
                 
                 # @!a[$k+1 .. @!a.end].=reverse;
-                $l = @!a.end;
-                until ++$k >= $l {
+                $l = $!n;
+                until ++$k >= --$l {
                     @!a[$k] +^= @!a[$l];
-                    @!a[$l] = @!a[$k] +^ @!a[$l];
-                    @!a[$k] +^= @!a[$l];
-                    $l--;
+                    @!a[$k] +^= a[$l] = @!a[$k] +^ @!a[$l];
                 }
                 @!a.List;
             }

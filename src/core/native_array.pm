@@ -727,12 +727,19 @@ sub permutations(int $n) {
                 my int $l = @!a.end;
                 $l-- until @!a[$k] < @!a[$l];
                 # use L<https://en.wikipedia.org/wiki/XOR_swap_algorithm>
-                # for @!a[$k, $l].=reverse
+                # @!a[$k, $l].=reverse
                 @!a[$k] +^= @!a[$l];
                 @!a[$l] = @!a[$k] +^ @!a[$l];
                 @!a[$k] +^= @!a[$l];
                 
-                @!a[$k+1 .. @!a.end].=reverse;
+                # @!a[$k+1 .. @!a.end].=reverse;
+                $l = @!a.end;
+                until ++$k >= $l {
+                    @!a[$k] +^= @!a[$l];
+                    @!a[$l] = @!a[$k] +^ @!a[$l];
+                    @!a[$k] +^= @!a[$l];
+                    $l--;
+                }
                 @!a.List;
             }
             method count-only { [*] 1 .. $!n }

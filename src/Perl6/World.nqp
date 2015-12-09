@@ -799,7 +799,9 @@ class Perl6::World is HLL::World {
                     my &DYNAMIC := self.find_symbol(['&DYNAMIC']);
                     $REPO := &DYNAMIC('$*REPO');
                 }
-                $PROCESS.WHO<$REPO> := self.find_symbol(['CompUnit', 'RepositoryRegistry']).new($arg, :next-repo($REPO));
+                $PROCESS.WHO<$REPO> := self.find_symbol(
+                        ['CompUnit', 'RepositoryRegistry']
+                    ).repository-for-spec($arg, :next-repo($REPO));
             }
         }
         else {

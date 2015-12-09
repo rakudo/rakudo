@@ -34,7 +34,7 @@ class Distribution {
 }
 
 role CompUnit::Repository { ... }
-class CompUnit::RepositoryRegistry { ... }
+class CompUnit::RepositoryRegistry is repr('Uninstantiable') { ... }
 class Distribution::Resources does Associative {
     has Str $.dist-id;
     has Str $.repo;
@@ -55,7 +55,7 @@ class Distribution::Resources does Associative {
     }
 
     method AT-KEY($key) {
-        CompUnit::RepositoryRegistry.new($.repo).resource($.dist-id, $key)
+        CompUnit::RepositoryRegistry.repository-for-spec($.repo).resource($.dist-id, $key)
     }
 
     method Str() {

@@ -1256,7 +1256,7 @@ my class X::Syntax::BlockGobbled does X::Syntax {
         $.what ~~ /^'is '/
             ?? "Trait '$.what' needs whitespace before block"
             !! "{ $.what ?? "Function '$.what'" !! 'Expression' } needs parens to avoid gobbling block" ~
-                    $looks_like_type ?? " (or perhaps it's a class that's not declared or available in this scope?)" !! "";
+                    ($looks_like_type ?? " (or perhaps it's a class that's not declared or available in this scope?)" !! "");
     };
 }
 

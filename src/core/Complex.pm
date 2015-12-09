@@ -218,6 +218,8 @@ my class Complex is Cool does Numeric {
     }
 
     method narrow(Complex:D:) {
+        self == 0e0 ?? 0 !!
+        $!re == 0e0 ?? self !!
         $!im / $!re ≅ 0e0
             ?? $!re.narrow
             !! self;

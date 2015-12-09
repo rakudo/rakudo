@@ -110,11 +110,6 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
         } )
     }
 
-    method ctxsave() {
-        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
-        $*CTXSAVE := 0;
-    }
-
     # Handles any object repossession conflicts that occurred during module load,
     # or complains about any that cannot be resolved.
     method resolve_repossession_conflicts(@conflicts) {

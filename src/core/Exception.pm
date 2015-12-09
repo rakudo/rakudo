@@ -629,6 +629,10 @@ my class X::NYI::Available is X::NYI {
         "Please install { self.available-str } for $.feature support. "
     }
 }
+my class X::Experimental does X::Comp {
+    has $.feature;
+    method message() { "Use of $.feature is experimental; please 'use experimental :$.feature'" }
+}
 
 my class X::Worry is Exception { }
 my class X::Worry::P5 is X::Worry { }

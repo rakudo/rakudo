@@ -283,6 +283,11 @@ role STD {
         self.typed_panic('X::Comp::NYI', :$feature)
     }
 
+    token experimental($feature) {
+        <?{ try $*W.find_symbol(['EXPERIMENTAL-' ~ nqp::uc($feature)]) }>
+        || <.typed_panic('X::Experimental', :$feature)>
+    }
+
     method EXPR_nonassoc($cur, $left, $right) {
         self.typed_panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
     }
@@ -2608,6 +2613,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := 'macro';
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
+        <.experimental('macros')>
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
@@ -3605,6 +3611,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <.ws> <![(]>
         :my $*IN_QUASI := 1;
         :my @*UNQUOTE_ASTS := [];
+        <.experimental('macros')>
         <block>
     }
 

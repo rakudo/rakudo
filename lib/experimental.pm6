@@ -19,3 +19,7 @@ package EXPORT::cached {
 
     OUR::{'&trait_mod:<is>'} := &trait_mod:<is>;
 }
+
+package EXPORT::macros {
+    OUR::<EXPERIMENTAL-MACROS> := True;
+}

@@ -3094,7 +3094,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token term { <...> }
 
     token term:sym<self> {
-        <sym> <.tok>
+        <sym> <.end_keyword>
         {
             $*HAS_SELF || self.typed_sorry('X::Syntax::Self::WithoutObject')
         }

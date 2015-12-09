@@ -35,12 +35,27 @@ class CompUnit::RepositoryRegistry {
     }
 
     method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
-        INCLUDE-SPEC2CUR($spec, :$next-repo)
+        state %include-spec2cur;
+        state $lock = Lock.new;
+
+        my ($short-id,%options,$path) := parse-include-spec($spec);
+        my $class = short-id2class($short-id);
+        die "No class loaded for short-id '$short-id': $spec -> $path"
+          if $class === Any;
+
+        my $abspath = $class.?absolutify($path) // $path;
+        my $id      = "$short-id#$abspath";
+        %options<next-repo> = $next-repo if $next-repo;
+        $lock.protect( {
+            %include-spec2cur{$id}:exists
+              ?? %include-spec2cur{$id}
+              !! (%include-spec2cur{$id} := $class.new(:prefix($abspath), |%options));
+        } );
     }
 
     method files($file, :$name, :$auth, :$ver) {
         for @*INC -> $spec {
-            if INCLUDE-SPEC2CUR($spec) -> $cur {
+            if self.repository-for-spec($spec) -> $cur {
                 if $cur.files($file, :$name,:$auth,:$ver).list -> @candi {
                     return @candi;
                 }
@@ -49,13 +64,115 @@ class CompUnit::RepositoryRegistry {
         ();
     }
 
+    my %custom-lib;
+    method setup-repositories() {
+        my @INC;
+        my %ENV := %*ENV; # only look up environment once
+
+        # starting up for creating precomp
+        if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
+            @INC = specs.split(','); # assume well formed strings
+        }
+
+        # normal start up
+        else {
+            my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
+            if nqp::defined($I) {
+                if nqp::islist($I) {
+                    my Mu $iter := nqp::iterator($I);
+                    while $iter {
+                        @INC.append: parse-include-specS(nqp::shift($iter));
+                    }
+               }
+                else {
+                    @INC.append: parse-include-specS(nqp::p6box_s($I));
+                }
+            }
+
+            if %ENV<RAKUDOLIB> -> $rakudolib {
+                @INC.append: parse-include-specS($rakudolib);
+            }
+            if %ENV<PERL6LIB> -> $perl6lib {
+                @INC.append: parse-include-specS($perl6lib);
+            }
+
+#?if jvm
+            for nqp::hllize(nqp::jvmclasspaths()) -> $path {
+                @INC.append: parse-include-specS($path);
+            }
+#?endif
+
+            my $prefix := nqp::p6box_s(
+              nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
+            );
+
+            my $abspath := "$prefix/share/libraries.json";
+            if IO::Path.new-from-absolute-path($abspath).e {
+#            my $config = from-json( slurp $abspath );
+#
+#            for $config.list -> @group {
+#                for @group>>.kv -> $class, $props {
+#                    for $props.list -> $prop {
+#                        if nqp::istype($prop,Associative) {
+#                            for $prop.value.flat -> $path {
+#                                @INC.push: parse-include-specS($path);
+#                                %custom-lib{$prop.key} = $path;
+#                            }
+#                        }
+#                        else {
+#                            for $prop.flat -> $path {
+#                                @INC.push: parse-include-specS($path);
+#                            }
+#                        }
+#                    }
+#                }
+#            }
+            }
+            # There is no config file, so pick sane defaults.
+            else {
+                # XXX Various issues with this stuff on JVM
+                my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
+                try {
+                    if %ENV<HOME>
+                      // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
+                        my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+                        my $path := "$home/.perl6/$ver";
+                        @INC.append: (%custom-lib<home> = "inst#$path");
+                    }
+                }
+                @INC.append:
+                  (%custom-lib<site>   = "inst#$prefix/site"),
+                  (%custom-lib<vendor> = "inst#$prefix/vendor"),
+                  (%custom-lib<perl>   = "inst#$prefix");
+            }
+        }
+
+        my CompUnit::Repository $next-repo;
+        my %repos;
+        my $SPEC := $*SPEC;
+        my &canon = -> $repo {
+            my @parts = $repo.split('#');
+            join '#', @parts[0], $SPEC.canonpath(@parts[1]);
+        };
+        %repos{$_} = $next-repo := self.repository-for-spec($_, :$next-repo)
+            for @INC>>.&canon.unique.reverse;
+
+        $_ = %repos{$_.&canon} for %custom-lib.values;
+
+        $next-repo
+    }
+
+    method repository-for-name(Str:D $name) {
+        %custom-lib{$name}
+    }
+
     method candidates($name, :$file, :$auth, :$ver) {
         for @*INC -> $spec {
 
 RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
   if $*RAKUDO_MODULE_DEBUG;
 
-            if INCLUDE-SPEC2CUR($spec) -> $cur {
+            if self.repository-for-spec($spec) -> $cur {
                 if $cur.candidates($name, :$file,:$auth,:$ver).list -> @candi {
                     return @candi;
                 }
@@ -127,107 +244,88 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             # now, we let it pass by with "latest wins" semantics.
         }
     }
-}
 
-sub SHORT-ID2CLASS(Str:D $short-id) {
-    state %SHORT-ID2CLASS;
-    state $lock = Lock.new;
+    sub short-id2class(Str:D $short-id) {
+        state %short-id2class;
+        state $lock = Lock.new;
 
-    Proxy.new(
-      FETCH => {
-          $lock.protect( {
-              if %SHORT-ID2CLASS.EXISTS-KEY($short-id) {
-                  %SHORT-ID2CLASS.AT-KEY($short-id);
-              }
-              else {
-                  my $type = try ::($short-id);
-                  if $type !=== Any {
-                      if $type.?short-id -> $id {
-                          die "Have '$id' already registered for %SHORT-ID2CLASS{$id}.^name()"
-                            if %SHORT-ID2CLASS.EXISTS-KEY($id);
-                          %SHORT-ID2CLASS.BIND-KEY($id,$type);
-                      }
-                      else {
-                          die "Class '$type.^name()' is not a CompUnit::Repository";
-                      }
+        Proxy.new(
+          FETCH => {
+              $lock.protect( {
+                  if %short-id2class.EXISTS-KEY($short-id) {
+                      %short-id2class.AT-KEY($short-id);
                   }
                   else {
-                      die "No CompUnit::Repository known by '$short-id'";
+                      my $type = try ::($short-id);
+                      if $type !=== Any {
+                          if $type.?short-id -> $id {
+                              die "Have '$id' already registered for %short-id2class{$id}.^name()"
+                                if %short-id2class.EXISTS-KEY($id);
+                              %short-id2class.BIND-KEY($id,$type);
+                          }
+                          else {
+                              die "Class '$type.^name()' is not a CompUnit::Repository";
+                          }
+                      }
+                      else {
+                          die "No CompUnit::Repository known by '$short-id'";
+                      }
                   }
-              }
-          } );
-      },
-      STORE => -> $, $class {
-          my $type = ::($class);
-          die "Must load class '$class' first" if nqp::istype($type,Failure);
-          $lock.protect( { %SHORT-ID2CLASS{$short-id} := $type } );
-      },
-    );
-}
+              } );
+          },
+          STORE => -> $, $class {
+              my $type = ::($class);
+              die "Must load class '$class' first" if nqp::istype($type,Failure);
+              $lock.protect( { %short-id2class{$short-id} := $type } );
+          },
+        );
+    }
 
 # prime the short-id -> class lookup
-SHORT-ID2CLASS('file') = 'CompUnit::Repository::FileSystem';
-SHORT-ID2CLASS('inst') = 'CompUnit::Repository::Installation';
+    short-id2class('file') = 'CompUnit::Repository::FileSystem';
+    short-id2class('inst') = 'CompUnit::Repository::Installation';
 
-sub INCLUDE-SPEC2CUR(Str:D $spec, CompUnit::Repository :$next-repo) {
-    state %INCLUDE-SPEC2CUR;
-    state $lock = Lock.new;
+    sub parse-include-spec(Str:D $spec, Str:D $default-short-id = 'file') {
+        my %options;
 
-    my ($short-id,%options,$path) := PARSE-INCLUDE-SPEC($spec);
-    my $class = SHORT-ID2CLASS($short-id);
-    die "No class loaded for short-id '$short-id': $spec -> $path"
-      if $class === Any;
-
-    my $abspath = $class.?absolutify($path) // $path;
-    my $id      = "$short-id#$abspath";
-    %options<next-repo> = $next-repo if $next-repo;
-    $lock.protect( {
-        %INCLUDE-SPEC2CUR{$id}:exists
-          ?? %INCLUDE-SPEC2CUR{$id}
-          !! (%INCLUDE-SPEC2CUR{$id} := $class.new(:prefix($abspath), |%options));
-    } );
-}
-
-sub PARSE-INCLUDE-SPEC(Str:D $spec, Str:D $default-short-id = 'file') {
-    my %options;
-
-    # something we understand
-    if $spec ~~ /^
-      [
-        $<type>=[ <.ident>+ % '::' ]
-        [ '#' $<n>=\w+
-          <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
-          { %options{$<n>} = ~$<v> }
-        ]*
-        '#'
-      ]?
-      $<path>=.+
-    $/ {
-        ( $<type> ?? ~$<type> !! $default-short-id, %options, ~$<path> );
-    }
-}
-
-sub PARSE-INCLUDE-SPECS(Str:D $specs) {
-    my @found;
-    my $default-short-id = 'file';
-
-RAKUDO_MODULE_DEBUG("Parsing specs: $specs")
-  if $*RAKUDO_MODULE_DEBUG;
-
-    # for all possible specs
-    for $specs.split(/ \s* ',' \s* /) -> $spec {
-        if PARSE-INCLUDE-SPEC($spec, $default-short-id) -> $triplet {
-            @found.push: join "#",
-              $triplet[0],
-              $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }),
-              $triplet[2];
-            $default-short-id = $triplet[0];
-        }
-        elsif $spec {
-            die "Don't know how to handle $spec";
+        # something we understand
+        if $spec ~~ /^
+          [
+            $<type>=[ <.ident>+ % '::' ]
+            [ '#' $<n>=\w+
+              <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
+              { %options{$<n>} = ~$<v> }
+            ]*
+            '#'
+          ]?
+          $<path>=.+
+        $/ {
+            ( $<type> ?? ~$<type> !! $default-short-id, %options, ~$<path> );
         }
     }
-    @found;
+
+    sub parse-include-specS(Str:D $specs) {
+        my @found;
+        my $default-short-id = 'file';
+
+    RAKUDO_MODULE_DEBUG("Parsing specs: $specs")
+      if $*RAKUDO_MODULE_DEBUG;
+
+        # for all possible specs
+        for $specs.split(/ \s* ',' \s* /) -> $spec {
+            if parse-include-spec($spec, $default-short-id) -> $triplet {
+                @found.push: join "#",
+                  $triplet[0],
+                  $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }),
+                  $triplet[2];
+                $default-short-id = $triplet[0];
+            }
+            elsif $spec {
+                die "Don't know how to handle $spec";
+            }
+        }
+        @found;
+    }
 }
 
 sub RAKUDO_MODULE_DEBUG(*@str) { note "SET RMD: @str[]" }

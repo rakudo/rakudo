@@ -96,23 +96,22 @@ multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::p6bool(nqp::ifnull(nqp::xor(a.B
 # we define them here for use as arguments to functions.
 proto sub infix:<&&>(|)                   { * }
 multi sub infix:<&&>(Mu $x = Bool::True)  { $x }
-multi sub infix:<&&>(Mu \a, &b)           { a && b() }
+multi sub infix:<&&>(Mu \a, &b)           { a && b }
 multi sub infix:<&&>(Mu \a, Mu \b)        { a && b }
 
 proto sub infix:<||>(|)                   { * }
 multi sub infix:<||>(Mu $x = Bool::False) { $x }
-multi sub infix:<||>(Mu \a, &b)           { a || b() }
+multi sub infix:<||>(Mu \a, &b)           { a || b }
 multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
 
 proto sub infix:<^^>(|)                   { * }
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
-multi sub infix:<^^>(Mu \a, Mu &b)        { a ^^ b() }
+multi sub infix:<^^>(Mu \a, Mu &b)        { a ^^ b }
 multi sub infix:<^^>(Mu \a, Mu \b)        { a ^^ b }
 multi sub infix:<^^>(+@a) {
-    my Mu $a = shift @a;
+    my $a = shift @a;
     while @a {
-        my Mu $b := shift @a;
-        $b := $b() if $b ~~ Callable;
+        my $b := shift @a;
         next unless $b;
         return Nil if $a;
         $a := $b;

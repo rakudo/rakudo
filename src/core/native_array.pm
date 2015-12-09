@@ -726,7 +726,12 @@ sub permutations(int $n) {
                 # Find the largest index l greater than k such that a[k] < a[l].
                 my int $l = @!a.end;
                 $l-- until @!a[$k] < @!a[$l];
-                @!a[$k, $l].=reverse;
+                # use L<https://en.wikipedia.org/wiki/XOR_swap_algorithm>
+                # for @!a[$k, $l].=reverse
+                @!a[$k] +^= @!a[$l];
+                @!a[$l] = @!a[$k] +^ @!a[$l];
+                @!a[$k] +^= @!a[$l];
+                
                 @!a[$k+1 .. @!a.end].=reverse;
                 @!a.List;
             }

@@ -2,12 +2,12 @@ my $v = run("git", "describe", :out).out.lines[0];
 $v //= $*PERL.version;
 
 my %provides = 
-    "Test"                       => "lib/Test.pm",
-    "NativeCall"                 => "lib/NativeCall.pm",
-    "NativeCall::Types"          => "lib/NativeCall/Types.pm",
-    "NativeCall::Compiler::GNU"  => "lib/NativeCall/Compiler/GNU.pm",
-    "NativeCall::Compiler::MSVC" => "lib/NativeCall/Compiler/MSVC.pm",
-    "Pod::To::Text"              => "lib/Pod/To/Text.pm",
+    "Test"                       => "lib/Test.pm6",
+    "NativeCall"                 => "lib/NativeCall.pm6",
+    "NativeCall::Types"          => "lib/NativeCall/Types.pm6",
+    "NativeCall::Compiler::GNU"  => "lib/NativeCall/Compiler/GNU.pm6",
+    "NativeCall::Compiler::MSVC" => "lib/NativeCall/Compiler/MSVC.pm6",
+    "Pod::To::Text"              => "lib/Pod/To/Text.pm6",
     "newline"                    => "lib/newline.pm6",
 ;
 

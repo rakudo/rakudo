@@ -9,6 +9,7 @@ my %provides =
     "NativeCall::Compiler::MSVC" => "lib/NativeCall/Compiler/MSVC.pm6",
     "Pod::To::Text"              => "lib/Pod/To/Text.pm6",
     "newline"                    => "lib/newline.pm6",
+    "experimental"               => "lib/experimental.pm6",
 ;
 
 $*REPO.repo-chain[* - 1].install(

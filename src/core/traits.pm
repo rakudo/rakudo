@@ -108,7 +108,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
       subtype    => c.hash.keys[0],
       declaring  => ' ' ~ lc( $r.^name ),
       highexpect => ('rw raw hidden-from-backtrace hidden-from-USAGE',
-                     'cached pure default DEPRECATED inlinable nodal',
+                     'pure default DEPRECATED inlinable nodal',
                      'prec equiv tighter looser assoc leading_docs trailing_docs' ),
     ).throw;
 }

@@ -727,7 +727,7 @@ sub permutations(int $n) {
                 my int $l = @!a.end;
                 $l-- until @!a[$k] < @!a[$l];
                 @!a[$k, $l].=reverse;
-                @!a[$k+1 .. *].=reverse;
+                @!a[$k+1 .. @!a.end].=reverse;
                 @!a.List;
             }
             method count-only { [*] 1 .. $!n }

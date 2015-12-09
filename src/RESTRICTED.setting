@@ -41,7 +41,6 @@ my class IO::Path         is RESTRICTED-CLASS { }
 my class IO::Pipe         is RESTRICTED-CLASS { }
 my class IO::Socket       is RESTRICTED-CLASS { }
 my class IO::Socket::INET is RESTRICTED-CLASS { }
-my class IOU              is RESTRICTED-CLASS { }
 my class NativeCall       is RESTRICTED-CLASS { }
 my class Proc             is RESTRICTED-CLASS { }
 my class Proc::Async      is RESTRICTED-CLASS { }

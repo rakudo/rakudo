@@ -729,8 +729,7 @@ sub permutations(int $n) {
                 # use L<https://en.wikipedia.org/wiki/XOR_swap_algorithm>
                 # @!a[$k, $l].=reverse
                 @!a[$k] +^= @!a[$l];
-                @!a[$l] = @!a[$k] +^ @!a[$l];
-                @!a[$k] +^= @!a[$l];
+                @!a[$k] +^= @!a[$l] = @!a[$k] +^ @!a[$l];
                 
                 # @!a[$k+1 .. @!a.end].=reverse;
                 $l = $!n;

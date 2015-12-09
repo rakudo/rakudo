@@ -1,6 +1,6 @@
 class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
-class CompUnit::RepositoryRegistry       { ... }
+class CompUnit::RepositoryRegistry { ... }
 
 my class Perl5ModuleLoaderStub {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
@@ -34,7 +34,7 @@ class CompUnit::RepositoryRegistry {
         %language_module_loaders{$lang} := $loader;
     }
 
-    method new(Str $spec, CompUnit::Repository :$next-repo) {
+    method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
         INCLUDE-SPEC2CUR($spec, :$next-repo)
     }
 

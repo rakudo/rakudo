@@ -273,17 +273,17 @@ sub FILETEST-Z(Str $abspath) {
     nqp::p6bool(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE)==0);
 }
 sub FILETEST-MODIFIED(Str $abspath) {
-    Instant.new( nqp::p6box_i(
+    Instant.from-posix( nqp::p6box_i(
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_MODIFYTIME)
     ));
 }
 sub FILETEST-ACCESSED(Str $abspath) {
-    Instant.new( nqp::p6box_i(
+    Instant.from-posix( nqp::p6box_i(
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_ACCESSTIME)
     ));
 }
 sub FILETEST-CHANGED(Str $abspath) {
-    Instant.new( nqp::p6box_i(
+    Instant.from-posix( nqp::p6box_i(
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
     ));
 }

@@ -543,7 +543,7 @@ my class Date does Dateish {
         DEPRECATED(
             :what('Date.new() without arguments to get the Christmas date'),
             'Date.new(self.today.year, 12, 24)',
-            '2015.12',
+            '2015.11',
         );
         my $n = self.today;
         if $n.month == 12 && $n.day >= 24 {

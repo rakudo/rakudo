@@ -85,6 +85,14 @@ my grammar JSONPrettyGrammar {
     }
 }
 
+my class JSONException is Exception {
+    has $.text;
+
+    method message {
+        'Invalid JSON: ' ~ $!text
+    }
+}
+
 proto sub to-json($, :$indent = 0, :$first = 0) {*}
 
 multi sub to-json(Version:D $v, :$indent = 0, :$first = 0) { to-json(~$v, :$indent, :$first) }
@@ -116,5 +124,6 @@ multi sub to-json(Mu:D $s, :$indent = 0, :$first = 0) {
 sub from-json($text) {
     my $a = JSONPrettyActions.new();
     my $o = JSONPrettyGrammar.parse($text, :actions($a));
+    JSONException.new(:$text).throw unless $o;
     $o.ast;
 }

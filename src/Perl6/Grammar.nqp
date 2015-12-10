@@ -1946,7 +1946,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     regex special_variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'
         <!{ $*IN_DECL }>
-        <!{ $*QSIGIL }>
         <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
         <!{ $<text> ~~ / ^ \s* $ / }>
         <?{
@@ -1954,8 +1953,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $text := $<text>.Str;
             my $bad := $sigil ~ '{' ~ $text ~ '}';
             $text := $text - 1 if $text ~~ /^\d+$/ && $text > 0;
-            if !($text ~~ /^(\w|\:)+$/) {
-                $/.CURSOR.obs($bad, $sigil ~ '(' ~ $text ~ ')');
+            if $sigil ne '$' && $sigil ne '@' {
+                False;  # not likely a P5ism
+            }
+            elsif !($text ~~ /^(\w|\:)+$/) {
+                $/.CURSOR.obs($bad, "$sigil\($text) for hard ref or $sigil\::($text) for symbolic ref");
             }
             elsif $*QSIGIL {
                 $/.CURSOR.obs($bad, '{' ~ $sigil ~ $text ~ '}');

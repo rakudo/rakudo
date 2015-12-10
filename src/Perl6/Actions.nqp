@@ -6447,12 +6447,12 @@ Compilation unit '$file' contained the following violations:
         else {
             if $t {
                 # note("$metaop $t bingo\n" ~ $args.dump);
-                if $metaop eq '&METAOP_REDUCE_LEFT' || $metaop eq '&METAOP_REDUCE_LIST' {
+                if $metaop eq '&METAOP_REDUCE_LEFT' || $metaop eq '&METAOP_REDUCE_LIST' || $metaop eq '&METAOP_REDUCE_LISTINFIX' {
                     $args := thunkity_thunk($/,$t,QAST::Op.new( :op('call'), :name('&infix:<,>')),$args.list);
                 }
                 else {
                     $*W.throw($/, 'X::Comp::NYI',
-                        feature => "Thunky reduction on funky associativity");
+                        feature => "Thunky pattern $t for $metaop");
                 }
                 # note("$metaop $t new\n" ~ $args.dump);
             }

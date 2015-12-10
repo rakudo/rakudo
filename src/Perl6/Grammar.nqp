@@ -3657,7 +3657,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<u=>, :assoc<left>, :dba<multiplicative>',  '%multiplicative');
         Perl6::Grammar.O(':prec<t=>, :assoc<left>, :dba<additive>',  '%additive');
         Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication>', '%replication');
-        Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication> :thunky<x.>', '%replication_xx');
+        Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication> :thunky<t.>', '%replication_xx');
         Perl6::Grammar.O(':prec<r=>, :assoc<left>, :dba<concatenation>',  '%concatenation');
         Perl6::Grammar.O(':prec<q=>, :assoc<list>, :dba<junctive and>', '%junctive_and');
         Perl6::Grammar.O(':prec<p=>, :assoc<list>, :dba<junctive or>', '%junctive_or');
@@ -4154,7 +4154,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<&&>   { <sym>  <O('%tight_and, :iffy<1>, :pasttype<if>')> }
 
     token infix:sym<||>   { <sym>  <O('%tight_or, :iffy<1>, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<^^>   { <sym>  <O('%tight_or, :iffy<1>, :pasttype<xor>, :thunky<..x>')> }
+    token infix:sym<^^>   { <sym>  <O('%tight_or, :iffy<1>, :pasttype<xor>, :thunky<..t>')> }
     token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<defor>')> }
     token infix:sym<min>  { <sym> >> <O('%tight_or_minmax')> }
     token infix:sym<max>  { <sym> >> <O('%tight_or_minmax')> }

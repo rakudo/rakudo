@@ -6151,7 +6151,7 @@ Compilation unit '$file' contained the following violations:
             my $ast := @clause[$i];
             $ast := $ast.ast if nqp::can($ast,'ast');  # reduce already passes ast...
 
-            if $type eq 'T' || $type eq 'X' || $type eq 'B' {
+            if $type eq 'T' || $type eq 'B' || $type eq 'A' {
                 my $argast := $ast;
                 $argast := $argast[0] if nqp::istype($argast,QAST::Stmts);
                 if nqp::istype($argast,QAST::Op) && $argast.op eq 'call' && $argast.name eq '&infix:<,>' {
@@ -6160,29 +6160,34 @@ Compilation unit '$file' contained the following violations:
                     my int $a := 0;
                     while $a < $ae {
                         my $elem := $argast[$a];
-                        if $type eq 'T' {  # thunk
-                            $elem := block_closure(make_thunk_ref($elem, $/));
+                        if $type eq 'T' {  # thunk maybe (for xx)
+                            unless $elem.has_compile_time_value {
+                                $elem := block_closure(make_thunk_ref($elem, $/));
+                            }
                         }
                         elsif $type eq 'B' {  # thunk and topicalize to a block
                             unless $elem.ann('bare_block') || $elem.ann('past_block') {
                                 $elem := block_closure(make_topic_block_ref(@clause[$i], $elem, migrate_stmt_id => $*STATEMENT_ID));
                             }
                         }
-                        elsif $type eq 'X' {  # thunk maybe (for xx)
-                            unless $elem.has_compile_time_value {
-                                $elem := block_closure(make_thunk_ref($elem, $/));
-                            }
+                        elsif $type eq 'A' {  # thunk always
+                            $elem := block_closure(make_thunk_ref($elem, $/));
                         }
                         $argast[$a] := $elem;
                         ++$a;
                     }
                 }
             }
-            if $type eq '.' || $type eq 'T' || $type eq 'X' || $type eq 'B' {
+            if $type eq '.' || $type eq 'T' || $type eq 'B' || $type eq 'A' || nqp::istype($ast,QAST::SpecialArg) {
                 $past.push($ast);
             }
-            elsif $type eq 't' {  # thunk
-                $past.push(block_closure(make_thunk_ref($ast, $/)));
+            elsif $type eq 't' {  # thunk anything that might need (re)calculation
+                if $ast.has_compile_time_value {
+                    $past.push($ast);
+                }
+                else {
+                    $past.push(block_closure(make_thunk_ref($ast, $/)));
+                }
             }
             elsif $type eq 'b' {  # thunk and topicalize to a block
                 unless $ast.ann('bare_block') || $ast.ann('past_block') {
@@ -6190,13 +6195,8 @@ Compilation unit '$file' contained the following violations:
                 }
                 $past.push($ast);
             }
-            elsif $type eq 'x' {  # thunk maybe (for xx)
-                if $ast.has_compile_time_value {
-                    $past.push($ast);
-                }
-                else {
-                    $past.push(block_closure(make_thunk_ref($ast, $/)));
-                }
+            elsif $type eq 'a' {  # always thunk  (XXX not ever needed?)
+                $past.push(block_closure(make_thunk_ref($ast, $/)));
             }
             else {
                 $/.CURSOR.panic("Unknown thunk spec '$type'");

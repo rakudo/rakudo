@@ -10,7 +10,7 @@ BEGIN {
     my Mu $iffy             := nqp::hash('prec', 'u=', 'assoc', 'left', 'iffy', 1);
     my Mu $additive         := nqp::hash('prec', 't=', 'assoc', 'left');
     my Mu $replication      := nqp::hash('prec', 's=', 'assoc', 'left');
-    my Mu $replication_xx   := nqp::hash('prec', 's=', 'assoc', 'left', 'thunky', 'x.');
+    my Mu $replication_xx   := nqp::hash('prec', 's=', 'assoc', 'left', 'thunky', 't.');
     my Mu $concatenation    := nqp::hash('prec', 'r=', 'assoc', 'list');
     my Mu $junctive_and     := nqp::hash('prec', 'q=', 'assoc', 'list');
     my Mu $junctive_or      := nqp::hash('prec', 'p=', 'assoc', 'list');
@@ -18,7 +18,7 @@ BEGIN {
     my Mu $chaining         := nqp::hash('prec', 'm=', 'assoc', 'chain', 'iffy', 1, 'pasttype', 'chain');
     my Mu $tight_and        := nqp::hash('prec', 'l=', 'assoc', 'list', 'thunky', '.t');
     my Mu $tight_or         := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunky', '.t');
-    my Mu $tight_or_xor     := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunky', '..x');
+    my Mu $tight_or_xor     := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunky', '..t');
     my Mu $tight_or_minmax  := nqp::hash('prec', 'k=', 'assoc', 'list');
     my Mu $conditional      := nqp::hash('prec', 'j=', 'assoc', 'right', 'iffy', 1, 'thunky', '.tt');
     my Mu $item_assignment  := nqp::hash('prec', 'i=', 'assoc', 'right');

@@ -708,7 +708,7 @@ my class array does Iterable is repr('VMArray') {
 }
 
 # needs native arrays, so we can only define it here
-sub permutations(int $n) {
+sub permutations(int $n where $n > 0) {
     Seq.new(
         class :: does Iterator {
             # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>

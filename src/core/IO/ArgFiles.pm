@@ -106,11 +106,6 @@ my class IO::ArgFiles is IO::Handle {
         @chunks.join;
     }
 
-    method nl is rw {
-        DEPRECATED('nl-in');
-        self.nl-in
-    }
-
     method nl-in is rw {
         Proxy.new(
           FETCH => {

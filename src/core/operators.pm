@@ -586,36 +586,36 @@ sub REQUIRE_IMPORT($package-name, *@syms) {
     }
     $package
 }
-sub infix:<andthen>(**@a) {
-    return Bool::True unless @a;
-    my Mu $current := @a.shift;
-    for @a {
+sub infix:<andthen>(+a) {
+    my $ai := a.iterator;
+    my Mu $current := $ai.pull-one;
+    return Bool::True if $current =:= IterationEnd;
+    until ($_ := $ai.pull-one) =:= IterationEnd {
         return Empty unless $current.defined;
-        # Have to check Callable till we get tailthunky lists
         $current := $_ ~~ Callable
             ?? (.count ?? $_($current) !! $_())
             !! $_;
     }
     $current;
 }
-sub infix:<notandthen>(**@a) {
-    return Bool::True unless @a;
-    my Mu $current := @a.shift;
-    for @a {
+sub infix:<notandthen>(+a) {
+    my $ai := a.iterator;
+    my Mu $current := $ai.pull-one;
+    return Bool::True if $current =:= IterationEnd;
+    until ($_ := $ai.pull-one) =:= IterationEnd {
         return Empty if $current.defined;
-        # Have to check Callable till we get tailthunky lists
         $current := $_ ~~ Callable
             ?? (.count ?? $_($current) !! $_())
             !! $_;
     }
     $current;
 }
-sub infix:<orelse>(**@a) {
-    return Nil unless @a;
-    my Mu $current := @a.shift;
-    for @a {
+sub infix:<orelse>(+a) {
+    my $ai := a.iterator;
+    my Mu $current := $ai.pull-one;
+    return Nil if $current =:= IterationEnd;
+    until ($_ := $ai.pull-one) =:= IterationEnd {
         return $current if $current.defined;
-        # Have to check Callable till we get tailthunky lists
         $current := $_ ~~ Callable
             ?? (.count ?? $_($current) !! $_())
             !! $_;

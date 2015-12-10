@@ -6144,11 +6144,12 @@ Compilation unit '$file' contained the following violations:
 
     sub thunkity_thunk($/,$thunky,$past,@clause) {
         my int $i := 0;
-        my int $e := +@clause;
+        my int $e := nqp::elems(@clause);
         my int $te := nqp::chars($thunky);
         my $type := nqp::substr($thunky,0,1);
         while $i < $e {
-            my $ast := @clause[$i].ast;
+            my $ast := @clause[$i];
+            $ast := $ast.ast if nqp::can($ast,'ast');  # reduce already passes ast...
 
             if $type eq 'T' || $type eq 'X' || $type eq 'B' {
                 my $argast := $ast;
@@ -6434,15 +6435,30 @@ Compilation unit '$file' contained the following violations:
                                            :scope<lexical>);
         my $metaop   := baseop_reduce($base<OPER><O>);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), $basepast);
+        my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
         if $<triangle> {
             $metapast.push($*W.add_constant('Int', 'int', 1));
         }
         my $args := $<args>.ast;
+        # one-arg rule?
         if +$args.list == 1 && !$args[0].flat && !$args[0].named {
             make QAST::Op.new(:node($/), :op<call>, $metapast, $args[0]);
         }
         else {
-            $args.name('&infix:<,>');
+            if $t {
+                # note("$metaop $t bingo\n" ~ $args.dump);
+                if $metaop eq '&METAOP_REDUCE_LEFT' || $metaop eq '&METAOP_REDUCE_LIST' {
+                    $args := thunkity_thunk($/,$t,QAST::Op.new( :op('call'), :name('&infix:<,>')),$args.list);
+                }
+                else {
+                    $*W.throw($/, 'X::Comp::NYI',
+                        feature => "Thunky reduction on funky associativity");
+                }
+                # note("$metaop $t new\n" ~ $args.dump);
+            }
+            else {
+                $args.name('&infix:<,>');
+            }
             make QAST::Op.new(:node($/), :op<call>, $metapast, $args);
         }
     }

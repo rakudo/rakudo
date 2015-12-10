@@ -3665,7 +3665,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<n=>, :assoc<non>, :dba<structural infix>, :diffy<1>',  '%structural');
         Perl6::Grammar.O(':prec<m=>, :assoc<left>, :dba<chaining>, :iffy<1>, :diffy<1> :pasttype<chain>',  '%chaining');
         Perl6::Grammar.O(':prec<l=>, :assoc<left>, :dba<tight and>, :thunky<.t>',  '%tight_and');
-        Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or> :thunky<.t>',  '%tight_or');
+        Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>, :thunky<.t>',  '%tight_or');
+        Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>',  '%tight_or_minmax');
         Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>, :thunky<.tt>', '%conditional');
         Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>, :thunky<tt>', '%conditional_ff');
         Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>', '%item_assignment');
@@ -4153,10 +4154,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<&&>   { <sym>  <O('%tight_and, :iffy<1>, :pasttype<if>')> }
 
     token infix:sym<||>   { <sym>  <O('%tight_or, :iffy<1>, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<^^>   { <sym>  <O('%tight_or, :iffy<1>, :pasttype<xor>')> }
+    token infix:sym<^^>   { <sym>  <O('%tight_or, :iffy<1>, :pasttype<xor>, :thunky<..x>')> }
     token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<defor>')> }
-    token infix:sym<min>  { <sym> >> <O('%tight_or')> }
-    token infix:sym<max>  { <sym> >> <O('%tight_or')> }
+    token infix:sym<min>  { <sym> >> <O('%tight_or_minmax')> }
+    token infix:sym<max>  { <sym> >> <O('%tight_or_minmax')> }
 
     token infix:sym<?? !!> {
         :my $*GOAL := '!!';

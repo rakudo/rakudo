@@ -178,10 +178,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
                 my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
-                $precomp.precompile($source.IO, $id);
+                $precomp.precompile($source.IO, $id, :force);
                 for @rev-deps -> $rev-dep-id {
                     my $source = $sources-dir.child($rev-dep-id);
-                    $precomp.precompile($source, $rev-dep-id) if $source.e;
+                    $precomp.precompile($source, $rev-dep-id, :force) if $source.e;
                 }
             }
         }

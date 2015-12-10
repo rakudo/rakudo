@@ -1,6 +1,7 @@
 class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has IO::Path $.prefix is required;
     has IO::Handle $!lock;
+    has int $!lock-count = 0;
 
     submethod BUILD(IO::Path :$!prefix) {
         $!prefix.mkdir;
@@ -20,22 +21,26 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         self!dir($compiler-id, $precomp-id).child($precomp-id.IO)
     }
 
-    method !lock(Int:D $mode) {
+    method !lock() {
         return if $*W && $*W.is_precompilation_mode();
         $!lock //= $.prefix.child('.lock').open(:create, :rw);
-        $!lock.lock($mode);
+        $!lock.lock(2) if $!lock-count == 0;
+        $!lock-count++;
     }
 
     method unlock() {
-        $!lock ?? $!lock.unlock !! True;
+        return if $*W && $*W.is_precompilation_mode();
+        die "unlock when we're not locked!" if $!lock-count == 0;
+        $!lock-count-- if $!lock-count > 0;
+        $!lock && $!lock-count == 0 ?? $!lock.unlock !! True;
     }
 
     method load(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
+        self!lock();
         my $path = self.path($compiler-id, $precomp-id);
         if $path ~~ :e {
-            self!lock(1);
             $path
         }
         else {
@@ -47,7 +52,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                        CompUnit::PrecompilationId $precomp-id)
         returns IO::Path
     {
-        self!lock(2);
+        self!lock();
         my $compiler-dir = self.prefix.child($compiler-id.IO);
         $compiler-dir.mkdir unless $compiler-dir.e;
         my $dest = self!dir($compiler-id, $precomp-id);

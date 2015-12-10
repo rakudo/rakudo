@@ -56,12 +56,17 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
         }
         else {
+            self.store.unlock;
             CompUnit::Handle
         }
     }
 
-    method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id) {
+    method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id, Bool :$force = False) {
         my $io = self.store.destination($*PERL.compiler.id, $id);
+        if not $force and $io.e and $io.s {
+            self.store.unlock;
+            return True;
+        }
 
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))

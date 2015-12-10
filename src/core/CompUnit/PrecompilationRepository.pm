@@ -74,7 +74,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           ?? '--ll-exception'
           !! Empty;
         %*ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain>>.path-spec.join(',');
-        %*ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES;
+        %*ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES // [];
         my $current_dist = %*ENV<RAKUDO_PRECOMP_DIST>;
         %*ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 

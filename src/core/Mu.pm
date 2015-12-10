@@ -702,6 +702,11 @@ multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
 
+proto sub infix:<!~~>(Mu \topic, Mu \matcher) { * }
+multi sub infix:<!~~>(Mu \topic, Mu \matcher) {
+    matcher.ACCEPTS(topic).not;
+}
+
 proto sub infix:<=:=>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) {

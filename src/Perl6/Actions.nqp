@@ -5890,6 +5890,14 @@ Compilation unit '$file' contained the following violations:
         # autoprime only on Whatever with explicit *
         return 0 if $lhs ~~ QAST::WVal && istype($lhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($lhs.value);
         return 0 if $rhs ~~ QAST::WVal && istype($rhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($rhs.value);
+
+        # don't need topicalization, so allow chaining?
+        return 0 if !$*COMPILING_CORE_SETTING && (
+            $rhs.has_compile_time_value ||
+            nqp::istype($rhs,QAST::Var) ||
+            nqp::istype($lhs,QAST::Op) && $lhs.op eq 'chain'
+        );
+
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;

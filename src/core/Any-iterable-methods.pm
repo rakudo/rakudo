@@ -11,6 +11,10 @@ use MONKEY-TYPING;
 augment class Any {
 
     proto method map(|) is nodal { * }
+    multi method map(Hash \h) {
+        die "Cannot map a {self.^name} to a {h.^name}.
+Did you mean to add a stub (\{...\}) or did you mean to .classify?"
+    }
 
     multi method map(\SELF: &block;; :$label, :$item) {
         sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, :$label);

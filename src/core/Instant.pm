@@ -8,7 +8,7 @@ my class Instant is Cool does Real {
       # tai-utc::initial-offset. Thus, $.tai matches TAI from 1970
       # to the present.
 
-    method new($tai) { self.bless: tai => $tai.Rat }
+    method new(*@) { X::Cannot::New.new(class => self).throw }
 
     method from-posix($posix, Bool $prefer-leap-second = False) {
     # $posix is in general not expected to be an integer.
@@ -20,11 +20,11 @@ my class Instant is Cool does Real {
             if $_ < $p {
                 ++$offset;
             } else {
-                return self.new: $posix + $offset + do
-                    $_ == $p && !$prefer-leap-second
+                return self.bless: tai => ($posix + $offset + do
+                    $_ == $p && !$prefer-leap-second).Rat
             }
         }
-        self.new: $posix + $offset;
+        self.bless: tai => ($posix + $offset).Rat;
     }
 
     method to-posix() {
@@ -47,7 +47,7 @@ my class Instant is Cool does Real {
         'Instant:' ~ $.tai
     }
     multi method perl(Instant:D:) {
-        "Instant.new($.tai.perl())";
+        "Instant.from-posix({ $.to-posix().perl })";
     }
     method Bridge(Instant:D:) { $.tai.Bridge }
     method Num   (Instant:D:) { $.tai.Num    }
@@ -96,23 +96,23 @@ multi sub infix:«>=»(Instant:D $a, Instant:D $b) {
 }
 
 multi sub infix:<+>(Instant:D $a, Real:D $b) {
-    Instant.new: $a.tai + $b;
+    Instant.bless: tai => $a.tai + $b.Rat;
 }
 multi sub infix:<+>(Real:D $a, Instant:D $b) {
-    Instant.new: $a + $b.tai;
+    Instant.bless: tai => $a.Rat + $b.tai;
 }
 multi sub infix:<+>(Instant:D $a, Duration:D $b) {
-    Instant.new: $a.tai + $b.tai;
+    Instant.bless: tai => $a.tai + $b.tai;
 }
 multi sub infix:<+>(Duration:D $a, Instant:D $b) {
-    Instant.new: $a.tai + $b.tai;
+    Instant.bless: tai => $a.tai + $b.tai;
 }
 
 multi sub infix:<->(Instant:D $a, Instant:D $b) {
     Duration.new: $a.tai - $b.tai;
 }
 multi sub infix:<->(Instant:D $a, Real:D $b) {
-    Instant.new: $a.tai - $b;
+    Instant.bless: tai => $a.tai - $b.Rat;
 }
 
 sub term:<time>() { nqp::p6box_i(nqp::time_i()) }

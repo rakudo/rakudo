@@ -12,7 +12,7 @@ my %provides =
     "experimental"               => "lib/experimental.pm6",
 ;
 
-$*REPO.repo-chain[* - 1].install(
+CompUnit::RepositoryRegistry.repository-for-name('perl').install(
     Distribution.new(
         name     => "CORE",
         auth     => "perl",

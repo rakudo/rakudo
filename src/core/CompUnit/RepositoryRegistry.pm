@@ -1,29 +1,13 @@
 class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
-class CompUnit::RepositoryRegistry { ... }
-
-my class Perl5ModuleLoaderStub {
-    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
-        {
-            CompUnit::RepositoryRegistry.load_module('Inline::Perl5', {}, @GLOBALish, :$line, :$file);
-            CATCH {
-                $*W.find_symbol(nqp::list('X','NYI','Available')).new(
-                    :available('Inline::Perl5'), :feature('Perl 5')).throw;
-            }
-        }
-
-        # Inline::Perl5 has overwritten this module loader at this point
-        @*MODULES.pop; # $module_name is already on the load stack
-        return CompUnit::RepositoryRegistry.load_module($module_name, %opts, @GLOBALish, :$line, :$file);
-    }
-}
+class CompUnit::Repository::NQP { ... }
+class CompUnit::Repository::Perl5 { ... }
 
 class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
     my %modules_loaded;
 
     my %language_module_loaders;
-    %language_module_loaders<Perl5> := Perl5ModuleLoaderStub;
     # We're using Perl6::ModuleLoader instead of NQP's here,
     # so it can special-cases NQP wrt GLOBALish correctly.
     %language_module_loaders<NQP>   := nqp::gethllsym('perl6', 'ModuleLoader');
@@ -147,7 +131,9 @@ class CompUnit::RepositoryRegistry {
             }
         }
 
-        my CompUnit::Repository $next-repo;
+        my CompUnit::Repository $next-repo := CompUnit::Repository::NQP.new(
+            :next-repo(CompUnit::Repository::Perl5.new)
+        );
         my %repos;
         my $SPEC := $*SPEC;
         my &canon = -> $repo {
@@ -163,6 +149,7 @@ class CompUnit::RepositoryRegistry {
     }
 
     method repository-for-name(Str:D $name) {
+        $*REPO; # initialize if not yet done
         %custom-lib{$name}
     }
 
@@ -198,31 +185,20 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                 }
                 @*MODULES.push: $module_name;
 
-                if %opts<from> {
-                    # See if we need to load it from elsewhere.
-                    if %language_module_loaders{%opts<from>}:exists {
-                        return %language_module_loaders{%opts<from>}.load_module($module_name,
-                            %opts, GLOBALish, :$line, :$file);
-                    }
-                    else {
-                        nqp::die("Do not know how to load code from " ~ %opts<from>);
-                    }
-                }
-                else {
-                    my $compunit := (
-                        $file
-                        ?? $*REPO.load($file.IO)
-                        !! $*REPO.need(
-                            CompUnit::DependencySpecification.new(
-                                :short-name($module_name),
-                                :auth-matcher(%opts<auth> // True),
-                                :version-matcher(%opts<ver> // True),
-                            ),
-                        )
-                    );
-                    GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
-                    $compunit.handle
-                }
+                my $compunit := (
+                    $file
+                    ?? $*REPO.load($file.IO)
+                    !! $*REPO.need(
+                        CompUnit::DependencySpecification.new(
+                            :short-name($module_name),
+                            :from(%opts<from> // 'Perl6'),
+                            :auth-matcher(%opts<auth> // True),
+                            :version-matcher(%opts<ver> // True),
+                        ),
+                    )
+                );
+                GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
+                $compunit.handle
             }
         } )
     }

@@ -17,62 +17,64 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     )
         returns CompUnit:D
     {
-        state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
-        my $name               = $spec.short-name;
-        return %!loaded{$name} if %!loaded{$name}:exists;
+        if $spec.from eq 'Perl6' {
+            state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
+            my $name               = $spec.short-name;
+            return %!loaded{$name} if %!loaded{$name}:exists;
 
-        my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
-        my $found;
+            my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
+            my $found;
 
-        # find source file
-        # pick a META6.json if it is there
-        if (my $meta = $!prefix.child('META6.json')) && $meta.f {
-            try {
-                my $json = from-json $meta.slurp;
-                if $json<provides>{$name} -> $file {
-                    my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
-                    $found = $path if $path.f;
-                }
+            # find source file
+            # pick a META6.json if it is there
+            if (my $meta = $!prefix.child('META6.json')) && $meta.f {
+                try {
+                    my $json = from-json $meta.slurp;
+                    if $json<provides>{$name} -> $file {
+                        my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
+                        $found = $path if $path.f;
+                    }
 
-                CATCH {
-                    when JSONException {
-                        fail "Invalid JSON found in META6.json";
+                    CATCH {
+                        when JSONException {
+                            fail "Invalid JSON found in META6.json";
+                        }
                     }
                 }
             }
-        }
-        # deduce path to compilation unit from package name
-        else {
-            if %seen{$base} -> $compunit {
-                return $compunit;
-            }
+            # deduce path to compilation unit from package name
+            else {
+                if %seen{$base} -> $compunit {
+                    return $compunit;
+                }
 
-            # have extensions to check
-            elsif %extensions<Perl6> -> @extensions {
-                for @extensions -> $extension {
-                    my $path = $base ~ $extension;
-                    $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
+                # have extensions to check
+                elsif %extensions<Perl6> -> @extensions {
+                    for @extensions -> $extension {
+                        my $path = $base ~ $extension;
+                        $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
+                    }
                 }
             }
-        }
 
-        if $found {
-            my $id = nqp::sha1($name ~ $*REPO.id);
-            say "$id $found" if $*W and $*W.is_precompilation_mode;
-            my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $handle = (
-                $precomp.may-precomp and (
-                    $precomp.load($id, :since($found.modified)) # already precompiled?
-                    or $precomp.precompile($found, $id) and $precomp.load($id) # if not do it now
-                )
-            );
-            my $precompiled = ?$handle;
+            if $found {
+                my $id = nqp::sha1($name ~ $*REPO.id);
+                say "$id $found" if $*W and $*W.is_precompilation_mode;
+                my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
+                my $handle = (
+                    $precomp.may-precomp and (
+                        $precomp.load($id, :since($found.modified)) # already precompiled?
+                        or $precomp.precompile($found, $id) and $precomp.load($id) # if not do it now
+                    )
+                );
+                my $precompiled = ?$handle;
 
-            $handle ||= CompUnit::Loader.load-source-file($found); # precomp failed
+                $handle ||= CompUnit::Loader.load-source-file($found); # precomp failed
 
-            return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                :short-name($name), :$handle, :repo(self), :repo-id($id), :$precompiled
-            );
+                return %!loaded{$name} = %seen{$base} = CompUnit.new(
+                    :short-name($name), :$handle, :repo(self), :repo-id($id), :$precompiled
+                );
+            }
         }
 
         return self.next-repo.need($spec, $precomp) if self.next-repo;

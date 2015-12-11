@@ -1405,6 +1405,19 @@ class Perl6::Optimizer {
                     }
                 }
             }
+            elsif $!level >= 4 &&
+                    ($op.name eq '&prefix:<++>' ||
+                     $op.name eq '&postfix:<++>' && $!void_context)
+            {
+                my $var := $op[0];
+                if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref' && nqp::objprimspec($var.returns) == 1 {
+                    my $want := QAST::Want.new(
+                                QAST::WVal.new( :value($!symbols.find_lexical('Int')) ),
+                                'Ii',
+                                QAST::IVal.new( :value(1) ));
+                    return QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op('add_i'), $var, $want));
+                }
+            }
             # If it's an onlystar proto, we have a couple of options.
             # The first is that we may be able to work out what to
             # call at compile time. Failing that, we can at least inline

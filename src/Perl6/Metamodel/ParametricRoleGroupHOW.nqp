@@ -177,6 +177,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $c.HOW.attributes($c, |@pos, |%name);
     }
 
+    method roles($obj, *%named) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.roles($c, |%named)
+    }
+
     method !get_default_candidate($obj) {
         @!candidates[0]
     }

@@ -93,18 +93,18 @@ multi sub fail() {
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload !! X::AdHoc.new(:$payload));
 
-    my Mu $return := nqp::getlexcaller('RETURN');
+    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
 
-    $fail
+    $fail.exception.throw
 }
 multi sub fail(Exception:U $e) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
     );
-    my Mu $return := nqp::getlexcaller('RETURN');
+    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
-    $fail
+    $fail.exception.throw
 }
 multi sub fail($payload) {
     my $fail := Failure.new( $payload ~~ Exception
@@ -112,29 +112,29 @@ multi sub fail($payload) {
       !! X::AdHoc.new(:$payload)
     );
 
-    my Mu $return := nqp::getlexcaller('RETURN');
+    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
 
-    $fail
+    $fail.exception.throw
 }
 multi sub fail(|cap (*@msg)) {
     my $fail := Failure.new(X::AdHoc.from-slurpy(|cap));
-    my Mu $return := nqp::getlexcaller('RETURN');
+    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
-    $fail
+    $fail.exception.throw
 }
 multi sub fail(Failure:U $f) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $f.^name))
     );
-    my Mu $return := nqp::getlexcaller('RETURN');
+    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
-    $fail
+    $fail.exception.throw
 }
 multi sub fail(Failure:D $fail) {
-    my Mu $return := nqp::getlexcaller('RETURN');
+    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
-    $fail
+    $fail.exception.throw
 }
 
 multi sub die(Failure:D $f) {

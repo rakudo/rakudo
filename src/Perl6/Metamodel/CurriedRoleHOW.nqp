@@ -96,8 +96,8 @@ class Perl6::Metamodel::CurriedRoleHOW
         @!pos_args
     }
     
-    method roles($obj, :$transitive) {
-        $!curried_role.HOW.roles($obj, :transitive($transitive))
+    method roles($obj, :$transitive = 1) {
+        $!curried_role.HOW.roles($obj, :$transitive)
     }
     
     method role_typecheck_list($obj) {

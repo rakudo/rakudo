@@ -165,7 +165,7 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
     
-    method roles($obj, :$local, :$transitive) {
+    method roles($obj, :$local, :$transitive = 1) {
         my @result;
         for @!roles {
             @result.push($_);
@@ -182,7 +182,7 @@ class Perl6::Metamodel::ClassHOW
                     $first := 0;
                     next;
                 }
-                for $_.HOW.roles($_, :transitive($transitive), :local(1)) {
+                for $_.HOW.roles($_, :$transitive, :local(1)) {
                     @result.push($_);
                 }
             }

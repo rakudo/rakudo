@@ -82,7 +82,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
         @!collisions
     }
     
-    method roles($obj, :$transitive) {
+    method roles($obj, :$transitive = 1) {
         if $transitive {
             my @trans;
             for @!roles {

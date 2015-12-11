@@ -90,7 +90,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!composed
     }
     
-    method roles($obj, :$transitive) {
+    method roles($obj, :$transitive = 1) {
         if $transitive {
             my @result;
             for self.roles_to_compose($obj) {

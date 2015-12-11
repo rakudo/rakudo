@@ -1023,6 +1023,7 @@ Compilation unit '$file' contained the following violations:
                         ));
                     }
                 }
+                $block[1] := wrap_return_type_check($block[1], $*DECLARAND);
             }
             else {
                 if $*IMPLICIT {

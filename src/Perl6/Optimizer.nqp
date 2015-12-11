@@ -1297,7 +1297,7 @@ class Perl6::Optimizer {
     
     method visit_op_children($op) {
         my int $orig_void := $!void_context;
-        $!void_context    := 0;
+        $!void_context    := $op.op eq 'callmethod' && $op.name eq 'sink';
         self.visit_children($op);
         $!void_context := $orig_void;
     }

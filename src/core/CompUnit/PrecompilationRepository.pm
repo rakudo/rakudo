@@ -51,6 +51,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 $handle
             }
             else {
+                self.store.delete($*PERL.compiler.id, $id); # remove outdated file so we precompile again
                 self.store.unlock;
                 CompUnit::Handle
             }

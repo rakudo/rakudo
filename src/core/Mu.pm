@@ -7,6 +7,8 @@ my class Mu { # declared in BOOTSTRAP
 
     method self { self }
 
+    method sink(--> Nil) { }
+
     # XXX while the GLR is fanning out to the ecosystem
     proto method gimme(|) {
         die "

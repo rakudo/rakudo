@@ -43,7 +43,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
 
                 method process-buffer(HyperWorkBuffer:D $work) {
-                    unless $!source.process-buffer($work) =:= Mu {
+                    unless $!source.process-buffer($work) =:= Nil {
                         $work.swap();
                     }
                     my \buffer-mapper = sequential-map($work.input-iterator, &!block, :$label);

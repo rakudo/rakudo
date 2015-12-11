@@ -186,7 +186,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'call',         1,
             'callmethod',   1,
             'if',           1,
+            'while',        1,
             'unless',       1,
+            'until',        1,
+            'repeat_until', 1,
+            'repeat_while', 1,
             'handle',       1,
             'hllize',       1,
     );

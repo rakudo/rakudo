@@ -10,7 +10,7 @@ class CompUnit::Repository::NQP does CompUnit::Repository {
 
             return CompUnit.new(
                 :short-name($spec.short-name),
-                :handle($nqp.load_module($spec.short-name, {:from<NQP>})),
+                :handle(CompUnit::Handle.new($nqp.load_module($spec.short-name, {:from<NQP>}))),
                 :repo(self),
                 :repo-id($spec.short-name),
                 :from($spec.from),

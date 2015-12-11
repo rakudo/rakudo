@@ -1632,6 +1632,14 @@ Compilation unit '$file' contained the following violations:
         %info<container_type> := %info<container_base> := $*W.find_symbol(['Scalar']);
         %info<scalar_value> := %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
         $*W.install_lexical_container($pad, $sym, %info, $descriptor, :scope('state'));
+        for @($pad[0]) {
+            if nqp::istype($_, QAST::Var) && $_.name eq $sym {
+                # Mark, so we can migrate the once into a correct scope.
+                $_.annotate('statement_id', $*STATEMENT_ID);
+                $_.annotate('in_stmt_mod', $*IN_STMT_MOD);
+                last;
+            }
+        }
 
         # generate code that runs the block only once
         make QAST::Op.new(
@@ -1754,7 +1762,7 @@ Compilation unit '$file' contained the following violations:
             my $stmt := $<statement>.ast;
             $block := make_thunk_ref($stmt, $/);
             migrate_blocks($*W.cur_lexpad, $block.ann('past_block'),
-                -> $b { $b.ann('statement_id') == $stmt.ann('statement_id') });
+                -> $b { ($b.ann('statement_id') // -1) == $stmt.ann('statement_id') });
         }
         make block_closure($block);
     }
@@ -5641,18 +5649,23 @@ Compilation unit '$file' contained the following violations:
         my int $n := nqp::elems(@decls);
         my int $i := 0;
         while $i < $n {
-            if nqp::istype(@decls[$i], QAST::Block) {
-                if !$predicate || $predicate(@decls[$i]) {
-                    $to[0].push(@decls[$i]);
+            my $decl := @decls[$i];
+            if nqp::istype($decl, QAST::Block) {
+                if !$predicate || $predicate($decl) {
+                    $to[0].push($decl);
                     @decls[$i] := QAST::Op.new( :op('null') );
                 }
             }
-            elsif (nqp::istype(@decls[$i], QAST::Stmt) || nqp::istype(@decls[$i], QAST::Stmts)) &&
-                  nqp::istype(@decls[$i][0], QAST::Block) {
-                if !$predicate || $predicate(@decls[$i][0]) {
-                    $to[0].push(@decls[$i][0]);
-                    @decls[$i][0] := QAST::Op.new( :op('null') );
+            elsif (nqp::istype($decl, QAST::Stmt) || nqp::istype($decl, QAST::Stmts)) &&
+                  nqp::istype($decl[0], QAST::Block) {
+                if !$predicate || $predicate($decl[0]) {
+                    $to[0].push($decl[0]);
+                    $decl[0] := QAST::Op.new( :op('null') );
                 }
+            }
+            elsif nqp::istype($decl, QAST::Var) && $predicate && $predicate($decl) {
+                $to[0].push($decl);
+                @decls[$i] := QAST::Op.new( :op('null') );
             }
             $i++;
         }
@@ -7973,7 +7986,7 @@ Compilation unit '$file' contained the following violations:
         $*W.pop_lexpad();
         if nqp::defined($migrate_stmt_id) {
             migrate_blocks($*W.cur_lexpad(), $block, -> $b {
-                !$b.ann('in_stmt_mod') && $b.ann('statement_id') == $migrate_stmt_id
+                !$b.ann('in_stmt_mod') && ($b.ann('statement_id') // -1) == $migrate_stmt_id
             });
         }
         ($*W.cur_lexpad())[0].push($block);

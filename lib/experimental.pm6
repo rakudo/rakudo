@@ -23,3 +23,13 @@ package EXPORT::cached {
 package EXPORT::macros {
     OUR::<EXPERIMENTAL-MACROS> := True;
 }
+
+package EXPORT::smallnatives {
+    our native int1 is repr('P6int') is Int is nativesize( 1) { }
+    our native int2 is repr('P6int') is Int is nativesize( 2) { }
+    our native int4 is repr('P6int') is Int is nativesize( 4) { }
+    our native uint1 is repr('P6int') is Int is nativesize( 1) is unsigned { }
+    our native   bit is repr('P6int') is Int is nativesize( 1) is unsigned { }
+    our native uint2 is repr('P6int') is Int is nativesize( 2) is unsigned { }
+    our native uint4 is repr('P6int') is Int is nativesize( 4) is unsigned { }
+}

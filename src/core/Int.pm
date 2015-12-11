@@ -140,17 +140,19 @@ my class Int does Real { # declared in BOOTSTRAP
             when int32  { Range.new(         -2147483648, 2147483647         ) }
             when int16  { Range.new(              -32768, 32767              ) }
             when int8   { Range.new(                -128, 127                ) }
-            when int4   { Range.new(                  -8, 7                  ) }
-            when int2   { Range.new(                  -2, 1                  ) }
-            when int1   { Range.new(                  -1, 0                  ) }
+            # Bring back in a future Perl 6 version, or just put on the type object
+            #when int4   { Range.new(                  -8, 7                  ) }
+            #when int2   { Range.new(                  -2, 1                  ) }
+            #when int1   { Range.new(                  -1, 0                  ) }
 
             when uint64 { Range.new( 0, 18446744073709551615 ) }
             when uint32 { Range.new( 0, 4294967295           ) }
             when uint16 { Range.new( 0, 65535                ) }
             when uint8  { Range.new( 0, 255                  ) }
-            when uint4  { Range.new( 0, 15                   ) }
-            when uint2  { Range.new( 0, 3                    ) }
-            when uint1  { Range.new( 0, 1                    ) }
+            # Bring back in a future Perl 6 version, or just put on the type object
+            #when uint4  { Range.new( 0, 15                   ) }
+            #when uint2  { Range.new( 0, 3                    ) }
+            #when uint1  { Range.new( 0, 1                    ) }
 
             when Int    {  # smartmatch matches both UInt and Int
                 .^name eq 'UInt'

@@ -1295,7 +1295,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
-        my @list = self.words;
+        my @list := self.words.List;
         return @list == 1 ?? @list[0] !! @list;
     }
     multi method words(Str:D: $limit) {

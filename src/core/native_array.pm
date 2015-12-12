@@ -738,17 +738,12 @@ sub permutations(int $n where $n > 0) {
                 $l-- until @!a[$k] < @!a[$l];
                 # use L<https://en.wikipedia.org/wiki/XOR_swap_algorithm>
                 # @!a[$k, $l].=reverse
-                @!a[$k] +^= @!a[$l];
-                @!a[$k] +^= @!a[$l] = @!a[$k] +^ @!a[$l];
-                
+                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k];
+
                 # @!a[$k+1 .. @!a.end].=reverse;
                 $l = $!n;
-                until ++$k >= --$l {
-                    @!a[$k] +^= @!a[$l];
-                    @!a[$k] +^= @!a[$l] = @!a[$k] +^ @!a[$l];
-                }
-                @!a.List;
-            }
+                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k] until ++$k >= --$l;
+                @!a.List;            }
             method count-only { [*] 1 .. $!n }
         }.new(:$n)
     );

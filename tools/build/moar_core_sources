@@ -154,10 +154,12 @@ src/core/CompUnit/PrecompilationRepository.pm
 src/core/CompUnit/Repository.pm
 src/core/CompUnit/Repository/Installable.pm
 src/core/CompUnit.pm
-src/core/CompUnitRepo.pm
+src/core/CompUnit/RepositoryRegistry.pm
 src/core/CompUnit/Repository/Locally.pm
 src/core/CompUnit/Repository/FileSystem.pm
 src/core/CompUnit/Repository/Installation.pm
+src/core/CompUnit/Repository/NQP.pm
+src/core/CompUnit/Repository/Perl5.pm
 src/core/Argfiles.pm
 src/core/Process.pm
 src/core/StrDistance.pm

@@ -731,8 +731,8 @@ sub permutations(int $n where $n > 0) {
                 # Find the largest index k such that a[k] < a[k + 1].
                 # If no such index exists, the permutation is the last permutation.
                 my int $k = @!a.end - 1;
-                $k-- until $k < 0 or @!a[$k] < @!a[$k + 1];
-                return IterationEnd if $k < 0;
+                $k-- or return IterationEnd until @!a[$k] < @!a[$k + 1];
+                
                 # Find the largest index l greater than k such that a[k] < a[l].
                 my int $l = @!a.end;
                 $l-- until @!a[$k] < @!a[$l];

@@ -488,7 +488,12 @@ my class array does Iterable is repr('VMArray') {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
+#?if moar
+                nqp::multidimref_i(self, $idxs)
+#?endif
+#?if !moar
                 nqp::atposnd_i(self, $idxs)
+#?endif
             }
             elsif $numind > $numdims {
                 X::TooManyDimensions.new(
@@ -549,7 +554,12 @@ my class array does Iterable is repr('VMArray') {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
+#?if moar
+                nqp::multidimref_n(self, $idxs)
+#?endif
+#?if !moar
                 nqp::atposnd_n(self, $idxs)
+#?endif
             }
             elsif $numind > $numdims {
                 X::TooManyDimensions.new(

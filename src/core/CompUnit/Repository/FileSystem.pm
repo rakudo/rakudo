@@ -59,7 +59,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             if $found {
                 my $id = nqp::sha1($name ~ $*REPO.id);
-                say "$id $found" if $*W and $*W.is_precompilation_mode;
                 my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
                 my $handle = (
                     $precomp.may-precomp and (
@@ -69,6 +68,14 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 );
                 my $precompiled = ?$handle;
 
+                if $*W and $*W.is_precompilation_mode {
+                    if $precompiled {
+                        say "$id $found";
+                    }
+                    else {
+                        nqp::exit(0);
+                    }
+                }
                 $handle ||= CompUnit::Loader.load-source-file($found); # precomp failed
 
                 return %!loaded{$name} = %seen{$base} = CompUnit.new(

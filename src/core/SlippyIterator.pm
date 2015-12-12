@@ -7,7 +7,11 @@ my role SlippyIterator does Iterator {
     # The current Slip we're iterating.
     has $!slip-iter;
 
-    method start-slip(Slip:D $slip) {
+    proto method start-slip(|) { * }
+    multi method start-slip(Slip:U $slip) {
+        $slip
+    }
+    multi method start-slip(Slip:D $slip) {
         $!slipping = 1;
         $!slip-iter := $slip.iterator;
         self.slip-one()

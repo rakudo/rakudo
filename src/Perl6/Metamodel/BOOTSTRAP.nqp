@@ -2986,7 +2986,13 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 
 # Roles pretend to be narrower than certain types for the purpose
 # of type checking. Also, they pun to classes.
-my %excluded := nqp::hash('ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu);
+my %excluded := nqp::hash(
+    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
+    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
+    'WHICH', Mu, 'WHERE', Mu, 'so', Mu, 'not', Mu,
+    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
+    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
+    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
 Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
     Perl6::Metamodel::ClassHOW, %excluded);

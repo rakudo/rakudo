@@ -292,25 +292,39 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$SINK!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$SINK), %other );
+    nqp::iscont(pos)
+        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$SINK), %other )
+        !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$SINK), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$delete!,*%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$delete), %other );
+    nqp::iscont(pos)
+        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$delete), %other )
+        !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$delete), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$exists!,*%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$exists), %other );
+    nqp::iscont(pos)
+        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$exists), %other )
+        !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$exists), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$kv!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$kv), %other );
+    nqp::iscont(pos)
+        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$kv), %other )
+        !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$kv), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$p!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$p), %other );
+    nqp::iscont(pos)
+        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$p), %other )
+        !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$p), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$k!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$k), %other );
+    nqp::iscont(pos)
+        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$k), %other )
+        !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$k), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$v!, *%other) is raw {
-   SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$v), %other );
+    nqp::iscont(pos)
+        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$v), %other )
+        !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$v), %other )
 }
 
 # @a[->{}]

@@ -59,7 +59,7 @@ my class Signature { # declared in BOOTSTRAP
 
         my $here=$sclass{True}.SetHash;
         my $hasslurpy=($sclass{True} // ()).grep({.slurpy});
-        $here{$hasslurpy} :delete;
+        $here{@$hasslurpy} :delete;
         $hasslurpy .= Bool;
         for flat @($tclass{True} // ()) -> $other {
             my $this;

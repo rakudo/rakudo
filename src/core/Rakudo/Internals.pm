@@ -393,14 +393,6 @@ my class Rakudo::Internals {
             X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
         }
 
-        method reverse(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
-        }
-
-        method rotate(::?CLASS:D: Cool) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
-        }
-
         multi method keys(::?CLASS:D:) {
             my @shape := self.shape;
             @shape.elems == 1

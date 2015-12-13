@@ -252,6 +252,18 @@ my class Array { # declared in BOOTSTRAP
             self.STORE((item,))
         }
 
+        method reverse(::?CLASS:D:) {
+            self.shape.elems == 1
+                ?? self.new(:shape(self.shape), self.List.reverse())
+                !! X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
+        }
+
+        method rotate(::?CLASS:D: Cool \n) {
+            self.shape.elems == 1
+                ?? self.new(:shape(self.shape), self.List.rotate(n))
+                !! X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
+        }
+
         # A shaped array isn't lazy, we these methods don't need to go looking
         # into the "todo".
         multi method elems(::?CLASS:D:) is nodal {
@@ -278,7 +290,7 @@ my class Array { # declared in BOOTSTRAP
             arr does ShapedArray[Mu];
             arr.^set_name('Array');
             nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
-            die "Creating shaped array with initial values NYI" if values;
+            arr.STORE(values) if values;
         }
         else {
             arr.STORE(values);
@@ -738,13 +750,13 @@ my class Array { # declared in BOOTSTRAP
                 arr does ShapedArray[Mu];
                 arr.^set_name('Array');
                 nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
-                die "Creating shaped array with initial values NYI" if values;
                 nqp::bindattr(
                     arr,
                     Array,
                     '$!descriptor',
                     Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
                 );
+                arr.STORE(values) if values;
             } else {
                 nqp::bindattr(
                     arr,

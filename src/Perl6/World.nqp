@@ -974,7 +974,6 @@ class Perl6::World is HLL::World {
                 }
             }
             self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
-                self.perl6_module_loader_code(),
                 QAST::Op.new(
                    :op('callmethod'), :name('load_module'),
                    QAST::WVal.new( :value(self.find_symbol(['CompUnit', 'RepositoryRegistry'])) ),

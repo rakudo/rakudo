@@ -1355,6 +1355,15 @@ my class Supply {
             }
         }
     }
+
+    method share(Supply:D:) {
+        my $sup = Supplier.new;
+        self.tap:
+            -> \msg { $sup.emit(msg) },
+            done => -> { $sup.done() },
+            quit => -> \ex { $sup.quit(ex) }
+        $sup.Supply
+    }
 }
 
 # A Supplier is a convenient way to create a live Supply. The publisher can

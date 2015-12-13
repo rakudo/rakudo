@@ -1,3 +1,5 @@
+class X::Assignment::RO { ... }
+
 my class Nil is Cool { # declared in BOOTSTRAP
     method new(*@) { Nil }
     multi method gist(Nil:) { 'Nil' }
@@ -13,7 +15,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method BIND-KEY(*@)   { fail X::Bind.new(target => '{self.gist}') }
     method ASSIGN-POS(*@) { die "Attempted to ASSIGN-POS to {self.gist}." }
     method ASSIGN-KEY(*@) { die "Attempted to ASSIGN-KEY to {self.gist}." }
-    method STORE(*@)      { die "Attempted to STORE to {self.gist}." }
+    method STORE(*@)      { X::Assignment::RO.new(:typename<Nil>).throw }
     method push(*@)    is nodal { die "Attempted to push to {self.gist}." }
     method append(*@)  is nodal { die "Attempted to append to {self.gist}." }
     method unshift(*@) is nodal { die "Attempted to unshift to {self.gist}." }

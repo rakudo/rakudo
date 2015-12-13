@@ -148,6 +148,7 @@ S02-types/pair.t
 S02-types/list.t
 S02-types/parsing-bool.t
 S02-types/range.t
+S02-types/resolved-in-setting.t
 S02-types/set.t
 S02-types/sethash.t
 S02-types/sigils-and-types.t

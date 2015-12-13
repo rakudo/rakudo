@@ -527,6 +527,7 @@ S09-multidim/assign.t
 S09-multidim/decl.t
 S09-multidim/indexing.t
 S09-multidim/methods.t
+S09-multidim/subs.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 S09-typed-arrays/native.t

@@ -3731,7 +3731,7 @@ class Perl6::World is HLL::World {
         %opts<worries> := p6ize_recursive(@*WORRIES) if @*WORRIES;
         %opts<filename> := nqp::box_s(self.current_file,self.find_symbol(['Str']));
         try {
-            my $group_type := self.find_symbol(['X', 'Comp', 'Group']);
+            my $group_type := self.find_symbol(['X', 'Comp', 'Group'], :setting-only);
             return $group_type.new(|%opts);
             CATCH {
                 nqp::print("Error while constructing error object:");
@@ -3970,7 +3970,7 @@ class Perl6::World is HLL::World {
         my int $found_xcbt := 0;
         my $x_comp_bt;
         try {
-            $x_comp_bt := self.find_symbol(['X', 'Comp', 'BeginTime']);
+            $x_comp_bt := self.find_symbol(['X', 'Comp', 'BeginTime'], :setting-only);
             $found_xcbt++;
         }
         if $found_xcbt {
@@ -3994,7 +3994,7 @@ class Perl6::World is HLL::World {
         my $p6ex := $coercer($err);
         unless nqp::can($p6ex, 'SET_FILE_LINE') {
             try {
-                my $x_comp := self.find_symbol(['X', 'Comp']);
+                my $x_comp := self.find_symbol(['X', 'Comp'], :setting-only);
                 $p6ex.HOW.mixin($p6ex, $x_comp).BUILD_LEAST_DERIVED(nqp::hash());
             }
         }

@@ -3932,7 +3932,7 @@ Compilation unit '$file' contained the following violations:
                 nqp::push(@redecl, $cur_key);
                 $*W.install_lexical_symbol($block, $cur_key,
                     $*W.find_symbol(['Failure']).new(
-                        $*W.find_symbol(['X', 'PoisonedAlias']).new(
+                        $*W.find_symbol(['X', 'PoisonedAlias'], :setting-only).new(
                             :alias($cur_key), :package-type<enum>, :package-name($name)
                         )
                     )
@@ -4918,7 +4918,7 @@ Compilation unit '$file' contained the following violations:
         # we don't always have X::StubCode available.  If that
         # is the case, fall back to using the string variant
         try {
-            my $X_StubCode := $*W.find_symbol(['X', 'StubCode']);
+            my $X_StubCode := $*W.find_symbol(['X', 'StubCode'], :setting-only);
             $past[0].named('message');
             $past[0] := QAST::Op.new(
                 :op('callmethod'), :name('new'),

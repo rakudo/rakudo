@@ -5,18 +5,6 @@ class CompUnit::Repository::Perl5 { ... }
 
 class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
-    my %modules_loaded;
-
-    my %language_module_loaders;
-    # We're using Perl6::ModuleLoader instead of NQP's here,
-    # so it can special-cases NQP wrt GLOBALish correctly.
-    %language_module_loaders<NQP>   := nqp::gethllsym('perl6', 'ModuleLoader');
-
-    method register_language_module_loader($lang, $loader, :$force) {
-        nqp::die("Language loader already registered for $lang")
-            if ! $force && nqp::existskey(%language_module_loaders, $lang);
-        %language_module_loaders{$lang} := $loader;
-    }
 
     method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
         state %include-spec2cur;

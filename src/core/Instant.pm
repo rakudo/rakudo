@@ -122,11 +122,8 @@ sub term:<now>() {
     Instant.from-posix: nqp::time_n
 }
 
-#{
-    my num $init-time-num = nqp::time_n;  # need find a way to not leak this
-    multi sub INITIALIZE_DYNAMIC('$*INITTIME') {
-        PROCESS::<$INITTIME> := Instant.from-posix: $init-time-num;
-    }
-#}
+multi sub INITIALIZE_DYNAMIC('$*INITTIME') {
+    PROCESS::<$INITTIME> := Instant.from-posix: Rakudo::Internals.INITTIME;
+}
 
 # vim: ft=perl6 expandtab sw=4

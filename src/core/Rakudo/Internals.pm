@@ -621,6 +621,9 @@ my class Rakudo::Internals {
           ?? ("\e[31m", "\e[0m", "\e[32m", "\e[33m", "\x[23CF]")
           !! ("", "", "", "", "<HERE>");
     }
+
+    my num $init-time-num = nqp::time_n;
+    method INITTIME() { $init-time-num }
 }
 
 # vim: ft=perl6 expandtab sw=4

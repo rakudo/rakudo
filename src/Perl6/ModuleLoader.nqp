@@ -161,6 +161,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     self.merge_globals($_.value.WHO, ($target){$sym}.WHO);
                     ($target){$sym} := $_.value;
                 }
+                elsif nqp::eqat($_.key, '&', 0) {
+                    # "Latest wins" semantics for functions
+                    ($target){$sym} := $_.value;
+                }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }

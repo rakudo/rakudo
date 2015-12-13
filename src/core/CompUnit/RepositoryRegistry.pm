@@ -199,11 +199,7 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
             # If it's a Stash in conflict, we make sure any original entries get
             # appropriately copied.
             if $orig.HOW.name($orig) eq 'Stash' {
-                for $orig.FLATTENABLE_HASH() {
-                    if !nqp::existskey($current, $_.key) || nqp::eqat($_.key, '&', 0) {
-                        $current{$_.key} := $_.value;
-                    }
-                }
+                $current.merge-symbols($orig);
             }
             # We could complain about anything else, and may in the future; for
             # now, we let it pass by with "latest wins" semantics.

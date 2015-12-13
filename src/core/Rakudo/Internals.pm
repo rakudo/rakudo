@@ -510,6 +510,10 @@ my class Rakudo::Internals {
                 }
             }
         }
+
+        multi method Slip() {
+            Slip.from-iterator(self.iterator)
+        }
     }
 
     our class SupplySequencer {

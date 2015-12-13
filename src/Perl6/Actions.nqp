@@ -4677,7 +4677,7 @@ Compilation unit '$file' contained the following violations:
             # evaluate it to get that.
             my @trait_arg;
             if $<circumfix> {
-                my $arg := $<circumfix>[0].ast;
+                my $arg := WANTED($<circumfix>[0].ast);
                 if nqp::istype($arg, QAST::Want) {
                     $arg := $arg[0];
                 }

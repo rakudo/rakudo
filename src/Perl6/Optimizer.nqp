@@ -1751,14 +1751,15 @@ class Perl6::Optimizer {
             my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
             $name         := $var.name unless $name;
             my str $sigil := nqp::substr($name, 0, 1);
-            if $sigil eq '$' || $sigil eq '@' || $sigil eq '%' {
+            if $name ne "Nil" {
                 $!problems.add_worry(
                   $var,
-                  $name eq $sigil
-                    ?? "Useless use of unnamed $sigil variable in sink context"
-                    !! "Useless use of variable $name in sink context"
+                  nqp::index(' $@%&', $sigil) < 1
+                    ?? "Useless use of $name symbol in sink context"
+                    !! $sigil eq $name
+                        ?? "Useless use of unnamed $sigil variable in sink context"
+                        !! "Useless use of $name in sink context"
                 );
-                return $NULL unless $!in_declaration;  # XXX shouldn't need this
             }
         }
 

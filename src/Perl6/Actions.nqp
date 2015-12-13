@@ -19,7 +19,6 @@ sub block_closure($code) {
 sub wanted($ast) {
     return $ast unless nqp::can($ast,'ann');
     return $ast if $ast.ann('WANTED');  # already marked from here down
-    return $ast if $ast.ann('wanted');  # already marked from here down
     if nqp::istype($ast,QAST::Stmt) ||
        nqp::istype($ast,QAST::Stmts)
     {
@@ -36,9 +35,6 @@ sub wanted($ast) {
     elsif nqp::istype($ast,QAST::Op) && $ast.op eq 'p6capturelex' {
         wanted($ast.ann('past_block'));
         $ast.annotate('WANTED',1);
-    }
-    else {
-        $ast.annotate('wanted',1);  # XXX to be removed later when no longer necessary
     }
     $ast;
 }

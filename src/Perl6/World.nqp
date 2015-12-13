@@ -799,7 +799,9 @@ class Perl6::World is HLL::World {
                     my &DYNAMIC := self.find_symbol(['&DYNAMIC']);
                     $REPO := &DYNAMIC('$*REPO');
                 }
-                $PROCESS.WHO<$REPO> := self.find_symbol(['CompUnitRepo']).new($arg, :next-repo($REPO));
+                $PROCESS.WHO<$REPO> := self.find_symbol(
+                        ['CompUnit', 'RepositoryRegistry']
+                    ).repository-for-spec($arg, :next-repo($REPO));
             }
         }
         else {
@@ -894,10 +896,10 @@ class Perl6::World is HLL::World {
 
         if $use {
             $DEBUG("Attempting to load '$name'") if $DEBUG;
-            my $module := self.load_module($/, $name, %cp, $*GLOBALish);
+            my $comp_unit := self.load_module($/, $name, %cp, $*GLOBALish);
             $DEBUG("Performing imports for '$name'") if $DEBUG;
-            self.do_import($/, $module, $name, $arglist);
-            self.import_EXPORTHOW($/, $module);
+            self.do_import($/, $comp_unit.handle, $name, $arglist);
+            self.import_EXPORTHOW($/, $comp_unit.handle);
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");
@@ -953,7 +955,7 @@ class Perl6::World is HLL::World {
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $handle := self.find_symbol(['CompUnitRepo']).load_module($module_name, %opts,
+        my $comp_unit := self.find_symbol(['CompUnit', 'RepositoryRegistry']).load_module($module_name, %opts,
             $cur_GLOBALish, :$line);
 
         # During deserialization, ensure that we get this module loaded.
@@ -975,7 +977,7 @@ class Perl6::World is HLL::World {
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
                    :op('callmethod'), :name('load_module'),
-                   QAST::WVal.new( :value(self.find_symbol(['CompUnitRepo'])) ),
+                   QAST::WVal.new( :value(self.find_symbol(['CompUnit', 'RepositoryRegistry'])) ),
                    QAST::SVal.new( :value($module_name) ),
                    $opt_hash,
                    QAST::WVal.new( :value(self.find_symbol(['Any'])) ),
@@ -983,7 +985,7 @@ class Perl6::World is HLL::World {
                 ))));
         }
 
-        return $handle;
+        return $comp_unit;
     }
 
     # Uses the NQP module loader to load Perl6::ModuleLoader, which

@@ -488,7 +488,12 @@ my class array does Iterable is repr('VMArray') {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
+#?if moar
+                nqp::multidimref_i(self, $idxs)
+#?endif
+#?if !moar
                 nqp::atposnd_i(self, $idxs)
+#?endif
             }
             elsif $numind > $numdims {
                 X::TooManyDimensions.new(
@@ -549,7 +554,12 @@ my class array does Iterable is repr('VMArray') {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
                 }
+#?if moar
+                nqp::multidimref_n(self, $idxs)
+#?endif
+#?if !moar
                 nqp::atposnd_n(self, $idxs)
+#?endif
             }
             elsif $numind > $numdims {
                 X::TooManyDimensions.new(
@@ -721,24 +731,19 @@ sub permutations(int $n where $n > 0) {
                 # Find the largest index k such that a[k] < a[k + 1].
                 # If no such index exists, the permutation is the last permutation.
                 my int $k = @!a.end - 1;
-                $k-- until $k < 0 or @!a[$k] < @!a[$k + 1];
-                return IterationEnd if $k < 0;
+                $k-- or return IterationEnd until @!a[$k] < @!a[$k + 1];
+                
                 # Find the largest index l greater than k such that a[k] < a[l].
                 my int $l = @!a.end;
                 $l-- until @!a[$k] < @!a[$l];
                 # use L<https://en.wikipedia.org/wiki/XOR_swap_algorithm>
                 # @!a[$k, $l].=reverse
-                @!a[$k] +^= @!a[$l];
-                @!a[$k] +^= @!a[$l] = @!a[$k] +^ @!a[$l];
-                
+                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k];
+
                 # @!a[$k+1 .. @!a.end].=reverse;
                 $l = $!n;
-                until ++$k >= --$l {
-                    @!a[$k] +^= @!a[$l];
-                    @!a[$k] +^= @!a[$l] = @!a[$k] +^ @!a[$l];
-                }
-                @!a.List;
-            }
+                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k] until ++$k >= --$l;
+                @!a.List;            }
             method count-only { [*] 1 .. $!n }
         }.new(:$n)
     );

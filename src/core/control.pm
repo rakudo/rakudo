@@ -4,6 +4,7 @@ my class X::Multi::NoMatch { ... }
 my class X::NYI { ... }
 my class PseudoStash { ... }
 my class Label { ... }
+class CompUnit::DependencySpecification { ... }
 
 sub THROW(int $type, Mu \arg) {
     my Mu $ex := nqp::newexception();
@@ -215,15 +216,18 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
     $compiled();
 }
+
 multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
     state $p5;
     unless $p5 {
         {
-            require Inline::Perl5;
+            my $compunit := $*REPO.need(CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>));
+            GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
             CATCH {
-                X::Eval::NoSuchLang.new(:$lang).throw;
+                #X::Eval::NoSuchLang.new(:$lang).throw;
+                note $_;
             }
         }
         $p5 = ::("Inline::Perl5").default_perl5;

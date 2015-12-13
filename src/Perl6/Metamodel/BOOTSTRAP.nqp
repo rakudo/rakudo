@@ -75,7 +75,6 @@ my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub CompUnitRepo metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
@@ -85,6 +84,10 @@ my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+#?if moar
+my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+#?endif
 
 # Implement the signature binder.
 # The JVM backend really only uses trial_bind,
@@ -1331,6 +1334,10 @@ BEGIN {
     setup_native_ref_type(IntPosRef, int, 'positional');
     setup_native_ref_type(NumPosRef, num, 'positional');
     setup_native_ref_type(StrPosRef, str, 'positional');
+#?if moar
+    setup_native_ref_type(IntMultidimRef, int, 'multidim');
+    setup_native_ref_type(NumMultidimRef, num, 'multidim');
+#?endif
 
     # class Proxy is Any {
     #    has Mu &!FETCH;
@@ -2796,9 +2803,6 @@ BEGIN {
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
 
-    CompUnitRepo.HOW.add_parent(CompUnitRepo, Any);
-    CompUnitRepo.HOW.compose_repr(CompUnitRepo);
-
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
     Stash.HOW.add_parent(Stash, Hash);
@@ -2837,6 +2841,10 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
+#?if moar
+    Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
+#?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
@@ -2849,7 +2857,6 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
-    Perl6::Metamodel::ClassHOW.add_stash(CompUnitRepo);
 
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
@@ -2957,7 +2964,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
-    EXPORT::DEFAULT.WHO<CompUnitRepo>        := CompUnitRepo;
 }
 EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
 
@@ -2980,7 +2986,13 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 
 # Roles pretend to be narrower than certain types for the purpose
 # of type checking. Also, they pun to classes.
-my %excluded := nqp::hash('ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu);
+my %excluded := nqp::hash(
+    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
+    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
+    'WHICH', Mu, 'WHERE', Mu, 'so', Mu, 'not', Mu,
+    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
+    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
+    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
 Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
     Perl6::Metamodel::ClassHOW, %excluded);
@@ -3191,6 +3203,10 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int_pos_ref', IntPosRef,
     'num_pos_ref', NumPosRef,
     'str_pos_ref', StrPosRef,
+#?if moar
+    'int_multidim_ref', IntMultidimRef,
+    'num_multidim_ref', NumMultidimRef,
+#?endif
 ));
 
 #?if jvm

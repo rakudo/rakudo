@@ -17,6 +17,7 @@ sub block_closure($code) {
 }
 
 sub wanted($ast) {
+    return $ast unless nqp::can($ast,'ann');
     return $ast if $ast.ann('WANTED');  # already marked from here down
     return $ast if $ast.ann('wanted');  # already marked from here down
     if nqp::istype($ast,QAST::Stmt) ||

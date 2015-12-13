@@ -1628,6 +1628,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto rule statement_mod_cond { <...> }
 
     token modifier_expr { <EXPR> }
+    token smexpr { <EXPR> }
 
     rule statement_mod_cond:sym<if>     { <sym><.kok> <modifier_expr> }
     rule statement_mod_cond:sym<unless> { <sym><.kok> <modifier_expr> }
@@ -1637,10 +1638,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto rule statement_mod_loop { <...> }
 
-    rule statement_mod_loop:sym<while> { <sym><.kok> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<until> { <sym><.kok> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<for>   { <sym><.kok> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<given> { <sym><.kok> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<while> { <sym><.kok> <smexpr> }
+    rule statement_mod_loop:sym<until> { <sym><.kok> <smexpr> }
+    rule statement_mod_loop:sym<for>   { <sym><.kok> <smexpr> }
+    rule statement_mod_loop:sym<given> { <sym><.kok> <smexpr> }
 
     ## Terms
 

@@ -357,6 +357,7 @@ my class Problems {
 
     method add_memo($past_node, $message, @extras?, :$type!) {
         my $mnode := $past_node.node;
+        if !nqp::can($mnode,'orig') { note($message); return; }
         my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
         my $key := $message ~ (+@extras ?? "\n" ~ join("\n", @extras) !! "");
         my %cont := %!worrying;
@@ -385,7 +386,7 @@ my class Problems {
         # We didn't die from any Exception, so we print warnings now.
         if +%!worrying {
             my $err := nqp::getstderr();
-            nqp::printfh($err, "WARNINGS:\n");
+            nqp::sayfh($err, "WARNINGS for " ~ $*W.current_file ~ ":");
             my @fails;
             for %!worrying {
                 nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
@@ -886,6 +887,8 @@ class Perl6::Optimizer {
             +%adverbs<optimize> !! 2;
         %!adverbs := %adverbs;
 
+        note("method optimize\n" ~ $past.dump) if $!level >= 4;
+
         $!eliminated_block_contents := QAST::Op.new( :op('die_s'),
             QAST::SVal.new( :value('INTERNAL ERROR: Execution of block eliminated by optimizer') ) );
 
@@ -907,10 +910,10 @@ class Perl6::Optimizer {
         # Visit children.
         if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
-            self.visit_children($block, :resultchild(+@($block) - 1));
+            self.visit_children($block, :resultchild(+@($block) - 1),:void_default);
         }
         else {
-            self.visit_children($block, :resultchild(+@($block) - 1));
+            self.visit_children($block, :resultchild(+@($block) - 1),:void_default);
         }
         
         # Pop block from block stack and get computed block var info.
@@ -1036,10 +1039,14 @@ class Perl6::Optimizer {
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
+        note("method visit_op $!void_context\n" ~ $op.dump) if $!level >= 4;
         # If it's a QAST::Op of type handle, needs some special attention.
         my str $optype := $op.op;
         if $optype eq 'handle' {
             return self.visit_handle($op);
+        }
+        elsif $optype eq 'locallifetime' {
+            return self.visit_children($op,:first);
         }
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
@@ -1319,6 +1326,7 @@ class Perl6::Optimizer {
         # See if we can find the thing we're going to call.
         my $obj;
         my int $found := 0;
+        note("method optimize_call $!void_context\n" ~ $op.dump) if $!level >= 4;
         try {
             $obj := $!symbols.find_lexical($op.name);
             $found := 1;
@@ -1336,17 +1344,16 @@ class Perl6::Optimizer {
                     }
                     nqp::substr($m.orig, $from, $to - $from);
                 }
-		if !$!in_declaration {
-		    if $op.name eq '&infix:<,>' {
-			# keep void setting to distribute sink warnings
-			try self.visit_children($op);
-		    }
-		    elsif $op.node && $!void_context {
-			my str $op_txt := nqp::escape($op.node.Str);
-			my str $expr   := nqp::escape(widen($op.node));
-			$!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
-		    }
-		}
+                if $op.name eq '&infix:<,>' {
+                    # keep void setting to distribute sink warnings
+                    try self.visit_children($op);
+                }
+                elsif $op.node && $!void_context {
+                    my str $op_txt := nqp::escape($op.node.Str);
+                    my str $expr   := nqp::escape(widen($op.node));
+                    note( qq[Useless use of "$op_txt" in expression "$expr" in sink context\n] ~ $op.dump );
+                    $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
+                }
                 # check if all arguments are known at compile time
                 my int $all_args_known := 1;
                 my @args := [];
@@ -1670,6 +1677,7 @@ class Perl6::Optimizer {
     
     # Handles visiting a QAST::Want node.
     method visit_want($want) {
+        note("method visit_want $!void_context\n" ~ $want.dump) if $!level >= 4;
         # Any literal in void context deserves a warning.
         if $!void_context && !$!in_declaration
                 && +@($want) == 3 && $want.node {
@@ -1714,11 +1722,11 @@ class Perl6::Optimizer {
     method visit_var($var) {
         # Track usage.
         my str $scope := $var.scope;
+        my str $decl := $var.decl;
         if $scope eq 'attribute' || $scope eq 'attributeref' || $scope eq 'positional' || $scope eq 'associative' {
             self.visit_children($var);
         } else {
             my int $top := nqp::elems(@!block_var_stack) - 1;
-            my $decl    := $var.decl;
             if $decl {
                 @!block_var_stack[$top].add_decl($var);
                 if $decl eq 'param' {
@@ -1737,7 +1745,7 @@ class Perl6::Optimizer {
         }
 
         # Warn about usage of variable in void context.
-        if $!void_context && !$!in_declaration && $var.name && !$var.ann('sink_ok') {
+        if $!void_context && !$decl && $var.name && !$var.ann('sink_ok') {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
@@ -1750,7 +1758,7 @@ class Perl6::Optimizer {
                     ?? "Useless use of unnamed $sigil variable in sink context"
                     !! "Useless use of variable $name in sink context"
                 );
-                return $NULL;
+                return $NULL unless $!in_declaration;  # XXX shouldn't need this
             }
         }
 
@@ -1772,6 +1780,10 @@ class Perl6::Optimizer {
         
         # Initial analysis.
         for @($op) {
+            if !nqp::can($_,'flat') {
+                note("Weird node in analyze: " ~ $_.HOW.name($_));
+                return [];
+            }
             # Can't cope with flattening or named.
             if $_.flat || $_.named ne '' {
                 return [];
@@ -1865,7 +1877,7 @@ class Perl6::Optimizer {
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
-    method visit_children($node, :$skip_selectors, :$resultchild, :$first) {
+    method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default) {
         my int $r := $resultchild // -1;
         my int $i := 0;
         my int $n := +@($node);
@@ -1873,9 +1885,20 @@ class Perl6::Optimizer {
             my int $outer_void := $!void_context;
             my int $outer_decl := $!in_declaration;
             unless $skip_selectors && $i % 2 {
-                $!void_context   := $outer_void || ($r != -1 && $i != $r);
+                $!void_context   := $void_default && ($outer_void || ($r != -1 && $i != $r));
                 $!in_declaration := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
                 my $visit := $node[$i];
+                if nqp::can($visit,'ann') {
+                    if $visit.ann('WANTED') { $!void_context := 0 }
+                    elsif $visit.ann('context') eq 'sink' { $!void_context := 1 }
+                    elsif $visit.ann('final') {
+                        note("Undecided final " ~ $node.HOW.name($node)) if $!level >= 4;
+                        $!void_context := 0;  # assume wanted
+                    }
+                }
+                else {
+                    note("Non-QAST node visited " ~ $visit.HOW.name($visit));
+                }
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
                 }
@@ -1889,13 +1912,15 @@ class Perl6::Optimizer {
                     $node[$i] := self.visit_block($visit);
                 }
                 elsif nqp::istype($visit, QAST::Stmts) && nqp::elems($visit.list) == 1 && !$visit.named {
-                    self.visit_children($visit);
+                    self.visit_children($visit,:void_default);
                     $node[$i] := $visit[0];
                 }
                 elsif nqp::istype($visit, QAST::Stmt) || nqp::istype($visit, QAST::Stmts) {
                     my int $resultchild := $visit.resultchild // +@($visit) - 1;
                     if $resultchild >= 0 {
-                        self.visit_children($visit, :$resultchild);
+                        self.visit_children($visit, :$resultchild,:void_default);
+                        if !nqp::can($visit,'returns') { note("Child can't returns! " ~ $visit.HOW.name($visit)); next }
+                        if !nqp::can($visit[$resultchild],'returns') { note("Resultchild $resultchild can't returns! " ~ $visit[$resultchild].HOW.name($visit[$resultchild]) ~ "\n" ~ $node.dump); next; }
                         $visit.returns($visit[$resultchild].returns);
                         if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
                             if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
@@ -1915,11 +1940,21 @@ class Perl6::Optimizer {
                         self.poison_var_lowering();
                     }
                 }
+                elsif nqp::istype($visit, QAST::ParamTypeCheck) ||
+                      nqp::istype($visit, QAST::SVal) ||
+                      nqp::istype($visit, QAST::IVal) ||
+                      nqp::istype($visit, QAST::NVal) ||
+                      nqp::istype($visit, QAST::VM)
+                { }
+                else {
+                    note("Weird node visited: " ~ $visit.HOW.name($visit));
+                }
             }
             $i               := $first ?? $n !! $i + 1;
             $!void_context   := $outer_void;
             $!in_declaration := $outer_decl;
         }
+        $node;
     }
 
     # Inlines an immediate block.

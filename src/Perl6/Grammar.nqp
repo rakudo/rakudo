@@ -2805,7 +2805,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
             if $*PRECEDING_DECL_LINE < $line_no {
                 $*PRECEDING_DECL_LINE := $line_no;
-                my $par_type := $*W.find_symbol(['Parameter']);
+                my $par_type := $*W.find_symbol(['Parameter'], :setting-only);
                 $*PRECEDING_DECL := nqp::create($par_type); # actual declarand comes later, in World::create_parameter
             }
         }

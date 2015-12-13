@@ -1601,7 +1601,7 @@ class Perl6::World is HLL::World {
     # Creates a parameter object.
     method create_parameter($/, %param_info) {
         # Create parameter object now.
-        my $par_type  := self.find_symbol(['Parameter']);
+        my $par_type  := self.find_symbol(['Parameter'], :setting-only);
         my $parameter := nqp::create($par_type);
         self.add_object($parameter);
 
@@ -1818,7 +1818,7 @@ class Perl6::World is HLL::World {
             # If it's natively typed and we got "is rw" set, need to mark the
             # container as being a lexical ref.
             if $varname && nqp::objprimspec($_<nominal_type>) {
-                my $param_type := self.find_symbol(['Parameter']);
+                my $param_type := self.find_symbol(['Parameter'], :setting-only);
                 my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
                 if $flags +& $SIG_ELEM_IS_RW {
                     for @($lexpad[0]) {
@@ -1849,7 +1849,7 @@ class Perl6::World is HLL::World {
     # Creates a signature object from a set of parameters.
     method create_signature(%signature_info) {
         # Create signature object now.
-        my $sig_type   := self.find_symbol(['Signature']);
+        my $sig_type   := self.find_symbol(['Signature'], :setting-only);
         my $signature  := nqp::create($sig_type);
         my @parameters := %signature_info<parameter_objects>;
         self.add_object($signature);
@@ -1861,7 +1861,7 @@ class Perl6::World is HLL::World {
         }
 
         # Compute arity and count.
-        my $p_type    := self.find_symbol(['Parameter']);
+        my $p_type    := self.find_symbol(['Parameter'], :setting-only);
         my int $arity := 0;
         my int $count := 0;
         my int $i     := 0;
@@ -1926,7 +1926,7 @@ class Perl6::World is HLL::World {
 
     # Stubs a code object of the specified type.
     method stub_code_object($type) {
-        my $type_obj := self.find_symbol([$type]);
+        my $type_obj := self.find_symbol([$type], :setting-only);
         my $code     := nqp::create($type_obj);
         @!CODES[+@!CODES] := $code;
         self.add_object($code);
@@ -1936,8 +1936,8 @@ class Perl6::World is HLL::World {
     # Attaches a signature to a code object, and gives the
     # signature its backlink to the code object.
     method attach_signature($code, $signature) {
-        my $code_type := self.find_symbol(['Code']);
-        my $sig_type := self.find_symbol(['Signature']);
+        my $code_type := self.find_symbol(['Code'], :setting-only);
+        my $sig_type := self.find_symbol(['Signature'], :setting-only);
         nqp::bindattr($code, $code_type, '$!signature', $signature);
         nqp::bindattr($signature, $sig_type, '$!code', $code);
     }
@@ -1956,8 +1956,8 @@ class Perl6::World is HLL::World {
         @!CODES.pop();
 
         # Locate various interesting symbols.
-        my $code_type    := self.find_symbol(['Code']);
-        my $routine_type := self.find_symbol(['Routine']);
+        my $code_type    := self.find_symbol(['Code'], :setting-only);
+        my $routine_type := self.find_symbol(['Routine'], :setting-only);
 
         # Attach code object to QAST node.
         $code_past.annotate('code_object', $code);
@@ -2131,7 +2131,7 @@ class Perl6::World is HLL::World {
 
     # Adds any extra code needing for handling phasers.
     method add_phasers_handling_code($code, $code_past) {
-        my $block_type := self.find_symbol(['Block']);
+        my $block_type := self.find_symbol(['Block'], :setting-only);
         if nqp::istype($code, $block_type) {
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
             unless nqp::isnull(%phasers) {
@@ -2519,7 +2519,7 @@ class Perl6::World is HLL::World {
                 while nqp::istype($inspect, QAST::Op) {
                     $inspect := $inspect[0];
                 }
-                if nqp::istype($inspect, QAST::WVal) && !nqp::istype($inspect.value, self.find_symbol(["Block"])) {
+                if nqp::istype($inspect, QAST::WVal) && !nqp::istype($inspect.value, self.find_symbol(["Block"], :setting-only)) {
                     $/.CURSOR.panic($mkerr());
                 }
                 else {
@@ -2666,7 +2666,7 @@ class Perl6::World is HLL::World {
         # Compile it immediately (we always compile role bodies as
         # early as possible, but then assume they don't need to be
         # re-compiled and re-fixed up at startup).
-        self.compile_in_context($past, self.find_symbol(['Code']));
+        self.compile_in_context($past, self.find_symbol(['Code'], :setting-only));
     }
 
     # Adds a possible role to a role group.
@@ -2977,7 +2977,7 @@ class Perl6::World is HLL::World {
                     $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
                 }
                 nqp::push(
-                    nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
+                    nqp::getattr($block.signature, self.find_symbol(['Signature'], :setting-only), '$!params'),
                     self.create_parameter($/, hash(
                             variable_name => '$_', is_raw => 1,
                             nominal_type => self.find_symbol(['Mu'])
@@ -3408,7 +3408,7 @@ class Perl6::World is HLL::World {
         my $result := 0;
         try {
             my $maybe_regex := self.find_symbol([$name]);
-            $result := nqp::istype($maybe_regex, self.find_symbol(['Regex']));
+            $result := nqp::istype($maybe_regex, self.find_symbol(['Regex'], :setting-only));
         }
         $result
     }
@@ -3447,11 +3447,16 @@ class Perl6::World is HLL::World {
             return $*GLOBALish;
         }
 
+        # Work out where to start searching.
+        my int $start_scope := $setting-only
+            ?? ($*COMPILING_CORE_SETTING ?? 2 !! 1)
+            !! nqp::elems(@!BLOCKS);
+
         # If it's a single-part name, look through the lexical
         # scopes.
         if +@name == 1 {
             my $final_name := @name[0];
-            my int $i := $setting-only ?? 1 !! +@!BLOCKS;
+            my int $i := $start_scope;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($final_name);
@@ -3467,7 +3472,7 @@ class Perl6::World is HLL::World {
         my $result := $*GLOBALish;
         if +@name >= 2 {
             my $first := @name[0];
-            my int $i := $setting-only ?? 1 !! +@!BLOCKS;
+            my int $i := $start_scope;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($first);

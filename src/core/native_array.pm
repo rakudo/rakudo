@@ -743,7 +743,8 @@ sub permutations(int $n where $n > 0) {
                 # @!a[$k+1 .. @!a.end].=reverse;
                 $l = $!n;
                 (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k] until ++$k >= --$l;
-                @!a.List;            }
+                @!a.List;
+            }
             method count-only { [*] 1 .. $!n }
         }.new(:$n)
     );

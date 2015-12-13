@@ -988,7 +988,7 @@ my class Supply {
                     emit val;
                     $todo = $todo - 1;
                 }
-                last if $todo <= 0;  # nothing left to do
+                done if $todo <= 0;  # nothing left to do
             }
         }
     }

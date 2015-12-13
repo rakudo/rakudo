@@ -83,6 +83,9 @@ my class Failure is Nil {
     method FALLBACK(Failure:D: *@) {
         self!throw()
     }
+    method STORE(Failure:D: *@) {
+        self!throw()
+    }
 }
 
 proto sub fail(|) {*};

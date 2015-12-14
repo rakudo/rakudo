@@ -505,7 +505,7 @@ Please refactor this code using the new Iterator / Seq interface.
                 my $acc_name := substr($name,2);
                 nqp::getattr($cloned, $package, $name) =
                   nqp::decont(%twiddles{$acc_name})
-                  if $attr.has-accessor && %twiddles.EXISTS-KEY($acc_name);
+                  if $attr.has_accessor && %twiddles.EXISTS-KEY($acc_name);
             }
         }
         else {
@@ -526,7 +526,7 @@ Please refactor this code using the new Iterator / Seq interface.
     method Capture() {
         my %attrs;
         for self.^attributes.flat -> $attr {
-            if $attr.has-accessor {
+            if $attr.has_accessor {
                 my $name = substr($attr.name,2);
                 unless %attrs.EXISTS-KEY($name) {
                     %attrs{$name} = self."$name"();

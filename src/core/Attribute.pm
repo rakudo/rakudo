@@ -110,7 +110,6 @@ my class Attribute { # declared in BOOTSTRAP
     }
 
     method container() is raw { nqp::isnull($!auto_viv_container) ?? Nil !! $!auto_viv_container }
-    method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }
     method package() { $!package }
     method inlined() { $!inlined }

@@ -28,7 +28,6 @@ my class BOOTSTRAPATTR {
     method package() { $!package }
     method inlined() { $!inlined }
     method has_accessor() { 0 }
-    method has-accessor() { 0 }
     method positional_delegate() { 0 }
     method associative_delegate() { 0 }
     method build() { }

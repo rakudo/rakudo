@@ -887,7 +887,7 @@ class Perl6::Optimizer {
             +%adverbs<optimize> !! 2;
         %!adverbs := %adverbs;
 
-        note("method optimize\n" ~ $past.dump) if $!level >= 4;
+        note("method optimize before\n" ~ $past.dump) if $!level >= 4;
 
         $!eliminated_block_contents := QAST::Op.new( :op('die_s'),
             QAST::SVal.new( :value('INTERNAL ERROR: Execution of block eliminated by optimizer') ) );
@@ -897,6 +897,8 @@ class Perl6::Optimizer {
 
         # Report any discovered problems.
         $!problems.report();
+
+        note("method optimize after\n" ~ $past.dump) if $!level >= 4;
 
         $past
     }

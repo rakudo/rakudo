@@ -19,6 +19,9 @@ sub block_closure($code) {
 sub wanted($ast) {
     return $ast unless nqp::can($ast,'ann');
     return $ast if $ast.ann('WANTED');  # already marked from here down
+    $*W.throw($/, 'X::Comp::AdHoc',
+        payload => "Oops, already sunk node is now wanted!?!")
+            if $ast.ann('context');
     if nqp::istype($ast,QAST::Stmt) ||
        nqp::istype($ast,QAST::Stmts)
     {
@@ -43,6 +46,30 @@ sub WANTED($ast) {
     if nqp::isconcrete($ast) {
         wanted($ast);
         $ast.annotate('WANTED',1);  # force in case it's just a thunk
+    }
+    $ast;
+}
+
+sub unwanted($ast) {
+    return $ast unless nqp::can($ast,'ann');
+    return $ast if $ast.ann('WANTED');  # already marked from here down
+    return $ast if $ast.ann('context');
+    if nqp::istype($ast,QAST::Stmt) ||
+       nqp::istype($ast,QAST::Stmts)
+    {
+        unwanted($ast[+@($ast) - 1]) if +@($ast) > 0;
+        $ast.annotate('context','sink');
+    }
+    elsif nqp::istype($ast,QAST::Block) {
+        if +@($ast) > 1 {
+            my $last := $ast[+@($ast) - 1];
+            WANTED($last);
+        }
+        $ast.annotate('context','sink');
+    }
+    elsif nqp::istype($ast,QAST::Op) && $ast.op eq 'p6capturelex' {
+        unwanted($ast.ann('past_block'));
+        $ast.annotate('context','sink');
     }
     $ast;
 }
@@ -397,7 +424,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless $*NEED_RESULT {
             # Evaluate last statement in sink context, by pushing another
             # statement after it, unless we need the result.
-            $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            unwanted($mainline).push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
         fatalize($mainline) if %*PRAGMAS<fatal>;
 
@@ -875,7 +902,10 @@ Compilation unit '$file' contained the following violations:
             $past.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
         else {
-            my $pl := $past[+@($past) - 1];
+            my $e := +@($past) - 1;
+            my $i := 0;
+            while $i < $e { unwanted($past[$i]); ++$i; }
+            my $pl := $past[$e];
             $pl.annotate('final', 1);
             $past.returns($pl.returns);
         }
@@ -1368,11 +1398,11 @@ Compilation unit '$file' contained the following violations:
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($<block>.ast);
         if $<e3> {
-            $loop.push(sink($<e3>.ast));
+            $loop.push(unwanted($<e3>.ast));
         }
         $loop := tweak_loop($loop);
         if $<e1> {
-            $loop := QAST::Stmts.new( $<e1>.ast, $loop, :node($/) );
+            $loop := QAST::Stmts.new( unwanted($<e1>.ast), $loop, :node($/) );
         }
         make $loop;
     }

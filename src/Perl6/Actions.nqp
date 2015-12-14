@@ -74,13 +74,18 @@ sub unwanted($ast) {
     }
     elsif nqp::istype($ast,QAST::Block) {
         if +@($ast) > 1 {
-            $ast[$e] := WANTED($ast[$e]);
+            $ast[$e] := UNWANTED($ast[$e]);
         }
         $ast.annotate('context','sink');
     }
-    elsif nqp::istype($ast,QAST::Op) && $ast.op eq 'p6capturelex' {
-        $ast.annotate('past_block', unwanted($ast.ann('past_block')));
-        $ast.annotate('context','sink');
+    elsif nqp::istype($ast,QAST::Op) {
+        if $ast.op eq 'p6capturelex' {
+            $ast.annotate('past_block', unwanted($ast.ann('past_block')));
+            $ast.annotate('context','sink');
+        }
+        elsif $ast.op eq 'while' {
+            $ast[1] := UNWANTED($ast[1]);
+        }
     }
     $ast;
 }
@@ -263,17 +268,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'call',         1,
             'callmethod',   1,
             'if',           1,
-            'while',        1,
+            'while',        2,
             'unless',       1,
-            'until',        1,
-            'repeat_until', 1,
-            'repeat_while', 1,
+            'until',        2,
+            'repeat_until', 2,
+            'repeat_while', 2,
             'handle',       1,
             'hllize',       1,
     );
     sub autosink($past) {
         nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past.ann('nosink')
-            ?? sink($past)
+            ?? (%sinkable{$past.op} == 2 && $*statement_level ?? sink(UNWANTED($past)) !! sink($past))
             !! $past;
     }
 
